@@ -17,6 +17,11 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheManagerConfiguration;
+import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
+import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.internal.serialization.CompactJavaSerializer;
+import org.ehcache.internal.serialization.JavaSerializer;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -24,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.nullValue;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -45,6 +51,32 @@ public class CacheManagerBuilderTest {
 
     assertThat(cacheManager, nullValue());
     assertThat(counter.get(), is(1));
+  }
+
+  @Test
+  public void testCanOverrideCopierInConfig() {
+    CacheManagerBuilder<CacheManager> managerBuilder = newCacheManagerBuilder()
+        .withCopier(Long.class, (Class) IdentityCopier.class);
+    assertNotNull(managerBuilder.withCopier(Long.class, (Class) SerializingCopier.class));
+  }
+
+  @Test
+  public void testCanOverrideSerializerConfig() {
+    CacheManagerBuilder managerBuilder = newCacheManagerBuilder()
+        .withSerializer(String.class, (Class) JavaSerializer.class);
+    assertNotNull(managerBuilder.withSerializer(String.class, (Class) CompactJavaSerializer.class));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testDuplicateServiceCreationConfigurationFails() {
+    newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
+        .using(new DefaultCopyProviderConfiguration());
+  }
+
+  @Test
+  public void testDuplicateServiceCreationConfigurationOkWhenExplicit() {
+    assertNotNull(newCacheManagerBuilder().using(new DefaultCopyProviderConfiguration())
+        .replacing(new DefaultCopyProviderConfiguration()));
   }
 
 }

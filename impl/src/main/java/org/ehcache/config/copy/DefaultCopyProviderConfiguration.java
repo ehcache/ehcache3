@@ -26,19 +26,56 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  */
 public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Class<?>, Copier<?>> implements ServiceCreationConfiguration<CopyProvider> {
 
+  public DefaultCopyProviderConfiguration() {
+    // Default constructor
+  }
+
+  public DefaultCopyProviderConfiguration(DefaultCopyProviderConfiguration other) {
+    getDefaults().putAll(other.getDefaults());
+  }
+
   @Override
   public Class<CopyProvider> getServiceType() {
     return CopyProvider.class;
   }
 
+  /**
+   * Adds a new {@code Class} - {@link Copier} pair to this configuration object
+   *
+   * @param clazz the {@code Class} for which this copier is
+   * @param copierClass the {@link Copier} type to use
+   * @param <T> the type of objects the copier will deal with
+   *
+   * @return this configuration instance
+   *
+   * @throws NullPointerException if any argument is null
+   * @throws IllegalArgumentException in a case a mapping for {@code clazz} already exists
+   */
   public <T> DefaultCopyProviderConfiguration addCopierFor(Class<T> clazz, Class<? extends Copier<T>> copierClass) {
+    return addCopierFor(clazz, copierClass, false);
+  }
+
+  /**
+   * Adds a new {@code Class} - {@link Copier} pair to this configuration object
+   *
+   * @param clazz the {@code Class} for which this copier is
+   * @param copierClass the {@link Copier} type to use
+   * @param overwrite indicates if an existing mapping is to be overwritten
+   * @param <T> the type of objects the copier will deal with
+   *
+   * @return this configuration instance
+   *
+   * @throws NullPointerException if any argument is null
+   * @throws IllegalArgumentException in a case a mapping for {@code clazz} already exists and {@code overwrite} is {@code false}
+   */
+  public <T> DefaultCopyProviderConfiguration addCopierFor(Class<T> clazz, Class<? extends Copier<T>> copierClass, boolean overwrite) {
     if (clazz == null) {
       throw new NullPointerException("Copy target class cannot be null");
     }
     if (copierClass == null) {
       throw new NullPointerException("Copier class cannot be null");
     }
-    if (getDefaults().containsKey(clazz)) {
+    if (!overwrite && getDefaults().containsKey(clazz)) {
       throw new IllegalArgumentException("Duplicate copier for class : " + clazz);
     }
     getDefaults().put(clazz, new DefaultCopierConfiguration(copierClass));

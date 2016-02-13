@@ -22,6 +22,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourcePoolsHelper;
+import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheEventDispatcherFactory;
@@ -46,12 +47,14 @@ import org.mockito.Mockito;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -121,6 +124,27 @@ public class EhcacheManagerTest {
     } catch (StateTransitionException e) {
       assertTrue(e.getMessage().contains(NoSuchService.class.getName()));
       assertTrue(e.getCause().getMessage().contains(NoSuchService.class.getName()));
+    }
+  }
+
+  @Test
+  public void testCreationFailsOnDuplicateServiceCreationConfiguration() {
+    DefaultConfiguration config = new DefaultConfiguration(Collections.<String, CacheConfiguration<?, ?>>emptyMap(), null, new ServiceCreationConfiguration<NoSuchService>() {
+      @Override
+      public Class<NoSuchService> getServiceType() {
+        return NoSuchService.class;
+      }
+    }, new ServiceCreationConfiguration<NoSuchService>() {
+      @Override
+      public Class<NoSuchService> getServiceType() {
+        return NoSuchService.class;
+      }
+    });
+    try {
+      new EhcacheManager(config);
+      fail("Should have thrown ...");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("NoSuchService"));
     }
   }
   

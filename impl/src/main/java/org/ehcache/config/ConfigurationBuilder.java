@@ -83,6 +83,10 @@ public class ConfigurationBuilder implements Builder<Configuration> {
   }
 
   public ConfigurationBuilder addService(ServiceCreationConfiguration<?> serviceConfiguration) {
+    if (findServiceByClass(serviceConfiguration.getClass()) != null) {
+      throw new IllegalArgumentException("There is already a ServiceCreationConfiguration registered for service " + serviceConfiguration
+          .getServiceType() + " of type " + serviceConfiguration.getClass());
+    }
     List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
     newServiceConfigurations.add(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
