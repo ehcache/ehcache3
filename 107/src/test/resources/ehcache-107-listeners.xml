@@ -39,7 +39,7 @@
         <events-to-fire-on>CREATED</events-to-fire-on>
       </listener>
     </listeners>
-    <heap size="2000" unit="entries"/>
+    <heap unit="entries">2000</heap>
   </cache-template>
 
 </config>

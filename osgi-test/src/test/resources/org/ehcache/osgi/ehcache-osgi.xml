@@ -36,6 +36,6 @@
   <ehcache:cache alias="bar">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>org.ehcache.osgi.Person</ehcache:value-type>
-    <ehcache:heap size="10"/>
+    <ehcache:heap>10</ehcache:heap>
   </ehcache:cache>
 </ehcache:config>

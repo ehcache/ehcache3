@@ -21,7 +21,7 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
-import org.ehcache.config.xml.model.CacheIntegrationType;
+import org.ehcache.config.xml.model.CacheLoaderWriterType;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
@@ -32,7 +32,8 @@ import org.ehcache.config.xml.model.EventOrderingType;
 import org.ehcache.config.xml.model.EventType;
 import org.ehcache.config.xml.model.ExpiryType;
 import org.ehcache.config.xml.model.ListenersType;
-import org.ehcache.config.xml.model.PersistableResourceType;
+import org.ehcache.config.xml.model.MemoryType;
+import org.ehcache.config.xml.model.PersistableMemoryType;
 import org.ehcache.config.xml.model.PersistenceType;
 import org.ehcache.config.xml.model.ResourceType;
 import org.ehcache.config.xml.model.ResourcesType;
@@ -158,8 +159,8 @@ class ConfigurationParser {
     return config.getThreadPools();
   }
 
-  public SizeofType getSizeOfengine() {
-    return config.getDefaultSizeofEngine();
+  public SizeofType getHeapStore() {
+    return config.getHeapStore();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -285,8 +286,7 @@ class ConfigurationParser {
           public String loaderWriter() {
             String configClass = null;
             for (BaseCacheType source : sources) {
-              final CacheIntegrationType integration = source.getIntegration();
-              final CacheIntegrationType.LoaderWriter loaderWriter = integration != null ? integration.getLoaderWriter() : null;
+              final CacheLoaderWriterType loaderWriter = source.getLoaderWriter();
               if (loaderWriter != null) {
                 configClass = loaderWriter.getClazz();
                 break;
@@ -329,26 +329,26 @@ class ConfigurationParser {
             for (BaseCacheType source : sources) {
               ResourceType directHeapResource = source.getHeap();
               if (directHeapResource != null) {
-                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize()
+                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getValue()
                     .longValue(), parseUnit(directHeapResource), false));
               } else {
                 ResourcesType resources = source.getResources();
                 if (resources != null) {
                   ResourceType heapResource = resources.getHeap();
                   if (heapResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize()
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getValue()
                         .longValue(), parseUnit(heapResource), false));
                   }
-                  ResourceType offheapResource = resources.getOffheap();
+                  MemoryType offheapResource = resources.getOffheap();
                   if (offheapResource != null) {
                     resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource
-                        .getSize()
-                        .longValue(), parseUnit(offheapResource), false));
+                        .getValue()
+                        .longValue(), parseMemory(offheapResource), false));
                   }
-                  PersistableResourceType diskResource = resources.getDisk();
+                  PersistableMemoryType diskResource = resources.getDisk();
                   if (diskResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize()
-                        .longValue(), parseUnit(diskResource), diskResource.isPersistent()));
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getValue()
+                        .longValue(), parseMemory(diskResource), diskResource.isPersistent()));
                   }
                 }
               }
@@ -359,8 +359,8 @@ class ConfigurationParser {
           @Override
           public WriteBehind writeBehind() {
             for (BaseCacheType source : sources) {
-              final CacheIntegrationType integration = source.getIntegration();
-              final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind() : null;
+              final CacheLoaderWriterType loaderWriter = source.getLoaderWriter();
+              final CacheLoaderWriterType.WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind() : null;
               if (writebehind != null) {
                 return new XmlWriteBehind(writebehind);
               }
@@ -383,10 +383,10 @@ class ConfigurationParser {
           }
 
           @Override
-          public SizeOfEngineLimits sizeOfEngineLimits() {
+          public SizeOfEngineLimits heapStoreSettings() {
             SizeofType sizeofType = null;
             for (BaseCacheType source : sources) {
-              sizeofType = source.getSizeofEngine();
+              sizeofType = source.getHeapStoreSettings();
               if (sizeofType != null) break;
             }
             return sizeofType != null ? new XmlSizeOfEngineLimits(sizeofType) : null;
@@ -498,8 +498,7 @@ class ConfigurationParser {
 
           @Override
           public String loaderWriter() {
-            final CacheIntegrationType integration = cacheTemplate.getIntegration();
-            final CacheIntegrationType.LoaderWriter loaderWriter = integration != null ? integration.getLoaderWriter(): null;
+            final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
             return loaderWriter != null ? loaderWriter.getClazz() : null;
           }
 
@@ -519,21 +518,21 @@ class ConfigurationParser {
 
             ResourceType directHeapResource = cacheTemplate.getHeap();
             if (directHeapResource != null) {
-              resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize().longValue(), parseUnit(directHeapResource), false));
+              resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getValue().longValue(), parseUnit(directHeapResource), false));
             } else {
               ResourcesType resources = cacheTemplate.getResources();
               if (resources != null) {
                 ResourceType heapResource = resources.getHeap();
                 if (heapResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource), false));
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getValue().longValue(), parseUnit(heapResource), false));
                 }
-                ResourceType offheapResource = resources.getOffheap();
+                MemoryType offheapResource = resources.getOffheap();
                 if (offheapResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource.getSize().longValue(), parseUnit(offheapResource), false));
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource.getValue().longValue(), parseMemory(offheapResource), false));
                 }
-                PersistableResourceType diskResource = resources.getDisk();
+                PersistableMemoryType diskResource = resources.getDisk();
                 if (diskResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource), diskResource.isPersistent()));
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent()));
                 }
               }
             }
@@ -543,8 +542,8 @@ class ConfigurationParser {
 
           @Override
           public WriteBehind writeBehind() {
-            final CacheIntegrationType integration = cacheTemplate.getIntegration();
-            final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind(): null;
+            final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
+            final CacheLoaderWriterType.WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind(): null;
             return writebehind != null ? new XmlWriteBehind(writebehind) : null;
           }
 
@@ -555,8 +554,8 @@ class ConfigurationParser {
           }
 
           @Override
-          public SizeOfEngineLimits sizeOfEngineLimits() {
-            SizeofType type = cacheTemplate.getSizeofEngine();
+          public SizeOfEngineLimits heapStoreSettings() {
+            SizeofType type = cacheTemplate.getHeapStoreSettings();
             return type == null ? null : new XmlSizeOfEngineLimits(type);
           }
         });
@@ -571,6 +570,10 @@ class ConfigurationParser {
     } else {
       return MemoryUnit.valueOf(resourceType.getUnit().value().toUpperCase());
     }
+  }
+
+  private MemoryUnit parseMemory(MemoryType memoryType) {
+    return MemoryUnit.valueOf(memoryType.getUnit().value().toUpperCase());
   }
 
   ServiceCreationConfiguration<?> parseExtension(final Element element) {
@@ -639,7 +642,7 @@ class ConfigurationParser {
 
     DiskStoreSettings diskStoreSettings();
 
-    SizeOfEngineLimits sizeOfEngineLimits();
+    SizeOfEngineLimits heapStoreSettings();
 
   }
 
@@ -858,30 +861,26 @@ class ConfigurationParser {
 
     @Override
     public long getMaxObjectGraphSize() {
-      return sizeoflimits.getMaxObjectGraphSize().longValue();
+      return sizeoflimits.getMaxObjectGraphSize().getValue().longValue();
     }
 
     @Override
     public long getMaxObjectSize() {
-      return sizeoflimits.getMaxObjectSize().longValue();
+      return sizeoflimits.getMaxObjectSize().getValue().longValue();
     }
 
     @Override
     public MemoryUnit getUnit() {
-      if (sizeoflimits.getUnit().value().equalsIgnoreCase("entries")) {
-        throw new IllegalArgumentException("SizeOfEngine cannot be configured with entries.");
-      } else {
-        return MemoryUnit.valueOf(sizeoflimits.getUnit().value().toUpperCase());
-      }
+      return MemoryUnit.valueOf(sizeoflimits.getMaxObjectSize().getUnit().value().toUpperCase());
     }
 
   }
 
   private static class XmlWriteBehind implements WriteBehind {
 
-    private final CacheIntegrationType.WriteBehind writebehind;
+    private final CacheLoaderWriterType.WriteBehind writebehind;
 
-    private XmlWriteBehind(CacheIntegrationType.WriteBehind writebehind) {
+    private XmlWriteBehind(CacheLoaderWriterType.WriteBehind writebehind) {
       this.writebehind = writebehind;
     }
 
@@ -902,7 +901,7 @@ class ConfigurationParser {
 
     @Override
     public Batching batching() {
-      CacheIntegrationType.WriteBehind.Batching batching = writebehind.getBatching();
+      CacheLoaderWriterType.WriteBehind.Batching batching = writebehind.getBatching();
       if (batching == null) {
         return null;
       } else {
@@ -914,9 +913,9 @@ class ConfigurationParser {
 
   private static class XmlBatching implements Batching {
 
-    private final CacheIntegrationType.WriteBehind.Batching batching;
+    private final CacheLoaderWriterType.WriteBehind.Batching batching;
 
-    private XmlBatching(CacheIntegrationType.WriteBehind.Batching batching) {
+    private XmlBatching(CacheLoaderWriterType.WriteBehind.Batching batching) {
       this.batching = batching;
     }
 

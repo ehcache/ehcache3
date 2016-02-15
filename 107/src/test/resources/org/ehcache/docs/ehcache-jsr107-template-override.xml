@@ -19,34 +19,34 @@
     <expiry>
       <ttl unit="minutes">2</ttl>
     </expiry>
-    <heap size="2000" unit="entries"/>
+    <heap unit="entries">2000</heap>
   </cache-template>
 
   <cache-template name="tinyCache">
-    <heap size="20" unit="entries"/>
+    <heap unit="entries">20</heap>
   </cache-template>
 
   <cache-template name="byRefTemplate">
     <key-type copier="org.ehcache.internal.copy.IdentityCopier">java.lang.Long</key-type>
     <value-type copier="org.ehcache.internal.copy.IdentityCopier">java.lang.String</value-type>
-    <heap size="10" unit="entries"/>
+    <heap unit="entries">10</heap>
   </cache-template>
 
   <cache-template name="byValueTemplate">
     <key-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.Long</key-type>
     <value-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.String</value-type>
-    <heap size="10" unit="entries"/>
+    <heap unit="entries">10</heap>
   </cache-template>
 
   <cache-template name="mixedTemplate1">
     <key-type copier="org.ehcache.internal.copy.IdentityCopier">java.lang.Long</key-type>
     <value-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.String</value-type>
-    <heap size="10" unit="entries"/>
+    <heap unit="entries">10</heap>
   </cache-template>
 
   <cache-template name="mixedTemplate2">
     <key-type copier="org.ehcache.internal.copy.SerializingCopier">java.lang.Long</key-type>
     <value-type copier="org.ehcache.internal.copy.IdentityCopier">java.lang.String</value-type>
-    <heap size="10" unit="entries"/>
+    <heap unit="entries">10</heap>
   </cache-template>
 </config>

@@ -29,15 +29,15 @@
   <cache alias="personCache">
     <key-type>java.lang.Long</key-type>
     <value-type>org.ehcache.osgi.Person</value-type>
-    <heap size="10"/>
+    <heap>10</heap>
   </cache>
 
   <cache-template name="stringCache">
     <key-type>java.lang.String</key-type>
     <value-type>Person</value-type>
-    <heap size="2000" unit="entries"/>
+    <heap unit="entries">2000</heap>
   </cache-template>
   <cache-template name="tinyCache">
-    <heap size="20" unit="entries"/>
+    <heap unit="entries">20</heap>
   </cache-template>
 </config>

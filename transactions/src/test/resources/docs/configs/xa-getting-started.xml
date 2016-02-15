@@ -31,7 +31,7 @@
   <cache alias="xaCache"> <!--3-->
     <key-type>java.lang.String</key-type>
     <value-type>java.lang.String</value-type>
-    <heap size="20" unit="entries"/>
+    <heap unit="entries">20</heap>
     <tx:xa-store unique-XAResource-id="xaCache" /> <!--4-->
   </cache>
   <!-- end::gettingStarted[] -->

@@ -211,12 +211,12 @@ public class XmlConfiguration implements Configuration {
       }
       serviceConfigs.add(configuration);
     }
-    if (configurationParser.getSizeOfengine() != null) {
-      if (configurationParser.getSizeOfengine().getUnit().value().equalsIgnoreCase("entries")) {
+    if (configurationParser.getHeapStore() != null) {
+      if (configurationParser.getHeapStore().getMaxObjectSize().getUnit().value().equalsIgnoreCase("entries")) {
         throw new IllegalArgumentException("SizeOfEngine cannot be configured with entries.");
       }
-      SizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(configurationParser.getSizeOfengine().getMaxObjectSize().longValue(),
-        MemoryUnit.valueOf(configurationParser.getSizeOfengine().getUnit().value().toUpperCase()), configurationParser.getSizeOfengine().getMaxObjectGraphSize().longValue());
+      SizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(configurationParser.getHeapStore().getMaxObjectSize().getValue().longValue(),
+        MemoryUnit.valueOf(configurationParser.getHeapStore().getMaxObjectSize().getUnit().value().toUpperCase()), configurationParser.getHeapStore().getMaxObjectGraphSize().getValue().longValue());
       serviceConfigs.add(configuration);
     }
     if (configurationParser.getPersistence() != null) {
@@ -290,9 +290,9 @@ public class XmlConfiguration implements Configuration {
         Class valueCopier = getClassForName(cacheDefinition.valueCopier(), cacheClassLoader);
         builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
       }
-      if (cacheDefinition.sizeOfEngineLimits() != null) {
-        builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheDefinition.sizeOfEngineLimits().getMaxObjectSize(), cacheDefinition.sizeOfEngineLimits().getUnit(),
-            cacheDefinition.sizeOfEngineLimits().getMaxObjectGraphSize()));
+      if (cacheDefinition.heapStoreSettings() != null) {
+        builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheDefinition.heapStoreSettings().getMaxObjectSize(), cacheDefinition.heapStoreSettings().getUnit(),
+            cacheDefinition.heapStoreSettings().getMaxObjectGraphSize()));
       }
       EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
       builder = builder.withEvictionVeto(evictionVeto);
@@ -459,9 +459,9 @@ public class XmlConfiguration implements Configuration {
       final Class<Copier<?>> valueCopier = (Class<Copier<?>>) getClassForName(cacheTemplate.valueCopier(), defaultClassLoader);
       builder = builder.add(new DefaultCopierConfiguration(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     }
-    if (cacheTemplate.sizeOfEngineLimits() != null) {
-      builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheTemplate.sizeOfEngineLimits().getMaxObjectSize(), cacheTemplate.sizeOfEngineLimits().getUnit(),
-        cacheTemplate.sizeOfEngineLimits().getMaxObjectGraphSize()));
+    if (cacheTemplate.heapStoreSettings() != null) {
+      builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheTemplate.heapStoreSettings().getMaxObjectSize(), cacheTemplate.heapStoreSettings().getUnit(),
+        cacheTemplate.heapStoreSettings().getMaxObjectGraphSize()));
     }
     final String loaderWriter = cacheTemplate.loaderWriter();
     if(loaderWriter!= null) {
