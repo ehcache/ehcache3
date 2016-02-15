@@ -21,7 +21,7 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.xml.model.BaseCacheType;
-import org.ehcache.config.xml.model.CacheIntegrationType;
+import org.ehcache.config.xml.model.CacheLoaderWriterType;
 import org.ehcache.config.xml.model.CacheTemplateType;
 import org.ehcache.config.xml.model.CacheType;
 import org.ehcache.config.xml.model.ConfigType;
@@ -286,8 +286,7 @@ class ConfigurationParser {
           public String loaderWriter() {
             String configClass = null;
             for (BaseCacheType source : sources) {
-              final CacheIntegrationType integration = source.getIntegration();
-              final CacheIntegrationType.LoaderWriter loaderWriter = integration != null ? integration.getLoaderWriter() : null;
+              final CacheLoaderWriterType loaderWriter = source.getLoaderWriter();
               if (loaderWriter != null) {
                 configClass = loaderWriter.getClazz();
                 break;
@@ -360,8 +359,8 @@ class ConfigurationParser {
           @Override
           public WriteBehind writeBehind() {
             for (BaseCacheType source : sources) {
-              final CacheIntegrationType integration = source.getIntegration();
-              final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind() : null;
+              final CacheLoaderWriterType loaderWriter = source.getLoaderWriter();
+              final CacheLoaderWriterType.WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind() : null;
               if (writebehind != null) {
                 return new XmlWriteBehind(writebehind);
               }
@@ -499,8 +498,7 @@ class ConfigurationParser {
 
           @Override
           public String loaderWriter() {
-            final CacheIntegrationType integration = cacheTemplate.getIntegration();
-            final CacheIntegrationType.LoaderWriter loaderWriter = integration != null ? integration.getLoaderWriter(): null;
+            final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
             return loaderWriter != null ? loaderWriter.getClazz() : null;
           }
 
@@ -544,8 +542,8 @@ class ConfigurationParser {
 
           @Override
           public WriteBehind writeBehind() {
-            final CacheIntegrationType integration = cacheTemplate.getIntegration();
-            final CacheIntegrationType.WriteBehind writebehind = integration != null ? integration.getWriteBehind(): null;
+            final CacheLoaderWriterType loaderWriter = cacheTemplate.getLoaderWriter();
+            final CacheLoaderWriterType.WriteBehind writebehind = loaderWriter != null ? loaderWriter.getWriteBehind(): null;
             return writebehind != null ? new XmlWriteBehind(writebehind) : null;
           }
 
@@ -880,9 +878,9 @@ class ConfigurationParser {
 
   private static class XmlWriteBehind implements WriteBehind {
 
-    private final CacheIntegrationType.WriteBehind writebehind;
+    private final CacheLoaderWriterType.WriteBehind writebehind;
 
-    private XmlWriteBehind(CacheIntegrationType.WriteBehind writebehind) {
+    private XmlWriteBehind(CacheLoaderWriterType.WriteBehind writebehind) {
       this.writebehind = writebehind;
     }
 
@@ -903,7 +901,7 @@ class ConfigurationParser {
 
     @Override
     public Batching batching() {
-      CacheIntegrationType.WriteBehind.Batching batching = writebehind.getBatching();
+      CacheLoaderWriterType.WriteBehind.Batching batching = writebehind.getBatching();
       if (batching == null) {
         return null;
       } else {
@@ -915,9 +913,9 @@ class ConfigurationParser {
 
   private static class XmlBatching implements Batching {
 
-    private final CacheIntegrationType.WriteBehind.Batching batching;
+    private final CacheLoaderWriterType.WriteBehind.Batching batching;
 
-    private XmlBatching(CacheIntegrationType.WriteBehind.Batching batching) {
+    private XmlBatching(CacheLoaderWriterType.WriteBehind.Batching batching) {
       this.batching = batching;
     }
 

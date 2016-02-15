@@ -245,7 +245,7 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="integration" type="ehcache:cache-integration-type" minOccurs="0" maxOccurs="1">
+      <xs:element name="loader-writer" type="ehcache:cache-loader-writer-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             Configures the Cache as fronting a system of record that it'll be kept in sync with.
@@ -337,23 +337,16 @@
     <xs:attribute name="parallelism-level" type="xs:positiveInteger" use="optional" default="8"/>
   </xs:complexType>
 
-  <xs:complexType name="cache-integration-type">
+  <xs:complexType name="cache-loader-writer-type">
     <xs:sequence>
-      <xs:element name="loader-writer" minOccurs="0" maxOccurs="1">
-        <xs:complexType>
-          <xs:sequence>
-            <xs:element name="class" type="ehcache:fqcn-type" minOccurs="1" maxOccurs="1">
-              <xs:annotation>
-                <xs:documentation xml:lang="en">
-                  A fully qualified class name to a concrete type that implements
-                  org.ehcache.spi.loaderwriter.CacheLoaderWriter and has a public
-                  default no argument constructor.
-                </xs:documentation>
-              </xs:annotation>
-            </xs:element>
-            <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
-          </xs:sequence>
-        </xs:complexType>
+      <xs:element name="class" type="ehcache:fqcn-type" minOccurs="1" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation xml:lang="en">
+            A fully qualified class name to a concrete type that implements
+            org.ehcache.spi.loaderwriter.CacheLoaderWriter and has a public
+            default no argument constructor.
+          </xs:documentation>
+        </xs:annotation>
       </xs:element>
       <xs:element name="write-behind" minOccurs="0" maxOccurs="1">
         <xs:complexType>

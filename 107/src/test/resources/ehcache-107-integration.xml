@@ -21,11 +21,9 @@
 
     <ehcache:eviction-veto>com.pany.ehcache.MyEvictionVeto</ehcache:eviction-veto>
 
-    <ehcache:integration>
-      <ehcache:loader-writer>
-        <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
-      </ehcache:loader-writer>
-    </ehcache:integration>
+    <ehcache:loader-writer>
+      <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
+    </ehcache:loader-writer>
 
     <ehcache:heap unit="entries">200</ehcache:heap>
   </ehcache:cache>
@@ -38,11 +36,9 @@
       <ehcache:ttl unit="days">2</ehcache:ttl>
     </ehcache:expiry>
 
-    <ehcache:integration>
-        <ehcache:loader-writer>
-          <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
-      </ehcache:loader-writer>
-    </ehcache:integration>
+    <ehcache:loader-writer>
+        <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>
+    </ehcache:loader-writer>
 
     <ehcache:heap unit="entries">200</ehcache:heap>
   </ehcache:cache-template>

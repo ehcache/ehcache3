@@ -21,11 +21,9 @@
   <ehcache:cache alias="bar">
     <ehcache:key-type>java.lang.Number</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
-    <ehcache:integration>
-      <ehcache:loader-writer>
-        <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
-      </ehcache:loader-writer>
-    </ehcache:integration>
+    <ehcache:loader-writer>
+      <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
+    </ehcache:loader-writer>
     <ehcache:resources>
       <ehcache:heap>10</ehcache:heap>
     </ehcache:resources>
@@ -34,11 +32,9 @@
   <ehcache:cache-template name="example">
     <ehcache:key-type>java.lang.Number</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
-    <ehcache:integration>
-      <ehcache:loader-writer>
-        <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
-      </ehcache:loader-writer>
-    </ehcache:integration>
+    <ehcache:loader-writer>
+      <ehcache:class>com.pany.ehcache.integration.TestCacheLoaderWriter</ehcache:class>
+    </ehcache:loader-writer>
     <ehcache:resources>
       <ehcache:heap>20</ehcache:heap>
     </ehcache:resources>
