@@ -16,7 +16,8 @@
 
 package org.ehcache.jsr107;
 
-import org.ehcache.config.Jsr107Configuration;
+import org.ehcache.jsr107.config.Jsr107Configuration;
+import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.ServiceProvider;
 
 /**

@@ -25,6 +25,7 @@ import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.internal.copy.SerializingCopier;
+import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.slf4j.Logger;

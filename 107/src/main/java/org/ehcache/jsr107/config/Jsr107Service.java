@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.jsr107;
+package org.ehcache.jsr107.config;
 
 import org.ehcache.spi.service.Service;
 

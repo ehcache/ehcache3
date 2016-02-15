@@ -21,7 +21,7 @@ import com.pany.domain.Product;
 import com.pany.ehcache.integration.ProductCacheLoaderWriter;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.config.Jsr107Configuration;
+import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
