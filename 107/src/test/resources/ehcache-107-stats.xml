@@ -17,22 +17,22 @@
   
   <cache-template name="diskCache">
     <resources>
-      <heap size="10" unit="entries"/>
-      <disk size="10" unit="mb"/>
+      <heap unit="entries">10</heap>
+      <disk unit="mb">10</disk>
     </resources>
   </cache-template>
   
   <cache-template name="offheapCache">
     <resources>
-      <heap size="10" unit="entries"/>
-      <offheap size="10" unit="mb"/>
+      <heap unit="entries">10</heap>
+      <offheap unit="mb">10</offheap>
     </resources>
   </cache-template>
 
   <cache-template name="heapCache">
     <key-type>java.lang.String</key-type>
     <value-type>java.lang.String</value-type>
-    <heap size="10" unit="entries"/>
+    <heap unit="entries">10</heap>
   </cache-template>
 
 </config>

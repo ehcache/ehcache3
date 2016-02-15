@@ -37,8 +37,8 @@
     <ehcache:value-type>           java.lang.Double           
     </ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap size="10" unit="entries"/>
-      <ehcache:offheap size="1" unit="mb"/>
+      <ehcache:heap unit="entries">10</ehcache:heap>
+      <ehcache:offheap unit="mb">1</ehcache:offheap>
     </ehcache:resources>
   </ehcache:cache>
 
@@ -50,8 +50,8 @@
      java.lang.String        
                 </ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap size="10" unit="entries"/>
-      <ehcache:offheap size="1" unit="mb"/>
+      <ehcache:heap unit="entries">10</ehcache:heap>
+      <ehcache:offheap unit="mb">1</ehcache:offheap>
     </ehcache:resources>
   </ehcache:cache>
 </ehcache:config>

@@ -32,7 +32,8 @@ import org.ehcache.config.xml.model.EventOrderingType;
 import org.ehcache.config.xml.model.EventType;
 import org.ehcache.config.xml.model.ExpiryType;
 import org.ehcache.config.xml.model.ListenersType;
-import org.ehcache.config.xml.model.PersistableResourceType;
+import org.ehcache.config.xml.model.MemoryType;
+import org.ehcache.config.xml.model.PersistableMemoryType;
 import org.ehcache.config.xml.model.PersistenceType;
 import org.ehcache.config.xml.model.ResourceType;
 import org.ehcache.config.xml.model.ResourcesType;
@@ -158,8 +159,8 @@ class ConfigurationParser {
     return config.getThreadPools();
   }
 
-  public SizeofType getSizeOfengine() {
-    return config.getDefaultSizeofEngine();
+  public SizeofType getHeapStore() {
+    return config.getHeapStore();
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -329,26 +330,26 @@ class ConfigurationParser {
             for (BaseCacheType source : sources) {
               ResourceType directHeapResource = source.getHeap();
               if (directHeapResource != null) {
-                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize()
+                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getValue()
                     .longValue(), parseUnit(directHeapResource), false));
               } else {
                 ResourcesType resources = source.getResources();
                 if (resources != null) {
                   ResourceType heapResource = resources.getHeap();
                   if (heapResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize()
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getValue()
                         .longValue(), parseUnit(heapResource), false));
                   }
-                  ResourceType offheapResource = resources.getOffheap();
+                  MemoryType offheapResource = resources.getOffheap();
                   if (offheapResource != null) {
                     resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource
-                        .getSize()
-                        .longValue(), parseUnit(offheapResource), false));
+                        .getValue()
+                        .longValue(), parseMemory(offheapResource), false));
                   }
-                  PersistableResourceType diskResource = resources.getDisk();
+                  PersistableMemoryType diskResource = resources.getDisk();
                   if (diskResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize()
-                        .longValue(), parseUnit(diskResource), diskResource.isPersistent()));
+                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getValue()
+                        .longValue(), parseMemory(diskResource), diskResource.isPersistent()));
                   }
                 }
               }
@@ -383,10 +384,10 @@ class ConfigurationParser {
           }
 
           @Override
-          public SizeOfEngineLimits sizeOfEngineLimits() {
+          public SizeOfEngineLimits heapStoreSettings() {
             SizeofType sizeofType = null;
             for (BaseCacheType source : sources) {
-              sizeofType = source.getSizeofEngine();
+              sizeofType = source.getHeapStoreSettings();
               if (sizeofType != null) break;
             }
             return sizeofType != null ? new XmlSizeOfEngineLimits(sizeofType) : null;
@@ -519,21 +520,21 @@ class ConfigurationParser {
 
             ResourceType directHeapResource = cacheTemplate.getHeap();
             if (directHeapResource != null) {
-              resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getSize().longValue(), parseUnit(directHeapResource), false));
+              resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getValue().longValue(), parseUnit(directHeapResource), false));
             } else {
               ResourcesType resources = cacheTemplate.getResources();
               if (resources != null) {
                 ResourceType heapResource = resources.getHeap();
                 if (heapResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getSize().longValue(), parseUnit(heapResource), false));
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getValue().longValue(), parseUnit(heapResource), false));
                 }
-                ResourceType offheapResource = resources.getOffheap();
+                MemoryType offheapResource = resources.getOffheap();
                 if (offheapResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource.getSize().longValue(), parseUnit(offheapResource), false));
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource.getValue().longValue(), parseMemory(offheapResource), false));
                 }
-                PersistableResourceType diskResource = resources.getDisk();
+                PersistableMemoryType diskResource = resources.getDisk();
                 if (diskResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getSize().longValue(), parseUnit(diskResource), diskResource.isPersistent()));
+                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent()));
                 }
               }
             }
@@ -555,8 +556,8 @@ class ConfigurationParser {
           }
 
           @Override
-          public SizeOfEngineLimits sizeOfEngineLimits() {
-            SizeofType type = cacheTemplate.getSizeofEngine();
+          public SizeOfEngineLimits heapStoreSettings() {
+            SizeofType type = cacheTemplate.getHeapStoreSettings();
             return type == null ? null : new XmlSizeOfEngineLimits(type);
           }
         });
@@ -571,6 +572,10 @@ class ConfigurationParser {
     } else {
       return MemoryUnit.valueOf(resourceType.getUnit().value().toUpperCase());
     }
+  }
+
+  private MemoryUnit parseMemory(MemoryType memoryType) {
+    return MemoryUnit.valueOf(memoryType.getUnit().value().toUpperCase());
   }
 
   ServiceCreationConfiguration<?> parseExtension(final Element element) {
@@ -639,7 +644,7 @@ class ConfigurationParser {
 
     DiskStoreSettings diskStoreSettings();
 
-    SizeOfEngineLimits sizeOfEngineLimits();
+    SizeOfEngineLimits heapStoreSettings();
 
   }
 
@@ -858,21 +863,17 @@ class ConfigurationParser {
 
     @Override
     public long getMaxObjectGraphSize() {
-      return sizeoflimits.getMaxObjectGraphSize().longValue();
+      return sizeoflimits.getMaxObjectGraphSize().getValue().longValue();
     }
 
     @Override
     public long getMaxObjectSize() {
-      return sizeoflimits.getMaxObjectSize().longValue();
+      return sizeoflimits.getMaxObjectSize().getValue().longValue();
     }
 
     @Override
     public MemoryUnit getUnit() {
-      if (sizeoflimits.getUnit().value().equalsIgnoreCase("entries")) {
-        throw new IllegalArgumentException("SizeOfEngine cannot be configured with entries.");
-      } else {
-        return MemoryUnit.valueOf(sizeoflimits.getUnit().value().toUpperCase());
-      }
+      return MemoryUnit.valueOf(sizeoflimits.getMaxObjectSize().getUnit().value().toUpperCase());
     }
 
   }

@@ -32,7 +32,7 @@
   <ehcache:cache-template name="bartemplate">
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
     <ehcache:value-type>com.pany.domain.Client</ehcache:value-type>
-    <ehcache:heap size="10"/>
+    <ehcache:heap>10</ehcache:heap>
   </ehcache:cache-template>
 
 </ehcache:config>

@@ -18,7 +18,10 @@
     xmlns:ehcache='http://www.ehcache.org/v3'
     xsi:schemaLocation="http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
 
-  <ehcache:default-sizeof-engine max-object-graph-size="200" max-object-size="100000" unit="b"/>
+  <ehcache:heap-store>
+    <ehcache:max-object-graph-size>200</ehcache:max-object-graph-size>
+    <ehcache:max-object-size unit="b">100000</ehcache:max-object-size>
+  </ehcache:heap-store>
 
   <ehcache:cache alias="usesDefaultSizeOfEngine">
     <ehcache:key-type>      
@@ -28,8 +31,8 @@
     java.lang.String           
     </ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap size="10" unit="kb"/>
-      <ehcache:offheap size="1" unit="mb"/>
+      <ehcache:heap unit="kb">10</ehcache:heap>
+      <ehcache:offheap unit="mb">1</ehcache:offheap>
     </ehcache:resources>
   </ehcache:cache>
 
@@ -40,10 +43,13 @@
     <ehcache:value-type>
      java.lang.String        
     </ehcache:value-type>
-    <ehcache:sizeof-engine max-object-graph-size="500" max-object-size="200000"/>
     <ehcache:resources>
-      <ehcache:heap size="10" unit="kb"/>
-      <ehcache:offheap size="1" unit="mb"/>
+      <ehcache:heap unit="kb">10</ehcache:heap>
+      <ehcache:offheap unit="mb">1</ehcache:offheap>
     </ehcache:resources>
+    <ehcache:heap-store-settings>
+      <ehcache:max-object-graph-size>500</ehcache:max-object-graph-size>
+      <ehcache:max-object-size>200000</ehcache:max-object-size>
+    </ehcache:heap-store-settings>
   </ehcache:cache>
 </ehcache:config>
