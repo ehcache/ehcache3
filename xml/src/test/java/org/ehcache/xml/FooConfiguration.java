@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.xml;
+package org.ehcache.xml;
 
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
- * BarConfiguration
+ *
+ * @author cdennis
  */
-public class BarConfiguration implements ServiceCreationConfiguration<Service> {
+class FooConfiguration implements ServiceConfiguration<Service> {
+
   @Override
   public Class<Service> getServiceType() {
     return Service.class;
   }
+  
 }

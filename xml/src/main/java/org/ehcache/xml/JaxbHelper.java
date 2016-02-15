@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config.xml;
+
+package org.ehcache.xml;
 
 import javax.xml.bind.annotation.XmlElement;
 import java.lang.reflect.Field;

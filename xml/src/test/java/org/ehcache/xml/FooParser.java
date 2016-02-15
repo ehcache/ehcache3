@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.xml;
+package org.ehcache.xml;
 
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.w3c.dom.Element;
 
 import java.io.IOException;
@@ -28,25 +28,27 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 /**
- * BarParser
+ *
+ * @author cdennis
  */
-public class BarParser implements CacheManagerServiceConfigurationParser<Service> {
+public class FooParser implements CacheServiceConfigurationParser<Service> {
 
-  private static final URI NAMESPACE = URI.create("http://www.example.com/bar");
-  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/bar.xsd");
-
+  private static final URI NAMESPACE = URI.create("http://www.example.com/foo");
+  private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/foo.xsd");
+  
   @Override
   public Source getXmlSchema() throws IOException {
     return new StreamSource(XML_SCHEMA.openStream());
   }
 
   @Override
-  public URI getNamespace() {
-    return NAMESPACE;
+  public ServiceConfiguration<Service> parseServiceConfiguration(Element fragment) {
+    return new FooConfiguration();
   }
 
   @Override
-  public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment) {
-    return new BarConfiguration();
+  public URI getNamespace() {
+    return NAMESPACE;
   }
+  
 }

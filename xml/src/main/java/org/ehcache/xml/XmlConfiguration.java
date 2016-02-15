@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.config.xml;
+
+package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
@@ -37,14 +38,14 @@ import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
 import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
-import org.ehcache.config.xml.ConfigurationParser.Batching;
-import org.ehcache.config.xml.ConfigurationParser.WriteBehind;
-import org.ehcache.config.xml.model.CopierType;
-import org.ehcache.config.xml.model.EventType;
-import org.ehcache.config.xml.model.SerializerType;
-import org.ehcache.config.xml.model.ServiceType;
-import org.ehcache.config.xml.model.ThreadPoolReferenceType;
-import org.ehcache.config.xml.model.ThreadPoolsType;
+import org.ehcache.xml.ConfigurationParser.Batching;
+import org.ehcache.xml.ConfigurationParser.WriteBehind;
+import org.ehcache.xml.model.CopierType;
+import org.ehcache.xml.model.EventType;
+import org.ehcache.xml.model.SerializerType;
+import org.ehcache.xml.model.ServiceType;
+import org.ehcache.xml.model.ThreadPoolReferenceType;
+import org.ehcache.xml.model.ThreadPoolsType;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
@@ -143,7 +144,7 @@ public class XmlConfiguration implements Configuration {
    * Constructs an instance of XmlConfiguration mapping to the XML file located at {@code url} and using the provided
    * {@code classLoader} to load user types (e.g. key and value Class instances). The {@code cacheClassLoaders} will
    * let you specify a different {@link java.lang.ClassLoader} to use for each {@link org.ehcache.Cache} managed by
-   * the {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.config.xml.XmlConfiguration}
+   * the {@link org.ehcache.CacheManager} configured using this {@link org.ehcache.xml.XmlConfiguration}
    * <p>
    * Parses the XML file at the {@code url} provided.
    *

@@ -14,33 +14,33 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.xml;
+package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.config.xml.model.BaseCacheType;
-import org.ehcache.config.xml.model.CacheLoaderWriterType;
-import org.ehcache.config.xml.model.CacheTemplateType;
-import org.ehcache.config.xml.model.CacheType;
-import org.ehcache.config.xml.model.ConfigType;
-import org.ehcache.config.xml.model.CopierType;
-import org.ehcache.config.xml.model.DiskStoreSettingsType;
-import org.ehcache.config.xml.model.EventFiringType;
-import org.ehcache.config.xml.model.EventOrderingType;
-import org.ehcache.config.xml.model.EventType;
-import org.ehcache.config.xml.model.ExpiryType;
-import org.ehcache.config.xml.model.ListenersType;
-import org.ehcache.config.xml.model.MemoryType;
-import org.ehcache.config.xml.model.PersistableMemoryType;
-import org.ehcache.config.xml.model.PersistenceType;
-import org.ehcache.config.xml.model.ResourceType;
-import org.ehcache.config.xml.model.ResourcesType;
-import org.ehcache.config.xml.model.SerializerType;
-import org.ehcache.config.xml.model.ServiceType;
-import org.ehcache.config.xml.model.SizeofType;
-import org.ehcache.config.xml.model.TimeType;
+import org.ehcache.xml.model.BaseCacheType;
+import org.ehcache.xml.model.CacheLoaderWriterType;
+import org.ehcache.xml.model.CacheTemplateType;
+import org.ehcache.xml.model.CacheType;
+import org.ehcache.xml.model.ConfigType;
+import org.ehcache.xml.model.CopierType;
+import org.ehcache.xml.model.DiskStoreSettingsType;
+import org.ehcache.xml.model.EventFiringType;
+import org.ehcache.xml.model.EventOrderingType;
+import org.ehcache.xml.model.EventType;
+import org.ehcache.xml.model.ExpiryType;
+import org.ehcache.xml.model.ListenersType;
+import org.ehcache.xml.model.MemoryType;
+import org.ehcache.xml.model.PersistableMemoryType;
+import org.ehcache.xml.model.PersistenceType;
+import org.ehcache.xml.model.ResourceType;
+import org.ehcache.xml.model.ResourcesType;
+import org.ehcache.xml.model.SerializerType;
+import org.ehcache.xml.model.ServiceType;
+import org.ehcache.xml.model.SizeofType;
+import org.ehcache.xml.model.TimeType;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.util.ClassLoading;
@@ -73,8 +73,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.ehcache.config.xml.model.ThreadPoolReferenceType;
-import org.ehcache.config.xml.model.ThreadPoolsType;
+import org.ehcache.xml.model.ThreadPoolReferenceType;
+import org.ehcache.xml.model.ThreadPoolsType;
 
 /**
  * @author Alex Snaps
@@ -118,7 +118,7 @@ class ConfigurationParser {
 
     try {
       Class<ConfigType> configTypeClass = ConfigType.class;
-      JAXBContext jc = JAXBContext.newInstance("org.ehcache.config.xml.model", configTypeClass.getClassLoader());
+      JAXBContext jc = JAXBContext.newInstance("org.ehcache.xml.model", configTypeClass.getClassLoader());
       Unmarshaller u = jc.createUnmarshaller();
       this.config = u.unmarshal(config, configTypeClass).getValue();
     } catch (JAXBException e) {
@@ -961,7 +961,7 @@ class ConfigurationParser {
 
   }
 
-  private static TimeUnit convertToJavaTimeUnit(org.ehcache.config.xml.model.TimeUnit unit) {
+  private static TimeUnit convertToJavaTimeUnit(org.ehcache.xml.model.TimeUnit unit) {
     switch (unit) {
       case NANOS:
         return TimeUnit.NANOSECONDS;

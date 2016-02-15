@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;

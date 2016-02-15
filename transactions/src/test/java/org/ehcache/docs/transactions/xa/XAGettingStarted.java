@@ -28,7 +28,7 @@ import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.transactions.xa.XACacheException;

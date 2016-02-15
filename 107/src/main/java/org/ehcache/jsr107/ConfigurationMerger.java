@@ -22,7 +22,7 @@ import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.ehcache.jsr107.config.Jsr107Service;

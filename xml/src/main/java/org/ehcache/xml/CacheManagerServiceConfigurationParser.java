@@ -14,20 +14,24 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.xml;
+package org.ehcache.xml;
 
-import org.ehcache.spi.service.ServiceConfiguration;
+import java.io.IOException;
+import java.net.URI;
+import javax.xml.transform.Source;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.w3c.dom.Element;
 
 /**
  *
  * @author cdennis
  */
-class FooConfiguration implements ServiceConfiguration<Service> {
-
-  @Override
-  public Class<Service> getServiceType() {
-    return Service.class;
-  }
+public interface CacheManagerServiceConfigurationParser<T extends Service> {
   
+  Source getXmlSchema() throws IOException;
+  
+  URI getNamespace();
+  
+  ServiceCreationConfiguration<T> parseServiceCreationConfiguration(Element fragment);
 }

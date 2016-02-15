@@ -20,7 +20,7 @@ import bitronix.tm.TransactionManagerServices;
 import org.ehcache.CacheManager;
 import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.junit.Test;
 
 import java.net.URL;

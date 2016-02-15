@@ -34,7 +34,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.DefaultConfiguration;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.ServiceLocator;

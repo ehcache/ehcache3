@@ -22,7 +22,7 @@ import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.xml.XmlConfiguration;
+import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.internal.copy.ReadWriteCopier;
 import org.ehcache.internal.copy.SerializingCopier;
 import org.junit.Test;

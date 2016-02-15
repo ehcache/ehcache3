@@ -48,6 +48,6 @@ A `CacheManager` manages `Cache` instances, but also `Service` instances that ca
 
 == Configuration
 
-+org.ehcache.config.CacheConfiguration+, +org.ehcache.spi.service.ServiceConfiguration+, +org.ehcache.config.xml.XmlConfigurationParser+
++org.ehcache.config.CacheConfiguration+, +org.ehcache.spi.service.ServiceConfiguration+, +org.ehcache.xml.XmlConfiguration+
 
 NOTE: For more information on how the configuration is parsed, resolved and services are then bootstrapped, please read the {uri-wiki}/design.bootstrapping#configuration[Bootstrapping design doc].

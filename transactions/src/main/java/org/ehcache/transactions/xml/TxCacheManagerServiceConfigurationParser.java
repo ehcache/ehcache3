@@ -15,7 +15,7 @@
  */
 package org.ehcache.transactions.xml;
 
-import org.ehcache.config.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.transactions.xa.configuration.XAStoreProviderConfiguration;

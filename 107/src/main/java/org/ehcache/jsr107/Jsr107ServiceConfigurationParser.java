@@ -17,7 +17,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.jsr107.config.Jsr107Configuration;
-import org.ehcache.config.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.w3c.dom.Element;

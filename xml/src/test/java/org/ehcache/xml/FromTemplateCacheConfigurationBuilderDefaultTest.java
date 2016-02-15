@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.xml;
+package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.junit.Before;

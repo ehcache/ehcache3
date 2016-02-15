@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.xml;
+package org.ehcache.xml;
 
 import com.pany.ehcache.integration.ThreadRememberingLoaderWriter;
 import com.pany.ehcache.copier.Description;
