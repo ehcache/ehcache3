@@ -21,7 +21,6 @@ import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheEventDispatcherImpl;
 import org.ehcache.events.DisabledCacheEventNotificationService;
-import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ExecutionService;
@@ -30,6 +29,8 @@ import org.ehcache.spi.service.ServiceDependencies;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * {@link CacheEventDispatcher} implementation that shares a single {@link ExecutorService} for unordered firing
@@ -66,7 +67,7 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
     String tPAlias = threadPoolAlias;
-    DefaultCacheEventDispatcherConfiguration config = ServiceLocator.findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, serviceConfigs);
+    DefaultCacheEventDispatcherConfiguration config = findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, serviceConfigs);
     if (config != null) {
       tPAlias = config.getThreadPoolAlias();
     }

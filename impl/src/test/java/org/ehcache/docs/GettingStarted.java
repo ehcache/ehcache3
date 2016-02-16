@@ -38,7 +38,6 @@ import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.copy.ReadWriteCopier;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
@@ -166,8 +165,7 @@ public class GettingStarted {
     CacheConfiguration<Long, String> usesConfiguredInCacheConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10, MemoryUnit.KB) // <1>
-            .offheap(10, MemoryUnit.MB)
-            .build())
+            .offheap(10, MemoryUnit.MB))
         .withSizeOfMaxObjectGraph(1000)
         .withSizeOfMaxObjectSize(1000, MemoryUnit.B) // <2>
         .build();
@@ -175,8 +173,7 @@ public class GettingStarted {
     CacheConfiguration<Long, String> usesDefaultSizeOfEngineConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10, MemoryUnit.KB)
-            .offheap(10, MemoryUnit.MB)
-            .build())
+            .offheap(10, MemoryUnit.MB))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

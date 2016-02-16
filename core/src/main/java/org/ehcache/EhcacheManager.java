@@ -60,6 +60,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -111,7 +112,19 @@ public class EhcacheManager implements PersistentCacheManager {
     this.useLoaderInAtomics = useLoaderInAtomics;
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
     this.configuration = new DefaultConfiguration(config);
+    validateServicesConfigs();
   }
+
+
+  private void validateServicesConfigs() {
+    HashSet<Class> classes = new HashSet<Class>();
+    for (ServiceCreationConfiguration<?> service : configuration.getServiceCreationConfigurations()) {
+      if (!classes.add(service.getServiceType())) {
+        throw new IllegalStateException("Duplicate creation configuration for service " + service.getServiceType());
+      }
+    }
+  }
+
 
   @Override
   public <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType) {

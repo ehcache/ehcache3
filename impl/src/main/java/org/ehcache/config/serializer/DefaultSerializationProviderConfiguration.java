@@ -30,12 +30,48 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
   private final Map<Class<?>, Class<? extends Serializer<?>>> transientSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
   private final Map<Class<?>, Class<? extends Serializer<?>>> persistentSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
 
+  public DefaultSerializationProviderConfiguration() {
+    // Default constructor
+  }
+
+  public DefaultSerializationProviderConfiguration(DefaultSerializationProviderConfiguration other) {
+    transientSerializers.putAll(other.transientSerializers);
+    persistentSerializers.putAll(other.persistentSerializers);
+  }
+
   @Override
   public Class<SerializationProvider> getServiceType() {
     return SerializationProvider.class;
   }
 
+  /**
+   * Adds a new {@link Serializer} mapping for the class {@code serializableClass}
+   *
+   * @param serializableClass the {@code Class} to add the mapping for
+   * @param serializerClass the {@link Serializer} type to use
+   * @param <T> the type of instances to be serialized / deserialized
+   * @return this configuration object
+   *
+   * @throws NullPointerException if any argument is null
+   * @throws IllegalArgumentException if a mapping for {@code serializableClass} already exists
+   */
   public <T> DefaultSerializationProviderConfiguration addSerializerFor(Class<T> serializableClass, Class<? extends Serializer<T>> serializerClass) {
+    return addSerializerFor(serializableClass, serializerClass, false);
+  }
+
+  /**
+   * Adds a new {@link Serializer} mapping for the class {@code serializableClass}
+   *
+   * @param serializableClass the {@code Class} to add the mapping for
+   * @param serializerClass the {@link Serializer} type to use
+   * @param overwrite indicates if an existing mapping is to be overwritten
+   * @param <T> the type of instances to be serialized / deserialized
+   * @return this configuration object
+   *
+   * @throws NullPointerException if any argument is null
+   * @throws IllegalArgumentException if a mapping for {@code serializableClass} already exists and {@code overwrite} is {@code false}
+   */
+  public <T> DefaultSerializationProviderConfiguration addSerializerFor(Class<T> serializableClass, Class<? extends Serializer<T>> serializerClass, boolean overwrite) {
     if (serializableClass == null) {
       throw new NullPointerException("Serializable class cannot be null");
     }
@@ -43,11 +79,11 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
       throw new NullPointerException("Serializer class cannot be null");
     }
     
-    boolean transientConstructorPresent = false;
-    boolean persistentConstructorPresent = false;
+    boolean transientConstructorPresent;
+    boolean persistentConstructorPresent;
     
     if(transientConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class)) {
-      if (transientSerializers.containsKey(serializableClass)) {
+      if (!overwrite && transientSerializers.containsKey(serializableClass)) {
         throw new IllegalArgumentException("Duplicate transient serializer for class : " + serializableClass.getName());
       } else {
         transientSerializers.put(serializableClass, serializerClass);
@@ -55,7 +91,7 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
     }
     
     if(persistentConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class, FileBasedPersistenceContext.class)) {
-      if (persistentSerializers.containsKey(serializableClass)) {
+      if (!overwrite && persistentSerializers.containsKey(serializableClass)) {
         throw new IllegalArgumentException("Duplicate persistent serializer for class : " + serializableClass.getName());
       } else {
         persistentSerializers.put(serializableClass, serializerClass);

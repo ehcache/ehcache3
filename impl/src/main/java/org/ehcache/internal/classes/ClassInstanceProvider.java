@@ -25,11 +25,14 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
+import static org.ehcache.spi.ServiceLocator.findAmongst;
+import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Alex Snaps
@@ -47,8 +50,17 @@ public class ClassInstanceProvider<K, T> {
   protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<T, AtomicInteger>();
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
+  private final boolean uniqueClassLevelConfig;
 
-  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, T> factoryConfig, Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig) {
+  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, T> factoryConfig,
+                                  Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig) {
+    this(factoryConfig, cacheLevelConfig, false);
+  }
+
+  protected ClassInstanceProvider(ClassInstanceProviderConfiguration<K, T> factoryConfig,
+                                  Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig,
+                                  boolean uniqueClassLevelConfig) {
+    this.uniqueClassLevelConfig = uniqueClassLevelConfig;
     if (factoryConfig != null) {
       preconfigured.putAll(factoryConfig.getDefaults());
     }
@@ -61,9 +73,13 @@ public class ClassInstanceProvider<K, T> {
 
   protected T newInstance(K alias, CacheConfiguration<?, ?> cacheConfiguration) {
     ClassInstanceConfiguration<T> config = null;
-    for (ServiceConfiguration<?> serviceConfiguration : cacheConfiguration.getServiceConfigurations()) {
-      if(cacheLevelConfig.isAssignableFrom(serviceConfiguration.getClass())) {
-        config = cacheLevelConfig.cast(serviceConfiguration);
+    if (uniqueClassLevelConfig) {
+      config = findSingletonAmongst(cacheLevelConfig, cacheConfiguration.getServiceConfigurations());
+    } else {
+      Iterator<? extends ClassInstanceConfiguration<T>> iterator =
+          findAmongst(cacheLevelConfig, cacheConfiguration.getServiceConfigurations()).iterator();
+      if (iterator.hasNext()) {
+        config = iterator.next();
       }
     }
     return newInstance(alias, config);

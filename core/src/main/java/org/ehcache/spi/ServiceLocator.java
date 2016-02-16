@@ -200,7 +200,7 @@ public final class ServiceLocator implements ServiceProvider {
     } else if (matches.size() == 1) {
       return matches.iterator().next();
     } else {
-      throw new IllegalArgumentException();
+      throw new IllegalArgumentException("More than one " + clazz.getName() + " found");
     }
   }
 

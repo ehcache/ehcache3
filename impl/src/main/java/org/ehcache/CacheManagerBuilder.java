@@ -27,7 +27,6 @@ import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
@@ -122,8 +121,9 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
       service.addCopierFor(clazz, copier);
       return new CacheManagerBuilder<T>(this, configBuilder.addService(service));
     } else {
-      service.addCopierFor(clazz, copier);
-      return this;
+      DefaultCopyProviderConfiguration newConfig = new DefaultCopyProviderConfiguration(service);
+      newConfig.addCopierFor(clazz, copier, true);
+      return new CacheManagerBuilder<T>(this, configBuilder.removeService(service).addService(newConfig));
     }
   }
 
@@ -134,8 +134,9 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
       service.addSerializerFor(clazz, serializer);
       return new CacheManagerBuilder<T>(this, configBuilder.addService(service));
     } else {
-      service.addSerializerFor(clazz, serializer);
-      return this;
+      DefaultSerializationProviderConfiguration newConfig = new DefaultSerializationProviderConfiguration(service);
+      newConfig.addSerializerFor(clazz, serializer, true);
+      return new CacheManagerBuilder<T>(this, configBuilder.removeService(service).addService(newConfig));
     }
   }
 
@@ -159,8 +160,14 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
     }
   }
 
-  public CacheManagerBuilder<T> using(ServiceCreationConfiguration<?> service) {
-    return new CacheManagerBuilder<T>(this, configBuilder.addService(service));
+  public CacheManagerBuilder<T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
+    return new CacheManagerBuilder<T>(this, configBuilder.addService(serviceConfiguration));
+  }
+
+  public CacheManagerBuilder<T> replacing(ServiceCreationConfiguration<?> overwriteServiceConfiguration) {
+    ServiceCreationConfiguration existingConfiguration = configBuilder.findServiceByClass(overwriteServiceConfiguration.getClass());
+    return new CacheManagerBuilder<T>(this, configBuilder.removeService(existingConfiguration)
+        .addService(overwriteServiceConfiguration));
   }
 
   public CacheManagerBuilder<T> withClassLoader(ClassLoader classLoader) {
