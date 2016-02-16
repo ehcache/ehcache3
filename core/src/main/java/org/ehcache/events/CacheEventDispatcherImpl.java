@@ -165,6 +165,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     storeEventSource.setEventOrdering(false);
     syncListenersList.clear();
     aSyncListenersList.clear();
+    unOrderedExectuor.shutdown();
     orderedExecutor.shutdown();
   }
 
@@ -176,7 +177,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   public void onEvent(CacheEvent<K, V> event) {
     ExecutorService executor;
     if (storeEventSource.isEventOrdering()) {
-      executor= orderedExecutor;
+      executor = orderedExecutor;
     } else {
       executor = unOrderedExectuor;
     }
