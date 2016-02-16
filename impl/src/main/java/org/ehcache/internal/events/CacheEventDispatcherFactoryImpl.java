@@ -20,7 +20,6 @@ import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.events.CacheEventDispatcherFactory;
 import org.ehcache.events.CacheEventDispatcher;
 import org.ehcache.events.CacheEventDispatcherImpl;
-import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.service.ExecutionService;
@@ -40,16 +39,15 @@ import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
 @ServiceDependencies(ExecutionService.class)
 public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFactory {
 
-  private final String threadPoolAlias;
+  private final String defaultThreadPoolAlias;
   private volatile ExecutionService executionService;
-  private volatile ExecutorService unOrderedExecutor;
 
   public CacheEventDispatcherFactoryImpl() {
-    this.threadPoolAlias = null;
+    this.defaultThreadPoolAlias = null;
   }
 
   public CacheEventDispatcherFactoryImpl(CacheEventDispatcherFactoryConfiguration configuration) {
-    this.threadPoolAlias = configuration.getThreadPoolAlias();
+    this.defaultThreadPoolAlias = configuration.getThreadPoolAlias();
   }
 
   @Override
@@ -59,24 +57,20 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
 
   @Override
   public void stop() {
-    if (unOrderedExecutor != null) {
-      unOrderedExecutor.shutdown();
-    }
   }
 
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
-    String tPAlias = threadPoolAlias;
+    String threadPoolAlias = defaultThreadPoolAlias;
     DefaultCacheEventDispatcherConfiguration config = findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, serviceConfigs);
     if (config != null) {
-      tPAlias = config.getThreadPoolAlias();
+      threadPoolAlias = config.getThreadPoolAlias();
     }
-    if (getUnorderedExecutor() == null) {
-      // TODO when do we actually get there? And if no longer, should we?
-      return new DisabledCacheEventNotificationService<K, V>();
-    } else {
-      return new CacheEventDispatcherImpl<K, V>(store, getUnorderedExecutor(), executionService.getOrderedExecutor(tPAlias, new LinkedBlockingQueue<Runnable>()));
-    }
+
+    ExecutorService orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
+    ExecutorService unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
+
+    return new CacheEventDispatcherImpl<K, V>(store, unOrderedExecutor, orderedExecutor);
   }
 
   @Override
@@ -84,25 +78,6 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
     if (cenlService != null) {
       cenlService.shutdown();
     }
-    
   }
 
-  private ExecutorService getUnorderedExecutor() {
-    if (unOrderedExecutor == null) {
-      synchronized (this) {
-        if (unOrderedExecutor == null) {
-          try {
-            unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
-          } catch (IllegalArgumentException e) {
-            if (threadPoolAlias == null) {
-              throw new IllegalStateException("No default executor could be found for Cache Event Dispatcher", e);
-            } else {
-              throw new IllegalStateException("No executor named '" + threadPoolAlias + "' could be found for Cache Event Dispatcher", e);
-            }
-          }
-        }
-      }
-    }
-    return unOrderedExecutor;
-  }
 }
