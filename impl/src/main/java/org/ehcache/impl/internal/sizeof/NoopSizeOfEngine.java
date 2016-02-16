@@ -16,8 +16,8 @@
 
 package org.ehcache.impl.internal.sizeof;
 
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.sizeof.SizeOfEngine;
 
 /**
  * @author Abhilash

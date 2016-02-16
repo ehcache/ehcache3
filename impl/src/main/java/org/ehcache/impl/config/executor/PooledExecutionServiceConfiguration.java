@@ -18,7 +18,7 @@ package org.ehcache.impl.config.executor;
 
 import java.util.HashMap;
 import java.util.Map;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import static java.util.Collections.unmodifiableMap;

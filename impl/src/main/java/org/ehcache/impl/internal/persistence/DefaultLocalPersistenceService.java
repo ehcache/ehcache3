@@ -17,11 +17,11 @@
 package org.ehcache.impl.internal.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.ehcache.config.persistence.PersistenceConfiguration;
+import org.ehcache.core.config.persistence.PersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -16,12 +16,11 @@
 
 package org.ehcache.impl.spi.copy;
 
-import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.internal.copy.IdentityCopier;
 import org.ehcache.impl.internal.copy.ReadWriteCopier;
 import org.ehcache.impl.internal.copy.SerializingCopier;
-import org.ehcache.impl.spi.copy.DefaultCopyProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 

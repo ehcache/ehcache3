@@ -15,7 +15,7 @@
  */
 package org.ehcache.impl.internal.sizeof;
 
-import org.ehcache.exceptions.LimitExceededException;
+import org.ehcache.core.exceptions.LimitExceededException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.copy.IdentityCopier;
 import org.ehcache.impl.internal.sizeof.listeners.EhcacheVisitorListener;
@@ -23,8 +23,8 @@ import org.ehcache.impl.internal.sizeof.listeners.exceptions.VisitorListenerExce
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.sizeof.SizeOf;
 import org.ehcache.sizeof.SizeOfFilterSource;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.sizeof.SizeOfEngine;
 
 /**
  * @author Abhilash

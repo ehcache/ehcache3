@@ -20,8 +20,8 @@ import java.io.File;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 

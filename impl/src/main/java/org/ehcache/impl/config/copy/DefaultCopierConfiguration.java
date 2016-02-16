@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.config.copy;
 
-import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;

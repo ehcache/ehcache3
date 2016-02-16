@@ -16,9 +16,8 @@
 
 package org.ehcache.impl.internal.store;
 
-import org.ehcache.impl.internal.store.DefaultStoreProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban

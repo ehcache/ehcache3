@@ -15,7 +15,7 @@
  */
 package org.ehcache.transactions.xa;
 
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.transactions.xa.journal.Journal;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.hamcrest.Matchers;

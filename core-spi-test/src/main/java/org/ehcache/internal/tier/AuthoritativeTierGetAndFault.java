@@ -20,7 +20,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.Ignore;
@@ -36,8 +36,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
- * Test the {@link org.ehcache.spi.cache.tiering.AuthoritativeTier#getAndFault(Object)} contract of the
- * {@link org.ehcache.spi.cache.tiering.AuthoritativeTier AuthoritativeTier} interface.
+ * Test the {@link AuthoritativeTier#getAndFault(Object)} contract of the
+ * {@link AuthoritativeTier AuthoritativeTier} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski

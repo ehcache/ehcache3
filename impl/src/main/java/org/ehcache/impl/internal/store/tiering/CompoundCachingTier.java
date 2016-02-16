@@ -15,17 +15,17 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.CacheConfigurationChangeListener;
+import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.CachingTier;
-import org.ehcache.spi.cache.tiering.HigherCachingTier;
-import org.ehcache.spi.cache.tiering.LowerCachingTier;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
+import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban

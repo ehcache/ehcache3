@@ -17,9 +17,8 @@
 package org.ehcache.impl.config.serializer;
 
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;

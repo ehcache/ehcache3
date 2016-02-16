@@ -15,7 +15,7 @@
  */
 package org.ehcache.impl.spi.serialization;
 
-import org.ehcache.config.SerializerConfiguration;
+import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.internal.serialization.CompactJavaSerializer;

@@ -15,17 +15,17 @@
  */
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.CacheConfigurationChangeEvent;
-import org.ehcache.CacheConfigurationChangeListener;
-import org.ehcache.CacheConfigurationProperty;
+import org.ehcache.core.CacheConfigurationChangeEvent;
+import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.copy.IdentityCopier;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 

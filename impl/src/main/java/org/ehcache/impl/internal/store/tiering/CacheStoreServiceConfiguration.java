@@ -15,9 +15,8 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.impl.internal.store.tiering.CacheStore;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

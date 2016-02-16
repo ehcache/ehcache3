@@ -16,14 +16,13 @@
 
 package org.ehcache.impl.internal.persistence;
 
-import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.core.config.persistence.DefaultPersistenceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.IOException;
-import org.ehcache.exceptions.CachePersistenceException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;

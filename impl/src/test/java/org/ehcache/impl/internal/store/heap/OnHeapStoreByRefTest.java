@@ -17,7 +17,7 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.TimeSource;
+import org.ehcache.core.spi.time.TimeSource;
 
 public abstract class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
 

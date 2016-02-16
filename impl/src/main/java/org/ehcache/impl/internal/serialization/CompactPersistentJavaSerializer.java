@@ -28,9 +28,8 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 
 /**
  *

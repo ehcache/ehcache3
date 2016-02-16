@@ -16,22 +16,22 @@
 
 package org.ehcache.impl.spi.serialization;
 
-import org.ehcache.config.SerializerConfiguration;
+import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
 import org.ehcache.impl.internal.serialization.CompactPersistentJavaSerializer;
-import org.ehcache.spi.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,7 +46,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban

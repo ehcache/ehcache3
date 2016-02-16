@@ -15,10 +15,10 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
-import org.ehcache.statistics.CacheOperationOutcomes;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.extended.ExposedStatistic;

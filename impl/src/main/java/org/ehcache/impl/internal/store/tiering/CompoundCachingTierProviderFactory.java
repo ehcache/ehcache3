@@ -15,9 +15,8 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.impl.internal.store.tiering.CompoundCachingTier;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban

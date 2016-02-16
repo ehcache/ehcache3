@@ -17,10 +17,9 @@
 package org.ehcache.impl.spi.copy;
 
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.impl.spi.copy.DefaultCopyProvider;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Albin Suresh

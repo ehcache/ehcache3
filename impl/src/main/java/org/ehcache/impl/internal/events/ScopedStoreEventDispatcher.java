@@ -16,8 +16,7 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.events.StoreEventSink;
-import org.ehcache.impl.internal.events.InvocationScopedEventSink;
+import org.ehcache.core.events.StoreEventSink;
 
 /**
  * ScopedStoreEventDispatcher

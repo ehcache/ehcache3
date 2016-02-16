@@ -21,7 +21,8 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.UserManagedCacheBuilder;
-import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.core.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.impl.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
@@ -34,7 +35,7 @@ import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.impl.internal.persistence.DefaultLocalPersistenceService;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.junit.Test;
 
 import java.io.File;

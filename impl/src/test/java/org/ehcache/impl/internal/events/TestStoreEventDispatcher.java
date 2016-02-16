@@ -17,11 +17,11 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.event.EventType;
-import org.ehcache.events.StoreEventDispatcher;
-import org.ehcache.events.StoreEventSink;
-import org.ehcache.spi.cache.events.StoreEvent;
-import org.ehcache.spi.cache.events.StoreEventFilter;
-import org.ehcache.spi.cache.events.StoreEventListener;
+import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.core.spi.cache.events.StoreEvent;
+import org.ehcache.core.spi.cache.events.StoreEventFilter;
+import org.ehcache.core.spi.cache.events.StoreEventListener;
 
 import java.util.HashSet;
 import java.util.Set;

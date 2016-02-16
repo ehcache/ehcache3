@@ -17,9 +17,9 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourcePoolImpl;
+import org.ehcache.core.config.ResourcePoolImpl;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.ResourcePoolsImpl;
+import org.ehcache.core.config.ResourcePoolsImpl;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -29,7 +29,7 @@ import java.util.Map;
 
 import static java.util.Collections.unmodifiableMap;
 import java.util.HashMap;
-import static org.ehcache.config.ResourcePoolsImpl.validateResourcePools;
+import static org.ehcache.core.config.ResourcePoolsImpl.validateResourcePools;
 
 /**
  * @author Ludovic Orban

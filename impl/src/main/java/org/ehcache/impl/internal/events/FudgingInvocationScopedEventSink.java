@@ -17,10 +17,8 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.event.EventType;
-import org.ehcache.impl.internal.events.FireableStoreEventHolder;
-import org.ehcache.impl.internal.events.InvocationScopedEventSink;
-import org.ehcache.spi.cache.events.StoreEventFilter;
-import org.ehcache.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.cache.events.StoreEventFilter;
+import org.ehcache.core.spi.cache.events.StoreEventListener;
 
 import java.util.Iterator;
 import java.util.Set;

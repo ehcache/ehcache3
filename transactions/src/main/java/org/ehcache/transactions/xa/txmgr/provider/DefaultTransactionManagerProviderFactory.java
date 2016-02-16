@@ -16,7 +16,7 @@
 package org.ehcache.transactions.xa.txmgr.provider;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban

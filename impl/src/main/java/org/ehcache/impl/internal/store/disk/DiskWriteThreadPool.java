@@ -23,7 +23,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionService;
 
 public class DiskWriteThreadPool implements Factory<ExecutorService> {
 

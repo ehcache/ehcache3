@@ -17,20 +17,20 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.internal.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
-import org.ehcache.internal.SystemTimeSource;
+import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
-import org.ehcache.spi.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;

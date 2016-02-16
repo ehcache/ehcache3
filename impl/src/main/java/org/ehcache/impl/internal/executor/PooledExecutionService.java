@@ -20,7 +20,7 @@ import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration.Pool
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.util.ThreadFactoryUtil;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

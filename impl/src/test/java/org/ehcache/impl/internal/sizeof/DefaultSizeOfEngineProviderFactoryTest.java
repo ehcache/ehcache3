@@ -17,8 +17,8 @@ package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.sizeof.SizeOfEngine;
-import org.ehcache.spi.sizeof.SizeOfEngineProvider;
+import org.ehcache.core.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

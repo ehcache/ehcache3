@@ -17,7 +17,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.expiry.Duration;

@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.config.loaderwriter;
 
-import org.ehcache.config.loaderwriter.CacheLoaderWriterConfiguration;
+import org.ehcache.core.config.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;

@@ -17,14 +17,12 @@ package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
-import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
-import org.ehcache.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.spi.ServiceLocator;
+import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.sizeof.SizeOfEngine;
-import org.ehcache.spi.sizeof.SizeOfEngineProvider;
+import org.ehcache.core.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
 
 /**
  * @author Abhilash

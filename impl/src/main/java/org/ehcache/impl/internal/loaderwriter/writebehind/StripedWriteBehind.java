@@ -23,10 +23,9 @@ import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.ehcache.exceptions.BulkCacheWritingException;
 
-import org.ehcache.impl.internal.loaderwriter.writebehind.WriteBehind;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionService;
 
 /**
  * @author Alex Snaps

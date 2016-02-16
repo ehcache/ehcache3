@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CacheAccessException;
@@ -29,15 +29,15 @@ import org.ehcache.impl.internal.persistence.TestLocalPersistenceService;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest;
 import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
-import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.junit.Rule;
 import org.junit.Test;
 

@@ -18,7 +18,7 @@ package org.ehcache.impl.spi.event;
 
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author rism

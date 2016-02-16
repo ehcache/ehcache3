@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -27,12 +27,12 @@ import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.serialization.JavaSerializer;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
-import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.TimeSource;
+import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -43,7 +43,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 
 /**
  * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
- * {@link org.ehcache.spi.cache.Store} contract.
+ * {@link Store} contract.
  *
  * @author Aurelien Broszniowski
  */

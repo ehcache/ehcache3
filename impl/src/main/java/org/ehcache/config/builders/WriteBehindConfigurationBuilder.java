@@ -18,8 +18,8 @@ package org.ehcache.config.builders;
 
 import java.util.concurrent.TimeUnit;
 
-import org.ehcache.config.loaderwriter.writebehind.DefaultBatchingConfiguration;
-import org.ehcache.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration;
+import org.ehcache.core.config.loaderwriter.writebehind.DefaultBatchingConfiguration;
+import org.ehcache.core.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 

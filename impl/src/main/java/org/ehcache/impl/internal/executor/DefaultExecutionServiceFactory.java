@@ -16,8 +16,8 @@
 package org.ehcache.impl.internal.executor;
 
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
-import org.ehcache.spi.service.ExecutionService;
-import org.ehcache.spi.service.ExecutionServiceFactory;
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionServiceFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**

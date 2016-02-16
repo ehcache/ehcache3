@@ -17,8 +17,8 @@ package org.ehcache.transactions.xa;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.transactions.xa.commands.Command;
 import org.ehcache.transactions.xa.commands.StoreEvictCommand;
 import org.ehcache.transactions.xa.commands.StorePutCommand;

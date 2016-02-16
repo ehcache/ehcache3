@@ -19,7 +19,7 @@ package org.ehcache.osgi;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.impl.internal.copy.ReadWriteCopier;

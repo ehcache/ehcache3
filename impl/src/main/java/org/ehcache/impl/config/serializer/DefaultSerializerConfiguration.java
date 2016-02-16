@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.config.serializer;
 
-import org.ehcache.config.SerializerConfiguration;
+import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;

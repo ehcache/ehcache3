@@ -17,11 +17,10 @@ package org.ehcache.impl.internal.loaderwriter.writebehind;
 
 import java.util.concurrent.BlockingQueue;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.internal.loaderwriter.writebehind.AbstractWriteBehind;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.ehcache.impl.internal.util.ThreadFactoryUtil;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionService;
 
 /**
  *

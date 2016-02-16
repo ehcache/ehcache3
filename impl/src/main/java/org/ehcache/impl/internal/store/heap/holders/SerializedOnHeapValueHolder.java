@@ -17,9 +17,8 @@ package org.ehcache.impl.internal.store.heap.holders;
 
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Duration;
-import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;

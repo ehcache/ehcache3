@@ -21,7 +21,7 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;

@@ -18,8 +18,8 @@ package org.ehcache.transactions.xa.journal;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -17,19 +17,19 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.CacheManager;
-import org.ehcache.EhcacheManager;
+import org.ehcache.core.EhcacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.core.config.persistence.PersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
+import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;

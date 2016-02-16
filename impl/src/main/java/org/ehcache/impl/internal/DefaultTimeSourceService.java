@@ -16,10 +16,9 @@
 
 package org.ehcache.impl.internal;
 
-import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceService;
+import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.ServiceProvider;
 
 /**

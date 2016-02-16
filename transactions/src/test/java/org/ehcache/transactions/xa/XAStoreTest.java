@@ -16,12 +16,12 @@
 package org.ehcache.transactions.xa;
 
 import org.ehcache.Cache;
-import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.events.StoreEventDispatcher;
+import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -35,7 +35,7 @@ import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.store.tiering.CacheStore;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.impl.internal.store.offheap.OffHeapStoreLifecycleHelper;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.impl.spi.copy.DefaultCopyProvider;

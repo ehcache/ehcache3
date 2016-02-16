@@ -25,10 +25,10 @@ import org.ehcache.impl.internal.store.tiering.CacheStoreServiceConfiguration;
 import org.ehcache.impl.internal.store.tiering.CompoundCachingTier;
 import org.ehcache.impl.internal.store.tiering.CompoundCachingTierServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

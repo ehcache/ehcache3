@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.Ehcache;
+import org.ehcache.core.Ehcache;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;

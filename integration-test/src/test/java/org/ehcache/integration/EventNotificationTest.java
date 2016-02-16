@@ -18,7 +18,7 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.Ehcache;
+import org.ehcache.core.Ehcache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;

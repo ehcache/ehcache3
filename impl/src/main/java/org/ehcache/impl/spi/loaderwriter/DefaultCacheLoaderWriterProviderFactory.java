@@ -19,7 +19,7 @@ package org.ehcache.impl.spi.loaderwriter;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Alex Snaps

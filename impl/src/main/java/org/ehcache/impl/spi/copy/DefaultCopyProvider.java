@@ -16,14 +16,14 @@
 
 package org.ehcache.impl.spi.copy;
 
-import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
 import org.ehcache.impl.internal.copy.IdentityCopier;
 import org.ehcache.impl.internal.copy.SerializingCopier;
-import org.ehcache.spi.ServiceLocator;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;

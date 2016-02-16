@@ -16,9 +16,8 @@
 
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Alex Snaps

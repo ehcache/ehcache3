@@ -28,9 +28,9 @@ import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.bytesized.ByteAccountingTest.OnHeapStoreForTests;
-import org.ehcache.internal.SystemTimeSource;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 

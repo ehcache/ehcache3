@@ -15,10 +15,8 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.impl.internal.store.tiering.CompoundCachingTier;
-import org.ehcache.spi.cache.tiering.CachingTier;
-import org.ehcache.spi.cache.tiering.HigherCachingTier;
-import org.ehcache.spi.cache.tiering.LowerCachingTier;
+import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
+import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

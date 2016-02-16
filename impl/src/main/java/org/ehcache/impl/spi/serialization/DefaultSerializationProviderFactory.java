@@ -17,10 +17,9 @@
 package org.ehcache.impl.spi.serialization;
 
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Ludovic Orban

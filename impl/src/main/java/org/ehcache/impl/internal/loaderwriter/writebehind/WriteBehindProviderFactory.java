@@ -20,10 +20,10 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Abhilash

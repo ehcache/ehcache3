@@ -18,8 +18,8 @@ package org.ehcache.impl.internal.util;
 
 import org.ehcache.Cache;
 import org.ehcache.event.EventType;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.events.StoreEvent;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.events.StoreEvent;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;

@@ -16,9 +16,8 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * OffHeapStoreProviderFactory

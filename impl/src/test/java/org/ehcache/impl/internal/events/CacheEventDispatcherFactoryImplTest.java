@@ -17,11 +17,11 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
-import org.ehcache.events.CacheEventDispatcher;
-import org.ehcache.events.CacheEventDispatcherImpl;
+import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.events.CacheEventDispatcherImpl;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.junit.Test;
 
 import java.util.concurrent.BlockingQueue;

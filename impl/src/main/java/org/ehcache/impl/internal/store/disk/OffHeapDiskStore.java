@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.CacheConfigurationChangeListener;
+import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.Status;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
@@ -24,7 +24,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.events.StoreEventDispatcher;
+import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
@@ -33,21 +33,21 @@ import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceService;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.ExecutionService;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.SupplementaryService;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
@@ -73,7 +73,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  *

@@ -20,7 +20,7 @@ import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.UserManagedCache;
 import org.ehcache.config.builders.UserManagedCacheConfiguration;
 import org.ehcache.config.builders.UserManagedCacheBuilder;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 
 /**
  * UserManagedPersistenceContext

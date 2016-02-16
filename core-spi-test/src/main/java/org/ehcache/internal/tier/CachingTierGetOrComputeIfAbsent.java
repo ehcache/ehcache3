@@ -17,10 +17,9 @@
 package org.ehcache.internal.tier;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.expiry.Expirations;
 import org.ehcache.function.Function;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -37,8 +36,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Test the {@link org.ehcache.spi.cache.tiering.CachingTier#getOrComputeIfAbsent(Object, Function)} contract of the
- * {@link org.ehcache.spi.cache.tiering.CachingTier CachingTier} interface.
+ * Test the {@link CachingTier#getOrComputeIfAbsent(Object, Function)} contract of the
+ * {@link CachingTier CachingTier} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski

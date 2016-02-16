@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
  * @author Chris Dennis

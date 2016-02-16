@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
-import org.ehcache.spi.cache.AbstractValueHolder;
+import org.ehcache.core.spi.cache.AbstractValueHolder;
 import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.UnsupportedTypeException;

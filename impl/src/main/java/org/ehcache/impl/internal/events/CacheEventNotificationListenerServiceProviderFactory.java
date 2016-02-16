@@ -16,9 +16,9 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
-import org.ehcache.events.CacheEventDispatcherFactory;
+import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 public class CacheEventNotificationListenerServiceProviderFactory implements ServiceFactory<CacheEventDispatcherFactory> {
 

@@ -16,10 +16,10 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.events.StoreEventDispatcher;
-import org.ehcache.events.StoreEventSink;
-import org.ehcache.spi.cache.events.StoreEventFilter;
-import org.ehcache.spi.cache.events.StoreEventListener;
+import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.events.StoreEventSink;
+import org.ehcache.core.spi.cache.events.StoreEventFilter;
+import org.ehcache.core.spi.cache.events.StoreEventListener;
 
 /**
  * NullStoreEventDispatcher

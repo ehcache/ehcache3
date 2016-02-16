@@ -17,8 +17,8 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
-import org.ehcache.spi.cache.AbstractValueHolder;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.cache.AbstractValueHolder;
+import org.ehcache.core.spi.cache.Store;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 
 import java.util.concurrent.TimeUnit;

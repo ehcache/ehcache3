@@ -19,7 +19,7 @@ package org.ehcache.impl.internal.classes;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.impl.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
-import static org.ehcache.spi.ServiceLocator.findAmongst;
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Alex Snaps

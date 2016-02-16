@@ -17,19 +17,19 @@ package org.ehcache.impl.internal.events;
 
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
-import org.ehcache.events.CacheEventDispatcherFactory;
-import org.ehcache.events.CacheEventDispatcher;
-import org.ehcache.events.CacheEventDispatcherImpl;
+import org.ehcache.core.events.CacheEventDispatcherFactory;
+import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.events.CacheEventDispatcherImpl;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * {@link CacheEventDispatcher} implementation that shares a single {@link ExecutorService} for unordered firing

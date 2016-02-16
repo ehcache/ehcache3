@@ -18,7 +18,7 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.copy.CopierConfiguration;
+import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -42,7 +42,7 @@ import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * ConfigurationMerger

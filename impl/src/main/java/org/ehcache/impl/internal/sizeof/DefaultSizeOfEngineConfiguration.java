@@ -16,8 +16,8 @@
 package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.spi.sizeof.SizeOfEngineProvider;
+import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
+import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
 
 /**
  * @author Abhilash

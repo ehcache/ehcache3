@@ -17,12 +17,12 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.StoreConfigurationImpl;
+import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
-import org.ehcache.internal.TimeSource;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;

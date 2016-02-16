@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.config.event;
 
-import org.ehcache.events.CacheEventDispatcherFactory;
+import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

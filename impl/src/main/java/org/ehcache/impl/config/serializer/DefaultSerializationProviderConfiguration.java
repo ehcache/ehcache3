@@ -22,7 +22,7 @@ import java.util.Map;
 
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 public class DefaultSerializationProviderConfiguration implements ServiceCreationConfiguration<SerializationProvider> {

@@ -16,19 +16,19 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.Cache;
-import org.ehcache.CacheConfigurationChangeListener;
+import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.events.StoreEventSource;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
@@ -44,7 +44,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban

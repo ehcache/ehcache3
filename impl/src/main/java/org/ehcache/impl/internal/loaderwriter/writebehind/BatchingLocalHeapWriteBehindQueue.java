@@ -16,7 +16,6 @@
 package org.ehcache.impl.internal.loaderwriter.writebehind;
 
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.internal.loaderwriter.writebehind.AbstractWriteBehind;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.BatchOperation;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.DeleteOperation;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.DeleteAllOperation;
@@ -26,7 +25,7 @@ import org.ehcache.impl.internal.loaderwriter.writebehind.operations.WriteAllOpe
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
-import org.ehcache.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.ExecutionService;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

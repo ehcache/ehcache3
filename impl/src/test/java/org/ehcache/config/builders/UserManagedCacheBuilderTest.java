@@ -23,8 +23,8 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.impl.spi.event.DefaultCacheEventListenerProviderTest;
-import org.ehcache.spi.ServiceLocator;
 import org.junit.Test;
 
 import java.util.Iterator;

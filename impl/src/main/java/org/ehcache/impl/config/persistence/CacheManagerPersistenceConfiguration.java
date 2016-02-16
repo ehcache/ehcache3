@@ -20,8 +20,8 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheManagerConfiguration;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.persistence.PersistenceConfiguration;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.core.config.persistence.PersistenceConfiguration;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 
 import java.io.File;
 
