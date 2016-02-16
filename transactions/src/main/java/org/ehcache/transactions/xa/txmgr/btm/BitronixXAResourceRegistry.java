@@ -15,11 +15,12 @@
  */
 package org.ehcache.transactions.xa.txmgr.btm;
 
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.transactions.xa.txmgr.XAResourceRegistry;
 
-import javax.transaction.xa.XAResource;
 import java.util.concurrent.ConcurrentMap;
+
+import javax.transaction.xa.XAResource;
 
 /**
  * Bitronix's BTM {@link XAResourceRegistry} implementation.

@@ -13,7 +13,7 @@
 
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
 
-    <ehcache:value-type copier="org.ehcache.internal.copy.SerializingCopier">com.pany.domain.Product</ehcache:value-type>
+    <ehcache:value-type copier="org.ehcache.impl.internal.copy.SerializingCopier">com.pany.domain.Product</ehcache:value-type>
 
     <ehcache:expiry>
       <ehcache:tti unit="minutes">2</ehcache:tti>

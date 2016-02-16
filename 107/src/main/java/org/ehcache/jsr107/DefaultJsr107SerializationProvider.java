@@ -15,10 +15,10 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.internal.serialization.CompactJavaSerializer;
-import org.ehcache.internal.serialization.CompactPersistentJavaSerializer;
-import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
+import org.ehcache.impl.internal.serialization.CompactPersistentJavaSerializer;
+import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
 
 /**
  * @author Ludovic Orban

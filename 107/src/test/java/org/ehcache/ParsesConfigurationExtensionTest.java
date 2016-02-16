@@ -19,7 +19,7 @@ package org.ehcache;
 import com.pany.domain.Customer;
 import com.pany.domain.Product;
 import com.pany.ehcache.integration.ProductCacheLoaderWriter;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.config.ResourceType;

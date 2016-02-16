@@ -18,7 +18,7 @@ package org.ehcache.config;
 /**
  * @author Ludovic Orban
  */
-class ResourcePoolImpl implements ResourcePool {
+public class ResourcePoolImpl implements ResourcePool {
 
   private final ResourceType type;
   private final long size;

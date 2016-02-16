@@ -15,7 +15,7 @@
  */
 package org.ehcache.transactions.xa.journal;
 
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.transactions.xa.TransactionId;
 
 import java.io.IOException;

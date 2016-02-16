@@ -195,7 +195,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     return ehcache.iterator();
   }
 
-  void addHook(LifeCycled lifeCycled) {
+  public void addHook(LifeCycled lifeCycled) {
     statusTransitioner.addHook(lifeCycled);
   }
 }

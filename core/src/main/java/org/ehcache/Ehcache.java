@@ -1070,7 +1070,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     return statusTransitioner.currentStatus();
   }
 
-  void addHook(LifeCycled hook) {
+  public void addHook(LifeCycled hook) {
     statusTransitioner.addHook(hook);
   }
 

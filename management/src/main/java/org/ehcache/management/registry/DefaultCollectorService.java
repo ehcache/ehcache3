@@ -50,7 +50,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.ehcache.internal.executor.ExecutorUtil.shutdownNow;
+import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
 
 /**

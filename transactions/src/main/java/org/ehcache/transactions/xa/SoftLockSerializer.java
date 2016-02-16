@@ -16,7 +16,7 @@
 package org.ehcache.transactions.xa;
 
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.internal.util.ByteBufferInputStream;
+import org.ehcache.impl.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.ByteArrayOutputStream;

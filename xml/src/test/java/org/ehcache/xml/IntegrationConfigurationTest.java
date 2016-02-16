@@ -16,23 +16,23 @@
 
 package org.ehcache.xml;
 
+import com.pany.ehcache.integration.TestSecondCacheEventListener;
 import com.pany.ehcache.integration.ThreadRememberingLoaderWriter;
 import com.pany.ehcache.copier.Description;
 import com.pany.ehcache.copier.Employee;
 import com.pany.ehcache.copier.Person;
 import com.pany.ehcache.integration.TestCacheEventListener;
 import com.pany.ehcache.integration.TestCacheLoaderWriter;
-import com.pany.ehcache.integration.TestSecondCacheEventListener;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
+import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.ResourcePoolsBuilder;
-import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -43,8 +43,8 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;

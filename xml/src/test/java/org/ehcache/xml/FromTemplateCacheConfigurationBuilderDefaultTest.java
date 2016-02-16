@@ -16,7 +16,7 @@
 
 package org.ehcache.xml;
 
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.junit.Before;
 import org.junit.Test;
 

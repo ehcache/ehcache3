@@ -19,7 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.EhcacheManager;
 import org.ehcache.Status;
 import org.ehcache.events.CacheManagerListener;
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
 import org.ehcache.spi.ServiceProvider;

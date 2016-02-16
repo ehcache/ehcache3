@@ -23,14 +23,14 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
  *
  * @author cdennis
  */
-class DefaultBatchingConfiguration implements BatchingConfiguration {
+public class DefaultBatchingConfiguration implements BatchingConfiguration {
 
   private final long maxDelay;
   private final TimeUnit maxDelayUnit;
   private final int batchSize;
   private final boolean coalescing;
   
-  DefaultBatchingConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize, boolean coalescing) {
+  public DefaultBatchingConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize, boolean coalescing) {
     this.maxDelay = maxDelay;
     this.maxDelayUnit = maxDelayUnit;
     this.batchSize = batchSize;

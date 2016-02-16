@@ -16,13 +16,12 @@
 package org.ehcache.integration;
 
 import org.ehcache.UserManagedCache;
-import org.ehcache.UserManagedCacheBuilder;
-import org.ehcache.config.Eviction;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.UserManagedCacheBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.junit.Test;
 
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;

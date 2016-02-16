@@ -23,14 +23,14 @@ import org.ehcache.spi.loaderwriter.WriteBehindProvider;
  * @author Chris Dennis
  *
  */
-class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
+public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
 
   private final BatchingConfiguration batchingConfig;
   private final int concurrency;
   private final int queueSize;
   private final String executorAlias;
   
-  DefaultWriteBehindConfiguration(String executorAlias, int concurrency, int queueSize, BatchingConfiguration batchingConfig) {
+  public DefaultWriteBehindConfiguration(String executorAlias, int concurrency, int queueSize, BatchingConfiguration batchingConfig) {
     this.concurrency = concurrency;
     this.queueSize = queueSize;
     this.executorAlias = executorAlias;

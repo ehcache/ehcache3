@@ -17,27 +17,42 @@
 package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourcePoolsBuilder;
-import org.ehcache.config.copy.DefaultCopierConfiguration;
-import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
-import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
-import org.ehcache.config.event.DefaultCacheEventDispatcherConfiguration;
-import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
-import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
-import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
+import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
+import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
+import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
+import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
+import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
+import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
+import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder;
-import org.ehcache.config.loaderwriter.writebehind.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.util.ClassLoading;
 import org.ehcache.xml.ConfigurationParser.Batching;
 import org.ehcache.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.xml.model.CopierType;
@@ -46,21 +61,6 @@ import org.ehcache.xml.model.SerializerType;
 import org.ehcache.xml.model.ServiceType;
 import org.ehcache.xml.model.ThreadPoolReferenceType;
 import org.ehcache.xml.model.ThreadPoolsType;
-import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
-import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Element;
@@ -78,10 +78,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
- * Exposes {@link org.ehcache.config.Configuration} and {@link org.ehcache.config.CacheConfigurationBuilder} expressed
+ * Exposes {@link org.ehcache.config.Configuration} and {@link CacheConfigurationBuilder} expressed
  * in a XML file that obeys the ehcache-core.xsd (todo link this to proper location, wherever this ends up being)
  * <p>
  * Instances of this class are not thread-safe
@@ -379,12 +379,12 @@ public class XmlConfiguration implements Configuration {
   }
 
   /**
-   * Creates a new {@link org.ehcache.config.CacheConfigurationBuilder} seeded with the cache-template configuration
+   * Creates a new {@link CacheConfigurationBuilder} seeded with the cache-template configuration
    * by the given {@code name} in the XML configuration parsed using {@link #parseConfiguration()}
    *
    * @param name the unique name identifying the cache-template element in the XML
    *
-   * @return the preconfigured {@link org.ehcache.config.CacheConfigurationBuilder}
+   * @return the preconfigured {@link CacheConfigurationBuilder}
    *         or {@code null} if no cache-template for the provided {@code name}
    *
    * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
@@ -396,18 +396,18 @@ public class XmlConfiguration implements Configuration {
   }
 
   /**
-   * Creates a new {@link org.ehcache.config.CacheConfigurationBuilder} seeded with the cache-template configuration
+   * Creates a new {@link CacheConfigurationBuilder} seeded with the cache-template configuration
    * by the given {@code name} in the XML configuration parsed using {@link #parseConfiguration()}
    *
    * @param name the unique name identifying the cache-template element in the XML
-   * @param keyType the type of keys for the {@link org.ehcache.config.CacheConfigurationBuilder} to use, would need to
+   * @param keyType the type of keys for the {@link CacheConfigurationBuilder} to use, would need to
    *                match the {@code key-type} declared in the template if declared in XML
-   * @param valueType the type of values for the {@link org.ehcache.config.CacheConfigurationBuilder} to use, would need to
+   * @param valueType the type of values for the {@link CacheConfigurationBuilder} to use, would need to
    *                  match the {@code value-type} declared in the template if declared in XML
    * @param <K> type of keys
    * @param <V> type of values
    *
-   * @return the preconfigured {@link org.ehcache.config.CacheConfigurationBuilder}
+   * @return the preconfigured {@link CacheConfigurationBuilder}
    *         or {@code null} if no cache-template for the provided {@code name}
    *
    * @throws IllegalStateException if {@link #parseConfiguration()} hasn't yet been successfully invoked

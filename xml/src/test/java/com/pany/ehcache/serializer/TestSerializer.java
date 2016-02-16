@@ -15,12 +15,11 @@
  */
 package com.pany.ehcache.serializer;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.internal.serialization.CompactJavaSerializer;
-
+import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
+
+import java.nio.ByteBuffer;
 
 public class TestSerializer<T> implements Serializer<T> {
   

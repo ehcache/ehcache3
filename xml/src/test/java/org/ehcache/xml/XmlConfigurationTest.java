@@ -16,38 +16,28 @@
 
 package org.ehcache.xml;
 
-import com.pany.ehcache.copier.AnotherPersonCopier;
-import com.pany.ehcache.copier.Description;
-import com.pany.ehcache.copier.DescriptionCopier;
-import com.pany.ehcache.copier.Person;
-import com.pany.ehcache.copier.PersonCopier;
-import com.pany.ehcache.serializer.TestSerializer;
-import com.pany.ehcache.serializer.TestSerializer2;
-import com.pany.ehcache.serializer.TestSerializer3;
-import com.pany.ehcache.serializer.TestSerializer4;
-
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.copy.CopierConfiguration;
-import org.ehcache.config.copy.DefaultCopierConfiguration;
-import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
-import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
-import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
-import org.ehcache.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
+import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
+import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
+import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.copy.SerializingCopier;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngineConfiguration;
-import org.ehcache.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.impl.internal.copy.SerializingCopier;
+import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
@@ -69,8 +59,15 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXParseException;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
+import com.pany.ehcache.copier.AnotherPersonCopier;
+import com.pany.ehcache.copier.Description;
+import com.pany.ehcache.copier.DescriptionCopier;
+import com.pany.ehcache.copier.Person;
+import com.pany.ehcache.copier.PersonCopier;
+import com.pany.ehcache.serializer.TestSerializer;
+import com.pany.ehcache.serializer.TestSerializer2;
+import com.pany.ehcache.serializer.TestSerializer3;
+import com.pany.ehcache.serializer.TestSerializer4;
 
 import java.io.File;
 import java.net.URL;
@@ -83,6 +80,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;

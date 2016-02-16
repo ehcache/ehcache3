@@ -40,7 +40,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.ehcache.internal.executor.ExecutorUtil.shutdownNow;
+import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
+
 
 /**
  * @author Ludovic Orban

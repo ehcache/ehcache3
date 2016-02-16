@@ -16,9 +16,9 @@
 
 package org.ehcache.spi;
 
-import org.ehcache.internal.store.disk.OffHeapDiskStore;
-import org.ehcache.internal.store.heap.OnHeapStore;
-import org.ehcache.internal.store.offheap.OffHeapStore;
+import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.cache.tiering.CachingTier;
 import org.hamcrest.core.IsSame;

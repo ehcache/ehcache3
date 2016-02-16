@@ -15,8 +15,8 @@
  */
 package org.ehcache.transactions.xa;
 
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.transactions.xa.journal.Journal;
 

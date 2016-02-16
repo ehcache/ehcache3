@@ -26,11 +26,11 @@ import java.util.Set;
 /**
  * @author Ludovic Orban
  */
-class ResourcePoolsImpl implements ResourcePools {
+public class ResourcePoolsImpl implements ResourcePools {
 
   private final Map<ResourceType, ResourcePool> pools;
 
-  ResourcePoolsImpl(Map<ResourceType, ResourcePool> pools) {
+  public ResourcePoolsImpl(Map<ResourceType, ResourcePool> pools) {
     validateResourcePools(pools.values());
     this.pools = pools;
   }

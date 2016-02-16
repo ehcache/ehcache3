@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.statistics.CacheOperationOutcomes;

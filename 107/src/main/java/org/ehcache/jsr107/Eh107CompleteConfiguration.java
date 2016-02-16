@@ -17,8 +17,8 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.copy.CopierConfiguration;
-import org.ehcache.config.copy.DefaultCopierConfiguration;
-import org.ehcache.internal.copy.IdentityCopier;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.internal.copy.IdentityCopier;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.io.ObjectStreamException;
