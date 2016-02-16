@@ -13,7 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.operations;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "clustered", "clustered:common", "clustered:client", "clustered:server", "clustered:integration-test", "clustered:dist", "clustered:ops-tool",
-        "integration-test", "dist", "osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"
+import java.net.URI;
+
+abstract class AbstractCommand implements Command {
+  
+  private final BaseOptions base;
+
+  AbstractCommand(BaseOptions base) {
+    this.base = base;
+  }
+  
+  boolean isDryRun() {
+    return base.isDryRun();
+  }
+  
+  URI getClusterLocationOverride() {
+    return base.getClusterLocationOverride();
+  }
+}

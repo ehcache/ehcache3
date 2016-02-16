@@ -13,7 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.operations;
 
-include "api", "spi-tester", "core", "core-spi-test", "impl", "management", "transactions", "107", "xml",
-        "clustered", "clustered:common", "clustered:client", "clustered:server", "clustered:integration-test", "clustered:dist", "clustered:ops-tool",
-        "integration-test", "dist", "osgi-test", "demos", "demos:00-NoCache", "demos:01-CacheAside", "docs"
+import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.ParameterException;
+import java.net.URI;
+import java.net.URISyntaxException;
+
+public class URIConverter implements IStringConverter<URI> {
+
+  @Override
+  public URI convert(String value) {
+    try {
+      return new URI(value);
+    } catch (URISyntaxException ex) {
+      throw new ParameterException(ex);
+    }
+  }
+}
