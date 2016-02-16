@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.serialization;
+package org.ehcache.impl.serialization;
 
 import java.io.Serializable;
 import java.lang.ref.ReferenceQueue;
@@ -24,6 +24,7 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 
 import org.junit.Assert;

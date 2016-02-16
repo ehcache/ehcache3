@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.serialization;
+package org.ehcache.impl.serialization;
 
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -24,10 +24,10 @@ import java.io.ObjectInputStream;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 
-import static org.ehcache.impl.internal.serialization.SerializerTestUtilities.createClassNameRewritingLoader;
-import static org.ehcache.impl.internal.serialization.SerializerTestUtilities.newClassName;
-import static org.ehcache.impl.internal.serialization.SerializerTestUtilities.popTccl;
-import static org.ehcache.impl.internal.serialization.SerializerTestUtilities.pushTccl;
+import static org.ehcache.impl.serialization.SerializerTestUtilities.createClassNameRewritingLoader;
+import static org.ehcache.impl.serialization.SerializerTestUtilities.newClassName;
+import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
+import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
 
 /**
  *

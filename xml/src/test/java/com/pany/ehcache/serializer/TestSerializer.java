@@ -16,7 +16,7 @@
 package com.pany.ehcache.serializer;
 
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
+import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;

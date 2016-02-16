@@ -33,7 +33,6 @@ import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
 import org.ehcache.impl.internal.persistence.DefaultLocalPersistenceService;
-import org.ehcache.impl.internal.serialization.JavaSerializer;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStoreSPITest;
@@ -41,6 +40,7 @@ import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStoreByValueSPITest;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
 import org.ehcache.core.spi.ServiceLocator;
@@ -68,7 +68,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.mockito.Mockito.mock;
 
 /**
- * Test the {@link org.ehcache.internal.store.tiering.CacheStore} compliance to the
+ * Test the {@link CacheStore} compliance to the
  * {@link Store} contract.
  *
  * @author Ludovic Orban

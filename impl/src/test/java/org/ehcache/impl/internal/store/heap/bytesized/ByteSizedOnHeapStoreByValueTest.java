@@ -22,12 +22,12 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.impl.internal.serialization.JavaSerializer;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStoreByValueTest;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 

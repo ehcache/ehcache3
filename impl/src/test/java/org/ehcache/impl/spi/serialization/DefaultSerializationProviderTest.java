@@ -18,7 +18,7 @@ package org.ehcache.impl.spi.serialization;
 import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
+import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;

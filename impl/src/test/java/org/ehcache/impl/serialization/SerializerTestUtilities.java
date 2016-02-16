@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.serialization;
+package org.ehcache.impl.serialization;
 
 import java.io.IOException;
 import java.io.InputStream;

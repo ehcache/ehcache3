@@ -31,12 +31,12 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Function;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
-import org.ehcache.impl.internal.serialization.JavaSerializer;
+import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.cache.AbstractValueHolder;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
+import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;
 import org.junit.Test;
 

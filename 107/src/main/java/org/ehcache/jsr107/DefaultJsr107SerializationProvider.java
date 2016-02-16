@@ -16,8 +16,8 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
-import org.ehcache.impl.internal.serialization.CompactPersistentJavaSerializer;
+import org.ehcache.impl.serialization.CompactJavaSerializer;
+import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
 
 /**

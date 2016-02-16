@@ -21,8 +21,8 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.internal.serialization.CompactJavaSerializer;
-import org.ehcache.impl.internal.serialization.JavaSerializer;
+import org.ehcache.impl.serialization.CompactJavaSerializer;
+import org.ehcache.impl.serialization.JavaSerializer;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;

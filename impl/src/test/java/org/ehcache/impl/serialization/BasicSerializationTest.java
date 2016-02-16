@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.serialization;
+package org.ehcache.impl.serialization;
 
 import java.io.Serializable;
 import java.lang.reflect.InvocationHandler;
@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Random;
 
+import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 
 import org.hamcrest.core.Is;
