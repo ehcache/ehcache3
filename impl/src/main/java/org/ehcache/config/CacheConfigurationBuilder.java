@@ -23,6 +23,7 @@ import org.ehcache.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.config.event.DefaultEventSourceConfiguration;
 import org.ehcache.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
@@ -320,10 +321,21 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     return otherBuilder;
   }
 
-  public CacheConfigurationBuilder<K, V> withListenersThreadPoolAlias(String threadPoolAlias) {
+  public CacheConfigurationBuilder<K, V> withEventListenersThreadPool(String threadPoolAlias) {
     DefaultCacheEventDispatcherConfiguration configuration = new DefaultCacheEventDispatcherConfiguration(threadPoolAlias);
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     DefaultCacheEventDispatcherConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultCacheEventDispatcherConfiguration.class);
+    if (existingServiceConfiguration != null) {
+      otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
+    }
+    otherBuilder.serviceConfigurations.add(configuration);
+    return otherBuilder;
+  }
+
+  public CacheConfigurationBuilder<K, V> withDiskStoreThreadPool(String threadPoolAlias, int concurrency) {
+    OffHeapDiskStoreConfiguration configuration = new OffHeapDiskStoreConfiguration(threadPoolAlias, concurrency);
+    CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
+    OffHeapDiskStoreConfiguration existingServiceConfiguration = getExistingServiceConfiguration(OffHeapDiskStoreConfiguration.class);
     if (existingServiceConfiguration != null) {
       otherBuilder.serviceConfigurations.remove(existingServiceConfiguration);
     }
