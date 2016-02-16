@@ -22,7 +22,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.impl.internal.copy.IdentityCopier;
+import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.serialization.JavaSerializer;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;

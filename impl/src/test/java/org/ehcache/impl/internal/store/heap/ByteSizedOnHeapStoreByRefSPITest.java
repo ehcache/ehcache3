@@ -22,7 +22,7 @@ import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.impl.internal.copy.IdentityCopier;
+import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;

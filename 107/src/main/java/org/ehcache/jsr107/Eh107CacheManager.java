@@ -15,12 +15,12 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.core.Ehcache;
-import org.ehcache.core.EhcacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheManager;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.impl.internal.copy.IdentityCopier;
+import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;

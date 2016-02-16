@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.copy;
 
+import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 

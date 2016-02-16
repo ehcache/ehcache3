@@ -24,7 +24,7 @@ import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.impl.internal.copy.SerializingCopier;
+import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;

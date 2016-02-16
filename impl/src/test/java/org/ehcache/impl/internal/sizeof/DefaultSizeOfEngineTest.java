@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.core.exceptions.LimitExceededException;
-import org.ehcache.impl.internal.copy.IdentityCopier;
+import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.core.spi.sizeof.SizeOfEngine;
 import org.junit.Test;

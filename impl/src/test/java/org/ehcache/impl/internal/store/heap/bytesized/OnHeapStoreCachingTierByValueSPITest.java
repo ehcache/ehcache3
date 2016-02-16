@@ -20,7 +20,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.impl.internal.copy.SerializingCopier;
+import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.serialization.JavaSerializer;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;

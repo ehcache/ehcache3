@@ -14,29 +14,15 @@
  * limitations under the License.
  */
 
-
-package org.ehcache.impl.internal.copy;
-
-import org.ehcache.spi.copy.Copier;
+package org.ehcache.impl.copy;
 
 /**
- * A helper copier implementation that can be extended directly
- * if the copying operation is the same irrespective of the action
- * performed(read or write).
- *
  * @author Albin Suresh
  */
-public abstract class ReadWriteCopier<T> implements Copier<T> {
+public final class IdentityCopier<T> extends ReadWriteCopier<T> {
 
   @Override
-  public T copyForRead(final T obj) {
-    return copy(obj);
+  public T copy(final T obj) {
+    return obj;
   }
-
-  @Override
-  public T copyForWrite(final T obj) {
-    return copy(obj);
-  }
-
-  public abstract T copy(T obj);
 }

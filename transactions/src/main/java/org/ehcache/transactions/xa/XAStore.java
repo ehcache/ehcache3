@@ -28,7 +28,7 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.internal.copy.SerializingCopier;
+import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.store.DefaultStoreProvider;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;

@@ -34,7 +34,7 @@ import org.ehcache.event.EventType;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.ehcache.impl.internal.copy.SerializingCopier;
+import org.ehcache.impl.copy.SerializingCopier;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

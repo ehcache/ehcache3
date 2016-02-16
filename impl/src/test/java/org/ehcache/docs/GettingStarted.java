@@ -39,7 +39,7 @@ import org.ehcache.docs.plugs.StringSerializer;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.impl.internal.copy.ReadWriteCopier;
+import org.ehcache.impl.copy.ReadWriteCopier;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 

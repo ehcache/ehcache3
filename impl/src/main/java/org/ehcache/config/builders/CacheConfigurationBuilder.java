@@ -16,14 +16,15 @@
 
 package org.ehcache.config.builders;
 
-import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.serializer.SerializerConfiguration;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.copy.CopierConfiguration;
+import org.ehcache.core.config.serializer.SerializerConfiguration;
+import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
@@ -32,9 +33,8 @@ import org.ehcache.impl.config.event.DefaultEventSourceConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.impl.internal.copy.SerializingCopier;
+import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;

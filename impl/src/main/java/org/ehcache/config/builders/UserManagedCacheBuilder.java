@@ -40,7 +40,7 @@ import org.ehcache.core.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.impl.internal.copy.SerializingCopier;
+import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;

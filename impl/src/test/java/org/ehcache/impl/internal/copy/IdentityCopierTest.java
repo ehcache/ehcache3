@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.copy;
 
+import org.ehcache.impl.copy.IdentityCopier;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

@@ -30,7 +30,7 @@
   </ehcache:cache>
 
   <ehcache:cache alias="baz">
-    <ehcache:key-type copier="org.ehcache.impl.internal.copy.SerializingCopier">
+    <ehcache:key-type copier="org.ehcache.impl.copy.SerializingCopier">
       java.lang.Long
     </ehcache:key-type>
     <ehcache:value-type copier="com.pany.ehcache.copier.AnotherPersonCopier">

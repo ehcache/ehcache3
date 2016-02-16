@@ -16,8 +16,8 @@
 
 package org.ehcache.impl.internal.store.heap.holders;
 
-import org.ehcache.impl.internal.copy.IdentityCopier;
-import org.ehcache.impl.internal.copy.ReadWriteCopier;
+import org.ehcache.impl.copy.IdentityCopier;
+import org.ehcache.impl.copy.ReadWriteCopier;
 import org.junit.Test;
 
 import static org.junit.Assert.assertNotSame;

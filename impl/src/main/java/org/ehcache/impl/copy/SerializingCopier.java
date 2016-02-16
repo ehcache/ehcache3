@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.copy;
+package org.ehcache.impl.copy;
 
 import org.ehcache.exceptions.SerializerException;
-import org.ehcache.impl.internal.copy.ReadWriteCopier;
 import org.ehcache.spi.serialization.Serializer;
 
 /**

@@ -27,26 +27,26 @@
   </cache-template>
 
   <cache-template name="byRefTemplate">
-    <key-type copier="org.ehcache.impl.internal.copy.IdentityCopier">java.lang.Long</key-type>
-    <value-type copier="org.ehcache.impl.internal.copy.IdentityCopier">java.lang.String</value-type>
+    <key-type copier="org.ehcache.impl.copy.IdentityCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.impl.copy.IdentityCopier">java.lang.String</value-type>
     <heap unit="entries">10</heap>
   </cache-template>
 
   <cache-template name="byValueTemplate">
-    <key-type copier="org.ehcache.impl.internal.copy.SerializingCopier">java.lang.Long</key-type>
-    <value-type copier="org.ehcache.impl.internal.copy.SerializingCopier">java.lang.String</value-type>
+    <key-type copier="org.ehcache.impl.copy.SerializingCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.impl.copy.SerializingCopier">java.lang.String</value-type>
     <heap unit="entries">10</heap>
   </cache-template>
 
   <cache-template name="mixedTemplate1">
-    <key-type copier="org.ehcache.impl.internal.copy.IdentityCopier">java.lang.Long</key-type>
-    <value-type copier="org.ehcache.impl.internal.copy.SerializingCopier">java.lang.String</value-type>
+    <key-type copier="org.ehcache.impl.copy.IdentityCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.impl.copy.SerializingCopier">java.lang.String</value-type>
     <heap unit="entries">10</heap>
   </cache-template>
 
   <cache-template name="mixedTemplate2">
-    <key-type copier="org.ehcache.impl.internal.copy.SerializingCopier">java.lang.Long</key-type>
-    <value-type copier="org.ehcache.impl.internal.copy.IdentityCopier">java.lang.String</value-type>
+    <key-type copier="org.ehcache.impl.copy.SerializingCopier">java.lang.Long</key-type>
+    <value-type copier="org.ehcache.impl.copy.IdentityCopier">java.lang.String</value-type>
     <heap unit="entries">10</heap>
   </cache-template>
 </config>

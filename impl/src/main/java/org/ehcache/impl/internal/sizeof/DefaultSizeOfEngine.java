@@ -17,7 +17,7 @@ package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.core.exceptions.LimitExceededException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.internal.copy.IdentityCopier;
+import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.sizeof.listeners.EhcacheVisitorListener;
 import org.ehcache.impl.internal.sizeof.listeners.exceptions.VisitorListenerException;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
