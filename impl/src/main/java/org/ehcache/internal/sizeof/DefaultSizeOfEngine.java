@@ -15,9 +15,11 @@
  */
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.exceptions.LimitExceededException;
 import org.ehcache.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.internal.copy.IdentityCopier;
 import org.ehcache.internal.sizeof.listeners.EhcacheVisitorListener;
+import org.ehcache.internal.sizeof.listeners.exceptions.VisitorListenerException;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.sizeof.SizeOfFilterSource;
 import org.ehcache.sizeof.SizeOf;
@@ -46,8 +48,12 @@ public class DefaultSizeOfEngine implements SizeOfEngine {
   }
 
   @Override
-  public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) {
-    return sizeOf.deepSizeOf(new EhcacheVisitorListener(maxObjectGraphSize, maxObjectSize), key, holder) + this.chmTreeBinOffset + this.onHeapKeyOffset;
+  public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) throws LimitExceededException {
+    try {
+      return sizeOf.deepSizeOf(new EhcacheVisitorListener(maxObjectGraphSize, maxObjectSize), key, holder) + this.chmTreeBinOffset + this.onHeapKeyOffset;
+    } catch (VisitorListenerException e) {
+      throw new LimitExceededException(e.getMessage());
+    }
   }
 
 }
