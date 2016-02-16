@@ -13,28 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.spi.sizeof;
 
-import org.ehcache.exceptions.LimitExceededException;
-import org.ehcache.spi.cache.Store;
+package org.ehcache.exceptions;
+
+import org.ehcache.sizeof.SizeOfEngineConfiguration;
+import org.ehcache.spi.sizeof.SizeOfEngine;
 
 /**
- * SizeOf engines are used to calculate the size of objects.
+ * This exception is thrown when {@link SizeOfEngine} reaches
+ * the maximum limit defined in {@link SizeOfEngineConfiguration}
+ * while sizing the object on heap
  *
  * @author Abhilash
  *
  */
-public interface SizeOfEngine {
+public class LimitExceededException extends Exception {
 
   /**
-   * Size of the objects on Heap including the
-   * overhead
+   * Creates an exception with the provided message
    *
-   * @param key key to be sized
-   * @param holder value holder to be sized
-   * @return size of the objects on heap including the overhead
-   * @throws LimitExceededException
+   * @param message information about the exception
    */
-  <K, V> long sizeof(K key, Store.ValueHolder<V> holder) throws LimitExceededException;
+  public LimitExceededException(String message) {
+    super(message);
+  }
 
 }

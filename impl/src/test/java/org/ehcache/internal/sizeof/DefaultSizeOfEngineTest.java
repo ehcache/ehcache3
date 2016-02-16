@@ -16,8 +16,8 @@
 
 package org.ehcache.internal.sizeof;
 
+import org.ehcache.exceptions.LimitExceededException;
 import org.ehcache.internal.copy.IdentityCopier;
-import org.ehcache.internal.sizeof.listeners.exceptions.VisitorListenerException;
 import org.ehcache.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.spi.sizeof.SizeOfEngine;
 import org.junit.Test;
@@ -34,27 +34,26 @@ import static org.junit.Assert.fail;
 public class DefaultSizeOfEngineTest {
 
   @Test
-  public void testMaxTraversalsReachedVisitorListenerException() {
+  public void testMaxObjectGraphSizeExceededException() {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(3, Long.MAX_VALUE);
     try {
       sizeOfEngine.sizeof(new MaxDepthGreaterThanThree(), new CopiedOnHeapValueHolder(new MaxDepthGreaterThanThree(), 0l, true, new IdentityCopier()));
       fail();
-    } catch (Exception visitorException) {
-      assertThat(visitorException, instanceOf(VisitorListenerException.class));
-      assertThat(visitorException.getMessage(), containsString("Max Object Graph Size reached for the object"));
+    } catch (Exception limitExceededException) {
+      assertThat(limitExceededException, instanceOf(LimitExceededException.class));
     }
   }
 
   @Test
-  public void testMaxSizeReachedVisitorListenerException() {
+  public void testMaxObjectSizeExceededException() {
     SizeOfEngine sizeOfEngine = new DefaultSizeOfEngine(Long.MAX_VALUE, 1000);
     try {
       String overSized = new String(new byte[1000]);
       sizeOfEngine.sizeof(overSized, new CopiedOnHeapValueHolder("test", 0l, true, new IdentityCopier()));
       fail();
-    } catch (Exception visitorException) {
-      assertThat(visitorException, instanceOf(VisitorListenerException.class));
-      assertThat(visitorException.getMessage(), containsString("Max Object Size reached for the object"));
+    } catch (Exception limitExceededException) {
+      assertThat(limitExceededException, instanceOf(LimitExceededException.class));
+      assertThat(limitExceededException.getMessage(), containsString("Max Object Size reached for the object"));
     }
   }
   private static class MaxDepthGreaterThanThree {

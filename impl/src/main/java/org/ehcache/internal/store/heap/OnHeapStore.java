@@ -28,6 +28,7 @@ import org.ehcache.events.StoreEventSink;
 import org.ehcache.internal.events.NullStoreEventDispatcher;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
@@ -418,8 +419,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             if (mappedValue != null) {
               onExpiration(mappedKey, mappedValue, eventSink);
             }
-            entryActuallyAdded.set(true);
-            return newCreateValueHolder(key, value, now, eventSink);
+
+            OnHeapValueHolder<V> holder = newCreateValueHolder(key, value, now, eventSink);
+            entryActuallyAdded.set(holder != null);
+            return holder;
           }
 
           returnValue.set(mappedValue);
@@ -520,7 +523,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       });
       OnHeapValueHolder<V> valueHolder = returnValue.get();
       if (valueHolder != null) {
-        long replacedDelta = newValue.size() - returnValue.get().size();
+        long replacedDelta = (newValue == null ? 0 : newValue.size()) - returnValue.get().size();
         replaceByteCapacity(replacedDelta, eventSink);
       }
       storeEventDispatcher.releaseEventSink(eventSink);
@@ -567,7 +570,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         }
       });
       if (returnValueHolder.get() != null) {
-        long replacedDelta = replacedValue.size() - returnValueHolder.get().size();
+        long replacedDelta = (replacedValue == null ? 0 : replacedValue.size()) - returnValueHolder.get().size();
         replaceByteCapacity(replacedDelta, eventSink);
       }
       storeEventDispatcher.releaseEventSink(eventSink);
@@ -705,19 +708,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
                 newValue = importValueFromLowerTier(key, value, now);
               } catch (RuntimeException re) {
                 LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-                map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-                  @Override
-                  public OnHeapValueHolder<V> apply(K mappedKey, final OnHeapValueHolder<V> mappedValue) {
-                    if(mappedValue.equals(fault)) {
-                      invalidationListener.onInvalidation(key, cloneValueHolder(key, value, now, Duration.ZERO));
-                      return null;
-                    }
-                    return mappedValue;
-                  }
-                });
+                invalidateInGetorComputeIfAbsent(backEnd, key, value, fault, now);
                 getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
                 return null;
+              } catch (LimitExceededException e) {
+                LOG.warn(e.getMessage());
+                OnHeapValueHolder<V> toReturn = invalidateInGetorComputeIfAbsent(backEnd, key, value, fault, now);
+                getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+                return toReturn;
               }
+
             } else {
               backEnd.remove(key, fault);
               getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
@@ -777,6 +777,26 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       handleRuntimeException(re);
       return null;
     }
+  }
+
+  private OnHeapValueHolder<V> invalidateInGetorComputeIfAbsent(MapWrapper<K, V> map, final K key, final ValueHolder<V> value, final Fault<V> fault, final long now) {
+    final AtomicReference<OnHeapValueHolder<V>> toInvalidate = new AtomicReference<OnHeapValueHolder<V>>();
+    map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      @Override
+      public OnHeapValueHolder<V> apply(K mappedKey, final OnHeapValueHolder<V> mappedValue) {
+        if(mappedValue.equals(fault)) {
+          try {
+            toInvalidate.set(cloneValueHolder(key, value, now, Duration.ZERO, false));
+          } catch (LimitExceededException ex) {
+            throw new AssertionError("Sizing is not expected to happen.");
+          }
+          invalidationListener.onInvalidation(key, toInvalidate.get());
+          return null;
+        }
+        return mappedValue;
+      }
+    });
+    return toInvalidate.get();
   }
 
   @Override
@@ -869,7 +889,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private long getSizeOfKeyValuePairs(K key, OnHeapValueHolder<V> holder) {
+  private long getSizeOfKeyValuePairs(K key, OnHeapValueHolder<V> holder) throws LimitExceededException {
     return sizeOfEngine.sizeof(key, holder);
   }
 
@@ -1342,8 +1362,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return null;
     }
 
-    eventSink.updated(key, oldValue, newValue);
-
     long expirationTime;
     if (duration == null) {
       expirationTime = oldExpirationTime;
@@ -1355,9 +1373,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
     }
 
-    return makeValue(key, newValue, now, expirationTime, this.valueCopier);
+    OnHeapValueHolder<V> holder = null;
+    try {
+      holder = makeValue(key, newValue, now, expirationTime, this.valueCopier);
+      eventSink.updated(key, oldValue, newValue);
+    } catch (LimitExceededException e) {
+      LOG.warn(e.getMessage());
+      eventSink.removed(key, oldValue);
+    }
+    return holder;
   }
-  
+
   private OnHeapValueHolder<V> newCreateValueHolder(K key, V value, long now, StoreEventSink<K, V> eventSink) {
     if (value == null) {
       throw new NullPointerException();
@@ -1376,18 +1402,23 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     long expirationTime = duration.isForever() ? ValueHolder.NO_EXPIRE : safeExpireTime(now, duration);
 
-    eventSink.created(key, value);
-
-    return makeValue(key, value, now, expirationTime, this.valueCopier);
+    OnHeapValueHolder<V> holder = null;
+    try {
+      holder = makeValue(key, value, now, expirationTime, this.valueCopier);
+      eventSink.created(key, value);
+    } catch (LimitExceededException e) {
+      LOG.warn(e.getMessage());
+    }
+    return holder;
   }
 
-  private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now) {
+  private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now) throws LimitExceededException {
     V realValue = valueHolder.value();
     Duration expiration = expiry.getExpiryForAccess(key, realValue);
-    return cloneValueHolder(key, valueHolder, now, expiration);
+    return cloneValueHolder(key, valueHolder, now, expiration, true);
   }
 
-  private OnHeapValueHolder<V> cloneValueHolder(K key, ValueHolder<V> valueHolder, long now, Duration expiration) {
+  private OnHeapValueHolder<V> cloneValueHolder(K key, ValueHolder<V> valueHolder, long now, Duration expiration, boolean sizingEnabled) throws LimitExceededException {
     V realValue = valueHolder.value();
     boolean veto = checkVeto(key, realValue);
     OnHeapValueHolder<V> clonedValueHolder = null;
@@ -1396,11 +1427,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     } else {
       clonedValueHolder = new CopiedOnHeapValueHolder<V>(valueHolder, realValue, veto, valueCopier, now, expiration);
     }
-    clonedValueHolder.setSize(getSizeOfKeyValuePairs(key, clonedValueHolder));
+    if (sizingEnabled) {
+      clonedValueHolder.setSize(getSizeOfKeyValuePairs(key, clonedValueHolder));
+    }
     return clonedValueHolder;
   }
 
-  private OnHeapValueHolder<V> makeValue(K key, V value, long creationTime, long expirationTime, Copier<V> valueCopier) {
+  private OnHeapValueHolder<V> makeValue(K key, V value, long creationTime, long expirationTime, Copier<V> valueCopier) throws LimitExceededException{
     boolean veto = checkVeto(key, value);
     OnHeapValueHolder<V> valueHolder = null;
     if (valueCopier instanceof SerializingCopier) {

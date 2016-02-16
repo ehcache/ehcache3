@@ -24,6 +24,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
 import org.ehcache.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -50,6 +51,7 @@ import org.junit.Test;
 
 import static org.ehcache.internal.store.StoreCreationEventListenerTest.eventType;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.fail;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Matchers.argThat;
@@ -68,7 +70,7 @@ public class ByteAccountingTest {
   private static final SizeOfEngine SIZE_OF_ENGINE = new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE);
 
   private static final String KEY = "key";
-  private static final String  VALUE = "value";
+  private static final String VALUE = "value";
   private static final long SIZE_OF_KEY_VALUE_PAIR = getSize(KEY, VALUE);
 
   private static final SizeOfFilterSource FILTERSOURCE = new SizeOfFilterSource(true);
@@ -422,7 +424,13 @@ public class ByteAccountingTest {
 
   static long getSize(String key, String value) {
     CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0l, 0l, true, DEFAULT_COPIER);
-    return SIZE_OF_ENGINE.sizeof(key, valueHolder);
+    long size = 0L;
+    try {
+      size = SIZE_OF_ENGINE.sizeof(key, valueHolder);
+    } catch (LimitExceededException e) {
+      fail();
+    }
+    return size;
   }
 
   public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
