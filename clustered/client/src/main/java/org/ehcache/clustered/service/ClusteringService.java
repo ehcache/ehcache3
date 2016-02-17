@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+package org.ehcache.clustered.service;
 
-dependencies {
-  compile project(':api')
-  compile project(':xml')
-  compile project(':clustered:common')
-  compile "org.terracotta:coordinator-entity-client:$parent.coordinatorVersion"
-  compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
+import org.ehcache.spi.service.Service;
+
+/**
+ * @author Clifford W. Johnson
+ */
+public interface ClusteringService extends Service {
 }
