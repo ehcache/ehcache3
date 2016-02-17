@@ -29,12 +29,14 @@ import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
+import org.ehcache.config.event.DefaultCacheEventListenerProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.events.CacheEventDispatcher;
+import org.ehcache.events.CacheEventDispatcherImpl;
 import org.ehcache.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
@@ -46,6 +48,7 @@ import org.ehcache.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -64,6 +67,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -95,7 +99,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
   private EvictionVeto<? super K, ? super V> evictionVeto;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
-  private CacheEventDispatcher<K, V> eventNotifier = new DisabledCacheEventNotificationService<K, V>();
+  private CacheEventDispatcher<K, V> eventDispatcher = new DisabledCacheEventNotificationService<K, V>();
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
   private Copier<K> keyCopier;
   private boolean useKeySerializingCopier;
@@ -105,6 +109,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private Serializer<V> valueSerializer;
   private int orderedEventParallelism = 4;
   private List<CacheEventListenerConfiguration> eventListenerConfigurations = new ArrayList<CacheEventListenerConfiguration>();
+  private ExecutorService unOrderedExecutor;
+  private ExecutorService orderedExecutor;
 
 
   public UserManagedCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
@@ -122,7 +128,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.classLoader = toCopy.classLoader;
     this.evictionVeto = toCopy.evictionVeto;
     this.cacheLoaderWriter = toCopy.cacheLoaderWriter;
-    this.eventNotifier = toCopy.eventNotifier;
+    this.eventDispatcher = toCopy.eventDispatcher;
     this.resourcePools = toCopy.resourcePools;
     this.keyCopier = toCopy.keyCopier;
     this.valueCopier = toCopy.valueCopier;
@@ -131,9 +137,15 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.useKeySerializingCopier = toCopy.useKeySerializingCopier;
     this.useValueSerializingCopier = toCopy.useValueSerializingCopier;
     this.eventListenerConfigurations = toCopy.eventListenerConfigurations;
+    this.unOrderedExecutor = toCopy.unOrderedExecutor;
+    this.orderedExecutor = toCopy.orderedExecutor;
+
   }
 
   T build(ServiceLocator serviceLocator) throws IllegalStateException {
+
+    validateListenerConfig();
+
     try {
       for (ServiceCreationConfiguration<?> serviceCreationConfig : serviceCreationConfigurations) {
         Service service = serviceLocator.getOrCreateServiceFor(serviceCreationConfig);
@@ -250,6 +262,10 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
     });
 
+    if (this.eventDispatcher instanceof DisabledCacheEventNotificationService && (orderedExecutor != null & unOrderedExecutor != null)) {
+      this.eventDispatcher = new CacheEventDispatcherImpl<K, V>(store, unOrderedExecutor, orderedExecutor);
+    }
+
     if (persistent) {
       LocalPersistenceService persistenceService = serviceLocator
           .getService(LocalPersistenceService.class);
@@ -257,7 +273,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, storeConfig, persistenceService, cacheLoaderWriter, eventNotifier, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, storeConfig, persistenceService, cacheLoaderWriter, eventDispatcher, id);
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
@@ -270,7 +286,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       } else {
         loggerName = Ehcache.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
       }
-      Ehcache<K, V> cache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, eventNotifier, LoggerFactory.getLogger(loggerName));
+      Ehcache<K, V> cache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, LoggerFactory.getLogger(loggerName));
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
@@ -280,9 +296,23 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   }
 
+  private void validateListenerConfig() {
+    if (!eventListenerConfigurations.isEmpty() && eventDispatcher instanceof DisabledCacheEventNotificationService) {
+      if (orderedExecutor == null && unOrderedExecutor == null) {
+        throw new IllegalArgumentException("Listeners will not work unless Executors or EventDispatcher is configured.");
+      }
+    }
+  }
+
   private void registerListeners(Cache<K, V> cache, ServiceProvider serviceLocator, List<LifeCycled> lifeCycledList) {
     if (!eventListenerConfigurations.isEmpty()) {
-      final CacheEventListenerProvider listenerProvider = serviceLocator.getService(CacheEventListenerProvider.class);
+      final CacheEventListenerProvider listenerProvider;
+      CacheEventListenerProvider provider;
+      if ((provider = serviceLocator.getService(CacheEventListenerProvider.class)) != null) {
+        listenerProvider = provider;
+      } else {
+        listenerProvider = new DefaultCacheEventListenerProvider(new DefaultCacheEventListenerProviderConfiguration());
+      }
       for (CacheEventListenerConfiguration config : eventListenerConfigurations) {
         final CacheEventListener<K, V> listener = listenerProvider.createEventListener(id, config);
         if (listener != null) {
@@ -302,6 +332,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         }
       }
     }
+    eventDispatcher.setListenerSource(cache);
   }
 
   @SuppressWarnings("unchecked")
@@ -350,9 +381,21 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     return otherBuilder;
   }
 
-  public final UserManagedCacheBuilder<K, V, T> withEventDispatcher(CacheEventDispatcher<K, V> eventNotifier) {
+  public final UserManagedCacheBuilder<K, V, T> withEventDispatcher(CacheEventDispatcher<K, V> eventDispatcher) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
-    otherBuilder.eventNotifier = eventNotifier;
+    otherBuilder.eventDispatcher = eventDispatcher;
+    return otherBuilder;
+  }
+
+  public final UserManagedCacheBuilder<K, V, T> withOrderedEventExecutor(ExecutorService orderedExecutor) {
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    otherBuilder.orderedExecutor = orderedExecutor;
+    return otherBuilder;
+  }
+
+  public final UserManagedCacheBuilder<K, V, T> withUnOrderedEventExecutor(ExecutorService unOrderedExecutor) {
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    otherBuilder.unOrderedExecutor = unOrderedExecutor;
     return otherBuilder;
   }
 

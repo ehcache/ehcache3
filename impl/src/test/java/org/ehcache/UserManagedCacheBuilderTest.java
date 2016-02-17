@@ -18,6 +18,9 @@ package org.ehcache;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.UserManagedCacheConfiguration;
+import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
+import org.ehcache.docs.plugs.ListenerObject;
+import org.ehcache.event.EventType;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.spi.ServiceLocator;
 import org.junit.Test;
@@ -25,8 +28,12 @@ import org.junit.Test;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
 
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 public class UserManagedCacheBuilderTest {
 
@@ -44,7 +51,7 @@ public class UserManagedCacheBuilderTest {
         };
       }
     };
-    
+
     assertNotNull(cfg);
 
     // OpenJDK 1.6's javac is not happy about the type inference here...
@@ -57,6 +64,24 @@ public class UserManagedCacheBuilderTest {
 //        .with(cfg).build();
 //    assertThat(cache, notNullValue());
 //    assertThat(cache, is(instanceOf(TestUserManagedCache.class)));
+  }
+
+  @Test
+  public void testInvalidListenerConfig() {
+    try {
+      UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
+        .withEventListeners(CacheEventListenerConfigurationBuilder
+            .newEventListenerConfiguration(ListenerObject.class,
+                EventType.CREATED,
+                EventType.UPDATED)
+                .synchronous()
+                .unordered()
+                .build())
+        .build();
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), equalTo("Listeners will not work unless Executors or EventDispatcher is configured."));
+    }
   }
 
   private class TestUserManagedCache<K, V> implements PersistentUserManagedCache<K, V> {

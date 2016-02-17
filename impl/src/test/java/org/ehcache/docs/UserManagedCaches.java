@@ -20,22 +20,29 @@ import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.UserManagedCache;
 import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
+import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
+import org.ehcache.config.event.DefaultCacheEventListenerProviderConfiguration;
 import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.docs.plugs.LongCopier;
 import org.ehcache.docs.plugs.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionVeto;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringCopier;
 import org.ehcache.docs.plugs.StringSerializer;
+import org.ehcache.event.CacheEventListenerProvider;
+import org.ehcache.event.EventType;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
+import org.ehcache.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.junit.Test;
 
 import java.io.File;
 import java.net.URISyntaxException;
+import java.util.concurrent.Executors;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -184,6 +191,26 @@ public class UserManagedCaches {
 
     cache.close(); // <3>
     // end::userManagedEvictionVetoCache[]
+  }
+
+  @Test
+  public void userManagedListenerCache() throws Exception {
+    // tag::userManagedListenerCache[]
+
+    UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+        .withOrderedEventExecutor(Executors.newSingleThreadExecutor())
+        .withUnOrderedEventExecutor(Executors.newSingleThreadExecutor()) // <1>
+        .withEventListeners(CacheEventListenerConfigurationBuilder
+            .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
+            .asynchronous()
+            .unordered()) // <2>
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(3, EntryUnit.ENTRIES))
+        .build(true);
+
+    cache.put(1L, "Put it");
+    cache.put(1L, "Update it");
+    // end::userManagedListenerCache[]
   }
 
   private String getStoragePath() throws URISyntaxException {
