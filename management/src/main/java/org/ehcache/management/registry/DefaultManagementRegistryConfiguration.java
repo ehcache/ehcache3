@@ -15,11 +15,12 @@
  */
 package org.ehcache.management.registry;
 
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.ManagementRegistryConfiguration;
+import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.ehcache.management.providers.ManagementProvider;
+import org.terracotta.management.context.Context;
+import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -29,27 +30,39 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * @author Ludovic Orban
  */
-public class DefaultManagementRegistryConfiguration implements ManagementRegistryConfiguration {
+public class DefaultManagementRegistryConfiguration implements ManagementRegistryServiceConfiguration {
 
   private static final AtomicLong COUNTER = new AtomicLong();
 
   private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
-  private String cacheManagerAlias;
+  private Context context = Context.empty();
   private String statisticsExecutorAlias;
+  private String collectorExecutorAlias;
 
   public DefaultManagementRegistryConfiguration() {
-    // defaults
-    this.cacheManagerAlias = "cache-manager-" + COUNTER.getAndIncrement();
+    setCacheManagerAlias("cache-manager-" + COUNTER.getAndIncrement());
     addConfiguration(new EhcacheStatisticsProviderConfiguration(1, TimeUnit.MINUTES, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS));
   }
 
   public DefaultManagementRegistryConfiguration setCacheManagerAlias(String alias) {
-    this.cacheManagerAlias = alias;
+    return setContext(Context.create("cacheManagerName", alias));
+  }
+
+  public DefaultManagementRegistryConfiguration setContext(Context context) {
+    if (!this.context.contains("cacheManagerName") && !context.contains("cacheManagerName")) {
+      throw new IllegalArgumentException("'cacheManagerName' is missing from context");
+    }
+    this.context = this.context.with(context);
     return this;
   }
 
   public DefaultManagementRegistryConfiguration setStatisticsExecutorAlias(String alias) {
     this.statisticsExecutorAlias = alias;
+    return this;
+  }
+
+  public DefaultManagementRegistryConfiguration setCollectorExecutorAlias(String collectorExecutorAlias) {
+    this.collectorExecutorAlias = collectorExecutorAlias;
     return this;
   }
 
@@ -60,13 +73,18 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   }
 
   @Override
-  public String getCacheManagerAlias() {
-    return cacheManagerAlias;
+  public Context getContext() {
+    return context;
   }
 
   @Override
   public String getStatisticsExecutorAlias() {
-    return statisticsExecutorAlias;
+    return this.statisticsExecutorAlias;
+  }
+
+  @Override
+  public String getCollectorExecutorAlias() {
+    return this.collectorExecutorAlias;
   }
 
   @Override
@@ -75,8 +93,8 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   }
 
   @Override
-  public Class<ManagementRegistry> getServiceType() {
-    return ManagementRegistry.class;
+  public Class<ManagementRegistryService> getServiceType() {
+    return ManagementRegistryService.class;
   }
 
 }

@@ -13,23 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management;
-
-import org.terracotta.management.call.ContextualReturn;
-import org.terracotta.management.call.Parameter;
+package org.ehcache.management.registry;
 
 /**
  * @author Mathieu Carbou
  */
-public interface CallQuery<T> extends Query<ContextualReturn<T>> {
-
-  Class<T> getReturnType();
-
-  String getMethodName();
-
-  Parameter[] getParameters();
-
-  interface Builder<T> extends QueryBuilder<Builder<T>, CallQuery<T>> {
-
-  }
+public enum EhcacheNotification {
+  CACHE_ADDED,
+  CACHE_REMOVED,
+  CACHE_MANAGER_CLOSED,
+  CACHE_MANAGER_AVAILABLE,
+  CACHE_MANAGER_MAINTENANCE,
 }

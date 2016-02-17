@@ -21,9 +21,9 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.ResultSet;
-import org.ehcache.management.StatisticQuery;
+import org.ehcache.management.ManagementRegistryService;
+import org.terracotta.management.registry.ResultSet;
+import org.terracotta.management.registry.StatisticQuery;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -52,7 +52,7 @@ import static org.junit.Assert.fail;
 /**
  * @author Ludovic Orban, Mathoeu Carbou
  */
-public class DefaultManagementRegistryTest {
+public class DefaultManagementRegistryServiceTest {
 
   @Test
   public void testCanGetContext() {
@@ -60,18 +60,18 @@ public class DefaultManagementRegistryTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .build();
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
 
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
         .using(managementRegistry)
         .build(true);
 
-    assertThat(managementRegistry.getContext().getName(), equalTo("cacheManagerName"));
-    assertThat(managementRegistry.getContext().getValue(), equalTo("myCM"));
-    assertThat(managementRegistry.getContext().getSubContexts(), hasSize(1));
-    assertThat(managementRegistry.getContext().getSubContexts().iterator().next().getName(), equalTo("cacheName"));
-    assertThat(managementRegistry.getContext().getSubContexts().iterator().next().getValue(), equalTo("aCache"));
+    assertThat(managementRegistry.getContextContainer().getName(), equalTo("cacheManagerName"));
+    assertThat(managementRegistry.getContextContainer().getValue(), equalTo("myCM"));
+    assertThat(managementRegistry.getContextContainer().getSubContexts(), hasSize(1));
+    assertThat(managementRegistry.getContextContainer().getSubContexts().iterator().next().getName(), equalTo("cacheName"));
+    assertThat(managementRegistry.getContextContainer().getSubContexts().iterator().next().getValue(), equalTo("aCache"));
 
     cacheManager1.close();
   }
@@ -82,19 +82,19 @@ public class DefaultManagementRegistryTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .build();
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
 
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache", cacheConfiguration)
         .using(managementRegistry)
         .build(true);
 
-    assertThat(managementRegistry.getCapabilities(), hasSize(2));
+    assertThat(managementRegistry.getCapabilities(), hasSize(3));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("StatisticsCapability"));
 
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptions(), hasSize(4));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptions(), hasSize(15));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors(), hasSize(15));
 
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getCapabilityContext().getAttributes(), hasSize(2));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getCapabilityContext().getAttributes(), hasSize(2));
@@ -108,7 +108,7 @@ public class DefaultManagementRegistryTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .build();
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
 
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache1", cacheConfiguration)
@@ -116,11 +116,11 @@ public class DefaultManagementRegistryTest {
         .using(managementRegistry)
         .build(true);
 
-    Context context1 = Context.create()
+    Context context1 = Context.empty()
       .with("cacheManagerName", "myCM")
       .with("cacheName", "aCache1");
 
-    Context context2 = Context.create()
+    Context context2 = Context.empty()
       .with("cacheManagerName", "myCM")
       .with("cacheName", "aCache2");
 
@@ -162,7 +162,7 @@ public class DefaultManagementRegistryTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .build();
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry(new DefaultManagementRegistryConfiguration()
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration()
         .addConfiguration(new EhcacheStatisticsProviderConfiguration(5000, TimeUnit.MILLISECONDS, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS))
         .setCacheManagerAlias("myCM"));
 
@@ -171,7 +171,7 @@ public class DefaultManagementRegistryTest {
         .using(managementRegistry)
         .build(true);
 
-    Context context = Context.create()
+    Context context = Context.empty()
       .with("cacheManagerName", "myCM")
       .with("cacheName", "aCache1");
 
@@ -246,7 +246,7 @@ public class DefaultManagementRegistryTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .build();
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
 
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache1", cacheConfiguration)
@@ -254,7 +254,7 @@ public class DefaultManagementRegistryTest {
         .using(managementRegistry)
         .build(true);
 
-    Context context = Context.create()
+    Context context = Context.empty()
       .with("cacheManagerName", "myCM")
       .with("cacheName", "aCache1");
 
@@ -283,7 +283,7 @@ public class DefaultManagementRegistryTest {
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
         .build();
 
-    ManagementRegistry managementRegistry = new DefaultManagementRegistry(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
 
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache1", cacheConfiguration)
@@ -291,7 +291,7 @@ public class DefaultManagementRegistryTest {
         .using(managementRegistry)
         .build(true);
 
-    Context inexisting = Context.create()
+    Context inexisting = Context.empty()
         .with("cacheManagerName", "myCM2")
         .with("cacheName", "aCache2");
 

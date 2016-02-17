@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.registry;
+package org.ehcache.management.providers;
 
 import org.ehcache.Cache;
 
@@ -25,7 +25,7 @@ import org.ehcache.Cache;
 public final class CacheBinding {
 
   private final String alias;
-  private final Cache<?, ?> cache;
+  private final Cache cache;
 
   public CacheBinding(String alias, Cache<?, ?> cache) {
     if (alias == null) throw new NullPointerException();
@@ -38,7 +38,7 @@ public final class CacheBinding {
     return alias;
   }
 
-  public Cache<?, ?> getCache() {
+  public Cache getCache() {
     return cache;
   }
 

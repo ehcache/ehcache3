@@ -17,7 +17,7 @@ package org.ehcache.management.providers.actions;
 
 import org.ehcache.Ehcache;
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.management.registry.CacheBinding;
+import org.ehcache.management.providers.CacheBinding;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.terracotta.management.call.Parameter;
@@ -27,9 +27,9 @@ import org.terracotta.management.capabilities.descriptors.Descriptor;
 import org.terracotta.management.context.Context;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -47,14 +47,17 @@ import static org.mockito.Mockito.when;
  */
 public class EhcacheActionProviderTest {
 
+  Context cmContext = Context.create("cacheManagerName", "myCacheManagerName");
+  Context cmContext_0 = Context.create("cacheManagerName", "cache-manager-0");
+
   @Test
   public void testDescriptions() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("myCacheManagerName");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext);
 
     ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(Ehcache.class)));
     ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(Ehcache.class)));
 
-    Set<Descriptor> descriptions = ehcacheActionProvider.getDescriptors();
+    Collection<Descriptor> descriptions = ehcacheActionProvider.getDescriptors();
     assertThat(descriptions.size(), is(4));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new CallDescriptor("remove", "void", Collections.singletonList(new CallDescriptor.Parameter("key", "java.lang.Object"))),
@@ -66,7 +69,7 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCapabilityContext() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("myCacheManagerName");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext);
 
     ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(Ehcache.class)));
     ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(Ehcache.class)));
@@ -86,7 +89,7 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCollectStatistics() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("myCacheManagerName");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext);
 
     try {
       ehcacheActionProvider.collectStatistics(null, null, System.currentTimeMillis());
@@ -98,7 +101,7 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_happyPathNoParam() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
     Ehcache ehcache = mock(Ehcache.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
@@ -107,9 +110,7 @@ public class EhcacheActionProviderTest {
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
 
-    Context context = Context.create()
-        .with("cacheManagerName", "cache-manager-0")
-        .with("cacheName", "cache-0");
+    Context context = cmContext_0.with("cacheName", "cache-0");
 
     ehcacheActionProvider.callAction(context, "clear", Void.class);
 
@@ -118,7 +119,7 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_happyPathWithParams() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
     Ehcache ehcache = mock(Ehcache.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
@@ -128,9 +129,7 @@ public class EhcacheActionProviderTest {
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
 
-    Context context = Context.create()
-      .with("cacheManagerName", "cache-manager-0")
-      .with("cacheName", "cache-0");
+    Context context = cmContext_0.with("cacheName", "cache-0");
 
     ehcacheActionProvider.callAction(context, "get", Object.class, new Parameter("1", Object.class.getName()));
 
@@ -139,14 +138,12 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_noSuchCache() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
     Ehcache ehcache = mock(Ehcache.class);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
-    Context context = Context.create()
-        .with("cacheManagerName", "cache-manager-0")
-        .with("cacheName", "cache-1");
+    Context context = cmContext_0.with("cacheName", "cache-1");
 
     try {
       ehcacheActionProvider.callAction(context, "clear", Void.class);
@@ -160,12 +157,12 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_noSuchCacheManager() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
     Ehcache ehcache = mock(Ehcache.class);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
-    Context context = Context.create()
+    Context context = Context.empty()
         .with("cacheManagerName", "cache-manager-1")
         .with("cacheName", "cache-0");
 
@@ -181,7 +178,7 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_noSuchMethodName() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
     Ehcache ehcache = mock(Ehcache.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
@@ -189,9 +186,7 @@ public class EhcacheActionProviderTest {
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
-    Context context = Context.create()
-        .with("cacheManagerName", "cache-manager-0")
-        .with("cacheName", "cache-0");
+    Context context = cmContext_0.with("cacheName", "cache-0");
 
     try {
       ehcacheActionProvider.callAction(context, "clearer", Void.class);
@@ -203,7 +198,7 @@ public class EhcacheActionProviderTest {
 
   @Test
   public void testCallAction_noSuchMethod() throws Exception {
-    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider("cache-manager-0");
+    EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
     Ehcache ehcache = mock(Ehcache.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
@@ -211,7 +206,7 @@ public class EhcacheActionProviderTest {
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
-    Context context = Context.create()
+    Context context = Context.empty()
         .with("cacheManagerName", "cache-manager-1")
         .with("cacheName", "cache-0");
 

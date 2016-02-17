@@ -21,7 +21,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.management.ResultSet;
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.SharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -33,6 +33,7 @@ import org.terracotta.management.call.ContextualReturn;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.Context;
 import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.stats.ContextualStatistics;
 import org.terracotta.management.stats.primitive.Counter;
 
@@ -40,12 +41,12 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
@@ -63,6 +64,9 @@ public class DefaultSharedManagementServiceTest {
   CacheManager cacheManager2;
   SharedManagementService service;
 
+  ManagementRegistryServiceConfiguration config1;
+  ManagementRegistryServiceConfiguration config2;
+
   @Before
   public void init() {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
@@ -74,14 +78,14 @@ public class DefaultSharedManagementServiceTest {
     cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache1", cacheConfiguration)
         .using(service)
-        .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM1"))
+        .using(config1 = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM1"))
         .build(true);
 
     cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache2", cacheConfiguration)
         .withCache("aCache3", cacheConfiguration)
         .using(service)
-        .using(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM2"))
+        .using(config2 = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM2"))
         .build(true);
 
     // this serie of calls make sure the registry still works after a full init / close / init loop
@@ -99,52 +103,58 @@ public class DefaultSharedManagementServiceTest {
 
   @Test
   public void testSharedContexts() {
-    List<ContextContainer> ctx = new ArrayList<ContextContainer>(service.getContexts());
-    assertEquals(2, ctx.size());
+    assertEquals(2, service.getContextContainers().size());
 
-    assertThat(ctx.get(0).getName(), equalTo("cacheManagerName"));
-    assertThat(ctx.get(0).getValue(), equalTo("myCM1"));
+    ContextContainer contextContainer1 = service.getContextContainers().get(config1.getContext());
+    ContextContainer contextContainer2 = service.getContextContainers().get(config2.getContext());
 
-    assertThat(ctx.get(1).getName(), equalTo("cacheManagerName"));
-    assertThat(ctx.get(1).getValue(), equalTo("myCM2"));
+    assertThat(contextContainer1, is(notNullValue()));
+    assertThat(contextContainer2, is(notNullValue()));
 
-    assertThat(ctx.get(0).getSubContexts().size(), equalTo(1));
-    assertThat(ctx.get(0).getSubContexts().iterator().next().getName(), equalTo("cacheName"));
-    assertThat(ctx.get(0).getSubContexts().iterator().next().getValue(), equalTo("aCache1"));
+    assertThat(contextContainer1.getName(), equalTo("cacheManagerName"));
+    assertThat(contextContainer1.getValue(), equalTo("myCM1"));
 
-    assertThat(ctx.get(1).getSubContexts().size(), equalTo(2));
-    assertThat(ctx.get(1).getSubContexts().iterator().next().getName(), equalTo("cacheName"));
-    assertThat(new ArrayList<ContextContainer>(ctx.get(1).getSubContexts()).get(1).getName(), equalTo("cacheName"));
+    assertThat(contextContainer2.getName(), equalTo("cacheManagerName"));
+    assertThat(contextContainer2.getValue(), equalTo("myCM2"));
 
-    assertThat(new ArrayList<ContextContainer>(ctx.get(1).getSubContexts()).get(0).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
-    assertThat(new ArrayList<ContextContainer>(ctx.get(1).getSubContexts()).get(1).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
+    assertThat(contextContainer1.getSubContexts().size(), equalTo(1));
+    assertThat(contextContainer1.getSubContexts().iterator().next().getName(), equalTo("cacheName"));
+    assertThat(contextContainer1.getSubContexts().iterator().next().getValue(), equalTo("aCache1"));
+
+    assertThat(contextContainer2.getSubContexts().size(), equalTo(2));
+    assertThat(contextContainer2.getSubContexts().iterator().next().getName(), equalTo("cacheName"));
+    assertThat(new ArrayList<ContextContainer>(contextContainer2.getSubContexts()).get(1).getName(), equalTo("cacheName"));
+
+    assertThat(new ArrayList<ContextContainer>(contextContainer2.getSubContexts()).get(0).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
+    assertThat(new ArrayList<ContextContainer>(contextContainer2.getSubContexts()).get(1).getValue(), isIn(Arrays.asList("aCache2", "aCache3")));
   }
 
   @Test
   public void testSharedCapabilities() {
-    Map<String, Collection<Capability>> allCapabilities = service.getCapabilities();
+    assertEquals(2, service.getCapabilities().size());
 
-    assertThat(allCapabilities.keySet(), hasSize(2));
+    Collection<Capability> capabilities1 = service.getCapabilities().get(config1.getContext());
+    Collection<Capability> capabilities2 = service.getCapabilities().get(config2.getContext());
 
-    assertThat(allCapabilities.get("myCM1"), hasSize(2));
-    assertThat(new ArrayList<Capability>(allCapabilities.get("myCM1")).get(0).getName(), equalTo("ActionsCapability"));
-    assertThat(new ArrayList<Capability>(allCapabilities.get("myCM1")).get(1).getName(), equalTo("StatisticsCapability"));
+    assertThat(capabilities1, hasSize(3));
+    assertThat(new ArrayList<Capability>(capabilities1).get(0).getName(), equalTo("ActionsCapability"));
+    assertThat(new ArrayList<Capability>(capabilities1).get(1).getName(), equalTo("StatisticsCapability"));
 
-    assertThat(allCapabilities.get("myCM2"), hasSize(2));
-    assertThat(new ArrayList<Capability>(allCapabilities.get("myCM2")).get(0).getName(), equalTo("ActionsCapability"));
-    assertThat(new ArrayList<Capability>(allCapabilities.get("myCM2")).get(1).getName(), equalTo("StatisticsCapability"));
+    assertThat(capabilities2, hasSize(3));
+    assertThat(new ArrayList<Capability>(capabilities2).get(0).getName(), equalTo("ActionsCapability"));
+    assertThat(new ArrayList<Capability>(capabilities2).get(1).getName(), equalTo("StatisticsCapability"));
   }
 
   @Test
   public void testStats() {
     List<Context> contextList = Arrays.asList(
-        Context.create()
+        Context.empty()
             .with("cacheManagerName", "myCM1")
             .with("cacheName", "aCache1"),
-        Context.create()
+        Context.empty()
             .with("cacheManagerName", "myCM2")
             .with("cacheName", "aCache2"),
-        Context.create()
+        Context.empty()
             .with("cacheManagerName", "myCM2")
             .with("cacheName", "aCache3"));
 
@@ -172,16 +182,16 @@ public class DefaultSharedManagementServiceTest {
   @Test
   public void testCall() {
     List<Context> contextList = Arrays.asList(
-        Context.create()
+        Context.empty()
             .with("cacheManagerName", "myCM1")
             .with("cacheName", "aCache1"),
-        Context.create()
+        Context.empty()
             .with("cacheManagerName", "myCM1")
             .with("cacheName", "aCache4"),
-        Context.create()
+        Context.empty()
             .with("cacheManagerName", "myCM2")
             .with("cacheName", "aCache2"),
-        Context.create()
+        Context.empty()
             .with("cacheManagerName", "myCM55")
             .with("cacheName", "aCache55"));
 

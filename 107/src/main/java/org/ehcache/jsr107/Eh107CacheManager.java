@@ -40,7 +40,7 @@ import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.internal.copy.IdentityCopier;
-import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
@@ -62,12 +62,12 @@ class Eh107CacheManager implements CacheManager {
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
-  private final ManagementRegistry managementRegistry;
+  private final ManagementRegistryService managementRegistry;
   private final ConfigurationMerger configurationMerger;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, EhcacheManager ehCacheManager, Properties props,
                     ClassLoader classLoader, URI uri,
-                    ManagementRegistry managementRegistry, final ConfigurationMerger configurationMerger) {
+                    ManagementRegistryService managementRegistry, final ConfigurationMerger configurationMerger) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;

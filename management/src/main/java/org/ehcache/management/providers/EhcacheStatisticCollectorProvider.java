@@ -13,29 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management;
+package org.ehcache.management.providers;
 
 import org.terracotta.management.context.Context;
-
-import java.util.NoSuchElementException;
+import org.terracotta.management.registry.action.Named;
+import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.collect.StatisticCollector;
+import org.terracotta.management.registry.collect.StatisticCollectorProvider;
 
 /**
  * @author Mathieu Carbou
  */
-public interface ResultSet<T> extends Iterable<T> {
-
-  /**
-   * @return The result of the query for a specific context
-   */
-  T getResult(Context context);
-
-  /**
-   * @return The result of the query for the only one existing context
-   * @throws NoSuchElementException If the result set is empty or has more than 1 values
-   */
-  T getSingleResult() throws NoSuchElementException;
-
-  int size();
-
-  boolean isEmpty();
+@RequiredContext(@Named("cacheManagerName"))
+public class EhcacheStatisticCollectorProvider extends StatisticCollectorProvider<StatisticCollector> {
+  public EhcacheStatisticCollectorProvider(Context context) {
+    super(StatisticCollector.class, context);
+  }
 }

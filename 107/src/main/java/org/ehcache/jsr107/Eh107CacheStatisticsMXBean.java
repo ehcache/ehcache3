@@ -18,8 +18,7 @@ package org.ehcache.jsr107;
 import org.ehcache.Cache;
 import org.ehcache.Ehcache;
 import org.ehcache.EhcacheHackAccessor;
-import org.ehcache.management.ManagementRegistry;
-import org.ehcache.management.StatisticQuery;
+import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.statistics.BulkOps;
 import org.ehcache.statistics.CacheOperationOutcomes;
 import org.ehcache.statistics.StoreOperationOutcomes;
@@ -29,6 +28,7 @@ import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.management.context.Context;
+import org.terracotta.management.registry.StatisticQuery;
 import org.terracotta.management.stats.Sample;
 import org.terracotta.management.stats.StatisticHistory;
 import org.terracotta.management.stats.history.AverageHistory;
@@ -65,7 +65,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   private final StatisticQuery averagePutTime;
   private final StatisticQuery averageRemoveTime;
 
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistry managementRegistry) {
+  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistryService managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
     this.bulkMethodEntries = EhcacheHackAccessor.getBulkMethodEntries((Ehcache<?, ?>) cache);
 
@@ -77,9 +77,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
     conditionalRemove = findCacheStatistic(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
     authorityEviction = findAuthoritativeTierStatistic(cache, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
 
-    Context context = Context.create()
-      .with("cacheManagerName", managementRegistry.getConfiguration().getCacheManagerAlias())
-      .with("cacheName", cacheName);
+    Context context = managementRegistry.getConfiguration().getContext().with("cacheName", cacheName);
 
     averageGetTime = managementRegistry
         .withCapability("StatisticsCapability")

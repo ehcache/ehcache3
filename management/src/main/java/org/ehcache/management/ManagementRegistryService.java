@@ -15,32 +15,23 @@
  */
 package org.ehcache.management;
 
-import org.terracotta.management.context.Context;
-
-import java.util.Collection;
+import org.ehcache.spi.service.Service;
+import org.terracotta.management.registry.ManagementRegistry;
 
 /**
- * @author Mathieu Carbou
+ * Repository of objects exposing capabilities via the
+ * management and monitoring facilities.
+ * <p/>
+ * A ManagementRegistry manages one and only one cache manager.
+ * If you need to manage or monitor several cache managers at a time, you can use the {@link SharedManagementService} and register it into several cache managers.
+ *
+ * @author Ludovic Orban
  */
-public interface QueryBuilder<B, T> {
+public interface ManagementRegistryService extends ManagementRegistry, Service {
 
   /**
-   * Adds a context to run this query against
-   *
-   * @param context The management registry context
-   * @return this builder
+   * @return This registry configuration
    */
-  B on(Context context);
-
-  /**
-   * Adds some contexts to run this query against.
-   * The order is important and kept: if teh query is ran on several contexts, then the order of results will match the order of the contexts
-   *
-   * @param contexts The management registry contexts
-   * @return this builder
-   */
-  B on(Collection<? extends Context> contexts);
-
-  T build();
+  ManagementRegistryServiceConfiguration getConfiguration();
 
 }

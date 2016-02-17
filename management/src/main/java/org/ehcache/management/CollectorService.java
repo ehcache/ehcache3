@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.annotations;
+package org.ehcache.management;
 
-import java.lang.annotation.ElementType;
-import java.lang.annotation.Inherited;
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import java.lang.annotation.Target;
+import org.ehcache.management.config.StatisticsProviderConfiguration;
+import org.ehcache.spi.service.Service;
+import org.terracotta.management.registry.collect.StatisticCollector;
+
+import java.util.Collection;
 
 /**
- * Parameter-level annotation used to set the name of a parameter.
+ * Collector service installed in a cache manager
+ * <p>
+ * The collecting time is automatically calculated from {@link StatisticsProviderConfiguration#timeToDisable()}
  *
- * @author Ludovic Orban
+ * @author Mathieu Carbou
  */
-@Retention(RetentionPolicy.RUNTIME)
-@Target({ElementType.PARAMETER, ElementType.TYPE})
-@Inherited
-public @interface Named {
-  String value();
+public interface CollectorService extends StatisticCollector, Service {
+
+
 }

@@ -26,7 +26,7 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
-import org.ehcache.management.ManagementRegistry;
+import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.EnumSet;
@@ -64,7 +64,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
-      org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, ManagementRegistry managementRegistry) {
+      org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, ManagementRegistryService managementRegistry) {
     this.cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;

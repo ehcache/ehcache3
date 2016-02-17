@@ -13,7 +13,7 @@ endif::notBuildingForSite[]
 
 == Intro
 
-Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistry`
+Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistryService`
 instance.
 
 A `ManagementRegistry` implementation has to understand the registered object and provide management and monitoring
@@ -36,7 +36,7 @@ cache manager builder as a service:
 include::{sourcedir}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=usingManagementRegistry]
 ----
 <1> Optional: give a name to your cache manager by using a custom configuration
-<2> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`. This is only required because the service is used below.
+<2> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistryService`. This is only required because the service is used below.
 <3> Pass it as a service to the cache manager (if you only want to configure the ManagementRegistry, you can just pass the configuration instead)
 <4> Perform a few gets to increment the statistic's counter
 <5> Create the target statistic's context

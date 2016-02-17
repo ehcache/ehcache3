@@ -16,22 +16,21 @@
 package org.ehcache.management;
 
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.ehcache.management.providers.ManagementProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.terracotta.management.context.Context;
+import org.terracotta.management.registry.ManagementProvider;
 
 /**
- * Configuration interface for a  {@link ManagementRegistry}.
+ * Configuration interface for a  {@link ManagementRegistryService}.
  *
  * @author Mathieu Carbou
  */
-public interface ManagementRegistryConfiguration extends ServiceCreationConfiguration<ManagementRegistry> {
+public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService> {
 
   /**
-   * Gets the alias to use for the cache manager when using the {@link SharedManagementService}.
-   *
-   * @return The cache manager alias that will be used in the context to call methods from {@link SharedManagementService}  
+   * The context used to identify this cache manager
    */
-  String getCacheManagerAlias();
+  Context getContext();
 
   /**
    * Gets the alias of the executor to use for asynchronous statistics tasks.
@@ -39,6 +38,13 @@ public interface ManagementRegistryConfiguration extends ServiceCreationConfigur
    * @return The static executor alias
    */
   String getStatisticsExecutorAlias();
+
+  /**
+   * Gets the alias of the executor to use for asynchronous collector service tasks.
+   *
+   * @return The static colector executor alias
+   */
+  String getCollectorExecutorAlias();
 
   /**
    * Returns the configuration of a specific {@link ManagementProvider} type.

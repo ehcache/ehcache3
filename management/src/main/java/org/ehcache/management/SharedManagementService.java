@@ -17,13 +17,15 @@ package org.ehcache.management;
 
 import org.ehcache.spi.service.Service;
 import org.terracotta.management.capabilities.Capability;
+import org.terracotta.management.context.Context;
 import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.registry.CapabilityManagementSupport;
 
 import java.util.Collection;
 import java.util.Map;
 
 /**
- * Special version of {@link ManagementRegistry} which can be used across several {@link org.ehcache.CacheManager}.
+ * Special version of {@link ManagementRegistryService} which can be used across several {@link org.ehcache.CacheManager}.
  * <p/>
  * This can be helpful in the case you want to access from one service all statistics, capabilities, etc of several cache managers.
  *
@@ -37,13 +39,13 @@ public interface SharedManagementService extends CapabilityManagementSupport, Se
    *
    * @return a collection of contexts.
    */
-  Collection<ContextContainer> getContexts();
+  Map<Context, ContextContainer> getContextContainers();
 
   /**
    * Get the management capabilities of all the registered objects across several cache managers.
    *
    * @return a map of capabilities, where the key is the alias of the cache manager
    */
-  Map<String, Collection<Capability>> getCapabilities();
+  Map<Context, Collection<Capability>> getCapabilities();
 
 }
