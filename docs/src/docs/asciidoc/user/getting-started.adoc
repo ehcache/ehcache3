@@ -170,6 +170,19 @@ Eviction and expiration events can be triggered by both internal processes and b
 |{K, V}   | remove(K)                                | {}      | removed {K, V, null}
 |=================================================================================================
 
+==== Registering Event Listeners at runtime
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=registerListenerAtRuntime]
+----
+
+<1> Create a `CacheEventListener` implementation instance.
+<2> Register it on the `RuntimeConfiguration`, indicating the delivery mode and events of interest.
+    The following `put()` and `remove()` cache calls will make the listener receive events.
+<3> Unregister the previously registered `CacheEventListener` instance.
+    The following `put()` and `remove()` cache calls will have no effect on the listener anymore.
+
 ==== Event Processing Queues
 
 [source,java,indent=0]
