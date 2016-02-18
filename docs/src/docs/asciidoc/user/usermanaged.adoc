@@ -139,3 +139,12 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[
 <1> If you want to hint the eviction algorithm to veto the eviction of some mappings, you have to
     configure an instance of `EvictionVeto`.
 
+=== Cache with Listeners example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
+----
+<1> Provide ExecutorService for ordered and unordered event delivery. Note, it is required to provide either a 
+    CacheEventDispatcher or ordered/unOrdered ExecutorService for proper event delivery.
+<2> Provide listener configuration using CacheEventListenerConfigurationBuilder.

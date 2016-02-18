@@ -108,26 +108,26 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     }
   };
 
-  public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, CacheEventDispatcher<K, V> eventNotifier, Logger logger) {
-    this(configuration, store, null, eventNotifier, logger);
+  public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, CacheEventDispatcher<K, V> eventDispatcher, Logger logger) {
+    this(configuration, store, null, eventDispatcher, logger);
   }
 
   public Ehcache(CacheConfiguration<K, V> configuration, Store<K, V> store,
       final CacheLoaderWriter<? super K, V> cacheLoaderWriter, 
-      CacheEventDispatcher<K, V> eventNotifier,
+      CacheEventDispatcher<K, V> eventDispatcher,
       Logger logger) {
-    this(configuration, store, cacheLoaderWriter, eventNotifier, true, logger);
+    this(configuration, store, cacheLoaderWriter, eventDispatcher, true, logger);
   }
 
   Ehcache(CacheConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
           CacheLoaderWriter<? super K, V> cacheLoaderWriter,
-          CacheEventDispatcher<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger) {
-    this(new EhcacheRuntimeConfiguration<K, V>(runtimeConfiguration), store, cacheLoaderWriter, eventNotifier, useLoaderInAtomics, logger, new StatusTransitioner(logger));
+          CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger) {
+    this(new EhcacheRuntimeConfiguration<K, V>(runtimeConfiguration), store, cacheLoaderWriter, eventDispatcher, useLoaderInAtomics, logger, new StatusTransitioner(logger));
   }
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
             CacheLoaderWriter<? super K, V> cacheLoaderWriter,
-            CacheEventDispatcher<K, V> eventNotifier, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
+            CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
     this.store = store;
     runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
     StatisticsManager.associate(store).withParent(this);
@@ -139,7 +139,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     }
 
     this.runtimeConfiguration = runtimeConfiguration;
-    runtimeConfiguration.addCacheConfigurationListener(eventNotifier.getConfigurationChangeListeners());
+    runtimeConfiguration.addCacheConfigurationListener(eventDispatcher.getConfigurationChangeListeners());
     this.jsr107Cache = new Jsr107CacheImpl();
 
     this.useLoaderInAtomics = useLoaderInAtomics;

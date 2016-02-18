@@ -25,7 +25,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.cache.events.StoreEvent;
 import org.ehcache.spi.cache.events.StoreEventListener;
 import org.ehcache.spi.cache.events.StoreEventSource;
@@ -41,14 +40,14 @@ import java.util.concurrent.Future;
 
 /**
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
- * firing mode and ordering, for specified event types. 
+ * firing mode and ordering, for specified event types.
  * <p>
  * <h5>Note on event ordering guarantees:</h5> {@link #onEvent(CacheEvent)} is assumed to be called within a key-based
- * lock scope. If that is not the case, this facility has no means of maintaining event ordering consistent with source 
- * of such events. That is - listeners registered to receive events in the order they occurred in underlying store may be 
+ * lock scope. If that is not the case, this facility has no means of maintaining event ordering consistent with source
+ * of such events. That is - listeners registered to receive events in the order they occurred in underlying store may be
  * invoked in an order inconsistent with actual ordering of corresponding operations on said store.
  * <p>
- * Conversely, sending events to this service inside lock scope, when there are no registered listeners interested in 
+ * Conversely, sending events to this service inside lock scope, when there are no registered listeners interested in
  * ordered event delivery is harmless, i.e. event delivery to unordered listeners will still occur.
  */
 public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V> {
@@ -60,13 +59,12 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   private int orderedListenerCount = 0;
   private final List<EventListenerWrapper> syncListenersList = new CopyOnWriteArrayList<EventListenerWrapper>();
   private final List<EventListenerWrapper> aSyncListenersList = new CopyOnWriteArrayList<EventListenerWrapper>();
-  private final StoreEventSource<K, V> storeEventSource;
   private final StoreEventListener<K, V> eventListener = new StoreListener();
 
-  private Cache<K, V> listenerSource;
+  private volatile Cache<K, V> listenerSource;
+  private volatile StoreEventSource<K, V> storeEventSource;
 
-  public CacheEventDispatcherImpl(Store<K, V> store, ExecutorService unOrderedExectuor, ExecutorService orderedExecutor) {
-    storeEventSource = store.getStoreEventSource();
+  public CacheEventDispatcherImpl(ExecutorService unOrderedExectuor, ExecutorService orderedExecutor) {
     this.unOrderedExectuor = unOrderedExectuor;
     this.orderedExecutor = orderedExecutor;
   }
@@ -170,7 +168,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   }
 
   @Override
-  public void setListenerSource(Cache<K, V> source) {
+  public synchronized void setListenerSource(Cache<K, V> source) {
     this.listenerSource = source;
   }
 
@@ -235,5 +233,15 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
           throw new AssertionError("Unexpected StoreEvent value: " + event.getType());
       }
     }
+  }
+
+  /**
+   * Sets {@link StoreEventSource} to enable eventing
+   *
+   * @param eventSource
+   */
+  @Override
+  public synchronized void setStoreEventSource(StoreEventSource<K, V> eventSource) {
+    this.storeEventSource = eventSource;
   }
 }

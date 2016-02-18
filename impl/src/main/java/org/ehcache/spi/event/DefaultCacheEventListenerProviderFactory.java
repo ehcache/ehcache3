@@ -16,7 +16,6 @@
 
 package org.ehcache.spi.event;
 
-import org.ehcache.config.event.DefaultCacheEventListenerProviderConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceFactory;
@@ -28,12 +27,7 @@ public class DefaultCacheEventListenerProviderFactory implements ServiceFactory<
 
   @Override
   public DefaultCacheEventListenerProvider create(ServiceCreationConfiguration<CacheEventListenerProvider> configuration) {
-    if (configuration != null && !(configuration instanceof DefaultCacheEventListenerProviderConfiguration)) {
-      throw new IllegalArgumentException("Expected a configuration of type DefaultCacheEventListenerProviderConfiguration but got " + configuration
-          .getClass()
-          .getSimpleName());
-    }
-    return new DefaultCacheEventListenerProvider((DefaultCacheEventListenerProviderConfiguration) configuration);
+    return new DefaultCacheEventListenerProvider();
   }
 
   @Override

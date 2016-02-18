@@ -22,6 +22,7 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
+import org.ehcache.spi.cache.events.StoreEventSource;
 
 import java.util.Collections;
 import java.util.EnumSet;
@@ -51,5 +52,9 @@ public class DisabledCacheEventNotificationService<K, V> implements CacheEventDi
   @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     return Collections.emptyList();
+  }
+
+  @Override
+  public void setStoreEventSource(StoreEventSource<K, V> eventSource) {
   }
 }

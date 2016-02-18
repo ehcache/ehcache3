@@ -54,7 +54,6 @@ public class CacheEventDispatcherImplTest {
   private CacheEventListener<Number, String> listener;
   private ExecutorService orderedExecutor;
   private ExecutorService unorderedExecutor;
-  private Store<Number, String> store;
   private StoreEventSource storeEventDispatcher;
 
   @Before
@@ -69,10 +68,9 @@ public class CacheEventDispatcherImplTest {
         return null;
       }
     }).when(unorderedExecutor).submit(any(Runnable.class));
-    store = mock(Store.class);
     storeEventDispatcher = mock(StoreEventSource.class);
-    when(store.getStoreEventSource()).thenReturn(storeEventDispatcher);
-    eventService = new CacheEventDispatcherImpl<Number, String>(store, unorderedExecutor, orderedExecutor);
+    eventService = new CacheEventDispatcherImpl<Number, String>(unorderedExecutor, orderedExecutor);
+    eventService.setStoreEventSource(storeEventDispatcher);
     listener = mock(CacheEventListener.class);
   }
 
@@ -84,7 +82,8 @@ public class CacheEventDispatcherImplTest {
 
   @Test
   public void testAsyncEventFiring() throws Exception {
-    eventService = new CacheEventDispatcherImpl<Number, String>(store, Executors.newCachedThreadPool(), orderedExecutor);
+    eventService = new CacheEventDispatcherImpl<Number, String>(Executors.newCachedThreadPool(), orderedExecutor);
+    eventService.setStoreEventSource(storeEventDispatcher);
     final CountDownLatch signal = new CountDownLatch(1);
     final CountDownLatch signal2 = new CountDownLatch(1);
     doAnswer(new Answer() {
@@ -97,11 +96,11 @@ public class CacheEventDispatcherImplTest {
           return null;
         }
       }
-      
+
     }).when(listener).onEvent(any(CacheEvent.class));
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.CREATED));
     final CacheEvent<Number, String> create = eventOfType(EventType.CREATED);
-    
+
     eventService.onEvent(create);
 
     signal.countDown();
@@ -109,14 +108,14 @@ public class CacheEventDispatcherImplTest {
       fail("event handler never triggered latch - are we synchronous?");
     }
   }
-  
+
   @Test
   public void testCheckEventType() {
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
     CacheEvent<Number, String> create = eventOfType(EventType.CREATED);
     eventService.onEvent(create);
     verify(listener, Mockito.never()).onEvent(any(CacheEvent.class));
-    
+
     CacheEvent<Number, String> evict = eventOfType(EventType.EVICTED);
     eventService.onEvent(evict);
     verify(listener).onEvent(evict);
@@ -133,18 +132,18 @@ public class CacheEventDispatcherImplTest {
     eventService.registerCacheEventListener(listener, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, EnumSet.allOf(EventType.class));
     verify(storeEventDispatcher).setEventOrdering(true);
   }
-  
+
   @Test(expected=IllegalStateException.class)
   public void testDuplicateRegistration() {
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
     eventService.registerCacheEventListener(listener, EventOrdering.ORDERED, EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
   }
-  
+
   @Test(expected=IllegalStateException.class)
   public void testUnknownListenerDeregistration() {
     eventService.deregisterCacheEventListener(listener);
   }
-  
+
   @Test
   public void testDeregisterLastListenerStopsStoreEvents() {
     eventService.registerCacheEventListener(listener, EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EVICTED));
@@ -177,7 +176,7 @@ public class CacheEventDispatcherImplTest {
 
   @Test
   public void testShutdownDisableStoreEventsAndShutsDownOrderedExecutor() {
-    eventService.registerCacheEventListener(listener, 
+    eventService.registerCacheEventListener(listener,
         EventOrdering.UNORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.CREATED));
     CacheEventListener<Number, String> otherLsnr = mock(CacheEventListener.class);
     eventService.registerCacheEventListener(otherLsnr,
