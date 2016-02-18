@@ -21,7 +21,6 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.UserManagedCacheBuilder;
 import org.ehcache.config.ResourcePoolsBuilder;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
-import org.ehcache.config.event.DefaultCacheEventListenerProviderConfiguration;
 import org.ehcache.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.config.units.EntryUnit;
@@ -33,10 +32,8 @@ import org.ehcache.docs.plugs.OddKeysEvictionVeto;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringCopier;
 import org.ehcache.docs.plugs.StringSerializer;
-import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.persistence.DefaultLocalPersistenceService;
-import org.ehcache.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.service.LocalPersistenceService;
 import org.junit.Test;
 

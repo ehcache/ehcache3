@@ -29,7 +29,6 @@ import org.ehcache.config.UserManagedCacheConfiguration;
 import org.ehcache.config.copy.CopierConfiguration;
 import org.ehcache.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.event.CacheEventListenerConfigurationBuilder;
-import org.ehcache.config.event.DefaultCacheEventListenerProviderConfiguration;
 import org.ehcache.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.event.CacheEventListener;
@@ -275,7 +274,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
 
       PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, storeConfig, persistenceService, cacheLoaderWriter, eventDispatcher, id);
-      registerListeners(cache, store, serviceLocator, lifeCycledList);
+      registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }
@@ -288,7 +287,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         loggerName = Ehcache.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
       }
       Ehcache<K, V> cache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, LoggerFactory.getLogger(loggerName));
-      registerListeners(cache, store, serviceLocator, lifeCycledList);
+      registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }
@@ -305,14 +304,14 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     }
   }
 
-  private void registerListeners(Cache<K, V> cache, Store<K, V> store, ServiceProvider serviceLocator, List<LifeCycled> lifeCycledList) {
+  private void registerListeners(Cache<K, V> cache, ServiceProvider serviceLocator, List<LifeCycled> lifeCycledList) {
     if (!eventListenerConfigurations.isEmpty()) {
       final CacheEventListenerProvider listenerProvider;
       CacheEventListenerProvider provider;
       if ((provider = serviceLocator.getService(CacheEventListenerProvider.class)) != null) {
         listenerProvider = provider;
       } else {
-        listenerProvider = new DefaultCacheEventListenerProvider(new DefaultCacheEventListenerProviderConfiguration());
+        listenerProvider = new DefaultCacheEventListenerProvider();
       }
       for (CacheEventListenerConfiguration config : eventListenerConfigurations) {
         final CacheEventListener<K, V> listener = listenerProvider.createEventListener(id, config);
