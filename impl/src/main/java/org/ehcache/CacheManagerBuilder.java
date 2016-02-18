@@ -23,9 +23,12 @@ import org.ehcache.config.CacheManagerConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ConfigurationBuilder;
 import org.ehcache.config.copy.DefaultCopyProviderConfiguration;
+import org.ehcache.config.event.CacheEventDispatcherFactoryConfiguration;
+import org.ehcache.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.sizeof.SizeOfEngineProviderConfiguration;
@@ -157,6 +160,36 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
     } else {
       ConfigurationBuilder builder = configBuilder.removeService(configuration);
       return new CacheManagerBuilder<T>(this, builder.addService(new DefaultSizeOfEngineProviderConfiguration(size, unit, configuration.getMaxObjectGraphSize())));
+    }
+  }
+
+  public CacheManagerBuilder<T> withDefaultWriteBehindThreadPool(String threadPoolAlias) {
+    WriteBehindProviderConfiguration config = configBuilder.findServiceByClass(WriteBehindProviderConfiguration.class);
+    if (config == null) {
+      return new CacheManagerBuilder<T>(this, configBuilder.addService(new WriteBehindProviderConfiguration(threadPoolAlias)));
+    } else {
+      ConfigurationBuilder builder = configBuilder.removeService(config);
+      return new CacheManagerBuilder<T>(this, builder.addService(new WriteBehindProviderConfiguration(threadPoolAlias)));
+    }
+  }
+
+  public CacheManagerBuilder<T> withDefaultDiskStoreThreadPool(String threadPoolAlias) {
+    OffHeapDiskStoreProviderConfiguration config = configBuilder.findServiceByClass(OffHeapDiskStoreProviderConfiguration.class);
+    if (config == null) {
+      return new CacheManagerBuilder<T>(this, configBuilder.addService(new OffHeapDiskStoreProviderConfiguration(threadPoolAlias)));
+    } else {
+      ConfigurationBuilder builder = configBuilder.removeService(config);
+      return new CacheManagerBuilder<T>(this, builder.addService(new OffHeapDiskStoreProviderConfiguration(threadPoolAlias)));
+    }
+  }
+
+  public CacheManagerBuilder<T> withDefaultEventListenersThreadPool(String threadPoolAlias) {
+    CacheEventDispatcherFactoryConfiguration config = configBuilder.findServiceByClass(CacheEventDispatcherFactoryConfiguration.class);
+    if (config == null) {
+      return new CacheManagerBuilder<T>(this, configBuilder.addService(new CacheEventDispatcherFactoryConfiguration(threadPoolAlias)));
+    } else {
+      ConfigurationBuilder builder = configBuilder.removeService(config);
+      return new CacheManagerBuilder<T>(this, builder.addService(new CacheEventDispatcherFactoryConfiguration(threadPoolAlias)));
     }
   }
 

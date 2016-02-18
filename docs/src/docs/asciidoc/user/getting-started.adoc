@@ -369,7 +369,7 @@ You can create a XML file to configure a `CacheManager`:
 
 [source,xml]
 ----
-include::{sourcedir}/xml/src/test/resources/configs/getting-started.xml[tags=gettingStarted]
+include::{sourcedir}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
 ----
 
 <1> Declares a `Cache` aliased to `foo`

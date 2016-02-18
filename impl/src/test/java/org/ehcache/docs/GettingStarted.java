@@ -330,7 +330,7 @@ public class GettingStarted {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5L, EntryUnit.ENTRIES).build())
         .withOrderedEventParallelism(10) // <1>
-        .withListenersThreadPoolAlias("listeners-pool")
+        .withEventListenersThreadPool("listeners-pool")
         .build();
     // end::configuringEventProcessingQueues[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
