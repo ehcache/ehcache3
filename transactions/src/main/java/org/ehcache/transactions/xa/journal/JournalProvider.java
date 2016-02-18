@@ -16,7 +16,7 @@
 package org.ehcache.transactions.xa.journal;
 
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 
 /**

@@ -16,14 +16,14 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.Cache;
-import org.ehcache.EhcacheManager;
+import org.ehcache.core.EhcacheManager;
 import org.ehcache.Status;
-import org.ehcache.events.CacheManagerListener;
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.Context;

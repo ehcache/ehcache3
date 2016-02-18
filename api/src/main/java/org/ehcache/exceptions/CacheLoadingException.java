@@ -28,19 +28,39 @@ public class CacheLoadingException extends RuntimeException {
 
   private static final long serialVersionUID = 4794738044299044587L;
 
-  CacheLoadingException() {
+  /**
+   * Constructs a CacheLoadingException
+   */
+  public CacheLoadingException() {
     super();
   }
 
-  CacheLoadingException(final String message) {
+  /**
+   * Constructs a CacheLoadingException with the provided message.
+   *
+   * @param message the detail message
+   */
+  public CacheLoadingException(final String message) {
     super(message);
   }
 
-  CacheLoadingException(final String message, final Throwable cause) {
+  /**
+   * Constructs a CacheLoadingException wrapping the {@link Throwable cause} passed in
+   * and with the provided message.
+   *
+   * @param message the detail message
+   * @param cause   the root cause
+   */
+  public CacheLoadingException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
-  CacheLoadingException(final Throwable cause) {
+  /**
+   * Constructs a CacheLoadingException wrapping the {@link Throwable cause} passed in.
+   *
+   * @param cause the root cause
+   */
+  public CacheLoadingException(final Throwable cause) {
     super(cause);
   }
 

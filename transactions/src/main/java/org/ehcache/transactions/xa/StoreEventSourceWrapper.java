@@ -17,17 +17,17 @@
 package org.ehcache.transactions.xa;
 
 import org.ehcache.event.EventType;
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.internal.events.StoreEventImpl;
-import org.ehcache.spi.cache.events.StoreEvent;
-import org.ehcache.spi.cache.events.StoreEventFilter;
-import org.ehcache.spi.cache.events.StoreEventListener;
-import org.ehcache.spi.cache.events.StoreEventSource;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.events.StoreEventImpl;
+import org.ehcache.core.spi.cache.events.StoreEvent;
+import org.ehcache.core.spi.cache.events.StoreEventFilter;
+import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.cache.events.StoreEventSource;
 
 import java.util.Map;
 
-import static org.ehcache.internal.events.StoreEvents.createEvent;
-import static org.ehcache.internal.events.StoreEvents.updateEvent;
+import static org.ehcache.impl.internal.events.StoreEvents.createEvent;
+import static org.ehcache.impl.internal.events.StoreEvents.updateEvent;
 
 /**
  * StoreEventSourceWrapper

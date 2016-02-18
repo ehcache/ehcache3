@@ -18,9 +18,9 @@ package org.ehcache.internal.tier;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.TimeSource;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.internal.store.StoreFactory;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 
 /**
  * @author Aurelien Broszniowski

@@ -16,10 +16,12 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.Cache;
-import org.ehcache.EhcacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.events.CacheManagerListener;
+import org.ehcache.core.EhcacheManager;
+import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
@@ -27,8 +29,6 @@ import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.CacheManagerProviderService;
-import org.ehcache.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.context.ContextContainer;
 import org.terracotta.management.registry.AbstractManagementRegistry;
@@ -40,7 +40,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
-import static org.ehcache.internal.executor.ExecutorUtil.shutdownNow;
+import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
+
 
 /**
  * @author Ludovic Orban

@@ -16,12 +16,11 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.Cache;
-import org.ehcache.Ehcache;
-import org.ehcache.EhcacheHackAccessor;
+import org.ehcache.core.Ehcache;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.statistics.BulkOps;
-import org.ehcache.statistics.CacheOperationOutcomes;
-import org.ehcache.statistics.StoreOperationOutcomes;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
@@ -67,7 +66,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistryService managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
-    this.bulkMethodEntries = EhcacheHackAccessor.getBulkMethodEntries((Ehcache<?, ?>) cache);
+    this.bulkMethodEntries = ((Ehcache<?, ?>) cache).getBulkMethodEntries();
 
     get = findCacheStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
     put = findCacheStatistic(cache, CacheOperationOutcomes.PutOutcome.class, "put");

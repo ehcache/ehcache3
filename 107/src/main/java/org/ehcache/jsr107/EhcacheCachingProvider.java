@@ -15,6 +15,20 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.config.Configuration;
+import org.ehcache.core.EhcacheManager;
+import org.ehcache.core.config.DefaultConfiguration;
+import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.util.ClassLoading;
+import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.jsr107.config.Jsr107Configuration;
+import org.ehcache.jsr107.config.Jsr107Service;
+import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.xml.XmlConfiguration;
+
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
@@ -28,19 +42,6 @@ import java.util.concurrent.ConcurrentMap;
 import javax.cache.CacheManager;
 import javax.cache.configuration.OptionalFeature;
 import javax.cache.spi.CachingProvider;
-
-import org.ehcache.EhcacheManager;
-import org.ehcache.config.Configuration;
-import org.ehcache.config.DefaultConfiguration;
-import org.ehcache.config.Jsr107Configuration;
-import org.ehcache.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.config.xml.XmlConfiguration;
-import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.util.ClassLoading;
 
 /**
  * @author teck

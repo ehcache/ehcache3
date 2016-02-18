@@ -18,7 +18,7 @@ package org.ehcache.osgi;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
@@ -31,8 +31,8 @@ import org.ops4j.pax.exam.spi.reactors.PerMethod;
 
 import java.io.Serializable;
 
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.ops4j.pax.exam.CoreOptions.bundle;

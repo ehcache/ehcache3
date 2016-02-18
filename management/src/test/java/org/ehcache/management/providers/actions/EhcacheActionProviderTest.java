@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers.actions;
 
-import org.ehcache.Ehcache;
+import org.ehcache.core.Ehcache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.hamcrest.Matcher;

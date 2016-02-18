@@ -16,8 +16,8 @@
 
 package org.ehcache.osgi;
 
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ops4j.pax.exam.CoreOptions.bundle;
 import static org.ops4j.pax.exam.CoreOptions.junitBundles;
 import static org.ops4j.pax.exam.CoreOptions.mavenBundle;
@@ -25,7 +25,7 @@ import static org.ops4j.pax.exam.CoreOptions.options;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;

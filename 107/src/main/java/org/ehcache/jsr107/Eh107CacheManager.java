@@ -15,6 +15,18 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.Status;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheManager;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.copy.IdentityCopier;
+import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.lang.management.ManagementFactory;
 import java.net.URI;
 import java.util.ArrayList;
@@ -32,19 +44,6 @@ import javax.cache.spi.CachingProvider;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServer;
-
-import org.ehcache.Ehcache;
-import org.ehcache.EhcacheHackAccessor;
-import org.ehcache.EhcacheManager;
-import org.ehcache.Status;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.copy.DefaultCopierConfiguration;
-import org.ehcache.internal.copy.IdentityCopier;
-import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.spi.service.ServiceConfiguration;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * @author teck
@@ -100,7 +99,7 @@ class Eh107CacheManager implements CacheManager {
   }
 
   private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, org.ehcache.Cache<K, V> cache) {
-    CacheLoaderWriter<? super K, V> cacheLoaderWriter = EhcacheHackAccessor.getCacheLoaderWriter((Ehcache<K, V>)cache);
+    CacheLoaderWriter<? super K, V> cacheLoaderWriter = ((Ehcache<K, V>)cache).getCacheLoaderWriter();
 
     boolean storeByValueOnHeap = false;
     for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
@@ -186,7 +185,7 @@ class Eh107CacheManager implements CacheManager {
       CacheResources<K, V> cacheResources = configHolder.cacheResources;
       try {
         if (configHolder.useEhcacheLoaderWriter) {
-          cacheResources = new CacheResources<K, V>(cacheName, EhcacheHackAccessor.getCacheLoaderWriter((Ehcache<K, V>)ehCache),
+          cacheResources = new CacheResources<K, V>(cacheName, ((Ehcache<K, V>) ehCache).getCacheLoaderWriter(),
               cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
         }
         cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(configHolder.jsr107Configuration, ehCache

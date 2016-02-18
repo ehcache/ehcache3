@@ -39,7 +39,7 @@ public class CacheWritingException extends RuntimeException {
   /**
    * Constructs a CacheWritingException with the provided message.
    * 
-   * @param message the detail message.
+   * @param message the detail message
    */
   public CacheWritingException(final String message) {
     super(message);
@@ -49,8 +49,8 @@ public class CacheWritingException extends RuntimeException {
    * Constructs a CacheWritingException wrapping the {@link Throwable cause} passed in 
    * and with the provided message.
    * 
-   * @param message the detail message.
-   * @param cause   the detail message.
+   * @param message the detail message
+   * @param cause   the root cause
    */
   public CacheWritingException(final String message, final Throwable cause) {
     super(message, cause);
@@ -59,7 +59,7 @@ public class CacheWritingException extends RuntimeException {
   /**
    * Constructs a CacheWritingException wrapping the {@link Throwable cause} passed in.
    * 
-   * @param cause the detail message.
+   * @param cause the root cause
    */
   public CacheWritingException(final Throwable cause) {
     super(cause);

@@ -21,9 +21,9 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.StateTransitionException;
 import org.junit.Test;
 
-import static org.ehcache.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.ehcache.config.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;

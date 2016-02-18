@@ -15,9 +15,7 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.EhcacheManager;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.core.EhcacheManager;
 import org.ehcache.event.CacheEvent;
 import org.junit.After;
 import org.junit.Before;

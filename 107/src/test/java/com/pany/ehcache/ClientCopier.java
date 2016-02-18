@@ -16,7 +16,7 @@
 
 package com.pany.ehcache;
 
-import org.ehcache.internal.copy.ReadWriteCopier;
+import org.ehcache.impl.copy.ReadWriteCopier;
 
 import com.pany.domain.Client;
 

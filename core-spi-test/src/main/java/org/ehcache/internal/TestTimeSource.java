@@ -16,6 +16,8 @@
 
 package org.ehcache.internal;
 
+import org.ehcache.core.spi.time.TimeSource;
+
 public class TestTimeSource implements TimeSource {
 
   private long time = 0;

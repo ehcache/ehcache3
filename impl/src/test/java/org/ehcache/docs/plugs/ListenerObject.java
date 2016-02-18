@@ -15,7 +15,7 @@
  */
 package org.ehcache.docs.plugs;
 
-import org.ehcache.Ehcache;
+import org.ehcache.core.Ehcache;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventType;

@@ -17,7 +17,7 @@
 package org.ehcache.docs;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.jsr107.Eh107Configuration;

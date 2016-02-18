@@ -15,15 +15,15 @@
  */
 package org.ehcache.transactions.xa;
 
-import org.ehcache.spi.cache.AbstractValueHolder;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.cache.AbstractValueHolder;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 /**
- * The {@link XAStore} {@link org.ehcache.spi.cache.Store.ValueHolder} implementation.
+ * The {@link XAStore} {@link Store.ValueHolder} implementation.
  *
  * @author Ludovic Orban
  */

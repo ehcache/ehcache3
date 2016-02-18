@@ -26,15 +26,17 @@ import bitronix.tm.resource.common.XAResourceHolder;
 import bitronix.tm.resource.common.XAResourceProducer;
 import bitronix.tm.resource.common.XAStatefulHolder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
+
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.util.Map;
 
 import javax.naming.NamingException;
 import javax.naming.Reference;
 import javax.naming.StringRefAddr;
 import javax.transaction.xa.XAResource;
-import java.io.IOException;
-import java.io.ObjectOutputStream;
-import java.util.Map;
 
 /**
  * @author Ludovic Orban

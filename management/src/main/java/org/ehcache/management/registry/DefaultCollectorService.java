@@ -16,19 +16,19 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.Cache;
-import org.ehcache.EhcacheManager;
 import org.ehcache.Status;
-import org.ehcache.events.CacheManagerListener;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceService;
+import org.ehcache.core.EhcacheManager;
+import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.CacheManagerProviderService;
-import org.ehcache.spi.service.ExecutionService;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,7 +50,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.ehcache.internal.executor.ExecutorUtil.shutdownNow;
+import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
 
 /**

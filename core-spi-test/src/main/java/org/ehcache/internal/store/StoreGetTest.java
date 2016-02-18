@@ -16,14 +16,14 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.cache.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 
-import static org.ehcache.spi.cache.Store.ValueHolder;
+import static org.ehcache.core.spi.cache.Store.ValueHolder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -31,8 +31,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#get(Object)} contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
+ * Test the {@link Store#get(Object)} contract of the
+ * {@link Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski

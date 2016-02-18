@@ -16,7 +16,7 @@
 package org.ehcache.transactions.xa.configuration;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.transactions.xa.XAStore;
 
 /**

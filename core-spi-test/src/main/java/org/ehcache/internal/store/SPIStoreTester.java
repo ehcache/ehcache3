@@ -16,12 +16,13 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.test.SPITester;
 
 /**
  * Parent class for all Store tester classes.
  * It contains all common utility methods (e.g. instantiate a
- * {@link org.ehcache.spi.cache.Store.ValueHolder Store.ValueHolder}).
+ * {@link Store.ValueHolder Store.ValueHolder}).
  * <p/>
  * @author Aurelien Broszniowski
  */

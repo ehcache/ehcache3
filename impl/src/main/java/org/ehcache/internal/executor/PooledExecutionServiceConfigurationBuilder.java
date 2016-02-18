@@ -15,8 +15,9 @@
  */
 package org.ehcache.internal.executor;
 
-import org.ehcache.config.Builder;
-import org.ehcache.config.executor.PooledExecutionServiceConfiguration;
+
+import org.ehcache.config.builders.Builder;
+import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 
 import java.util.HashSet;
 import java.util.Set;

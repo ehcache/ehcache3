@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -34,8 +34,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#bulkComputeIfAbsent(java.util.Set, org.ehcache.function.Function)} contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
+ * Test the {@link Store#bulkComputeIfAbsent(java.util.Set, org.ehcache.function.Function)} contract of the
+ * {@link Store Store} interface.
  * <p/>
  *
  * @author Gaurav Mangalick

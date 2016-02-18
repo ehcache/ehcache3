@@ -17,13 +17,13 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.event.EventType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.events.StoreEvent;
-import org.ehcache.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.cache.events.StoreEvent;
+import org.ehcache.core.spi.cache.events.StoreEventListener;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Ignore;
 import org.ehcache.spi.test.SPITest;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.verify;
 
 /**
  * Tests eviction events according to the contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
+ * {@link Store Store} interface.
  */
 public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
 

@@ -15,13 +15,13 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.Ehcache;
-import org.ehcache.EhcacheHackAccessor;
+import org.ehcache.core.Ehcache;
 import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
+import org.ehcache.core.Jsr107Cache;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
-import org.ehcache.exceptions.CachePassThroughException;
+import org.ehcache.core.exceptions.CachePassThroughException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -53,7 +53,7 @@ import javax.cache.processor.EntryProcessorResult;
 class Eh107Cache<K, V> implements Cache<K, V> {
 
   private final org.ehcache.Cache<K, V> ehCache;
-  private final org.ehcache.Jsr107Cache<K, V> jsr107Cache;
+  private final Jsr107Cache<K, V> jsr107Cache;
   private final Eh107CacheManager cacheManager;
   private final String name;
   private final AtomicBoolean hypotheticallyClosed = new AtomicBoolean();
@@ -79,7 +79,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       registerEhcacheListeners(entry.getKey(), entry.getValue());
     }
 
-    this.jsr107Cache = EhcacheHackAccessor.getJsr107Cache((Ehcache<K, V>) ehCache);
+    this.jsr107Cache = ((Ehcache<K, V>) ehCache).getJsr107Cache();
   }
 
   @Override

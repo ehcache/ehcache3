@@ -18,9 +18,9 @@ package org.ehcache.internal.store;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.TimeSource;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

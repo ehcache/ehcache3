@@ -16,29 +16,29 @@
 package org.ehcache.transactions.xa;
 
 import org.ehcache.Cache;
-import org.ehcache.CacheConfigurationChangeListener;
+import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.StoreConfigurationImpl;
-import org.ehcache.config.copy.CopierConfiguration;
-import org.ehcache.config.copy.DefaultCopierConfiguration;
+import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.config.copy.CopierConfiguration;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceService;
-import org.ehcache.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.internal.copy.SerializingCopier;
-import org.ehcache.internal.store.DefaultStoreProvider;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.impl.internal.store.DefaultStoreProvider;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.xa.commands.StoreEvictCommand;
@@ -49,7 +49,7 @@ import org.ehcache.transactions.xa.journal.Journal;
 import org.ehcache.transactions.xa.journal.JournalProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
-import org.ehcache.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,8 +70,8 @@ import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 
-import static org.ehcache.spi.ServiceLocator.findAmongst;
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA

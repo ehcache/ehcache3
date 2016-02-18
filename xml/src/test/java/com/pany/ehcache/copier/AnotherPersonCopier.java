@@ -16,7 +16,7 @@
 
 package com.pany.ehcache.copier;
 
-import org.ehcache.internal.copy.ReadWriteCopier;
+import org.ehcache.impl.copy.ReadWriteCopier;
 
 /**
  * Created by alsu on 25/08/15.

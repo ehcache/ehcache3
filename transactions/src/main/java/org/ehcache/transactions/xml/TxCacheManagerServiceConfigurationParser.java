@@ -15,14 +15,14 @@
  */
 package org.ehcache.transactions.xml;
 
-import org.ehcache.config.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.transactions.xa.configuration.XAStoreProviderConfiguration;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProviderConfiguration;
-import org.ehcache.util.ClassLoading;
+import org.ehcache.core.util.ClassLoading;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;

@@ -37,7 +37,7 @@ jaxb {
   bindingsDir = "$name/build/xsd/bindings"
   xjc {
     destinationDir = generatedSources
-    generatePackage    = "org.ehcache.config.xml.model"
+    generatePackage    = "org.ehcache.xml.model"
   }
 
   compileJava.dependsOn "xjc"
