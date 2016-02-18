@@ -198,8 +198,7 @@ public class UserManagedCaches {
     // tag::userManagedListenerCache[]
 
     UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
-        .withOrderedEventExecutor(Executors.newSingleThreadExecutor())
-        .withUnOrderedEventExecutor(Executors.newSingleThreadExecutor()) // <1>
+        .withEventExecutors(Executors.newSingleThreadExecutor(), Executors.newSingleThreadExecutor()) // <1>
         .withEventListeners(CacheEventListenerConfigurationBuilder
             .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED, EventType.UPDATED)
             .asynchronous()

@@ -280,7 +280,7 @@ public class EhcacheManager implements PersistentCacheManager {
     final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
     if (config.getResourcePools().getResourceTypeSet().contains(ResourceType.Core.DISK)) {
       LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
-      
+
       if (persistenceService == null) {
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
       }
@@ -382,7 +382,7 @@ public class EhcacheManager implements PersistentCacheManager {
           });
         }
       }
-      
+
       if (loaderWriter != null) {
         lifeCycledList.add(new LifeCycledAdapter() {
           @Override
@@ -408,6 +408,7 @@ public class EhcacheManager implements PersistentCacheManager {
     final Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService,
         useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
+    evtService.setStoreEventSource(store.getStoreEventSource());
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
       Collection<CacheEventListenerConfiguration> evtLsnrConfigs =

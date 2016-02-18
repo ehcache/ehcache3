@@ -23,6 +23,7 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.cache.ConfigurationChangeSupport;
+import org.ehcache.spi.cache.events.StoreEventSource;
 
 import java.util.EnumSet;
 
@@ -43,4 +44,6 @@ public interface CacheEventDispatcher<K, V> extends ConfigurationChangeSupport {
   void shutdown();
 
   void setListenerSource(Cache<K, V> source);
+
+  void setStoreEventSource(StoreEventSource<K, V> eventSource);
 }

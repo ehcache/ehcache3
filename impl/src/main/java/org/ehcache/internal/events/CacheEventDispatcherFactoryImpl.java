@@ -70,7 +70,7 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
     ExecutorService orderedExecutor = executionService.getOrderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
     ExecutorService unOrderedExecutor = executionService.getUnorderedExecutor(threadPoolAlias, new LinkedBlockingQueue<Runnable>());
 
-    return new CacheEventDispatcherImpl<K, V>(store, unOrderedExecutor, orderedExecutor);
+    return new CacheEventDispatcherImpl<K, V>(unOrderedExecutor, orderedExecutor);
   }
 
   @Override

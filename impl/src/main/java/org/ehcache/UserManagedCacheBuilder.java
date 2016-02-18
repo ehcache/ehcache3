@@ -263,8 +263,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     });
 
     if (this.eventDispatcher instanceof DisabledCacheEventNotificationService && (orderedExecutor != null & unOrderedExecutor != null)) {
-      this.eventDispatcher = new CacheEventDispatcherImpl<K, V>(store, unOrderedExecutor, orderedExecutor);
+      this.eventDispatcher = new CacheEventDispatcherImpl<K, V>(unOrderedExecutor, orderedExecutor);
     }
+    eventDispatcher.setStoreEventSource(store.getStoreEventSource());
 
     if (persistent) {
       LocalPersistenceService persistenceService = serviceLocator
@@ -274,7 +275,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
 
       PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, storeConfig, persistenceService, cacheLoaderWriter, eventDispatcher, id);
-      registerListeners(cache, serviceLocator, lifeCycledList);
+      registerListeners(cache, store, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }
@@ -287,7 +288,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         loggerName = Ehcache.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
       }
       Ehcache<K, V> cache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, LoggerFactory.getLogger(loggerName));
-      registerListeners(cache, serviceLocator, lifeCycledList);
+      registerListeners(cache, store, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }
@@ -304,7 +305,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     }
   }
 
-  private void registerListeners(Cache<K, V> cache, ServiceProvider serviceLocator, List<LifeCycled> lifeCycledList) {
+  private void registerListeners(Cache<K, V> cache, Store<K, V> store, ServiceProvider serviceLocator, List<LifeCycled> lifeCycledList) {
     if (!eventListenerConfigurations.isEmpty()) {
       final CacheEventListenerProvider listenerProvider;
       CacheEventListenerProvider provider;
@@ -383,18 +384,16 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   public final UserManagedCacheBuilder<K, V, T> withEventDispatcher(CacheEventDispatcher<K, V> eventDispatcher) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    otherBuilder.orderedExecutor = null;
+    otherBuilder.unOrderedExecutor = null;
     otherBuilder.eventDispatcher = eventDispatcher;
     return otherBuilder;
   }
 
-  public final UserManagedCacheBuilder<K, V, T> withOrderedEventExecutor(ExecutorService orderedExecutor) {
+  public final UserManagedCacheBuilder<K, V, T> withEventExecutors(ExecutorService orderedExecutor, ExecutorService unOrderedExecutor) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    otherBuilder.eventDispatcher = new DisabledCacheEventNotificationService<K, V>();
     otherBuilder.orderedExecutor = orderedExecutor;
-    return otherBuilder;
-  }
-
-  public final UserManagedCacheBuilder<K, V, T> withUnOrderedEventExecutor(ExecutorService unOrderedExecutor) {
-    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
     otherBuilder.unOrderedExecutor = unOrderedExecutor;
     return otherBuilder;
   }
