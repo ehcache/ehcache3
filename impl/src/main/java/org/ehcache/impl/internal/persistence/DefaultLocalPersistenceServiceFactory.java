@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.persistence;
 
 import org.ehcache.core.config.persistence.PersistenceConfiguration;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
 

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.spi.copy;
+package org.ehcache.impl.internal.spi.copy;
 
 import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;

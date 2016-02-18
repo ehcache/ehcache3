@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.spi;
+package org.ehcache.impl.internal.spi;
 
 import java.util.HashMap;
 import java.util.Map;

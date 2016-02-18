@@ -21,7 +21,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.function.BiFunction;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
-import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -34,7 +34,7 @@ import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 
 import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
-import static org.ehcache.impl.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;

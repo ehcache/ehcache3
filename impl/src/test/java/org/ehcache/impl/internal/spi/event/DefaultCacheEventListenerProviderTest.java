@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.spi.event;
+package org.ehcache.impl.internal.spi.event;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;

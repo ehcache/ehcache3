@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.persistence;
 import java.io.File;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;

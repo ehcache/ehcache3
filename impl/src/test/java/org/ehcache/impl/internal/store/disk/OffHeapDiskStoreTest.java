@@ -28,7 +28,7 @@ import org.ehcache.impl.internal.executor.OnDemandExecutionService;
 import org.ehcache.impl.internal.persistence.TestLocalPersistenceService;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest;
-import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.ServiceLocator;
@@ -44,7 +44,7 @@ import org.junit.Test;
 import java.io.IOException;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
-import static org.ehcache.impl.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;

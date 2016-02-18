@@ -18,7 +18,7 @@ package org.ehcache.jsr107;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
-import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 
 /**
  * @author Ludovic Orban

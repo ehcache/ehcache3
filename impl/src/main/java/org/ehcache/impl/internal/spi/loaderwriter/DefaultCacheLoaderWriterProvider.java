@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.spi.loaderwriter;
+package org.ehcache.impl.internal.spi.loaderwriter;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;

@@ -21,13 +21,13 @@ import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
-import org.ehcache.impl.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 
-import static org.ehcache.impl.spi.TestServiceProvider.providerContaining;
+import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 
 public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
 

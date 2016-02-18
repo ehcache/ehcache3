@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.persistence;
+package org.ehcache.impl.persistence;
 
 import org.ehcache.core.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

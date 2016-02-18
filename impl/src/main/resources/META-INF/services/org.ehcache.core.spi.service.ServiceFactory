@@ -6,12 +6,12 @@ org.ehcache.impl.internal.store.tiering.CacheStoreProviderFactory
 org.ehcache.impl.internal.store.tiering.CompoundCachingTierProviderFactory
 
 org.ehcache.impl.internal.TimeSourceServiceFactory
-org.ehcache.impl.spi.serialization.DefaultSerializationProviderFactory
-org.ehcache.impl.spi.loaderwriter.DefaultCacheLoaderWriterProviderFactory
-org.ehcache.impl.spi.event.DefaultCacheEventListenerProviderFactory
+org.ehcache.impl.internal.spi.serialization.DefaultSerializationProviderFactory
+org.ehcache.impl.internal.spi.loaderwriter.DefaultCacheLoaderWriterProviderFactory
+org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProviderFactory
 org.ehcache.impl.internal.executor.DefaultExecutionServiceFactory
 org.ehcache.impl.internal.persistence.DefaultLocalPersistenceServiceFactory
 org.ehcache.impl.internal.loaderwriter.writebehind.WriteBehindProviderFactory
 org.ehcache.impl.internal.events.CacheEventNotificationListenerServiceProviderFactory
-org.ehcache.impl.spi.copy.DefaultCopyProviderFactory
+org.ehcache.impl.internal.spi.copy.DefaultCopyProviderFactory
 org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineProviderFactory

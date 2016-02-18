@@ -38,7 +38,7 @@ import org.ehcache.impl.internal.store.offheap.OffHeapStoreLifecycleHelper;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
-import org.ehcache.impl.spi.copy.DefaultCopyProvider;
+import org.ehcache.impl.internal.spi.copy.DefaultCopyProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.transactions.xa.journal.Journal;
 import org.ehcache.transactions.xa.journal.TransientJournal;
