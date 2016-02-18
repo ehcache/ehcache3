@@ -14,25 +14,29 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.sizeof;
+package org.ehcache.impl.config.sizeof;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
+import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
 
 /**
  * @author Abhilash
  *
  */
-public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEngineProviderConfiguration {
+public class DefaultSizeOfEngineConfiguration implements SizeOfEngineConfiguration {
+
+  public static final int DEFAULT_OBJECT_GRAPH_SIZE = 1000;
+  public static final long DEFAULT_MAX_OBJECT_SIZE = Long.MAX_VALUE;
+  public static final MemoryUnit DEFAULT_UNIT = MemoryUnit.B;
 
   private final long objectGraphSize;
   private final long maxObjectSize;
   private final MemoryUnit unit;
 
-  public DefaultSizeOfEngineProviderConfiguration(long size, MemoryUnit unit, long objectGraphSize) {
+  public DefaultSizeOfEngineConfiguration(long size, MemoryUnit unit, long objectGraphSize) {
     if (size <= 0 || objectGraphSize <= 0) {
-      throw new IllegalArgumentException("SizeOfEngine cannot take non-positive arguments.");
+      throw new IllegalArgumentException("ObjectGraphSize/ObjectSize can only accept positive values.");
     }
     this.objectGraphSize = objectGraphSize;
     this.maxObjectSize = size;
@@ -44,10 +48,12 @@ public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEnginePro
     return SizeOfEngineProvider.class;
   }
 
+  @Override
   public long getMaxObjectGraphSize() {
     return this.objectGraphSize;
   }
 
+  @Override
   public long getMaxObjectSize() {
     return this.maxObjectSize;
   }
@@ -56,4 +62,5 @@ public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEnginePro
   public MemoryUnit getUnit() {
     return this.unit;
   }
+
 }

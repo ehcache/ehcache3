@@ -16,6 +16,8 @@
 
 package org.ehcache.impl.internal.sizeof;
 
+import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;

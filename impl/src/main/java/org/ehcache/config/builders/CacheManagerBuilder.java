@@ -17,19 +17,19 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.CacheManager;
-import org.ehcache.core.EhcacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.EhcacheManager;
+import org.ehcache.core.config.persistence.PersistenceConfiguration;
+import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.core.config.persistence.PersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.Service;
@@ -43,9 +43,9 @@ import java.util.Set;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableSet;
 import static org.ehcache.config.builders.ConfigurationBuilder.newConfigurationBuilder;
-import static org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
-import static org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
-import static org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
 
 /**
  * @author Alex Snaps

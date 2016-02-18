@@ -34,7 +34,8 @@ import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguratio
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -46,9 +47,9 @@ import java.util.HashSet;
 import java.util.List;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
-import static org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
-import static org.ehcache.impl.internal.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
 
 
 /**
