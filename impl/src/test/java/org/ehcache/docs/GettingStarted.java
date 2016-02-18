@@ -36,6 +36,8 @@ import org.ehcache.docs.plugs.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionVeto;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.internal.copy.ReadWriteCopier;
 import org.ehcache.spi.serialization.Serializer;
@@ -44,6 +46,7 @@ import org.junit.Test;
 import java.io.File;
 import java.io.Serializable;
 import java.net.URISyntaxException;
+import java.util.EnumSet;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -318,6 +321,35 @@ public class GettingStarted {
       cache.put(i, "Hello World");
     }
     assertThat(listener.evicted(), is(0));
+
+    cacheManager.close();
+  }
+
+  @Test
+  public void registerListenerAtRuntime() throws InterruptedException {
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10L, EntryUnit.ENTRIES)).build())
+        .build(true);
+
+    Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
+
+    // tag::registerListenerAtRuntime[]
+    ListenerObject listener = new ListenerObject(); // <1>
+    cache.getRuntimeConfiguration().registerCacheEventListener(listener, EventOrdering.ORDERED,
+        EventFiring.ASYNCHRONOUS, EnumSet.of(EventType.CREATED, EventType.REMOVED)); // <2>
+
+    cache.put(1L, "one");
+    cache.put(2L, "two");
+    cache.remove(1L);
+    cache.remove(2L);
+
+    cache.getRuntimeConfiguration().deregisterCacheEventListener(listener); // <3>
+
+    cache.put(1L, "one again");
+    cache.remove(1L);
+    // end::registerListenerAtRuntime[]
 
     cacheManager.close();
   }
