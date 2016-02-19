@@ -32,7 +32,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.CharSequenceSerializer;
 import org.ehcache.docs.plugs.ListenerObject;
-import org.ehcache.docs.plugs.LongSerializer;
+import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionVeto;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringSerializer;

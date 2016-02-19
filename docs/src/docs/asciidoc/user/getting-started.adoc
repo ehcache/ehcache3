@@ -264,7 +264,6 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     types are used to select the best serializer from the list. Each cache will pick a serializer for both key and value
     during initialization. If none is found, an error will be thrown. The serializer is chosen according to two rules:
     either there is one configured for the exact declared type, or the first type-compatible one from the list is chosen.
-    By default, there is a serializer already configured for type `java.io.Serializable`.
 
 Or you can configure specific serializers on the cache itself:
 
@@ -281,6 +280,8 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 Serializer instances are created per cache for keys and values separately.
 By default, serializers are automatically used by tiers that require them (off-heap and disk) but the on-heap tier, while it can
 use them or not, will not by default.
+
+NOTE: By default, there are serializers already configured for types `java.io.Serializable` and `java.lang.Long`.
 
 ===== Implementation of a `Serializer`
 

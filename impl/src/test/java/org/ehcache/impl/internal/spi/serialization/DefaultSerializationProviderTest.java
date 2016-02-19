@@ -74,7 +74,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateSerializerWithFactoryConfig() throws Exception {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
-    dspfConfig.addSerializerFor(Number.class, (Class) TestSerializer.class);
+    dspfConfig.addSerializerFor(Long.class, (Class) TestSerializer.class);
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
