@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.internal.executor;
 
+package org.ehcache.config.builders;
 
-import org.ehcache.config.builders.Builder;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 
 import java.util.HashSet;
