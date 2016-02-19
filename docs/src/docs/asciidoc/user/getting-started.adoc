@@ -170,6 +170,8 @@ Eviction and expiration events can be triggered by both internal processes and b
 |{K, V}   | remove(K)                                | {}      | removed {K, V, null}
 |=================================================================================================
 
+NOTE: Ehcache provides a `CacheEventAdapter` to help implementation of event listeners when you are interested only on specific events.
+
 ==== Registering Event Listeners at runtime
 
 [source,java,indent=0]
