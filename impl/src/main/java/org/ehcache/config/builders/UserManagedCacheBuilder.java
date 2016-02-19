@@ -26,6 +26,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.serializer.SerializerConfiguration;
+import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.core.events.CacheEventDispatcherImpl;
@@ -34,7 +35,9 @@ import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.DisabledCacheEventNotificationService;
 import org.ehcache.exceptions.CachePersistenceException;
@@ -53,6 +56,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -63,6 +67,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -72,6 +77,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
+import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Alex Snaps
@@ -110,6 +119,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private List<CacheEventListenerConfiguration> eventListenerConfigurations = new ArrayList<CacheEventListenerConfiguration>();
   private ExecutorService unOrderedExecutor;
   private ExecutorService orderedExecutor;
+  private long objectGraphSize = DEFAULT_OBJECT_GRAPH_SIZE;
+  private long maxObjectSize = DEFAULT_MAX_OBJECT_SIZE;
+  private MemoryUnit sizeOfUnit = DEFAULT_UNIT;
 
 
   public UserManagedCacheBuilder(final Class<K> keyType, final Class<V> valueType) {
@@ -138,7 +150,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.eventListenerConfigurations = toCopy.eventListenerConfigurations;
     this.unOrderedExecutor = toCopy.unOrderedExecutor;
     this.orderedExecutor = toCopy.orderedExecutor;
-
+    this.objectGraphSize = toCopy.objectGraphSize;
+    this.maxObjectSize = toCopy.maxObjectSize;
+    this.sizeOfUnit = toCopy.sizeOfUnit;
   }
 
   T build(ServiceLocator serviceLocator) throws IllegalStateException {
@@ -492,20 +506,48 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     return otherBuilder;
   }
 
+  public UserManagedCacheBuilder<K, V, T> withSizeOfMaxObjectGraph(long size) {
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    removeAnySizeOfEngine(otherBuilder);
+    otherBuilder.objectGraphSize = size;
+    otherBuilder.serviceCreationConfigurations.add(new DefaultSizeOfEngineProviderConfiguration(otherBuilder.maxObjectSize, otherBuilder.sizeOfUnit, otherBuilder.objectGraphSize));
+    return otherBuilder;
+  }
+
+  public UserManagedCacheBuilder<K, V, T> withSizeOfMaxObjectSize(long size, MemoryUnit unit) {
+    UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    removeAnySizeOfEngine(otherBuilder);
+    otherBuilder.maxObjectSize = size;
+    otherBuilder.sizeOfUnit = unit;
+    otherBuilder.serviceCreationConfigurations.add(new DefaultSizeOfEngineProviderConfiguration(otherBuilder.maxObjectSize, otherBuilder.sizeOfUnit, otherBuilder.objectGraphSize));
+    return otherBuilder;
+  }
+
   public static <K, V, T extends UserManagedCache<K, V>> UserManagedCacheBuilder<K, V, T> newUserManagedCacheBuilder(Class<K> keyType, Class<V> valueType) {
     return new UserManagedCacheBuilder<K, V, T>(keyType, valueType);
   }
 
   public UserManagedCacheBuilder<K, V, T> using(Service service) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    if (service instanceof SizeOfEngineProvider) {
+      removeAnySizeOfEngine(otherBuilder);
+    }
     otherBuilder.services.add(service);
     return otherBuilder;
   }
 
   public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
+    if (serviceConfiguration instanceof SizeOfEngineProviderConfiguration) {
+      removeAnySizeOfEngine(otherBuilder);
+    }
     otherBuilder.serviceCreationConfigurations.add(serviceConfiguration);
     return otherBuilder;
+  }
+
+  private static void removeAnySizeOfEngine(UserManagedCacheBuilder builder) {
+    builder.services.remove(findSingletonAmongst(SizeOfEngineProvider.class, builder.services));
+    builder.serviceCreationConfigurations.remove(findSingletonAmongst(SizeOfEngineProviderConfiguration.class, builder.serviceCreationConfigurations));
   }
 
 }

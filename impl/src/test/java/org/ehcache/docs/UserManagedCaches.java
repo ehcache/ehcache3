@@ -206,7 +206,28 @@ public class UserManagedCaches {
 
     cache.put(1L, "Put it");
     cache.put(1L, "Update it");
+
+    cache.close();
     // end::userManagedListenerCache[]
+  }
+
+  @Test
+  public void userManagedByteSizedCache() throws Exception {
+    // tag::userManagedByteSizedCache
+    UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
+        .withSizeOfMaxObjectSize(500, MemoryUnit.B)
+        .withSizeOfMaxObjectGraph(1000) // <1>
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(3, MemoryUnit.MB)) // <2>
+        .build(true);
+
+    cache.put(1L, "Put");
+    cache.put(1L, "Update");
+
+    assertThat(cache.get(1L), is("Update"));
+
+    cache.close();
+    // end::userManagedByteSizedCache
   }
 
   private String getStoragePath() throws URISyntaxException {
