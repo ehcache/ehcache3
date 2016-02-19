@@ -37,7 +37,6 @@ import org.terracotta.statistics.jsr166e.LongAdder;
 
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -169,9 +168,9 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   }
 
   private float getMostRecentNotClearedValue(StatisticHistory<Double, ?> ratio) {
-    List<Sample<Double>> samples = ratio.getValue();
-    for (int i=samples.size() - 1 ; i>=0 ; i--) {
-      Sample<Double> doubleSample = samples.get(i);
+    Sample<Double>[] samples = ratio.getValue();
+    for (int i=samples.length - 1 ; i>=0 ; i--) {
+      Sample<Double> doubleSample = samples[i];
       if (doubleSample.getTimestamp() >= compensatingCounters.timestamp) {
         return (float) (doubleSample.getValue() / 1000.0);
       }

@@ -134,38 +134,38 @@ class EhcacheStatistics implements ExposedObject<CacheBinding> {
 
         if ((name + "Count").equals(statisticName)) {
           SampledStatistic<Long> count = result.count();
-          return Collections.singletonMap(statisticName, new CounterHistory(statisticName, buildHistory(count, since), NumberUnit.COUNT));
+          return Collections.singletonMap(statisticName, new CounterHistory(buildHistory(count, since), NumberUnit.COUNT));
 
         } else if ((name + "Rate").equals(statisticName)) {
           SampledStatistic<Double> rate = result.rate();
-          return Collections.singletonMap(statisticName, new RateHistory(statisticName, buildHistory(rate, since), TimeUnit.SECONDS));
+          return Collections.singletonMap(statisticName, new RateHistory(buildHistory(rate, since), TimeUnit.SECONDS));
 
         } else if ((name + "LatencyMinimum").equals(statisticName)) {
           SampledStatistic<Long> minimum = result.latency().minimum();
-          return Collections.singletonMap(statisticName, new DurationHistory(statisticName, buildHistory(minimum, since), TimeUnit.NANOSECONDS));
+          return Collections.singletonMap(statisticName, new DurationHistory(buildHistory(minimum, since), TimeUnit.NANOSECONDS));
 
         } else if ((name + "LatencyMaximum").equals(statisticName)) {
           SampledStatistic<Long> maximum = result.latency().maximum();
-          return Collections.singletonMap(statisticName, new DurationHistory(statisticName, buildHistory(maximum, since), TimeUnit.NANOSECONDS));
+          return Collections.singletonMap(statisticName, new DurationHistory(buildHistory(maximum, since), TimeUnit.NANOSECONDS));
 
         } else if ((name + "LatencyAverage").equals(statisticName)) {
           SampledStatistic<Double> average = result.latency().average();
-          return Collections.singletonMap(statisticName, new AverageHistory(statisticName, buildHistory(average, since), TimeUnit.NANOSECONDS));
+          return Collections.singletonMap(statisticName, new AverageHistory(buildHistory(average, since), TimeUnit.NANOSECONDS));
 
         } else if (name.equals(statisticName)) {
           Map<String, Statistic<?, ?>> resultStats = new HashMap<String, Statistic<?, ?>>();
-          resultStats.put(statisticName + "Count",  new CounterHistory(statisticName + "Count", buildHistory(result.count(), since), NumberUnit.COUNT));
-          resultStats.put(statisticName + "Rate", new RateHistory(statisticName + "Rate", buildHistory(result.rate(), since), TimeUnit.SECONDS));
-          resultStats.put(statisticName + "LatencyMinimum", new DurationHistory(statisticName + "LatencyMinimum", buildHistory(result.latency().minimum(), since), TimeUnit.NANOSECONDS));
-          resultStats.put(statisticName + "LatencyMaximum", new DurationHistory(statisticName + "LatencyMaximum", buildHistory(result.latency().maximum(), since), TimeUnit.NANOSECONDS));
-          resultStats.put(statisticName + "LatencyAverage",  new AverageHistory(statisticName + "LatencyAverage", buildHistory(result.latency().average(), since), TimeUnit.NANOSECONDS));
+          resultStats.put(statisticName + "Count",  new CounterHistory(buildHistory(result.count(), since), NumberUnit.COUNT));
+          resultStats.put(statisticName + "Rate", new RateHistory(buildHistory(result.rate(), since), TimeUnit.SECONDS));
+          resultStats.put(statisticName + "LatencyMinimum", new DurationHistory(buildHistory(result.latency().minimum(), since), TimeUnit.NANOSECONDS));
+          resultStats.put(statisticName + "LatencyMaximum", new DurationHistory(buildHistory(result.latency().maximum(), since), TimeUnit.NANOSECONDS));
+          resultStats.put(statisticName + "LatencyAverage",  new AverageHistory(buildHistory(result.latency().average(), since), TimeUnit.NANOSECONDS));
           return resultStats;
         }
 
       } else if ("Ratio".equals(type)) {
         if ((name + "Ratio").equals(statisticName)) {
           SampledStatistic<Double> ratio = (SampledStatistic) registration.getStat();
-          return Collections.singletonMap(statisticName, new RatioHistory(statisticName, buildHistory(ratio, since), NumberUnit.PERCENT));
+          return Collections.singletonMap(statisticName, new RatioHistory(buildHistory(ratio, since), NumberUnit.RATIO));
         }
       }
     }
@@ -173,7 +173,7 @@ class EhcacheStatistics implements ExposedObject<CacheBinding> {
     OperationStatistic<?> operationStatistic = countStatistics.get(statisticName);
     if (operationStatistic != null) {
       long sum = operationStatistic.sum();
-      return Collections.singletonMap(statisticName, new Counter(statisticName, sum, NumberUnit.COUNT));
+      return Collections.singletonMap(statisticName, new Counter(sum, NumberUnit.COUNT));
     }
 
     return Collections.emptyMap();
