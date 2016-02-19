@@ -281,7 +281,8 @@ Serializer instances are created per cache for keys and values separately.
 By default, serializers are automatically used by tiers that require them (off-heap and disk) but the on-heap tier, while it can
 use them or not, will not by default.
 
-NOTE: By default, there are serializers already configured for types `java.io.Serializable`, `java.lang.String` and `java.lang.Long`.
+NOTE: By default, there are serializers already configured for types `java.io.Serializable`, `java.lang.String`, `java.lang.Long`,
+`java.lang.Integer`, `java.lang.Double`, `java.lang.Float` and `java.lang.Character`.
 
 ===== Implementation of a `Serializer`
 
