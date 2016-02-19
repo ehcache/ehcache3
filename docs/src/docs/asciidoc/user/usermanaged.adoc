@@ -148,3 +148,14 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[
 <1> Provide ExecutorService for ordered and unordered event delivery. Note, it is required to provide either a 
     CacheEventDispatcher or ordered/unOrdered ExecutorService for proper event delivery.
 <2> Provide listener configuration using CacheEventListenerConfigurationBuilder.
+
+=== Byte Sized Cache example
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedByteSizedCache]
+----
+<1> The sizing mechanism can be configured along two axis: The first one specifies the maximum number 
+    of objects to traverse while walking the object graph, the second defines the maximum size of a 
+    single object.
+<2> Size the heap tier in bytes.
