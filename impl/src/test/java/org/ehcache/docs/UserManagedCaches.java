@@ -32,7 +32,7 @@ import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionVeto;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringCopier;
-import org.ehcache.docs.plugs.StringSerializer;
+import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.junit.Test;

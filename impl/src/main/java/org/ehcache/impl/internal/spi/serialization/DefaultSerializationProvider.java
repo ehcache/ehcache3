@@ -24,6 +24,7 @@ import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.impl.serialization.LongSerializer;
+import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -154,6 +155,9 @@ public class DefaultSerializationProvider implements SerializationProvider {
       }
       if (!serializers.containsKey(Long.class)) {
         serializers.put(Long.class, LongSerializer.class);
+      }
+      if (!serializers.containsKey(String.class)) {
+        serializers.put(String.class, StringSerializer.class);
       }
     }
   }

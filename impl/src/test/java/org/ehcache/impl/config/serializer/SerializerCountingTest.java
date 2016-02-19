@@ -61,7 +61,8 @@ public class SerializerCountingTest {
   public void setUp() {
     cacheManager = newCacheManagerBuilder()
         .using(new DefaultSerializationProviderConfiguration().addSerializerFor(Serializable.class, (Class) CountingSerializer.class)
-                                                              .addSerializerFor(Long.class, (Class) CountingSerializer.class))
+                                                              .addSerializerFor(Long.class, (Class) CountingSerializer.class)
+                                                              .addSerializerFor(String.class, (Class) CountingSerializer.class))
         .with(new CacheManagerPersistenceConfiguration(folder.getRoot()))
         .build(true);
   }

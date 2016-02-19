@@ -13,8 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.docs.plugs;
 
+package org.ehcache.impl.serialization;
+
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.serialization.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,24 +26,26 @@ import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
 /**
- * @author Ludovic Orban
+ * Default {@link Serializer} for {@code String} type. Simply writes the string bytes in UTF-8
+ * to a byte buffer.
  */
 public class StringSerializer implements Serializer<String> {
-  private static final Logger LOG = LoggerFactory.getLogger(StringSerializer.class);
-  private static final Charset CHARSET = Charset.forName("US-ASCII");
+  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
   public StringSerializer() {
-    this(ClassLoader.getSystemClassLoader());
   }
 
   public StringSerializer(ClassLoader classLoader) {
   }
 
+  public StringSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+  }
+
   @Override
   public ByteBuffer serialize(String object) {
-    LOG.info("serializing {}", object);
-    ByteBuffer byteBuffer = ByteBuffer.allocate(object.length());
-    byteBuffer.put(object.getBytes(CHARSET)).flip();
+    byte[] bytes = object.getBytes(UTF_8);
+    ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
+    byteBuffer.put(bytes).flip();
     return byteBuffer;
   }
 
@@ -48,9 +53,7 @@ public class StringSerializer implements Serializer<String> {
   public String read(ByteBuffer binary) throws ClassNotFoundException {
     byte[] bytes = new byte[binary.remaining()];
     binary.get(bytes);
-    String s = new String(bytes, CHARSET);
-    LOG.info("deserialized {}", s);
-    return s;
+    return new String(bytes, UTF_8);
   }
 
   @Override
