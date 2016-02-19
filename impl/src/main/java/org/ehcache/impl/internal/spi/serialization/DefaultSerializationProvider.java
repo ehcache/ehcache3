@@ -20,9 +20,15 @@ import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.impl.serialization.CharSerializer;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.impl.serialization.DoubleSerializer;
+import org.ehcache.impl.serialization.FloatSerializer;
+import org.ehcache.impl.serialization.IntegerSerializer;
+import org.ehcache.impl.serialization.LongSerializer;
+import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -150,6 +156,24 @@ public class DefaultSerializationProvider implements SerializationProvider {
     public void start(ServiceProvider serviceProvider) {
       if (!serializers.containsKey(Serializable.class)) {
         serializers.put(Serializable.class, (Class) CompactJavaSerializer.class);
+      }
+      if (!serializers.containsKey(Long.class)) {
+        serializers.put(Long.class, LongSerializer.class);
+      }
+      if (!serializers.containsKey(Integer.class)) {
+        serializers.put(Integer.class, IntegerSerializer.class);
+      }
+      if (!serializers.containsKey(Float.class)) {
+        serializers.put(Float.class, FloatSerializer.class);
+      }
+      if (!serializers.containsKey(Double.class)) {
+        serializers.put(Double.class, DoubleSerializer.class);
+      }
+      if (!serializers.containsKey(Character.class)) {
+        serializers.put(Character.class, CharSerializer.class);
+      }
+      if (!serializers.containsKey(String.class)) {
+        serializers.put(String.class, StringSerializer.class);
       }
     }
   }

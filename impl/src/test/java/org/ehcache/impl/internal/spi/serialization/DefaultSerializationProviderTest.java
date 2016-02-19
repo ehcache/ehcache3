@@ -19,6 +19,7 @@ import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
+import org.ehcache.impl.serialization.IntegerSerializer;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -27,6 +28,7 @@ import org.junit.Test;
 
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
@@ -50,7 +52,7 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
-    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
+    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
     try {
       dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
       fail("expected UnsupportedTypeException");
@@ -74,12 +76,12 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateSerializerWithFactoryConfig() throws Exception {
     DefaultSerializationProviderConfiguration dspfConfig = new DefaultSerializationProviderConfiguration();
-    dspfConfig.addSerializerFor(Number.class, (Class) TestSerializer.class);
+    dspfConfig.addSerializerFor(Long.class, (Class) TestSerializer.class);
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
     assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createValueSerializer(String.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
+    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
   }
 
   @Test
@@ -92,7 +94,7 @@ public class DefaultSerializationProviderTest {
 
     assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
     assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
-    assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
+    assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(IntegerSerializer.class));
   }
 
   @Test
@@ -103,9 +105,9 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
-    assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    assertThat(dsp.createKeySerializer(HashMap.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
     assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
+    assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(IntegerSerializer.class));
   }
 
   @Test

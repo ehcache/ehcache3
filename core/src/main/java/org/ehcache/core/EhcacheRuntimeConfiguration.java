@@ -130,6 +130,12 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
   }
 
+  @Override
+  public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EventType eventType, EventType... eventTypes) {
+    EventListenerWrapper listenerWrapper = new EventListenerWrapper(listener, firing, ordering, EnumSet.of(eventType, eventTypes));
+    fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
+  }
+
   private <T> Collection<T> copy(Collection<T> collection) {
     if (collection == null) {
       return null;

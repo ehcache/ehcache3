@@ -13,32 +13,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.docs.plugs;
 
+package org.ehcache.impl.serialization;
+
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.serialization.Serializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 /**
- * @author Ludovic Orban
+ * Default {@link Serializer} for {@code Long} type. Simply writes the long value
+ * to a byte buffer.
  */
 public class LongSerializer implements Serializer<Long> {
-  private static final Logger LOG = LoggerFactory.getLogger(LongSerializer.class);
-  private static final Charset CHARSET = Charset.forName("US-ASCII");
 
   public LongSerializer() {
-    this(ClassLoader.getSystemClassLoader());
   }
 
   public LongSerializer(ClassLoader classLoader) {
   }
 
+  public LongSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+
+  }
+
   @Override
   public ByteBuffer serialize(Long object) {
-    LOG.info("serializing {}", object);
     ByteBuffer byteBuffer = ByteBuffer.allocate(8);
     byteBuffer.putLong(object).flip();
     return byteBuffer;
@@ -47,7 +47,6 @@ public class LongSerializer implements Serializer<Long> {
   @Override
   public Long read(ByteBuffer binary) throws ClassNotFoundException {
     long l = binary.getLong();
-    LOG.info("deserialized {}", l);
     return l;
   }
 

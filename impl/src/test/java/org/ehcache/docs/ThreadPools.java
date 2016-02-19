@@ -29,7 +29,7 @@ import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.internal.executor.PooledExecutionServiceConfigurationBuilder;
+import org.ehcache.config.builders.PooledExecutionServiceConfigurationBuilder;
 import org.junit.Test;
 
 import java.io.File;

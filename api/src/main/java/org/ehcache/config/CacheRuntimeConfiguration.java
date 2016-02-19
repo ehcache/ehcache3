@@ -40,12 +40,26 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
    * @param listener the listener instance to register
    * @param ordering the {@link org.ehcache.event.EventOrdering} to invoke this listener
    * @param firing the {@link org.ehcache.event.EventFiring} to invoke this listener
-   * @param forEventTypes the {@link org.ehcache.event.EventType} to notify this listener of
+   * @param forEventTypes the set of {@link org.ehcache.event.EventType}s to notify this listener of
    *
    * @throws java.lang.IllegalStateException if the listener is already registered
    */
   void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
                                   EventOrdering ordering, EventFiring firing, Set<EventType> forEventTypes);
+
+  /**
+   * Allows for registering {@link org.ehcache.event.CacheEventListener} on the cache
+   *
+   * @param listener the listener instance to register
+   * @param ordering the {@link org.ehcache.event.EventOrdering} to invoke this listener
+   * @param firing the {@link org.ehcache.event.EventFiring} to invoke this listener
+   * @param eventType the {@link org.ehcache.event.EventType} to notify this listener of
+   * @param eventTypes additional {@link org.ehcache.event.EventType} to notify this listener of
+   *
+   * @throws java.lang.IllegalStateException if the listener is already registered
+   */
+  void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
+                                  EventOrdering ordering, EventFiring firing, EventType eventType, EventType... eventTypes);
 
   /**
    *  Allows for deregistering of a previously registered {@link org.ehcache.event.CacheEventListener} instance
