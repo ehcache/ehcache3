@@ -79,6 +79,10 @@ subprojects {
     utils.fillManifest(manifest,"ehcache-${project.name}")
   }
 
+  test {
+    maxHeapSize = "512m"
+  }
+
   task slowTest(type: Test) {
     testClassesDir = sourceSets.slowTest.output.classesDir
     classpath += sourceSets.slowTest.runtimeClasspath
