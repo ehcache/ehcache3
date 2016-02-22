@@ -30,7 +30,7 @@ import org.ehcache.core.spi.service.ServiceFactory;
  *
  */
 public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindProvider> {
-  
+
   @Override
   public WriteBehindProvider create(ServiceCreationConfiguration<WriteBehindProvider> configuration) {
     if (configuration == null) {
@@ -44,7 +44,7 @@ public class WriteBehindProviderFactory implements ServiceFactory<WriteBehindPro
 
   @ServiceDependencies(ExecutionService.class)
   public static class Provider implements WriteBehindProvider {
-      
+
     private final String threadPoolAlias;
     private volatile ExecutionService executionService;
 

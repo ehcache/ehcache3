@@ -58,7 +58,7 @@ public class SerializeAfterEvolutionTest {
   public static class A_old implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    
+
     public Integer integer;
 
     public A_old() {
@@ -69,7 +69,7 @@ public class SerializeAfterEvolutionTest {
   public static class A_new implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    
+
     public Date date;
     public Integer integer;
 

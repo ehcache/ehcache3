@@ -55,7 +55,7 @@ public class ClassLoadingTest {
     assertEquals(url, defaultClassLoader.getResource(resource));
     assertEqualEnumeration(enumerationOf(url), defaultClassLoader.getResources(resource));
   }
-  
+
   private static <T> Enumeration<T> enumerationOf(T... values) {
     Vector<T> v = new Vector<T>();
     for (T t : values) {
@@ -90,12 +90,12 @@ public class ClassLoadingTest {
       byte[] data = baos.toByteArray();
       return defineClass(name, data, 0, data.length);
     }
-    
+
     @Override
     public URL getResource(String name) {
       return url;
     }
-    
+
     @Override
     public Enumeration<URL> getResources(String name) throws IOException {
       return enumerationOf(url);

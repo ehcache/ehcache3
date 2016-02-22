@@ -158,7 +158,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     final Ehcache<String, String> ehcache = this.getEhcache(null);
     ehcache.removeAll(Collections.<String>emptySet());
-    
+
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
     verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
@@ -194,7 +194,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     verify(this.cacheLoaderWriter, never()).deleteAll(eq(Collections.<String>emptySet()));
     verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
 
-    
+
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
     assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));

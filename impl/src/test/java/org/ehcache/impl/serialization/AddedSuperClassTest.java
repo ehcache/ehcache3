@@ -32,7 +32,7 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
  * @author cdennis
  */
 public class AddedSuperClassTest {
-  
+
   @Test
   public void testAddedSuperClass() throws Exception {
     Serializer<Serializable> serializer = new CompactJavaSerializer(null);
@@ -48,7 +48,7 @@ public class AddedSuperClassTest {
       popTccl();
     }
   }
-  
+
   @Test
   public void testAddedSuperClassNotHidden() throws Exception {
     Serializer<Serializable> serializer = new CompactJavaSerializer(null);
@@ -64,11 +64,11 @@ public class AddedSuperClassTest {
       popTccl();
     }
   }
-  
+
   public static class AddedSuperClass_Hidden implements Serializable {
     int field;
   }
-  
+
   public static class A_2 extends AddedSuperClass_Hidden  {
     private static final long serialVersionUID = 1L;
   }

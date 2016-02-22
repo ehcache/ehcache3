@@ -20,13 +20,13 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  *  Interface to implement batch operations that are executed on a cache writer
- *  
+ *
  * @author Geert Bevin
  * @author Chris Dennis
  *
  */
 public interface BatchOperation<K, V> {
-  
+
   /**
    * Perform the batch operation for a particular batch writer
    *

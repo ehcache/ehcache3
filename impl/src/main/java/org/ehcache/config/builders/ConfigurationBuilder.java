@@ -109,7 +109,7 @@ public class ConfigurationBuilder implements Builder<Configuration> {
     newServiceConfigurations.remove(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
-  
+
   public ConfigurationBuilder withClassLoader(ClassLoader classLoader) {
     return new ConfigurationBuilder(this, classLoader);
   }

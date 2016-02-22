@@ -36,7 +36,7 @@ public class TimeSourceConfiguration implements ServiceCreationConfiguration<Tim
   public TimeSourceConfiguration(TimeSource timeSource) {
     this.timeSource = timeSource;
   }
-  
+
   @Override
   public Class<TimeSourceService> getServiceType() {
     return TimeSourceService.class;

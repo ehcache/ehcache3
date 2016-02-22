@@ -24,7 +24,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 
 public interface Jsr107Cache<K, V> {
-  
+
   Map<K, V> getAll(Set<? extends K> keys);
 
   V getAndRemove(K key);
@@ -38,6 +38,6 @@ public interface Jsr107Cache<K, V> {
   V compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
       NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter,
       final NullaryFunction<Boolean> withStatsAndEvents);
-  
+
   void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> function);
 }

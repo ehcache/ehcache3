@@ -31,10 +31,10 @@ import org.terracotta.entity.PassiveSynchronizationChannel;
 public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private final UUID identity;
-  
+
   private ServerSideConfiguration configuration;
-  
-  
+
+
   EhcacheActiveEntity(byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
   }

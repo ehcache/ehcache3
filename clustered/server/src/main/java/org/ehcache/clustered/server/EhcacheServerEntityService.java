@@ -47,7 +47,7 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
   public PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
     throw new UnsupportedOperationException("Active/passive is not supported yet");
   }
-  
+
   @Override
   public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
     return noConcurrency();

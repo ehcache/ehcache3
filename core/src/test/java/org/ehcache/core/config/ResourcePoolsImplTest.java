@@ -43,7 +43,7 @@ import static org.junit.Assert.fail;
  * @author cdennis
  */
 public class ResourcePoolsImplTest {
-  
+
   @Test
   public void testMismatchedUnits() {
     Collection<ResourcePoolImpl> pools = asList(
@@ -51,7 +51,7 @@ public class ResourcePoolsImplTest {
             new ResourcePoolImpl(OFFHEAP, 10, MB, false));
     validateResourcePools(pools);
   }
-  
+
   @Test
   public void testMatchingEqualUnitsWellTiered() {
     Collection<ResourcePoolImpl> pools = asList(
@@ -59,7 +59,7 @@ public class ResourcePoolsImplTest {
             new ResourcePoolImpl(OFFHEAP, 10, MB, false));
     validateResourcePools(pools);
   }
-  
+
   @Test
   public void testMatchingUnequalUnitsWellTiered() {
     Collection<ResourcePoolImpl> pools = asList(
@@ -67,7 +67,7 @@ public class ResourcePoolsImplTest {
             new ResourcePoolImpl(OFFHEAP, 10240, KB, false));
     validateResourcePools(pools);
   }
-  
+
   @Test
   public void testEntryResourceMatch() {
     Collection<ResourcePoolImpl> pools = asList(
@@ -93,7 +93,7 @@ public class ResourcePoolsImplTest {
       assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {11 entries heap}' is not smaller than 'Pool {10 entries offheap}'"));
     }
   }
-  
+
   @Test
   public void testMemoryResourceEqualUnitMatch() {
     Collection<ResourcePoolImpl> pools = asList(

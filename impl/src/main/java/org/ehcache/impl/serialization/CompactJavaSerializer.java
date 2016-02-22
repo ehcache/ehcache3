@@ -53,16 +53,16 @@ import org.ehcache.spi.serialization.Serializer;
 public class CompactJavaSerializer<T> implements Serializer<T>, Closeable {
 
   private final AtomicInteger nextStreamIndex = new AtomicInteger(0);
-  
+
   private final ConcurrentMap<Integer, ObjectStreamClass> readLookup = new ConcurrentHashMap<Integer, ObjectStreamClass>();
   private final ConcurrentMap<SerializableDataKey, Integer> writeLookup = new ConcurrentHashMap<SerializableDataKey, Integer>();
-  
+
   private final transient ClassLoader loader;
-  
+
   public CompactJavaSerializer(ClassLoader loader) {
     this.loader = loader;
   }
-  
+
   protected CompactJavaSerializer(ClassLoader loader, Map<Integer, ObjectStreamClass> mappings) {
     this(loader);
     for (Entry<Integer, ObjectStreamClass> e : mappings.entrySet()) {
@@ -74,11 +74,11 @@ public class CompactJavaSerializer<T> implements Serializer<T>, Closeable {
       }
     }
   }
-  
+
   protected Map<Integer, ObjectStreamClass> getSerializationMappings() {
     return Collections.unmodifiableMap(new HashMap<Integer, ObjectStreamClass>(readLookup));
   }
-  
+
   @Override
   public ByteBuffer serialize(T object) throws SerializerException {
     try {
@@ -163,7 +163,7 @@ public class CompactJavaSerializer<T> implements Serializer<T>, Closeable {
     public OOS(OutputStream out) throws IOException {
       super(out);
     }
-    
+
     @Override
     protected void writeClassDescriptor(final ObjectStreamClass desc) throws IOException {
       writeInt(getOrAddMapping(desc));
@@ -178,12 +178,12 @@ public class CompactJavaSerializer<T> implements Serializer<T>, Closeable {
       super(in);
       this.loader = loader;
     }
-    
+
     @Override
     protected ObjectStreamClass readClassDescriptor() throws IOException, ClassNotFoundException {
       return readLookup.get(readInt());
     }
-    
+
     @Override
     protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException, ClassNotFoundException {
       try {
@@ -202,7 +202,7 @@ public class CompactJavaSerializer<T> implements Serializer<T>, Closeable {
       }
     }
   }
-  
+
   protected static class SerializableDataKey {
     private final ObjectStreamClass osc;
     private final int hashCode;
@@ -284,7 +284,7 @@ public class CompactJavaSerializer<T> implements Serializer<T>, Closeable {
       return false;
     }
   }
-  
+
   protected static ObjectStreamClass disconnect(ObjectStreamClass desc) {
     try {
       ObjectInputStream oin = new ObjectInputStream(new ByteArrayInputStream(getSerializedForm(desc))) {

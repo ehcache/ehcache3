@@ -53,7 +53,7 @@ import static org.mockito.Mockito.when;
  */
 @SuppressWarnings({ "unchecked", "serial", "rawtypes" })
 public class EhcacheBulkMethodsTest {
-  
+
   private final CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
   {
     when(cacheConfig.getExpiry()).thenReturn(mock(Expiry.class));
@@ -102,7 +102,7 @@ public class EhcacheBulkMethodsTest {
     verify(store).bulkCompute((Set<? extends Number>) argThat(hasItems(1, 2, 3)), any(Function.class));
     verify(cacheLoaderWriter).writeAll(argThat(hasItems(entry(1, "one"), entry(2, "two"), entry(3, "three"))));
   }
-  
+
 
   @Test
   public void testGetAll() throws Exception {
@@ -112,7 +112,7 @@ public class EhcacheBulkMethodsTest {
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function function = (Function)invocation.getArguments()[1];
         function.apply(invocation.getArguments()[0]);
-        
+
         return new HashMap(){{put(1, null); put(2, null); put(3, valueHolder("three")); }};
       }
     });
@@ -127,17 +127,17 @@ public class EhcacheBulkMethodsTest {
     assertThat(result, hasEntry((Number)3, (CharSequence)"three"));
     verify(store).bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class));
   }
-  
+
   @Test
   public void testGetAllWithLoader() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
-    
+
     when(store.bulkComputeIfAbsent((Set<? extends Number>)argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         Function function = (Function)invocation.getArguments()[1];
-        function.apply(invocation.getArguments()[0]);        
-        
+        function.apply(invocation.getArguments()[0]);
+
         final Map<Number, ValueHolder<CharSequence>>loaderValues = new LinkedHashMap<Number, ValueHolder<CharSequence>>();
         loaderValues.put(1, valueHolder((CharSequence)"one"));
         loaderValues.put(2, valueHolder((CharSequence)"two"));
@@ -233,7 +233,7 @@ public class EhcacheBulkMethodsTest {
       }
     };
   }
-  
+
 
   private static <V> ValueHolder<V> valueHolder(final V value) {
     return new ValueHolder<V>() {

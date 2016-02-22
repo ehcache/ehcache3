@@ -30,7 +30,7 @@ public class KeysIterable<K> implements Iterable<K> {
   public static <K> Iterable<K> keysOf(Iterable<? extends Map.Entry<? extends K, ?>> entries) {
     return new KeysIterable<K>(entries);
   }
-  
+
   private KeysIterable(Iterable<? extends Map.Entry<? extends K, ?>> entries) {
     this.entries = entries;
   }

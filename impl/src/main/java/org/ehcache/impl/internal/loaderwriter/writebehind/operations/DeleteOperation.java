@@ -22,16 +22,16 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * Implements the delete operation for write behind
- * 
+ *
  * @author Geert Bevin
  * @author Tim wu
  *
  */
 public class DeleteOperation<K, V> implements SingleOperation<K, V> {
-  
+
   private final K key;
   private final long creationTime;
-  
+
   /**
    * Create a new delete operation for a particular entry
    *

@@ -43,7 +43,7 @@ public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
   public boolean veto() {
     return veto;
   }
-  
+
   public long size() {
     return this.size;
   }
@@ -54,7 +54,7 @@ public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
     }
     this.size = size;
   }
-  
+
   @Override
   final protected TimeUnit nativeTimeUnit() {
     return TIME_UNIT;

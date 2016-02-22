@@ -18,9 +18,9 @@ package org.ehcache.clustered;
 import java.util.UUID;
 
 public final class ClusteredEhcacheIdentity {
-  
+
   private ClusteredEhcacheIdentity() {}
-  
+
   public static byte[] serialize(UUID identity) {
     long msb = identity.getMostSignificantBits();
     long lsb = identity.getLeastSignificantBits();
@@ -29,7 +29,7 @@ public final class ClusteredEhcacheIdentity {
     putLong(bytes, 8, lsb);
     return bytes;
   }
-  
+
   public static UUID deserialize(byte[] bytes) {
     if (bytes.length != 16) {
       throw new IllegalArgumentException("Expected a 16 byte (UUID) config stream");
@@ -48,9 +48,8 @@ public final class ClusteredEhcacheIdentity {
         value >>= 8;
       }
     }
-    
   }
-  
+
   private static long getLong(byte[] array, int offset) {
     if (offset < 0 || array.length < offset + 8) {
       throw new ArrayIndexOutOfBoundsException();

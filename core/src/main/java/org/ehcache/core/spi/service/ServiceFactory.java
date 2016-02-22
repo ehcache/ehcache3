@@ -25,6 +25,6 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 public interface ServiceFactory<T extends Service> {
 
   T create(ServiceCreationConfiguration<T> configuration);
-  
+
   Class<T> getServiceType();
 }

@@ -83,7 +83,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
-  
+
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
     return storeFactory;
@@ -115,7 +115,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       public Store<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
         return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
-      
+
       private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());

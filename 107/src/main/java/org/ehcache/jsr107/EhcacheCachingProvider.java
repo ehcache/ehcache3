@@ -114,7 +114,7 @@ public class EhcacheCachingProvider implements CachingProvider {
           services.add(new DefaultJsr107SerializationProvider());
         }
         services.add(managementRegistryCollectorService);
-       
+
         EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
         ehcacheManager.init();
         cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri,
@@ -195,7 +195,7 @@ public class EhcacheCachingProvider implements CachingProvider {
         }
       }
     }
-    
+
     closeException.throwIfNotEmpty();
   }
 
@@ -246,7 +246,7 @@ public class EhcacheCachingProvider implements CachingProvider {
       closeException.addThrowable(t);
     }
   }
-  
+
   private static Properties cloneProperties(Properties properties) {
     Properties clone = new Properties();
     for (Map.Entry<Object, Object> entry : properties.entrySet()) {
@@ -254,5 +254,5 @@ public class EhcacheCachingProvider implements CachingProvider {
     }
     return clone;
   }
-  
+
 }

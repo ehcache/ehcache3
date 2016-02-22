@@ -21,7 +21,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 /**
  * Exception thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
  * {@link java.lang.Exception} while loading a value for a given key.
- * 
+ *
  * @author Alex Snaps
  */
 public class CacheLoadingException extends RuntimeException {

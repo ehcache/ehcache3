@@ -48,7 +48,7 @@ public class PartitionedUnorderedExecutorTest {
     assertThat(executor.awaitTermination(2, TimeUnit.MINUTES), is(true));
     assertThat(executor.isTerminated(), is(true));
   }
-  
+
   @Test
   public void testShutdownNowOfIdleExecutor() throws InterruptedException {
     BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
@@ -142,7 +142,7 @@ public class PartitionedUnorderedExecutorTest {
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(semaphore.availablePermits(), is(0));
     } finally {
       service.shutdown();
@@ -158,7 +158,7 @@ public class PartitionedUnorderedExecutorTest {
 
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -186,12 +186,12 @@ public class PartitionedUnorderedExecutorTest {
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(false));
-      
+
       jobSemaphore.release();
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(jobSemaphore.availablePermits(), is(0));
     } finally {
       service.shutdown();
@@ -207,7 +207,7 @@ public class PartitionedUnorderedExecutorTest {
 
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -237,7 +237,7 @@ public class PartitionedUnorderedExecutorTest {
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(jobSemaphore.availablePermits(), is(0));
       assertThat(called.get(), is(false));
     } finally {
@@ -255,7 +255,7 @@ public class PartitionedUnorderedExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
       final AtomicBoolean interrupted = new AtomicBoolean();
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -285,7 +285,7 @@ public class PartitionedUnorderedExecutorTest {
   @Test
   public void testRunningJobsAreInterruptedAfterShutdownNow() throws InterruptedException {
     final int jobCount = 4;
-    
+
     BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
     ExecutorService service = Executors.newCachedThreadPool();
     try {
@@ -294,7 +294,7 @@ public class PartitionedUnorderedExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
       final AtomicInteger interrupted = new AtomicInteger();
-      
+
       for (int i = 0; i < jobCount; i++) {
         executor.submit(new Callable<Void>() {
 
@@ -310,9 +310,9 @@ public class PartitionedUnorderedExecutorTest {
           }
         });
       }
-      
+
       testSemaphore.acquireUninterruptibly(jobCount);
-      
+
       assertThat(executor.shutdownNow(), empty());
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));

@@ -24,7 +24,7 @@ import static org.junit.Assert.fail;
  * @author cdennis
  */
 public class EhcacheActiveEntityTest {
-  
+
   @Test
   public void testConfigTooShort() {
     try {
@@ -44,7 +44,7 @@ public class EhcacheActiveEntityTest {
       //expected
     }
   }
-  
+
   @Test
   public void testConfigNull() {
     try {

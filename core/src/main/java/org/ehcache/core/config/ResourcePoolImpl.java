@@ -62,5 +62,4 @@ public class ResourcePoolImpl implements ResourcePool {
     return "Pool {" + getSize() + " " + getUnit() + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
   }
 
-  
 }

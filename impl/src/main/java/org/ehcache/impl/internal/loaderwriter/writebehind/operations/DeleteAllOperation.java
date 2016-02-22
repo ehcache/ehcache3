@@ -20,13 +20,13 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * Implements the delete all operation for write behind
- * 
+ *
  * @author Geert Bevin
  * @author Chris Dennis
  *
  */
 public class DeleteAllOperation<K, V> implements BatchOperation<K, V> {
-  
+
   private final Iterable<? extends K> entries;
 
   /**

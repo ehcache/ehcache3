@@ -22,23 +22,23 @@ import org.ehcache.event.EventType;
 
 public final class CacheEvents {
   private CacheEvents() { }
-  
+
   public static <K, V> CacheEvent<K, V> expiry(K expiredKey, V expiredValue, Cache<K, V> source) {
     return new ExpiryEvent<K, V>(expiredKey, expiredValue, source);
   }
-  
+
   public static <K, V> CacheEvent<K, V> eviction(K evictedKey, V evictedValue, Cache<K, V> source) {
     return new EvictionEvent<K, V>(evictedKey, evictedValue, source);
   }
-  
+
   public static <K, V> CacheEvent<K, V> creation(K newKey, V newValue, Cache<K, V> source) {
     return new CreationEvent<K, V>(newKey, newValue, source);
   }
-  
+
   public static <K, V> CacheEvent<K, V> removal(K removedKey, V removedValue, Cache<K, V> source) {
     return new RemovalEvent<K, V>(removedKey, removedValue, source);
   }
-  
+
   public static <K, V> CacheEvent<K, V> update(K key, V oldValue, V newValue, Cache<K, V> source) {
     return new UpdateEvent<K, V>(key, oldValue, newValue, source);
   }
@@ -46,33 +46,33 @@ public final class CacheEvents {
   private static abstract class BaseCacheEvent<K, V> implements CacheEvent<K, V> {
     final K key;
     final Cache<K, V> src;
-    
+
     protected BaseCacheEvent(K key, Cache<K, V> from) {
       this.key = key;
       this.src = from;
     }
-    
+
     @Override
     public K getKey() {
       return key;
     }
-    
+
     @Override
     @Deprecated
     public Cache<K, V> getSource() {
       return src;
     }
-    
+
   }
-  
+
   private final static class ExpiryEvent<K, V> extends BaseCacheEvent<K, V> {
     final V expiredValue;
-    
+
     ExpiryEvent(K expiredKey, V expiredValue, Cache<K, V> src) {
       super(expiredKey, src);
       this.expiredValue = expiredValue;
     }
-    
+
     @Override
     public EventType getType() {
       return EventType.EXPIRED;
@@ -88,15 +88,15 @@ public final class CacheEvents {
       return expiredValue;
     }
   }
-  
+
   private final static class EvictionEvent<K, V> extends BaseCacheEvent<K, V> {
     final V evictedValue;
-    
+
     EvictionEvent(K evictedKey, V evictedValue, Cache<K, V> src) {
       super(evictedKey, src);
       this.evictedValue = evictedValue;
     }
-    
+
     @Override
     public EventType getType() {
       return EventType.EVICTED;
@@ -115,7 +115,7 @@ public final class CacheEvents {
 
   private final static class CreationEvent<K, V> extends BaseCacheEvent<K, V> {
     final V newValue;
-    
+
     CreationEvent(K newKey, V newValue, Cache<K, V> src) {
       super(newKey, src);
       this.newValue = newValue;
@@ -136,10 +136,10 @@ public final class CacheEvents {
       return null;
     }
   }
-  
+
   private final static class RemovalEvent<K, V> extends BaseCacheEvent<K, V> {
     final V removedValue;
-    
+
     RemovalEvent(K removedKey, V removedValue, Cache<K, V> src) {
       super(removedKey, src);
       this.removedValue = removedValue;

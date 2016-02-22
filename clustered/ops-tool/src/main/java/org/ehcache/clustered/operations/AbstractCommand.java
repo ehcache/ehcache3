@@ -18,17 +18,17 @@ package org.ehcache.clustered.operations;
 import java.net.URI;
 
 abstract class AbstractCommand implements Command {
-  
+
   private final BaseOptions base;
 
   AbstractCommand(BaseOptions base) {
     this.base = base;
   }
-  
+
   boolean isDryRun() {
     return base.isDryRun();
   }
-  
+
   URI getClusterLocationOverride() {
     return base.getClusterLocationOverride();
   }

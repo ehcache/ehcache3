@@ -56,7 +56,7 @@ public class Eh107MBeanServerBuilder extends MBeanServerBuilder {
 
     /**
      * Constructor
-     * 
+     *
      * @param delegate
      *          the provided delegate
      */

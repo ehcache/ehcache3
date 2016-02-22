@@ -83,7 +83,7 @@ public class ServiceLocatorTest {
     assertThat(serviceLocator.getService(CacheProvider.class), sameInstance(fancyCacheProvider));
     assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
   }
-  
+
   @Test
   public void testDoesNotRegisterSupplementaryServiceUnderAbstractType() {
     ServiceLocator serviceLocator = new ServiceLocator();
@@ -106,7 +106,7 @@ public class ServiceLocatorTest {
         throw new AssertionError();
       }
     });
-    
+
     ServiceLocator serviceLocator = new ServiceLocator();
     serviceLocator.getService(TestService.class);
   }
@@ -197,7 +197,7 @@ public class ServiceLocatorTest {
 
   @Test
   public void testServicesInstanciatedOnceAndStartedOnce() throws Exception {
-    
+
     @ServiceDependencies(TestProvidedService.class)
     class Consumer1 implements Service {
       @Override
@@ -250,7 +250,7 @@ public class ServiceLocatorTest {
 
     verify(consumer1, times(1)).start(serviceLocator);
     verify(consumer1, times(1)).stop();
-    
+
     assertThat(consumer2.testProvidedService.ctors(), equalTo(1));
     assertThat(consumer2.testProvidedService.stops(), equalTo(1));
     assertThat(consumer2.testProvidedService.starts(), equalTo(1));
@@ -265,7 +265,7 @@ public class ServiceLocatorTest {
 
   @Test
   public void testCircularDeps() throws Exception {
-    
+
     @ServiceDependencies(TestProvidedService.class)
     class Consumer1 implements Service {
       @Override
@@ -286,7 +286,7 @@ public class ServiceLocatorTest {
       @Override
       public void stop() {}
     }
-    
+
     @ServiceDependencies(Consumer2.class)
     class MyTestProvidedService extends DefaultTestProvidedService {
       @Override
@@ -295,7 +295,7 @@ public class ServiceLocatorTest {
         super.start(serviceProvider);
       }
     }
-    
+
     @ServiceDependencies(DependsOnMe.class)
     class DependsOnMe implements Service {
       @Override
@@ -312,7 +312,7 @@ public class ServiceLocatorTest {
     Consumer2 consumer2 = mock(Consumer2.class);
     MyTestProvidedService myTestProvidedService = mock(MyTestProvidedService.class);
     DependsOnMe dependsOnMe = mock(DependsOnMe.class);
-    
+
     // add some services
     serviceLocator.addService(consumer1);
     serviceLocator.addService(consumer2);

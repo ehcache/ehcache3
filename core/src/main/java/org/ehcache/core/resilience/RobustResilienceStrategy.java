@@ -37,11 +37,11 @@ import static java.util.Collections.emptyMap;
 public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrategy<K, V> {
 
   private final RecoveryCache<K> cache;
-  
+
   public RobustResilienceStrategy(RecoveryCache<K> cache) {
     this.cache = cache;
   }
-  
+
   @Override
   public V getFailure(K key, CacheAccessException e) {
     cleanup(key, e);
@@ -221,7 +221,6 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
     recovered(from);
   }
 
-  
   private void cleanup(Iterable<? extends K> keys, CacheAccessException from) {
     filterException(from);
     try {
@@ -232,7 +231,7 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
     }
     recovered(keys, from);
   }
-  
+
   private void cleanup(K key, CacheAccessException from) {
     filterException(from);
     try {
@@ -254,12 +253,12 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   protected abstract void recovered(K key, CacheAccessException from);
 
   protected abstract void recovered(Iterable<? extends K> keys, CacheAccessException from);
-  
+
   protected abstract void recovered(CacheAccessException from);
 
   protected abstract void inconsistent(K key, CacheAccessException because, CacheAccessException ... cleanup);
 
   protected abstract void inconsistent(Iterable<? extends K> keys, CacheAccessException because, CacheAccessException ... cleanup);
-  
+
   protected abstract void inconsistent(CacheAccessException because, CacheAccessException ... cleanup);
 }

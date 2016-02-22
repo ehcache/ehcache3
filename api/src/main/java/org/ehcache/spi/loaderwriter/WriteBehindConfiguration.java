@@ -41,14 +41,14 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
 
   /**
    * Returns the batching configuration or {@code null} if batching is not enabled.
-   * 
+   *
    * @return the batching configuration
    */
   BatchingConfiguration getBatchingConfiguration();
 
   /**
    * Returns the alias of the thread resource pool to use for write behind task execution.
-   * 
+   *
    * @return the thread pool alias
    */
   String getThreadPoolAlias();
@@ -81,7 +81,7 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
      * @return Retrieves the unit for the maximum delay
      */
     TimeUnit getMaxDelayUnit();
-    
+
     /**
      * Whether write operations can be coalesced.
      *

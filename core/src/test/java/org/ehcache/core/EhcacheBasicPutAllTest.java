@@ -2063,12 +2063,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    
+
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForCreation(any(String.class), any(String.class))).thenReturn(Duration.ZERO);
-    
+
     final Ehcache<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
-    
+
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
 
@@ -2093,12 +2093,12 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C);
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    
+
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForUpdate(any(String.class), any(String.class), any(String.class))).thenReturn(Duration.ZERO);
-    
+
     final Ehcache<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
-    
+
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
 
@@ -2137,7 +2137,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         expiry, ResourcePoolsHelper.createHeapOnlyPools());
     return getEhcache(cacheLoaderWriter, config);
   }
-  
+
   private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();

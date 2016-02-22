@@ -35,7 +35,7 @@ import static org.ehcache.clustered.Util.unwrapException;
 public class EhcacheClientEntity implements Entity {
 
   private final EntityClientEndpoint endpoint;
-  
+
   public EhcacheClientEntity(EntityClientEndpoint endpoint) {
     this.endpoint = endpoint;
   }
@@ -64,7 +64,7 @@ public class EhcacheClientEntity implements Entity {
       throw unwrapException(e, IllegalStateException.class);
     }
   }
-  
+
   private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws EntityException {
     InvokeFuture<byte[]> result = endpoint.beginInvoke().payload(EhcacheCodec.serializeMessage(message)).invoke();
     boolean interrupted = false;

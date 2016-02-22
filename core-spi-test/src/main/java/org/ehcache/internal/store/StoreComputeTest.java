@@ -58,7 +58,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     if (factory.getValueType() == Object.class) {
       Assert.fail("Warning, store uses Object as value type, cannot verify in this configuration");
     }
-    
+
     final Object value;
     if (factory.getValueType() == String.class) {
       value = this;
@@ -91,7 +91,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
       System.err.println("Warning, store uses Object as key type, cannot verify in this configuration");
       return;
     }
-    
+
     final Object key;
     if (factory.getKeyType() == String.class) {
       key = this;

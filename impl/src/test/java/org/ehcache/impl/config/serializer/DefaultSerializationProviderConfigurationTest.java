@@ -34,7 +34,7 @@ public class DefaultSerializationProviderConfigurationTest {
   public void testAddSerializerForTransient() throws Exception {
     DefaultSerializationProviderConfiguration config = new DefaultSerializationProviderConfiguration();
     config.addSerializerFor(Long.class, TransientSerializer.class);
-    
+
     assertTrue(config.getPersistentSerializers().isEmpty());
     assertSame(TransientSerializer.class, config.getTransientSerializers().get(Long.class));
   }
@@ -64,7 +64,7 @@ public class DefaultSerializationProviderConfigurationTest {
   }
 
   private static class TransientSerializer implements Serializer<Long> {
-    
+
     public TransientSerializer(ClassLoader loader) {
     }
 

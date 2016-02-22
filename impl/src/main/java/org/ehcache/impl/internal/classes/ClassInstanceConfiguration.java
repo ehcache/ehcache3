@@ -26,7 +26,7 @@ public class ClassInstanceConfiguration<T> {
 
   private final Class<? extends T> clazz;
   private final List<Object> arguments;
-  
+
   private final T instance;
 
   public ClassInstanceConfiguration(Class<? extends T> clazz, Object... arguments) {

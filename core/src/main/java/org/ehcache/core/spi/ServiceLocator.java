@@ -49,10 +49,9 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
  */
 public final class ServiceLocator implements ServiceProvider {
 
-  
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocator.class);
   private final ConcurrentMap<Class<? extends Service>, Service> services = new ConcurrentHashMap<Class<? extends Service>, Service>();
-  
+
   @SuppressWarnings("rawtypes")
   private final ServiceLoader<ServiceFactory> serviceFactory = ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
 
@@ -98,10 +97,10 @@ public final class ServiceLocator implements ServiceProvider {
 
       for (Class<?> i : getAllInterfaces(service.getClass())) {
         if (Service.class != i && Service.class.isAssignableFrom(i)) {
-          
+
           @SuppressWarnings("unchecked")
           Class<? extends Service> serviceClass = (Class<? extends Service>) i;
-          
+
           serviceClazzes.add(serviceClass);
         }
       }
@@ -225,7 +224,7 @@ public final class ServiceLocator implements ServiceProvider {
       LOGGER.info("All Services successfully started.");
     } catch (Exception e) {
       while(!started.isEmpty()) {
-        Service toBeStopped = started.pop(); 
+        Service toBeStopped = started.pop();
         try {
           toBeStopped.stop();
         } catch (Exception e1) {

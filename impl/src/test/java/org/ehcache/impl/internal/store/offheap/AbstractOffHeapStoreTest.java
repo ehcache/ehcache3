@@ -584,9 +584,9 @@ public abstract class AbstractOffHeapStoreTest {
     try {
       offHeapStore.put("key1", "value1");
       offHeapStore.put("key2", "value2");
-      
+
       timeSource.advanceTime(11L);
-      
+
       offHeapStore.put("key3", "value3");
       offHeapStore.put("key4", "value4");
 
@@ -606,7 +606,7 @@ public abstract class AbstractOffHeapStoreTest {
       while(iterator.hasNext()) {
         iteratedKeys.add(iterator.next().getKey());
       }
-      
+
       assertThat(iteratedKeys, containsInAnyOrder("key3", "key4"));
       assertThat(expiredKeys, containsInAnyOrder("key1", "key2"));
     } finally {

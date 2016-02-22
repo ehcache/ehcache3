@@ -30,19 +30,19 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   private final int concurrency;
   private final int queueSize;
   private final String executorAlias;
-  
+
   public DefaultWriteBehindConfiguration(String executorAlias, int concurrency, int queueSize, BatchingConfiguration batchingConfig) {
     this.concurrency = concurrency;
     this.queueSize = queueSize;
     this.executorAlias = executorAlias;
     this.batchingConfig = batchingConfig;
   }
-  
+
   @Override
   public int getConcurrency() {
     return concurrency;
   }
-  
+
   @Override
   public int getMaxQueueSize() {
     return queueSize;
@@ -62,5 +62,5 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   public Class<WriteBehindProvider> getServiceType() {
     return WriteBehindProvider.class;
   }
-  
+
 }

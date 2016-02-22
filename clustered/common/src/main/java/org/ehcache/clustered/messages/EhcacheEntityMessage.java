@@ -31,7 +31,7 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
   }
 
   public abstract Type getType();
-  
+
   public static EhcacheEntityMessage validate(ServerSideConfiguration config) {
     return new ValidateCacheManager(config);
   }
@@ -39,7 +39,7 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
   public static class ValidateCacheManager extends EhcacheEntityMessage {
 
     private final ServerSideConfiguration configuration;
-    
+
     private ValidateCacheManager(ServerSideConfiguration config) {
       this.configuration = config;
     }
@@ -48,20 +48,20 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     public Type getType() {
       return Type.VALIDATE;
     }
-    
+
     public ServerSideConfiguration getConfiguration() {
       return configuration;
     }
   }
-  
+
   public static ConfigureCacheManager configure(ServerSideConfiguration config) {
     return new ConfigureCacheManager(config);
   }
-  
+
   public static class ConfigureCacheManager extends EhcacheEntityMessage {
 
     private final ServerSideConfiguration configuration;
-    
+
     private ConfigureCacheManager(ServerSideConfiguration config) {
       this.configuration = config;
     }
@@ -70,7 +70,7 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     public Type getType() {
       return Type.CONFIGURE;
     }
-    
+
     public ServerSideConfiguration getConfiguration() {
       return configuration;
     }

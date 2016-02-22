@@ -28,9 +28,9 @@ import org.slf4j.LoggerFactory;
  * @author cdennis
  */
 public class ExecutorUtil {
-  
+
   private static final Logger LOGGER = LoggerFactory.getLogger(ExecutorUtil.class);
-  
+
   public static void shutdown(ExecutorService executor) {
     executor.shutdown();
     terminate(executor);

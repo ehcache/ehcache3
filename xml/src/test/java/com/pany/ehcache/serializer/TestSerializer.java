@@ -22,7 +22,7 @@ import org.ehcache.spi.serialization.Serializer;
 import java.nio.ByteBuffer;
 
 public class TestSerializer<T> implements Serializer<T> {
-  
+
   private final Serializer<T> serializer;
 
   public TestSerializer(ClassLoader classLoader) {

@@ -69,7 +69,7 @@ public final class Expirations {
     private final Duration create;
     private final Duration access;
     private final Duration update;
-    
+
     BaseExpiry(Duration create, Duration access, Duration update) {
       this.create = create;
       this.access = access;
@@ -80,7 +80,7 @@ public final class Expirations {
     public Duration getExpiryForCreation(K key, V value) {
       return create;
     }
-    
+
     @Override
     public Duration getExpiryForAccess(K key, V value) {
       return access;
@@ -116,11 +116,11 @@ public final class Expirations {
           ", update=" + update +
           '}';
     }
-    
+
     @Override
     public Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
       return update;
-    }   
+    }
   }
 
   private static class TimeToLiveExpiry<K, V> extends BaseExpiry<K, V> {

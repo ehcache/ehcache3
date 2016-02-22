@@ -80,11 +80,11 @@ public class ClassInstanceProviderTest {
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
     assertThat(obj.theString, is(nullValue()));
   }
-  
+
   @Test(expected = IllegalArgumentException.class)
   public void testReleaseInstanceByAnotherProvider() throws Exception {
     ClassInstanceProvider<String, String> classInstanceProvider = new ClassInstanceProvider<String, String>(null, null);
-    
+
     classInstanceProvider.releaseInstance("foo");
   }
 
@@ -123,7 +123,7 @@ public class ClassInstanceProviderTest {
 
     TestService service = new TestService();
     TestServiceConfiguration config = new TestServiceConfiguration(service);
-    
+
     TestService newService = classInstanceProvider.newInstance("test stuff", config);
 
     assertThat(newService, sameInstance(service));

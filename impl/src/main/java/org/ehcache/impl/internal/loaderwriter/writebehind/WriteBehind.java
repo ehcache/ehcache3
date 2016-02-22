@@ -24,13 +24,13 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  *
  */
 public interface WriteBehind<K, V> extends CacheLoaderWriter<K, V> {
-  
+
   /**
    * Start the write behind queue
    *
    */
   void start();
-  
+
   /**
    * Stop the coordinator and all the internal data structures.
    * <p/>
@@ -39,10 +39,10 @@ public interface WriteBehind<K, V> extends CacheLoaderWriter<K, V> {
    * and not processed.
    */
   void stop();
-  
+
   /**
    * Gets the best estimate for items in the queue still awaiting processing.
-   * 
+   *
    * @return the amount of elements still awaiting processing.
    */
   long getQueueSize();

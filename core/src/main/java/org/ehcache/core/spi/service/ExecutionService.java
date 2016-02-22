@@ -28,7 +28,7 @@ import java.util.concurrent.ScheduledExecutorService;
  * <p>
  * Shutdown of these derived executors shuts down the derived executors but does
  * nothing to the underlying thread pool.
- * 
+ *
  * @author Ludovic Orban
  */
 public interface ExecutionService extends Service {

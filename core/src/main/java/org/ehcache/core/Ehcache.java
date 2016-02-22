@@ -91,7 +91,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final Jsr107CacheImpl jsr107Cache;
   private final boolean useLoaderInAtomics;
   protected final Logger logger;
-  
+
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<GetAllOutcome> getAllObserver = operation(GetAllOutcome.class).named("getAll").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
@@ -101,7 +101,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final OperationObserver<ConditionalRemoveOutcome> conditionalRemoveObserver = operation(ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("cache").build();
   private final OperationObserver<CacheLoadingOutcome> cacheLoadingObserver = operation(CacheLoadingOutcome.class).named("cacheLoading").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
-  private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();  
+  private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();
   private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
 
   private static final NullaryFunction<Boolean> REPLACE_FALSE = new NullaryFunction<Boolean>() {
@@ -116,7 +116,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   }
 
   public Ehcache(CacheConfiguration<K, V> configuration, Store<K, V> store,
-      final CacheLoaderWriter<? super K, V> cacheLoaderWriter, 
+      final CacheLoaderWriter<? super K, V> cacheLoaderWriter,
       CacheEventDispatcher<K, V> eventDispatcher,
       Logger logger) {
     this(configuration, store, cacheLoaderWriter, eventDispatcher, true, logger);
@@ -181,14 +181,14 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               cacheLoadingObserver.end(CacheLoadingOutcome.FAILURE);
               throw new CachePassThroughException(newCacheLoadingException(e));
             }
-            
+
             return loaded;
           }
         });
 
     try {
       final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
-      
+
       // Check for expiry first
       if (valueHolder == null) {
         getObserver.end(cacheLoaderWriter == null ? GetOutcome.MISS_NO_LOADER : GetOutcome.MISS_WITH_LOADER);
@@ -218,7 +218,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   @Override
   public void put(final K key, final V value) throws CacheWritingException {
-    putObserver.begin();    
+    putObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
@@ -260,7 +260,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       }
     }
   }
-  
+
   private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
     if (newValue == null) {
       return false;
@@ -285,7 +285,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
     return Duration.ZERO.equals(duration);
   }
-  
+
   @Override
   public boolean containsKey(final K key) {
     statusTransitioner.checkAvailable();
@@ -301,20 +301,20 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   public void remove(K key) throws CacheWritingException {
     removeInternal(key); // ignore return value;
   }
-  
-  
+
+
   private boolean removeInternal(final K key) throws CacheWritingException {
     removeObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key);
-    
+
     final AtomicBoolean modified = new AtomicBoolean();
-    
+
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K key, final V previousValue) {
         modified.set(previousValue != null);
-        
+
         try {
           if (cacheLoaderWriter != null) {
             cacheLoaderWriter.delete(key);
@@ -345,7 +345,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         removeObserver.end(RemoveOutcome.FAILURE);
       }
     }
-    
+
     return modified.get();
   }
 
@@ -369,7 +369,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoadingException {
     return getAllInternal(keys, true);
   }
-  
+
   private Map<K, V> getAllInternal(Set<? extends K> keys, boolean includeNulls) throws BulkCacheLoadingException {
     getAllObserver.begin();
     statusTransitioner.checkAvailable();
@@ -387,13 +387,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       successes = Collections.emptyMap();
       failures = Collections.emptyMap();
     }
-    
+
     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
         new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> keys) {
         Map<K, V> computeResult = new LinkedHashMap<K ,V>();
-        
+
         // put all the entries to get ordering correct
         for (K key : keys) {
           computeResult.put(key, null);
@@ -440,7 +440,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           result.put(entry.getKey(), null);
         }
       }
-      
+
       addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
       if (failures.isEmpty()) {
         addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
@@ -501,7 +501,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       successes = Collections.emptySet();
       failures = Collections.emptyMap();
     }
-    
+
     // Copy all entries to write into a Map
     final Map<K, V> entriesToRemap = new HashMap<K, V>();
     for (Map.Entry<? extends K, ? extends V> entry: entries.entrySet()) {
@@ -511,7 +511,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       }
       entriesToRemap.put(entry.getKey(), entry.getValue());
     }
-    
+
     final AtomicInteger actualPutCount = new AtomicInteger();
 
     // The compute function that will return the keys to their NEW values, taking the keys to their old values as input;
@@ -530,13 +530,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
           K key = entry.getKey();
           V existingValue = entry.getValue();
           V newValue = entriesToRemap.remove(key);
-         
+
           if (newValueAlreadyExpired(key, existingValue, newValue)) {
             mutations.put(key, null);
           } else if (cacheLoaderWriter == null || successes.contains(key)) {
             actualPutCount.incrementAndGet();
             mutations.put(key, newValue);
-          
+
           } else {
             mutations.put(key, existingValue);
           }
@@ -623,13 +623,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     successes.addAll((Collection<K>)bcwe.getSuccesses());
     failures.putAll((Map<K, Exception>)bcwe.getFailures());
   }
-  
   @SuppressWarnings({ "unchecked" })
   private void collectSuccessesAndFailures(BulkCacheLoadingException bcle, Map<K, V> successes, Map<K, Exception> failures) {
     successes.putAll((Map<K, V>)bcle.getSuccesses());
     failures.putAll((Map<K, Exception>)bcle.getFailures());
   }
-  
 
   @Override
   public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
@@ -657,21 +655,21 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       }
       entriesToRemove.put(key, null);
     }
-    
+
     final AtomicInteger actualRemoveCount = new AtomicInteger();
-    
+
     Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> removalFunction =
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
           Set<K> unknowns = cacheLoaderWriterDeleteAllCall(entries, successes, failures);
-          
+
           Map<K, V> results = new LinkedHashMap<K, V>();
-          
+
           for (Map.Entry<? extends K, ? extends V> entry : entries) {
             K key = entry.getKey();
             V existingValue = entry.getValue();
-            
+
             if (cacheLoaderWriter == null || successes.contains(key)) {
               if (existingValue != null) {
                 actualRemoveCount.incrementAndGet();
@@ -686,7 +684,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               }
             }
           }
-          
+
           return results.entrySet();
         }
       };
@@ -728,7 +726,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       for (Map.Entry<? extends K, ? extends V> entry: entries) {
         toDelete.add(entry.getKey());
       }
-      
+
       try {
         cacheLoaderWriter.deleteAll(toDelete);
         successes.addAll(toDelete);
@@ -750,7 +748,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
     final AtomicBoolean installed = new AtomicBoolean(false);
-    
+
     final Function<K, V> mappingFunction = memoize(new Function<K, V>() {
       @Override
       public V apply(final K k) {
@@ -927,7 +925,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             throw new CachePassThroughException(newCacheWritingException(e));
           }
         }
-        
+
         old.set(inCache);
 
         if (newValueAlreadyExpired(key, inCache, value)) {
@@ -974,7 +972,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
     final AtomicBoolean success = new AtomicBoolean();
     final AtomicBoolean hit = new AtomicBoolean();
-    
+
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K k, V inCache) {
@@ -1046,7 +1044,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         }
       } finally {
         replaceObserver.end(ReplaceOutcome.FAILURE);
-      }        
+      }
     }
   }
 
@@ -1092,7 +1090,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       checkNonNull(thing);
     }
   }
-  
+
   private void checkNonNullContent(Collection<?> collectionOfThings) {
     checkNonNull(collectionOfThings);
     for (Object thing : collectionOfThings) {
@@ -1103,15 +1101,15 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private void addBulkMethodEntriesCount(BulkOps op, long count) {
     bulkMethodEntries.get(op).add(count);
   }
-  
+
   public Jsr107Cache<K, V> getJsr107Cache() {
     return jsr107Cache;
   }
-  
+
   public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
     return this.cacheLoaderWriter;
   }
-  
+
   private static <K, V> Cache.Entry<K, V> newCacheEntry(final K key, final V value) {
     return new Cache.Entry<K, V>() {
       @Override
@@ -1139,7 +1137,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         loadAllAbsent(keys, loadFunction);
       }
     }
-    
+
     @Override
     public Map<K, V> getAll(Set<? extends K> keys) {
       return Ehcache.this.getAllInternal(keys, false);
@@ -1161,7 +1159,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     Map<K, V> cacheLoaderWriterLoadAllForKeys(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
       try {
         Map<? super K, ? extends V> loaded = loadFunction.apply(keys);
-        
+
         // put into a new map since we can't assume the 107 cache loader returns things ordered, or necessarily with all the desired keys
         Map<K, V> rv = new LinkedHashMap<K, V>();
         for (K key : keys) {
@@ -1184,7 +1182,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               keys.add(entry.getKey());
             }
             return cacheLoaderWriterLoadAllForKeys(keys, loadFunction).entrySet();
-          }            
+          }
         });
       } catch (CacheAccessException e) {
         throw newCacheLoadingException(e);
@@ -1197,7 +1195,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       putObserver.begin();
       removeObserver.begin();
       getObserver.begin();
-      
+
       try {
         BiFunction<K, V, V> fn = new BiFunction<K, V, V>() {
           @Override
@@ -1207,9 +1205,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
             } else {
               getObserver.end(GetOutcome.HIT_NO_LOADER);
             }
-            
+
             V newValue = computeFunction.apply(mappedKey, mappedValue);
-            
+
             if (newValue == mappedValue) {
               if (! replaceEqual.apply()) {
                 return mappedValue;
@@ -1227,11 +1225,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                 throw new CachePassThroughException(newCacheWritingException(e));
               }
             }
-            
+
             if (newValueAlreadyExpired(mappedKey, mappedValue, newValue)) {
               return null;
             }
-            
+
             if (withStatsAndEvents.apply()) {
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
@@ -1239,7 +1237,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                 putObserver.end(PutOutcome.ADDED);
               }
             }
-            
+
             return newValue;
           }
         };
@@ -1256,14 +1254,14 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     public V getAndRemove(K key) {
       getObserver.begin();
       removeObserver.begin();
-      
+
       final AtomicReference<V> existingValue = new AtomicReference<V>();
       try {
         store.compute(key, new BiFunction<K, V, V>() {
           @Override
           public V apply(K mappedKey, V mappedValue) {
             existingValue.set(mappedValue);
-            
+
             if (cacheLoaderWriter != null) {
               try {
                 cacheLoaderWriter.delete(mappedKey);
@@ -1280,13 +1278,13 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         // XXX:
         throw new RuntimeException(e);
       }
-      
+
       V returnValue = existingValue.get();
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);          
+        getObserver.end(GetOutcome.MISS_NO_LOADER);
       }
       return returnValue;
     }
@@ -1295,14 +1293,14 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     public V getAndPut(K key, final V value) {
       getObserver.begin();
       putObserver.begin();
-      
+
       final AtomicReference<V> existingValue = new AtomicReference<V>();
       try {
         store.compute(key, new BiFunction<K, V, V>() {
           @Override
-          public V apply(K mappedKey, V mappedValue) {              
+          public V apply(K mappedKey, V mappedValue) {
             existingValue.set(mappedValue);
-            
+
             if (cacheLoaderWriter != null) {
               try {
                 cacheLoaderWriter.write(mappedKey, value);
@@ -1310,11 +1308,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
                 throw new CachePassThroughException(newCacheWritingException(e));
               }
             }
-            
+
             if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
               return null;
             }
-            
+
             return value;
           }
         });
@@ -1324,12 +1322,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         // XXX:
         throw new RuntimeException(e);
       }
-      
-      V returnValue = existingValue.get();        
+
+      V returnValue = existingValue.get();
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);          
+        getObserver.end(GetOutcome.MISS_NO_LOADER);
       }
       putObserver.end(PutOutcome.ADDED);
       return returnValue;
@@ -1348,7 +1346,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       }
     }
   }
-  
+
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
@@ -1360,11 +1358,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       this.quiet = quiet;
       this.iterator = store.iterator();
     }
-    
+
     @Override
     public boolean hasNext() {
       statusTransitioner.checkAvailable();
-      
+
       if (cacheAccessError) {
         return false;
       }
@@ -1376,7 +1374,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       if (!hasNext()) {
         throw new NoSuchElementException();
       }
-      
+
       if (!quiet) getObserver.begin();
       try {
         current = iterator.next();
@@ -1386,7 +1384,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
         cacheAccessError = true;
         return resilienceStrategy.iteratorFailure(e);
       }
-      
+
       return new ValueHolderBasedEntry<K, V>(current);
     }
 
@@ -1423,14 +1421,14 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
       }
     };
   }
-  
+
   private static class ValueHolderBasedEntry<K, V> implements Cache.Entry<K, V> {
     private final Cache.Entry<K, ValueHolder<V>> storeEntry;
 
     ValueHolderBasedEntry(Cache.Entry<K, Store.ValueHolder<V>> storeEntry) {
       this.storeEntry = storeEntry;
     }
-    
+
     @Override
     public K getKey() {
       return storeEntry.getKey();
@@ -1442,5 +1440,5 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     }
 
   }
-  
+
 }

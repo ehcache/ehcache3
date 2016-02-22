@@ -108,7 +108,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
 
     this.expiryPolicyFactory = tempExpiryPolicyFactory;
   }
-  
+
   private static <K, V> boolean isStoreByValue(Configuration<K, V> config, CacheConfiguration<K, V> ehcacheConfig) {
     if(ehcacheConfig != null) {
       Collection<ServiceConfiguration<?>> serviceConfigurations = ehcacheConfig.getServiceConfigurations();

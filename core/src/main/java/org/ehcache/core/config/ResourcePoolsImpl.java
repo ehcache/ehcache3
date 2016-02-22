@@ -92,7 +92,7 @@ public class ResourcePoolsImpl implements ResourcePools {
         coreResources.put((ResourceType.Core) pool.getType(), pool);
       }
     }
-    
+
     List<ResourcePool> ordered = new ArrayList<ResourcePool>(coreResources.values());
     for (int i = 0; i < ordered.size(); i++) {
       for (int j = 0; j < i; j++) {

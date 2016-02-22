@@ -40,7 +40,7 @@ public class MultiCacheException extends CacheException {
     if (t == null) {
       throw new NullPointerException();
     }
-    
+
     if (t == this) {
       throw new IllegalArgumentException("cannot add to self");
     }
@@ -111,7 +111,7 @@ public class MultiCacheException extends CacheException {
 
   public void throwIfNotEmpty() {
     if (!throwables.isEmpty()) {
-      
+
       // if the only thing we contain is a single CacheException, then throw that
       if (throwables.size() == 1) {
         Throwable t = throwables.get(0);
@@ -119,7 +119,7 @@ public class MultiCacheException extends CacheException {
           throw (CacheException)t;
         }
       }
-      
+
       throw this;
     }
   }

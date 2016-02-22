@@ -30,7 +30,7 @@ public class DefaultBatchingConfiguration implements BatchingConfiguration {
   private final TimeUnit maxDelayUnit;
   private final int batchSize;
   private final boolean coalescing;
-  
+
   public DefaultBatchingConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize, boolean coalescing) {
     this.maxDelay = maxDelay;
     this.maxDelayUnit = maxDelayUnit;

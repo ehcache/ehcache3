@@ -28,8 +28,8 @@ public interface EvictionVeto<K, V> {
 
   /**
    * Returns {@code true} if the given key value pair should be vetoed from eviction.
-   * 
-   * @param key the entry key 
+   *
+   * @param key the entry key
    * @param value the entry value
    * @return {@code true} if eviction should be avoided
    */

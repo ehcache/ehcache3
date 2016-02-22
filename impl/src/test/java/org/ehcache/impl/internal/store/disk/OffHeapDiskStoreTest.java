@@ -56,7 +56,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   @Rule
   public final TestLocalPersistenceService persistenceService = new TestLocalPersistenceService();
-  
+
   @Test
   public void testRecovery() throws CacheAccessException, IOException {
     OffHeapDiskStore<String, String> offHeapDiskStore = createAndInitStore(SystemTimeSource.INSTANCE, noExpiration());
@@ -72,7 +72,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       destroyStore(offHeapDiskStore);
     }
   }
-  
+
   @Override
   protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry) {
     try {

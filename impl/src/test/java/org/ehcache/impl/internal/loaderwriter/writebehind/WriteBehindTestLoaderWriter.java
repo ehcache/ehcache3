@@ -33,7 +33,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
 
   private final Map<K, List<V>> data = new HashMap<K, List<V>>();
   private CountDownLatch latch;
-  
+
   public synchronized void setLatch(CountDownLatch latch) {
     this.latch = latch;
   }
@@ -82,7 +82,7 @@ public class WriteBehindTestLoaderWriter<K, V> implements CacheLoaderWriter<K, V
       delete(k);
     }
   }
-  
+
   public synchronized Map<K, List<V>> getData() {
     return this.data;
   }

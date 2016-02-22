@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.Comparator;
 
 public class OperationsTool {
-  
+
   private static final Comparator<? super ParameterDescription> REQUIRED_FIRST = new Comparator<ParameterDescription>() {
     @Override
     public int compare(ParameterDescription a, ParameterDescription b) {
@@ -39,7 +39,7 @@ public class OperationsTool {
   public static void main(String[] args) throws IOException {
     System.exit(innerMain(args));
   }
-  
+
   public static int innerMain(String[] args) {
     BaseOptions base = new BaseOptions();
     JCommander jc = new JCommander(base);
@@ -53,8 +53,8 @@ public class OperationsTool {
     for (JCommander jcc : jc.getCommands().values()) {
       jcc.setParameterDescriptionComparator(REQUIRED_FIRST);
     }
-    
-    try {    
+
+    try {
       jc.parse(args);
 
       if (base.isHelp()) {
@@ -63,7 +63,7 @@ public class OperationsTool {
         int result = 0;
         for (Object o : jc.getCommands().get(jc.getParsedCommand()).getObjects()) {
           result |= ((Command) o).execute();
-        };
+        }
 
         return result;
       }

@@ -99,7 +99,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     updateProvidedInstanceCounts(serializer);
     return serializer;
   }
-  
+
   private void updateProvidedInstanceCounts(Serializer<?> serializer) {
     AtomicInteger currentCount = providedVsCount.putIfAbsent(serializer, new AtomicInteger(1));
     if(currentCount != null) {
@@ -123,7 +123,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
       ((Closeable)serializer).close();
     }
   }
-  
+
   @Override
   public void start(ServiceProvider serviceProvider) {
     transientProvider.start(serviceProvider);
@@ -181,7 +181,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   static class PersistentProvider extends AbstractProvider {
 
     private volatile LocalPersistenceService persistence;
-    
+
     private PersistentProvider(Map<Class<?>, Class<? extends Serializer<?>>> serializers) {
       super(serializers);
     }
@@ -200,7 +200,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
         throw new RuntimeException(e);
       }
     }
-    
+
     @Override
     public void start(ServiceProvider serviceProvider) {
       persistence = serviceProvider.getService(LocalPersistenceService.class);
@@ -237,7 +237,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
       }
       return createSerializer("-Value", clazz, classLoader, conf, configs);
     }
-    
+
     private static <T> Serializer<T> getUserProvidedSerializer(DefaultSerializerConfiguration<T> conf) {
       if(conf != null) {
         Serializer<T> instance = conf.getInstance();
@@ -257,7 +257,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
           return configured;
         }
       }
-      
+
       Class<? extends Serializer<T>> direct = (Class<? extends Serializer<T>>) serializers.get(clazz);
       if (direct != null) {
         return direct;

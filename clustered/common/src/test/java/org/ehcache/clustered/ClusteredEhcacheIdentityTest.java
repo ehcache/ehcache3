@@ -23,14 +23,14 @@ import static org.junit.Assert.fail;
 import org.junit.Test;
 
 public class ClusteredEhcacheIdentityTest {
-  
+
   @Test
   public void testUUIDSerialization() {
     byte[] config = new byte[16];
     new Random().nextBytes(config);
-    
+
     UUID uuid = ClusteredEhcacheIdentity.deserialize(config);
-    
+
     assertThat(ClusteredEhcacheIdentity.serialize(uuid), equalTo(config));
   }
 
@@ -53,7 +53,7 @@ public class ClusteredEhcacheIdentityTest {
       //expected
     }
   }
-  
+
   @Test
   public void testDeserializeNull() {
     try {

@@ -28,11 +28,11 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
  *
  */
 public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration>  {
-  
+
   protected int concurrency = 1;
   protected int queueSize = Integer.MAX_VALUE;
   protected String threadPoolAlias = null;
-  
+
   private WriteBehindConfigurationBuilder() {
   }
 
@@ -45,7 +45,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
   public static BatchedWriteBehindConfigurationBuilder newBatchedWriteBehindConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
     return new BatchedWriteBehindConfigurationBuilder(maxDelay, maxDelayUnit, batchSize);
   }
-  
+
   public static UnBatchedWriteBehindConfigurationBuilder newUnBatchedWriteBehindConfiguration() {
     return new UnBatchedWriteBehindConfigurationBuilder();
   }
@@ -55,7 +55,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
     private long maxDelay;
     private int batchSize;
     private boolean coalescing = false;
-    
+
     private BatchedWriteBehindConfigurationBuilder(long maxDelay, TimeUnit maxDelayUnit, int batchSize) {
       setMaxWriteDelay(maxDelay, maxDelayUnit);
       setBatchSize(batchSize);
@@ -127,7 +127,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
       otherBuilder.concurrency = concurrency;
       return otherBuilder;
     }
-    
+
     @Override
     public BatchedWriteBehindConfigurationBuilder useThreadPool(String alias) {
       BatchedWriteBehindConfigurationBuilder otherBuilder = new BatchedWriteBehindConfigurationBuilder(this);
@@ -140,12 +140,12 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
       return buildWith(new DefaultBatchingConfiguration(maxDelay, maxDelayUnit, batchSize, coalescing));
     }
   }
-  
+
   public static class UnBatchedWriteBehindConfigurationBuilder extends WriteBehindConfigurationBuilder {
 
     private UnBatchedWriteBehindConfigurationBuilder() {
     }
-    
+
     private UnBatchedWriteBehindConfigurationBuilder(UnBatchedWriteBehindConfigurationBuilder other) {
       super(other);
     }
@@ -174,7 +174,7 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
       otherBuilder.concurrency = concurrency;
       return otherBuilder;
     }
-    
+
     @Override
     public UnBatchedWriteBehindConfigurationBuilder useThreadPool(String alias) {
       UnBatchedWriteBehindConfigurationBuilder otherBuilder = new UnBatchedWriteBehindConfigurationBuilder(this);
@@ -186,9 +186,9 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
   public WriteBehindConfiguration buildWith(BatchingConfiguration batching) {
     return new DefaultWriteBehindConfiguration(threadPoolAlias, concurrency, queueSize, batching);
   }
-  
+
   public abstract WriteBehindConfigurationBuilder queueSize(int size);
-  
+
   public abstract WriteBehindConfigurationBuilder concurrencyLevel(int concurrency);
 
   public abstract WriteBehindConfigurationBuilder useThreadPool(String alias);

@@ -37,7 +37,7 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   public EhcachePersistentConcurrentOffHeapClockCache(ObjectInput input, EhcachePersistentSegmentFactory<K, V> segmentFactory) throws IOException {
     this(segmentFactory, readSegmentCount(input));
   }
-  
+
   public EhcachePersistentConcurrentOffHeapClockCache(EhcachePersistentSegmentFactory<K, V> segmentFactory, int concurrency) {
     super(segmentFactory, concurrency);
     counters = new AtomicLong[segments.length];

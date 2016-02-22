@@ -44,10 +44,10 @@ public class StatisticsTest {
   private CacheManager cacheManager;
   private Eh107CacheStatisticsMXBean heapStatistics;
   private Cache<String, String> heapCache;
-  
+
   private Eh107CacheStatisticsMXBean offheapStatistics;
   private Cache<String, String> offheapCache;
-  
+
   private Eh107CacheStatisticsMXBean diskStatistics;
   private Cache<String, String> diskCache;
 

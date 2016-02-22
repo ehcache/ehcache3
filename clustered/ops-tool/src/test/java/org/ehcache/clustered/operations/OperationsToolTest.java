@@ -41,12 +41,12 @@ public class OperationsToolTest {
   public void testCreate() {
     assertThat(run("create --config file.xml"), is(0));
   }
-  
+
   @Test
   public void testDryRunCreate() {
     assertThat(run("--dry-run create --config file.xml"), is(0));
   }
-  
+
   @Test
   public void testOverridenCreate() {
     assertThat(run("--cluster http://example.com:1234/watman create --config file.xml"), is(0));
@@ -56,7 +56,7 @@ public class OperationsToolTest {
   public void testCreateWithMissingFile() {
     assertThat(run("create"), is(1));
   }
-  
+
   @Test
   public void testCreateWithIllegalURI() {
     assertThat(run("--cluster ### create --config file.xml"), is(1));
@@ -66,17 +66,17 @@ public class OperationsToolTest {
   public void testDestroy() {
     assertThat(run("destroy --config file.xml"), is(0));
   }
-  
+
   @Test
   public void testDryRunDestroy() {
     assertThat(run("--dry-run destroy --config file.xml"), is(0));
   }
-  
+
   @Test
   public void testOverridenDestroy() {
     assertThat(run("--cluster http://example.com:1234/watman destroy --config file.xml"), is(0));
   }
-  
+
   @Test
   public void testNonMatchingDestroy() {
     assertThat(run("destroy --config file.xml --match false"), is(0));
@@ -86,7 +86,7 @@ public class OperationsToolTest {
   public void testDestroyWithMissingFile() {
     assertThat(run("destroy"), is(1));
   }
-  
+
   @Test
   public void testDestroyWithIllegalURI() {
     assertThat(run("--cluster ### destroy --config file.xml"), is(1));
@@ -96,12 +96,12 @@ public class OperationsToolTest {
   public void testUpdate() {
     assertThat(run("update --config file.xml"), is(0));
   }
-  
+
   @Test
   public void testDryRunUpdate() {
     assertThat(run("--dry-run update --config file.xml"), is(0));
   }
-  
+
   @Test
   public void testOverridenUpdate() {
     assertThat(run("--cluster http://example.com:1234/watman update --config file.xml"), is(0));
@@ -111,17 +111,17 @@ public class OperationsToolTest {
   public void testUpdateWithDeletions() {
     assertThat(run("update --config file.xml --allow-destroy"), is(0));
   }
-  
+
   @Test
   public void testUpdateWithMutations() {
     assertThat(run("update --config file.xml --allow-mutation"), is(0));
   }
-  
+
   @Test
   public void testUpdateWithMissingFile() {
     assertThat(run("update"), is(1));
   }
-  
+
   @Test
   public void testUpdateWithIllegalURI() {
     assertThat(run("--cluster ### update --config file.xml"), is(1));
@@ -129,5 +129,5 @@ public class OperationsToolTest {
 
   public static int run(String command) {
     return OperationsTool.innerMain(command.split("\\s+"));
-  } 
+  }
 }

@@ -43,7 +43,7 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<K, SingleOperation<K, V>>();
   private final BlockingQueue<Runnable> executorQueue;
   private final ExecutorService executor;
-  
+
   public NonBatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
@@ -59,7 +59,7 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   protected SingleOperation<K, V> getOperation(K key) {
     return latest.get(key);
   }
-  
+
   @Override
   protected void addOperation(final SingleOperation<K, V> operation) {
     latest.put(operation.getKey(), operation);
@@ -92,7 +92,7 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
   private void submit(Runnable operation) {
     executor.submit(operation);
   }
-  
+
   @Override
   public long getQueueSize() {
     return executorQueue.size();

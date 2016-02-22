@@ -30,9 +30,9 @@ import static java.util.Collections.unmodifiableMap;
 public class PooledExecutionServiceConfiguration implements ServiceCreationConfiguration<ExecutionService> {
 
   private final Map<String, PoolConfiguration> poolConfigurations = new HashMap<String, PoolConfiguration>();
-  
+
   private String defaultAlias;
-  
+
   public void addDefaultPool(String alias, int minSize, int maxSize) {
     if (alias == null) {
       throw new NullPointerException("Pool alias cannot be null");
@@ -63,7 +63,7 @@ public class PooledExecutionServiceConfiguration implements ServiceCreationConfi
   public String getDefaultPoolAlias() {
     return defaultAlias;
   }
-  
+
   @Override
   public Class<ExecutionService> getServiceType() {
     return ExecutionService.class;

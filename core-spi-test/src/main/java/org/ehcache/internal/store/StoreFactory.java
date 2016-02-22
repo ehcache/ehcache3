@@ -31,9 +31,9 @@ public interface StoreFactory<K, V> {
   Store<K, V> newStore();
 
   Store<K, V> newStoreWithCapacity(long capacity);
-  
+
   Store<K, V> newStoreWithEvictionVeto(EvictionVeto<K, V> evictionVeto);
-  
+
   Store<K, V> newStoreWithExpiry(Expiry<K, V> expiry, TimeSource timeSource);
 
   Store.ValueHolder<V> newValueHolder(V value);

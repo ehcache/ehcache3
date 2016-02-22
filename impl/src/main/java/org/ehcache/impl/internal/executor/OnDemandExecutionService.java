@@ -56,7 +56,7 @@ public class OnDemandExecutionService implements ExecutionService {
       }
     }
   };
-  
+
   @Override
   public ScheduledExecutorService getScheduledExecutor(String poolAlias) {
     return unconfigurableScheduledExecutorService(Executors.newSingleThreadScheduledExecutor(ThreadFactoryUtil.threadFactory(poolAlias)));

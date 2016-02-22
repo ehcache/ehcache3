@@ -30,7 +30,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 abstract class AbstractWriteBehind<K, V> implements WriteBehind<K, V> {
 
   private final CacheLoaderWriter<K, V> cacheLoaderWriter;
-  
+
   public AbstractWriteBehind(CacheLoaderWriter<K, V> cacheLoaderWriter) {
     this.cacheLoaderWriter = cacheLoaderWriter;
   }
@@ -38,14 +38,14 @@ abstract class AbstractWriteBehind<K, V> implements WriteBehind<K, V> {
   @Override
   public V load(K key) throws Exception {
     SingleOperation<K, V> operation = getOperation(key);
-    return operation == null ? cacheLoaderWriter.load(key) : (operation.getClass() == WriteOperation.class ? ((WriteOperation<K, V>) operation).getValue() : null);  
+    return operation == null ? cacheLoaderWriter.load(key) : (operation.getClass() == WriteOperation.class ? ((WriteOperation<K, V>) operation).getValue() : null);
   }
 
   @Override
   public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
     Map<K, V> entries = new HashMap<K, V>();
     for (K k : keys) {
-      entries.put(k, load(k)) ; 
+      entries.put(k, load(k)) ;
     }
     return entries;
   }
@@ -75,7 +75,7 @@ abstract class AbstractWriteBehind<K, V> implements WriteBehind<K, V> {
   }
 
   protected abstract SingleOperation<K, V> getOperation(K key);
-  
+
   protected abstract void addOperation(final SingleOperation<K, V> operation);
 
   protected static <T> void putUninterruptibly(BlockingQueue<T> queue, T r) {

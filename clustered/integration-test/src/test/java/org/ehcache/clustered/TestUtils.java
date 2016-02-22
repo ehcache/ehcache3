@@ -26,11 +26,11 @@ import org.terracotta.consensus.entity.client.ClientCoordinationEntityService;
 import org.terracotta.passthrough.PassthroughServer;
 
 public final class TestUtils {
-  
+
   private TestUtils() {
     //singleton
   }
-  
+
   public static PassthroughServer createServer() {
     PassthroughServer server = new PassthroughServer(true);
     server.registerServerEntityService(new EhcacheServerEntityService());
@@ -40,7 +40,7 @@ public final class TestUtils {
     server.start();
     return server;
   }
-  
+
   public static <T> Future<T> inOtherThread(Callable<T> task) {
     ExecutorService executor = Executors.newSingleThreadExecutor();
     try {

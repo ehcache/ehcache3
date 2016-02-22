@@ -22,13 +22,13 @@ class BaseOptions {
 
   @Parameter(names = {"-h", "--help"}, help = true, description = "print usage information")
   private boolean help = false;
-  
+
   @Parameter(names = {"-s", "--dry-run"}, description = "evaluate but do not perform cluster state mutations")
   private boolean dryrun = false;
 
   @Parameter(names = {"-l", "--cluster"}, arity = 1, converter = URIConverter.class, description = "cluster location override")
   private URI cluster;
-  
+
   boolean isHelp() {
     return help;
   }
@@ -36,7 +36,7 @@ class BaseOptions {
   boolean isDryRun() {
     return dryrun;
   }
-  
+
   URI getClusterLocationOverride() {
     return cluster;
   }

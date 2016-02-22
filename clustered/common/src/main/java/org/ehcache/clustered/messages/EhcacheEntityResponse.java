@@ -23,5 +23,5 @@ import org.terracotta.entity.EntityResponse;
  * @author cdennis
  */
 public interface EhcacheEntityResponse extends EntityResponse, Serializable {
-  
+
 }

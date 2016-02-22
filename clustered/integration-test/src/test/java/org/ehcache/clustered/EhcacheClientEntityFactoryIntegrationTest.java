@@ -29,20 +29,20 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class EhcacheClientEntityFactoryIntegrationTest {
-  
+
   @Test
   public void testCreate() throws Exception {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      
+
       assertThat(factory.create("test", new ServerSideConfiguration(0)), notNullValue());
     } finally {
       server.stop();
     }
   }
-  
+
   @Test
   public void testCreateWhenExisting() throws Exception {
     PassthroughServer server = createServer();
@@ -60,7 +60,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
       server.stop();
     }
   }
-  
+
   @Test
   public void testCreateOrRetrieve() throws Exception {
     PassthroughServer server = createServer();
@@ -72,7 +72,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
       server.stop();
     }
   }
-  
+
   @Test
   public void testCreateOrRetrieveWhenExisting() throws Exception {
     PassthroughServer server = createServer();

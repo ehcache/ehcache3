@@ -93,7 +93,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   private final ExecutionService executionService;
   private final String threadPoolAlias;
   private final int writerConcurrency;
-  
+
   private volatile EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> map;
 
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
@@ -128,7 +128,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
-    
+
     if (dataFile.isFile() && indexFile.isFile()) {
       try {
         return recoverBackingMap(size, keySerializer, valueSerializer, evictionVeto);
@@ -139,11 +139,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
     }
   }
-  
+
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) throws IOException {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
-    
+
     FileInputStream fin = new FileInputStream(indexFile);
     try {
       ObjectInputStream input = new ObjectInputStream(fin);
@@ -196,7 +196,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       fin.close();
     }
   }
-  
+
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
     MappedPageSource source;
     try {
@@ -366,7 +366,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   }
 
   /*
-   * This is kind of a hack, but it's safe to use this if the regular portability 
+   * This is kind of a hack, but it's safe to use this if the regular portability
    * is stateless.
    */
   public static <T> PersistentPortability<T> persistent(final Portability<T> normal) {
@@ -374,7 +374,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     Class<?>[] delegateInterfaces = normalKlazz.getInterfaces();
     Class<?>[] proxyInterfaces = Arrays.copyOf(delegateInterfaces, delegateInterfaces.length + 1);
     proxyInterfaces[delegateInterfaces.length] = PersistentPortability.class;
-    
+
     return (PersistentPortability<T>) Proxy.newProxyInstance(normal.getClass().getClassLoader(), proxyInterfaces, new InvocationHandler() {
 
       @Override

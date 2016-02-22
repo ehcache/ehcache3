@@ -26,11 +26,11 @@ public class CacheEventDispatcherFactoryConfiguration implements ServiceCreation
   public CacheEventDispatcherFactoryConfiguration(String threadPoolAlias) {
     this.threadPoolAlias = threadPoolAlias;
   }
-  
+
   public String getThreadPoolAlias() {
     return threadPoolAlias;
   }
-  
+
   @Override
   public Class<CacheEventDispatcherFactory> getServiceType() {
     return CacheEventDispatcherFactory.class;

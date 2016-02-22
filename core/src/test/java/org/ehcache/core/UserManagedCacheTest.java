@@ -43,7 +43,7 @@ import static org.mockito.Mockito.verify;
 
 @SuppressWarnings({ "unchecked", "rawtypes" })
 public class UserManagedCacheTest {
-  
+
   @Test
   public void testUserManagedCacheDelegatesLifecycleCallsToStore() throws Exception {
     final Store store = mock(Store.class);
@@ -57,7 +57,7 @@ public class UserManagedCacheTest {
     ehcache.close();
     verify(mock).close();
   }
-  
+
   @Test
   public void testUserManagedEhcacheFailingTransitionGoesToLowestStatus() throws Exception {
     final Store store = mock(Store.class);
@@ -86,14 +86,14 @@ public class UserManagedCacheTest {
       assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
     }
   }
-  
+
   private class TestStoreProvider implements Store.Provider {
     private Store store;
-    
+
     public TestStoreProvider(Store store) {
       this.store = store;
     }
-    
+
     @Override
     public void start(ServiceProvider serviceProvider) {
     }

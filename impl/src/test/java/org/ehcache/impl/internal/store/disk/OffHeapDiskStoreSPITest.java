@@ -64,10 +64,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
-  
+
   @Rule
   public final TestLocalPersistenceService persistenceService = new TestLocalPersistenceService();
-  
+
   @Before
   public void setUp() throws Exception {
     authoritativeTierFactory = new AuthoritativeTierFactory<String, String>() {
@@ -94,7 +94,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
-      
+
       private AuthoritativeTier<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
@@ -105,7 +105,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           ResourcePools resourcePools = getDiskResourcePool(capacity);
           ResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
-          
+
           Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
               evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
           OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(

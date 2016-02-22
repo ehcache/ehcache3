@@ -77,7 +77,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
       return org.ehcache.expiry.Duration.ZERO;
     }
   }
-  
+
   @Override
   public void close() throws IOException {
     if (expiryPolicy instanceof Closeable) {

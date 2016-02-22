@@ -18,7 +18,7 @@
     <property name="headerFile" value="${rootDir}/config/java.header"/>
     <property name="fileExtensions" value="java"/>
   </module>
-  
+
   <module name="SuppressionFilter">
     <property name="file" value="${projectDir}/config/checkstyle-suppressions.xml"/>
   </module>

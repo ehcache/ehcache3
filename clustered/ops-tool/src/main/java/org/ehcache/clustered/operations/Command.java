@@ -16,6 +16,6 @@
 package org.ehcache.clustered.operations;
 
 interface Command {
-  
+
   int execute();
 }

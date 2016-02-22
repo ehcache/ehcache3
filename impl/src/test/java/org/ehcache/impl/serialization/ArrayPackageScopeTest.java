@@ -34,13 +34,13 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
  * @author cdennis
  */
 public class ArrayPackageScopeTest {
-  
+
   @Test
   public void testArrayPackageScope() throws Exception {
     Serializer<Serializable> serializer = new CompactJavaSerializer(null);
 
     ClassLoader loaderA = createClassNameRewritingLoader(Foo_A.class);
-    
+
     Serializable a = (Serializable) Array.newInstance(loaderA.loadClass(newClassName(Foo_A.class)), 0);
     ByteBuffer encodedA = serializer.serialize(a);
 
@@ -52,7 +52,7 @@ public class ArrayPackageScopeTest {
       popTccl();
     }
   }
-  
+
   public static class Foo_A implements java.io.Serializable {
     private static final long serialVersionUID = 0L;
   }

@@ -25,7 +25,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
  *
  */
 public interface SingleOperation<K, V> extends KeyBasedOperation<K> {
-  
+
   /**
    * Perform this operation as a single execution with the provided cache writer
    *

@@ -23,11 +23,11 @@ import java.util.concurrent.TimeUnit;
  * @author cdennis
  */
 public final class ServiceUtil {
- 
+
   private ServiceUtil() {
     //static only
   }
-  
+
   private static final Future<?> COMPLETE_FUTURE = new Future<Void>() {
 
     @Override
@@ -55,7 +55,7 @@ public final class ServiceUtil {
       return null;
     }
   };
-  
+
   public static Future<?> completeFuture() {
     return COMPLETE_FUTURE;
   }
