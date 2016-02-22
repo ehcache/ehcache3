@@ -213,7 +213,7 @@ public class UserManagedCaches {
 
   @Test
   public void userManagedByteSizedCache() throws Exception {
-    // tag::userManagedByteSizedCache
+    // tag::userManagedByteSizedCache[]
     UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
         .withSizeOfMaxObjectSize(500, MemoryUnit.B)
         .withSizeOfMaxObjectGraph(1000) // <1>
@@ -227,7 +227,7 @@ public class UserManagedCaches {
     assertThat(cache.get(1L), is("Update"));
 
     cache.close();
-    // end::userManagedByteSizedCache
+    // end::userManagedByteSizedCache[]
   }
 
   private String getStoragePath() throws URISyntaxException {
