@@ -38,7 +38,7 @@ public class FromTemplateCacheConfigurationBuilderDefaultTest {
   }
 
   @Test
-  public void testDefaultExpiry() throws Exception {
-    assertThat(minimalTemplateBuilder.hasDefaultExpiry(), is(true));
+  public void testNoConfiguredExpiry() throws Exception {
+    assertThat(minimalTemplateBuilder.hasConfiguredExpiry(), is(false));
   }
 }

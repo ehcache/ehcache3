@@ -32,7 +32,11 @@ import java.util.HashMap;
 import static org.ehcache.core.config.ResourcePoolsImpl.validateResourcePools;
 
 /**
- * @author Ludovic Orban
+ * The {@code ResourcePoolsBuilder} enables building {@link ResourcePools} configurations using a fluent style.
+ * <P>
+ * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
+ * instance without modifying the one on which the method was called.
+ * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
  */
 public class ResourcePoolsBuilder implements Builder<ResourcePools> {
 
@@ -47,10 +51,21 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
     this.resourcePools = unmodifiableMap(resourcePools);
   }
 
+  /**
+   * Creates a new {@code ResourcePoolsBuilder}.
+   *
+   * @return the new builder
+   */
   public static ResourcePoolsBuilder newResourcePoolsBuilder() {
     return new ResourcePoolsBuilder();
   }
 
+  /**
+   * Convenience method to get a builder from an existing {@link ResourcePools}.
+   *
+   * @param pools the resource pools to build from
+   * @return a new builder with configuration matching the provided resource pools
+   */
   public static ResourcePoolsBuilder newResourcePoolsBuilder(ResourcePools pools) {
     ResourcePoolsBuilder poolsBuilder = new ResourcePoolsBuilder();
     for (ResourceType currentResourceType : pools.getResourceTypeSet()) {
@@ -60,28 +75,71 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
     return poolsBuilder;
   }
 
+  /**
+   * Adds or replace the {@link ResourcePool} of {@link ResourceType} in the returned builder.
+   *
+   * @param type the resource type
+   * @param size the pool size
+   * @param unit the pool size unit
+   * @param persistent if the pool is to be persistent
+   * @return a new builder with the added pool
+   */
   public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
     Map<ResourceType, ResourcePool> newPools = new HashMap<ResourceType, ResourcePool>(resourcePools);
     newPools.put(type, new ResourcePoolImpl(type, size, unit, persistent));
     return new ResourcePoolsBuilder(newPools);
   }
 
+  /**
+   * Convenience method to add a {@link org.ehcache.config.ResourceType.Core#HEAP} pool.
+   *
+   * @param size the pool size
+   * @param unit the pool size unit
+   * @return a new builder with the added pool
+   */
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
     return with(ResourceType.Core.HEAP, size, unit, false);
   }
 
+  /**
+   * Convenience method to add a {@link org.ehcache.config.ResourceType.Core#OFFHEAP} pool.
+   *
+   * @param size the pool size
+   * @param unit the pool size unit
+   * @return a new builder with the added pool
+   */
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
     return with(ResourceType.Core.OFFHEAP, size, unit, false);
   }
 
+  /**
+   * Convenience method to add a non persistent {@link org.ehcache.config.ResourceType.Core#DISK} pool.
+   *
+   * @param size the pool size
+   * @param unit the pool size unit
+   * @return a new builder with the added pool
+   */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit) {
     return disk(size, unit, false);
   }
 
+  /**
+   * Convenience method to add a {@link org.ehcache.config.ResourceType.Core#DISK} pool specifying persistence.
+   *
+   * @param size the pool size
+   * @param unit the pool size unit
+   * @param persistent if the pool is persistent or not
+   * @return a new builder with the added pool
+   */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit, boolean persistent) {
     return with(ResourceType.Core.DISK, size, unit, persistent);
   }
 
+  /**
+   * Builds the {@link ResourcePools} based on this builder's configuration.
+   *
+   * @return the resource pools
+   */
   @Override
   public ResourcePools build() {
     return new ResourcePoolsImpl(resourcePools);

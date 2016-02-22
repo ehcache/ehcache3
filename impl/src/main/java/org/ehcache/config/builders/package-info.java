@@ -14,19 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.builders;
-
 /**
- * Abstraction of something that can build a {@code T}
- *
- * @param <T> the type this builder can build
+ * Package for builders designed to help out with programmatic configuration of Ehcache
  */
-public interface Builder<T> {
-
-  /**
-   * Builds the instance
-   *
-   * @return the newly built instance
-   */
-  T build();
-}
+package org.ehcache.config.builders;
