@@ -145,41 +145,6 @@ subprojects {
   }
 }
 
-configure(allprojects.findAll({ p -> p.ext.properties.deploy })) {
-  apply plugin: 'signing'
-  apply plugin: 'maven'
-
-  signing {
-    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
-    sign configurations.archives
-  }
-
-  uploadArchives {
-    repositories {
-      mavenDeployer {
-        beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment)}
-
-        if (isReleaseVersion) {
-          repository(id: 'sonatype-nexus-staging', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-            authentication(userName: sonatypeUser, password: sonatypePwd)
-          }
-        } else {
-          repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
-            authentication(userName: sonatypeUser, password: sonatypePwd)
-          }
-        }
-      }
-    }
-  }
-
-  def installer = install.repositories.mavenInstaller
-  def deployer = uploadArchives.repositories.mavenDeployer
-
-  [installer, deployer]*.pom*.whenConfigured {pom ->
-    utils.pomFiller(pom, project.subPomName, project.subPomDesc)
-  }
-}
-
 allprojects {
   tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'

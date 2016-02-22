@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+apply plugin: EhDeploy
+
 dependencies {
   compile project(':api'), project(':core')
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
