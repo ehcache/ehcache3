@@ -15,11 +15,8 @@
  */
 package org.ehcache.clustered.server;
 
-import java.util.Random;
 import org.junit.Test;
 
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.fail;
 
 /**
@@ -28,16 +25,6 @@ import static org.junit.Assert.fail;
  */
 public class EhcacheActiveEntityTest {
   
-  @Test
-  public void testUUIDConfigSerialization() {
-    byte[] config = new byte[16];
-    new Random().nextBytes(config);
-    
-    EhcacheActiveEntity entity = new EhcacheActiveEntity(config);
-    
-    assertThat(entity.getConfig(), equalTo(config));
-  }
-
   @Test
   public void testConfigTooShort() {
     try {

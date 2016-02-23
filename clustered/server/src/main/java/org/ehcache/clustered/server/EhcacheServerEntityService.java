@@ -15,13 +15,18 @@
  */
 package org.ehcache.clustered.server;
 
-import org.terracotta.entity.EntityMessage;
-import org.terracotta.entity.EntityResponse;
+import org.ehcache.clustered.messages.EhcacheCodec;
+import org.ehcache.clustered.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.messages.EhcacheEntityResponse;
+import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServerEntityService;
 import org.terracotta.entity.ServiceRegistry;
 
-public class EhcacheServerEntityService implements ServerEntityService<EhcacheActiveEntity, PassiveServerEntity<EntityMessage, EntityResponse>>{
+import static org.ehcache.clustered.server.ConcurrencyStrategies.noConcurrency;
+
+public class EhcacheServerEntityService implements ServerEntityService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   @Override
   public long getVersion() {
@@ -39,8 +44,17 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheAc
   }
 
   @Override
-  public PassiveServerEntity<EntityMessage, EntityResponse> createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
+  public PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
     throw new UnsupportedOperationException("Active/passive is not supported yet");
   }
   
+  @Override
+  public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
+    return noConcurrency();
+  }
+
+  @Override
+  public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
+    return EhcacheCodec.serverMessageCodec();
+  }
 }
