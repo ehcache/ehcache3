@@ -18,6 +18,8 @@ plugins {
     id 'com.github.jacobono.jaxb' version '1.3.5'
 }
 
+apply plugin: EhDeploy
+
 dependencies {
   compile project(':api'), project(':core'), project(':impl')
   jaxb 'com.sun.xml.bind:jaxb-xjc:2.2.7-b41'

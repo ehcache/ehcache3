@@ -35,11 +35,15 @@ dependencies {
   compile project(':clustered:client')
   compile project(':clustered:common')
 
-  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
-
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz" changing true
   serverLibs project(':clustered:server')
+}
+
+apply plugin: EhDistribute
+
+dependencies {
+  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
 }
 
 distributions {
