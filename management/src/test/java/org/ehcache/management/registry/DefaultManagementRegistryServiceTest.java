@@ -36,6 +36,7 @@ import org.terracotta.management.stats.history.CounterHistory;
 import org.terracotta.management.stats.primitive.Counter;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
@@ -201,13 +202,13 @@ public class DefaultManagementRegistryServiceTest {
       Thread.sleep(100);
       statistics = builder.build().execute().getResult(context);
       putCount = statistics.getStatistic(CounterHistory.class);
-    } while (putCount.getValue().size() < 1);
+    } while (putCount.getValue().length < 1);
 
     // within 1 second of history there has been 3 puts
-    assertThat(putCount.getValue().get(0).getValue(), equalTo(3L));
+    assertThat(putCount.getValue()[0].getValue(), equalTo(3L));
 
     // keep time for next call (since)
-    timestamp = putCount.getValue().get(0).getTimestamp();
+    timestamp = putCount.getValue()[0].getTimestamp();
 
     // ------
     // 2 puts and we wait more than 1 second (history frequency) to be sure the scheduler thread has computed a new stat in the history
@@ -225,7 +226,7 @@ public class DefaultManagementRegistryServiceTest {
       Thread.sleep(100);
       statistics = builder.build().execute().getResult(context);
       putCount = statistics.getStatistic(CounterHistory.class);
-    } while (putCount.getValue().size() < 2);
+    } while (putCount.getValue().length < 2);
 
     // ------
     // WITH since: the history will have 1 value
@@ -235,7 +236,7 @@ public class DefaultManagementRegistryServiceTest {
     putCount = statistics.getStatistic(CounterHistory.class);
 
     // get the counter for each computation at each 1 second
-    assertThat(putCount.getValue(), everyItem(Matchers.<Sample<Long>>hasProperty("timestamp", greaterThan(timestamp))));
+    assertThat(Arrays.asList(putCount.getValue()), everyItem(Matchers.<Sample<Long>>hasProperty("timestamp", greaterThan(timestamp))));
 
     cacheManager1.close();
   }
