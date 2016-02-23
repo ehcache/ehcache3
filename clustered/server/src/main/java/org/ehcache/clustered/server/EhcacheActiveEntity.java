@@ -19,7 +19,6 @@ import java.util.UUID;
 
 import org.ehcache.clustered.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.ServerSideConfiguration;
-import org.ehcache.clustered.messages.EhcacheCodec;
 import org.ehcache.clustered.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.messages.EhcacheEntityMessage.ConfigureCacheManager;
 import org.ehcache.clustered.messages.EhcacheEntityMessage.ValidateCacheManager;
@@ -27,11 +26,7 @@ import org.ehcache.clustered.messages.EhcacheEntityResponse;
 
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
-import org.terracotta.entity.ConcurrencyStrategy;
-import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveSynchronizationChannel;
-
-import static org.ehcache.clustered.server.ConcurrencyStrategies.noConcurrency;
 
 public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -45,11 +40,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   }
 
   @Override
-  public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy() {
-    return noConcurrency();
-  }
-
-  @Override
   public void connected(ClientDescriptor clientDescriptor) {
     //nothing to do
   }
@@ -57,11 +47,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   @Override
   public void disconnected(ClientDescriptor clientDescriptor) {
     //nothing to do
-  }
-
-  @Override
-  public byte[] getConfig() {
-    return ClusteredEhcacheIdentity.serialize(identity);
   }
 
   @Override
@@ -81,11 +66,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   @Override
   public void synchronizeKeyToPassive(PassiveSynchronizationChannel syncChannel, int concurrencyKey) {
     throw new UnsupportedOperationException("Active/passive is not supported yet");
-  }
-
-  @Override
-  public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
-    return EhcacheCodec.serverMessageCodec();
   }
 
   @Override

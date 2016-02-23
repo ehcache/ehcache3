@@ -43,6 +43,11 @@ public class EhcacheCodec {
     public byte[] serialize(EhcacheEntityResponse response) {
       return serializeResponse(response);
     }
+
+    @Override
+    public byte[] serializeForSync(int concurrencyKey, EhcacheEntityResponse payload) {
+      throw new UnsupportedOperationException("Passive replication not supported yet.");
+    }
   };
   
   public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> serverMessageCodec() {
