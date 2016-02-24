@@ -1,11 +1,5 @@
----
----
-ifndef::sourcedir[]
-include::common.adoc[]
-endif::sourcedir[]
-
 = Ehcache 3.0 Documentation
-
+include::common.adoc[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]

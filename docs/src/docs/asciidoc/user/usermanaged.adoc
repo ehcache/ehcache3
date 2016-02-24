@@ -1,15 +1,9 @@
----
----
-ifndef::sourcedir[]
-include::common.adoc[]
-endif::sourcedir[]
-
 = User managed caches
+include::common.adoc[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
-
 
 == What are user managed caches and what do they offer?
 
