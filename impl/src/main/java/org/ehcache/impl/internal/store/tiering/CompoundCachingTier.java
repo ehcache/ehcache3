@@ -28,6 +28,7 @@ import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -67,6 +68,9 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
         }
       }
     });
+
+    StatisticsManager.associate(higher).withParent(this);
+    StatisticsManager.associate(lower).withParent(this);
   }
 
   private void notifyInvalidation(K key, Store.ValueHolder<V> p) {
