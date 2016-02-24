@@ -803,8 +803,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     ValueHolder<V> mappedValue = null;
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     try {
-      mappedValue = backingMap().getAndPin(key);
-
       mappedValue = backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
         @Override
         public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
