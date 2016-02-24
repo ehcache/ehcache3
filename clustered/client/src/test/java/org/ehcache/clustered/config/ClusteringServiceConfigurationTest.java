@@ -33,33 +33,26 @@ import static org.junit.Assert.*;
  */
 public class ClusteringServiceConfigurationTest {
 
-  @Test
-  public void testGetAlias() throws Exception {
-    final URI connectionUrl = URI.create("http://localhost:9450");
-    assertThat(new ClusteringServiceConfiguration(null, connectionUrl).getAlias(), is(""));
-    assertThat(new ClusteringServiceConfiguration("myalias", connectionUrl).getAlias(), is("myalias"));
-  }
-
   @Test(expected = NullPointerException.class)
   public void testGetConnectionUrlNull() throws Exception {
-    new ClusteringServiceConfiguration("myalias", null);
+    new ClusteringServiceConfiguration(null);
   }
 
   @Test
   public void testGetConnectionUrl() throws Exception {
     final URI connectionUrl = URI.create("http://localhost:9450");
-    assertThat(new ClusteringServiceConfiguration("myalias", connectionUrl).getConnectionUrl(), is(connectionUrl));
+    assertThat(new ClusteringServiceConfiguration(connectionUrl).getConnectionUrl(), is(connectionUrl));
   }
 
   @Test
   public void testGetServiceType() throws Exception {
-    assertThat(new ClusteringServiceConfiguration("myalias", URI.create("http://localhost:9450")).getServiceType(),
+    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450")).getServiceType(),
         is(equalTo(ClusteringService.class)));
   }
 
   @Test
   public void testBuilder() throws Exception {
-    assertThat(new ClusteringServiceConfiguration("myalias", URI.create("http://localhost:9450"))
+    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"))
         .builder(CacheManagerBuilder.newCacheManagerBuilder()), is(instanceOf(ClusteredCacheManagerBuilder.class)));
   }
 }

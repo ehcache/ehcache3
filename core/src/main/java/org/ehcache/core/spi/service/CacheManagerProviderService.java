@@ -17,6 +17,7 @@
 package org.ehcache.core.spi.service;
 
 import org.ehcache.CacheManager;
+import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.spi.service.Service;
 
 /**
@@ -26,6 +27,6 @@ import org.ehcache.spi.service.Service;
  */
 public interface CacheManagerProviderService extends Service {
 
-  CacheManager getCacheManager();
+  InternalCacheManager getCacheManager();
 
 }

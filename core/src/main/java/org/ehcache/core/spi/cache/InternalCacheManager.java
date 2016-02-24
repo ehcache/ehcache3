@@ -14,18 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.cache;
+package org.ehcache.core.spi.cache;
 
 
 import org.ehcache.CacheManager;
 import org.ehcache.core.events.CacheManagerListener;
 
 /**
- * Adds methods to a {@code CacheManager} making it observable by the management framework.
+ * The {@code Service}-facing version of a {@code CacheManager}.  This interface adds
+ * methods used internally by service implementations.
  *
  * @author Clifford W. Johnson
  */
-public interface ObservableCacheManager extends CacheManager {
+public interface InternalCacheManager extends CacheManager {
   void registerListener(CacheManagerListener listener);
 
   void deregisterListener(CacheManagerListener listener);

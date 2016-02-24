@@ -32,6 +32,7 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.util.ClassLoading;
@@ -39,7 +40,6 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.spi.LifeCycled;
-import org.ehcache.spi.cache.ObservableCacheManager;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -70,7 +70,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  *
  * @author Clifford W. Johnson
  */
-public abstract class BaseCacheManager implements CacheManager, ObservableCacheManager {
+public abstract class BaseCacheManager implements CacheManager, InternalCacheManager {
 
   private final DefaultConfiguration configuration;
   private final ClassLoader cacheManagerClassLoader;

@@ -3,7 +3,7 @@
     xmlns:tc="http://www.ehcache.org/v3/clustered">
 
   <ehcache:service>
-    <tc:cluster alias="SimpleCluster">
+    <tc:cluster>
       <tc:connection url="http://localhost:9540"/>
     </tc:cluster>
   </ehcache:service>

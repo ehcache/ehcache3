@@ -52,7 +52,7 @@ public class ClusteredCacheManagerBuilderTest {
   @Test
   public void testNewCacheManager() throws Exception {
     final ClusteringServiceConfiguration serviceConfiguration =
-        new ClusteringServiceConfiguration("myalias", URI.create("http://localhost:9540"));
+        new ClusteringServiceConfiguration(URI.create("http://localhost:9540"));
     final Configuration configuration = mock(Configuration.class);
     when(configuration.getServiceCreationConfigurations()).thenReturn(
         Collections.<ServiceCreationConfiguration<?>>singleton(serviceConfiguration));
@@ -78,7 +78,7 @@ public class ClusteredCacheManagerBuilderTest {
   public void clusteredCacheManagerWithSimpleCache() throws Exception {
     final CacheManagerBuilder<ClusteredCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(new ClusteringServiceConfiguration("clusterAlias", URI.create("http://localhost:9540")))
+            .with(new ClusteringServiceConfiguration(URI.create("http://localhost:9540")))
             .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES))

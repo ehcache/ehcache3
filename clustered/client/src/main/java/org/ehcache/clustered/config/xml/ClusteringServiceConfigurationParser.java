@@ -69,13 +69,9 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
      *   1) the Element is schema-validated
      *   2) 'connection' is defined as required (minOccurs=1, maxOccurs=1)
      *   3) 'connection.url' is defined as "required"
-     *   4) 'cluster.alias' is optional
-     *   5) no other elements or attributes are defined
+     *   4) no other elements or attributes are defined
      */
     if ("cluster".equals(fragment.getLocalName())) {
-
-      final Attr aliasAttribute = fragment.getAttributeNode("alias");
-      final String alias = (aliasAttribute == null ? "" : aliasAttribute.getValue());
 
       URI connectionUri = null;
       final NodeList childNodes = fragment.getChildNodes();
@@ -98,7 +94,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
         }
       }
       // TODO: Validate connectionUri is valid URL with proper content
-      return new ClusteringServiceConfiguration(alias, connectionUri);
+      return new ClusteringServiceConfiguration(connectionUri);
     }
     throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
         fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));

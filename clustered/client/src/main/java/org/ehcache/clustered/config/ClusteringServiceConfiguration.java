@@ -32,25 +32,18 @@ import java.net.URI;
  * @author Clifford W. Johnson
  */
 // TODO: Should this accept/hold a *list* of URIs?
-// TODO: Is 'alias' *required*?
 // TODO: Add validation for connection URI(s)
 public class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<ClusteredCacheManager> {
 
-  private final String alias;
   private final URI connectionUrl;
 
-  public ClusteringServiceConfiguration(final String alias, final URI connectionUrl) {
+  public ClusteringServiceConfiguration(final URI connectionUrl) {
     if (connectionUrl == null) {
       throw new NullPointerException("connectionUrl");
     }
-    this.alias = (alias == null ? "" : alias);
     this.connectionUrl = connectionUrl;
-  }
-
-  public String getAlias() {
-    return alias;
   }
 
   public URI getConnectionUrl() {

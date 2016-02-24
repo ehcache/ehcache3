@@ -16,15 +16,14 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.Cache;
-import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
-import org.ehcache.spi.cache.ObservableCacheManager;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.Context;
@@ -54,42 +53,40 @@ public class DefaultSharedManagementService implements SharedManagementService {
   public void start(final ServiceProvider serviceProvider) {
     final ManagementRegistryService managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     final Context cmContext = managementRegistry.getConfiguration().getContext();
-    final CacheManager cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
+    final InternalCacheManager cacheManager =
+        serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
-    if (cacheManager instanceof ObservableCacheManager) {
-      final ObservableCacheManager observableCacheManager = (ObservableCacheManager)cacheManager;
-      observableCacheManager.registerListener(new CacheManagerListener() {
-        @Override
-        public void cacheAdded(String alias, Cache<?, ?> cache) {
+    cacheManager.registerListener(new CacheManagerListener() {
+      @Override
+      public void cacheAdded(String alias, Cache<?, ?> cache) {
+      }
+
+      @Override
+      public void cacheRemoved(String alias, Cache<?, ?> cache) {
+      }
+
+      @Override
+      public void stateTransition(Status from, Status to) {
+        switch (to) {
+
+          case AVAILABLE:
+            delegates.put(cmContext, managementRegistry);
+            break;
+
+          case UNINITIALIZED:
+            delegates.remove(cmContext);
+            cacheManager.deregisterListener(this);
+            break;
+
+          case MAINTENANCE:
+            // in case we need management capabilities in maintenance mode
+            break;
+
+          default:
+            throw new AssertionError(to);
         }
-
-        @Override
-        public void cacheRemoved(String alias, Cache<?, ?> cache) {
-        }
-
-        @Override
-        public void stateTransition(Status from, Status to) {
-          switch (to) {
-
-            case AVAILABLE:
-              delegates.put(cmContext, managementRegistry);
-              break;
-
-            case UNINITIALIZED:
-              delegates.remove(cmContext);
-              observableCacheManager.deregisterListener(this);
-              break;
-
-            case MAINTENANCE:
-              // in case we need management capabilities in maintenance mode
-              break;
-
-            default:
-              throw new AssertionError(to);
-          }
-        }
-      });
-    }
+      }
+    });
   }
 
   @Override

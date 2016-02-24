@@ -40,7 +40,7 @@ public class GettingStarted {
     // tag::clusteredCacheManagerExample
     final CacheManagerBuilder<ClusteredCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(new ClusteringServiceConfiguration("clusterAlias", URI.create("http://localhost:9540")))
+            .with(new ClusteringServiceConfiguration(URI.create("http://localhost:9540")))
             .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES))
