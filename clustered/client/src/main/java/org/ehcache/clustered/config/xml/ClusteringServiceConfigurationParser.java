@@ -20,6 +20,7 @@ import org.ehcache.clustered.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.service.ClusteringService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -27,6 +28,7 @@ import org.w3c.dom.NodeList;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
@@ -84,13 +86,13 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             final Attr urlAttribute = ((Element)item).getAttributeNode("url");
             final String urlValue = urlAttribute.getValue();
             try {
-              connectionUri = URI.create(urlValue);
-            } catch (IllegalArgumentException e) {
-              throw new RuntimeException(
+              connectionUri = new URI(urlValue);
+            } catch (URISyntaxException e) {
+              throw new XmlConfigurationException(
                   String.format("Value of %s attribute on XML configuration element <%s> in <%s> is not a valid URI - '%s'",
                       urlAttribute.getName(), fragment.getTagName(),
                       (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName()),
-                      connectionUri));
+                      connectionUri), e);
             }
           }
         }
@@ -98,7 +100,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
       // TODO: Validate connectionUri is valid URL with proper content
       return new ClusteringServiceConfiguration(alias, connectionUri);
     }
-    throw new RuntimeException(String.format("XML configuration element <%s> in <%s> is not supported",
+    throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
         fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
   }
 }

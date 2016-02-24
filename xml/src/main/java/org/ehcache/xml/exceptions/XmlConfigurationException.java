@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.cache;
-
-
-import org.ehcache.CacheManager;
-import org.ehcache.core.events.CacheManagerListener;
+package org.ehcache.xml.exceptions;
 
 /**
- * Adds methods to a {@code CacheManager} making it observable by the management framework.
+ * Thrown to reflect an error in an XML configuration.
  *
  * @author Clifford W. Johnson
  */
-public interface ObservableCacheManager extends CacheManager {
-  void registerListener(CacheManagerListener listener);
+public class XmlConfigurationException extends RuntimeException {
+  private static final long serialVersionUID = 4797841652996371653L;
 
-  void deregisterListener(CacheManagerListener listener);
+  public XmlConfigurationException(final String message) {
+    super(message);
+  }
+
+  public XmlConfigurationException(final String message, final Throwable cause) {
+    super(message, cause);
+  }
 }

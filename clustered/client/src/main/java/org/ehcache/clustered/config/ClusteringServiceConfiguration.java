@@ -33,6 +33,7 @@ import java.net.URI;
  */
 // TODO: Should this accept/hold a *list* of URIs?
 // TODO: Is 'alias' *required*?
+// TODO: Add validation for connection URI(s)
 public class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<ClusteredCacheManager> {

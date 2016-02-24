@@ -63,7 +63,7 @@ class ClusteredCacheManagerImpl extends BaseCacheManager implements ClusteredCac
 
   @Override
   public Maintainable toMaintenance() {
-    return null;
+    throw new UnsupportedOperationException("not yet implemented");
   }
 
   @Override

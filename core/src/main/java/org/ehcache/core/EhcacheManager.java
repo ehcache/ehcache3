@@ -78,7 +78,7 @@ public class EhcacheManager extends BaseCacheManager implements PersistentCacheM
       try {
         destroyPersistenceSpace(alias);
       } catch (CachePersistenceException e) {
-        this.getLogger().debug("Unable to clear persistence space for cache {}", alias, e);
+        this.getLogger().warn("Unable to clear persistence space for cache {}", alias, e);
       }
     }
   }
