@@ -43,10 +43,10 @@ import static org.junit.Assert.assertThat;
  * @author rism
  */
 public class WriteBehindProviderFactoryTest {
-  
+
   @Rule
   public ExpectedException expectedEx = ExpectedException.none();
-  
+
   @SuppressWarnings("unchecked")
   @Test
   public void testAddingWriteBehindConfigurationAtCacheLevel() {
@@ -69,7 +69,7 @@ public class WriteBehindProviderFactoryTest {
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
     cacheManager.close();
   }
-  
+
   @Test
   public void testWriteBehindWithoutCacheLoaderWriter() {
     expectedEx.expect(NullPointerException.class);

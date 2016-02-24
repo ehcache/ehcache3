@@ -30,7 +30,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
  *
  */
 public class WriteBehindTest extends AbstractWriteBehindTestBase {
-    
+
   @Override
   protected CacheConfigurationBuilder<String, String> configurationBuilder() {
     return newCacheConfigurationBuilder(String.class, String.class)

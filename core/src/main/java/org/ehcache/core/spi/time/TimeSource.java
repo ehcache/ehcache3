@@ -22,7 +22,7 @@ package org.ehcache.core.spi.time;
  * to advance time
  */
 public interface TimeSource {
-  
+
   /**
    * The current "time" in milliseconds
    */

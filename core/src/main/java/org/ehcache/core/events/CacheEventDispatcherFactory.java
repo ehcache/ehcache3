@@ -32,15 +32,14 @@ public interface CacheEventDispatcherFactory extends Service {
 
   /**
    * Creates an instance of {@link CacheEventDispatcher} to be used by {@link CacheManager}
-   * 
-   * @return the {@link CacheEventDispatcher} 
+   *
+   * @return the {@link CacheEventDispatcher}
    */
   <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs);
-  
-  
+
   /**
    * Invoked by {@link CacheManager} to release all {@link CacheEventListener} listeners registered with {@link CacheEventDispatcher}
-   * 
+   *
    * @param cenlService the {@link CacheEventDispatcher}
    */
   <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> cenlService);

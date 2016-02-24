@@ -28,10 +28,10 @@ import org.w3c.dom.Element;
  * @author cdennis
  */
 public interface CacheManagerServiceConfigurationParser<T extends Service> {
-  
+
   Source getXmlSchema() throws IOException;
-  
+
   URI getNamespace();
-  
+
   ServiceCreationConfiguration<T> parseServiceCreationConfiguration(Element fragment);
 }

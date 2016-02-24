@@ -121,7 +121,7 @@ class PartitionedUnorderedExecutor extends AbstractExecutorService {
     if (shutdown && queue.remove(r)) {
       throw new RejectedExecutionException("Executor is shutting down");
     } else if (runnerPermit.tryAcquire()) {
-      
+
       executor.submit(new Runnable() {
 
         @Override

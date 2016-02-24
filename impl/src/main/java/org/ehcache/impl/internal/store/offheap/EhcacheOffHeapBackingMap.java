@@ -24,13 +24,13 @@ import org.ehcache.function.Function;
 import org.terracotta.offheapstore.Segment;
 
 public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V> {
-  
+
   V compute(K key, BiFunction<K, V, V> mappingFunction, boolean pin);
 
   V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction);
 
   boolean computeIfPinned(K key, BiFunction<K,V,V> remappingFunction, Function<V,Boolean> pinningFunction);
-  
+
   long nextIdFor(K key);
 
   V getAndPin(K key);
@@ -38,6 +38,6 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V> {
   Integer getAndSetMetadata(K key, int mask, int metadata);
 
   List<Segment<K, V>> getSegments();
-  
+
   boolean shrinkOthers(int excludedHash);
 }

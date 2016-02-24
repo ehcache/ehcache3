@@ -58,5 +58,5 @@ public class ThreadRememberingLoaderWriter implements CacheLoaderWriter<String, 
     LAST_SEEN_THREAD = Thread.currentThread();
     USED.release();
   }
-  
+
 }

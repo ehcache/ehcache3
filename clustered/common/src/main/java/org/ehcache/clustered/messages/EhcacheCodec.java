@@ -27,7 +27,7 @@ import org.terracotta.entity.MessageCodec;
  * @author cdennis
  */
 public class EhcacheCodec {
-  
+
   private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE = new MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse>() {
     @Override
     public EhcacheEntityMessage deserialize(byte[] payload) {
@@ -49,7 +49,7 @@ public class EhcacheCodec {
       throw new UnsupportedOperationException("Passive replication not supported yet.");
     }
   };
-  
+
   public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> serverMessageCodec() {
     return SERVER_INSTANCE;
   }
@@ -61,15 +61,15 @@ public class EhcacheCodec {
   public static EhcacheEntityMessage deserializeMessage(byte[] payload) {
     return (EhcacheEntityMessage) unmarshall(payload);
   }
-  
+
   public static byte[] serializeResponse(EhcacheEntityResponse response) {
     return marshall(response);
   }
-  
+
   public static EhcacheEntityResponse deserializeResponse(byte[] payload) {
     return (EhcacheEntityResponse) unmarshall(payload);
   }
-  
+
   private static Object unmarshall(byte[] payload) {
     try {
       return (EhcacheEntityMessage) new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
@@ -79,7 +79,7 @@ public class EhcacheCodec {
       throw new IllegalArgumentException(ex);
     }
   }
-  
+
   private static byte[] marshall(Object message) {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     try {

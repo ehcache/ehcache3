@@ -46,7 +46,7 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
   private final EhcacheSegment.EvictionListener<K, V> evictionListener;
 
   private final boolean bootstrap;
-  
+
   public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, EvictionVeto<? super K, ? super V> evictionVeto, EhcacheSegment.EvictionListener<K, V> evictionListener, boolean bootstrap) {
     this.storageEngineFactory = storageEngineFactory;
     this.tableSource = source;

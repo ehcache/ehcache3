@@ -78,10 +78,10 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
     if (serializerClass == null) {
       throw new NullPointerException("Serializer class cannot be null");
     }
-    
+
     boolean transientConstructorPresent;
     boolean persistentConstructorPresent;
-    
+
     if(transientConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class)) {
       if (!overwrite && transientSerializers.containsKey(serializableClass)) {
         throw new IllegalArgumentException("Duplicate transient serializer for class : " + serializableClass.getName());
@@ -89,7 +89,7 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
         transientSerializers.put(serializableClass, serializerClass);
       }
     }
-    
+
     if(persistentConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class, FileBasedPersistenceContext.class)) {
       if (!overwrite && persistentSerializers.containsKey(serializableClass)) {
         throw new IllegalArgumentException("Duplicate persistent serializer for class : " + serializableClass.getName());
@@ -104,7 +104,7 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
     }
     return this;
   }
-  
+
   private static boolean isConstructorPresent(Class<?> clazz, Class<?>... args) {
     try {
       clazz.getConstructor(args);
@@ -112,7 +112,7 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
     } catch (NoSuchMethodException e) {
       return false;
     }
-  } 
+  }
 
   public Map<Class<?>, Class<? extends Serializer<?>>> getTransientSerializers() {
     return unmodifiableMap(transientSerializers);

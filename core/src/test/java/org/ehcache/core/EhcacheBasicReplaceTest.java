@@ -514,17 +514,17 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
         .replaceFailure(eq("key"), eq("value"), any(CacheAccessException.class), any(CacheWritingException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.FAILURE));
   }
-  
+
   @Test
   public void testReplaceWithImmediatelyExpiredEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>singletonMap("key", "old-value"));
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>singletonMap("key", "old-value"));
-    
+
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForUpdate("key", "old-value", "value")).thenReturn(Duration.ZERO);
-    
+
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
 
     ehcache.replace("key", "value");

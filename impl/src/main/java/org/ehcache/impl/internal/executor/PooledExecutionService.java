@@ -44,14 +44,14 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 public class PooledExecutionService implements ExecutionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(PooledExecutionService.class);
-  
+
   private final String defaultPoolAlias;
   private final Map<String, PoolConfiguration> poolConfigurations;
   private final Map<String, ThreadPoolExecutor> pools = new ConcurrentHashMap<String, ThreadPoolExecutor>(8, .75f, 1);
 
   private volatile boolean running = false;
   private volatile OutOfBandScheduledExecutor scheduledExecutor;
-  
+
   PooledExecutionService(PooledExecutionServiceConfiguration configuration) {
     this.defaultPoolAlias = configuration.getDefaultPoolAlias();
     this.poolConfigurations = configuration.getPoolConfigurations();

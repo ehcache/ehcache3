@@ -66,7 +66,7 @@ public final class DefaultConfiguration implements Configuration, RuntimeConfigu
   public Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations() {
     return services;
   }
-  
+
   @Override
   public ClassLoader getClassLoader() {
     return classLoader;

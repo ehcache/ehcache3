@@ -24,11 +24,11 @@ import org.ehcache.core.spi.LifeCycledAdapter;
  * Lifecycle utility methods.
  */
 public class LifeCycleUtils {
-  
+
   /**
    * Returns a {@code LifeCycled} instance that close the supplied closeable
    * upon lifecycle close.
-   * 
+   *
    * @param closeable the closeable to close
    * @return a lifecycled instance that closes the closeable upon close
    */

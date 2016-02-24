@@ -204,7 +204,7 @@ public class EhcacheBulkMethodsITest {
   private static Map.Entry entry(Object key, Object value) {
     return new AbstractMap.SimpleEntry(key, value);
   }
-  
+
   @Test
   public void testGetAll_without_cache_loader() throws Exception {
     CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);

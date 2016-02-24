@@ -158,7 +158,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final Map<String, String> actual = ehcache.getAll(Collections.<String>emptySet());
     assertThat(actual, is(notNullValue()));
     assertThat(actual.isEmpty(), is(true));
-    
+
     verify(this.store, never()).bulkComputeIfAbsent(eq(Collections.<String>emptySet()), getAnyIterableFunction());
     verify(this.spiedResilienceStrategy, never()).getAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
 
@@ -191,7 +191,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     verify(this.store, never()).bulkComputeIfAbsent(eq(Collections.<String>emptySet()), getAnyIterableFunction());
     verify(this.spiedResilienceStrategy, never()).getAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
     verify(this.loaderWriter, never()).loadAll(eq(Collections.<String>emptySet()));
-    
+
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
@@ -388,7 +388,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
@@ -435,7 +435,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
@@ -482,7 +482,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
@@ -529,7 +529,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
 
   /**
    * Tests {@link Ehcache#getAll(Set)} for
@@ -641,7 +640,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
     final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
     Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
-    
+
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -666,7 +665,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
 
   /**
    * Tests {@link Ehcache#getAll(Set)} for
@@ -1190,7 +1188,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>all {@link CacheLoaderWriter} entries match</li>
@@ -1232,7 +1230,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>all {@link CacheLoaderWriter} entries match</li>
@@ -1272,7 +1270,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
@@ -1302,7 +1300,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@code CacheLoaderWriter}</li>
@@ -1335,7 +1333,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
    *    <li>all {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -1372,11 +1370,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
    *    <li>all {@link CacheLoaderWriter#loadAll(Iterable)} calls fails with {@link BulkCacheLoadingException}</li>
@@ -1416,7 +1414,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fails with {@link BulkCacheLoadingException}</li>
@@ -1452,11 +1450,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -1500,11 +1498,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -1548,11 +1546,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -1596,12 +1594,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
 
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -1643,11 +1641,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -1688,11 +1686,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -1739,7 +1737,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -1775,7 +1773,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -1817,7 +1815,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -1857,7 +1855,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -1894,11 +1892,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fail with {@link BulkCacheLoadingException}</li>
@@ -1939,7 +1937,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -1986,7 +1984,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -2030,11 +2028,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -2082,7 +2080,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -2118,7 +2116,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -2160,7 +2158,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -2200,7 +2198,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
    *    <li>non-matching {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -2238,11 +2236,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, KEY_SET_A.size() + KEY_SET_C.size(), 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
    *    <li>non-matching {@link CacheLoaderWriter#loadAll(Iterable)} calls fails with {@link BulkCacheLoadingException}</li>
@@ -2279,12 +2277,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, KEY_SET_A.size(), 0);
   }
-  
+
 
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -2327,11 +2325,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -2375,12 +2373,12 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
 
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -2425,11 +2423,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -2471,7 +2469,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>all {@link CacheLoaderWriter} entries match</li>
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -2507,7 +2505,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>all {@link CacheLoaderWriter} entries match</li>
@@ -2549,7 +2547,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>all {@link CacheLoaderWriter} entries match</li>
@@ -2589,7 +2587,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>no {@code CacheLoaderWriter}</li>
    * </ul>
@@ -2619,7 +2617,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@code CacheLoaderWriter}</li>
@@ -2652,7 +2650,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
    *    <li>all {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -2688,7 +2686,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -2736,7 +2734,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -2784,7 +2782,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -2829,11 +2827,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -2875,11 +2873,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -2920,11 +2918,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -2970,7 +2968,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -3005,7 +3003,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -3047,7 +3045,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
    *    <li>some {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -3082,7 +3080,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -3125,11 +3123,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -3176,7 +3174,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>no {@link CacheLoaderWriter} entries match</li>
@@ -3221,7 +3219,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -3256,7 +3254,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -3297,7 +3295,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -3336,7 +3334,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
    *    <li>non-matching {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -3372,7 +3370,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -3419,7 +3417,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -3465,11 +3463,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateBulkCounters(ehcache, 0, 0);
   }
 
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -3510,11 +3508,11 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>some {@link CacheLoaderWriter} entries match</li>
@@ -3560,7 +3558,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>all {@link CacheLoaderWriter} entries match</li>
    *    <li>no {@link CacheLoaderWriter#loadAll(Iterable)} calls fail</li>
@@ -3595,7 +3593,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws before accessing loader</li>
    *    <li>all {@link CacheLoaderWriter} entries match</li>
@@ -3638,7 +3636,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
-   *    <li>non-empty request key set</li> 
+   *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
    *    <li>{@link Store#bulkComputeIfAbsent} throws after accessing loader</li>
    *    <li>all {@link CacheLoaderWriter} entries match</li>
@@ -3675,7 +3673,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.FAILURE));
     validateBulkCounters(ehcache, 0, 0);
   }
-  
+
   private void verifyBulkLoadingException(BulkCacheLoadingException e, Set<String> successKeys, Set<String> failureKeys) {
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses().keySet(), Matchers.<Set<?>> equalTo(successKeys));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>> equalTo(failureKeys));

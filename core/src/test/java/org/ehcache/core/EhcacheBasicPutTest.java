@@ -525,7 +525,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
         null, expiry, ResourcePoolsHelper.createHeapOnlyPools());
     return getEhcache(cacheLoaderWriter, config);
   }
-  
+
   private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutTest"));
     ehcache.init();

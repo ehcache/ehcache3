@@ -22,7 +22,7 @@ import org.ehcache.exceptions.SerializerException;
 /**
  * Interface defining the contract used to transform types in a serial form.
  * Implementations must be thread-safe.
- * 
+ *
  * When used within the default serialization provider, there is an additional requirement:
  * The implementations must define either or both of the two constructors:
  * <ul>
@@ -32,7 +32,7 @@ import org.ehcache.exceptions.SerializerException;
  *   </li>
  *   <li>
  *     Accepting a {@link ClassLoader} parameter and a file based persistence context: This constructor will be used to
- *     initialize the serializer for persistent caches 
+ *     initialize the serializer for persistent caches
  *   </li>
  * </ul> .
  *

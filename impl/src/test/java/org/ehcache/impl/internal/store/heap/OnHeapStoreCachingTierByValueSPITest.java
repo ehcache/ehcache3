@@ -75,7 +75,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
                 ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0,
                 new JavaSerializer<String>(getSystemClassLoader()), new JavaSerializer<String>(getSystemClassLoader()));
-        
+
         return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
       }
 

@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 package org.ehcache.core.statistics;
 
 /**
- * 
+ *
  * @author Hung Huynh
  *
  */
@@ -34,7 +34,7 @@ public interface CacheOperationOutcomes {
     /** hit. */
     HIT_WITH_LOADER,
     /** miss */
-    MISS_WITH_LOADER,    
+    MISS_WITH_LOADER,
     /** failure */
     FAILURE
   };
@@ -96,7 +96,7 @@ public interface CacheOperationOutcomes {
     FAILURE_KEY_MISSING,
     FAILURE
   };
-  
+
   /**
    * The cache loading outcomes.
    */
@@ -106,7 +106,7 @@ public interface CacheOperationOutcomes {
     /** failure */
     FAILURE
   };
-  
+
   /**
    * The putIfAbsent outcomes.
    */
@@ -115,7 +115,7 @@ public interface CacheOperationOutcomes {
     HIT,
     FAILURE
   };
-  
+
   /**
    * The replace outcomes.
    */
@@ -124,5 +124,5 @@ public interface CacheOperationOutcomes {
     MISS_PRESENT,
     MISS_NOT_PRESENT,
     FAILURE
-  };  
+  };
 }

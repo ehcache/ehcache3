@@ -22,10 +22,10 @@ import org.ehcache.spi.service.Service;
  *
  */
 public interface WriteBehindProvider extends Service {
-  
+
   /**
    * Provider Interface for decorator loaderwriter
-   * 
+   *
    * @param cacheLoaderWriter loaderwriter
    * @param configuration     configuration
    * @param <K> the key type for the associated {@link org.ehcache.Cache}
@@ -33,7 +33,7 @@ public interface WriteBehindProvider extends Service {
    * @return loaderwriter
    */
   <K, V> CacheLoaderWriter<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration);
-  
+
   /**
    * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
    * @param cacheLoaderWriter the {@link CacheLoaderWriter} that was initially associated with

@@ -39,7 +39,7 @@ import org.junit.Test;
  * @author cdennis
  */
 public class BasicSerializationTest {
-  
+
   @Test
   public void testSimpleObject() throws ClassNotFoundException {
     Serializer<Serializable> test = new CompactJavaSerializer(null);
@@ -66,12 +66,12 @@ public class BasicSerializationTest {
     Assert.assertEquals(input, result);
 
   }
-  
+
   private static final Class[] PRIMITIVE_CLASSES = new Class[] {
-     boolean.class, byte.class, char.class, short.class, 
+     boolean.class, byte.class, char.class, short.class,
      int.class, long.class, float.class, double.class, void.class
   };
-  
+
   @Test
   public void testPrimitiveClasses() throws ClassNotFoundException {
     Serializer<Serializable> s = new CompactJavaSerializer(null);

@@ -24,13 +24,13 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
  * @author cdennis
  */
 public class OffHeapDiskStoreProviderConfiguration implements ServiceCreationConfiguration<OffHeapDiskStore.Provider> {
-  
+
   private final String threadPoolAlias;
 
   public OffHeapDiskStoreProviderConfiguration(String threadPoolAlias) {
     this.threadPoolAlias = threadPoolAlias;
   }
-  
+
   public String getThreadPoolAlias() {
     return threadPoolAlias;
   }

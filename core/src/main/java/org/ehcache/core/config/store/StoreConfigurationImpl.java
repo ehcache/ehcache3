@@ -28,7 +28,7 @@ import org.ehcache.spi.serialization.Serializer;
  * @author Chris Dennis
  */
 public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
-  
+
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final EvictionVeto<? super K, ? super V> evictionVeto;
@@ -81,7 +81,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
   public ClassLoader getClassLoader() {
     return this.classLoader;
   }
-  
+
   @Override
   public Expiry<? super K, ? super V> getExpiry() {
     return expiry;

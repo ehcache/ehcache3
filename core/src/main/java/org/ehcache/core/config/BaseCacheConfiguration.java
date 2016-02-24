@@ -79,8 +79,8 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
   public ClassLoader getClassLoader() {
     return classLoader;
-  }  
-  
+  }
+
   @Override
   public Expiry<? super K, ? super V> getExpiry() {
     return expiry;

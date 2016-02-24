@@ -23,10 +23,10 @@ import org.ehcache.exceptions.CacheAccessException;
  * @author Chris Dennis
  */
 public interface RecoveryCache<K> {
-  
+
   void obliterate() throws CacheAccessException;
-  
+
   void obliterate(K key) throws CacheAccessException;
-  
+
   void obliterate(Iterable<? extends K> keys) throws CacheAccessException;
 }

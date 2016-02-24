@@ -161,7 +161,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
 
     Cache<Long, String> anotherCache = manager.createCache("byRefCache", mutableConfiguration);
     assertFalse(anotherCache.getConfiguration(Configuration.class).isStoreByValue()); // <5>
-    
+
     MutableConfiguration<String, String> otherConfiguration = new MutableConfiguration<String, String>();
     otherConfiguration.setTypes(String.class, String.class);
     otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); // <6>
@@ -195,7 +195,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     MutableConfiguration<Long, String> mutableConfiguration = new MutableConfiguration<Long, String>();
     mutableConfiguration.setTypes(Long.class, String.class);
 
-    Cache<Long, String> myCache = null; 
+    Cache<Long, String> myCache = null;
     myCache = cacheManager.createCache("anyCache", mutableConfiguration);
     myCache.put(1L, "foo");
     assertNotSame("foo", myCache.get(1L));

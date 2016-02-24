@@ -52,7 +52,7 @@ public enum MemoryUnit implements ResourceUnit {
   /** the index of this unit */
   private final int index;
   private final String stringForm;
-  
+
   /** Internal constructor */
   MemoryUnit(String stringForm, int index) {
     this.stringForm = stringForm;
@@ -61,9 +61,9 @@ public enum MemoryUnit implements ResourceUnit {
 
   /**
    * Computes <pre>amount * 2^delta</pre>.
-   * 
+   *
    * The result is always rounded toward zero.
-   * 
+   *
    * @param delta log<sub>2</sub>(divisor)
    * @param amount dividend
    * @throws ArithmeticException if the result overflows
@@ -95,8 +95,8 @@ public enum MemoryUnit implements ResourceUnit {
   }
 
   /**
-   * Returns {@code amount} in {@code unit} in to this unit. 
-   * 
+   * Returns {@code amount} in {@code unit} in to this unit.
+   *
    * @param amount size to convert
    * @param unit {@code amount}'s unit
    * @return the amount in this unit
@@ -104,7 +104,7 @@ public enum MemoryUnit implements ResourceUnit {
   public long convert(long amount, MemoryUnit unit) {
     return doConvert(unit.index - index, amount);
   }
-  
+
   @Override
   public String toString() {
     return stringForm;

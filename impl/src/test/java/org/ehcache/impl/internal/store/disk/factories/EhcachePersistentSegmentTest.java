@@ -51,19 +51,19 @@ public class EhcachePersistentSegmentTest {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
-  
+
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment() throws IOException {
     return createTestSegment(Eviction.<String, String>none(), mock(EvictionListener.class));
   }
-  
+
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionVeto<String, String> evictionPredicate) throws IOException {
     return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }
-  
+
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionListener<String, String> evictionListener) throws IOException {
     return createTestSegment(Eviction.<String, String>none(), evictionListener);
   }
-  
+
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionVeto<String, String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);

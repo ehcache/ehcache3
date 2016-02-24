@@ -33,25 +33,25 @@ import org.junit.rules.TemporaryFolder;
 public class TestLocalPersistenceService extends ExternalResource implements LocalPersistenceService {
 
   private final TemporaryFolder folder;
-  
+
   private LocalPersistenceService persistenceService;
-  
+
   public TestLocalPersistenceService(File folder) {
     this.folder = new TemporaryFolder(folder);
   }
-  
+
   public TestLocalPersistenceService() {
     this.folder = new TemporaryFolder();
   }
-  
+
   @Override
   protected void before() throws Throwable {
     folder.create();
     persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
     persistenceService.start(null);
   }
-  
-  
+
+
   @Override
   protected void after() {
     LocalPersistenceService ps = persistenceService;

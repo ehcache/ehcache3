@@ -72,7 +72,7 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
       return super.ehEvent.getNewValue();
     }
   }
-  
+
   static class RemovingEvent<K, V> extends Eh107CacheEntryEvent<K, V> {
 
     public RemovingEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent, boolean hasOldValue) {
@@ -83,6 +83,6 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
     public V getValue() {
       return super.ehEvent.getOldValue();
     }
-    
+
   }
 }

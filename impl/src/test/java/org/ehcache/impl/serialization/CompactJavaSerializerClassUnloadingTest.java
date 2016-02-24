@@ -38,7 +38,7 @@ import org.junit.Test;
 public class CompactJavaSerializerClassUnloadingTest {
 
   private static final int PACKING_UNIT = 512 * 1024;
-  
+
   public volatile WeakReference<Class<?>> classRef;
   public volatile Serializable specialObject;
 
@@ -83,7 +83,7 @@ public class CompactJavaSerializerClassUnloadingTest {
       specialObject = null;
       Thread.currentThread().setContextClassLoader(null);
     }
-    
+
     for (int i = 0; i < 10; i++) {
       if (classRef.get() == null) {
         return;
@@ -93,7 +93,7 @@ public class CompactJavaSerializerClassUnloadingTest {
     }
     throw new AssertionError();
   }
-  
+
   private static void packHeap() {
     List<SoftReference<?>> packing = new ArrayList<SoftReference<?>>();
     ReferenceQueue<byte[]> queue = new ReferenceQueue<byte[]>();
@@ -106,7 +106,7 @@ public class CompactJavaSerializerClassUnloadingTest {
   public static class SpecialClass implements Serializable {
 
     private static final long serialVersionUID = 1L;
-    
+
     //empty impl
   }
 

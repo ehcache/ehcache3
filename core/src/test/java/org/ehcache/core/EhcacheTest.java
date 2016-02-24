@@ -240,7 +240,7 @@ public class EhcacheTest {
     assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
     ehcache.close();
   }
-  
+
   @Test
   public void testPutIfAbsent() throws CacheAccessException {
     final AtomicReference<Object> existingValue = new AtomicReference<Object>();

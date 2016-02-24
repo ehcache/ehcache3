@@ -33,39 +33,39 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
  * @author cdennis
  */
 public class EnumTest {
-  
+
   @Test
   public void basicInstanceSerialization() throws ClassNotFoundException {
     Serializer<Serializable> s = new CompactJavaSerializer(null);
-    
+
     Assert.assertThat(s.read(s.serialize(People.Alice)), IsSame.<Serializable>sameInstance(People.Alice));
     Assert.assertThat(s.read(s.serialize(People.Bob)), IsSame.<Serializable>sameInstance(People.Bob));
     Assert.assertThat(s.read(s.serialize(People.Eve)), IsSame.<Serializable>sameInstance(People.Eve));
   }
-  
+
   @Test
   public void classSerialization() throws ClassNotFoundException {
     Serializer<Serializable> s = new CompactJavaSerializer(null);
-    
+
     Assert.assertThat(s.read(s.serialize(Enum.class)), IsSame.<Serializable>sameInstance(Enum.class));
     Assert.assertThat(s.read(s.serialize(Dogs.Handel.getClass())), IsSame.<Serializable>sameInstance(Dogs.Handel.getClass()));
     Assert.assertThat(s.read(s.serialize(Dogs.Cassie.getClass())), IsSame.<Serializable>sameInstance(Dogs.Cassie.getClass()));
     Assert.assertThat(s.read(s.serialize(Dogs.Penny.getClass())), IsSame.<Serializable>sameInstance(Dogs.Penny.getClass()));
   }
-  
+
   @Test
   public void shiftingInstanceSerialization() throws ClassNotFoundException {
     Serializer<Serializable> s = new CompactJavaSerializer(null);
-    
+
     ClassLoader wLoader = createClassNameRewritingLoader(Foo_W.class);
     ClassLoader rLoader = createClassNameRewritingLoader(Foo_R.class);
-    
+
     Class<?> wClass = wLoader.loadClass(newClassName(Foo_W.class));
     Class<?> rClass = rLoader.loadClass(newClassName(Foo_R.class));
-    
+
     Object[] wInstances = wClass.getEnumConstants();
     Object[] rInstances = rClass.getEnumConstants();
-    
+
     pushTccl(rLoader);
     try {
       for (int i = 0; i < wInstances.length; i++) {
@@ -75,7 +75,7 @@ public class EnumTest {
       popTccl();
     }
   }
-  
+
   public static enum Foo_W { a, b, c { int i = 5; }, d { float f = 5.0f; } }
   public static enum Foo_R { a, b { byte b = 3; }, c, d { double d = 6.0; } }
 }

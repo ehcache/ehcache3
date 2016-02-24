@@ -52,12 +52,12 @@ public interface CacheConfiguration<K, V> {
    * @return a non null value, where {@code Object.class} is the widest type
    */
   Class<V> getValueType();
-  
+
   /**
    * The {@link EvictionVeto} predicate function.
    * <p>
    * Entries which pass this predicate must be ignored by the eviction process.
-   * 
+   *
    * @return the eviction veto predicate
    */
   EvictionVeto<? super K, ? super V> getEvictionVeto();

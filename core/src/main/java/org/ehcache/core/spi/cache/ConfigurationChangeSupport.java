@@ -22,12 +22,12 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 
 /**
  * The interface to listen to change in configuration at runtime
- * 
+ *
  * @author Abhilash
  *
  */
 public interface ConfigurationChangeSupport {
-  
+
   /**
    * get the {@link List} {@link CacheConfigurationChangeListener} defined in the {@link Store}
    * @return a list of {@link CacheConfigurationChangeListener}

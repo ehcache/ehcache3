@@ -100,9 +100,9 @@ public class ClassInstanceProvider<K, T> {
         return null;
       }
     }
-    
+
     T instance = null;
-    
+
     if(config.getInstance() != null) {
       instance = config.getInstance();
     } else {
@@ -136,12 +136,12 @@ public class ClassInstanceProvider<K, T> {
     } else {
       throw new IllegalArgumentException("Given instance of " + instance.getClass().getName() + " is not managed by this provider");
     }
-    
+
     if(instance instanceof Closeable) {
       ((Closeable)instance).close();
     }
   }
-  
+
   public void start(ServiceProvider serviceProvider) {
     // default no-op
   }

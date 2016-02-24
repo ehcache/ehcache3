@@ -41,7 +41,7 @@ public interface CacheEvent<K, V> {
    * @return the mutated key
    */
   K getKey();
-  
+
   /**
    * The mapped value immediately after the mutative event occurred.
    * <p>

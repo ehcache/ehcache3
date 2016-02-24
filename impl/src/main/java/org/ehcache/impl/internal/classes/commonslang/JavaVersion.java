@@ -29,12 +29,12 @@ package org.ehcache.impl.internal.classes.commonslang;
  * @since 3.0
  */
 public enum JavaVersion {
-    
+
     /**
      * The Java version reported by Android. This is not an official Java version number.
      */
     JAVA_0_9(1.5f, "0.9"),
-    
+
     /**
      * Java 1.1.
      */
@@ -193,7 +193,7 @@ public enum JavaVersion {
 
     /**
      * Gets the Java Version from the system or 2.0 if the {@code java.version} system property is not set.
-     * 
+     *
      * @return the value of {@code java.version} system property or 2.0 if it is not set.
      */
     private static float maxVersion() {
@@ -206,7 +206,7 @@ public enum JavaVersion {
 
     /**
      * Parses a float value from a String.
-     * 
+     *
      * @param value the String to parse.
      * @return the float value represented by teh string or -1 if the given String can not be parsed.
      */

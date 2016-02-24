@@ -41,18 +41,18 @@ import static org.ehcache.impl.internal.executor.ExecutorUtil.waitFor;
  * @author cdennis
  */
 class PartitionedScheduledExecutor extends AbstractExecutorService implements ScheduledExecutorService {
-  
+
   private final OutOfBandScheduledExecutor scheduler;
   private final ExecutorService worker;
 
   private volatile boolean shutdown;
   private volatile Future<List<Runnable>> termination;
-  
+
   PartitionedScheduledExecutor(OutOfBandScheduledExecutor scheduler, ExecutorService worker) {
     this.scheduler = scheduler;
     this.worker = worker;
   }
-  
+
   @Override
   public ScheduledFuture<?> schedule(final Runnable command, long delay, TimeUnit unit) {
     if (shutdown) {
@@ -136,7 +136,7 @@ class PartitionedScheduledExecutor extends AbstractExecutorService implements Sc
           return maxDelay;
         }
       }, 0, NANOSECONDS));
-      
+
       termination = scheduler.schedule(worker, new Callable<List<Runnable>>() {
 
         @Override
@@ -175,8 +175,8 @@ class PartitionedScheduledExecutor extends AbstractExecutorService implements Sc
           return abortedTasks;
         }
       }, 0L, NANOSECONDS);
-      
-      
+
+
       return waitFor(termination);
     } catch (ExecutionException e) {
       throw new RuntimeException(e.getCause());

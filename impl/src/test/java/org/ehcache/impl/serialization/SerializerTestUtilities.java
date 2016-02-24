@@ -40,7 +40,7 @@ public final class SerializerTestUtilities {
   private SerializerTestUtilities() {
     //no instances please
   }
-  
+
   public static ClassLoader createClassNameRewritingLoader(Class<?> initial, Class<?> ... more) {
     ClassLoader loader = initial.getClassLoader();
     Map<String, String> remapping = new HashMap<String, String>();
@@ -67,7 +67,7 @@ public final class SerializerTestUtilities {
     }
     return remappings;
   }
-  
+
   public static String newClassName(Class<?> initial) {
     String initialName = initial.getName();
     int lastUnderscore = initialName.lastIndexOf('_');
@@ -89,20 +89,20 @@ public final class SerializerTestUtilities {
       return new LinkedList<ClassLoader>();
     }
   };
-  
+
   public static void pushTccl(ClassLoader loader) {
     tcclStacks.get().push(Thread.currentThread().getContextClassLoader());
     Thread.currentThread().setContextClassLoader(loader);
   }
-  
+
   public static void popTccl() {
     Thread.currentThread().setContextClassLoader(tcclStacks.get().pop());
   }
-  
+
   static class RewritingClassloader extends ClassLoader {
 
     private final Map<String, String> remappings;
-    
+
     RewritingClassloader(ClassLoader parent, Map<String, String> remappings) {
       super(parent);
       this.remappings = Collections.unmodifiableMap(new HashMap<String, String>(remappings));
@@ -124,7 +124,7 @@ public final class SerializerTestUtilities {
       return c;
     }
 
-    
+
     @Override
     protected Class<?> findClass(String name) throws ClassNotFoundException {
       for (Entry<String, String> mapping : remappings.entrySet()) {

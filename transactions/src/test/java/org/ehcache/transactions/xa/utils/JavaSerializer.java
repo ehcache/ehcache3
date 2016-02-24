@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * 
+ *
  * @author cdennis
  */
 public class JavaSerializer<T> implements Serializer<T> {
@@ -132,5 +132,5 @@ public class JavaSerializer<T> implements Serializer<T> {
       primitiveClasses.put("void", void.class);
     }
   }
-  
+
 }

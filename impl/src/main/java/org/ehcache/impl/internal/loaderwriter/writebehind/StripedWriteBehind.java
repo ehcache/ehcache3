@@ -65,7 +65,7 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
       writeLock.unlock();
     }
   }
-  
+
   @Override
   public V load(K key) throws Exception {
     V v = null;
@@ -82,7 +82,7 @@ public class StripedWriteBehind<K, V> implements WriteBehind<K, V> {
   public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
     Map<K, V> entries = new HashMap<K, V>();
     for (K k : keys) {
-      entries.put(k, load(k)) ; 
+      entries.put(k, load(k)) ;
     }
     return entries;
   }

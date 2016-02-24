@@ -51,7 +51,7 @@ public class PartitionedScheduledExecutorTest {
     assertThat(executor.awaitTermination(2, TimeUnit.MINUTES), is(true));
     assertThat(executor.isTerminated(), is(true));
   }
-  
+
   @Test
   public void testShutdownNowOfIdleExecutor() throws InterruptedException {
     OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
@@ -87,7 +87,7 @@ public class PartitionedScheduledExecutorTest {
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(semaphore.availablePermits(), is(0));
     } finally {
       worker.shutdown();
@@ -103,7 +103,7 @@ public class PartitionedScheduledExecutorTest {
 
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -131,12 +131,12 @@ public class PartitionedScheduledExecutorTest {
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(false));
-      
+
       jobSemaphore.release();
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(jobSemaphore.availablePermits(), is(0));
     } finally {
       worker.shutdown();
@@ -152,7 +152,7 @@ public class PartitionedScheduledExecutorTest {
 
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -182,7 +182,7 @@ public class PartitionedScheduledExecutorTest {
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(jobSemaphore.availablePermits(), is(0));
       assertThat(called.get(), is(false));
     } finally {
@@ -200,7 +200,7 @@ public class PartitionedScheduledExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
       final AtomicBoolean interrupted = new AtomicBoolean();
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -230,7 +230,7 @@ public class PartitionedScheduledExecutorTest {
   @Test
   public void testRunningJobsAreInterruptedAfterShutdownNow() throws InterruptedException {
     final int jobCount = 4;
-    
+
     OutOfBandScheduledExecutor scheduler = new OutOfBandScheduledExecutor();
     ExecutorService worker = Executors.newCachedThreadPool();
     try {
@@ -239,7 +239,7 @@ public class PartitionedScheduledExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
       final AtomicInteger interrupted = new AtomicInteger();
-      
+
       for (int i = 0; i < jobCount; i++) {
         executor.submit(new Callable<Void>() {
 
@@ -255,9 +255,9 @@ public class PartitionedScheduledExecutorTest {
           }
         });
       }
-      
+
       testSemaphore.acquireUninterruptibly(jobCount);
-      
+
       assertThat(executor.shutdownNow(), empty());
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
@@ -284,7 +284,7 @@ public class PartitionedScheduledExecutorTest {
           Assert.fail("Should not run!");
         }
       }, 2, 1, MINUTES);
-      
+
       executor.shutdown();
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
       assertThat(executor.isShutdown(), is(true));
@@ -310,7 +310,7 @@ public class PartitionedScheduledExecutorTest {
           Assert.fail("Should not run!");
         }
       }, 2, 1, MINUTES);
-      
+
       executor.shutdown();
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
       assertThat(executor.isShutdown(), is(true));
@@ -336,7 +336,7 @@ public class PartitionedScheduledExecutorTest {
           //no-op
         }
       }, 2, 1, MINUTES);
-      
+
       assertThat(executor.shutdownNow(), hasSize(1));
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
       assertThat(executor.isShutdown(), is(true));
@@ -362,7 +362,7 @@ public class PartitionedScheduledExecutorTest {
           Assert.fail("Should not run!");
         }
       }, 2, 1, MINUTES);
-      
+
       assertThat(executor.shutdownNow(), hasSize(1));
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
       assertThat(executor.isShutdown(), is(true));
@@ -388,7 +388,7 @@ public class PartitionedScheduledExecutorTest {
           Assert.fail("Should not run!");
         }
       }, 2, MINUTES);
-      
+
       List<Runnable> remainingTasks = executor.shutdownNow();
       assertThat(remainingTasks, hasSize(1));
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
@@ -396,9 +396,9 @@ public class PartitionedScheduledExecutorTest {
       assertThat(executor.isTerminated(), is(true));
 
       assertThat(future.isDone(), is(false));
-      
+
       for (Runnable r : remainingTasks) r.run();
-      
+
       assertThat(future.isDone(), is(true));
     } finally {
       worker.shutdown();
@@ -419,7 +419,7 @@ public class PartitionedScheduledExecutorTest {
           //no-op
         }
       }, 200, MILLISECONDS);
-      
+
       executor.shutdown();
       assertThat(executor.awaitTermination(30, SECONDS), is(true));
       assertThat(executor.isShutdown(), is(true));

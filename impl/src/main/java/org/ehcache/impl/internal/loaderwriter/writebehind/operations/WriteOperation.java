@@ -23,7 +23,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
  * Implements the write operation for write behind
- * 
+ *
  * @author Geert Bevin
  * @author Tim wu
  *
@@ -34,7 +34,7 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
   private final K key;
   private final V value;
   private final long creationTime;
-  
+
   /**
    * Create a new write operation for a particular element
    *
@@ -87,7 +87,7 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
   public K getKey() {
     return this.key;
   }
-  
+
   public V getValue(){
     return this.value;
   }
@@ -112,5 +112,5 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
       return false;
     }
   }
-  
+
 }

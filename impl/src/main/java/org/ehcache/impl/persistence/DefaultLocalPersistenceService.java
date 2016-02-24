@@ -141,7 +141,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     if (existingSpace != null) {
       return existingSpace;
     }
-    
+
     DefaultPersistenceSpaceIdentifier newSpace = new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name));
     if ((existingSpace = knownPersistenceSpaces.putIfAbsent(name, newSpace)) == null) {
       try {
@@ -193,10 +193,10 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   File getLockFile() {
     return lockFile;
   }
-  
+
   public File getDirectoryFor(String identifier) {
     File directory = new File(rootDirectory, safeIdentifier(identifier));
-    
+
     for (File parent = directory.getParentFile(); parent != null; parent = parent.getParentFile()) {
       if (rootDirectory.equals(parent)) {
         return directory;
@@ -205,7 +205,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
     throw new IllegalArgumentException("Attempted to access file outside the persistence path");
   }
-  
+
   static void create(File directory) throws IOException, CachePersistenceException {
     if (directory.isDirectory()) {
       LOGGER.info("Reusing " + directory.getAbsolutePath());
@@ -259,7 +259,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
     return true;
   }
-  
+
   @SuppressFBWarnings("DM_GC")
   private static boolean tryRecursiveDelete(File file) {
     boolean interrupted = false;
@@ -285,11 +285,11 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
     return false;
  }
-  
+
   private static boolean isWindows() {
     return System.getProperty("os.name").toLowerCase(Locale.ENGLISH).contains("windows");
   }
-  
+
   /**
    * sanitize a name for valid file or directory name
    *
@@ -320,7 +320,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
     return sb.toString();
   }
-  
+
   private static MessageDigest getSha1Digest() {
     try {
       return MessageDigest.getInstance("SHA-1");
@@ -328,7 +328,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       throw new AssertionError("All JDKs must have SHA-1");
     }
   }
-  
+
   private static abstract class FileHolder {
     final File directory;
 
@@ -339,7 +339,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     public File getDirectory() {
       return directory;
     }
-    
+
   }
   private static class DefaultPersistenceSpaceIdentifier extends FileHolder implements PersistenceSpaceIdentifier {
 

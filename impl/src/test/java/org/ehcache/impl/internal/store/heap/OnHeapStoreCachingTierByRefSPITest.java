@@ -70,10 +70,10 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
       private CachingTier<String, String> newCachingTier(Long capacity) {
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(), null,
                 ClassLoader.getSystemClassLoader(), Expirations.noExpiration(), buildResourcePools(capacity), 0, null, null);
-        
+
         return new OnHeapStore<String, String>(config, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
       }
-      
+
       @Override
       public Store.ValueHolder<String> newValueHolder(final String value) {
         return new CopiedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, DEFAULT_COPIER);

@@ -26,11 +26,11 @@ import java.nio.ByteBuffer;
 public class ByteBufferInputStream extends InputStream {
 
   private final ByteBuffer buffer;
-  
+
   public ByteBufferInputStream(ByteBuffer buffer) {
     this.buffer = buffer.slice();
   }
-  
+
   @Override
   public int read() throws IOException {
     if (buffer.hasRemaining()) {

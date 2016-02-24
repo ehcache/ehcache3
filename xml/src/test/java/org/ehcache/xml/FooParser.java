@@ -35,7 +35,7 @@ public class FooParser implements CacheServiceConfigurationParser<Service> {
 
   private static final URI NAMESPACE = URI.create("http://www.example.com/foo");
   private static final URL XML_SCHEMA = FooParser.class.getResource("/configs/foo.xsd");
-  
+
   @Override
   public Source getXmlSchema() throws IOException {
     return new StreamSource(XML_SCHEMA.openStream());
@@ -50,5 +50,5 @@ public class FooParser implements CacheServiceConfigurationParser<Service> {
   public URI getNamespace() {
     return NAMESPACE;
   }
-  
+
 }

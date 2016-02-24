@@ -69,7 +69,7 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
    * @throws java.lang.IllegalStateException if the listener isn't already registered
    */
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
-  
+
   /**
    * updates ResourcePools
    *

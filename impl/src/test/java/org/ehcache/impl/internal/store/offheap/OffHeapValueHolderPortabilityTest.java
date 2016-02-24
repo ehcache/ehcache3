@@ -69,11 +69,11 @@ public class OffHeapValueHolderPortabilityTest {
     Class<?> abstractValueHolder = AbstractValueHolder.class;
     Method setHits = abstractValueHolder.getDeclaredMethod("setHits", long.class);
     setHits.setAccessible(true);
-    
+
     decoded.setExpirationTime(4L, TimeUnit.MILLISECONDS);
     decoded.setLastAccessTime(6L, TimeUnit.MILLISECONDS);
     setHits.invoke(decoded, 8L);
-    
+
     decoded.writeBack();
     verify(writeContext).setLong(OffHeapValueHolderPortability.ACCESS_TIME_OFFSET, 6L);
     verify(writeContext).setLong(OffHeapValueHolderPortability.EXPIRE_TIME_OFFSET, 4L);

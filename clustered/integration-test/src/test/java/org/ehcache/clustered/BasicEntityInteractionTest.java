@@ -31,13 +31,13 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class BasicEntityInteractionTest {
-  
+
   @Test
   public void testAbsentEntityRetrievalFails() throws Throwable {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
-      
+
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
 
       try {
@@ -50,18 +50,18 @@ public class BasicEntityInteractionTest {
       server.stop();
     }
   }
-  
+
   @Test
   public void testAbsentEntityCreationSucceeds() throws Throwable {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
-      
+
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
-      
+
       EhcacheClientEntity entity = ref.fetchEntity();
       try {
         assertThat(entity.identity(), is(uuid));
@@ -78,7 +78,7 @@ public class BasicEntityInteractionTest {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
-      
+
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
 
       UUID uuid = UUID.randomUUID();
@@ -90,7 +90,7 @@ public class BasicEntityInteractionTest {
       } catch (EntityAlreadyExistsException e) {
         //expected
       }
-      
+
       try {
         ref.create(UUID.randomUUID());
         fail("Expected EntityAlreadyExistsException");
@@ -107,7 +107,7 @@ public class BasicEntityInteractionTest {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
-      
+
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
 
       try {
@@ -126,13 +126,13 @@ public class BasicEntityInteractionTest {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
-      
+
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
       ref.destroy();
-      
+
       try {
         ref.fetchEntity();
         fail("Expected EntityNotFoundException");
@@ -150,12 +150,12 @@ public class BasicEntityInteractionTest {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
-      
+
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
-      
+
       EhcacheClientEntity entity = ref.fetchEntity();
       try {
         ref.destroy();
@@ -172,7 +172,7 @@ public class BasicEntityInteractionTest {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
-      
+
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
 
       UUID uuid = UUID.randomUUID();
@@ -189,12 +189,12 @@ public class BasicEntityInteractionTest {
     PassthroughServer server = createServer();
     try {
       Connection client = server.connectNewClient();
-      
+
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
 
       ref.create(UUID.randomUUID());
       ref.destroy();
-      
+
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
       EhcacheClientEntity entity = ref.fetchEntity();

@@ -21,7 +21,7 @@ import java.io.File;
 
 @Parameters(commandNames = "create", commandDescription = "create a clustered cache manager, and it's caches")
 class CreateCacheManager extends AbstractCommand {
-  
+
   @Parameter(names = {"-c", "--config"}, required = true, description = "configuration file")
   private File config;
 

@@ -23,7 +23,7 @@ public class UnsupportedTypeException extends Exception {
 
   /**
    * Constructs a new exception with the specified detail message.
-   * 
+   *
    * @param message detail message
    */
   public UnsupportedTypeException(String message) {

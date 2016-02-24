@@ -86,7 +86,7 @@ public abstract class EhcacheBasicCrudBase {
    * {@link org.ehcache.resilience.ResilienceStrategy ResilienceStrategy} used in the
    * {@link Ehcache Ehcache} instance being tested.
    *
-   * @see #setResilienceStrategySpy(Ehcache) 
+   * @see #setResilienceStrategySpy(Ehcache)
    */
   protected ResilienceStrategy<String, String> spiedResilienceStrategy;
 
@@ -758,7 +758,7 @@ public abstract class EhcacheBasicCrudBase {
      * Keys for which access results in a thrown {@code Exception}.  This set may be empty.
      */
     private final Set<String> failingKeys;
-    
+
     private boolean isBulkCacheLoadingExceptionEnabled = false;
 
     /**
@@ -773,7 +773,7 @@ public abstract class EhcacheBasicCrudBase {
     public FakeCacheLoaderWriter(final Map<String, String> entries) {
       this(entries, Collections.<String>emptySet());
     }
-    
+
     public FakeCacheLoaderWriter(final Map<String, String> entries, final Set<String> failingKeys) {
       if (entries != null) {
         this.entries.putAll(entries);
@@ -783,12 +783,12 @@ public abstract class EhcacheBasicCrudBase {
           ? Collections.<String>emptySet()
           : Collections.unmodifiableSet(new HashSet<String>(failingKeys)));
     }
-    
+
     public FakeCacheLoaderWriter(final Map<String, String> entries, final Set<String> failingKeys, boolean isBulkCacheLoadingExceptionEnabled) {
       this(entries, failingKeys);
       this.isBulkCacheLoadingExceptionEnabled = isBulkCacheLoadingExceptionEnabled;
     }
-    
+
     Map<String, String> getEntryMap() {
       return Collections.unmodifiableMap(this.entries);
     }
@@ -920,7 +920,7 @@ public abstract class EhcacheBasicCrudBase {
         }
         throw new BulkCacheLoadingException(failures, loadedKeys);
       }
-      
+
       final Map<String, String> resultMap = new HashMap<String, String>();
       for (final String key : keys) {
         if (this.failingKeys.contains(key)) {

@@ -34,15 +34,15 @@ import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
  * @author cdennis
  */
 public class ReadObjectNoDataTest {
-  
+
   @Test
   public void test() throws Exception {
     Serializer<Serializable> s = new CompactJavaSerializer(null);
     ClassLoader loaderW = createClassNameRewritingLoader(C_W.class, B_W.class);
-    
-    
+
+
     ByteBuffer b = s.serialize((Serializable) loaderW.loadClass(newClassName(C_W.class)).newInstance());
-    
+
     pushTccl(createClassNameRewritingLoader(C_R.class, B_R.class, A_R.class));
     try {
       Object out = s.read(b);
@@ -51,7 +51,7 @@ public class ReadObjectNoDataTest {
       popTccl();
     }
   }
-  
+
   public static class B_W implements Serializable {
     private static final long serialVersionUID = 0L;
   }
@@ -59,8 +59,8 @@ public class ReadObjectNoDataTest {
   public static class C_W extends B_W {
     private static final long serialVersionUID = 0L;
   }
-  
-  
+
+
   public static class A_R implements Serializable {
     private static final long serialVersionUID = 0L;
     public boolean called = false;

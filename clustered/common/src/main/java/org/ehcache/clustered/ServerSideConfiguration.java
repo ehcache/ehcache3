@@ -22,13 +22,13 @@ import java.io.Serializable;
  * @author cdennis
  */
 public class ServerSideConfiguration implements Serializable {
-  
+
   private final int magic;
 
   public ServerSideConfiguration(int magic) {
     this.magic = magic;
   }
-  
+
   public int getMagic() {
     return magic;
   }

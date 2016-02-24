@@ -22,7 +22,7 @@ import static java.util.Collections.singleton;
 import org.terracotta.entity.EntityMessage;
 
 public final class ConcurrencyStrategies {
-  
+
   private static final ConcurrencyStrategy NO_CONCURRENCY = new ConcurrencyStrategy<EntityMessage>() {
     @Override
     public int concurrencyKey(EntityMessage message) {
@@ -34,11 +34,11 @@ public final class ConcurrencyStrategies {
       return singleton(0);
     }
   };
-  
+
   private ConcurrencyStrategies() {
-    
+
   }
-  
+
   public static final <T extends EntityMessage> ConcurrencyStrategy<T> noConcurrency() {
     return NO_CONCURRENCY;
   }

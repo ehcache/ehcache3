@@ -33,7 +33,7 @@ public class LoggingRobustResilienceStrategy<K, V> extends RobustResilienceStrat
   public LoggingRobustResilienceStrategy(RecoveryCache<K> store) {
     super(store);
   }
-  
+
   @Override
   public Cache.Entry<K, V> iteratorFailure(CacheAccessException e) {
     LOGGER.error("Ehcache iterator terminated early due to exception", e);

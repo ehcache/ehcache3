@@ -47,15 +47,15 @@ public class EhcacheSegmentTest {
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment() {
     return createTestSegment(Eviction.none(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
-  
+
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate) {
     return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
-  
+
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     return createTestSegment(Eviction.none(), evictionListener);
   }
-  
+
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);

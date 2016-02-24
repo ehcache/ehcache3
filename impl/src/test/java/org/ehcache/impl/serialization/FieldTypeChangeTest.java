@@ -32,14 +32,14 @@ import static org.junit.Assert.fail;
  * @author cdennis
  */
 public class FieldTypeChangeTest {
-  
+
   @Test
   public void fieldTypeChangeWithOkayObject() throws Exception {
     Serializer<Serializable> s = new CompactJavaSerializer(null);
-    
+
     ClassLoader loaderW = createClassNameRewritingLoader(Foo_W.class);
     Serializable a = (Serializable) loaderW.loadClass(newClassName(Foo_W.class)).getConstructor(Object.class).newInstance("foo");
-    
+
     pushTccl(createClassNameRewritingLoader(Foo_R.class));
     try {
       s.read(s.serialize(a));
@@ -47,15 +47,15 @@ public class FieldTypeChangeTest {
       popTccl();
     }
   }
-  
+
   @Test
   public void fieldTypeChangeWithIncompatibleObject() throws Exception {
     Serializer<Serializable> s = new CompactJavaSerializer(null);
-    
+
     ClassLoader loaderW = createClassNameRewritingLoader(Foo_W.class);
-    
+
     Serializable a = (Serializable) loaderW.loadClass(newClassName(Foo_W.class)).getConstructor(Object.class).newInstance(Integer.valueOf(42));
-    
+
     pushTccl(createClassNameRewritingLoader(Foo_R.class));
     try {
       s.read(s.serialize(a));
@@ -66,7 +66,7 @@ public class FieldTypeChangeTest {
       popTccl();
     }
   }
-  
+
   public static class Foo_W implements Serializable {
     private static final long serialVersionUID = 0L;
     Object obj;
@@ -75,7 +75,7 @@ public class FieldTypeChangeTest {
         this.obj = obj;
     }
   }
-  
+
   public static class Foo_R implements Serializable {
     private static final long serialVersionUID = 0L;
     String obj;

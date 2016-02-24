@@ -39,7 +39,7 @@ public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfigu
   public DefaultCacheEventListenerConfiguration(final Class<? extends CacheEventListener<?, ?>> clazz, Object... arguments) {
     super(clazz, arguments);
   }
-  
+
   public DefaultCacheEventListenerConfiguration(CacheEventListener<?, ?> listener) {
     super(listener);
   }

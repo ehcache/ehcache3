@@ -29,5 +29,5 @@ class FooConfiguration implements ServiceConfiguration<Service> {
   public Class<Service> getServiceType() {
     return Service.class;
   }
-  
+
 }

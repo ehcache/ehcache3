@@ -30,10 +30,10 @@ import org.terracotta.exception.EntityVersionMismatchException;
 import static org.ehcache.clustered.Util.unwrapException;
 
 public class EhcacheClientEntityFactory {
-  
+
   private final Connection connection;
   private final CoordinationService coordinator;
-  
+
   public EhcacheClientEntityFactory(Connection connection) {
     this(connection, new CoordinationService(connection));
   }
@@ -42,7 +42,7 @@ public class EhcacheClientEntityFactory {
     this.connection = connection;
     this.coordinator = coordinator;
   }
-  
+
   public EhcacheClientEntity create(final String identifier, final ServerSideConfiguration config) throws EntityAlreadyExistsException {
     try {
       while (true) {
@@ -74,7 +74,7 @@ public class EhcacheClientEntityFactory {
       throw unwrapException(ex, EntityAlreadyExistsException.class);
     }
   }
-  
+
   public EhcacheClientEntity createOrRetrieve(String identifier, ServerSideConfiguration config) {
     while (true) {
       try {

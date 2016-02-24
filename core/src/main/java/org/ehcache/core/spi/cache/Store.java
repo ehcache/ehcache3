@@ -38,7 +38,7 @@ import java.util.concurrent.TimeUnit;
  * Cache entries (i.e. mappings of key to value, including all metadata).
  * It is basically a {@link java.util.concurrent.ConcurrentMap} with built in eviction/expiration. Possibly, it represents a view
  * on data held on some persistent and/or remote storage.
- * 
+ *
  * @author Alex Snaps
  */
 public interface Store<K, V> extends ConfigurationChangeSupport {
@@ -54,7 +54,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * {@code v} such that {@code key.equals(k)},
    * then this method returns {@code v}; otherwise it returns
    * {@code null}.  (There can be at most one such mapping.)
-   * 
+   *
    * @throws NullPointerException if the specified key is null
    * @throws ClassCastException if the specified key is not an instance of {@code K}
    * @throws CacheAccessException if the mapping can't be retrieved
@@ -115,7 +115,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws CacheAccessException if the mapping can't be installed
    */
   ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException;
-  
+
   /**
    * Removes the key (and its corresponding value) from this store.
    * This method does nothing if the key is not mapped.
@@ -146,7 +146,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws CacheAccessException if the mapping can't be removed
    */
   boolean remove(K key, V value) throws CacheAccessException;
-  
+
   /**
    * Replaces the entry for a key only if currently mapped to some value
    * and the entry is not expired.
@@ -168,7 +168,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws CacheAccessException if the mapping can't be replaced
    */
   ValueHolder<V> replace(K key, V value) throws CacheAccessException;
-  
+
   /**
    * Replaces the entry for a key only if currently mapped to a given value
    * and the entry is not expired.
@@ -189,7 +189,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws CacheAccessException if the mapping can't be replaced
    */
   boolean replace(K key, V oldValue, V newValue) throws CacheAccessException;
-  
+
   /**
    * Removes all of the mappings from this map.
    * This method provides no guarantee in terms of atomicity.
@@ -217,16 +217,16 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   /**
    * Compute the value for the given key by invoking the given function to produce the value.
    * The entire operation is performed atomically.
-   * 
+   *
    * This is equivalent to calling {@link Store#compute(Object, BiFunction, NullaryFunction)}
    * with a "replaceEquals" function that returns {@link Boolean#TRUE}
    */
   ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException;
-  
+
   /**
    * Compute the value for the given key by invoking the given function to produce the value.
    * The entire operation is performed atomically.
-   * 
+   *
    * @param key the key to operate on
    * @param mappingFunction the function that will produce the value. The function will be supplied
    *        with the key and existing value (or null if no entry exists) as parameters. The function should
@@ -235,18 +235,18 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @param replaceEqual If the existing value in the store is {@link java.lang.Object#equals(Object)} to
    *        the value returned from the mappingFunction this function will be invoked. If this function
    *        returns {@link java.lang.Boolean#FALSE} then the existing entry in the store will not be replaced
-   *        with a new entry and the existing entry will have its access time updated 
+   *        with a new entry and the existing entry will have its access time updated
    * @return the new value associated with the key or null if none
    * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
    *         function returns a value that is not of type ({@code V})
    * @throws CacheAccessException
    */
   ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException;
-  
+
   /**
    * Compute the value for the given key (only if absent or expired) by invoking the given function to produce the value.
    * The entire operation is performed atomically.
-   * 
+   *
    * @param key the key to operate on
    * @param mappingFunction the function that will produce the value. The function will be supplied
    *        with the key as a parameter. The function return the desired new value for the entry or null to
@@ -265,14 +265,14 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * <p>
    * This is equivalent to calling {@link Store#computeIfPresent(Object, BiFunction, NullaryFunction)}
    * with a "replaceEquals" function that returns {@link Boolean#TRUE}
-   * 
+   *
    */
   ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException;
-  
+
   /**
    * Compute the value for the given key (only if present and non-expired) by invoking the given function to produce the value.
    * The entire operation is performed atomically.
-   * 
+   *
    * @param key the key to operate on
    * @param remappingFunction the function that will produce the value. The function will be supplied
    *        with the key and existing value as parameters. The function should
@@ -281,22 +281,22 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @param replaceEqual If the existing value in the store is {@link java.lang.Object#equals(Object)} to
    *        the value returned from the mappingFunction this function will be invoked. If this function
    *        returns {@link java.lang.Boolean#FALSE} then the existing entry in the store will not be replaced
-   *        with a new entry and the existing entry will have its access time updated 
+   *        with a new entry and the existing entry will have its access time updated
    * @return the new value associated with the key or null if none
    * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
    *         function returns a value that is not of type ({@code V})
    * @throws CacheAccessException
    */
   ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException;
-  
+
   /**
    * Compute a value for every key passed in the {@link Set} {@code keys} argument, using the {@code remappingFunction} to compute the value.
    * <p>
    * This is equivalent to calling {@link Store#bulkCompute(Set, Function, NullaryFunction)}
    * with a "replaceEquals" function that returns {@link Boolean#TRUE}
    */
-  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException;  
-  
+  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException;
+
   /**
    * Compute a value for every key passed in the {@link Set} {@code keys} argument, using the {@code remappingFunction} to compute the value.
    * <p>
@@ -314,10 +314,10 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @param replaceEqual If the existing value in the store is {@link java.lang.Object#equals(Object)} to
    *        the value returned from the mappingFunction this function will be invoked. If this function
    *        returns {@link java.lang.Boolean#FALSE} then the existing entry in the store will not be replaced
-   *        with a new entry and the existing entry will have its access time updated 
+   *        with a new entry and the existing entry will have its access time updated
    * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the value computed.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
-   *         entries with either incorrect key or value types   
+   *         entries with either incorrect key or value types
    * @throws CacheAccessException
    */
   Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException;
@@ -425,7 +425,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
     /**
      * Creates a new Store instance
-     * 
+     *
      * @param storeConfig the basic configuration for the Store
      * @param serviceConfigs the configurations the Provider may need to configure the Store
      * @return the Store honoring the configurations passed in
@@ -448,7 +448,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
   /**
    * The basic configuration for a Store.
-   * 
+   *
    * @param <K> key type
    * @param <V> value type
    */
@@ -456,22 +456,22 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
 
     /**
      * The {@link java.lang.Class type} of the keys that a Store will hold.
-     * 
+     *
      * @return the key type
      */
     Class<K> getKeyType();
-    
+
     /**
      * The {@link java.lang.Class type} of the values that a Store will hold.
-     * 
+     *
      * @return the value type
      */
     Class<V> getValueType();
-    
+
     /**
      * A predicate function that, if it passes an entry, must prevent that entry
      * from being evicted by the store.
-     * 
+     *
      * @return the eviction veto predicate
      */
     EvictionVeto<? super K, ? super V> getEvictionVeto();
@@ -480,7 +480,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * The Classloader for this store. This classloader will be used to deserialize cache entries when required
      */
     ClassLoader getClassLoader();
-    
+
     /**
      * The expiration policy instance for this store
      */

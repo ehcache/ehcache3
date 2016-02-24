@@ -46,11 +46,11 @@ class OutOfBandScheduledExecutor {
       return new OutOfBandRsf(((ExecutorCarrier) r).executor(), rsf);
     }
   };
-  
+
   public BlockingQueue<Runnable> getQueue() {
     return scheduler.getQueue();
   }
-  
+
   public ScheduledFuture<?> schedule(ExecutorService using, Runnable command,
                                      long delay, TimeUnit unit) {
     return scheduler.schedule(new ExecutorCarryingRunnable(using, command), delay, unit);
@@ -76,7 +76,7 @@ class OutOfBandScheduledExecutor {
   }
 
   static interface ExecutorCarrier {
-    
+
     ExecutorService executor();
   }
 
@@ -128,7 +128,7 @@ class OutOfBandScheduledExecutor {
     private final RunnableScheduledFuture<T> delegate;
 
     private volatile Future<?> execution;
-    
+
     OutOfBandRsf(ExecutorService worker, RunnableScheduledFuture<T> original) {
       this.worker = worker;
       this.delegate = original;

@@ -164,11 +164,11 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     TestSerializer serializer = mock(TestSerializer.class);
     DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, SerializerConfiguration.Type.KEY);
-    
+
     Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
     assertSame(serializer, created);
     assertThat(provider.providedVsCount.get(created).get(), is(1));
-    
+
     created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
     assertSame(serializer, created);
     assertThat(provider.providedVsCount.get(created).get(), is(2));

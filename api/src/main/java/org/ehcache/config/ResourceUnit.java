@@ -27,7 +27,7 @@ public interface ResourceUnit {
    * Returns 1, 0, or -1 if the {@code thisSize} of {@code this} is greater than,
    * equal to, or less than {@code thatSize} of {@code thatUnit}
    * respectively.
-   * 
+   *
    * @param thisSize size in {@code this} unit
    * @param thatSize size in {@code thatUnit}
    * @param thatUnit other unit

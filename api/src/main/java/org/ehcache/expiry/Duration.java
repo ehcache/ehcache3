@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * A unit of time in a given {@link TimeUnit}
- * 
+ *
  * @author teck
  */
 public final class Duration {
@@ -41,7 +41,7 @@ public final class Duration {
 
   /**
    * Construct a {@link Duration} instance
-   * 
+   *
    * @throws IllegalArgumentException
    *           if the given amount is less than zero
    * @throws NullPointerException
@@ -72,7 +72,7 @@ public final class Duration {
 
   /**
    * Get the amount of {@link Duration#getTimeUnit()} this instance represents
-   * 
+   *
    * @throws IllegalStateException
    *           if this instance is {@link Duration#FOREVER}
    * @return the amount of this instance
@@ -84,7 +84,7 @@ public final class Duration {
 
   /**
    * Get the {@link TimeUnit} of this instance
-   * 
+   *
    * @throws IllegalStateException
    *           if this instance is {@link Duration#FOREVER}
    * @return timeunit the {@link TimeUnit} of this instance
@@ -103,7 +103,7 @@ public final class Duration {
 
   /**
    * Is this duration "forever" / infinite
-   * 
+   *
    * @return true if this instance is the special value {@link Duration#FOREVER}
    */
   public boolean isForever() {
@@ -122,7 +122,7 @@ public final class Duration {
       // Differentiate zero from forever
       result = prime * result + ((timeUnit == null) ? 0 : 1);
     }
-    
+
     return result;
   }
 
@@ -144,7 +144,7 @@ public final class Duration {
     if (amount != other.amount) {
       return false;
     }
-    
+
     if (timeUnit == null || other.timeUnit == null) {
       return timeUnit == other.timeUnit;
     }

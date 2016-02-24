@@ -274,7 +274,7 @@ public class EventNotificationTest {
 
     assertThat(listener1.expired.get(), is(5));
   }
-  
+
   @Test
   public void testMultiThreadedSyncAsyncNotifications() throws InterruptedException {
     AsynchronousListener asyncListener = new AsynchronousListener();
@@ -311,7 +311,7 @@ public class EventNotificationTest {
     for (Cache.Entry<Number, Number> entry : cache) {
       entryCount++;
     }
-    
+
     testTimeSource.setTimeMillis(2000);
     operators = new Thread[10];
     for (int i = 0; i < 10; i++) {
@@ -436,7 +436,7 @@ public class EventNotificationTest {
     private AtomicInteger removed = new AtomicInteger();
     private AtomicInteger expired = new AtomicInteger();
     private CountDownLatch latch;
-    
+
     private void resetLatchCount(int operations) {
       this.latch = new CountDownLatch(operations);
     }
@@ -473,12 +473,12 @@ public class EventNotificationTest {
       this.data = new Byte[size];
     }
   }
-  
+
   private static class CachePutOperator implements Runnable {
     Logger logger = LoggerFactory.getLogger(EventNotificationTest.class + "-" + "EventNotificationTest");
     Cache<Number, Number> cache;
     int number;
-    
+
     CachePutOperator(Cache<Number, Number> cache, int number) {
       this.cache = cache;
       this.number = number * 100;

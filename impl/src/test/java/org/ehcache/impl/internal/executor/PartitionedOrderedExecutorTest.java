@@ -52,7 +52,7 @@ public class PartitionedOrderedExecutorTest {
     assertThat(executor.awaitTermination(2, TimeUnit.MINUTES), is(true));
     assertThat(executor.isTerminated(), is(true));
   }
-  
+
   @Test
   public void testShutdownNowOfIdleExecutor() throws InterruptedException {
     BlockingQueue<Runnable> queue = new LinkedBlockingQueue<Runnable>();
@@ -146,7 +146,7 @@ public class PartitionedOrderedExecutorTest {
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(semaphore.availablePermits(), is(0));
     } finally {
       service.shutdown();
@@ -162,7 +162,7 @@ public class PartitionedOrderedExecutorTest {
 
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -190,12 +190,12 @@ public class PartitionedOrderedExecutorTest {
       assertThat(executor.awaitTermination(100, MILLISECONDS), is(false));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(false));
-      
+
       jobSemaphore.release();
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(jobSemaphore.availablePermits(), is(0));
     } finally {
       service.shutdown();
@@ -211,7 +211,7 @@ public class PartitionedOrderedExecutorTest {
 
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -241,7 +241,7 @@ public class PartitionedOrderedExecutorTest {
       assertThat(executor.awaitTermination(2, MINUTES), is(true));
       assertThat(executor.isShutdown(), is(true));
       assertThat(executor.isTerminated(), is(true));
-      
+
       assertThat(jobSemaphore.availablePermits(), is(0));
       assertThat(called.get(), is(false));
     } finally {
@@ -259,7 +259,7 @@ public class PartitionedOrderedExecutorTest {
       final Semaphore jobSemaphore = new Semaphore(0);
       final Semaphore testSemaphore = new Semaphore(0);
       final AtomicBoolean interrupted = new AtomicBoolean();
-      
+
       executor.submit(new Callable<Void>() {
 
         @Override
@@ -306,7 +306,7 @@ public class PartitionedOrderedExecutorTest {
           }
         }));
       }
-      
+
       for (Future<?> task : tasks) {
         task.get();
       }

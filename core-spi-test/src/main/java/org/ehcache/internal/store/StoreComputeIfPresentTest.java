@@ -57,7 +57,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
       System.err.println("Warning, store uses Object as value type, cannot verify in this configuration");
       return;
     }
-    
+
     final Object badValue;
     if (factory.getValueType() == String.class) {
       badValue = this;
@@ -104,7 +104,7 @@ public class StoreComputeIfPresentTest<K, V> extends SPIStoreTester<K, V> {
     } else {
       badKey = "badKey";
     }
-    
+
     try {
       kvStore2.computeIfPresent(badKey, new BiFunction() { // wrong key type
             @Override

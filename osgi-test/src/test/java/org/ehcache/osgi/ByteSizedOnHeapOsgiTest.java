@@ -42,7 +42,7 @@ import org.ops4j.pax.exam.spi.reactors.PerMethod;
 @RunWith(PaxExam.class)
 @ExamReactorStrategy(PerMethod.class)
 public class ByteSizedOnHeapOsgiTest {
-  
+
   @Configuration
   public Option[] config() {
     return options(
@@ -52,7 +52,7 @@ public class ByteSizedOnHeapOsgiTest {
         junitBundles()
     );
   }
-  
+
   @Test
   public void testByteSizedOnHeapInOsgi() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

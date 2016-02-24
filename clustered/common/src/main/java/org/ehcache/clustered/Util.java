@@ -20,16 +20,15 @@ package org.ehcache.clustered;
  * @author cdennis
  */
 public final class Util {
-  
+
   private Util() {}
-  
-  
+
   public static <T extends Exception> T unwrapException(Throwable t, Class<T> aClass) {
     Throwable cause = t.getCause();
     if (cause != null) {
       t = cause;
     }
-    
+
     if (aClass.isInstance(t)) {
       return aClass.cast(t);
     } else if (t instanceof RuntimeException) {

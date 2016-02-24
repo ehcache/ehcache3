@@ -27,14 +27,14 @@ import org.ehcache.spi.service.Service;
  * @author cdennis
  */
 public final class TestServiceProvider {
-  
+
   public static ServiceProvider providerContaining(final Service... services) {
     final Map<Class<? extends Service>, Service> servicesMap = new HashMap<Class<? extends Service>, Service>();
-    
+
     for (Service s : services) {
       servicesMap.put(s.getClass(), s);
     }
-    
+
     return new ServiceProvider() {
 
       @Override

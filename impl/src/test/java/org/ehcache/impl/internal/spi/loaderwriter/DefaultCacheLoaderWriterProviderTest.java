@@ -177,7 +177,7 @@ public class DefaultCacheLoaderWriterProviderTest {
     public Object load(final Object key) throws Exception {
       return object;
     }
- 
+
     @Override
     public void write(final Object key, final Object value) throws Exception {
       this.lastWritten = value;

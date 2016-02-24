@@ -26,12 +26,12 @@ import static org.junit.Assert.fail;
 import org.junit.Test;
 
 public class WriteBehindConfigurationBuilderTest {
-  
+
   @Test
   public void testDefaultUnBatchedConcurrency() {
     assertThat(newUnBatchedWriteBehindConfiguration().build().getConcurrency(), is(1));
   }
-  
+
   @Test
   public void testDefaultBatchedConcurrency() {
     assertThat(newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 10).build().getConcurrency(), is(1));
@@ -46,7 +46,7 @@ public class WriteBehindConfigurationBuilderTest {
       //expected
     }
   }
-  
+
   @Test
   public void testIllegalNonPositiveConcurrencyWhenBatched() {
     try {
@@ -56,12 +56,12 @@ public class WriteBehindConfigurationBuilderTest {
       //expected
     }
   }
-  
+
   @Test
   public void testDefaultUnBatchedQueueSize() {
     assertThat(newUnBatchedWriteBehindConfiguration().build().getMaxQueueSize(), is(Integer.MAX_VALUE));
   }
-  
+
   @Test
   public void testDefaultBatchedQueueSize() {
     assertThat(newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 10).build().getMaxQueueSize(), is(Integer.MAX_VALUE));
@@ -76,7 +76,7 @@ public class WriteBehindConfigurationBuilderTest {
       //expected
     }
   }
-  
+
   @Test
   public void testIllegalNonPositiveQueueSizeWhenBatched() {
     try {
@@ -86,17 +86,17 @@ public class WriteBehindConfigurationBuilderTest {
       //expected
     }
   }
-  
+
   @Test
   public void testDefaultUnBatchedThreadPoolAlias() {
     assertThat(newUnBatchedWriteBehindConfiguration().build().getThreadPoolAlias(), nullValue());
   }
-  
+
   @Test
   public void testDefaultBatchedThreadPoolAlias() {
     assertThat(newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 10).build().getThreadPoolAlias(), nullValue());
   }
-  
+
   @Test
   public void testDefaultBatchCoalescing() {
     assertThat(newBatchedWriteBehindConfiguration(1, TimeUnit.MINUTES, 10).build().getBatchingConfiguration().isCoalescing(), is(false));
@@ -111,7 +111,7 @@ public class WriteBehindConfigurationBuilderTest {
       //expected
     }
   }
-  
+
   @Test
   public void testIllegalNonPositiveBatchSize() {
     try {
@@ -121,5 +121,5 @@ public class WriteBehindConfigurationBuilderTest {
       //expected
     }
   }
-  
+
 }

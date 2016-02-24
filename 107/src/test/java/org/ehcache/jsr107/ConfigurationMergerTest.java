@@ -198,7 +198,7 @@ public class ConfigurationMergerTest {
     CacheConfigurationBuilder<Object, Object> builder = newCacheConfigurationBuilder(Object.class, Object.class)
         .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, CopierConfiguration.Type.KEY))
         .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, CopierConfiguration.Type.VALUE));
-    
+
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
     when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class))
         .thenReturn(builder);

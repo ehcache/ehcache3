@@ -61,7 +61,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     K key = factory.createKey(1L);
-    
+
     final Object badValue;
     if (factory.getValueType() == String.class) {
       badValue = this;
@@ -100,7 +100,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     } else {
       badKey = "badKey";
     }
-    
+
     try {
       kvStore2.computeIfAbsent(badKey, new Function() { // wrong key type
             @Override

@@ -22,7 +22,7 @@ package org.ehcache.exceptions;
 public class CacheIterationException extends RuntimeException {
 
   private static final long serialVersionUID = -2008756317259206440L;
-  
+
   /**
    * Creates an exception.
    */

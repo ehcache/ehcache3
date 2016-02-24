@@ -898,10 +898,10 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeWriter = new FakeCacheLoaderWriter(Collections.<String, String>singletonMap("key", "old-value"));
-    
+
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForUpdate("key", "old-value", "value")).thenReturn(Duration.ZERO);
-    
+
     final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
 
     ehcache.replace("key", "old-value", "value");

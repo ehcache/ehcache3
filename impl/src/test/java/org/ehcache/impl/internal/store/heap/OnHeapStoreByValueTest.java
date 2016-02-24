@@ -108,7 +108,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
       assertThat(cae.getCause(), instanceOf(SerializerException.class));
     }
   }
-  
+
   @Test
   public void testPutNotSerializableKey() throws Exception {
     OnHeapStore<Serializable, Serializable> store = newStore();
@@ -123,35 +123,35 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   @Test
   public void testValueUniqueObject()  throws Exception {
     OnHeapStore<Serializable, Serializable> store = newStore();
-    
+
     String key = "key";
     List<String> value = new ArrayList<String>();
     value.add("value");
-    
+
     store.put(key, (Serializable) value);
-    
+
     // mutate the value -- should not affect cache
     value.clear();
-    
+
     ValueHolder<Serializable> valueHolder = store.get(key);
     if (valueHolder.value() == value || ! valueHolder.value().equals(Collections.singletonList("value"))) {
       throw new AssertionError();
     }
   }
-  
+
   @Test
   public void testKeyUniqueObject() throws Exception {
     OnHeapStore<Serializable, Serializable> store = newStore();
-   
+
     List<String> key = new ArrayList<String>();
     key.add("key");
     String value = "value";
-    
+
     store.put((Serializable)key, value);
-    
+
     // mutate the key -- should not affect cache
     key.clear();
-    
+
     Serializable storeKey = store.iterator().next().getKey();
     if (storeKey == key || ! storeKey.equals(Collections.singletonList("key"))) {
       throw new AssertionError();

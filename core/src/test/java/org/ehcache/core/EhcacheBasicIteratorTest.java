@@ -325,17 +325,17 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   public void testIteratorCacheAccessException() throws Exception {
     Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
     doReturn("bar").when(valueHolder).value();
-    
+
     Cache.Entry<String, Store.ValueHolder<String>> storeEntry = mock(Cache.Entry.class);
     doReturn(valueHolder).when(storeEntry).getValue();
     doReturn("foo").when(storeEntry).getKey();
-    
+
     Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> storeIterator = mock(Store.Iterator.class);
     doReturn(true).when(storeIterator).hasNext();
     doReturn(storeEntry).when(storeIterator).next();
-    
+
     doReturn(storeIterator).when(this.store).iterator();
-    
+
     final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator, is(notNullValue()));
@@ -343,9 +343,9 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     Cache.Entry<String, String> entry = iterator.next();
     assertThat(entry.getKey(), is("foo"));
     assertThat(entry.getValue(), is("bar"));
-    
+
     doThrow(new CacheAccessException("")).when(storeIterator).next();
-    
+
     try {
       iterator.next();
       fail();
@@ -401,7 +401,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).writeAll(getAnyMapEntryIterable());
     doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).load(anyString());
     doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).loadAll(getAnyStringIterable());
-    
+
 
     return this.getEhcache(cacheLoaderWriter);
   }

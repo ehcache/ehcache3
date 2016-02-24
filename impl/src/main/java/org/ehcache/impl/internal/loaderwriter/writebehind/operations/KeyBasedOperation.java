@@ -17,13 +17,13 @@ package org.ehcache.impl.internal.loaderwriter.writebehind.operations;
 
 /**
  * Interface to implement operations that are performed with write-behind and based on a key
- * 
+ *
  * @author Geert Bevin
  * @author Chris Dennis
  *
  */
 public interface KeyBasedOperation<K> {
-  
+
   /**
    * Retrieves the element key for this operation.
    *

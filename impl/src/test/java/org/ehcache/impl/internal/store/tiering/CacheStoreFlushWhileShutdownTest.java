@@ -52,11 +52,11 @@ public class CacheStoreFlushWhileShutdownTest {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
-  
+
   @Test
   public void testCacheStoreReleaseFlushesEntries() throws Exception {
     File persistenceLocation = folder.newFolder("testCacheStoreReleaseFlushesEntries");
-    
+
     Store.Configuration<Number, String> configuration = new Store.Configuration<Number, String>() {
 
       @Override
@@ -137,7 +137,7 @@ public class CacheStoreFlushWhileShutdownTest {
     ServiceLocator serviceLocator1 = getServiceLocator(persistenceLocation);
     serviceLocator1.startAllServices();
     cacheStoreProvider.start(serviceLocator1);
-    
+
     LocalPersistenceService persistenceService1 = serviceLocator1.getService(LocalPersistenceService.class);
     PersistenceSpaceIdentifier persistenceSpace1 = persistenceService1.getOrCreatePersistenceSpace("testCacheStoreReleaseFlushesEntries");
     cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {serviceConfiguration, persistenceSpace1});

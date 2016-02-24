@@ -60,19 +60,19 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   private static final Logger LOGGER = LoggerFactory.getLogger(BatchingLocalHeapWriteBehindQueue.class);
 
   private final CacheLoaderWriter<K, V> cacheLoaderWriter;
-  
+
   private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<K, SingleOperation<K, V>>();
-  
+
   private final BlockingQueue executorQueue;
   private final ExecutorService executor;
   private final ScheduledExecutorService scheduledExecutor;
-  
+
   private final long maxWriteDelayMs;
   private final int batchSize;
   private final boolean coalescing;
 
   private volatile Batch openBatch;
-  
+
   public BatchingLocalHeapWriteBehindQueue(ExecutionService executionService, String defaultThreadPool, WriteBehindConfiguration config, CacheLoaderWriter<K, V> cacheLoaderWriter) {
     super(cacheLoaderWriter);
     this.cacheLoaderWriter = cacheLoaderWriter;
@@ -97,7 +97,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   protected SingleOperation<K, V> getOperation(K key) {
     return latest.get(key);
   }
-  
+
   @Override
   protected void addOperation(SingleOperation<K, V> operation) {
     latest.put(operation.getKey(), operation);
@@ -131,7 +131,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
       LOGGER.error("Exception running batch on shutdown", e);
     } finally {
       /*
-       * The scheduled executor should only contain cancelled tasks, but these 
+       * The scheduled executor should only contain cancelled tasks, but these
        * can stall a regular shutdown for up to max-write-delay.  So we just
        * kill it now.
        */
@@ -147,7 +147,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
       return new SimpleBatch(batchSize);
     }
   }
-  
+
   private Future<?> submit(Batch batch) {
     return executor.submit(batch);
   }
@@ -156,7 +156,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
    * Gets the best estimate for items in the queue still awaiting processing.
    * Since the value returned is a rough estimate, it can sometimes be more than
    * the number of items actually in the queue but not less.
-   * 
+   *
    * @return the amount of elements still awaiting processing.
    */
   @Override
@@ -166,10 +166,10 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
   }
 
   abstract class Batch implements Runnable {
-    
+
     private final int batchSize;
     private final ScheduledFuture<?> expireTask;
-    
+
     Batch(int size) {
       this.batchSize = size;
       this.expireTask = scheduledExecutor.schedule(new Runnable() {
@@ -184,7 +184,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
         }
       }, maxWriteDelayMs, MILLISECONDS);
     }
-    
+
     public boolean add(SingleOperation<K, V> operation) {
       internalAdd(operation);
       return size() >= batchSize;
@@ -220,16 +220,16 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
     protected abstract int size();
   }
-  
+
   private class SimpleBatch extends Batch {
 
     private final List<SingleOperation<K, V>> operations;
-    
+
     SimpleBatch(int size) {
       super(size);
       this.operations = new ArrayList<SingleOperation<K, V>>(size);
     }
-    
+
     @Override
     public void internalAdd(SingleOperation<K, V> operation) {
       operations.add(operation);
@@ -245,7 +245,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
       return operations.size();
     }
   }
-  
+
   private class CoalescingBatch extends Batch {
 
     private final LinkedHashMap<K, SingleOperation<K, V>> operations;
@@ -254,7 +254,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
       super(size);
       this.operations = new LinkedHashMap<K, SingleOperation<K, V>>(size);
     }
-    
+
     @Override
     public void internalAdd(SingleOperation<K, V> operation) {
       operations.put(operation.getKey(), operation);
@@ -302,7 +302,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
         throw new AssertionError();
       }
     }
-    
+
     if (!activeWriteBatch.isEmpty()) {
       closedBatches.add(new WriteAllOperation<K, V>(activeWriteBatch));
     }

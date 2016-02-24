@@ -34,5 +34,5 @@ public class SPIStoreTester<K, V> extends SPITester {
   public SPIStoreTester(final StoreFactory<K,V> factory) {
     this.factory = factory;
   }
-  
+
 }

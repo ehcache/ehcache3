@@ -35,7 +35,7 @@ import org.ehcache.exceptions.BulkCacheWritingException;
  *
  * @see org.ehcache.exceptions.CacheLoadingException
  * @see org.ehcache.exceptions.CacheWritingException
- * 
+ *
  * @author Alex Snaps
  */
 public interface CacheLoaderWriter<K, V> {

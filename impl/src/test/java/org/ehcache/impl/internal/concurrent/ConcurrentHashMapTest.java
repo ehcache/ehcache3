@@ -46,14 +46,14 @@ public class ConcurrentHashMapTest {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         assertThat(map.getEvictionCandidate(new Random(), 1, null, Eviction.<String, String>none()), nullValue());
     }
-    
+
     @Test
     public void testEmptyRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
         assertThat(map.getEvictionCandidate(new Random(), 0, null, Eviction.<String, String>none()), nullValue());
     }
-    
+
     @Test
     public void testOversizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
@@ -62,7 +62,7 @@ public class ConcurrentHashMapTest {
         assertThat(candidate.getKey(), is("foo"));
         assertThat(candidate.getValue(), is("bar"));
     }
-    
+
     @Test
     public void testUndersizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
@@ -77,7 +77,7 @@ public class ConcurrentHashMapTest {
         }, Eviction.<String, String>none());
         assertThat(candidate, notNullValue());
     }
-    
+
     @Test
     public void testFullyVetoedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
@@ -92,7 +92,7 @@ public class ConcurrentHashMapTest {
         });
         assertThat(candidate, nullValue());
     }
-    
+
     @Test
     public void testSelectivelyVetoedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
@@ -113,7 +113,7 @@ public class ConcurrentHashMapTest {
         });
         assertThat(candidate.getKey().length(), is(1));
     }
-    
+
     @Test
     public void testReplaceWithWeirdBehavior() {
         ConcurrentHashMap<String, Element> elementMap = new ConcurrentHashMap<String, Element>();
@@ -154,7 +154,7 @@ public class ConcurrentHashMapTest {
     static class Element {
         @SuppressWarnings("unused")
         private final Object key;
-        
+
         @SuppressWarnings("unused")
         private final Object value;
 

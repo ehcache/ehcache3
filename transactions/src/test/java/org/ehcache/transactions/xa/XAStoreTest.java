@@ -687,7 +687,7 @@ public class XAStoreTest {
     testTransactionManager.begin();
     xaStore.put(1L, "one");
     testTransactionManager.commit();
-    
+
     testTimeSource.advanceTime(1000);
     testTransactionManager.begin();
     assertNull(xaStore.get(1L));

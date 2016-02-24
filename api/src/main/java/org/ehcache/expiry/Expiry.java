@@ -28,34 +28,34 @@ public interface Expiry<K, V> {
 
   /**
    * Get the expiration period (relative to the current time) when a entry is initially added to a {@link org.ehcache.Cache}
-   * 
+   *
    * @param key the key of the newly added entry
-   * @param value the value of the newly added entry 
-   * @return a non-null {@link Duration} 
+   * @param value the value of the newly added entry
+   * @return a non-null {@link Duration}
    */
   Duration getExpiryForCreation(K key, V value);
 
   /**
    * Get the expiration period (relative to the current time) when an existing entry is accessed from a {@link org.ehcache.Cache}
-   * 
+   *
    * @param key the key of the accessed entry
    * @param value the value of the accessed entry
-   * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time 
+   * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time
    */
   Duration getExpiryForAccess(K key, V value);
-  
+
 
   /**
    * Get the expiration period (relative to the current time) when an existing entry is updated in a {@link org.ehcache.Cache}
    * NOTE: Some cache configurations (eg. caches with eventual consistency) may use local (ie. non-consistent) state
    * to decide whether to call getExpiryForUpdate() vs. getExpiryForCreation(). For these cache configurations it is advised
    * to return the same value from both of these methods
-   * 
+   *
    * @param key the key of the updated entry
    * @param oldValue the previous value of the entry
    * @param newValue the new value of the entry
-   * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time 
-   */  
+   * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time
+   */
   Duration getExpiryForUpdate(K key, V oldValue, V newValue);
 
 }

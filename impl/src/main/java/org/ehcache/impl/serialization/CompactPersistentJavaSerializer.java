@@ -39,7 +39,7 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T>, Closea
 
   private final File stateFile;
   private final CompactJavaSerializer<T> serializer;
-  
+
   public CompactPersistentJavaSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistence) throws IOException, ClassNotFoundException {
     this.stateFile = new File(persistence.getDirectory(), "CompactPersistentJavaSerializer.state");
     if (stateFile.exists()) {
@@ -71,7 +71,7 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T>, Closea
       fin.close();
     }
   }
-  
+
   private static void writeSerializationMappings(File stateFile, Map<Integer, ObjectStreamClass> mappings) throws IOException {
     OutputStream fout = new FileOutputStream(stateFile);
     try {
@@ -100,5 +100,5 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T>, Closea
   public boolean equals(T object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     return serializer.equals(object, binary);
   }
-  
+
 }

@@ -21,7 +21,7 @@ import java.io.File;
 
 @Parameters(commandNames = "destroy", commandDescription = "destroy a clustered cache manager, and all of it's caches")
 class DestroyCacheManager extends AbstractCommand {
-  
+
   @Parameter(names = {"-c", "--config"}, required = true, description = "Configuration file to create from")
   private File config;
 
@@ -31,7 +31,7 @@ class DestroyCacheManager extends AbstractCommand {
   DestroyCacheManager(BaseOptions base) {
     super(base);
   }
-  
+
   @Override
   public int execute() {
     if (getClusterLocationOverride() == null) {
