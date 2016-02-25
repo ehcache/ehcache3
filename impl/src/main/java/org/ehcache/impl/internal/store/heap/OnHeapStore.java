@@ -35,15 +35,13 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
+import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ScopedStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
-import org.ehcache.impl.internal.store.heap.holders.LookupOnlyOnHeapKey;
-import org.ehcache.impl.internal.store.heap.holders.OnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.core.spi.time.TimeSource;
@@ -70,7 +68,6 @@ import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
-import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -103,7 +100,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  *   <li>Statistics</li>
  * </ul></p>
  *
- * The storage of mappings is handled by a {@link ConcurrentHashMap}.
+ * The storage of mappings is handled by a {@link ConcurrentHashMap} accessed through {@link Backend}.
  *
  * @author Alex Snaps
  */
@@ -143,10 +140,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   static final int SAMPLE_SIZE = 8;
 
-  private final MapWrapper<K, V> map;
+  private final Backend<K, V> map;
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private final Copier<K> keyCopier;
   private final Copier<V> valueCopier;
 
   private final SizeOfEngine sizeOfEngine;
@@ -229,10 +225,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
     this.expiry = config.getExpiry();
-    this.keyCopier = keyCopier;
     this.valueCopier = valueCopier;
     this.storeEventDispatcher = eventDispatcher;
-    this.map = new MapWrapper<K, V>(this.keyCopier);
+    if (keyCopier instanceof IdentityCopier) {
+      this.map = new SimpleBackend<K, V>();
+    } else {
+      this.map = new KeyCopyBackend<K, V>(keyCopier);
+    }
     onHeapStoreStatsSettings = new OnHeapStoreStatsSettings(this);
     StatisticsManager.associate(onHeapStoreStatsSettings).withParent(this);
     getObserver = operation(StoreOperationOutcomes.GetOutcome.class).named("get").of(this).tag("onheap-store").build();
@@ -603,13 +602,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   private void invalidate() {
-    if(map.keyCopyMap != null) {
-      for(OnHeapKey<K> key : map.keyCopyMap.keySet()) {
-        try {
-          invalidate(key.getActualKeyObject());
-        } catch (CacheAccessException cae) {
-          LOG.warn("Failed to invalidate mapping for key {}", key, cae);
-        }
+    for(K key : map.keySet()) {
+      try {
+        invalidate(key);
+      } catch (CacheAccessException cae) {
+        LOG.warn("Failed to invalidate mapping for key {}", key, cae);
       }
     }
     map.clear();
@@ -686,7 +683,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
     try {
       getOrComputeIfAbsentObserver.begin();
-      MapWrapper<K, V> backEnd = map;
+      Backend<K, V> backEnd = map;
 
       OnHeapValueHolder<V> cachedValue = backEnd.get(key);
       final long now = timeSource.getTimeMillis();
@@ -778,7 +775,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private OnHeapValueHolder<V> invalidateInGetorComputeIfAbsent(MapWrapper<K, V> map, final K key, final ValueHolder<V> value, final Fault<V> fault, final long now) {
+  private OnHeapValueHolder<V> invalidateInGetorComputeIfAbsent(Backend<K, V> map, final K key, final ValueHolder<V> value, final Fault<V> fault, final long now) {
     final AtomicReference<OnHeapValueHolder<V>> toInvalidate = new AtomicReference<OnHeapValueHolder<V>>();
     map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
@@ -1543,7 +1540,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     if (candidate == null) {
       // 2nd attempt without any veto
-      candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, Eviction.none());
+      candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, Eviction.<Object, OnHeapValueHolder<?>>none());
     }
 
     if (candidate == null) {
@@ -1695,107 +1692,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public void initHigherCachingTier(HigherCachingTier<?, ?> resource) {
       initStore((Store<?, ?>) resource);
-    }
-  }
-
-  // The idea of this wrapper is to let all the other code deal in terms of <K> and hide
-  // the potentially different key type of the underlying CHM
-  private static class MapWrapper<K, V> {
-
-    private final ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
-    private final Copier<K> keyCopier;
-
-    MapWrapper(Copier<K> keyCopier) {
-      this.keyCopier = keyCopier;
-      keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>>();
-    }
-
-    boolean remove(K key, OnHeapValueHolder<V> value) {
-      return keyCopyMap.remove(lookupOnlyKey(key), value);
-    }
-
-    public Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super ValueHolder<V>> prioritizer, final EvictionVeto<? super OnHeapKey<K>, ? super OnHeapValueHolder<V>> evictionVeto) {
-      Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> candidate = keyCopyMap.getEvictionCandidate(random, size, prioritizer, evictionVeto);
-
-      if (candidate == null) {
-        return null;
-      } else {
-        return new SimpleEntry<K, OnHeapValueHolder<V>>(candidate.getKey().getActualKeyObject(), candidate.getValue());
-      }
-    }
-
-    int size() {
-      return keyCopyMap.size();
-    }
-
-    java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> entrySetIterator() {
-
-      final java.util.Iterator<Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>>> iter = keyCopyMap.entrySet().iterator();
-      return new java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>>() {
-        @Override
-        public boolean hasNext() {
-          return iter.hasNext();
-        }
-
-        @Override
-        public Map.Entry<K, OnHeapValueHolder<V>> next() {
-          Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry = iter.next();
-          return new SimpleEntry<K, OnHeapValueHolder<V>>(entry.getKey().getActualKeyObject(), entry.getValue());
-        }
-
-        @Override
-        public void remove() {
-          iter.remove();
-        }
-      };
-    }
-
-    OnHeapValueHolder<V> compute(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
-
-      return keyCopyMap.compute(makeKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-        @Override
-        public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
-          return computeFunction.apply(mappedKey.getActualKeyObject(), mappedValue);
-        }
-      });
-    }
-
-    void clear() {
-      keyCopyMap.clear();
-    }
-
-    OnHeapValueHolder<V> remove(K key) {
-      return keyCopyMap.remove(lookupOnlyKey(key));
-    }
-
-    OnHeapValueHolder<V> computeIfPresent(final K key, final BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>> computeFunction) {
-
-      return keyCopyMap.computeIfPresent(makeKey(key), new BiFunction<OnHeapKey<K>, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-        @Override
-        public OnHeapValueHolder<V> apply(OnHeapKey<K> mappedKey, OnHeapValueHolder<V> mappedValue) {
-          return computeFunction.apply(mappedKey.getActualKeyObject(), mappedValue);
-        }
-      });
-    }
-
-    private OnHeapKey<K> makeKey(K key) {
-      return new CopiedOnHeapKey<K>(key, keyCopier);
-    }
-
-    private OnHeapKey<K> lookupOnlyKey(K key) {
-      return new LookupOnlyOnHeapKey<K>(key);
-    }
-
-    public OnHeapValueHolder<V> get(K key) {
-      return keyCopyMap.get(lookupOnlyKey(key));
-    }
-
-    public OnHeapValueHolder<V> putIfAbsent(K key, OnHeapValueHolder<V> valueHolder) {
-      return keyCopyMap.putIfAbsent(makeKey(key), valueHolder);
-    }
-
-    public boolean replace(K key, OnHeapValueHolder<V> oldValue, OnHeapValueHolder<V> newValue) {
-      return keyCopyMap.replace(lookupOnlyKey(key), oldValue, newValue);
     }
   }
 
