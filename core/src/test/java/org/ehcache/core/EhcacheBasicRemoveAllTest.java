@@ -107,7 +107,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
     try {
       ehcache.removeAll(null);
       fail();
@@ -131,7 +131,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         keys.add(null);
       }
     }
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
     try {
       ehcache.removeAll(keys);
       fail();
@@ -143,7 +143,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
@@ -156,7 +156,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
     ehcache.removeAll(Collections.<String>emptySet());
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -169,7 +169,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>empty request set</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
@@ -185,7 +185,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.removeAll(Collections.<String>emptySet());
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -201,7 +201,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -214,7 +214,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -230,7 +230,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -246,7 +246,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -264,7 +264,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -278,7 +278,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -296,7 +296,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -314,7 +314,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -331,7 +331,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -352,7 +352,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -372,7 +372,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -391,7 +391,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -414,7 +414,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -432,7 +432,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -458,7 +458,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -479,7 +479,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -510,7 +510,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -529,7 +529,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -560,7 +560,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -580,7 +580,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -607,7 +607,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -630,7 +630,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -668,7 +668,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -689,7 +689,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     final Set<String> expectedFailures = KEY_SET_C;
@@ -727,7 +727,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -746,7 +746,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -770,7 +770,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -792,7 +792,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -820,7 +820,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -840,7 +840,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -868,7 +868,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -886,7 +886,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     ehcache.removeAll(contentUpdates);
@@ -904,7 +904,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -925,7 +925,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     ehcache.removeAll(contentUpdates);
@@ -946,7 +946,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -965,7 +965,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     ehcache.removeAll(contentUpdates);
@@ -986,7 +986,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1004,7 +1004,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1031,7 +1031,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1052,7 +1052,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1083,7 +1083,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1102,7 +1102,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1133,7 +1133,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1153,7 +1153,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1180,7 +1180,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1203,7 +1203,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1242,7 +1242,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1263,7 +1263,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1302,7 +1302,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1321,7 +1321,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1345,7 +1345,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1367,7 +1367,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1395,7 +1395,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1415,7 +1415,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1443,7 +1443,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1461,7 +1461,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -1479,7 +1479,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1500,7 +1500,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -1521,7 +1521,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1540,7 +1540,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -1561,7 +1561,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1579,7 +1579,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1606,7 +1606,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1627,7 +1627,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1658,7 +1658,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1677,7 +1677,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1708,7 +1708,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1728,7 +1728,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1756,7 +1756,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1779,7 +1779,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1819,7 +1819,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1840,7 +1840,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1880,7 +1880,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1899,7 +1899,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     try {
@@ -1924,7 +1924,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1946,7 +1946,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     try {
@@ -1975,7 +1975,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#removeAll(Set)} for
+   * Tests {@link EhcacheWithLoaderWriter#removeAll(Set)} for
    * <ul>
    *    <li>non-empty request set</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1995,7 +1995,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("deleteAll failed")).when(this.cacheLoaderWriter).deleteAll(getAnyStringIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Set<String> contentUpdates = fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D);
     try {
@@ -2024,16 +2024,16 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using the
+   * Gets an initialized {@link EhcacheWithLoaderWriter Ehcache} instance using the
    * {@link CacheLoaderWriter} provided.
    *
    * @param cacheLoaderWriter
    *    the {@code CacheLoaderWriter} to use; may be {@code null}
    *
-   * @return a new {@code Ehcache} instance
+   * @return a new {@code EhcacheWithLoaderWriter} instance
    */
-  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBasicRemoveAllTest"));
+  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicRemoveAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -2102,7 +2102,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @param originalStoreContent  the original content provided to {@code fakeStore}
    * @param fakeLoaderWriter the {@link org.ehcache.core.EhcacheBasicCrudBase.FakeCacheLoaderWriter FakeCacheLoaderWriter} instances used in the test
    * @param originalWriterContent the original content provided to {@code fakeLoaderWriter}
-   * @param contentUpdates the {@code Set} provided to the {@link Ehcache#removeAll(java.util.Set)} call in the test
+   * @param contentUpdates the {@code Set} provided to the {@link EhcacheWithLoaderWriter#removeAll(java.util.Set)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
    * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWritingException#getSuccesses()}

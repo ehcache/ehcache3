@@ -465,9 +465,9 @@ public class EhcacheManagerTest {
     EhcacheManager cacheManager = new EhcacheManager(config, services) {
 
       @Override
-      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
+      <K, V> EhcacheWithLoaderWriter<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                             final Class<K> keyType, final Class<V> valueType) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+        final EhcacheWithLoaderWriter<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         caches.add(ehcache);
         if(caches.size() == 1) {
           when(storeProvider.createStore(Matchers.<Store.Configuration<K,V>>anyObject(),
@@ -478,7 +478,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      protected void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
+      protected void closeEhcache(final String alias, final EhcacheWithLoaderWriter<?, ?> ehcache) {
         super.closeEhcache(alias, ehcache);
         caches.remove(ehcache);
       }
@@ -518,15 +518,15 @@ public class EhcacheManagerTest {
     EhcacheManager cacheManager = new EhcacheManager(config, services) {
 
       @Override
-      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
+      <K, V> EhcacheWithLoaderWriter<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                             final Class<K> keyType, final Class<V> valueType) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+        final EhcacheWithLoaderWriter<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         caches.add(alias);
         return ehcache;
       }
 
       @Override
-      protected void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
+      protected void closeEhcache(final String alias, final EhcacheWithLoaderWriter<?, ?> ehcache) {
         super.closeEhcache(alias, ehcache);
         if(alias.equals("foobar")) {
           throw thrown;
@@ -620,13 +620,13 @@ public class EhcacheManagerTest {
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
     EhcacheManager cacheManager = new EhcacheManager(config, services) {
       @Override
-      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
-        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+      <K, V> EhcacheWithLoaderWriter<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
+        final EhcacheWithLoaderWriter<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         return spy(ehcache);
       }
     };
     cacheManager.init();
-    Ehcache<Object, Object> testCache = (Ehcache<Object, Object>) cacheManager.getCache("foo", Object.class, Object.class);
+    EhcacheWithLoaderWriter<Object, Object> testCache = (EhcacheWithLoaderWriter<Object, Object>) cacheManager.getCache("foo", Object.class, Object.class);
     cacheManager.close();
     verify(testCache).close();
     verify(cenlServiceMock, times(1)).shutdown();

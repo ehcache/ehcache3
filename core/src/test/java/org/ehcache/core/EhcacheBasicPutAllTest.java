@@ -90,7 +90,7 @@ import static org.mockito.Mockito.when;
  * the potential test cases by about 70% without, hopefully, compromising code
  * coverage.
  * <p/>
- * Since the processing in {@link Ehcache#putAll} relies on non-deterministically ordered Maps in several stages
+ * Since the processing in {@link EhcacheWithLoaderWriter#putAll} relies on non-deterministically ordered Maps in several stages
  * of processing, the result of {@code putAll} when handling failures is *not* deterministic -- changes in
  * iteration order of the {@code putAll} request map can change the results of the {@code putAll} operation under
  * error scenarios.  The test assertions attempt to confirm results in aggregate over successes and failures and
@@ -128,7 +128,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
     try {
       ehcache.putAll(null);
       fail();
@@ -153,7 +153,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         entries.put(null, "nullKey");
       }
     }
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
     try {
       ehcache.putAll(entries);
       fail();
@@ -178,7 +178,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         entries.put("keyA2a", null);
       }
     }
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
     try {
       ehcache.putAll(entries);
       fail();
@@ -190,7 +190,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
@@ -203,7 +203,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
     ehcache.putAll(Collections.<String, String>emptyMap());
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -216,7 +216,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>empty request map</li>
    *    <li>populated {@code Store} (keys not relevant)</li>
@@ -232,7 +232,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalStoreContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
     ehcache.putAll(Collections.<String, String>emptyMap());
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -247,7 +247,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -260,7 +260,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -276,7 +276,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -292,7 +292,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -310,7 +310,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -324,7 +324,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -342,7 +342,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -360,7 +360,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -377,7 +377,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -398,7 +398,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -418,7 +418,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -437,7 +437,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -460,7 +460,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -478,7 +478,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -504,7 +504,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -525,7 +525,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -556,7 +556,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -575,7 +575,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_C);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -606,7 +606,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -626,7 +626,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -653,7 +653,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -676,7 +676,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = contentUpdates.keySet();
@@ -711,7 +711,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -732,7 +732,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     final Set<String> expectedFailures = KEY_SET_C;
@@ -767,7 +767,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -786,7 +786,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     try {
@@ -810,7 +810,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -832,7 +832,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     try {
@@ -861,7 +861,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -881,7 +881,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     try {
@@ -910,7 +910,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -928,7 +928,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
@@ -946,7 +946,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -967,7 +967,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
@@ -988,7 +988,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1007,7 +1007,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
@@ -1028,7 +1028,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1046,7 +1046,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1073,7 +1073,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1094,7 +1094,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1125,7 +1125,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1144,7 +1144,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1175,7 +1175,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1195,7 +1195,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1222,7 +1222,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1245,7 +1245,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1281,7 +1281,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1302,7 +1302,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1337,7 +1337,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1356,7 +1356,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     try {
@@ -1380,7 +1380,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1402,7 +1402,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     try {
@@ -1431,7 +1431,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1451,7 +1451,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     try {
@@ -1480,7 +1480,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1498,7 +1498,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -1516,7 +1516,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1537,7 +1537,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -1558,7 +1558,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1577,7 +1577,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -1598,7 +1598,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1616,7 +1616,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1643,7 +1643,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1664,7 +1664,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1695,7 +1695,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1714,7 +1714,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent, KEY_SET_D);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = KEY_SET_D;
@@ -1745,7 +1745,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1765,7 +1765,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1793,7 +1793,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1816,7 +1816,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1852,7 +1852,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1873,7 +1873,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     fakeLoaderWriter.setCompleteFailureKey("keyC4");
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     final Set<String> expectedFailures = union(KEY_SET_D, Collections.singleton("keyC4"));
@@ -1909,7 +1909,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1928,7 +1928,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     try {
@@ -1953,7 +1953,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -1975,7 +1975,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     try {
@@ -2005,7 +2005,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link Ehcache#putAll(Map)} for
+   * Tests {@link EhcacheWithLoaderWriter#putAll(Map)} for
    * <ul>
    *    <li>non-empty request map</li>
    *    <li>populated {@code Store} - some keys overlap request</li>
@@ -2025,7 +2025,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception("writeAll failed")).when(this.cacheLoaderWriter).writeAll(getAnyEntryIterable());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_B, KEY_SET_C, KEY_SET_D));
     try {
@@ -2067,7 +2067,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForCreation(any(String.class), any(String.class))).thenReturn(Duration.ZERO);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
@@ -2097,7 +2097,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForUpdate(any(String.class), any(String.class), any(String.class))).thenReturn(Duration.ZERO);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     ehcache.putAll(contentUpdates);
@@ -2120,7 +2120,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using the
+   * Gets an initialized {@link EhcacheWithLoaderWriter Ehcache} instance using the
    * {@link CacheLoaderWriter} provided.
    *
    * @param cacheLoaderWriter
@@ -2128,18 +2128,18 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *
    * @return a new {@code Ehcache} instance
    */
-  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
     return getEhcache(cacheLoaderWriter, CACHE_CONFIGURATION);
   }
 
-  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
+  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<String, String> expiry) {
     CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null,
         expiry, ResourcePoolsHelper.createHeapOnlyPools());
     return getEhcache(cacheLoaderWriter, config);
   }
 
-  private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBasicPutAllTest"));
+  private EhcacheWithLoaderWriter<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter, CacheConfiguration<String, String> config) {
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -2209,7 +2209,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * @param originalStoreContent  the original content provided to {@code fakeStore}
    * @param fakeLoaderWriter the {@link org.ehcache.core.EhcacheBasicCrudBase.FakeCacheLoaderWriter FakeCacheLoaderWriter} instances used in the test
    * @param originalWriterContent the original content provided to {@code fakeLoaderWriter}
-   * @param contentUpdates the {@code Map} provided to the {@link Ehcache#putAll(java.util.Map)} call in the test
+   * @param contentUpdates the {@code Map} provided to the {@link EhcacheWithLoaderWriter#putAll(java.util.Map)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
    * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWritingException#getSuccesses()}

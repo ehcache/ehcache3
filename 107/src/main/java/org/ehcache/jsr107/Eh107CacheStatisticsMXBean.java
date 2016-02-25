@@ -16,7 +16,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.Cache;
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.management.ManagementRegistryService;
@@ -65,7 +65,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
 
   Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistryService managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
-    this.bulkMethodEntries = ((Ehcache<?, ?>) cache).getBulkMethodEntries();
+    this.bulkMethodEntries = ((EhcacheWithLoaderWriter<?, ?>) cache).getBulkMethodEntries();
 
     get = findCacheStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
     put = findCacheStatistic(cache, CacheOperationOutcomes.PutOutcome.class, "put");

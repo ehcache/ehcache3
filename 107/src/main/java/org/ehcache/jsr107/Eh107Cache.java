@@ -15,7 +15,7 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.Jsr107Cache;
@@ -79,7 +79,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       registerEhcacheListeners(entry.getKey(), entry.getValue());
     }
 
-    this.jsr107Cache = ((Ehcache<K, V>) ehCache).getJsr107Cache();
+    this.jsr107Cache = ((EhcacheWithLoaderWriter<K, V>) ehCache).getJsr107Cache();
   }
 
   @Override

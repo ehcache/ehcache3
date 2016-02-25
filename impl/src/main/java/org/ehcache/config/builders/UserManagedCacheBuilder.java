@@ -17,7 +17,7 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.Cache;
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.config.BaseCacheConfiguration;
@@ -314,11 +314,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     } else {
       String loggerName;
       if (id != null) {
-        loggerName = Ehcache.class.getName() + "." + id;
+        loggerName = EhcacheWithLoaderWriter.class.getName() + "-" + id;
       } else {
-        loggerName = Ehcache.class.getName() + ".UserManaged." + instanceId.incrementAndGet();
+        loggerName = EhcacheWithLoaderWriter.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
       }
-      Ehcache<K, V> cache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, LoggerFactory.getLogger(loggerName));
+      EhcacheWithLoaderWriter<K, V> cache = new EhcacheWithLoaderWriter<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, LoggerFactory.getLogger(loggerName));
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
