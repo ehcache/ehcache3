@@ -18,8 +18,8 @@ package org.ehcache.management.registry;
 import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.management.ManagementRegistryService;
@@ -51,7 +51,7 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
 
   private final ManagementRegistryServiceConfiguration configuration;
   private volatile ScheduledExecutorService statisticsExecutor;
-  private volatile EhcacheManager cacheManager;
+  private volatile InternalCacheManager cacheManager;
 
   public DefaultManagementRegistryService() {
     this(new DefaultManagementRegistryConfiguration());

@@ -16,23 +16,24 @@
 
 package org.ehcache.core;
 
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.spi.ServiceProvider;
 
 /**
  * @author Mathieu Carbou
  */
 public class DefaultCacheManagerProviderService implements CacheManagerProviderService {
 
-  private final EhcacheManager ehcacheManager;
+  private final InternalCacheManager cacheManager;
 
-  public DefaultCacheManagerProviderService(EhcacheManager ehcacheManager) {
-    this.ehcacheManager = ehcacheManager;
+  public DefaultCacheManagerProviderService(InternalCacheManager cacheManager) {
+    this.cacheManager = cacheManager;
   }
 
   @Override
-  public EhcacheManager getCacheManager() {
-    return ehcacheManager;
+  public InternalCacheManager getCacheManager() {
+    return cacheManager;
   }
 
   @Override

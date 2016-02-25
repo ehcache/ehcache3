@@ -17,7 +17,6 @@ package org.ehcache.management.registry;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
-import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
@@ -29,6 +28,7 @@ import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +69,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   private volatile TimeSource timeSource;
   private volatile ManagementRegistryService managementRegistry;
   private volatile ScheduledExecutorService scheduledExecutorService;
-  private volatile EhcacheManager cacheManager;
+  private volatile InternalCacheManager cacheManager;
   private volatile ManagementRegistryServiceConfiguration configuration;
 
   public DefaultCollectorService(MessageConsumer messageConsumer) {

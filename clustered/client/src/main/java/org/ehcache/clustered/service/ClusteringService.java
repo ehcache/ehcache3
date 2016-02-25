@@ -14,19 +14,12 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.service;
+package org.ehcache.clustered.service;
 
-import org.ehcache.CacheManager;
-import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.spi.service.Service;
 
 /**
- * Special service that services can depend onto to be able to recover the instance of the current {@link CacheManager}
- *
- * @author Mathieu Carbou
+ * @author Clifford W. Johnson
  */
-public interface CacheManagerProviderService extends Service {
-
-  InternalCacheManager getCacheManager();
-
+public interface ClusteringService extends Service {
 }

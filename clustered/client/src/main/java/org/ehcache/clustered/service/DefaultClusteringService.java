@@ -14,19 +14,29 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.service;
+package org.ehcache.clustered.service;
 
-import org.ehcache.CacheManager;
-import org.ehcache.core.spi.cache.InternalCacheManager;
-import org.ehcache.spi.service.Service;
+import org.ehcache.clustered.config.ClusteringServiceConfiguration;
+import org.ehcache.spi.ServiceProvider;
 
 /**
- * Special service that services can depend onto to be able to recover the instance of the current {@link CacheManager}
- *
- * @author Mathieu Carbou
+ * @author Clifford W. Johnson
  */
-public interface CacheManagerProviderService extends Service {
+public class DefaultClusteringService implements ClusteringService {
 
-  InternalCacheManager getCacheManager();
+  private final ClusteringServiceConfiguration config;
 
+  public DefaultClusteringService(final ClusteringServiceConfiguration configuration) {
+    this.config = configuration;
+  }
+
+  @Override
+  public void start(final ServiceProvider serviceProvider) {
+    // TODO: Implement start
+  }
+
+  @Override
+  public void stop() {
+    // TODO: Implement stop
+  }
 }

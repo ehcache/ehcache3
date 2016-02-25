@@ -16,9 +16,9 @@
 package org.ehcache.management.registry;
 
 import org.ehcache.Cache;
-import org.ehcache.core.EhcacheManager;
 import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
@@ -53,9 +53,10 @@ public class DefaultSharedManagementService implements SharedManagementService {
   public void start(final ServiceProvider serviceProvider) {
     final ManagementRegistryService managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     final Context cmContext = managementRegistry.getConfiguration().getContext();
-    final EhcacheManager ehcacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
+    final InternalCacheManager cacheManager =
+        serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
-    ehcacheManager.registerListener(new CacheManagerListener() {
+    cacheManager.registerListener(new CacheManagerListener() {
       @Override
       public void cacheAdded(String alias, Cache<?, ?> cache) {
       }
@@ -74,7 +75,7 @@ public class DefaultSharedManagementService implements SharedManagementService {
 
           case UNINITIALIZED:
             delegates.remove(cmContext);
-            ehcacheManager.deregisterListener(this);
+            cacheManager.deregisterListener(this);
             break;
 
           case MAINTENANCE:

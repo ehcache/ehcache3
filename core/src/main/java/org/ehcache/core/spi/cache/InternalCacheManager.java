@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.service;
+package org.ehcache.core.spi.cache;
+
 
 import org.ehcache.CacheManager;
-import org.ehcache.core.spi.cache.InternalCacheManager;
-import org.ehcache.spi.service.Service;
+import org.ehcache.core.events.CacheManagerListener;
 
 /**
- * Special service that services can depend onto to be able to recover the instance of the current {@link CacheManager}
+ * The {@code Service}-facing version of a {@code CacheManager}.  This interface adds
+ * methods used internally by service implementations.
  *
- * @author Mathieu Carbou
+ * @author Clifford W. Johnson
  */
-public interface CacheManagerProviderService extends Service {
+public interface InternalCacheManager extends CacheManager {
+  void registerListener(CacheManagerListener listener);
 
-  InternalCacheManager getCacheManager();
-
+  void deregisterListener(CacheManagerListener listener);
 }

@@ -23,10 +23,16 @@ package org.ehcache.config;
 public interface ResourceType {
 
   /**
-   * Whether the resource supports persistence
+   * Whether the resource supports persistence.
    * @return <code>true</code> if it supports persistence
    */
   boolean isPersistable();
+
+  /**
+   * Whether the resource requires serialization support.
+   * @return <code>true</code> if serializers are required
+   */
+  boolean requiresSerialization();
 
   /**
    * An enumeration of resource types handled by core ehcache.
@@ -35,26 +41,33 @@ public interface ResourceType {
     /**
      * Heap resource.
      */
-    HEAP(false),
+    HEAP(false, false),
     /**
      * OffHeap resource.
      */
-    OFFHEAP(false),
+    OFFHEAP(false, true),
     /**
      * Disk resource.
      */
-    DISK(true);
+    DISK(true, true);
 
 
     private final boolean persistable;
+    private final boolean requiresSerialization;
 
-    Core(boolean persistable) {
+    Core(boolean persistable, final boolean requiresSerialization) {
       this.persistable = persistable;
+      this.requiresSerialization = requiresSerialization;
     }
 
     @Override
     public boolean isPersistable() {
       return persistable;
+    }
+
+    @Override
+    public boolean requiresSerialization() {
+      return requiresSerialization;
     }
 
     @Override

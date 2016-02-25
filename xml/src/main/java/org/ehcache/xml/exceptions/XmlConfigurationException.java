@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.service;
-
-import org.ehcache.CacheManager;
-import org.ehcache.core.spi.cache.InternalCacheManager;
-import org.ehcache.spi.service.Service;
+package org.ehcache.xml.exceptions;
 
 /**
- * Special service that services can depend onto to be able to recover the instance of the current {@link CacheManager}
+ * Thrown to reflect an error in an XML configuration.
  *
- * @author Mathieu Carbou
+ * @author Clifford W. Johnson
  */
-public interface CacheManagerProviderService extends Service {
+public class XmlConfigurationException extends RuntimeException {
+  private static final long serialVersionUID = 4797841652996371653L;
 
-  InternalCacheManager getCacheManager();
+  public XmlConfigurationException(final String message) {
+    super(message);
+  }
 
+  public XmlConfigurationException(final String message, final Throwable cause) {
+    super(message, cause);
+  }
 }
