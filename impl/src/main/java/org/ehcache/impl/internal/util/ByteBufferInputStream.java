@@ -19,10 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-/**
- *
- * @author cdennis
- */
+import static java.lang.Math.max;
+import static java.lang.Math.min;
+
 public class ByteBufferInputStream extends InputStream {
 
   private final ByteBuffer buffer;
@@ -38,5 +37,24 @@ public class ByteBufferInputStream extends InputStream {
     } else {
       return -1;
     }
+  }
+
+  @Override
+  public int read(byte b[], int off, int len) {
+    len = min(len, buffer.remaining());
+    buffer.get(b, off, len);
+    return len;
+  }
+
+  @Override
+  public long skip(long n) {
+    n = min(buffer.remaining(), max(n, 0));
+    buffer.position((int) (buffer.position() + n));
+    return n;
+  }
+
+  @Override
+  public synchronized int available() {
+    return buffer.remaining();
   }
 }
