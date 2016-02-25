@@ -1,9 +1,12 @@
 ifndef::sourcedir[]
 :notBuildingForSite: true
 ifdef::basebackend-html[:outfilesuffix: .html]
-:source-highlighter: prettify
+:source-highlighter: coderay
+:stylesdir: css
 :stylesheet: ehcache.css
 :linkcss:
 :icons: font
+:iconfont-remote!:
+:iconfont-name: font-awesome.min
 :sourcedir: ../../../../../
 endif::sourcedir[]

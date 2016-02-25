@@ -1,17 +1,10 @@
----
----
-ifndef::sourcedir[]
-include::common.adoc[]
-endif::sourcedir[]
-
 = Ehcache 3.0 Documentation Overview
-
+include::common.adoc[]
+The Table of Contents provides an overview of the Ehcache 3.0 documentation on this site. Each topic below corresponds to a menu item at the left.
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
-
-The Table of Contents provides an overview of the Ehcache 3.0 documentation on this site. Each topic below corresponds to a menu item at the left.
 
 == Ehcache 3.0 Documentation Table of Contents
 
