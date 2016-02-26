@@ -187,7 +187,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           throw new RuntimeException(ex);
         }
         try {
-          persistenceService.destroyPersistenceSpace(spaceName);
+          persistenceService.destroy(spaceName);
         } catch (CachePersistenceException ex) {
           throw new AssertionError(ex);
         } finally {
@@ -202,7 +202,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
     try {
       for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
         OffHeapDiskStore.Provider.close((OffHeapDiskStore) entry.getKey());
-        persistenceService.destroyPersistenceSpace(entry.getValue());
+        persistenceService.destroy(entry.getValue());
       }
     } finally {
       persistenceService.stop();

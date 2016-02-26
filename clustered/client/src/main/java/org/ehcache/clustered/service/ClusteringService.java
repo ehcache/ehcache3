@@ -23,11 +23,5 @@ import org.ehcache.spi.service.PersistableResourceService;
  */
 public interface ClusteringService extends PersistableResourceService {
 
-  void acquireLeadership();
-
-  void abandonLeadership();
-
-  void destroy();
-
-  void create();
+  void connect();
 }

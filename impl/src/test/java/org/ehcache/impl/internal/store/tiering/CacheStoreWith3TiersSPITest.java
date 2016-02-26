@@ -70,6 +70,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.mockito.Mockito.mock;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
 /**
  * Test the {@link CacheStore} compliance to the
@@ -294,7 +297,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         String spaceName = createdStores.get(store);
         provider.releaseStore(store);
         try {
-          persistenceService.destroyPersistenceSpace(spaceName);
+          persistenceService.destroy(spaceName);
         } catch (CachePersistenceException e) {
           throw new AssertionError(e);
         } finally {
@@ -317,7 +320,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     try {
       for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
         provider.releaseStore(entry.getKey());
-        persistenceService.destroyPersistenceSpace(entry.getValue());
+        persistenceService.destroy(entry.getValue());
       }
     } finally {
       persistenceService.stop();

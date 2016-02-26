@@ -21,6 +21,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Properties;
+import org.ehcache.clustered.ServerSideConfiguration;
+import org.ehcache.clustered.client.EhcacheClientEntity;
 
 import org.ehcache.clustered.client.EhcacheClientEntityFactory;
 import org.ehcache.clustered.config.ClusteringServiceConfiguration;
@@ -37,6 +39,7 @@ import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
+import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 
 import static java.util.Collections.emptyList;
 
@@ -45,16 +48,23 @@ import static java.util.Collections.emptyList;
  */
 public class DefaultClusteringService implements ClusteringService {
 
+  private static final String AUTO_CREATE_QUERY = "auto-create";
+
   private final URI clusterUri;
   private final String entityIdentifier;
+  private final boolean autoCreate;
 
   private Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
 
+  @FindbugsSuppressWarnings("URF_UNREAD_FIELD")
+  private EhcacheClientEntity entity;
+
   public DefaultClusteringService(final ClusteringServiceConfiguration configuration) {
     URI ehcacheUri = configuration.getConnectionUrl();
     this.clusterUri = extractClusterUri(ehcacheUri);
-    this.entityIdentifier = clusterUri.relativize(ehcacheUri).toString();
+    this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
+    this.autoCreate = AUTO_CREATE_QUERY.equalsIgnoreCase(ehcacheUri.getQuery());
   }
 
   private static URI extractClusterUri(URI uri) {
@@ -73,6 +83,14 @@ public class DefaultClusteringService implements ClusteringService {
       throw new RuntimeException(ex);
     }
     entityFactory = new EhcacheClientEntityFactory(clusterConnection);
+    if (autoCreate) {
+      try {
+        create();
+      } catch (IllegalStateException ex) {
+        //ignore - entity already exists
+      }
+    }
+    connect();
   }
 
   @Override
@@ -83,10 +101,14 @@ public class DefaultClusteringService implements ClusteringService {
       throw new RuntimeException(ex);
     }
     entityFactory = new EhcacheClientEntityFactory(clusterConnection);
+    if (!entityFactory.acquireLeadership(entityIdentifier)) {
+      throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
+    }
   }
 
   @Override
   public void stop() {
+    entityFactory.abandonLeadership(entityIdentifier);
     entityFactory = null;
     try {
       clusterConnection.close();
@@ -96,17 +118,7 @@ public class DefaultClusteringService implements ClusteringService {
   }
 
   @Override
-  public void acquireLeadership() {
-    entityFactory.acquireLeadership(entityIdentifier);
-  }
-
-  @Override
-  public void abandonLeadership() {
-    entityFactory.abandonLeadership(entityIdentifier);
-  }
-
-  @Override
-  public void destroy() {
+  public void destroyAll() {
     try {
       entityFactory.destroy(entityIdentifier);
     } catch (EntityNotFoundException e) {
@@ -117,9 +129,18 @@ public class DefaultClusteringService implements ClusteringService {
   @Override
   public void create() {
     try {
-      entityFactory.create(entityIdentifier, null);
+      entityFactory.create(entityIdentifier, new ServerSideConfiguration(0));
     } catch (EntityAlreadyExistsException e) {
       throw new IllegalStateException(e);
+    }
+  }
+
+  @Override
+  public void connect() {
+    try {
+      entity = entityFactory.retrieve(entityIdentifier, new ServerSideConfiguration(0));
+    } catch (EntityNotFoundException ex) {
+      throw new IllegalStateException(ex);
     }
   }
 
@@ -134,12 +155,7 @@ public class DefaultClusteringService implements ClusteringService {
   }
 
   @Override
-  public void destroyPersistenceSpace(String name) throws CachePersistenceException {
+  public void destroy(String name) throws CachePersistenceException {
     //no caches yet - nothing to destroy
-  }
-
-  @Override
-  public void destroyAllPersistenceSpaces() {
-    //should this destroy the cachemanager
   }
 }

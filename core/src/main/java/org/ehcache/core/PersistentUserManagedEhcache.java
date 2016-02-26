@@ -100,7 +100,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   void destroy() {
     statusTransitioner.checkMaintenance();
     try {
-      localPersistenceService.destroyPersistenceSpace(id);
+      localPersistenceService.destroy(id);
     } catch (CachePersistenceException e) {
       throw new RuntimeException("Could not destroy persistence space for user managed cache " + id, e);
     }
@@ -116,7 +116,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     ehcache.close();
     if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
       try {
-        localPersistenceService.destroyPersistenceSpace(id);
+        localPersistenceService.destroy(id);
       } catch (CachePersistenceException e) {
         logger.debug("Unable to clear persistence space for user managed cache " + id, e);
       }

@@ -1,0 +1,11 @@
+<ehcache:config
+    xmlns:ehcache="http://www.ehcache.org/v3"
+    xmlns:tc="http://www.ehcache.org/v3/clustered">
+
+  <ehcache:service>
+    <tc:cluster>
+      <tc:connection url="http://example.com:9540/myCacheManager?auto-create"/>
+    </tc:cluster>
+  </ehcache:service>
+
+</ehcache:config>
