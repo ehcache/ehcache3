@@ -117,6 +117,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     this.serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
     this.useLoaderInAtomics = useLoaderInAtomics;
     validateServicesConfigs();
+    resolveServices();
   }
 
   private void validateServicesConfigs() {
@@ -126,6 +127,19 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         throw new IllegalStateException("Duplicate creation configuration for service " + service.getServiceType());
       }
     }
+  }
+
+  private void resolveServices() {
+    if (serviceLocator.getService(CacheManagerProviderService.class) == null) {
+      this.serviceLocator.addService(new DefaultCacheManagerProviderService(this));
+    }
+    for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceCreationConfigurations()) {
+      Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
+      if (service == null) {
+        throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
+      }
+    }
+    serviceLocator.loadDependenciesOf(ServiceDeps.class);
   }
 
   /**
@@ -523,19 +537,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   @Override
   public void init() {
     final StatusTransitioner.Transition st = statusTransitioner.init();
-
-    if (serviceLocator.getService(CacheManagerProviderService.class) == null) {
-      this.serviceLocator.addService(new DefaultCacheManagerProviderService(this));
-    }
-
     try {
-      for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceCreationConfigurations()) {
-        Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
-        if (service == null) {
-          throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
-        }
-      }
-      serviceLocator.loadDependenciesOf(ServiceDeps.class);
       try {
         serviceLocator.startAllServices();
       } catch (Exception e) {

@@ -114,7 +114,7 @@ public class EhcacheManagerTest {
   }
 
   @Test
-  public void testInitThrowsWhenNotBeingToResolveService() {
+  public void testConstructionThrowsWhenNotBeingToResolveService() {
     Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     final DefaultConfiguration config = new DefaultConfiguration(caches, null, new ServiceCreationConfiguration<NoSuchService>() {
       @Override
@@ -122,13 +122,11 @@ public class EhcacheManagerTest {
         return NoSuchService.class;
       }
     });
-    final EhcacheManager ehcacheManager = new EhcacheManager(config);
     try {
-      ehcacheManager.init();
+      new EhcacheManager(config);
       fail("Should have thrown...");
-    } catch (StateTransitionException e) {
-      assertTrue(e.getMessage().contains(NoSuchService.class.getName()));
-      assertTrue(e.getCause().getMessage().contains(NoSuchService.class.getName()));
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString(NoSuchService.class.getName()));
     }
   }
 
@@ -280,7 +278,11 @@ public class EhcacheManagerTest {
   public void testThrowsWhenNotInitialized() {
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
-    final Collection<Service> services = new ArrayList<Service>();
+    final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    when(cenlProvider.createCacheEventDispatcher(mock)).thenReturn(cenlServiceMock);
+    final Collection<Service> services = getServices(storeProvider, cenlProvider);
+
     when(storeProvider
         .createStore(Matchers.<Store.Configuration>anyObject(), Matchers.<ServiceConfiguration[]>anyVararg())).thenReturn(mock);
 
