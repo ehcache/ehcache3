@@ -35,6 +35,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.core.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.spi.Hookable;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
@@ -80,7 +81,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
+public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hookable, JSRIntegrableCache<K, V> {
 
   private final StatusTransitioner statusTransitioner;
 
@@ -153,6 +154,7 @@ public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCa
     }
   }
 
+  @Override
   public Map<BulkOps, LongAdder> getBulkMethodEntries() {
     return bulkMethodEntries;
   }
@@ -1071,6 +1073,7 @@ public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCa
     return statusTransitioner.currentStatus();
   }
 
+  @Override
   public void addHook(LifeCycled hook) {
     statusTransitioner.addHook(hook);
   }
@@ -1102,10 +1105,12 @@ public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCa
     bulkMethodEntries.get(op).add(count);
   }
 
+  @Override
   public Jsr107Cache<K, V> getJsr107Cache() {
     return jsr107Cache;
   }
 
+  @Override
   public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
     return this.cacheLoaderWriter;
   }

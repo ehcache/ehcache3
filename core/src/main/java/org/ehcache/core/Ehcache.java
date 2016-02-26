@@ -1,5 +1,4 @@
 /*
- *
  * Copyright Terracotta, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,6 +17,7 @@
 package org.ehcache.core;
 
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -61,6 +61,7 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.spi.Hookable;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
@@ -69,10 +70,11 @@ import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.OperationObserver;
 
+import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.util.Functions.memoize;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
-public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
+public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hookable, JSRIntegrableCache<K, V> {
 
   private final StatusTransitioner statusTransitioner;
 
@@ -126,6 +128,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     }
   }
 
+  @Override
   public Map<BulkOps, LongAdder> getBulkMethodEntries() {
     return bulkMethodEntries;
   }
@@ -649,6 +652,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     return statusTransitioner.currentStatus();
   }
 
+  @Override
   public void addHook(LifeCycled hook) {
     statusTransitioner.addHook(hook);
   }
@@ -680,10 +684,12 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     bulkMethodEntries.get(op).add(count);
   }
 
+  @Override
   public Jsr107Cache<K, V> getJsr107Cache() {
     return jsr107Cache;
   }
 
+  @Override
   public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
     return null;
   }
@@ -691,12 +697,65 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
   private final class Jsr107CacheImpl implements Jsr107Cache<K, V> {
     @Override
     public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
-      //no-op because this should not have any effect
+      if(keys.isEmpty()) {
+        return ;
+      }
+      if (replaceExistingValues) {
+        loadAllReplace(keys, loadFunction);
+      } else {
+        loadAllAbsent(keys, loadFunction);
+      }
     }
 
     @Override
     public Map<K, V> getAll(Set<? extends K> keys) {
       return Ehcache.this.getAllInternal(keys, false);
+    }
+
+    private void loadAllAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+      try {
+        store.bulkComputeIfAbsent(keys, new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+          @Override
+          public Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends K> absentKeys) {
+            return cacheLoaderWriterLoadAllForKeys(absentKeys, loadFunction).entrySet();
+          }
+        });
+      } catch (CacheAccessException e) {
+        throw newCacheLoadingException(e);
+      }
+    }
+
+    Map<K, V> cacheLoaderWriterLoadAllForKeys(Iterable<? extends K> keys, Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+      try {
+        Map<? super K, ? extends V> loaded = loadFunction.apply(keys);
+
+        // put into a new map since we can't assume the 107 cache loader returns things ordered, or necessarily with all the desired keys
+        Map<K, V> rv = new LinkedHashMap<K, V>();
+        for (K key : keys) {
+          rv.put(key, loaded.get(key));
+        }
+        return rv;
+      } catch (Exception e) {
+        throw newCacheLoadingException(e);
+      }
+    }
+
+    private void loadAllReplace(Set<? extends K> keys, final Function<Iterable<? extends K>, Map<K, V>> loadFunction) {
+      try {
+        store.bulkCompute(keys, new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+          @Override
+          public Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> apply(
+              Iterable<? extends java.util.Map.Entry<? extends K, ? extends V>> entries) {
+            Collection<K> keys = new ArrayList<K>();
+            for (Map.Entry<? extends K, ? extends V> entry : entries) {
+              keys.add(entry.getKey());
+            }
+            return cacheLoaderWriterLoadAllForKeys(keys, loadFunction).entrySet();
+          }
+        });
+      } catch (CacheAccessException e) {
+        throw newCacheLoadingException(e);
+      }
     }
 
     @Override

@@ -27,6 +27,7 @@ import org.terracotta.management.registry.StatisticQuery;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.junit.Ignore;
 import org.terracotta.management.call.ContextualReturn;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.Context;
@@ -77,6 +78,7 @@ public class DefaultManagementRegistryServiceTest {
     cacheManager1.close();
   }
 
+  @Ignore
   @Test
   public void testCanGetCapabilities() {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)

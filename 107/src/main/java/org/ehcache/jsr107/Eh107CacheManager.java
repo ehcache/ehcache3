@@ -19,6 +19,7 @@ import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.EhcacheManager;
+import org.ehcache.core.JSRIntegrableCache;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.management.ManagementRegistryService;
@@ -99,7 +100,7 @@ class Eh107CacheManager implements CacheManager {
   }
 
   private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, org.ehcache.Cache<K, V> cache) {
-    CacheLoaderWriter<? super K, V> cacheLoaderWriter = ((EhcacheWithLoaderWriter<K, V>)cache).getCacheLoaderWriter();
+    CacheLoaderWriter<? super K, V> cacheLoaderWriter = ((JSRIntegrableCache<K, V>)cache).getCacheLoaderWriter();
 
     boolean storeByValueOnHeap = false;
     for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
@@ -185,7 +186,7 @@ class Eh107CacheManager implements CacheManager {
       CacheResources<K, V> cacheResources = configHolder.cacheResources;
       try {
         if (configHolder.useEhcacheLoaderWriter) {
-          cacheResources = new CacheResources<K, V>(cacheName, ((EhcacheWithLoaderWriter<K, V>) ehCache).getCacheLoaderWriter(),
+          cacheResources = new CacheResources<K, V>(cacheName, ((JSRIntegrableCache<K, V>) ehCache).getCacheLoaderWriter(),
               cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
         }
         cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(configHolder.jsr107Configuration, ehCache
