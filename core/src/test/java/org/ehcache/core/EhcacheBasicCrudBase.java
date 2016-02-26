@@ -313,9 +313,11 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public void put(final String key, final String value) throws CacheAccessException {
+    public boolean put(final String key, final String value) throws CacheAccessException {
       this.checkFailingKey(key);
-      this.entries.put(key, new FakeValueHolder(value));
+      FakeValueHolder toPut = new FakeValueHolder(value);
+      this.entries.put(key, toPut);
+      return true;
     }
 
     @Override
@@ -331,9 +333,10 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public void remove(final String key) throws CacheAccessException {
+    public boolean remove(final String key) throws CacheAccessException {
       this.checkFailingKey(key);
       this.entries.remove(key);
+      return true;
     }
 
     @Override

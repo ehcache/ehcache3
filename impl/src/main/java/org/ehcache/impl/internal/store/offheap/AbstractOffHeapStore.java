@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
+
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.events.StoreEventDispatcher;
@@ -39,6 +40,7 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
@@ -180,12 +182,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void put(final K key, final V value) throws CacheAccessException {
+  public boolean put(final K key, final V value) throws CacheAccessException {
     putObserver.begin();
     checkKey(key);
     checkValue(value);
 
-    final AtomicBoolean entryReplaced = new AtomicBoolean(false);
+    final AtomicReference<OffHeapValueHolder<V>> replacedVal = new AtomicReference<OffHeapValueHolder<V>>(null);
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     try {
       while (true) {
@@ -194,7 +196,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
             @Override
             public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
-              entryReplaced.set(mappedValue != null);
+              replacedVal.set(mappedValue);
               if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
                 mappedValue = null;
               }
@@ -214,11 +216,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
       }
       eventDispatcher.releaseEventSink(eventSink);
-      if (entryReplaced.get()) {
+      if (replacedVal.get() != null) {
         putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
       } else {
         putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
       }
+      return replacedVal.get() == null;
     } catch (CacheAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
@@ -282,7 +285,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void remove(K key) throws CacheAccessException {
+  public boolean remove(K key) throws CacheAccessException {
     removeObserver.begin();
     checkKey(key);
 
@@ -307,9 +310,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       } else {
         removeObserver.end(StoreOperationOutcomes.RemoveOutcome.MISS);
       }
+      return removed.get();
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
+      return false;
     }
   }
 

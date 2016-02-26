@@ -399,7 +399,7 @@ public class EhcacheTest {
     }
 
     @Override
-    public void put(String key, String value) throws CacheAccessException {
+    public boolean put(String key, String value) throws CacheAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
@@ -409,7 +409,7 @@ public class EhcacheTest {
     }
 
     @Override
-    public void remove(String key) throws CacheAccessException {
+    public boolean remove(String key) throws CacheAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 

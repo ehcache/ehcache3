@@ -35,6 +35,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
@@ -224,14 +225,14 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void put(K key, V value) throws CacheAccessException {
+  public boolean put(K key, V value) throws CacheAccessException {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
       currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
-      return;
+      return true;
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
@@ -245,6 +246,8 @@ public class XAStore<K, V> implements Store<K, V> {
     } else {
       currentContext.addCommand(key, new StorePutCommand<V>(null, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
     }
+    //Ask Ludovic
+    return false;
   }
 
   @Override
@@ -253,13 +256,13 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void remove(K key) throws CacheAccessException {
+  public boolean remove(K key) throws CacheAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
       currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
-      return;
+      return true;
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
@@ -271,6 +274,7 @@ public class XAStore<K, V> implements Store<K, V> {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValue()));
       }
     }
+    return true;
   }
 
   @Override

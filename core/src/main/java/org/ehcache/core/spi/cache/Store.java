@@ -85,11 +85,12 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param key   key with which the specified value is to be associated
    * @param value value to be associated with the specified key
+   * @return <tt>true</tt> if the mapping is actually added
    * @throws NullPointerException if the specified key or value is null
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
    * @throws CacheAccessException if the mapping can't be installed
    */
-  void put(K key, V value) throws CacheAccessException;
+  boolean put(K key, V value) throws CacheAccessException;
 
   /**
    * Maps the specified key to the specified value in this store, unless a non-expired mapping
@@ -121,11 +122,12 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * This method does nothing if the key is not mapped.
    *
    * @param key the key that needs to be removed
+   * @return <tt>true</tt> if the mapping existed and was successfully removed
    * @throws NullPointerException if the specified key is null
    * @throws ClassCastException if the specified key is not an instance of {@code K}
    * @throws CacheAccessException if the mapping can't be removed
    */
-  void remove(K key) throws CacheAccessException;
+  boolean remove(K key) throws CacheAccessException;
 
   /**
    * Removes the entry for a key only if currently mapped to a given value

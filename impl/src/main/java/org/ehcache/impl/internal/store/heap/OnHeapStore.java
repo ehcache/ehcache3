@@ -49,6 +49,7 @@ import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
@@ -307,11 +308,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public void put(final K key, final V value) throws CacheAccessException {
-    putReturnHolder(key, value);
+  public boolean put(final K key, final V value) throws CacheAccessException {
+    return putReturnHolder(key, value);
   }
 
-  private OnHeapValueHolder<V> putReturnHolder(final K key, final V value) throws CacheAccessException {
+  private boolean putReturnHolder(final K key, final V value) throws CacheAccessException {
     putObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -356,16 +357,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
       }
 
-      return valuePut;
+      return entryActuallyAdded.get();
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
-      return null;
+      return false;
     }
   }
 
   @Override
-  public void remove(final K key) throws CacheAccessException {
+  public boolean remove(final K key) throws CacheAccessException {
     removeObserver.begin();
     checkKey(key);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
@@ -389,9 +390,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       } else {
         removeObserver.end(StoreOperationOutcomes.RemoveOutcome.MISS);
       }
+      return removedValueHolder != null;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
+      return false;
     }
   }
 

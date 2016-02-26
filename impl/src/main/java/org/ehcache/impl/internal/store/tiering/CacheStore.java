@@ -23,6 +23,7 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
@@ -122,9 +123,9 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void put(final K key, final V value) throws CacheAccessException {
+  public boolean put(final K key, final V value) throws CacheAccessException {
     try {
-      authoritativeTier.put(key, value);
+      return authoritativeTier.put(key, value);
     } finally {
       cachingTier().invalidate(key);
     }
@@ -144,9 +145,9 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void remove(K key) throws CacheAccessException {
+  public boolean remove(K key) throws CacheAccessException {
     try {
-      authoritativeTier.remove(key);
+      return authoritativeTier.remove(key);
     } finally {
       cachingTier().invalidate(key);
     }
