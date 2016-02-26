@@ -16,9 +16,11 @@
 
 package org.ehcache.core;
 
+import org.ehcache.Cache;
 import org.ehcache.Maintainable;
 import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.Status;
+import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
@@ -46,14 +48,18 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
 
   private final StatusTransitioner statusTransitioner;
   private final Logger logger;
-  private final EhcacheWithLoaderWriter<K,V> ehcache;
+  private final Cache<K,V> ehcache;
   private final LocalPersistenceService localPersistenceService;
   private final String id;
 
-  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventNotifier, String id) {
-    this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "." + id);
+  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
+    this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
-    this.ehcache = new EhcacheWithLoaderWriter<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, cacheLoaderWriter, eventNotifier, true, logger, statusTransitioner);
+    if (cacheLoaderWriter == null) {
+      this.ehcache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, statusTransitioner);
+    } else {
+      this.ehcache = new EhcacheWithLoaderWriter<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
+    }
     this.localPersistenceService = localPersistenceService;
     this.id = id;
   }
@@ -108,12 +114,12 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
 
   @Override
   public void init() {
-    ehcache.init();
+    ((UserManagedCache)ehcache).init();
   }
 
   @Override
   public void close() {
-    ehcache.close();
+    ((UserManagedCache)ehcache).close();
     if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
       try {
         localPersistenceService.destroy(id);

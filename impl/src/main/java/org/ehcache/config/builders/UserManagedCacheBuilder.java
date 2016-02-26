@@ -17,6 +17,7 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.Cache;
+import org.ehcache.core.Ehcache;
 import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.UserManagedCache;
@@ -46,6 +47,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
+import org.ehcache.spi.Hookable;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.ServiceLocator;
@@ -312,20 +314,29 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
       return cast(cache);
     } else {
-      String loggerName;
-      if (id != null) {
-        loggerName = EhcacheWithLoaderWriter.class.getName() + "-" + id;
+      final Cache<K, V> cache;
+      if (cacheLoaderWriter == null) {
+        cache = new Ehcache<K, V>(cacheConfig, store, eventDispatcher, getLoggerFor(Ehcache.class));
       } else {
-        loggerName = EhcacheWithLoaderWriter.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
+        cache = new EhcacheWithLoaderWriter<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, getLoggerFor(EhcacheWithLoaderWriter.class));
       }
-      EhcacheWithLoaderWriter<K, V> cache = new EhcacheWithLoaderWriter<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, LoggerFactory.getLogger(loggerName));
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
-        cache.addHook(lifeCycled);
+        ((Hookable)cache).addHook(lifeCycled);
       }
-      return cast(cache);
+      return cast((UserManagedCache<K, V>)cache);
     }
 
+  }
+
+  private Logger getLoggerFor(Class clazz) {
+    String loggerName;
+    if (id != null) {
+      loggerName = clazz.getName() + "-" + id;
+    } else {
+      loggerName = clazz.getName() + "-UserManaged" + instanceId.incrementAndGet();
+    }
+    return LoggerFactory.getLogger(loggerName);
   }
 
   private void validateListenerConfig() {
