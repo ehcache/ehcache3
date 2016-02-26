@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.docs;
 
-import org.ehcache.clustered.ClusteredCacheManager;
+import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.config.ClusteringServiceConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -38,14 +38,14 @@ public class GettingStarted {
   @Test
   public void clusteredCacheManagerExample() throws Exception {
     // tag::clusteredCacheManagerExample
-    final CacheManagerBuilder<ClusteredCacheManager> clusteredCacheManagerBuilder =
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(new ClusteringServiceConfiguration(URI.create("http://localhost:9540")))
             .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES))
                 .build());
-    final ClusteredCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     cacheManager.close();
     // end::clusteredCacheManagerExample

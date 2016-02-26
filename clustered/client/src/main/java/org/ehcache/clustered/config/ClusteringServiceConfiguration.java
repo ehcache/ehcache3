@@ -17,8 +17,7 @@
 package org.ehcache.clustered.config;
 
 import org.ehcache.CacheManager;
-import org.ehcache.clustered.ClusteredCacheManager;
-import org.ehcache.clustered.ClusteredCacheManagerBuilder;
+import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.service.ClusteringService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.CacheManagerConfiguration;
@@ -35,7 +34,7 @@ import java.net.URI;
 // TODO: Add validation for connection URI(s)
 public class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
-    CacheManagerConfiguration<ClusteredCacheManager> {
+    CacheManagerConfiguration<PersistentCacheManager> {
 
   private final URI connectionUrl;
 
@@ -56,7 +55,7 @@ public class ClusteringServiceConfiguration
   }
 
   @Override
-  public CacheManagerBuilder<ClusteredCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
-    return ClusteredCacheManagerBuilder.newCacheManagerBuilder(other).using(this);
+  public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
+    return (CacheManagerBuilder<PersistentCacheManager>) other.using(this);
   }
 }

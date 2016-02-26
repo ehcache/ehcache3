@@ -16,7 +16,9 @@
 
 package org.ehcache.core.spi;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.PersistableResourceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -292,5 +294,15 @@ public final class ServiceLocator implements ServiceProvider {
 
   public boolean knowsServiceFor(ServiceConfiguration serviceConfig) {
     return getService(serviceConfig.getServiceType()) != null;
+  }
+
+  public <T extends Service> Collection<T> getServicesOfType(Class<T> serviceClass) {
+    HashSet<T> result = new HashSet<T>();
+    for (Service service : services.values()) {
+      if (serviceClass.isAssignableFrom(service.getClass())) {
+        result.add(serviceClass.cast(service));
+      }
+    }
+    return result;
   }
 }

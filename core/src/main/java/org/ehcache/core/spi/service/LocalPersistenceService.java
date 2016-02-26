@@ -17,6 +17,7 @@
 package org.ehcache.core.spi.service;
 
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.spi.service.PersistableResourceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -27,7 +28,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  *
  * @author Alex Snaps
  */
-public interface LocalPersistenceService extends Service {
+public interface LocalPersistenceService extends PersistableResourceService {
 
   /**
    * Retrieves an existing or creates a new persistence space
@@ -39,18 +40,6 @@ public interface LocalPersistenceService extends Service {
    * @throws CachePersistenceException if the persistence space cannot be created
    */
   PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException;
-
-  /**
-   * Destroys the persistence space with the given name.
-   *
-   * Note that this method can be called without creating the persistence space beforehand in the same JVM.
-   * It will nonetheless try to delete any persistent data that could have been associated with the name.
-   *
-   * @param name the name of the persistence context
-   *
-   * @throws CachePersistenceException if the persistence space cannot be destroyed
-   */
-  void destroyPersistenceSpace(String name) throws CachePersistenceException;
 
   /**
    * Creates a new persistence context within the given space.

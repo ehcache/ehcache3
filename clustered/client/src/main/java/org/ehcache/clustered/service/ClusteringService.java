@@ -16,10 +16,10 @@
 
 package org.ehcache.clustered.service;
 
-import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.PersistableResourceService;
 
 /**
  * @author Clifford W. Johnson
  */
-public interface ClusteringService extends Service {
+public interface ClusteringService extends PersistableResourceService {
 }
