@@ -22,4 +22,8 @@ dependencies {
   compile project(':clustered:common')
   compile "org.terracotta:coordinator-entity-client:$parent.coordinatorVersion"
   compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
+
+  testCompile project(':clustered:server')
+  testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
+  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
 }

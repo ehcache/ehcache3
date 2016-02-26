@@ -24,6 +24,8 @@ import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.passthrough.PassthroughServer;
 
 import static org.ehcache.clustered.TestUtils.createServer;
+import org.hamcrest.core.Is;
+import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -179,6 +181,63 @@ public class EhcacheClientEntityFactoryIntegrationTest {
       } catch (EntityNotFoundException e) {
         //expected
       }
+    } finally {
+      server.stop();
+    }
+  }
+
+  @Test
+  public void testAbandonLeadershipWhenNotOwning() throws Exception {
+    PassthroughServer server = createServer();
+    try {
+      Connection client = server.connectNewClient();
+      EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
+      factory.abandonLeadership("test");
+    } finally {
+      server.stop();
+    }
+  }
+
+  @Test
+  public void testAcquireLeadershipWhenAlone() throws Exception {
+    PassthroughServer server = createServer();
+    try {
+      Connection client = server.connectNewClient();
+      EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
+      assertThat(factory.acquireLeadership("test"), is(true));
+    } finally {
+      server.stop();
+    }
+  }
+
+  @Test
+  public void testAcquireLeadershipWhenTaken() throws Exception {
+    PassthroughServer server = createServer();
+    try {
+      Connection clientA = server.connectNewClient();
+      EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(clientA);
+      assertThat(factoryA.acquireLeadership("test"), is(true));
+
+      Connection clientB = server.connectNewClient();
+      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
+      assertThat(factoryB.acquireLeadership("test"), is(false));
+    } finally {
+      server.stop();
+    }
+  }
+
+  @Test
+  public void testAcqruieLeadershipAfterAbandoned() throws Exception {
+    PassthroughServer server = createServer();
+    try {
+      Connection clientA = server.connectNewClient();
+      EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(clientA);
+      factoryA.acquireLeadership("test");
+      factoryA.abandonLeadership("test");
+
+      Connection clientB = server.connectNewClient();
+      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
+      assertThat(factoryB.acquireLeadership("test"), is(true));
     } finally {
       server.stop();
     }
