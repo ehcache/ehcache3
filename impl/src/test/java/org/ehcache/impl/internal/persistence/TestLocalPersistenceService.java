@@ -104,6 +104,11 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
+  public void startForMaintenance() {
+    //ignore
+  }
+
+  @Override
   public void stop() {
     //ignore
   }

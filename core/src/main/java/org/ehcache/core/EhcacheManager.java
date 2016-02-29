@@ -676,7 +676,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   private void startPersistenceServices() {
     Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
     for (PersistableResourceService service : services) {
-      service.start(serviceLocator);
+      service.startForMaintenance();
     }
   }
 

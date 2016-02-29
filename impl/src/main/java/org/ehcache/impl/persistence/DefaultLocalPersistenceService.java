@@ -94,6 +94,15 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   @Override
   public synchronized void start(final ServiceProvider serviceProvider) {
+    internalStart();
+  }
+
+  @Override
+  public synchronized void startForMaintenance() {
+    internalStart();
+  }
+
+  private void internalStart() {
     if (!started) {
       createLocationIfRequiredAndVerify(rootDirectory);
       try {

@@ -30,6 +30,11 @@ import java.util.Collection;
 public interface PersistableResourceService extends Service {
 
   /**
+   * Start this service for maintenance, based on its default configuration.
+   */
+  void startForMaintenance();
+
+  /**
    * Indicates whether this service handles the type of resource passed in.
    *
    * @param resourceType the resource type to handle

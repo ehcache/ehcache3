@@ -44,6 +44,11 @@ public class DefaultClusteringService implements ClusteringService {
   }
 
   @Override
+  public void startForMaintenance() {
+    // TODO: Implement maintenance
+  }
+
+  @Override
   public void stop() {
     // TODO: Implement stop
   }
