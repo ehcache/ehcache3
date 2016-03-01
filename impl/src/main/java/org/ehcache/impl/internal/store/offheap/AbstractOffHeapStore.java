@@ -40,7 +40,6 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
@@ -285,11 +284,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public boolean remove(K key) throws CacheAccessException {
+  public boolean remove(final K key) throws CacheAccessException {
     removeObserver.begin();
     checkKey(key);
 
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
+    final long now = timeSource.getTimeMillis();
 
     final AtomicBoolean removed = new AtomicBoolean(false);
     try {
@@ -297,8 +297,16 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
         @Override
         public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
-          removed.set(true);
-          eventSink.removed(mappedKey, mappedValue.value());
+
+          if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            onExpiration(key, mappedValue, eventSink);
+            return null;
+          }
+
+          if (mappedValue != null) {
+            removed.set(true);
+            eventSink.removed(mappedKey, mappedValue.value());
+          }
           return null;
         }
       });

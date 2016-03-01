@@ -49,7 +49,6 @@ import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
@@ -370,6 +369,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     removeObserver.begin();
     checkKey(key);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
+    final long now = timeSource.getTimeMillis();
 
     try {
       final AtomicReference<OnHeapValueHolder<V>> removedValue = new AtomicReference<OnHeapValueHolder<V>>();
@@ -377,8 +377,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-          removedValue.set(mappedValue);
-          eventSink.removed(mappedKey, mappedValue.value());
+
+          if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            onExpiration(key, mappedValue, eventSink);
+            return null;
+          }
+
+          if (mappedValue != null) {
+            removedValue.set(mappedValue);
+            eventSink.removed(mappedKey, mappedValue.value());
+          }
           return null;
         }
       });
