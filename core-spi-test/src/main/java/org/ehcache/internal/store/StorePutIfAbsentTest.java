@@ -16,6 +16,7 @@
 
 package org.ehcache.internal.store;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -184,12 +185,12 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       }
 
       @Override
-      public Duration getExpiryForAccess(K key, V value) {
+      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
         return Duration.ZERO;
       }
 
       @Override
-      public Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
+      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
         return Duration.FOREVER;
       }
     }, timeSource);

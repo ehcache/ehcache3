@@ -17,6 +17,7 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -1108,12 +1109,12 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, Object value) {
+      public Duration getExpiryForAccess(Object key, ValueSupplier<? extends Object> value) {
         throw new AssertionError();
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
         throw new AssertionError();
       }
     };
@@ -1158,7 +1159,7 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, Object value) {
+      public Duration getExpiryForAccess(Object key, ValueSupplier<? extends Object> value) {
         if (testTimeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
@@ -1166,7 +1167,7 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
         return Duration.FOREVER;
       }
     };
@@ -1218,12 +1219,12 @@ public class XAStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(Object key, Object value) {
+      public Duration getExpiryForAccess(Object key, ValueSupplier<? extends Object> value) {
         return Duration.FOREVER;
       }
 
       @Override
-      public Duration getExpiryForUpdate(Object key, Object oldValue, Object newValue) {
+      public Duration getExpiryForUpdate(Object key, ValueSupplier<? extends Object> oldValue, Object newValue) {
         if (testTimeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }

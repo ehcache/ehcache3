@@ -74,6 +74,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.core.internal.util.Functions.memoize;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
+import static org.ehcache.core.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -290,7 +291,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       }
     } else {
       try {
-        duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, oldValue, newValue);
+        duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, supplierOf(oldValue), newValue);
       } catch (RuntimeException re) {
         logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
         return true;

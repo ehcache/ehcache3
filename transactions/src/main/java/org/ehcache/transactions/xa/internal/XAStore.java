@@ -17,6 +17,7 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
@@ -75,6 +76,7 @@ import javax.transaction.Transaction;
 
 import static org.ehcache.core.spi.ServiceLocator.findAmongst;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.util.ValueSuppliers.supplierOf;
 
 /**
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA
@@ -772,9 +774,9 @@ public class XAStore<K, V> implements Store<K, V> {
 
       // expiry
       final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
-      Expiry<? super K, ? super SoftLock> expiry = new Expiry<K, SoftLock>() {
+      Expiry<? super K, ? super SoftLock<V>> expiry = new Expiry<K, SoftLock<V>>() {
         @Override
-        public Duration getExpiryForCreation(K key, SoftLock softLock) {
+        public Duration getExpiryForCreation(K key, SoftLock<V> softLock) {
           if (softLock.getTransactionId() != null) {
             // phase 1 prepare, create -> forever
             return Duration.FOREVER;
@@ -792,15 +794,15 @@ public class XAStore<K, V> implements Store<K, V> {
         }
 
         @Override
-        public Duration getExpiryForAccess(K key, SoftLock softLock) {
-          if (softLock.getTransactionId() != null) {
+        public Duration getExpiryForAccess(K key, final ValueSupplier<? extends SoftLock<V>> softLock) {
+          if (softLock.value().getTransactionId() != null) {
             // phase 1 prepare, access -> forever
             return Duration.FOREVER;
           } else {
             // phase 2 commit, or during a TX's lifetime, access -> some time
             Duration duration;
             try {
-              duration = configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
+              duration = configuredExpiry.getExpiryForAccess(key, supplierOf(softLock.value().getOldValue()));
             } catch (RuntimeException re) {
               LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
               return Duration.ZERO;
@@ -810,7 +812,8 @@ public class XAStore<K, V> implements Store<K, V> {
         }
 
         @Override
-        public Duration getExpiryForUpdate(K key, SoftLock oldSoftLock, SoftLock newSoftLock) {
+        public Duration getExpiryForUpdate(K key, ValueSupplier<? extends SoftLock<V>> oldSoftLockSupplier, SoftLock<V> newSoftLock) {
+          SoftLock<V> oldSoftLock = oldSoftLockSupplier.value();
           if (oldSoftLock.getTransactionId() == null) {
             // phase 1 prepare, update -> forever
             return Duration.FOREVER;
@@ -820,7 +823,7 @@ public class XAStore<K, V> implements Store<K, V> {
               // there is no old value -> it's a CREATE, update -> create -> some time
               Duration duration;
               try {
-                duration = configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
+                duration = configuredExpiry.getExpiryForCreation(key, oldSoftLock.getOldValue());
               } catch (RuntimeException re) {
                 LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
                 return Duration.ZERO;
@@ -828,10 +831,11 @@ public class XAStore<K, V> implements Store<K, V> {
               return duration;
             } else {
               // there is an old value -> it's an UPDATE, update -> some time
-              V value = oldSoftLock.getNewValueHolder() == null ? null : (V) oldSoftLock.getNewValueHolder().value();
+              V value = oldSoftLock.getNewValueHolder() == null ? null : oldSoftLock
+                  .getNewValueHolder().value();
               Duration duration;
               try {
-                duration = configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
+                duration = configuredExpiry.getExpiryForUpdate(key, supplierOf(oldSoftLock.getOldValue()), value);
               } catch (RuntimeException re) {
                 LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
                 return Duration.ZERO;
@@ -884,7 +888,7 @@ public class XAStore<K, V> implements Store<K, V> {
       SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
       // create the underlying store
-      Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto,
+      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), (Class) SoftLock.class, evictionVeto,
           storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getOrderedEventParallelism(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
       Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 

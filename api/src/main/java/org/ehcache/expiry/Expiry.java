@@ -16,10 +16,17 @@
 
 package org.ehcache.expiry;
 
+import org.ehcache.ValueSupplier;
+
 /**
- * A policy object that governs expiration for a {@link org.ehcache.Cache}
- * <p>
- * See {@link Expirations} for common instances
+ * A policy object that governs expiration for a {@link org.ehcache.Cache}.
+ * <P>
+ *   Previous values are not accessible directly but are rather available through a {@link ValueSupplier value supplier}
+ *   to indicate that access can be require computation such as deserialization.
+ * </P>
+ * <P>
+ * See {@link Expirations} for common instances.
+ * </P>
  *
  * @param <K> the type of the keys used to access data within the cache
  * @param <V> the type of the values held within the cache
@@ -39,10 +46,10 @@ public interface Expiry<K, V> {
    * Get the expiration period (relative to the current time) when an existing entry is accessed from a {@link org.ehcache.Cache}
    *
    * @param key the key of the accessed entry
-   * @param value the value of the accessed entry
+   * @param value a value supplier for the accessed entry
    * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time
    */
-  Duration getExpiryForAccess(K key, V value);
+  Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value);
 
 
   /**
@@ -52,10 +59,10 @@ public interface Expiry<K, V> {
    * to return the same value from both of these methods
    *
    * @param key the key of the updated entry
-   * @param oldValue the previous value of the entry
+   * @param oldValue a value supplier for the previous value of the entry
    * @param newValue the new value of the entry
    * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time
    */
-  Duration getExpiryForUpdate(K key, V oldValue, V newValue);
+  Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue);
 
 }

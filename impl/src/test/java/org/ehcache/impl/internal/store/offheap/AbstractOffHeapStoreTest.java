@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.Cache;
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
@@ -54,6 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.core.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
 import static org.ehcache.impl.internal.util.StatisticsTestUtils.validateStats;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -360,9 +362,9 @@ public abstract class AbstractOffHeapStoreTest {
       store.put(key, value);
       final Store.ValueHolder<String> secondValueHolder = store.getAndFault(key);
       timeSource.advanceTime(10);
-      ((AbstractValueHolder)firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
+      ((AbstractValueHolder) firstValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, supplierOf(value)));
       timeSource.advanceTime(10);
-      ((AbstractValueHolder)secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, value));
+      ((AbstractValueHolder) secondValueHolder).accessed(timeSource.getTimeMillis(), expiry.getExpiryForAccess(key, supplierOf(value)));
       assertThat(store.flush(key, new DelegatingValueHolder<String>(firstValueHolder)), is(false));
       assertThat(store.flush(key, new DelegatingValueHolder<String>(secondValueHolder)), is(true));
       timeSource.advanceTime(10); // this should NOT affect
@@ -430,12 +432,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         return Duration.ZERO;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         return Duration.FOREVER;
       }
     });
@@ -463,12 +465,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         throw new AssertionError();
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         throw new AssertionError();
       }
     });
@@ -486,12 +488,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         throw new RuntimeException();
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         return null;
       }
     });
@@ -511,12 +513,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         return Duration.FOREVER;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         if (timeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
@@ -558,12 +560,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         return Duration.ZERO;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         return Duration.ZERO;
       }
     });
@@ -599,12 +601,12 @@ public abstract class AbstractOffHeapStoreTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         return Duration.ZERO;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         return Duration.ZERO;
       }
     });

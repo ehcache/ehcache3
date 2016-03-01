@@ -15,6 +15,7 @@
  */
 package org.ehcache.impl.internal.store.heap.bytesized;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
@@ -179,12 +180,12 @@ public class ByteAccountingTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         return Duration.FOREVER;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         return Duration.ZERO;
       }
     });
@@ -339,12 +340,12 @@ public class ByteAccountingTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         return Duration.ZERO;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         return Duration.FOREVER;
       }
     });
@@ -375,12 +376,12 @@ public class ByteAccountingTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         return Duration.FOREVER;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         return Duration.ZERO;
       }
     });
@@ -432,12 +433,12 @@ public class ByteAccountingTest {
       }
 
       @Override
-      public Duration getExpiryForAccess(String key, String value) {
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
         return Duration.ZERO;
       }
 
       @Override
-      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
         return Duration.FOREVER;
       }
     });

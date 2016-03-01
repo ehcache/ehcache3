@@ -17,6 +17,7 @@
 package org.ehcache.core.spi.cache;
 
 import org.ehcache.Cache;
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -481,20 +482,12 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param <V> the value type
    */
-  interface ValueHolder<V> {
+  interface ValueHolder<V> extends ValueSupplier<V> {
 
     /**
      * Constant value indicating no expiration - an eternal mapping.
      */
     long NO_EXPIRE = -1;
-
-    /**
-     * Accessor to the value held by this mapping.
-     *
-     * @return The value
-     * @throws RuntimeException when something goes wrong... e.g. deserialization?
-     */
-    V value(); // deserializes
 
     /**
      * Accessor to the creation time of this ValueHolder

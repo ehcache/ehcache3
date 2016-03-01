@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.events;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.cache.events.StoreEventFilter;
@@ -43,17 +44,17 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void removed(Object key, Object value) {
+    public void removed(Object key, ValueSupplier value) {
       // Do nothing
     }
 
     @Override
-    public void updated(Object key, Object oldValue, Object newValue) {
+    public void updated(Object key, ValueSupplier oldValue, Object newValue) {
       // Do nothing
     }
 
     @Override
-    public void expired(Object key, Object value) {
+    public void expired(Object key, ValueSupplier value) {
       // Do nothing
     }
 
@@ -63,7 +64,7 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void evicted(Object key, Object value) {
+    public void evicted(Object key, ValueSupplier value) {
       // Do nothing
     }
   };

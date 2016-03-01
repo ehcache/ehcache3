@@ -16,6 +16,7 @@
 
 package org.ehcache.docs;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
@@ -44,6 +45,7 @@ import javax.cache.expiry.Duration;
 import javax.cache.expiry.ExpiryPolicy;
 import javax.cache.spi.CachingProvider;
 
+import static org.ehcache.core.util.ValueSuppliers.supplierOf;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -102,10 +104,10 @@ public class EhCache107ConfigurationIntegrationDocTest {
     Random random = new Random(nanoTime);
     assertThat(runtimeConfiguration.getExpiry().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
                 equalTo(org.ehcache.expiry.Duration.FOREVER));
-    assertThat(runtimeConfiguration.getExpiry().getExpiryForAccess(random.nextLong(), Long.toOctalString(random.nextLong())),
-                nullValue());
-    assertThat(runtimeConfiguration.getExpiry().getExpiryForUpdate(random.nextLong(), Long.toOctalString(random.nextLong()), Long.toOctalString(random.nextLong())),
-                nullValue());
+    assertThat(runtimeConfiguration.getExpiry().getExpiryForAccess(random.nextLong(),
+                  supplierOf(Long.toOctalString(random.nextLong()))), nullValue());
+    assertThat(runtimeConfiguration.getExpiry().getExpiryForUpdate(random.nextLong(),
+                  supplierOf(Long.toOctalString(random.nextLong())), Long.toOctalString(random.nextLong())), nullValue());
   }
 
   @Test
