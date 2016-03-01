@@ -20,6 +20,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.core.spi.sizeof.SizeOfEngine;
 import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
@@ -39,7 +40,7 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     //no op
   }
 

@@ -17,12 +17,18 @@
 package org.ehcache.impl.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.persistence.PersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.spi.service.MaintainableService;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +40,8 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Locale;
@@ -87,7 +95,16 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   @Override
-  public synchronized void start(final ServiceProvider serviceProvider) {
+  public synchronized void start(final ServiceProvider<Service> serviceProvider) {
+    internalStart();
+  }
+
+  @Override
+  public synchronized void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
+    internalStart();
+  }
+
+  private void internalStart() {
     if (!started) {
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
@@ -132,6 +149,30 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
     if(!rootDirectory.canWrite()) {
       throw new IllegalArgumentException("Location isn't writable: " + rootDirectory.getAbsolutePath());
+    }
+  }
+
+  @Override
+  public boolean handlesResourceType(ResourceType resourceType) {
+    return ResourceType.Core.DISK.equals(resourceType);
+  }
+
+  @Override
+  public Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException {
+    if (!ResourceType.Core.DISK.equals(pool.getType())) {
+      throw new IllegalArgumentException("Pool is of wrong resource type. Disk expected, received " + pool.getType());
+    }
+    if (!pool.isPersistent()) {
+      try {
+        destroyPersistenceSpace(alias);
+      } catch (CachePersistenceException cpex) {
+        throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + alias, cpex);
+      }
+    }
+    try {
+      return Collections.<ServiceConfiguration<?>>singleton(getOrCreatePersistenceSpace(alias));
+    } catch (CachePersistenceException cpex) {
+      throw new RuntimeException("Unable to create persistence space for cache " + alias, cpex);
     }
   }
 

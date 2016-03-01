@@ -17,6 +17,7 @@ package org.ehcache.transactions.xa.txmgr.provider;
 
 import bitronix.tm.TransactionManagerServices;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixXAResourceRegistry;
 import org.slf4j.Logger;
@@ -54,7 +55,7 @@ public class DefaultTransactionManagerProvider implements TransactionManagerProv
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
   }
 
   @Override

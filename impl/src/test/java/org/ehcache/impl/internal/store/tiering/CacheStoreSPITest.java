@@ -52,6 +52,7 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
 import org.junit.Before;
@@ -157,7 +158,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public void start(final ServiceProvider serviceProvider) {
+            public void start(final ServiceProvider<Service> serviceProvider) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -182,7 +183,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public void start(final ServiceProvider serviceProvider) {
+            public void start(final ServiceProvider<Service> serviceProvider) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -287,7 +288,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceProvider<Service> getServiceProvider() {
         ServiceLocator serviceLocator = new ServiceLocator();
         serviceLocator.addService(new FakeCachingTierProvider());
         serviceLocator.addService(new FakeAuthoritativeTierProvider());
@@ -332,7 +333,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       throw new UnsupportedOperationException();
     }
 
@@ -359,7 +360,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       throw new UnsupportedOperationException();
     }
 

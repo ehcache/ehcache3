@@ -39,6 +39,7 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.xa.commands.StoreEvictCommand;
@@ -631,7 +632,7 @@ public class XAStore<K, V> implements Store<K, V> {
   @ServiceDependencies({TransactionManagerProvider.class, TimeSourceService.class, JournalProvider.class, CopyProvider.class, DefaultStoreProvider.class})
   public static class Provider implements Store.Provider {
 
-    private volatile ServiceProvider serviceProvider;
+    private volatile ServiceProvider<Service> serviceProvider;
     private volatile Store.Provider underlyingStoreProvider;
     private volatile TransactionManagerProvider transactionManagerProvider;
     private final Map<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper>();
@@ -836,7 +837,7 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
       this.underlyingStoreProvider = serviceProvider.getService(DefaultStoreProvider.class);
       this.transactionManagerProvider = serviceProvider.getService(TransactionManagerProvider.class);

@@ -54,6 +54,7 @@ import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.spi.sizeof.SizeOfEngine;
@@ -1605,7 +1606,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class, SizeOfEngineProvider.class})
   public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
 
-    private volatile ServiceProvider serviceProvider;
+    private volatile ServiceProvider<Service> serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
@@ -1652,7 +1653,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
 
     @Override
-    public void start(final ServiceProvider serviceProvider) {
+    public void start(final ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

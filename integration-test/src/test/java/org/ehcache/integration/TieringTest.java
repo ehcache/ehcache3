@@ -41,7 +41,7 @@ public class TieringTest {
           .disk(5, MemoryUnit.MB)).build()).build(true);
       fail("Should not initialize");
     } catch (StateTransitionException e) {
-      assertThat(e.getCause().getCause().getMessage(), containsString("No LocalPersistenceService could be found"));
+      assertThat(e.getCause().getCause().getMessage(), containsString("No service found for persistable resource: disk"));
     }
   }
 }

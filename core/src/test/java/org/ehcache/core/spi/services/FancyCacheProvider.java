@@ -19,6 +19,7 @@ package org.ehcache.core.spi.services;
 import org.ehcache.core.Ehcache;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.CacheProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -39,7 +40,7 @@ public class FancyCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start(final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider<Service> serviceProvider) {
     ++startStopCounter;
   }
 

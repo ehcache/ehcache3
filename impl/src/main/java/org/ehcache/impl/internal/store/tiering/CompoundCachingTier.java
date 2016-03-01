@@ -23,6 +23,7 @@ import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
@@ -168,7 +169,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
 
   @SupplementaryService
   public static class Provider implements CachingTier.Provider {
-    private volatile ServiceProvider serviceProvider;
+    private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>>();
 
     @Override
@@ -218,7 +219,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

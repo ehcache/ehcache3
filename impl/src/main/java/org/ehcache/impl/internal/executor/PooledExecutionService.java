@@ -21,6 +21,7 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.util.ThreadFactoryUtil;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.spi.service.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -109,7 +110,7 @@ public class PooledExecutionService implements ExecutionService {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     if (poolConfigurations.isEmpty()) {
       throw new IllegalStateException("Pool configuration is empty");
     }

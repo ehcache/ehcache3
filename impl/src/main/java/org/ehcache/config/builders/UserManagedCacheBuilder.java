@@ -318,11 +318,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     }
   }
 
-  private void registerListeners(Cache<K, V> cache, ServiceProvider serviceLocator, List<LifeCycled> lifeCycledList) {
+  private void registerListeners(Cache<K, V> cache, ServiceProvider<Service> serviceProvider, List<LifeCycled> lifeCycledList) {
     if (!eventListenerConfigurations.isEmpty()) {
       final CacheEventListenerProvider listenerProvider;
       CacheEventListenerProvider provider;
-      if ((provider = serviceLocator.getService(CacheEventListenerProvider.class)) != null) {
+      if ((provider = serviceProvider.getService(CacheEventListenerProvider.class)) != null) {
         listenerProvider = provider;
       } else {
         listenerProvider = new DefaultCacheEventListenerProvider();

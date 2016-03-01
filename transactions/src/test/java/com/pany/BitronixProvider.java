@@ -17,6 +17,7 @@ package com.pany;
 
 import bitronix.tm.TransactionManagerServices;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixXAResourceRegistry;
@@ -36,7 +37,7 @@ public class BitronixProvider implements TransactionManagerProvider { // <1>
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     // no-op
   }
 

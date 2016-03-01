@@ -18,6 +18,7 @@ package org.ehcache.clustered;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
+import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -31,7 +32,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 /**
- * Tests basic XML configuration of {@link ClusteredCacheManager}.
+ * Tests basic XML configuration of clustered {@link PersistentCacheManager}.
  *
  * @author Clifford W. Johnson
  */
@@ -44,7 +45,7 @@ public class SimpleClusteredCacheByXmlTest {
     final Configuration configuration = new XmlConfiguration(this.getClass().getResource(SIMPLE_CLUSTER_XML));
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
 
-    assertThat(cacheManager, is(instanceOf(ClusteredCacheManager.class)));
+    assertThat(cacheManager, is(instanceOf(PersistentCacheManager.class)));
 
     cacheManager.init();
 
@@ -59,9 +60,9 @@ public class SimpleClusteredCacheByXmlTest {
   @Test
   public void testViaXmlDirect() throws Exception {
     final Configuration configuration = new XmlConfiguration(this.getClass().getResource(SIMPLE_CLUSTER_XML));
-    final CacheManager cacheManager = ClusteredCacheManagerBuilder.newCacheManager(configuration);
+    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
 
-    assertThat(cacheManager, is(instanceOf(ClusteredCacheManager.class)));
+    assertThat(cacheManager, is(instanceOf(PersistentCacheManager.class)));
 
     cacheManager.init();
 

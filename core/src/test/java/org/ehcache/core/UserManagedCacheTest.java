@@ -27,6 +27,7 @@ import org.ehcache.core.spi.cache.Store.Configuration;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
@@ -95,7 +96,7 @@ public class UserManagedCacheTest {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
     }
 
     @Override

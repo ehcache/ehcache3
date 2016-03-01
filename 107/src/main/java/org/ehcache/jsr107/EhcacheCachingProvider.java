@@ -132,7 +132,7 @@ public class EhcacheCachingProvider implements CachingProvider {
     public volatile ManagementRegistryService managementRegistry;
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     }
 

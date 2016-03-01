@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.config;
 
-import org.ehcache.clustered.ClusteredCacheManagerBuilder;
 import org.ehcache.clustered.service.ClusteringService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.junit.Test;
@@ -53,6 +52,6 @@ public class ClusteringServiceConfigurationTest {
   @Test
   public void testBuilder() throws Exception {
     assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"))
-        .builder(CacheManagerBuilder.newCacheManagerBuilder()), is(instanceOf(ClusteredCacheManagerBuilder.class)));
+        .builder(CacheManagerBuilder.newCacheManagerBuilder()), is(instanceOf(CacheManagerBuilder.class)));
   }
 }

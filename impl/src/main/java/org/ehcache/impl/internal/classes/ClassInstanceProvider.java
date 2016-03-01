@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.classes;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 
@@ -142,7 +143,7 @@ public class ClassInstanceProvider<K, T> {
     }
   }
 
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     // default no-op
   }
 

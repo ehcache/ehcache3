@@ -182,7 +182,7 @@ public class ServiceLocatorTest {
     ServiceLocator serviceLocator = new ServiceLocator(new TestServiceConsumerService());
     serviceLocator.addService(new TestService() {
       @Override
-      public void start(ServiceProvider serviceProvider) {
+      public void start(ServiceProvider<Service> serviceProvider) {
         started.set(true);
       }
 
@@ -201,7 +201,7 @@ public class ServiceLocatorTest {
     @ServiceDependencies(TestProvidedService.class)
     class Consumer1 implements Service {
       @Override
-      public void start(ServiceProvider serviceProvider) {
+      public void start(ServiceProvider<Service> serviceProvider) {
       }
 
       @Override
@@ -214,7 +214,7 @@ public class ServiceLocatorTest {
     class Consumer2 implements Service {
       TestProvidedService testProvidedService;
       @Override
-      public void start(ServiceProvider serviceProvider) {
+      public void start(ServiceProvider<Service> serviceProvider) {
         testProvidedService = serviceProvider.getService(TestProvidedService.class);
       }
 
@@ -233,7 +233,7 @@ public class ServiceLocatorTest {
     serviceLocator.addService(consumer2);
     serviceLocator.addService(new TestService() {
       @Override
-      public void start(ServiceProvider serviceProvider) {
+      public void start(ServiceProvider<Service> serviceProvider) {
       }
 
       @Override
@@ -269,7 +269,7 @@ public class ServiceLocatorTest {
     @ServiceDependencies(TestProvidedService.class)
     class Consumer1 implements Service {
       @Override
-      public void start(ServiceProvider serviceProvider) {
+      public void start(ServiceProvider<Service> serviceProvider) {
         assertThat(serviceProvider.getService(TestProvidedService.class), is(notNull()));
       }
       @Override
@@ -280,7 +280,7 @@ public class ServiceLocatorTest {
     class Consumer2 implements Service {
       TestProvidedService testProvidedService;
       @Override
-      public void start(ServiceProvider serviceProvider) {
+      public void start(ServiceProvider<Service> serviceProvider) {
         assertThat(serviceProvider.getService(Consumer1.class), is(notNull()));
       }
       @Override
@@ -290,7 +290,7 @@ public class ServiceLocatorTest {
     @ServiceDependencies(Consumer2.class)
     class MyTestProvidedService extends DefaultTestProvidedService {
       @Override
-      public void start(ServiceProvider serviceProvider) {
+      public void start(ServiceProvider<Service> serviceProvider) {
         assertThat(serviceProvider.getService(Consumer2.class), is(notNull()));
         super.start(serviceProvider);
       }
@@ -299,7 +299,7 @@ public class ServiceLocatorTest {
     @ServiceDependencies(DependsOnMe.class)
     class DependsOnMe implements Service {
       @Override
-      public void start(ServiceProvider serviceProvider) {
+      public void start(ServiceProvider<Service> serviceProvider) {
         assertThat(serviceProvider.getService(DependsOnMe.class), sameInstance(this));;
       }
       @Override
@@ -350,7 +350,7 @@ class YetAnotherCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     // no-op
   }
 
@@ -372,7 +372,7 @@ interface FooProvider extends Service {
 class TestServiceConsumerService implements Service {
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     assertThat(serviceProvider.getService(TestService.class), notNullValue());
   }
 
@@ -385,7 +385,7 @@ class TestServiceConsumerService implements Service {
 class ParentTestService implements FooProvider {
 
   @Override
-  public void start(final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider<Service> serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
@@ -397,7 +397,7 @@ class ParentTestService implements FooProvider {
 class ChildTestService extends ParentTestService {
 
   @Override
-  public void start(final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider<Service> serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 }
@@ -415,7 +415,7 @@ class DullCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start(final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider<Service> serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
