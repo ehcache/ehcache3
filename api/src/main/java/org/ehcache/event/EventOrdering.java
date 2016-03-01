@@ -38,7 +38,7 @@ public enum EventOrdering {
   /**
    * Indicates if the value obeys ordering
    *
-   * @return {@link true} in case it does, {@link false} otherwise
+   * @return {@code true} in case it does, {@code false} otherwise
    */
   public boolean isOrdered() {
     return ordered;
