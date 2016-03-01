@@ -13,19 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
 
-import org.ehcache.exceptions.RethrowingCacheAccessException;
-import org.ehcache.transactions.xa.internal.XAStore;
+package org.ehcache.transactions.xa.internal.journal;
 
 /**
- * A {@link org.ehcache.exceptions.CacheAccessException} thrown by the {@link XAStore} that is not handled by the
- * {@link org.ehcache.resilience.ResilienceStrategy} but used to throw a {@link RuntimeException} to the user of the cache.
- *
  * @author Ludovic Orban
  */
-public class XACacheAccessException extends RethrowingCacheAccessException {
-  public XACacheAccessException(RuntimeException cause) {
-    super(cause);
+public class TransientJournalTest extends AbstractJournalTest {
+  @Override
+  protected Journal<Long> createJournal() {
+    return new TransientJournal<Long>();
   }
 }

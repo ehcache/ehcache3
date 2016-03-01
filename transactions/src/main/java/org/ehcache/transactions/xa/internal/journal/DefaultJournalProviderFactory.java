@@ -13,19 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
 
-import org.ehcache.exceptions.RethrowingCacheAccessException;
-import org.ehcache.transactions.xa.internal.XAStore;
+package org.ehcache.transactions.xa.internal.journal;
+
+import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.core.spi.service.ServiceFactory;
 
 /**
- * A {@link org.ehcache.exceptions.CacheAccessException} thrown by the {@link XAStore} that is not handled by the
- * {@link org.ehcache.resilience.ResilienceStrategy} but used to throw a {@link RuntimeException} to the user of the cache.
- *
  * @author Ludovic Orban
  */
-public class XACacheAccessException extends RethrowingCacheAccessException {
-  public XACacheAccessException(RuntimeException cause) {
-    super(cause);
+public class DefaultJournalProviderFactory implements ServiceFactory<JournalProvider> {
+
+  @Override
+  public JournalProvider create(ServiceCreationConfiguration<JournalProvider> configuration) {
+    return new DefaultJournalProvider();
+  }
+
+  @Override
+  public Class<JournalProvider> getServiceType() {
+    return JournalProvider.class;
   }
 }
