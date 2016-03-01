@@ -27,7 +27,7 @@ import java.util.List;
 /**
  * @author Ludovic Orban
  */
-public class Ehcache3XAResourceHolder extends AbstractXAResourceHolder {
+class Ehcache3XAResourceHolder extends AbstractXAResourceHolder {
 
   private final XAResource resource;
   private final ResourceBean bean;
@@ -37,7 +37,7 @@ public class Ehcache3XAResourceHolder extends AbstractXAResourceHolder {
    * @param resource the required XAResource
    * @param bean the required ResourceBean
    */
-  public Ehcache3XAResourceHolder(XAResource resource, ResourceBean bean) {
+  Ehcache3XAResourceHolder(XAResource resource, ResourceBean bean) {
     this.resource = resource;
     this.bean = bean;
   }

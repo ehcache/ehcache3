@@ -13,19 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
 
-import org.ehcache.exceptions.RethrowingCacheAccessException;
-import org.ehcache.transactions.xa.internal.XAStore;
+package org.ehcache.transactions.xa.internal.commands;
+
+import org.ehcache.transactions.xa.internal.XAValueHolder;
 
 /**
- * A {@link org.ehcache.exceptions.CacheAccessException} thrown by the {@link XAStore} that is not handled by the
- * {@link org.ehcache.resilience.ResilienceStrategy} but used to throw a {@link RuntimeException} to the user of the cache.
+ * {@link Command} implementation representing an eviction.
  *
  * @author Ludovic Orban
  */
-public class XACacheAccessException extends RethrowingCacheAccessException {
-  public XACacheAccessException(RuntimeException cause) {
-    super(cause);
+public class StoreEvictCommand<V> implements Command<V> {
+
+  private final V oldValue;
+
+  public StoreEvictCommand(V oldValue) {
+    this.oldValue = oldValue;
+  }
+
+  @Override
+  public V getOldValue() {
+    return oldValue;
+  }
+
+  @Override
+  public XAValueHolder<V> getNewValueHolder() {
+    return null;
   }
 }

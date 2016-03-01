@@ -13,19 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
 
-import org.ehcache.exceptions.RethrowingCacheAccessException;
-import org.ehcache.transactions.xa.internal.XAStore;
+package org.ehcache.transactions.xa.internal.txmgr;
+
+import org.ehcache.transactions.xa.txmgr.XAResourceRegistry;
+
+import javax.transaction.xa.XAResource;
 
 /**
- * A {@link org.ehcache.exceptions.CacheAccessException} thrown by the {@link XAStore} that is not handled by the
- * {@link org.ehcache.resilience.ResilienceStrategy} but used to throw a {@link RuntimeException} to the user of the cache.
+ * No-op {@link XAResourceRegistry} implementation.
  *
  * @author Ludovic Orban
  */
-public class XACacheAccessException extends RethrowingCacheAccessException {
-  public XACacheAccessException(RuntimeException cause) {
-    super(cause);
+public class NullXAResourceRegistry implements XAResourceRegistry {
+  @Override
+  public void registerXAResource(String uniqueName, XAResource xaResource) {
+    // no-op
+  }
+
+  @Override
+  public void unregisterXAResource(String uniqueName, XAResource xaResource) {
+    // no-op
   }
 }

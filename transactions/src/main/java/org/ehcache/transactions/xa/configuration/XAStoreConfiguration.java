@@ -16,7 +16,7 @@
 package org.ehcache.transactions.xa.configuration;
 
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.transactions.xa.XAStore;
+import org.ehcache.transactions.xa.internal.XAStore;
 
 /**
  * @author Ludovic Orban

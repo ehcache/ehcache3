@@ -13,19 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xa;
 
-import org.ehcache.exceptions.RethrowingCacheAccessException;
+package org.ehcache.transactions.xa.internal.commands;
+
+import org.ehcache.transactions.xa.internal.XAValueHolder;
 import org.ehcache.transactions.xa.internal.XAStore;
 
 /**
- * A {@link org.ehcache.exceptions.CacheAccessException} thrown by the {@link XAStore} that is not handled by the
- * {@link org.ehcache.resilience.ResilienceStrategy} but used to throw a {@link RuntimeException} to the user of the cache.
+ * A representation of in-flight transaction's modification to the mappings of a {@link XAStore}.
  *
  * @author Ludovic Orban
  */
-public class XACacheAccessException extends RethrowingCacheAccessException {
-  public XACacheAccessException(RuntimeException cause) {
-    super(cause);
-  }
+public interface Command<V> {
+
+  /**
+   * Get the value to rollback to.
+   * @return the old value.
+   */
+  V getOldValue();
+
+  /**
+   * Get the value holder to commit.
+   * @return the new value holder.
+   */
+  XAValueHolder<V> getNewValueHolder();
+
 }
