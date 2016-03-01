@@ -19,6 +19,8 @@ package org.ehcache.transactions.xa.internal.txmgr.provider;
 import bitronix.tm.TransactionManagerServices;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.transactions.xa.internal.XAStore;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixXAResourceRegistry;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
@@ -31,6 +33,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author Ludovic Orban
  */
+@ServiceDependencies(XAStore.Provider.class)
 public class DefaultTransactionManagerProvider implements TransactionManagerProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultTransactionManagerProvider.class);

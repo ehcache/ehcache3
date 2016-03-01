@@ -21,8 +21,6 @@
            elementFormDefault="qualified"
            targetNamespace="http://www.ehcache.org/v3/tx">
 
-  <xs:element name="xa-store-provider"/>
-
   <xs:element name="xa-store" type="tx:xa-store-config-type"/>
 
   <xs:element name="jta-tm" type="tx:jta-tm-type"/>

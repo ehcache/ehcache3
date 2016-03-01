@@ -21,9 +21,6 @@
                         http://www.ehcache.org/v3/tx ../../../main/resources/ehcache-tx-ext.xsd">
 
   <service>
-    <tx:xa-store-provider/>
-  </service>
-  <service>
     <tx:jta-tm transaction-manager-provider-class="com.pany.BitronixProvider"/>
   </service>
 

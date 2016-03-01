@@ -47,7 +47,7 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/docs/transactions/xa
 
 <1> First start the Bitronix transaction manager. By default, Ehcache 3 will auto-detect it but will throw an exception
     during the cache manager initialization if BTM isn't started.
-<2> Configure the cache manager such as it can handle `XAStoreConfiguration`.
+<2> Configure the cache manager such as it can handle transactions by having a `TransactionManagerProvider` loaded.
 <3> Register a cache the normal way.
 <4> Give it the resources you wish.
 <5> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
@@ -75,21 +75,20 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/docs/transactions/xa
 
 <1> First start the Bitronix transaction manager. By default, Ehcache 3 will auto-detect it but will throw an exception
     during the cache manager initialization if BTM isn't started.
-<2> Configure the cache manager such as it can handle `XAStoreConfiguration`.
-<3> Register a cache the normal way.
-<4> Give it the resources you wish.
-<5> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
-    XAResource identifier as some transaction managers require this.
-<6> A `TransactionManagerProviderConfiguration` containing a `TransactionManagerWrapper` instance must be added to the
-    builder. The `TransactionManagerWrapper` class is constructed with both the `javax.transaction.TransactionManager`
+<2> Specify a `TransactionManagerProviderConfiguration` containing a `TransactionManagerWrapper` instance to be added to
+    the builder. The `TransactionManagerWrapper` class is constructed with both the `javax.transaction.TransactionManager`
     instance as well as a `XAResourceRegistry` instance. The latter is used to register the
     `javax.transaction.xa.XAResource` instances of the cache with the transaction manager using an
     implementation-specific mechanism. If your JTA implementation doesn't require that, you can use the
     `NullXAResourceRegistry` instead.
-<7> Begin a JTA transaction the normal way.
-<8> Work with the cache the normal way, all operations are supported. Note that concurrent transactions will not see
+<3> Register a cache the normal way.
+<4> Give it the resources you wish.
+<5> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
+    XAResource identifier as some transaction managers require this.
+<6> Begin a JTA transaction the normal way.
+<7> Work with the cache the normal way, all operations are supported. Note that concurrent transactions will not see
     those pending changes.
-<9> Commit the JTA transaction. Other transactions can now see the changes you made to the cache.
+<8> Commit the JTA transaction. Other transactions can now see the changes you made to the cache.
 
 === XA write-through cache
 
@@ -104,7 +103,7 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/docs/transactions/xa
 
 <1> First start the Bitronix transaction manager. By default, Ehcache 3 will auto-detect it but will throw an exception
     during the cache manager initialization if BTM isn't started.
-<2> Configure the cache manager such as it can handle `XAStoreConfiguration`.
+<2> Configure the cache manager such as it can handle transactions by having a `TransactionManagerProvider` loaded.
 <3> Register a cache the normal way.
 <4> Give it the resources you wish.
 <5> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
@@ -128,7 +127,7 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/docs/transactions/xa
 
 <1> First start the Bitronix transaction manager. By default, Ehcache 3 will auto-detect it but will throw an exception
     during the cache manager initialization if BTM isn't started.
-<2> Configure the cache manager such as it can handle `XAStoreConfiguration`.
+<2> Configure the cache manager such as it can handle transactions by having a `TransactionManagerProvider` loaded.
 <3> Register a cache the normal way.
 <4> Give it the resources you wish.
 <5> Add a `XAStoreConfiguration` object to make the cache XA transactional. You must also give the cache a unique
@@ -155,7 +154,7 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/docs/transactions/xa
 
 <1> First start the Bitronix transaction manager. By default, Ehcache 3 will auto-detect it but will throw an exception
     during the cache manager initialization if BTM isn't started.
-<2> Configure the cache manager such as it can handle `XAStoreConfiguration`.
+<2> Configure the cache manager such as it can handle transactions by having a `TransactionManagerProvider` loaded.
 <3> Register a `LocalPersistenceService` with your `CacheManager` to use disk storage.
 <4> Register a cache the normal way.
 <5> Give it the resources you wish.
@@ -176,10 +175,9 @@ XA caches:
 include::{sourcedir}/transactions/src/test/resources/docs/configs/xa-getting-started.xml[tags=gettingStarted]
 ----
 
-<1> Configure the cache manager such as it can handle XA stores configuration.
-<2> Declare a `TransactionManagerProvider` that will lookup your transaction manager.
-<3> Configure a `xaCache` cache the normal way.
-<4> Configure `xaCache` as an XA cache, giving it `xaCache` as its unique XAResource ID.
+<1> Declare a `TransactionManagerProvider` that will lookup your transaction manager.
+<2> Configure a `xaCache` cache the normal way.
+<3> Configure `xaCache` as an XA cache, giving it `xaCache` as its unique XAResource ID.
 
 In order to parse an XML configuration, you can use the `XmlConfiguration` type:
 
