@@ -21,6 +21,8 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.MaintainableService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.Collection;
@@ -39,12 +41,12 @@ public class DefaultClusteringService implements ClusteringService {
   }
 
   @Override
-  public void start(final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider<Service> serviceProvider) {
     // TODO: Implement start
   }
 
   @Override
-  public void startForMaintenance() {
+  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
     // TODO: Implement maintenance
   }
 

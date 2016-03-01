@@ -36,6 +36,7 @@ import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
@@ -138,7 +139,7 @@ public class CompoundCachingTierSPITest extends CachingTierSPITest<String, Strin
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceProvider<Service> getServiceProvider() {
         return new ServiceLocator();
       }
 

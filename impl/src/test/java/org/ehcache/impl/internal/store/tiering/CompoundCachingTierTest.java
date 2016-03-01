@@ -332,7 +332,7 @@ public class CompoundCachingTierTest {
   @Test
   public void testProviderPassesServiceConfigs() {
     CompoundCachingTier.Provider provider = new CompoundCachingTier.Provider();
-    ServiceProvider serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
     when(serviceProvider.getService(FakeProvider.class)).thenReturn(new FakeProvider());
     when(serviceProvider.getService(FakeLowerProvider.class)).thenReturn(new FakeLowerProvider());
     provider.start(serviceProvider);
@@ -365,7 +365,7 @@ public class CompoundCachingTierTest {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
     }
 
     @Override
@@ -376,7 +376,7 @@ public class CompoundCachingTierTest {
   static class FakeProvider implements HigherCachingTier.Provider {
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
     }
 
     @Override

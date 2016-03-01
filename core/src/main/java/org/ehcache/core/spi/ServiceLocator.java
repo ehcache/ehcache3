@@ -49,7 +49,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * @author Alex Snaps
  */
-public final class ServiceLocator implements ServiceProvider {
+public final class ServiceLocator implements ServiceProvider<Service> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocator.class);
   private final ConcurrentMap<Class<? extends Service>, Service> services = new ConcurrentHashMap<Class<? extends Service>, Service>();

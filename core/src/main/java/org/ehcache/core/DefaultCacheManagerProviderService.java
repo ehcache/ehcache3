@@ -19,6 +19,7 @@ package org.ehcache.core;
 import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
 
 /**
  * @author Mathieu Carbou
@@ -37,7 +38,7 @@ public class DefaultCacheManagerProviderService implements CacheManagerProviderS
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
 
   }
 

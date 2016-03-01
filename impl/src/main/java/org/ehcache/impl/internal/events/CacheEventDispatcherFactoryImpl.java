@@ -23,6 +23,7 @@ import org.ehcache.core.events.CacheEventDispatcherImpl;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 
@@ -51,7 +52,7 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     executionService = serviceProvider.getService(ExecutionService.class);
   }
 

@@ -21,6 +21,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -44,7 +45,7 @@ public interface StoreFactory<K, V> {
 
   ServiceConfiguration<?>[] getServiceConfigurations();
 
-  ServiceProvider getServiceProvider();
+  ServiceProvider<Service> getServiceProvider();
 
   K createKey(long seed);
 

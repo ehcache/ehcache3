@@ -20,6 +20,7 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +34,7 @@ public class DefaultJournalProvider implements JournalProvider {
   private volatile LocalPersistenceService persistenceService;
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     this.persistenceService = serviceProvider.getService(LocalPersistenceService.class);
   }
 

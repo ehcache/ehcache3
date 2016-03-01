@@ -26,6 +26,7 @@ import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
@@ -337,7 +338,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   @SupplementaryService
   public static class Provider implements Store.Provider {
 
-    private volatile ServiceProvider serviceProvider;
+    private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>>();
 
     @Override
@@ -401,7 +402,7 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

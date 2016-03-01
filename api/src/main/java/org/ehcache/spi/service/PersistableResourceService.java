@@ -19,7 +19,6 @@ package org.ehcache.spi.service;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.spi.ServiceProvider;
 
 import java.util.Collection;
 
@@ -27,12 +26,7 @@ import java.util.Collection;
  * Specific interface for services that are dedicated to handling a {@link ResourceType} which is
  * {@link ResourceType#isPersistable() persistable}.
  */
-public interface PersistableResourceService extends Service {
-
-  /**
-   * Start this service for maintenance, based on its default configuration.
-   */
-  void startForMaintenance();
+public interface PersistableResourceService extends MaintainableService {
 
   /**
    * Indicates whether this service handles the type of resource passed in.

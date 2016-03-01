@@ -44,6 +44,7 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.SupplementaryService;
@@ -241,7 +242,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
     private final String defaultThreadPool;
-    private volatile ServiceProvider serviceProvider;
+    private volatile ServiceProvider<Service> serviceProvider;
 
     public Provider() {
       this(null);
@@ -339,7 +340,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

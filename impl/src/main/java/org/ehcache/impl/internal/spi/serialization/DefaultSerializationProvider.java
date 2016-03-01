@@ -36,6 +36,7 @@ import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
@@ -125,7 +126,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     transientProvider.start(serviceProvider);
     persistentProvider.start(serviceProvider);
   }
@@ -153,7 +154,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       if (!serializers.containsKey(Serializable.class)) {
         serializers.put(Serializable.class, (Class) CompactJavaSerializer.class);
       }
@@ -202,7 +203,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       persistence = serviceProvider.getService(LocalPersistenceService.class);
       if (!serializers.containsKey(Serializable.class)) {
         serializers.put(Serializable.class, (Class) CompactPersistentJavaSerializer.class);

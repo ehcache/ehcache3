@@ -23,17 +23,18 @@ import org.ehcache.spi.service.Service;
  * This acts as a repository for {@link Service} instances, that can be used to
  * look them up by type.
  *
+ * @param <T> A bound on service types this provider can return
  * @author Alex Snaps
  */
-public interface ServiceProvider {
+public interface ServiceProvider<T extends Service> {
 
   /**
    * Will look up the {@link Service} of the {@code serviceType}.
    * The returned service will be started or not depending on the started state of the {@code ServiceProvider}.
    *
    * @param serviceType the {@code class} of the service being looked up
-   * @param <T> The actual {@link Service} type
+   * @param <U> The actual {@link Service} type
    * @return the service instance for {@code T} type, or {@code null} if it couldn't be located
    */
-  <T extends Service> T getService(Class<T> serviceType);
+  <U extends T> U getService(Class<U> serviceType);
 }

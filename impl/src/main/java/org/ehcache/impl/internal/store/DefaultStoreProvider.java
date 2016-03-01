@@ -26,6 +26,7 @@ import org.ehcache.impl.internal.store.tiering.CompoundCachingTier;
 import org.ehcache.impl.internal.store.tiering.CompoundCachingTierServiceConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
@@ -45,7 +46,7 @@ import java.util.concurrent.ConcurrentMap;
 public class DefaultStoreProvider implements Store.Provider {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultStoreProvider.class);
 
-  private volatile ServiceProvider serviceProvider;
+  private volatile ServiceProvider<Service> serviceProvider;
   private final ConcurrentMap<Store<?, ?>, Store.Provider> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Store.Provider>();
 
   @Override
@@ -110,7 +111,7 @@ public class DefaultStoreProvider implements Store.Provider {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     this.serviceProvider = serviceProvider;
   }
 

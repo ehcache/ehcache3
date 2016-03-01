@@ -43,6 +43,7 @@ import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -50,6 +51,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
+import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.PersistableResourceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -647,7 +649,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
-    startPersistenceServices();
+    startMaintenableServices();
     try {
       final Maintainable maintainable = new Maintainable() {
         @Override
@@ -673,11 +675,21 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
   }
 
-  private void startPersistenceServices() {
-    Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
-    for (PersistableResourceService service : services) {
-      service.startForMaintenance();
+  private void startMaintenableServices() {
+    ServiceProvider<MaintainableService> provider = getMaintainableServiceProvider();
+    Collection<MaintainableService> services = serviceLocator.getServicesOfType(MaintainableService.class);
+    for (MaintainableService service : services) {
+      service.startForMaintenance(provider);
     }
+  }
+
+  private ServiceProvider<MaintainableService> getMaintainableServiceProvider() {
+    return new ServiceProvider<MaintainableService>() {
+      @Override
+      public <U extends MaintainableService> U getService(Class<U> serviceType) {
+        return serviceLocator.getService(serviceType);
+      }
+    };
   }
 
   private void stopPersistenceServices() {

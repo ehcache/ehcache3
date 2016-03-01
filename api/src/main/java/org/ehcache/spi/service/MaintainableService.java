@@ -14,22 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.services;
+package org.ehcache.spi.service;
 
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.Service;
 
 /**
- * DefaultTestService
+ * Specific {@link Service} interface that indicates that the service participates in maintenance mode
  */
-public class DefaultTestService implements TestService {
-  @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
-    throw new UnsupportedOperationException("TODO Implement me!");
-  }
+public interface MaintainableService extends Service {
+  /**
+   * Start this service for maintenance, based on its default configuration.
+   *
+   * @param serviceProvider enables to depend on other maintainable services
+   */
+  void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider);
 
-  @Override
-  public void stop() {
-    throw new UnsupportedOperationException("TODO Implement me!");
-  }
 }

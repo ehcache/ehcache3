@@ -26,6 +26,8 @@ import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.spi.service.MaintainableService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,12 +95,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   @Override
-  public synchronized void start(final ServiceProvider serviceProvider) {
+  public synchronized void start(final ServiceProvider<Service> serviceProvider) {
     internalStart();
   }
 
   @Override
-  public synchronized void startForMaintenance() {
+  public synchronized void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
     internalStart();
   }
 

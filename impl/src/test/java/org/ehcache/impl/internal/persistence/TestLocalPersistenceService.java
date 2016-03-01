@@ -27,6 +27,8 @@ import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.MaintainableService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
@@ -99,12 +101,12 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     //ignore
   }
 
   @Override
-  public void startForMaintenance() {
+  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
     //ignore
   }
 

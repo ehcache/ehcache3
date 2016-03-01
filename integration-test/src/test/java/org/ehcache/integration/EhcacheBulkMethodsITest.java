@@ -36,6 +36,7 @@ import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 import org.mockito.Matchers;
@@ -535,7 +536,7 @@ public class EhcacheBulkMethodsITest {
     }
 
     @Override
-    public void start(final ServiceProvider serviceProvider) {
+    public void start(final ServiceProvider<Service> serviceProvider) {
 
     }
 

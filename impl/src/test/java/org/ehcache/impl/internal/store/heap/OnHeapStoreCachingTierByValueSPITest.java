@@ -34,6 +34,7 @@ import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
@@ -129,7 +130,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceProvider<Service> getServiceProvider() {
         return new ServiceLocator();
       }
 
