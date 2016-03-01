@@ -70,6 +70,10 @@ import org.terracotta.statistics.observer.OperationObserver;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
+/**
+ * @author Abhilash
+ *
+ */
 public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hookable, JSRIntegrableCache<K, V> {
 
   private final StatusTransitioner statusTransitioner;
@@ -162,9 +166,9 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hooka
     try {
       boolean result = store.put(key, value);
       if (result) {
-        putObserver.end(PutOutcome.ADDED);
+        putObserver.end(PutOutcome.PUT);
       } else {
-        putObserver.end(PutOutcome.NOOP);
+        putObserver.end(PutOutcome.UPDATED);
       }
     } catch (CacheAccessException e) {
       try {
@@ -526,7 +530,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hooka
         replaceObserver.end(ReplaceOutcome.HIT);
       } else {
         // TODO:
-        replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
+        replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
       }
       return success;
     } catch (CacheAccessException e) {
@@ -700,7 +704,7 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hooka
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
               } else {
-                putObserver.end(PutOutcome.ADDED);
+                putObserver.end(PutOutcome.PUT);
               }
             }
 
@@ -777,10 +781,11 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hooka
       V returnValue = existingValue.get();
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
+        putObserver.end(PutOutcome.UPDATED);
       } else {
         getObserver.end(GetOutcome.MISS_NO_LOADER);
+        putObserver.end(PutOutcome.PUT);
       }
-      putObserver.end(PutOutcome.ADDED);
       return returnValue;
     }
 

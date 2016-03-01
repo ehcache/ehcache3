@@ -110,7 +110,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT));
   }
 
   /**
@@ -133,7 +133,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT));
   }
 
   /**
@@ -156,7 +156,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT));
   }
 
   /**
@@ -317,7 +317,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     verify(this.store).compute(eq("key"), getAnyBiFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED));
   }
 
   /**
@@ -340,7 +340,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED));
   }
 
   /**
@@ -363,7 +363,7 @@ public class EhcacheBasicPutTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     assertThat(fakeWriter.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED));
   }
 
   /**

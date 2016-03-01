@@ -223,9 +223,12 @@ public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCa
     putObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
+    final AtomicReference<V> previousMapping = new AtomicReference<V>();
+
     final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
       @Override
       public V apply(final K key, final V previousValue) {
+        previousMapping.set(previousValue);
         try {
           if (cacheLoaderWriter != null) {
             cacheLoaderWriter.write(key, value);
@@ -238,11 +241,11 @@ public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCa
     });
 
     try {
-      ValueHolder<V> computed = store.compute(key, remappingFunction);
-      if (computed != null) {
-        putObserver.end(PutOutcome.ADDED);
+      store.compute(key, remappingFunction);
+      if (previousMapping.get() != null) {
+        putObserver.end(PutOutcome.UPDATED);
       } else {
-        putObserver.end(PutOutcome.NOOP);
+        putObserver.end(PutOutcome.PUT);
       }
     } catch (CacheAccessException e) {
       try {
@@ -1224,7 +1227,7 @@ public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCa
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
               } else {
-                putObserver.end(PutOutcome.ADDED);
+                putObserver.end(PutOutcome.PUT);
               }
             }
 
@@ -1316,10 +1319,11 @@ public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCa
       V returnValue = existingValue.get();
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
+        putObserver.end(PutOutcome.UPDATED);
       } else {
         getObserver.end(GetOutcome.MISS_NO_LOADER);
+        putObserver.end(PutOutcome.PUT);
       }
-      putObserver.end(PutOutcome.ADDED);
       return returnValue;
     }
 

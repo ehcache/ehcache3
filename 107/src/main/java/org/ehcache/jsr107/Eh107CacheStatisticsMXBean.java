@@ -134,7 +134,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   @Override
   public long getCachePuts() {
     return normalize(getBulkCount(BulkOps.PUT_ALL) - compensatingCounters.bulkPuts +
-        put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.ADDED)) +
+        put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT)) -
         compensatingCounters.cachePuts);

@@ -94,6 +94,15 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
+    assertThat(kvStore.remove(k), is(false));
+    verifyListenerInteractions(listener);
+  }
+
+  @SPITest
+  public void testConditionalRemoveOnExpiration() throws Exception {
+    kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
+    timeSource.advanceTime(1);
     assertThat(kvStore.remove(k, v), is(false));
     verifyListenerInteractions(listener);
   }

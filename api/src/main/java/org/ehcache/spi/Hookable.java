@@ -22,6 +22,7 @@ package org.ehcache.spi;
 public interface Hookable {
 
   /**
+   * lifecycle hooks
    *
    * @param hook hook it to lifecycle
    */
