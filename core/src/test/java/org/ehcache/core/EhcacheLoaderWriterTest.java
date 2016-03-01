@@ -64,7 +64,7 @@ public class EhcacheLoaderWriterTest {
         null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Number, String> notifier = mock(CacheEventDispatcher.class);
     cache = new Ehcache<Number, String>(
-        config, store, loaderWriter, notifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
+        config, store, loaderWriter, notifier, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheLoaderWriterTest"));
     cache.init();
   }
 
