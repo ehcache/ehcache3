@@ -97,6 +97,10 @@ subprojects {
     classifier = 'sources'
   }
 
+  javadoc {
+    exclude '**/internal/**'
+  }
+
   if (JavaVersion.current().isJava8Compatible()) {
     allprojects {
       tasks.withType(Javadoc) {
