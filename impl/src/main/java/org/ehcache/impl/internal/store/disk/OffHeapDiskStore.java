@@ -178,7 +178,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
             64,
             evictionVeto,
             mapEvictionListener, false);
-            EhcachePersistentConcurrentOffHeapClockCache m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, factory);
+            EhcachePersistentConcurrentOffHeapClockCache m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, evictionVeto, factory);
 
 
 
@@ -219,7 +219,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         64,
         evictionVeto,
         mapEvictionListener, true);
-    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(factory, 16);
+    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionVeto, factory, 16);
 
   }
 

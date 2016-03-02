@@ -105,14 +105,14 @@ public class SerializerCountingTest {
     assertCounters(1, 0, 0, 1, 0, 0);
     printSerializationCounters("Put Offheap");
     cache.get(42L);
-    assertCounters(0, 0, 2, 0, 1, 0);
+    assertCounters(0, 0, 1, 0, 1, 0);
     printSerializationCounters("Get Offheap fault");
     cache.get(42L);
     assertCounters(0, 0, 0, 0, 0, 0);
     printSerializationCounters("Get Offheap faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(1, 0, 3, 1, 2, 0);
+    assertCounters(1, 0, 2, 1, 2, 0);
     printSerializationCounters("Put OffHeap (update faulted)");
   }
 
@@ -129,14 +129,14 @@ public class SerializerCountingTest {
     assertCounters(2, 1, 0, 1, 0, 0);
     printSerializationCounters("Put OffheapOnHeapCopy");
     cache.get(42L);
-    assertCounters(1, 1, 2, 1, 2, 0);
+    assertCounters(1, 1, 1, 1, 2, 0);
     printSerializationCounters("Get OffheapOnHeapCopy fault");
     cache.get(42L);
     assertCounters(0, 0, 0, 0, 2, 0);
     printSerializationCounters("Get OffheapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 3, 1, 2, 0);
+    assertCounters(3, 2, 2, 1, 2, 0);
     printSerializationCounters("Put OffheapOnHeapCopy (update faulted)");
   }
 
@@ -154,14 +154,14 @@ public class SerializerCountingTest {
     assertCounters(3, 2, 0, 1, 0, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy");
     cache.get(42L);
-    assertCounters(1, 1, 2, 1, 2, 0);
+    assertCounters(1, 1, 1, 1, 2, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy fault");
     cache.get(42L);
     assertCounters(0, 0, 0, 0, 2, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 3, 1, 2, 0);
+    assertCounters(3, 2, 2, 1, 1, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy (update faulted)");
   }
 
@@ -178,12 +178,12 @@ public class SerializerCountingTest {
   }
 
   private void assertCounters(int keySerialization, int keyDeserialization, int keyEquals, int valueSerialization, int valueDeserialization, int valueEquals) {
-    assertThat(CountingSerializer.keySerializeCounter.get(), is(keySerialization));
-    assertThat(CountingSerializer.keyDeserializeCounter.get(), is(keyDeserialization));
-    assertThat(CountingSerializer.keyEqualsCounter.get(), is(keyEquals));
-    assertThat(CountingSerializer.serializeCounter.get(), is(valueSerialization));
-    assertThat(CountingSerializer.deserializeCounter.get(), is(valueDeserialization));
-    assertThat(CountingSerializer.equalsCounter.get(), is(valueEquals));
+    assertThat("Key Serialize", CountingSerializer.keySerializeCounter.get(), is(keySerialization));
+    assertThat("Key Deserialize", CountingSerializer.keyDeserializeCounter.get(), is(keyDeserialization));
+    assertThat("Key Equals", CountingSerializer.keyEqualsCounter.get(), is(keyEquals));
+    assertThat("Value Serialize", CountingSerializer.serializeCounter.get(), is(valueSerialization));
+    assertThat("Value Deserialize", CountingSerializer.deserializeCounter.get(), is(valueDeserialization));
+    assertThat("Value Equals", CountingSerializer.equalsCounter.get(), is(valueEquals));
   }
 
   public static class CountingSerializer<T> implements Serializer<T> {
