@@ -19,6 +19,7 @@ package org.ehcache.config.builders;
 import org.ehcache.Cache;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.InternalCache;
 import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.config.BaseCacheConfiguration;
@@ -47,7 +48,6 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
-import org.ehcache.spi.Hookable;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.ServiceLocator;
@@ -307,14 +307,14 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, storeConfig, persistenceService, cacheLoaderWriter, eventDispatcher, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, persistenceService, cacheLoaderWriter, eventDispatcher, id);
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }
       return cast(cache);
     } else {
-      final Cache<K, V> cache;
+      final InternalCache<K, V> cache;
       if (cacheLoaderWriter == null) {
         cache = new Ehcache<K, V>(cacheConfig, store, eventDispatcher, getLoggerFor(Ehcache.class));
       } else {
@@ -322,9 +322,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
-        ((Hookable)cache).addHook(lifeCycled);
+        (cache).addHook(lifeCycled);
       }
-      return cast((UserManagedCache<K, V>)cache);
+      return cast(cache);
     }
 
   }

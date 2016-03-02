@@ -17,6 +17,8 @@ package org.ehcache.core;
 
 import java.util.Map;
 
+import org.ehcache.UserManagedCache;
+import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.terracotta.statistics.jsr166e.LongAdder;
@@ -25,7 +27,7 @@ import org.terracotta.statistics.jsr166e.LongAdder;
  * @author Abhilash
  *
  */
-public interface JSRIntegrableCache<K, V> {
+public interface InternalCache<K, V> extends UserManagedCache<K, V> {
 
   /**
    * BulkMethodEntries
@@ -47,5 +49,12 @@ public interface JSRIntegrableCache<K, V> {
    * @return CacheLoaderWriter
    */
   CacheLoaderWriter<? super K, V> getCacheLoaderWriter();
+
+  /**
+   * Add lifecycle hooks
+   *
+   * @param hook hook it to lifecycle
+   */
+  void addHook(LifeCycled hook);
 
 }

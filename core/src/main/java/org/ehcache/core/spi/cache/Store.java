@@ -85,12 +85,12 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param key   key with which the specified value is to be associated
    * @param value value to be associated with the specified key
-   * @return <tt>true</tt> if the mapping is actually added
+   * @return {@link PutStatus} based on the result of the operation in store
    * @throws NullPointerException if the specified key or value is null
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
    * @throws CacheAccessException if the mapping can't be installed
    */
-  boolean put(K key, V value) throws CacheAccessException;
+  PutStatus put(K key, V value) throws CacheAccessException;
 
   /**
    * Maps the specified key to the specified value in this store, unless a non-expired mapping
@@ -142,12 +142,12 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @param key key with which the specified value is associated
    * @param value value expected to be associated with the specified key
-   * @return <tt>true</tt> if the value was removed
+   * @return {@link RemoveStatus} based on the result of the remove operation in store
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
    * @throws NullPointerException if the specified key or value is null
    * @throws CacheAccessException if the mapping can't be removed
    */
-  boolean remove(K key, V value) throws CacheAccessException;
+  RemoveStatus remove(K key, V value) throws CacheAccessException;
 
   /**
    * Replaces the entry for a key only if currently mapped to some value
@@ -185,12 +185,12 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @param key key with which the specified value is associated
    * @param oldValue value expected to be associated with the specified key
    * @param newValue value to be associated with the specified key
-   * @return <tt>true</tt> if the value was replaced
+   * @return {@link ReplaceStatus} based on the result of the replace operation in store
    * @throws ClassCastException if the specified key or values are not of the correct types ({@code K} or {@code V})
    * @throws NullPointerException if the specified key or value is null
    * @throws CacheAccessException if the mapping can't be replaced
    */
-  boolean replace(K key, V oldValue, V newValue) throws CacheAccessException;
+  ReplaceStatus replace(K key, V oldValue, V newValue) throws CacheAccessException;
 
   /**
    * Removes all of the mappings from this map.
@@ -533,5 +533,32 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      */
     T next() throws CacheAccessException;
 
+  }
+
+  /**
+   * Put operation status
+   */
+  public enum PutStatus {
+    PUT,
+    UPDATE,
+    NOOP
+  }
+
+  /**
+   * Conditional Remove operation status
+   */
+  public enum RemoveStatus {
+    REMOVED,
+    KEY_PRESENT,
+    KEY_MISSING
+  }
+
+  /**
+   * Conditional Replace operation status
+   */
+  public enum ReplaceStatus {
+    HIT,
+    MISS_PRESENT,
+    MISS_NOT_PRESENT
   }
 }

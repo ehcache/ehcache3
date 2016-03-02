@@ -17,6 +17,8 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.RemoveStatus;
+import org.ehcache.core.spi.cache.Store.ReplaceStatus;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.cache.events.StoreEvent;
 import org.ehcache.core.spi.cache.events.StoreEventListener;
@@ -103,7 +105,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    assertThat(kvStore.remove(k, v), is(false));
+    assertThat(kvStore.remove(k, v), is(RemoveStatus.KEY_MISSING));
     verifyListenerInteractions(listener);
   }
 
@@ -121,7 +123,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    assertThat(kvStore.replace(k, v, v2), is(false));
+    assertThat(kvStore.replace(k, v, v2), is(ReplaceStatus.MISS_NOT_PRESENT));
     verifyListenerInteractions(listener);
   }
 

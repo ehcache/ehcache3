@@ -399,7 +399,7 @@ public class EhcacheTest {
     }
 
     @Override
-    public boolean put(String key, String value) throws CacheAccessException {
+    public PutStatus put(String key, String value) throws CacheAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
@@ -414,7 +414,7 @@ public class EhcacheTest {
     }
 
     @Override
-    public boolean remove(String key, String value) throws CacheAccessException {
+    public RemoveStatus remove(String key, String value) throws CacheAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
@@ -424,7 +424,7 @@ public class EhcacheTest {
     }
 
     @Override
-    public boolean replace(String key, String oldValue, String newValue) throws CacheAccessException {
+    public ReplaceStatus replace(String key, String oldValue, String newValue) throws CacheAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 

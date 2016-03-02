@@ -313,11 +313,11 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public boolean put(final String key, final String value) throws CacheAccessException {
+    public PutStatus put(final String key, final String value) throws CacheAccessException {
       this.checkFailingKey(key);
       FakeValueHolder toPut = new FakeValueHolder(value);
       this.entries.put(key, toPut);
-      return true;
+      return PutStatus.PUT;
     }
 
     @Override
@@ -340,14 +340,14 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public boolean remove(final String key, final String value) throws CacheAccessException {
+    public RemoveStatus remove(final String key, final String value) throws CacheAccessException {
       this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue == null || !currentValue.value().equals(value)) {
-        return false;
+        return RemoveStatus.KEY_MISSING;
       }
       this.entries.remove(key);
-      return true;
+      return RemoveStatus.REMOVED;
     }
 
     @Override
@@ -361,14 +361,14 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public boolean replace(final String key, final String oldValue, final String newValue) throws CacheAccessException {
+    public ReplaceStatus replace(final String key, final String oldValue, final String newValue) throws CacheAccessException {
       this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue != null && currentValue.value().equals(oldValue)) {
         this.entries.put(key, new FakeValueHolder(newValue));
-        return true;
+        return ReplaceStatus.HIT;
       }
-      return false;
+      return ReplaceStatus.MISS_NOT_PRESENT;
     }
 
     @Override

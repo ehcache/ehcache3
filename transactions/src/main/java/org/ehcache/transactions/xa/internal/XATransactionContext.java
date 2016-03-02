@@ -20,6 +20,8 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.RemoveStatus;
+import org.ehcache.core.spi.cache.Store.ReplaceStatus;
 import org.ehcache.transactions.xa.internal.commands.Command;
 import org.ehcache.transactions.xa.internal.commands.StoreEvictCommand;
 import org.ehcache.transactions.xa.internal.commands.StorePutCommand;
@@ -272,11 +274,17 @@ public class XATransactionContext<K, V> {
 
 
   private boolean removeFromUnderlyingStore(K key, SoftLock<V> preparedSoftLock) throws CacheAccessException {
-    return underlyingStore.remove(key, preparedSoftLock);
+    if (underlyingStore.remove(key, preparedSoftLock).equals(RemoveStatus.REMOVED)) {
+      return true;
+    }
+    return false;
   }
 
   private boolean replaceInUnderlyingStore(K key, SoftLock<V> preparedSoftLock, SoftLock<V> definitiveSoftLock) throws CacheAccessException {
-    return underlyingStore.replace(key, preparedSoftLock, definitiveSoftLock);
+    if (underlyingStore.replace(key, preparedSoftLock, definitiveSoftLock).equals(ReplaceStatus.HIT)) {
+      return true;
+    }
+    return false;
   }
 
   private Store.ValueHolder<SoftLock<V>> putIfAbsentInUnderlyingStore(Map.Entry<K, Command<V>> entry, SoftLock<V> newSoftLock) throws CacheAccessException {

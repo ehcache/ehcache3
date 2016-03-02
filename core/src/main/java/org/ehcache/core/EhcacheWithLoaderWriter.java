@@ -18,7 +18,6 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
-import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
@@ -35,7 +34,6 @@ import org.ehcache.function.NullaryFunction;
 import org.ehcache.core.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.resilience.RecoveryCache;
 import org.ehcache.resilience.ResilienceStrategy;
-import org.ehcache.spi.Hookable;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
@@ -81,7 +79,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 /**
  * @author Alex Snaps
  */
-public class EhcacheWithLoaderWriter<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hookable, JSRIntegrableCache<K, V> {
+public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
   private final StatusTransitioner statusTransitioner;
 

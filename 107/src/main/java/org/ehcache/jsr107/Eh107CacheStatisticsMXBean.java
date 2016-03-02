@@ -16,8 +16,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.Cache;
-import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.core.JSRIntegrableCache;
+import org.ehcache.core.InternalCache;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.management.ManagementRegistryService;
@@ -64,9 +63,9 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   private final StatisticQuery averagePutTime;
   private final StatisticQuery averageRemoveTime;
 
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Cache<?, ?> cache, ManagementRegistryService managementRegistry) {
+  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, InternalCache<?, ?> cache, ManagementRegistryService managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
-    this.bulkMethodEntries = ((JSRIntegrableCache<?, ?>) cache).getBulkMethodEntries();
+    this.bulkMethodEntries = cache.getBulkMethodEntries();
 
     get = findCacheStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
     put = findCacheStatistic(cache, CacheOperationOutcomes.PutOutcome.class, "put");
@@ -135,6 +134,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   public long getCachePuts() {
     return normalize(getBulkCount(BulkOps.PUT_ALL) - compensatingCounters.bulkPuts +
         put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT)) +
+        put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT)) -
         compensatingCounters.cachePuts);

@@ -33,7 +33,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
-import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
@@ -41,6 +40,9 @@ import org.ehcache.core.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.resilience.RecoveryCache;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
+import org.ehcache.core.spi.cache.Store.PutStatus;
+import org.ehcache.core.spi.cache.Store.RemoveStatus;
+import org.ehcache.core.spi.cache.Store.ReplaceStatus;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
@@ -58,7 +60,6 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.resilience.ResilienceStrategy;
-import org.ehcache.spi.Hookable;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
@@ -74,7 +75,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  * @author Abhilash
  *
  */
-public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hookable, JSRIntegrableCache<K, V> {
+public class Ehcache<K, V> implements InternalCache<K, V> {
 
   private final StatusTransitioner statusTransitioner;
 
@@ -164,11 +165,19 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hooka
     checkNonNull(key, value);
 
     try {
-      boolean result = store.put(key, value);
-      if (result) {
+      PutStatus status = store.put(key, value);
+      switch (status) {
+      case PUT:
         putObserver.end(PutOutcome.PUT);
-      } else {
+        break;
+      case UPDATE:
         putObserver.end(PutOutcome.UPDATED);
+        break;
+      case NOOP:
+        putObserver.end(PutOutcome.NOOP);
+        break;
+      default:
+        throw new AssertionError("Invalid Status.");
       }
     } catch (CacheAccessException e) {
       try {
@@ -473,15 +482,24 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hooka
     conditionalRemoveObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
+    RemoveStatus status = null;
     boolean removed = false;
 
     try {
-      removed = store.remove(key, value);
-      if (removed) {
+      status = store.remove(key, value);
+      switch (status) {
+      case REMOVED:
+        removed = true;
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
-      } else {
-        //TODO: this needs some more thought
+        break;
+      case KEY_MISSING:
+        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
+        break;
+      case KEY_PRESENT:
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
+        break;
+      default:
+        throw new AssertionError("Invalid Status.");
       }
     } catch (CacheAccessException e) {
       try {
@@ -522,16 +540,26 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V>, Hooka
     statusTransitioner.checkAvailable();
     checkNonNull(key, oldValue, newValue);
 
+    ReplaceStatus status = null;
     boolean success = false;
 
     try {
-      success = store.replace(key, oldValue, newValue);
-      if (success) {
+      status = store.replace(key, oldValue, newValue);
+      switch (status) {
+      case HIT:
+        success = true;
         replaceObserver.end(ReplaceOutcome.HIT);
-      } else {
-        // TODO:
+        break;
+      case MISS_PRESENT:
+        replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
+        break;
+      case MISS_NOT_PRESENT:
         replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+        break;
+      default:
+        throw new AssertionError("Invalid Status.");
       }
+
       return success;
     } catch (CacheAccessException e) {
       try {

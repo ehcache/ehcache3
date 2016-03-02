@@ -16,11 +16,9 @@
 
 package org.ehcache.core;
 
-import org.ehcache.Cache;
 import org.ehcache.Maintainable;
 import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.Status;
-import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
@@ -48,17 +46,17 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
 
   private final StatusTransitioner statusTransitioner;
   private final Logger logger;
-  private final Cache<K,V> ehcache;
+  private final InternalCache<K,V> cache;
   private final LocalPersistenceService localPersistenceService;
   private final String id;
 
-  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, Store.Configuration<K, V> storeConfig, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
+  public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
     if (cacheLoaderWriter == null) {
-      this.ehcache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, statusTransitioner);
+      this.cache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, statusTransitioner);
     } else {
-      this.ehcache = new EhcacheWithLoaderWriter<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
+      this.cache = new EhcacheWithLoaderWriter<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
     }
     this.localPersistenceService = localPersistenceService;
     this.id = id;
@@ -114,12 +112,12 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
 
   @Override
   public void init() {
-    ((UserManagedCache)ehcache).init();
+    cache.init();
   }
 
   @Override
   public void close() {
-    ((UserManagedCache)ehcache).close();
+    cache.close();
     if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
       try {
         localPersistenceService.destroy(id);
@@ -136,72 +134,72 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
 
   @Override
   public V get(K key) throws CacheLoadingException {
-    return ehcache.get(key);
+    return cache.get(key);
   }
 
   @Override
   public void put(K key, V value) throws CacheWritingException {
-    ehcache.put(key, value);
+    cache.put(key, value);
   }
 
   @Override
   public boolean containsKey(K key) {
-    return ehcache.containsKey(key);
+    return cache.containsKey(key);
   }
 
   @Override
   public void remove(K key) throws CacheWritingException {
-    ehcache.remove(key);
+    cache.remove(key);
   }
 
   @Override
   public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoadingException {
-    return ehcache.getAll(keys);
+    return cache.getAll(keys);
   }
 
   @Override
   public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
-    ehcache.putAll(entries);
+    cache.putAll(entries);
   }
 
   @Override
   public void removeAll(Set<? extends K> keys) throws BulkCacheWritingException {
-    ehcache.removeAll(keys);
+    cache.removeAll(keys);
   }
 
   @Override
   public void clear() {
-    ehcache.clear();
+    cache.clear();
   }
 
   @Override
   public V putIfAbsent(K key, V value) throws CacheLoadingException, CacheWritingException {
-    return ehcache.putIfAbsent(key, value);
+    return cache.putIfAbsent(key, value);
   }
 
   @Override
   public boolean remove(K key, V value) throws CacheWritingException {
-    return ehcache.remove(key, value);
+    return cache.remove(key, value);
   }
 
   @Override
   public V replace(K key, V value) throws CacheLoadingException, CacheWritingException {
-    return ehcache.replace(key, value);
+    return cache.replace(key, value);
   }
 
   @Override
   public boolean replace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException {
-    return ehcache.replace(key, oldValue, newValue);
+    return cache.replace(key, oldValue, newValue);
   }
 
   @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
-    return ehcache.getRuntimeConfiguration();
+    return cache.getRuntimeConfiguration();
   }
 
   @Override
   public Iterator<Entry<K, V>> iterator() {
-    return ehcache.iterator();
+    return cache.iterator();
   }
 
   public void addHook(LifeCycled lifeCycled) {

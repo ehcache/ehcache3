@@ -29,11 +29,7 @@ public class ListenerObject implements CacheEventListener<Object, Object> {
   private int evicted;
   @Override
   public void onEvent(CacheEvent<Object, Object> event) {
-<<<<<<< HEAD
-    Logger logger = LoggerFactory.getLogger(Ehcache.class.getName() + ".GettingStarted");
-=======
     Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "GettingStarted");
->>>>>>> 142e247... Rename Ehcache to EhcacheWithLoaderWriter #777
     logger.info(event.getType().toString());
     if(event.getType() == EventType.EVICTED){
       evicted++;

@@ -17,6 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.ReplaceStatus;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -101,7 +102,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void successfulReplaceReturnsTrue()
+  public void successfulReplaceReturnsHit()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
@@ -113,14 +114,14 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
     V newValue = factory.createValue(2);
 
     try {
-      assertThat(kvStore.replace(key, originalValue, newValue), is(true));
+      assertThat(kvStore.replace(key, originalValue, newValue), is(ReplaceStatus.HIT));
     } catch (CacheAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
-  public void unsuccessfulReplaceReturnsFalse()
+  public void unsuccessfulReplaceReturnsMiss()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
@@ -133,7 +134,7 @@ public class StoreReplaceKeyValueValueTest<K, V> extends SPIStoreTester<K, V> {
     V newValue = factory.createValue(3L);
 
     try {
-      assertThat(kvStore.replace(key, wrongValue, newValue), is(false));
+      assertThat(kvStore.replace(key, wrongValue, newValue), is(ReplaceStatus.MISS_PRESENT));
     } catch (CacheAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

@@ -307,11 +307,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public boolean put(final K key, final V value) throws CacheAccessException {
+  public PutStatus put(final K key, final V value) throws CacheAccessException {
     return putReturnHolder(key, value);
   }
 
-  private boolean putReturnHolder(final K key, final V value) throws CacheAccessException {
+  private PutStatus putReturnHolder(final K key, final V value) throws CacheAccessException {
     putObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -350,17 +350,21 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
 
       storeEventDispatcher.releaseEventSink(eventSink);
-      if (entryActuallyAdded.get()) {
+      if (replacedValue.get() != null) {
+        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
+        return PutStatus.UPDATE;
+      } else if (entryActuallyAdded.get()) {
         putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
+        return PutStatus.PUT;
       } else {
         putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
+        return PutStatus.NOOP;
       }
 
-      return entryActuallyAdded.get();
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
-      return false;
+      return PutStatus.NOOP;
     }
   }
 
@@ -379,7 +383,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
 
           if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-            onExpiration(key, mappedValue, eventSink);
+            onExpiration(mappedKey, mappedValue, eventSink);
             return null;
           }
 
@@ -464,13 +468,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public boolean remove(final K key, final V value) throws CacheAccessException {
+  public RemoveStatus remove(final K key, final V value) throws CacheAccessException {
     conditionalRemoveObserver.begin();
     checkKey(key);
     checkValue(value);
 
     final AtomicReference<OnHeapValueHolder<V>> removedValue = new AtomicReference<OnHeapValueHolder<V>>(null);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
+    final AtomicBoolean mappingExists = new AtomicBoolean();
 
     try {
       map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
@@ -486,6 +491,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             eventSink.removed(mappedKey, mappedValue.value());
             return null;
           } else {
+            mappingExists.set(true);
             return setAccessTimeAndExpiryThenReturnMapping(key, mappedValue, now, eventSink);
           }
         }
@@ -494,17 +500,21 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (removedValue.get() != null) {
         conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
         decrementCurrentUsageInBytesIfRequired(removedValue.get().size());
-        return true;
+        return RemoveStatus.REMOVED;
       } else {
         conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
-        return false;
+        if (mappingExists.get()) {
+          return RemoveStatus.KEY_PRESENT;
+        } else {
+          return RemoveStatus.KEY_MISSING;
+        }
       }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
+      return RemoveStatus.KEY_MISSING;
     }
 
-    return removedValue.get() != null;
   }
 
   @Override
@@ -551,7 +561,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) throws CacheAccessException {
+  public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws CacheAccessException {
     conditionalReplaceObserver.begin();
     checkKey(key);
     checkValue(oldValue);
@@ -559,6 +569,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     final AtomicReference<OnHeapValueHolder<V>> returnValueHolder = new AtomicReference<OnHeapValueHolder<V>>(null);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
+    final AtomicBoolean mappingExists = new AtomicBoolean();
 
     try {
       OnHeapValueHolder<V> replacedValue = map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
@@ -575,6 +586,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
             return newUpdateValueHolder(key, existingValue, newValue, now, expirationTime, eventSink);
           } else {
+            mappingExists.set(true);
             return setAccessTimeAndExpiryThenReturnMapping(key, mappedValue, now, eventSink);
           }
         }
@@ -586,15 +598,19 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       storeEventDispatcher.releaseEventSink(eventSink);
       if (returnValueHolder.get() != null) {
         conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
-        return true;
+        return ReplaceStatus.HIT;
       } else {
         conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
-        return false;
+        if (mappingExists.get()) {
+          return ReplaceStatus.MISS_PRESENT;
+        } else {
+          return ReplaceStatus.MISS_NOT_PRESENT;
+        }
       }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
-      return false; // Not reached - above throws always
+      return ReplaceStatus.MISS_NOT_PRESENT; // Not reached - above throws always
     }
   }
 

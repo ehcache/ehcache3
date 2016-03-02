@@ -23,7 +23,6 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
@@ -123,7 +122,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean put(final K key, final V value) throws CacheAccessException {
+  public PutStatus put(final K key, final V value) throws CacheAccessException {
     try {
       return authoritativeTier.put(key, value);
     } finally {
@@ -154,13 +153,13 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean remove(K key, V value) throws CacheAccessException {
-    boolean removed = true;
+  public RemoveStatus remove(K key, V value) throws CacheAccessException {
+    RemoveStatus removed = null;
       try {
         removed = authoritativeTier.remove(key, value);
         return removed;
       } finally {
-        if (removed) {
+        if (removed != null && removed.equals(RemoveStatus.REMOVED)) {
           cachingTier().invalidate(key);
         }
       }
@@ -182,12 +181,12 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
-    boolean replaced = true;
+  public ReplaceStatus replace(K key, V oldValue, V newValue) throws CacheAccessException {
+    ReplaceStatus replaced = null;
     try {
       replaced = authoritativeTier.replace(key, oldValue, newValue);
     } finally {
-      if (replaced) {
+      if (replaced != null && replaced.equals(ReplaceStatus.HIT)) {
         cachingTier().invalidate(key);
       }
     }

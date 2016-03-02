@@ -17,6 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.RemoveStatus;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -90,8 +91,8 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(kvStore.containsKey(key), is(false));
 
     try {
-      boolean isRemoved = kvStore.remove(key, value);
-      assertThat(isRemoved, is(false));
+      RemoveStatus status = kvStore.remove(key, value);
+      assertThat(status, is(RemoveStatus.KEY_MISSING));
     } catch (CacheAccessException e) {
       throw new AssertionError(e);
     }
@@ -112,14 +113,14 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(value.equals(notEqualValue), is(false));
 
     try {
-      assertThat(kvStore.remove(key, notEqualValue), is(false));
+      assertThat(kvStore.remove(key, notEqualValue), is(RemoveStatus.KEY_PRESENT));
     } catch (CacheAccessException e) {
       throw new AssertionError(e);
     }
   }
 
   @SPITest
-  public void returnTrueIfValueWasRemoved()
+  public void returnRemovedIfValueWasRemoved()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
@@ -131,14 +132,14 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(kvStore.containsKey(key), is(true));
 
     try {
-      assertThat(kvStore.remove(key, value), is(true));
+      assertThat(kvStore.remove(key, value), is(RemoveStatus.REMOVED));
     } catch (CacheAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
-  public void returnFalseIfValueWasNotRemoved()
+  public void returnKeyMisingIfValueWasNotRemoved()
       throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
@@ -148,7 +149,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     assertThat(kvStore.containsKey(key), is(false));
 
     try {
-      assertThat(kvStore.remove(key, value), is(false));
+      assertThat(kvStore.remove(key, value), is(RemoveStatus.KEY_MISSING));
     } catch (CacheAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }

@@ -35,7 +35,6 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
@@ -225,29 +224,34 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean put(K key, V value) throws CacheAccessException {
+  public PutStatus put(K key, V value) throws CacheAccessException {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
       currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
-      return true;
+      if (oldValue == null) {
+        return PutStatus.PUT;
+      } else {
+        return PutStatus.UPDATE;
+      }
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    PutStatus status = PutStatus.UPDATE;
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
+        status = PutStatus.NOOP;
       } else {
         currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValue(), new XAValueHolder<V>(value, timeSource.getTimeMillis())));
       }
     } else {
       currentContext.addCommand(key, new StorePutCommand<V>(null, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
     }
-    //Ask Ludovic
-    return false;
+    return status;
   }
 
   @Override
@@ -262,23 +266,29 @@ public class XAStore<K, V> implements Store<K, V> {
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
       currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
-      return true;
+      if (oldValue == null) {
+        return false;
+      } else {
+        return true;
+      }
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    boolean status = true;
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
+        status = false;
       } else {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValue()));
       }
     }
-    return true;
+    return status;
   }
 
   @Override
-  public boolean remove(K key, V value) throws CacheAccessException {
+  public RemoveStatus remove(K key, V value) throws CacheAccessException {
     throw new UnsupportedOperationException();
   }
 
@@ -288,7 +298,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
+  public ReplaceStatus replace(K key, V oldValue, V newValue) throws CacheAccessException {
     throw new UnsupportedOperationException();
   }
 
