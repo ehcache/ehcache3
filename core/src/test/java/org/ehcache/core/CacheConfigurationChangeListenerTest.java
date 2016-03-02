@@ -55,7 +55,7 @@ public class CacheConfigurationChangeListenerTest {
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
     this.config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapDiskPools(2, 10));
     this.cache = new Ehcache<Object, Object>(config, store, loaderWriter, eventNotifier,
-        LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"));
+        LoggerFactory.getLogger(Ehcache.class.getName() + ".CacheConfigurationListenerTest"));
     cache.init();
     this.runtimeConfiguration = (EhcacheRuntimeConfiguration<Object, Object>)cache.getRuntimeConfiguration();
   }
@@ -96,7 +96,7 @@ public class CacheConfigurationChangeListenerTest {
     @Override
     public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
       this.eventSet.add(event);
-      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
+      Logger logger = LoggerFactory.getLogger(Ehcache.class.getName() + "." + "GettingStarted");
       logger.info("Setting size: "+event.getNewValue().toString());
     }
   }

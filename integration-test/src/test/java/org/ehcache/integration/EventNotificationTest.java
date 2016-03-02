@@ -242,7 +242,7 @@ public class EventNotificationTest {
 
   @Test
   public void testEventFiringInCacheIterator() {
-    Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
+    Logger logger = LoggerFactory.getLogger(Ehcache.class.getName() + ".EventNotificationTest");
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
@@ -407,7 +407,7 @@ public class EventNotificationTest {
 
     @Override
     public void onEvent(CacheEvent<Object, Object> event) {
-      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
+      Logger logger = LoggerFactory.getLogger(Ehcache.class.getName() + ".EventNotificationTest");
       logger.info(event.getType().toString());
       eventTypeHashMap.put(event.getType(), eventCounter.get());
       eventCounter.getAndIncrement();

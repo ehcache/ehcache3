@@ -335,7 +335,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     evtService.setStoreEventSource(store.getStoreEventSource());
 
     final Ehcache<K, V> ehCache = new Ehcache<K, V>(config, store, decorator, evtService,
-        useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
+        useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class.getName() + "." + alias));
 
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {

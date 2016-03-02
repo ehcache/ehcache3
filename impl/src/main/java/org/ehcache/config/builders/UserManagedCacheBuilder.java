@@ -296,9 +296,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     } else {
       String loggerName;
       if (id != null) {
-        loggerName = Ehcache.class.getName() + "-" + id;
+        loggerName = Ehcache.class.getName() + "." + id;
       } else {
-        loggerName = Ehcache.class.getName() + "-UserManaged" + instanceId.incrementAndGet();
+        loggerName = Ehcache.class.getName() + ".UserManaged." + instanceId.incrementAndGet();
       }
       Ehcache<K, V> cache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, LoggerFactory.getLogger(loggerName));
       registerListeners(cache, serviceLocator, lifeCycledList);
