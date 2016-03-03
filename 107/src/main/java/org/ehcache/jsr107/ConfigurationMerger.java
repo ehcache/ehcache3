@@ -84,12 +84,12 @@ class ConfigurationMerger {
 
       builder = handleStoreByValue(jsr107Configuration, builder, cacheName);
 
-      final boolean useJsr107Expiry = builder.hasDefaultExpiry();
-      if (useJsr107Expiry) {
+      final boolean hasConfiguredExpiry = builder.hasConfiguredExpiry();
+      if (hasConfiguredExpiry) {
+        LOG.info("Cache {} will use expiry configuration from template {}", cacheName, templateName);
+      } else {
         expiryPolicy = initExpiryPolicy(jsr107Configuration);
         builder = builder.withExpiry(expiryPolicy);
-      } else {
-        LOG.info("Cache {} will use expiry configuration from template {}", cacheName, templateName);
       }
 
       boolean useEhcacheLoaderWriter;
@@ -111,13 +111,13 @@ class ConfigurationMerger {
 
       CacheConfiguration<K, V> cacheConfiguration = builder.build();
 
-      if (!useJsr107Expiry) {
+      if (hasConfiguredExpiry) {
         expiryPolicy = new EhcacheExpiryWrapper<K, V>(cacheConfiguration.getExpiry());
       }
 
       return new ConfigHolder<K, V>(
           new CacheResources<K, V>(cacheName, loaderWriter, expiryPolicy, initCacheEventListeners(jsr107Configuration)),
-          new Eh107CompleteConfiguration<K, V>(jsr107Configuration, cacheConfiguration, !useJsr107Expiry, useEhcacheLoaderWriter),
+          new Eh107CompleteConfiguration<K, V>(jsr107Configuration, cacheConfiguration, hasConfiguredExpiry, useEhcacheLoaderWriter),
           cacheConfiguration,useEhcacheLoaderWriter);
     } catch (Throwable throwable) {
       MultiCacheException mce = new MultiCacheException(throwable);

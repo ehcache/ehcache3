@@ -32,15 +32,17 @@ import static java.util.Collections.unmodifiableList;
 import static java.util.Collections.unmodifiableMap;
 
 /**
+ * Companion type to the {@link CacheManagerBuilder} that handles the {@link Configuration} building.
+ *
  * @author Alex Snaps
  */
-public class ConfigurationBuilder implements Builder<Configuration> {
+class ConfigurationBuilder implements Builder<Configuration> {
 
   private final Map<String, CacheConfiguration<?, ?>> caches;
   private final List<ServiceCreationConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
 
-  public static ConfigurationBuilder newConfigurationBuilder() {
+  static ConfigurationBuilder newConfigurationBuilder() {
     return new ConfigurationBuilder();
   }
 
@@ -73,7 +75,7 @@ public class ConfigurationBuilder implements Builder<Configuration> {
     return new DefaultConfiguration(caches, classLoader, serviceConfigurations.toArray(new ServiceCreationConfiguration<?>[serviceConfigurations.size()]));
   }
 
-  public ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
+  ConfigurationBuilder addCache(String alias, CacheConfiguration<?, ?> config) {
     Map<String, CacheConfiguration<?, ?>> newCaches = new HashMap<String, CacheConfiguration<?, ?>>(caches);
     newCaches.put(alias, config);
     return new ConfigurationBuilder(this, newCaches);
@@ -85,7 +87,7 @@ public class ConfigurationBuilder implements Builder<Configuration> {
     return new ConfigurationBuilder(this, newCaches);
   }
 
-  public ConfigurationBuilder addService(ServiceCreationConfiguration<?> serviceConfiguration) {
+  ConfigurationBuilder addService(ServiceCreationConfiguration<?> serviceConfiguration) {
     if (findServiceByClass(serviceConfiguration.getClass()) != null) {
       throw new IllegalArgumentException("There is already a ServiceCreationConfiguration registered for service " + serviceConfiguration
           .getServiceType() + " of type " + serviceConfiguration.getClass());
@@ -95,7 +97,7 @@ public class ConfigurationBuilder implements Builder<Configuration> {
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
-  public <T> T findServiceByClass(Class<T> type) {
+  <T> T findServiceByClass(Class<T> type) {
     for (ServiceCreationConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration.getClass().equals(type)) {
         return (T) serviceConfiguration;
@@ -104,13 +106,13 @@ public class ConfigurationBuilder implements Builder<Configuration> {
     return null;
   }
 
-  public ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
+  ConfigurationBuilder removeService(ServiceCreationConfiguration<?> serviceConfiguration) {
     List<ServiceCreationConfiguration<?>> newServiceConfigurations = new ArrayList<ServiceCreationConfiguration<?>>(serviceConfigurations);
     newServiceConfigurations.remove(serviceConfiguration);
     return new ConfigurationBuilder(this, newServiceConfigurations);
   }
 
-  public ConfigurationBuilder withClassLoader(ClassLoader classLoader) {
+  ConfigurationBuilder withClassLoader(ClassLoader classLoader) {
     return new ConfigurationBuilder(this, classLoader);
   }
 }

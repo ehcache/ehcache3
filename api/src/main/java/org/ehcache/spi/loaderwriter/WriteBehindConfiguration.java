@@ -56,7 +56,7 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   /**
    * BatchingConfiguration
    */
-  public interface BatchingConfiguration {
+  interface BatchingConfiguration {
     /**
      * The recommended size of a batch of operations.
      *

@@ -17,12 +17,20 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.CacheManager;
-import org.ehcache.config.builders.CacheManagerBuilder;
 
 /**
- * @author Alex Snaps
+ * A configuration type that enables to further specify the type of {@link CacheManager} in a
+ * {@link CacheManagerBuilder}.
+ *
+ * @see org.ehcache.PersistentCacheManager
  */
 public interface CacheManagerConfiguration<T extends CacheManager> {
 
+  /**
+   * Enables to refine the type that the {@link CacheManagerBuilder} will build.
+   *
+   * @param other the original builder to start from
+   * @return a new builder with adapted configuration and specific {@code CacheManager} subtype
+   */
   CacheManagerBuilder<T> builder(CacheManagerBuilder<? extends CacheManager> other);
 }

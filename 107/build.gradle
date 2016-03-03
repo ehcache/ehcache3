@@ -37,6 +37,10 @@ dependencies {
   }
 }
 
+javadoc {
+  exclude '**/tck/**'
+}
+
 def tckTestOnlyIfJava7 = {
   JavaVersion.current().isJava7Compatible()
 }

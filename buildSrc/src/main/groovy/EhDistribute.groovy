@@ -114,6 +114,7 @@ class EhDistribute implements Plugin<Project> {
       title "$project.archivesBaseName $project.version API"
       source hashsetOfProjects.javadoc.source
       classpath = project.files(hashsetOfProjects.javadoc.classpath)
+      exclude '**/internal/**', '**/tck/**'
     }
 
     project.task('asciidocZip', type: Zip, dependsOn: ':docs:asciidoctor') {

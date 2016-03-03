@@ -17,12 +17,20 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.UserManagedCache;
-import org.ehcache.config.builders.UserManagedCacheBuilder;
 
 /**
- * @author Alex Snaps
+ * A configuration type that enables to further specify the type of {@link UserManagedCache} in a
+ * {@link UserManagedCacheBuilder}.
+ *
+ * @see org.ehcache.PersistentUserManagedCache
  */
 public interface UserManagedCacheConfiguration<K, V, T extends UserManagedCache<K, V>> {
 
+  /**
+   * Enables to refine the type that the {@link UserManagedCacheBuilder} will build.
+   *
+   * @param builder the original builder to start from
+   * @return a new builder with adapted configuration and specific {@code UserManagedCache} subtype
+   */
   UserManagedCacheBuilder<K, V, T> builder(UserManagedCacheBuilder<K, V, ? extends UserManagedCache<K, V>> builder);
 }

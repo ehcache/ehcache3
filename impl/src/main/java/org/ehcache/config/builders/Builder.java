@@ -23,5 +23,10 @@ package org.ehcache.config.builders;
  */
 public interface Builder<T> {
 
+  /**
+   * Builds the instance
+   *
+   * @return the newly built instance
+   */
   T build();
 }

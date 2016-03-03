@@ -14,33 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.event;
-
 /**
- * @author Alex Snaps
+ * Package for builders designed to help out with programmatic configuration of Ehcache
  */
-public enum EventOrdering {
-
-  /**
-   * No ordering requirement necessary
-   */
-  UNORDERED(false),
-
-  /**
-   * Events for a given key will always fire in the same order they actually occurred
-   */
-  ORDERED(true);
-
-  private final boolean ordered;
-
-  EventOrdering(boolean ordered) {this.ordered = ordered;}
-
-  /**
-   * Indicates if the value obeys ordering
-   *
-   * @return {@code true} in case it does, {@code false} otherwise
-   */
-  public boolean isOrdered() {
-    return ordered;
-  }
-}
+package org.ehcache.config.builders;

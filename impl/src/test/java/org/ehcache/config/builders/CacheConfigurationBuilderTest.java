@@ -227,10 +227,10 @@ public class CacheConfigurationBuilderTest {
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
     builder
-        .withEvictionVeto(new EvictionVeto<Long, String>() {
+        .withEvictionVeto(new EvictionVeto<Long, CharSequence>() {
           @Override
-          public boolean vetoes(Long key, String value) {
-            return value.startsWith("A");
+          public boolean vetoes(Long key, CharSequence value) {
+            return value.charAt(0) == 'A';
           }
         })
         .withExpiry(expiry)
@@ -246,10 +246,10 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
         .offheap(10, MemoryUnit.MB));
     CacheConfiguration config = builder
-        .withEvictionVeto(new EvictionVeto<Long, String>() {
+        .withEvictionVeto(new EvictionVeto<Long, CharSequence>() {
           @Override
-          public boolean vetoes(Long key, String value) {
-            return value.startsWith("A");
+          public boolean vetoes(Long key, CharSequence value) {
+            return value.charAt(0) == 'A';
           }
         })
         .withExpiry(expiry)
