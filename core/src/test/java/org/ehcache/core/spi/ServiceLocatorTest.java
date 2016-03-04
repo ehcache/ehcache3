@@ -20,6 +20,8 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.spi.cache.CacheProvider;
@@ -45,7 +47,6 @@ import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.notNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -251,7 +252,7 @@ public class ServiceLocatorTest {
     verify(consumer1, times(1)).start(serviceLocator);
     verify(consumer1, times(1)).stop();
 
-    assertThat(consumer2.testProvidedService.ctors(), equalTo(1));
+    assertThat(consumer2.testProvidedService.ctors(), greaterThanOrEqualTo(1));
     assertThat(consumer2.testProvidedService.stops(), equalTo(1));
     assertThat(consumer2.testProvidedService.starts(), equalTo(1));
   }
@@ -266,52 +267,83 @@ public class ServiceLocatorTest {
   @Test
   public void testCircularDeps() throws Exception {
 
+    final class StartStopCounter {
+      final AtomicInteger startCounter = new AtomicInteger(0);
+      final AtomicReference<ServiceProvider<Service>> startServiceProvider = new AtomicReference<ServiceProvider<Service>>();
+      final AtomicInteger stopCounter = new AtomicInteger(0);
+      public void countStart(ServiceProvider<Service> serviceProvider) {
+        startCounter.incrementAndGet();
+        startServiceProvider.set(serviceProvider);
+      }
+      public void countStop() {
+        stopCounter.incrementAndGet();
+      }
+    }
+
     @ServiceDependencies(TestProvidedService.class)
     class Consumer1 implements Service {
+      final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
       public void start(ServiceProvider<Service> serviceProvider) {
-        assertThat(serviceProvider.getService(TestProvidedService.class), is(notNull()));
+        assertThat(serviceProvider.getService(TestProvidedService.class), is(notNullValue()));
+        startStopCounter.countStart(serviceProvider);
       }
       @Override
-      public void stop() {}
+      public void stop() {
+        startStopCounter.countStop();
+      }
     }
 
     @ServiceDependencies(Consumer1.class)
     class Consumer2 implements Service {
-      TestProvidedService testProvidedService;
+      final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
       public void start(ServiceProvider<Service> serviceProvider) {
-        assertThat(serviceProvider.getService(Consumer1.class), is(notNull()));
+        assertThat(serviceProvider.getService(Consumer1.class), is(notNullValue()));
+        startStopCounter.countStart(serviceProvider);
       }
       @Override
-      public void stop() {}
+      public void stop() {
+        startStopCounter.countStop();
+      }
     }
 
     @ServiceDependencies(Consumer2.class)
     class MyTestProvidedService extends DefaultTestProvidedService {
+      final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
       public void start(ServiceProvider<Service> serviceProvider) {
-        assertThat(serviceProvider.getService(Consumer2.class), is(notNull()));
+        assertThat(serviceProvider.getService(Consumer2.class), is(notNullValue()));
+        startStopCounter.countStart(serviceProvider);
         super.start(serviceProvider);
+      }
+      @Override
+      public void stop() {
+        startStopCounter.countStop();
+        super.stop();
       }
     }
 
     @ServiceDependencies(DependsOnMe.class)
     class DependsOnMe implements Service {
+      final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
       public void start(ServiceProvider<Service> serviceProvider) {
-        assertThat(serviceProvider.getService(DependsOnMe.class), sameInstance(this));;
+        assertThat(serviceProvider.getService(DependsOnMe.class), sameInstance(this));
+        startStopCounter.countStart(serviceProvider);
       }
       @Override
-      public void stop() {}
+      public void stop() {
+        startStopCounter.countStop();
+      }
     }
 
     ServiceLocator serviceLocator = new ServiceLocator();
 
-    Consumer1 consumer1 = mock(Consumer1.class);
-    Consumer2 consumer2 = mock(Consumer2.class);
-    MyTestProvidedService myTestProvidedService = mock(MyTestProvidedService.class);
-    DependsOnMe dependsOnMe = mock(DependsOnMe.class);
+    Consumer1 consumer1 = new Consumer1();
+    Consumer2 consumer2 = new Consumer2();
+    MyTestProvidedService myTestProvidedService = new MyTestProvidedService();
+    DependsOnMe dependsOnMe = new DependsOnMe();
 
     // add some services
     serviceLocator.addService(consumer1);
@@ -324,15 +356,19 @@ public class ServiceLocatorTest {
 
     serviceLocator.stopAllServices();
 
-    verify(consumer1, times(1)).start(serviceLocator);
-    verify(consumer2, times(1)).start(serviceLocator);
-    verify(myTestProvidedService, times(1)).start(serviceLocator);
-    verify(dependsOnMe, times(1)).start(serviceLocator);
+    assertThat(consumer1.startStopCounter.startCounter.get(), is(1));
+    assertThat(consumer1.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(consumer2.startStopCounter.startCounter.get(), is(1));
+    assertThat(consumer2.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(myTestProvidedService.startStopCounter.startCounter.get(), is(1));
+    assertThat(myTestProvidedService.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(dependsOnMe.startStopCounter.startCounter.get(), is(1));
+    assertThat(dependsOnMe.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
 
-    verify(consumer1, times(1)).stop();
-    verify(consumer2, times(1)).stop();
-    verify(myTestProvidedService, times(1)).stop();
-    verify(dependsOnMe, times(1)).stop();
+    assertThat(consumer1.startStopCounter.stopCounter.get(), is(1));
+    assertThat(consumer2.startStopCounter.stopCounter.get(), is(1));
+    assertThat(myTestProvidedService.startStopCounter.stopCounter.get(), is(1));
+    assertThat(dependsOnMe.startStopCounter.stopCounter.get(), is(1));
   }
 }
 
