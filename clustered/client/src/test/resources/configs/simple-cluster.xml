@@ -4,7 +4,7 @@
 
   <ehcache:service>
     <tc:cluster>
-      <tc:connection url="http://localhost:9540"/>
+      <tc:connection url="http://example.com:9540/cachemanager?auto-create"/>
     </tc:cluster>
   </ehcache:service>
 

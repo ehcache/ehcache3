@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
+import org.ehcache.clustered.client.UnitTestConnectionService;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.xml.XmlConfiguration;
@@ -30,6 +31,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import org.junit.Before;
 
 /**
  * Tests basic XML configuration of clustered {@link PersistentCacheManager}.
@@ -39,6 +41,11 @@ import static org.junit.Assert.assertThat;
 public class SimpleClusteredCacheByXmlTest {
 
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";
+
+  @Before
+  public void resetPassthroughServer() {
+    UnitTestConnectionService.reset();
+  }
 
   @Test
   public void testViaXml() throws Exception {

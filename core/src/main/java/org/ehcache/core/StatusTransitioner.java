@@ -194,9 +194,11 @@ final class StatusTransitioner {
             runInitHooks();
             break;
           case UNINITIALIZED:
+            maintenanceLease = null;
             runCloseHooks();
             break;
           case MAINTENANCE:
+            maintenanceLease = thread;
             break;
           default:
             throw new IllegalArgumentException("Didn't expect that enum value: " + st.to());

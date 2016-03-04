@@ -58,7 +58,12 @@ public interface PersistableResourceService extends MaintainableService {
    *
    * @throws CachePersistenceException if the persistence space cannot be destroyed
    */
-  void destroyPersistenceSpace(String name) throws CachePersistenceException;
+  void destroy(String name) throws CachePersistenceException;
+
+  /**
+   * Creates the persistent storage.
+   */
+  void create();
 
   /**
    * Destroys all persistence spaces
@@ -67,5 +72,5 @@ public interface PersistableResourceService extends MaintainableService {
    * It will nonetheless try to delete any persistent data associated with the base configuration provided
    * in the service.
    */
-  void destroyAllPersistenceSpaces();
+  void destroyAll();
 }

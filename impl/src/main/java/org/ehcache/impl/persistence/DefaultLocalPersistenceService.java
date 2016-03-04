@@ -164,7 +164,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
     if (!pool.isPersistent()) {
       try {
-        destroyPersistenceSpace(alias);
+        destroy(alias);
       } catch (CachePersistenceException cpex) {
         throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + alias, cpex);
       }
@@ -198,7 +198,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   @Override
-  public void destroyPersistenceSpace(String name) throws CachePersistenceException {
+  public void destroy(String name) throws CachePersistenceException {
     DefaultPersistenceSpaceIdentifier space = knownPersistenceSpaces.remove(name);
     if (space == null) {
       destroy(name, new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name)), true);
@@ -208,7 +208,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   @Override
-  public void destroyAllPersistenceSpaces() {
+  public void destroyAll() {
     if(recursiveDeleteDirectoryContent(rootDirectory)){
       LOGGER.info("Destroyed all file based persistence context");
     } else {
@@ -368,6 +368,11 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } catch (NoSuchAlgorithmException e) {
       throw new AssertionError("All JDKs must have SHA-1");
     }
+  }
+
+  @Override
+  public void create() {
+    //no-op
   }
 
   private static abstract class FileHolder {

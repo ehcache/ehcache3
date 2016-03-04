@@ -43,32 +43,54 @@ public class EhcacheClientEntityFactory {
     this.coordinator = coordinator;
   }
 
+
+  public boolean acquireLeadership(String entityIdentifier) {
+    try {
+      if (asLeaderOf(entityIdentifier, new ElectionTask<Boolean>() {
+        @Override
+        public Boolean call(boolean clean) throws Exception {
+          return true;
+        }
+      }) == null) {
+        return false;
+      } else {
+        return true;
+      }
+    } catch (ExecutionException ex) {
+      throw new AssertionError(ex.getCause());
+    }
+  }
+
+  public void abandonLeadership(String entityIdentifier) {
+    coordinator.delist(EhcacheClientEntity.class, entityIdentifier);
+  }
+
   public EhcacheClientEntity create(final String identifier, final ServerSideConfiguration config) throws EntityAlreadyExistsException {
     try {
-      while (true) {
-        EhcacheClientEntity created = asLeaderOf(identifier, new ElectionTask<EhcacheClientEntity>() {
-          @Override
-          public EhcacheClientEntity call(boolean clean) throws EntityAlreadyExistsException {
-            EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
-            try {
-              while (true) {
-                ref.create(UUID.randomUUID());
-                try {
-                  return configure(ref.fetchEntity(), config);
-                } catch (EntityNotFoundException e) {
-                  //continue;
-                }
+      EhcacheClientEntity created = asLeaderOf(identifier, new ElectionTask<EhcacheClientEntity>() {
+        @Override
+        public EhcacheClientEntity call(boolean clean) throws EntityAlreadyExistsException {
+          EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
+          try {
+            while (true) {
+              ref.create(UUID.randomUUID());
+              try {
+                return configure(ref.fetchEntity(), config);
+              } catch (EntityNotFoundException e) {
+                //continue;
               }
-            } catch (EntityNotProvidedException e) {
-              throw new AssertionError(e);
-            } catch (EntityVersionMismatchException e) {
-              throw new AssertionError(e);
             }
+          } catch (EntityNotProvidedException e) {
+            throw new AssertionError(e);
+          } catch (EntityVersionMismatchException e) {
+            throw new AssertionError(e);
           }
-        });
-        if (created != null) {
-          return created;
         }
+      });
+      if (created == null) {
+        throw new AssertionError("Not the leader");
+      } else {
+        return created;
       }
     } catch (ExecutionException ex) {
       throw unwrapException(ex, EntityAlreadyExistsException.class);
@@ -76,16 +98,13 @@ public class EhcacheClientEntityFactory {
   }
 
   public EhcacheClientEntity createOrRetrieve(String identifier, ServerSideConfiguration config) {
-    while (true) {
+    try {
+      return retrieve(identifier, config);
+    } catch (EntityNotFoundException e) {
       try {
-        return retrieve(identifier, config);
-      } catch (EntityNotFoundException e) {
-        try {
-          return create(identifier, config);
-        } catch (EntityAlreadyExistsException f) {
-          //Entity got created by another leader - try to retrieve
-          //continue;
-        }
+        return create(identifier, config);
+      } catch (EntityAlreadyExistsException f) {
+        throw new AssertionError("Somebody else doing leader work!");
       }
     }
   }
@@ -113,11 +132,7 @@ public class EhcacheClientEntityFactory {
   }
 
   private <T> T asLeaderOf(String identifier, final ElectionTask<T> task) throws ExecutionException {
-    try {
-      return coordinator.executeIfLeader(EhcacheClientEntity.class, identifier, task);
-    } finally {
-      coordinator.delist(EhcacheClientEntity.class, identifier);
-    }
+    return coordinator.executeIfLeader(EhcacheClientEntity.class, identifier, task);
   }
 
   private EntityRef<EhcacheClientEntity, UUID> getEntityRef(String identifier) {

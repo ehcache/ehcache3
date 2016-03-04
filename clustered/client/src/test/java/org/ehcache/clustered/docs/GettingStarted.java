@@ -25,6 +25,8 @@ import org.ehcache.config.units.EntryUnit;
 import org.junit.Test;
 
 import java.net.URI;
+import org.ehcache.clustered.client.UnitTestConnectionService;
+import org.junit.Before;
 
 /**
  * Samples demonstrating use of a clustered cache.
@@ -35,12 +37,17 @@ import java.net.URI;
  */
 public class GettingStarted {
 
+  @Before
+  public void resetPassthroughServer() {
+    UnitTestConnectionService.reset();
+  }
+
   @Test
   public void clusteredCacheManagerExample() throws Exception {
     // tag::clusteredCacheManagerExample
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(new ClusteringServiceConfiguration(URI.create("http://localhost:9540")))
+            .with(new ClusteringServiceConfiguration(URI.create("http://example.com:9540/my-application?auto-create")))
             .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES))

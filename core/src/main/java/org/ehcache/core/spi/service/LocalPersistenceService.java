@@ -57,7 +57,7 @@ public interface LocalPersistenceService extends PersistableResourceService {
    * It will nonetheless try to delete any persistent data associated with the root directory provided
    * in the service.
    */
-  void destroyAllPersistenceSpaces();
+  void destroyAll();
 
   /**
    * An identifier for an existing persistence space.

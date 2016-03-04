@@ -117,6 +117,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     this.serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
     this.useLoaderInAtomics = useLoaderInAtomics;
     validateServicesConfigs();
+    resolveServices();
   }
 
   private void validateServicesConfigs() {
@@ -126,6 +127,19 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         throw new IllegalStateException("Duplicate creation configuration for service " + service.getServiceType());
       }
     }
+  }
+
+  private void resolveServices() {
+    if (serviceLocator.getService(CacheManagerProviderService.class) == null) {
+      this.serviceLocator.addService(new DefaultCacheManagerProviderService(this));
+    }
+    for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceCreationConfigurations()) {
+      Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
+      if (service == null) {
+        throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
+      }
+    }
+    serviceLocator.loadDependenciesOf(ServiceDeps.class);
   }
 
   /**
@@ -208,7 +222,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         if (!resourcePool.isPersistent()) {
           PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
           try {
-            persistableResourceService.destroyPersistenceSpace(alias);
+            persistableResourceService.destroy(alias);
           } catch (CachePersistenceException e) {
             this.getLogger().warn("Unable to clear persistence space for cache {}", alias, e);
           }
@@ -523,24 +537,8 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   @Override
   public void init() {
     final StatusTransitioner.Transition st = statusTransitioner.init();
-
-    if (serviceLocator.getService(CacheManagerProviderService.class) == null) {
-      this.serviceLocator.addService(new DefaultCacheManagerProviderService(this));
-    }
-
     try {
-      for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceCreationConfigurations()) {
-        Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
-        if (service == null) {
-          throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
-        }
-      }
-      serviceLocator.loadDependenciesOf(ServiceDeps.class);
-      try {
-        serviceLocator.startAllServices();
-      } catch (Exception e) {
-        throw st.failed(e);
-      }
+      serviceLocator.startAllServices();
 
       Deque<String> initiatedCaches = new ArrayDeque<String>();
       try {
@@ -642,15 +640,15 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   private void destroyPersistenceSpace(String alias) throws CachePersistenceException {
     Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
     for (PersistableResourceService service : services) {
-      service.destroyPersistenceSpace(alias);
+      service.destroy(alias);
     }
   }
 
   @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
-    startMaintenableServices();
     try {
+      startMaintenableServices();
       final Maintainable maintainable = new Maintainable() {
         @Override
         public void create() {
@@ -664,13 +662,18 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
         @Override
         public void close() {
-          stopPersistenceServices();
-          statusTransitioner.exitMaintenance().succeeded();
+          StatusTransitioner.Transition st = statusTransitioner.exitMaintenance();
+          try {
+            stopPersistenceServices();
+            st.succeeded();
+          } catch (Throwable t) {
+            throw st.failed(t);
+          }
         }
       };
       st.succeeded();
       return maintainable;
-    } catch (RuntimeException e) {
+    } catch (Throwable e) {
       throw st.failed(e);
     }
   }
@@ -706,13 +709,17 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
   void create() {
     statusTransitioner.checkMaintenance();
+    Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
+    for (PersistableResourceService service : services) {
+      service.create();
+    }
   }
 
   void destroy() {
     statusTransitioner.checkMaintenance();
     Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
     for (PersistableResourceService service : services) {
-      service.destroyAllPersistenceSpaces();
+      service.destroyAll();
     }
   }
 

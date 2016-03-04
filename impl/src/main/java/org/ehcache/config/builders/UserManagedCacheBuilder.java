@@ -81,6 +81,12 @@ import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DE
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
  * The {@code UserManagedCacheBuilder} enables building {@link UserManagedCache}s using a fluent style.
@@ -206,7 +212,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
       if (!resourcePools.getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
         try {
-          persistenceService.destroyPersistenceSpace(id);
+          persistenceService.destroy(id);
         } catch (CachePersistenceException cpex) {
           throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + id, cpex);
         }
