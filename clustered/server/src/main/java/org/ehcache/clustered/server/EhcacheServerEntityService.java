@@ -28,9 +28,10 @@ import static org.ehcache.clustered.server.ConcurrencyStrategies.noConcurrency;
 
 public class EhcacheServerEntityService implements ServerEntityService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
+  private static final long ENTITY_VERSION = 1L;
   @Override
   public long getVersion() {
-    return 0L;
+    return ENTITY_VERSION;
   }
 
   @Override

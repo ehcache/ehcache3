@@ -127,7 +127,7 @@ public class PassThroughEhcacheIntegrationTest {
     Connection connection = server.connectNewClient();
     try {
       try {
-        connection.getEntityRef(aClass, 0, myCacheManager).fetchEntity().close();
+        connection.getEntityRef(aClass, 1, myCacheManager).fetchEntity().close();
       } catch (EntityNotProvidedException e) {
         throw new AssertionError(e);
       } catch (EntityVersionMismatchException e) {

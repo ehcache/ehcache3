@@ -31,6 +31,8 @@ import static org.ehcache.clustered.Util.unwrapException;
 
 public class EhcacheClientEntityFactory {
 
+  private static final long ENTITY_VERSION = 1L;
+
   private final Connection connection;
   private final CoordinationService coordinator;
 
@@ -137,7 +139,7 @@ public class EhcacheClientEntityFactory {
 
   private EntityRef<EhcacheClientEntity, UUID> getEntityRef(String identifier) {
     try {
-      return connection.getEntityRef(EhcacheClientEntity.class, 0, identifier);
+      return connection.getEntityRef(EhcacheClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
       throw new AssertionError(e);
     }
