@@ -260,41 +260,36 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private OnHeapValueHolder<V> internalGet(final K key, final boolean updateAccess) throws CacheAccessException {
     getObserver.begin();
-    final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
-
+    StoreEventSink<K, V> eventSink = null;
     try {
-      final AtomicReference<OnHeapValueHolder<V>> expiredValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+      OnHeapValueHolder<V> mapping = map.get(key);
 
-      OnHeapValueHolder<V> result = map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-        @Override
-        public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-          final long now = timeSource.getTimeMillis();
-
-          if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-            onExpiration(mappedKey, mappedValue, eventSink);
-            expiredValue.set(mappedValue);
-            return null;
-          }
-
-          if (updateAccess) {
-            return setAccessTimeAndExpiryThenReturnMapping(key, mappedValue, now, eventSink);
-          }
-
-          return mappedValue;
-        }
-      });
-      storeEventDispatcher.releaseEventSink(eventSink);
-      if (result == null) {
+      if (mapping == null) {
         getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
-        if (expiredValue.get() != null) {
-          decrementCurrentUsageInBytesIfRequired(expiredValue.get().size());
-        }
-      } else {
-        getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
+        return null;
       }
-      return result;
+
+      if (mapping.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+        expireMapping(key, mapping);
+        getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
+        return null;
+      }
+
+      if (updateAccess) {
+        eventSink = storeEventDispatcher.eventSink();
+        mapping = setAccessTimeAndExpiryThenReturnMapping(key, mapping, timeSource.getTimeMillis(), eventSink);
+        storeEventDispatcher.releaseEventSink(eventSink);
+      }
+      if (mapping != null) {
+        getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
+      } else {
+        getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
+      }
+      return mapping;
     } catch (RuntimeException re) {
-      storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
+      if (eventSink != null) {
+        storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
+      }
       handleRuntimeException(re);
       return null;
     }
