@@ -47,6 +47,7 @@ import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
+import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.Segment;
@@ -638,7 +639,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
         } else {
           if (delayedDeserialization) {
-            mappedValue.prepareForDelayedDeserialization();
+            mappedValue.detach();
           }
           return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
         }
@@ -848,7 +849,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             onExpiration(mappedKey, mappedValue, eventSink);
             return null;
           }
-          mappedValue.prepareForDelayedDeserialization();
+          mappedValue.detach();
           return mappedValue;
         }
       });
@@ -995,7 +996,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
           return null;
         }
-        mappedValue.prepareForDelayedDeserialization();
+        mappedValue.detach();
         valueHolderAtomicReference.set(mappedValue);
         return null;
       }
@@ -1105,11 +1106,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
 
     if (duration == null) {
-      return new OffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
+      return new BasicOffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, existing.expirationTime(OffHeapValueHolder.TIME_UNIT));
     } else if (duration.isForever()) {
-      return new OffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
+      return new BasicOffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
-      return new OffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, safeExpireTime(now, duration));
+      return new BasicOffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, safeExpireTime(now, duration));
     }
   }
 
@@ -1128,15 +1129,22 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     eventSink.created(key, value);
 
     if (duration.isForever()) {
-      return new OffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
+      return new BasicOffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, OffHeapValueHolder.NO_EXPIRE);
     } else {
-      return new OffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, safeExpireTime(now, duration));
+      return new BasicOffHeapValueHolder<V>(backingMap().nextIdFor(key), value, now, safeExpireTime(now, duration));
     }
   }
 
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
-    return new OffHeapValueHolder<V>(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
-        valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits());
+    if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
+      return new BinaryOffHeapValueHolder<V>(valueHolder.getId(), ((BinaryValueHolder)valueHolder).getBinaryValue(),
+          valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT),
+          valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits());
+    } else {
+      return new BasicOffHeapValueHolder<V>(valueHolder.getId(), valueHolder.value(), valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT),
+          valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder
+          .hits());
+    }
   }
 
   public void handleOversizeMappingException(K key, OversizeMappingException cause) throws CacheAccessException {

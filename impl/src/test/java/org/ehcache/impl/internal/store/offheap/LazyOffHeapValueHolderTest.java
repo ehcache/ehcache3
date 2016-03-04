@@ -29,18 +29,18 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 /**
- * OffHeapValueHolderTest
+ * LazyOffHeapValueHolderTest
  */
-public class OffHeapValueHolderTest {
+public class LazyOffHeapValueHolderTest {
 
   @Test
   public void testDelayedDeserialization() {
     JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    OffHeapValueHolder<String> valueHolder = new OffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
 
-    valueHolder.prepareForDelayedDeserialization();
+    valueHolder.detach();
     serialized.clear();
     assertThat(valueHolder.value(), is(testValue));
   }
@@ -50,17 +50,12 @@ public class OffHeapValueHolderTest {
     JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    OffHeapValueHolder<String> valueHolder = new OffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
 
-    valueHolder.prepareForDelayedDeserialization();
+    valueHolder.detach();
 
     ByteBuffer binaryValue = valueHolder.getBinaryValue();
     assertThat(serializer.read(binaryValue), is(testValue));
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void testPreventAccessToBinaryValueInValueMode() {
-    new OffHeapValueHolder<String>(-1L, "aValue", 10L, 20L).getBinaryValue();
   }
 
   @Test
@@ -68,7 +63,7 @@ public class OffHeapValueHolderTest {
     JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    OffHeapValueHolder<String> valueHolder = new OffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
 
     try {
       valueHolder.getBinaryValue();
@@ -77,27 +72,4 @@ public class OffHeapValueHolderTest {
       assertThat(e.getMessage(), containsString("has not been prepared"));
     }
   }
-
-  @Test(expected = IllegalStateException.class)
-  public void testPreventPreparationForDelayedSerializationInValueMode() {
-    new OffHeapValueHolder<String>(-1L, "aValue", 10L, 20L).prepareForDelayedDeserialization();
-  }
-
-  @Test
-  public void testCannotBePreparedForDelayedIfAlreadyDeserialized() {
-    JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
-    String testValue = "Let's get binary!";
-    ByteBuffer serialized = serializer.serialize(testValue);
-    OffHeapValueHolder<String> valueHolder = new OffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
-
-    valueHolder.value();
-
-    try {
-      valueHolder.prepareForDelayedDeserialization();
-      fail("Expected IllegalStateException");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("VALUE"));
-    }
-  }
-
 }

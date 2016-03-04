@@ -19,11 +19,12 @@ import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
+public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> implements BinaryValueHolder {
   private final ByteBuffer buffer;
   @IgnoreSizeOf
   private final Serializer<V> serializer;
@@ -69,6 +70,16 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     } catch (ClassNotFoundException cnfe) {
       throw new SerializerException(cnfe);
     }
+  }
+
+  @Override
+  public ByteBuffer getBinaryValue() throws IllegalStateException {
+    return buffer.duplicate();
+  }
+
+  @Override
+  public boolean isBinaryValueAvailable() {
+    return true;
   }
 
   @Override

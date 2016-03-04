@@ -29,6 +29,7 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
 import org.ehcache.impl.internal.persistence.TestLocalPersistenceService;
+import org.ehcache.impl.internal.store.offheap.BasicOffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
@@ -131,7 +132,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public Store.ValueHolder<String> newValueHolder(String value) {
-        return new OffHeapValueHolder<String>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), OffHeapValueHolder.NO_EXPIRE);
+        return new BasicOffHeapValueHolder<String>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), OffHeapValueHolder.NO_EXPIRE);
       }
 
       @Override
