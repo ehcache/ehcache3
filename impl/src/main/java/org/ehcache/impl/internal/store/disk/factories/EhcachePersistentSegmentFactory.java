@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.store.disk.factories;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.function.BiFunction;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
 import org.terracotta.offheapstore.Metadata;
@@ -75,30 +74,6 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
       this.evictionVeto = evictionVeto;
       this.evictionListener = evictionListener;
     }
-
-    public V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction) {
-      final Lock lock = writeLock();
-      lock.lock();
-      try {
-        final V previousValue = get(key);
-        if (previousValue == null) {
-          return null;
-        }
-        final V newValue = mappingFunction.apply(key, previousValue);
-        if (newValue != previousValue) {
-          if (newValue != null) {
-            put(key, newValue);
-          } else {
-            remove(key);
-          }
-        }
-        getAndSetMetadata(key, Metadata.PINNED, Metadata.PINNED);
-        return newValue;
-      } finally {
-        lock.unlock();
-      }
-    }
-
 
     @Override
     public V put(K key, V value) {

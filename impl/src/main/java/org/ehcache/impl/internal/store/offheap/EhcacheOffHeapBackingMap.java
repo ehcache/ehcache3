@@ -63,6 +63,18 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V> {
    */
   boolean computeIfPinned(K key, BiFunction<K,V,V> remappingFunction, Function<V,Boolean> unpinFunction);
 
+  /**
+   * Computes a new value for the given key if a mapping is present, <code>BiFunction</code> is invoked
+   * under appropriate lock scope.
+   * <P>
+   * The pinning bit from the metadata will be set on the resulting mapping.
+   * </P>
+   *
+   * @param key the key of the mapping to compute the value for
+   * @param mappingFunction the function used to compute the new value
+   *
+   * @return the value mapped as the result of this call
+   */
   V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction);
 
   long nextIdFor(K key);

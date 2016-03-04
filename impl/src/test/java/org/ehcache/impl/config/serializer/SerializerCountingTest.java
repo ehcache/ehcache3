@@ -104,7 +104,7 @@ public class SerializerCountingTest {
     assertCounters(1, 0, 0, 1, 0, 0);
     printSerializationCounters("Put Offheap");
     cache.get(42L);
-    assertCounters(0, 0, 2, 0, 1, 0);
+    assertCounters(0, 0, 1, 0, 1, 0);
     printSerializationCounters("Get Offheap fault");
     cache.get(42L);
     assertCounters(0, 0, 0, 0, 0, 0);
@@ -128,7 +128,7 @@ public class SerializerCountingTest {
     assertCounters(2, 1, 0, 1, 0, 0);
     printSerializationCounters("Put OffheapOnHeapCopy");
     cache.get(42L);
-    assertCounters(1, 1, 2, 0, 2, 0);
+    assertCounters(1, 1, 1, 0, 2, 0);
     printSerializationCounters("Get OffheapOnHeapCopy fault");
     cache.get(42L);
     assertCounters(0, 0, 0, 0, 2, 0);
@@ -153,7 +153,7 @@ public class SerializerCountingTest {
     assertCounters(3, 2, 0, 1, 0, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy");
     cache.get(42L);
-    assertCounters(1, 1, 2, 0, 2, 0);
+    assertCounters(1, 1, 1, 0, 2, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy fault");
     cache.get(42L);
     assertCounters(0, 0, 0, 0, 2, 0);

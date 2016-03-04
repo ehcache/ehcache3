@@ -21,7 +21,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 
-import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.terracotta.offheapstore.MetadataTuple;
 import org.terracotta.offheapstore.concurrent.AbstractConcurrentOffHeapCache;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
@@ -92,9 +91,23 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
   }
 
   @Override
-  public V computeIfPresentAndPin(K key, BiFunction<K, V, V> mappingFunction) {
-    EhcacheSegmentFactory.EhcacheSegment<K, V> segment = (EhcacheSegmentFactory.EhcacheSegment) segmentFor(key);
-    return segment.computeIfPresentAndPin(key, mappingFunction);
+  public V computeIfPresentAndPin(final K key, final BiFunction<K, V, V> mappingFunction) {
+    MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
+      @Override
+      public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
+        V oldValue = current.value();
+        V newValue = mappingFunction.apply(k, oldValue);
+
+        if (newValue == null) {
+          return null;
+        } else if (oldValue == newValue) {
+          return metadataTuple(newValue, PINNED | current.metadata());
+        } else {
+          return metadataTuple(newValue, PINNED | (evictionVeto.vetoes(k, newValue) ? VETOED : 0));
+        }
+      }
+    });
+    return result == null ? null : result.value();
   }
 
   @Override
