@@ -18,9 +18,9 @@ package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.function.BiFunction;
+import org.ehcache.impl.internal.store.offheap.AbstractEhcacheOffHeapBackingMapTest;
+import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
-import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
@@ -28,7 +28,6 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.junit.Rule;
-import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
 import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
@@ -40,30 +39,24 @@ import java.io.IOException;
 import static org.ehcache.impl.internal.store.disk.OffHeapDiskStore.persistent;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
-public class EhcachePersistentConcurrentOffHeapClockCacheTest {
+public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHeapBackingMapTest {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
 
-  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment() throws IOException {
+  @Override
+  protected EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment() throws IOException {
     return createTestSegment(Eviction.<String, String>none(), mock(EvictionListener.class));
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionVeto<String, String> evictionPredicate) throws IOException {
+  @Override
+  protected EhcacheOffHeapBackingMap<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate) throws IOException {
     return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionListener<String, String> evictionListener) throws IOException {
-    return createTestSegment(Eviction.<String, String>none(), evictionListener);
-  }
-
-  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionVeto<String, String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -81,248 +74,23 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest {
     }
   }
 
-  @Test
-  public void testComputeFunctionCalledWhenNoMapping() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "value";
-        }
-      }, false);
-      assertThat(value, is("value"));
-      assertThat(segment.get("key"), is(value));
-    } finally {
-      segment.destroy();
-    }
+  @Override
+  protected void destroySegment(EhcacheOffHeapBackingMap<String, String> segment) {
+    ((EhcachePersistentConcurrentOffHeapClockCache<String, String>)segment).destroy();
   }
 
-  @Test
-  public void testComputeFunctionReturnsSameNoPin() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.put("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return s2;
-        }
-      }, false);
-      assertThat(value, is("value"));
-      assertThat(segment.isPinned("key"), is(false));
-    } finally {
-      segment.destroy();
-    }
+  @Override
+  protected void putPinned(String key, String value, EhcacheOffHeapBackingMap<String, String> segment) {
+    ((EhcachePersistentConcurrentOffHeapClockCache<String, String>) segment).putPinned(key, value);
   }
 
-  @Test
-  public void testComputeFunctionReturnsSamePins() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.put("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return s2;
-        }
-      }, true);
-      assertThat(value, is("value"));
-      assertThat(segment.isPinned("key"), is(true));
-    } finally {
-      segment.destroy();
-    }
+  @Override
+  protected boolean isPinned(String key, EhcacheOffHeapBackingMap<String, String> segment) {
+    return ((EhcachePersistentConcurrentOffHeapClockCache<String, String>) segment).isPinned(key);
   }
 
-  @Test
-  public void testComputeFunctionReturnsSamePreservesPinWhenNoPin() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.putPinned("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return s2;
-        }
-      }, false);
-      assertThat(value, is("value"));
-      assertThat(segment.isPinned("key"), is(true));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testComputeFunctionReturnsDifferentNoPin() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.put("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "otherValue";
-        }
-      }, false);
-      assertThat(value, is("otherValue"));
-      assertThat(segment.isPinned("key"), is(false));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testComputeFunctionReturnsDifferentPins() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.put("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "otherValue";
-        }
-      }, true);
-      assertThat(value, is("otherValue"));
-      assertThat(segment.isPinned("key"), is(true));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testComputeFunctionReturnsDifferentClearsPin() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.putPinned("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "otherValue";
-        }
-      }, false);
-      assertThat(value, is("otherValue"));
-      assertThat(segment.isPinned("key"), is(false));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testComputeFunctionReturnsNullRemoves() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.putPinned("key", "value");
-      String value = segment.compute("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return null;
-        }
-      }, false);
-      assertThat(value, nullValue());
-      assertThat(segment.containsKey("key"), is(false));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testComputeIfPresentNotCalledOnNotContainedKey() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      try {
-        segment.computeIfPresent("key", new BiFunction<String, String, String>() {
-          @Override
-          public String apply(String s, String s2) {
-            throw new UnsupportedOperationException("Should not have been called!");
-          }
-        });
-      } catch (UnsupportedOperationException e) {
-        fail("Mapping function should not have been called.");
-      }
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testComputeIfPresentReturnsSameValue() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.put("key", "value");
-      String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return s2;
-        }
-      });
-      assertThat(segment.get("key"), is(value));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testComputeIfPresentReturnsDifferentValue() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.put("key", "value");
-      String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return "newValue";
-        }
-      });
-      assertThat(segment.get("key"), is(value));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testComputeIfPresentReturnsNullRemovesMapping() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment();
-    try {
-      segment.put("key", "value");
-      String value = segment.computeIfPresent("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String s, String s2) {
-          return null;
-        }
-      });
-      assertThat(segment.containsKey("key"), is(false));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testPutVetoedComputesMetadata() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
-      @Override
-      public boolean vetoes(String key, String value) {
-        return "vetoed".equals(key);
-      }
-    });
-    try {
-      segment.put("vetoed", "value");
-      assertThat(segment.getMetadata("vetoed", EhcacheSegmentFactory.EhcacheSegment.VETOED), is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
-    } finally {
-      segment.destroy();
-    }
-  }
-
-  @Test
-  public void testPutPinnedVetoedComputesMetadata() throws IOException {
-    EhcachePersistentConcurrentOffHeapClockCache<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
-      @Override
-      public boolean vetoes(String key, String value) {
-        return "vetoed".equals(key);
-      }
-    });
-    try {
-      segment.putPinned("vetoed", "value");
-      assertThat(segment.getMetadata("vetoed", EhcacheSegmentFactory.EhcacheSegment.VETOED), is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
-    } finally {
-      segment.destroy();
-    }
+  @Override
+  protected int getMetadata(String key, int mask, EhcacheOffHeapBackingMap<String, String> segment) {
+    return ((EhcachePersistentConcurrentOffHeapClockCache<String, String>) segment).getMetadata(key, mask);
   }
 }

@@ -17,8 +17,6 @@
 package org.ehcache.impl.internal.store.disk.factories;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
 import org.terracotta.offheapstore.Metadata;
@@ -75,43 +73,6 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
       super(source, storageEngine, tableSize, bootstrap);
       this.evictionVeto = evictionVeto;
       this.evictionListener = evictionListener;
-    }
-
-    /**
-     * Computes a new value for the given key if a mapping is present and pinned, <code>BiFunction</code> is invoked under appropriate lock scope
-     * The pinning bit from the metadata, will be flipped (i.e. unset) if the <code>Function<V, Boolean></code> returns true
-     * @param key the key of the mapping to compute the value for
-     * @param remappingFunction the function used to compute
-     * @param flippingPinningBitFunction evaluated to see whether we want to unpin the mapping
-     * @return true if transitioned to unpinned, false otherwise
-     */
-    public boolean computeIfPinned(final K key, final BiFunction<K, V, V> remappingFunction, final Function<V, Boolean> flippingPinningBitFunction) {
-      final Lock lock = writeLock();
-      lock.lock();
-      try {
-        final V newValue;
-        // can't be pinned if absent
-        if (isPinned(key)) {
-
-          final V previousValue = get(key);
-          newValue = remappingFunction.apply(key, previousValue);
-
-          if(newValue != previousValue) {
-            if(newValue == null) {
-              remove(key);
-            } else {
-              put(key, newValue);
-            }
-          }
-          if (flippingPinningBitFunction.apply(previousValue)) {
-            getAndSetMetadata(key, Metadata.PINNED, 0);
-            return true;
-          }
-        }
-        return false;
-      } finally {
-        lock.unlock();
-      }
     }
 
     @Override
