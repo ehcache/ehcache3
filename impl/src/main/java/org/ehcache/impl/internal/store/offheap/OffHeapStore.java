@@ -101,7 +101,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
                                                                                                          config.getInitialSegmentTableSize(),
                                                                                                          evictionVeto,
                                                                                                          mapEvictionListener);
-    return new EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(segmentFactory, config.getConcurrency());
+    return new EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionVeto, segmentFactory, config.getConcurrency());
 
   }
 
