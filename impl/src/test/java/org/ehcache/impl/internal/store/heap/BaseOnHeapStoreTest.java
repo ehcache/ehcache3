@@ -41,7 +41,11 @@ import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.InOrder;
 
 import java.util.EnumSet;
@@ -76,6 +80,41 @@ public abstract class BaseOnHeapStoreTest {
   private static final RuntimeException RUNTIME_EXCEPTION = new RuntimeException();
   protected StoreEventDispatcher eventDispatcher;
   protected StoreEventSink eventSink;
+
+  @Rule
+  public TestRule watchman = new TestWatcher() {
+    @Override
+    protected void failed(Throwable e, Description description) {
+      if (e.getMessage().startsWith("test timed out after")) {
+        System.err.println(buildThreadDump());
+      }
+    }
+
+    private String buildThreadDump() {
+      StringBuilder dump = new StringBuilder();
+      dump.append("***** Test timeout - printing thread dump ****");
+      Map<Thread, StackTraceElement[]> stackTraces = Thread.getAllStackTraces();
+      for (Map.Entry<Thread, StackTraceElement[]> e : stackTraces.entrySet()) {
+        Thread thread = e.getKey();
+        dump.append(String.format(
+            "\"%s\" %s prio=%d tid=%d %s\njava.lang.Thread.State: %s",
+            thread.getName(),
+            (thread.isDaemon() ? "daemon" : ""),
+            thread.getPriority(),
+            thread.getId(),
+            Thread.State.WAITING.equals(thread.getState()) ?
+                "in Object.wait()" : thread.getState().name().toLowerCase(),
+            Thread.State.WAITING.equals(thread.getState()) ?
+                "WAITING (on object monitor)" : thread.getState()));
+        for (StackTraceElement stackTraceElement : e.getValue()) {
+          dump.append("\n        at ");
+          dump.append(stackTraceElement);
+        }
+        dump.append("\n");
+      }
+      return dump.toString();
+    }
+  };
 
   @Before
   public void setUp() {
@@ -1246,7 +1285,7 @@ public abstract class BaseOnHeapStoreTest {
     }
   }
 
-  @Test
+  @Test(timeout = 2000L)
   public void testEvictionDoneUnderEvictedKeyLockScope() throws Exception {
     final OnHeapStore<String, String> store = newStore();
 
@@ -1288,10 +1327,8 @@ public abstract class BaseOnHeapStoreTest {
             long now = System.nanoTime();
             while (!thread.getState().equals(Thread.State.BLOCKED)) {
               Thread.yield();
-              if (System.nanoTime() - now > TimeUnit.MILLISECONDS.toNanos(500)) {
-                assertThat(thread.getState(), is(Thread.State.BLOCKED));
-              }
             }
+            assertThat(thread.getState(), is(Thread.State.BLOCKED));
           } catch (InterruptedException e) {
             e.printStackTrace();
           }
