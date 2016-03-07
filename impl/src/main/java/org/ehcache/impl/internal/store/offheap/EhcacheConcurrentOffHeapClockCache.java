@@ -20,7 +20,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
-import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 
 import org.terracotta.offheapstore.MetadataTuple;
 import org.terracotta.offheapstore.concurrent.AbstractConcurrentOffHeapCache;
@@ -51,17 +50,6 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     }
   }
 
-  /**
-   * Computes a new mapping for the given key by calling the function passed in. It will pin the mapping
-   * if the flag is true, it will however not unpin an existing pinned mapping in case the function returns
-   * the existing value.
-   *
-   * @param key the key to compute the mapping for
-   * @param mappingFunction the function to compute the mapping
-   * @param pin pins the mapping if {code true}
-   *
-   * @return the mapped value
-   */
   @Override
   public V compute(K key, final BiFunction<K, V, V> mappingFunction, final boolean pin) {
     MetadataTuple<V> result = computeWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
@@ -82,14 +70,6 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     return result == null ? null : result.value();
   }
 
-  /**
-   * Computes a new mapping for the given key only if a mapping existed already by calling the function passed in.
-   *
-   * @param key the key to compute the mapping for
-   * @param mappingFunction the function to compute the mapping
-   *
-   * @return the mapped value
-   */
   @Override
   public V computeIfPresent(K key, final BiFunction<K, V, V> mappingFunction) {
     MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
@@ -110,16 +90,8 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     return result == null ? null : result.value();
   }
 
-  /**
-   * Computes a new value for the given key if a mapping is present and pinned, <code>BiFunction</code> is invoked under appropriate lock scope
-   * The pinning bit from the metadata, will be flipped (i.e. unset) if the <code>Function<V, Boolean></code> returns true
-   * @param key the key of the mapping to compute the value for
-   * @param remappingFunction the function used to compute
-   * @param pinningFunction evaluated to see whether we want to unpin the mapping
-   * @return true if transitioned to unpinned, false otherwise
-   */
   @Override
-  public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> pinningFunction) {
+  public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> unpinFunction) {
     final AtomicBoolean unpin = new AtomicBoolean();
     computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
       @Override
@@ -127,15 +99,16 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
         if ((current.metadata() & Metadata.PINNED) != 0) {
           V oldValue = current.value();
           V newValue = remappingFunction.apply(k, oldValue);
-          unpin.set(pinningFunction.apply(oldValue));
+          Boolean unpinLocal = unpinFunction.apply(oldValue);
 
           if (newValue == null) {
-            return null; //return here should be based on pinned status of current
+            unpin.set(true);
+            return null;
           } else if (oldValue == newValue) {
-            //return???
-            return metadataTuple(oldValue, current.metadata() & (unpin.get() ? ~Metadata.PINNED : -1));
+            unpin.set(unpinLocal);
+            return metadataTuple(oldValue, current.metadata() & (unpinLocal ? ~Metadata.PINNED : -1));
           } else {
-            //return true? - this branch is never taken currently
+            unpin.set(false);
             return metadataTuple(newValue, (evictionVeto.vetoes(k, newValue) ? VETOED : 0));
           }
         } else {

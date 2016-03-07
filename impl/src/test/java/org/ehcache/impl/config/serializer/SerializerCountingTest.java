@@ -161,7 +161,7 @@ public class SerializerCountingTest {
     printSerializationCounters("Get DiskOffHeapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 2, 1, 1, 0);
+    assertCounters(3, 2, 2, 1, 2, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy (update faulted)");
   }
 

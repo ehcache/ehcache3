@@ -25,11 +25,43 @@ import org.terracotta.offheapstore.Segment;
 
 public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V> {
 
+  /**
+   * Computes a new mapping for the given key by calling the function passed in. It will pin the mapping
+   * if the flag is true, it will however not unpin an existing pinned mapping in case the function returns
+   * the existing value.
+   *
+   * @param key the key to compute the mapping for
+   * @param mappingFunction the function to compute the mapping
+   * @param pin pins the mapping if {code true}
+   *
+   * @return the mapped value
+   */
   V compute(K key, BiFunction<K, V, V> mappingFunction, boolean pin);
 
+  /**
+   * Computes a new mapping for the given key by calling the function passed in only if a mapping existed already.
+   *
+   * @param key the key to compute the mapping for
+   * @param mappingFunction the function to compute the mapping
+   *
+   * @return the mapped value
+   */
   V computeIfPresent(K key, BiFunction<K, V, V> mappingFunction);
 
-  boolean computeIfPinned(K key, BiFunction<K,V,V> remappingFunction, Function<V,Boolean> pinningFunction);
+  /**
+   * Computes a new mapping for the given key by calling the function passed in only if a mapping existed already and
+   * was pinned.
+   * <P>
+   *   The unpin function indicates if the mapping is to be unpinned or not after the operation.
+   * </P>
+   *
+   * @param key the key to operate on
+   * @param remappingFunction the function returning the new value
+   * @param unpinFunction the function indicating the final pin status
+   *
+   * @return {@code true} if an existing mapping was unpinned, {@code false} otherwise
+   */
+  boolean computeIfPinned(K key, BiFunction<K,V,V> remappingFunction, Function<V,Boolean> unpinFunction);
 
   long nextIdFor(K key);
 

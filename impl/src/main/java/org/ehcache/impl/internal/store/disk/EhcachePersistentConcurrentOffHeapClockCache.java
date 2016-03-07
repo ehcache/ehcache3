@@ -21,11 +21,13 @@ import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
+import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.MetadataTuple;
 import org.terracotta.offheapstore.disk.persistent.AbstractPersistentConcurrentOffHeapCache;
 
 import java.io.IOException;
 import java.io.ObjectInput;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.VETOED;
@@ -38,14 +40,14 @@ import static org.terracotta.offheapstore.MetadataTuple.metadataTuple;
  */
 public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends AbstractPersistentConcurrentOffHeapCache<K, V> implements EhcacheOffHeapBackingMap<K, V> {
 
-  private final EvictionVeto<K, V> evictionVeto;
+  private final EvictionVeto<? super K, ? super V> evictionVeto;
   private final AtomicLong[] counters;
 
-  public EhcachePersistentConcurrentOffHeapClockCache(ObjectInput input, EvictionVeto<K, V> evictionVeto, EhcachePersistentSegmentFactory<K, V> segmentFactory) throws IOException {
+  public EhcachePersistentConcurrentOffHeapClockCache(ObjectInput input, EvictionVeto<? super K, ? super V> evictionVeto, EhcachePersistentSegmentFactory<K, V> segmentFactory) throws IOException {
     this(evictionVeto, segmentFactory, readSegmentCount(input));
   }
 
-  public EhcachePersistentConcurrentOffHeapClockCache(EvictionVeto<K, V> evictionVeto, EhcachePersistentSegmentFactory<K, V> segmentFactory, int concurrency) {
+  public EhcachePersistentConcurrentOffHeapClockCache(EvictionVeto<? super K, ? super V> evictionVeto, EhcachePersistentSegmentFactory<K, V> segmentFactory, int concurrency) {
     super(segmentFactory, concurrency);
     this.evictionVeto = evictionVeto;
     this.counters = new AtomicLong[segments.length];
@@ -54,17 +56,6 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
     }
   }
 
-  /**
-   * Computes a new mapping for the given key by calling the function passed in. It will pin the mapping
-   * if the flag is true, it will however not unpin an existing pinned mapping in case the function returns
-   * the existing value.
-   *
-   * @param key the key to compute the mapping for
-   * @param mappingFunction the function to compute the mapping
-   * @param pin pins the mapping if {code true}
-   *
-   * @return the mapped value
-   */
   @Override
   public V compute(K key, final BiFunction<K, V, V> mappingFunction, final boolean pin) {
     MetadataTuple<V> result = computeWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
@@ -85,14 +76,6 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
     return result == null ? null : result.value();
   }
 
-  /**
-   * Computes a new mapping for the given key only if a mapping existed already by calling the function passed in.
-   *
-   * @param key the key to compute the mapping for
-   * @param mappingFunction the function to compute the mapping
-   *
-   * @return the mapped value
-   */
   @Override
   public V computeIfPresent(K key, final BiFunction<K, V, V> mappingFunction) {
     MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
@@ -114,9 +97,32 @@ public class EhcachePersistentConcurrentOffHeapClockCache<K, V> extends Abstract
   }
 
   @Override
-  public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> pinningFunction) {
-    EhcachePersistentSegmentFactory.EhcachePersistentSegment<K, V> segment = (EhcachePersistentSegmentFactory.EhcachePersistentSegment) segmentFor(key);
-    return segment.computeIfPinned(key, remappingFunction, pinningFunction);
+  public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> unpinFunction) {
+    final AtomicBoolean unpin = new AtomicBoolean();
+    computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
+      @Override
+      public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
+        if ((current.metadata() & Metadata.PINNED) != 0) {
+          V oldValue = current.value();
+          V newValue = remappingFunction.apply(k, oldValue);
+          Boolean unpinLocal = unpinFunction.apply(oldValue);
+
+          if (newValue == null) {
+            unpin.set(true);
+            return null;
+          } else if (oldValue == newValue) {
+            unpin.set(unpinLocal);
+            return metadataTuple(oldValue, current.metadata() & (unpinLocal ? ~Metadata.PINNED : -1));
+          } else {
+            unpin.set(false);
+            return metadataTuple(newValue, (evictionVeto.vetoes(k, newValue) ? VETOED : 0));
+          }
+        } else {
+          return current;
+        }
+      }
+    });
+    return unpin.get();
   }
 
   @Override
