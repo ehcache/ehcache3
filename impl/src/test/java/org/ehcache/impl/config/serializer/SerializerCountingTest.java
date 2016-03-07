@@ -86,7 +86,7 @@ public class SerializerCountingTest {
     assertCounters(2, 2, 0, 1, 0, 0);
     printSerializationCounters("Put OnHeap (create)");
     cache.get(42L);
-    assertCounters(2, 2, 0, 0, 2, 0);
+    assertCounters(0, 0, 0, 0, 2, 0);
     printSerializationCounters("Get OnHeap");
 
     cache.put(42L, "Wrong ...");
