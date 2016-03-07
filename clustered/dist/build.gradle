@@ -34,9 +34,12 @@ dependencies {
   compile project(':transactions')
   compile project(':clustered:client')
   compile project(':clustered:common')
+  compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion" changing true
+
+  serverLibs project(':clustered:server')
+  serverLibs"org.terracotta:coordinator-entity-server:$parent.coordinatorVersion" changing true
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz" changing true
-  serverLibs project(':clustered:server')
 }
 
 apply plugin: EhDistribute
@@ -59,4 +62,9 @@ distributions {
       }
     }
   }
+}
+
+distTar {
+  compression = Compression.GZIP
+  extension = 'tar.gz'
 }

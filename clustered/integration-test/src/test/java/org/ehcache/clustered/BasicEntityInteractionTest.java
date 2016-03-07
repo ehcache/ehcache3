@@ -38,7 +38,7 @@ public class BasicEntityInteractionTest {
     try {
       Connection client = server.connectNewClient();
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       try {
         ref.fetchEntity();
@@ -57,7 +57,7 @@ public class BasicEntityInteractionTest {
     try {
       Connection client = server.connectNewClient();
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -79,7 +79,7 @@ public class BasicEntityInteractionTest {
     try {
       Connection client = server.connectNewClient();
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -108,7 +108,7 @@ public class BasicEntityInteractionTest {
     try {
       Connection client = server.connectNewClient();
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       try {
         ref.destroy();
@@ -127,7 +127,7 @@ public class BasicEntityInteractionTest {
     try {
       Connection client = server.connectNewClient();
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -151,7 +151,7 @@ public class BasicEntityInteractionTest {
     try {
       Connection client = server.connectNewClient();
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -173,7 +173,7 @@ public class BasicEntityInteractionTest {
     try {
       Connection client = server.connectNewClient();
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -190,7 +190,7 @@ public class BasicEntityInteractionTest {
     try {
       Connection client = server.connectNewClient();
 
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 0, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       ref.create(UUID.randomUUID());
       ref.destroy();
