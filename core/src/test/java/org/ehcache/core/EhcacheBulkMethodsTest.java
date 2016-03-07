@@ -17,7 +17,7 @@
 package org.ehcache.core;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Function;
@@ -64,7 +64,7 @@ public class EhcacheBulkMethodsTest {
     Store<Number, CharSequence> store = mock(Store.class);
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBulkMethodsTest"));
+    EhcacheWithLoaderWriter<Number, CharSequence> ehcache = new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBulkMethodsTest"));
     ehcache.init();
 
     ehcache.putAll(new HashMap<Number, CharSequence>() {{
@@ -90,7 +90,7 @@ public class EhcacheBulkMethodsTest {
     CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     CacheEventDispatcher<Number, CharSequence> notifier = mock(CacheEventDispatcher.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter, notifier, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBulkMethodsTest1"));
+    EhcacheWithLoaderWriter<Number, CharSequence> ehcache = new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter, notifier, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBulkMethodsTest1"));
     ehcache.init();
 
     ehcache.putAll(new LinkedHashMap<Number, CharSequence>() {{
@@ -118,7 +118,7 @@ public class EhcacheBulkMethodsTest {
     });
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBulkMethodsTest2"));
+    EhcacheWithLoaderWriter<Number, CharSequence> ehcache = new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBulkMethodsTest2"));
     ehcache.init();
     Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
@@ -149,7 +149,7 @@ public class EhcacheBulkMethodsTest {
     CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBulkMethodsTest3"));
+    EhcacheWithLoaderWriter<Number, CharSequence> ehcache = new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBulkMethodsTest3"));
     ehcache.init();
     Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
@@ -165,7 +165,7 @@ public class EhcacheBulkMethodsTest {
     Store<Number, CharSequence> store = mock(Store.class);
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBulkMethodsTest4"));
+    EhcacheWithLoaderWriter<Number, CharSequence> ehcache = new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBulkMethodsTest4"));
     ehcache.init();
     ehcache.removeAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
@@ -186,7 +186,7 @@ public class EhcacheBulkMethodsTest {
     CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     CacheEventDispatcher<Number, CharSequence> notifier = mock(CacheEventDispatcher.class);
 
-    Ehcache<Number, CharSequence> ehcache = new Ehcache<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter, notifier, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBulkMethodsTest5"));
+    EhcacheWithLoaderWriter<Number, CharSequence> ehcache = new EhcacheWithLoaderWriter<Number, CharSequence>(cacheConfig, store, cacheLoaderWriter, notifier, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBulkMethodsTest5"));
     ehcache.init();
     ehcache.removeAll(new LinkedHashSet<Number>(Arrays.asList(1, 2, 3)));
 

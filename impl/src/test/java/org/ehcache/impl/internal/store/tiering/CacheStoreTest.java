@@ -21,6 +21,8 @@ import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.RemoveStatus;
+import org.ehcache.core.spi.cache.Store.ReplaceStatus;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -178,11 +180,11 @@ public class CacheStoreTest {
     CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
     AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
 
-    when(authoritativeTier.remove(eq(1), eq("one"))).thenReturn(true);
+    when(authoritativeTier.remove(eq(1), eq("one"))).thenReturn(RemoveStatus.REMOVED);
 
     CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
 
-    assertThat(cacheStore.remove(1, "one"), is(true));
+    assertThat(cacheStore.remove(1, "one"), is(RemoveStatus.REMOVED));
 
     verify(cachingTier, times(1)).invalidate(eq(1));
     verify(authoritativeTier, times(1)).remove(eq(1), eq("one"));
@@ -193,11 +195,11 @@ public class CacheStoreTest {
     CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
     AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
 
-    when(authoritativeTier.remove(eq(1), eq("one"))).thenReturn(false);
+    when(authoritativeTier.remove(eq(1), eq("one"))).thenReturn(RemoveStatus.KEY_MISSING);
 
     CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
 
-    assertThat(cacheStore.remove(1, "one"), is(false));
+    assertThat(cacheStore.remove(1, "one"), is(RemoveStatus.KEY_MISSING));
 
     verify(cachingTier, times(0)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).remove(eq(1), eq("one"));
@@ -238,11 +240,11 @@ public class CacheStoreTest {
     CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
     AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
 
-    when(authoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(true);
+    when(authoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.HIT);
 
     CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
 
-    assertThat(cacheStore.replace(1, "un", "one"), is(true));
+    assertThat(cacheStore.replace(1, "un", "one"), is(ReplaceStatus.HIT));
 
     verify(cachingTier, times(1)).invalidate(eq(1));
     verify(authoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
@@ -253,11 +255,11 @@ public class CacheStoreTest {
     CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
     AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
 
-    when(authoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(false);
+    when(authoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.MISS_NOT_PRESENT);
 
     CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
 
-    assertThat(cacheStore.replace(1, "un", "one"), is(false));
+    assertThat(cacheStore.replace(1, "un", "one"), is(ReplaceStatus.MISS_NOT_PRESENT));
 
     verify(cachingTier, times(0)).invalidate(any(Number.class));
     verify(authoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));

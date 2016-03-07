@@ -63,7 +63,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testPutIfAbsentNullNull() {
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     try {
       ehcache.putIfAbsent(null, null);
@@ -75,7 +75,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testPutIfAbsentKeyNull() {
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     try {
       ehcache.putIfAbsent("key", null);
@@ -87,7 +87,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testPutIfAbsentNullValue() {
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     try {
       ehcache.putIfAbsent(null, "value");
@@ -98,7 +98,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>no {@code CacheLoaderWriter}</li>
@@ -109,7 +109,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -119,7 +119,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>no {@code CacheLoaderWriter}</li>
@@ -130,7 +130,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(equalTo("oldValue")));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -140,7 +140,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfAbsent} throws</li>
@@ -153,7 +153,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     ehcache.putIfAbsent("key", "value");
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -163,7 +163,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfAbsent} throws</li>
@@ -176,7 +176,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
 
-    final Ehcache<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
 
     ehcache.putIfAbsent("key", "value");
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -186,7 +186,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>key not present via {@code CacheLoaderWriter}</li>
@@ -198,7 +198,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
-    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -209,7 +209,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>key not present via {@code CacheLoaderWriter}</li>
@@ -221,7 +221,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
-    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(equalTo("oldValue")));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -232,7 +232,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfAbsent} throws</li>
@@ -247,7 +247,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -261,7 +261,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfAbsent} throws</li>
@@ -276,7 +276,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -290,7 +290,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>key present via {@code CacheLoaderWriter}</li>
@@ -302,7 +302,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
-    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     assertThat(ehcache.putIfAbsent("key", "value"), is("oldValue"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -313,7 +313,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>key present via {@code CacheLoaderWriter}</li>
@@ -325,7 +325,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
-    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(equalTo("oldValue")));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -336,7 +336,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfAbsent} throws</li>
@@ -351,7 +351,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -366,7 +366,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
@@ -381,7 +381,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -395,7 +395,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code CacheLoaderWriter.write} throws</li>
@@ -409,7 +409,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "value");
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.putIfAbsent("key", "value");
@@ -423,7 +423,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code CacheLoaderWriter.write} throws</li>
@@ -437,7 +437,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "value");
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertThat(ehcache.putIfAbsent("key", "value"), is(equalTo("oldValue")));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
@@ -447,7 +447,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
@@ -463,7 +463,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "value");
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -481,7 +481,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link Ehcache#putIfAbsent(Object, Object)} for
+   * Tests the effect of a {@link EhcacheWithLoaderWriter#putIfAbsent(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.computeIfPresent} throws</li>
@@ -497,7 +497,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "value");
-    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -515,7 +515,7 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using the
+   * Gets an initialized {@link EhcacheWithLoaderWriter Ehcache} instance using the
    * {@link org.ehcache.spi.loaderwriter.CacheLoaderWriter CacheLoaderWriter} provided.
    *
    * @param cacheLoaderWriter
@@ -523,14 +523,14 @@ public class EhcacheBasicPutIfAbsentTest extends EhcacheBasicCrudBase {
    *
    * @return a new {@code Ehcache} instance
    */
-  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
     return getEhcache(cacheLoaderWriter, Expirations.noExpiration());
   }
 
-  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry) {
+  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry) {
     CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null,
         expiry, ResourcePoolsHelper.createHeapOnlyPools());
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class.getName() + ".EhcacheBasicPutIfAbsentTest"));
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicPutIfAbsentTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

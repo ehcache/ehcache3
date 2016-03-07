@@ -51,8 +51,10 @@ public interface CacheOperationOutcomes {
    * The outcomes for Put Outcomes.
    */
   enum PutOutcome implements CacheOperationOutcomes {
-    /** added. */
-    ADDED,
+    /** put. */
+    PUT,
+    /** updated. */
+    UPDATED,
     /** no op. */
     NOOP,
     /** failure */

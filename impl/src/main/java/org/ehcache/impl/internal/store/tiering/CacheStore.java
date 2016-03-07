@@ -122,9 +122,9 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void put(final K key, final V value) throws CacheAccessException {
+  public PutStatus put(final K key, final V value) throws CacheAccessException {
     try {
-      authoritativeTier.put(key, value);
+      return authoritativeTier.put(key, value);
     } finally {
       cachingTier().invalidate(key);
     }
@@ -144,22 +144,22 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void remove(K key) throws CacheAccessException {
+  public boolean remove(K key) throws CacheAccessException {
     try {
-      authoritativeTier.remove(key);
+      return authoritativeTier.remove(key);
     } finally {
       cachingTier().invalidate(key);
     }
   }
 
   @Override
-  public boolean remove(K key, V value) throws CacheAccessException {
-    boolean removed = true;
+  public RemoveStatus remove(K key, V value) throws CacheAccessException {
+    RemoveStatus removed = null;
       try {
         removed = authoritativeTier.remove(key, value);
         return removed;
       } finally {
-        if (removed) {
+        if (removed != null && removed.equals(RemoveStatus.REMOVED)) {
           cachingTier().invalidate(key);
         }
       }
@@ -181,12 +181,12 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean replace(K key, V oldValue, V newValue) throws CacheAccessException {
-    boolean replaced = true;
+  public ReplaceStatus replace(K key, V oldValue, V newValue) throws CacheAccessException {
+    ReplaceStatus replaced = null;
     try {
       replaced = authoritativeTier.replace(key, oldValue, newValue);
     } finally {
-      if (replaced) {
+      if (replaced != null && replaced.equals(ReplaceStatus.HIT)) {
         cachingTier().invalidate(key);
       }
     }

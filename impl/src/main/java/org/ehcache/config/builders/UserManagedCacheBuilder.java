@@ -18,6 +18,8 @@ package org.ehcache.config.builders;
 
 import org.ehcache.Cache;
 import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.InternalCache;
 import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.config.BaseCacheConfiguration;
@@ -305,27 +307,36 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, storeConfig, persistenceService, cacheLoaderWriter, eventDispatcher, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, persistenceService, cacheLoaderWriter, eventDispatcher, id);
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
       }
       return cast(cache);
     } else {
-      String loggerName;
-      if (id != null) {
-        loggerName = Ehcache.class.getName() + "." + id;
+      final InternalCache<K, V> cache;
+      if (cacheLoaderWriter == null) {
+        cache = new Ehcache<K, V>(cacheConfig, store, eventDispatcher, getLoggerFor(Ehcache.class));
       } else {
-        loggerName = Ehcache.class.getName() + ".UserManaged." + instanceId.incrementAndGet();
+        cache = new EhcacheWithLoaderWriter<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, getLoggerFor(EhcacheWithLoaderWriter.class));
       }
-      Ehcache<K, V> cache = new Ehcache<K, V>(cacheConfig, store, cacheLoaderWriter, eventDispatcher, LoggerFactory.getLogger(loggerName));
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
-        cache.addHook(lifeCycled);
+        (cache).addHook(lifeCycled);
       }
       return cast(cache);
     }
 
+  }
+
+  private Logger getLoggerFor(Class clazz) {
+    String loggerName;
+    if (id != null) {
+      loggerName = clazz.getName() + "-" + id;
+    } else {
+      loggerName = clazz.getName() + "-UserManaged" + instanceId.incrementAndGet();
+    }
+    return LoggerFactory.getLogger(loggerName);
   }
 
   private void validateListenerConfig() {

@@ -21,7 +21,7 @@ import java.net.URL;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.spi.cache.CacheProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
@@ -340,12 +340,12 @@ public class ServiceLocatorTest {
 class YetAnotherCacheProvider implements CacheProvider {
 
   @Override
-  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return null;
   }
 
   @Override
-  public void releaseCache(Ehcache<?, ?> resource) {
+  public void releaseCache(EhcacheWithLoaderWriter<?, ?> resource) {
     // no-op
   }
 
@@ -405,12 +405,12 @@ class ChildTestService extends ParentTestService {
 @SupplementaryService
 class DullCacheProvider implements CacheProvider {
   @Override
-  public <K, V> Ehcache<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
+  public <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
     return null;
   }
 
   @Override
-  public void releaseCache(final Ehcache<?, ?> resource) {
+  public void releaseCache(final EhcacheWithLoaderWriter<?, ?> resource) {
     //
   }
 

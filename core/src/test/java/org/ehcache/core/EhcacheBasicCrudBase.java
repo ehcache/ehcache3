@@ -84,9 +84,9 @@ public abstract class EhcacheBasicCrudBase {
   /**
    * Holds a {@link org.mockito.Mockito#spy(Object)}-wrapped reference to the
    * {@link org.ehcache.resilience.ResilienceStrategy ResilienceStrategy} used in the
-   * {@link Ehcache Ehcache} instance being tested.
+   * {@link EhcacheWithLoaderWriter Ehcache} instance being tested.
    *
-   * @see #setResilienceStrategySpy(Ehcache)
+   * @see #setResilienceStrategySpy(EhcacheWithLoaderWriter)
    */
   protected ResilienceStrategy<String, String> spiedResilienceStrategy;
 
@@ -105,7 +105,7 @@ public abstract class EhcacheBasicCrudBase {
    * @param changed the statistics values that should have updated values
    * @param <E> the statistics enumeration type
    */
-  protected static <E extends Enum<E>> void validateStats(final Ehcache<?, ?> ehcache, final EnumSet<E> changed) {
+  protected static <E extends Enum<E>> void validateStats(final EhcacheWithLoaderWriter<?, ?> ehcache, final EnumSet<E> changed) {
     assert changed != null;
     final EnumSet<E> unchanged = EnumSet.complementOf(changed);
 
@@ -144,7 +144,7 @@ public abstract class EhcacheBasicCrudBase {
    * @return a reference to the {@code OperationStatistic} instance holding the {@code statsClass} statistics;
    *          may be {@code null} if {@code statsClass} statistics do not exist for {@code ehcache}
    */
-  private static <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final Ehcache<?, ?> ehcache, final Class<E> statsClass) {
+  private static <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final EhcacheWithLoaderWriter<?, ?> ehcache, final Class<E> statsClass) {
     for (final TreeNode statNode : ContextManager.nodeFor(ehcache).getChildren()) {
       final Object statObj = statNode.getContext().attributes().get("this");
       if (statObj instanceof OperationStatistic<?>) {
@@ -209,7 +209,7 @@ public abstract class EhcacheBasicCrudBase {
 
   /**
    * Replaces the {@link org.ehcache.resilience.ResilienceStrategy ResilienceStrategy} instance in the
-   * {@link Ehcache Ehcache} instance provided with a
+   * {@link EhcacheWithLoaderWriter Ehcache} instance provided with a
    * {@link org.mockito.Mockito#spy(Object) Mockito <code>spy</code>} wrapping the original
    * {@code ResilienceStrategy} instance.
    *
@@ -217,7 +217,7 @@ public abstract class EhcacheBasicCrudBase {
    *
    * @return the <code>spy</code>-wrapped {@code ResilienceStrategy} instance
    */
-  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final Ehcache<K, V> ehcache) {
+  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final EhcacheWithLoaderWriter<K, V> ehcache) {
     assert ehcache != null;
     try {
       final Field resilienceStrategyField = ehcache.getClass().getDeclaredField("resilienceStrategy");
@@ -313,9 +313,11 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public void put(final String key, final String value) throws CacheAccessException {
+    public PutStatus put(final String key, final String value) throws CacheAccessException {
       this.checkFailingKey(key);
-      this.entries.put(key, new FakeValueHolder(value));
+      FakeValueHolder toPut = new FakeValueHolder(value);
+      this.entries.put(key, toPut);
+      return PutStatus.PUT;
     }
 
     @Override
@@ -331,20 +333,21 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public void remove(final String key) throws CacheAccessException {
+    public boolean remove(final String key) throws CacheAccessException {
       this.checkFailingKey(key);
       this.entries.remove(key);
+      return true;
     }
 
     @Override
-    public boolean remove(final String key, final String value) throws CacheAccessException {
+    public RemoveStatus remove(final String key, final String value) throws CacheAccessException {
       this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue == null || !currentValue.value().equals(value)) {
-        return false;
+        return RemoveStatus.KEY_MISSING;
       }
       this.entries.remove(key);
-      return true;
+      return RemoveStatus.REMOVED;
     }
 
     @Override
@@ -358,14 +361,14 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public boolean replace(final String key, final String oldValue, final String newValue) throws CacheAccessException {
+    public ReplaceStatus replace(final String key, final String oldValue, final String newValue) throws CacheAccessException {
       this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
       if (currentValue != null && currentValue.value().equals(oldValue)) {
         this.entries.put(key, new FakeValueHolder(newValue));
-        return true;
+        return ReplaceStatus.HIT;
       }
-      return false;
+      return ReplaceStatus.MISS_NOT_PRESENT;
     }
 
     @Override

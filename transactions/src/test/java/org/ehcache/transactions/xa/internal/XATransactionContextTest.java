@@ -19,6 +19,7 @@ package org.ehcache.transactions.xa.internal;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.core.spi.cache.AbstractValueHolder;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.Store.RemoveStatus;
 import org.ehcache.transactions.xa.internal.SoftLock;
 import org.ehcache.transactions.xa.internal.TransactionId;
 import org.ehcache.transactions.xa.internal.XATransactionContext;
@@ -27,6 +28,7 @@ import org.ehcache.transactions.xa.internal.commands.StoreEvictCommand;
 import org.ehcache.transactions.xa.internal.commands.StorePutCommand;
 import org.ehcache.transactions.xa.internal.commands.StoreRemoveCommand;
 import org.ehcache.transactions.xa.internal.journal.Journal;
+import org.ehcache.core.spi.cache.Store.ReplaceStatus;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
@@ -51,6 +53,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyCollection;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.doAnswer;
@@ -225,7 +228,7 @@ public class XATransactionContextTest {
     Store.ValueHolder<SoftLock<String>> mockValueHolder = mock(Store.ValueHolder.class);
     when(mockValueHolder.value()).thenReturn(new SoftLock<String>(null, "two", null));
     when(underlyingStore.get(eq(2L))).thenReturn(mockValueHolder);
-    when(underlyingStore.replace(eq(2L), eq(new SoftLock<String>(null, "two", null)), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), "two", null)))).thenReturn(true);
+    when(underlyingStore.replace(eq(2L), eq(new SoftLock<String>(null, "two", null)), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), "two", null)))).thenReturn(ReplaceStatus.HIT);
 
     final AtomicReference<Collection<Long>> savedInDoubt = new AtomicReference<Collection<Long>>();
     // doAnswer is required to make a copy of the keys collection because xaTransactionContext.prepare() clears it before the verify(journal, times(1)).saveInDoubt(...) assertion can be made.
@@ -302,6 +305,9 @@ public class XATransactionContextTest {
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
     when(journal.getInDoubtKeys(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(Arrays.asList(1L, 2L, 3L));
+
+    when(underlyingStore.replace(any(Long.class), any(SoftLock.class), any(SoftLock.class))).thenReturn(ReplaceStatus.MISS_NOT_PRESENT);
+    when(underlyingStore.remove(any(Long.class), any(SoftLock.class))).thenReturn(RemoveStatus.KEY_MISSING);
 
     xaTransactionContext.commit(false);
     verify(journal, times(1)).saveCommitted(eq(new TransactionId(new TestXid(0, 0))), eq(false));
@@ -396,7 +402,10 @@ public class XATransactionContextTest {
     when(underlyingStore.replace(eq(1L), isA(SoftLock.class), isA(SoftLock.class))).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        return softLock1Ref.get() != null;
+        if (softLock1Ref.get() != null) {
+          return ReplaceStatus.HIT;
+        }
+        return ReplaceStatus.MISS_PRESENT;
       }
     });
     final AtomicReference<SoftLock> softLock2Ref = new AtomicReference<SoftLock>(new SoftLock(null, "two", null));
@@ -419,9 +428,11 @@ public class XATransactionContextTest {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         softLock2Ref.set((SoftLock) invocation.getArguments()[2]);
-        return true;
+        return ReplaceStatus.HIT;
       }
     });
+
+    when(underlyingStore.remove(any(Long.class), any(SoftLock.class))).thenReturn(RemoveStatus.REMOVED);
 
     xaTransactionContext.commitInOnePhase();
 
@@ -494,6 +505,7 @@ public class XATransactionContextTest {
       }
     });
 
+    when(underlyingStore.replace(any(Long.class), any(SoftLock.class), any(SoftLock.class))).thenReturn(ReplaceStatus.HIT);
     xaTransactionContext.rollback(false);
 
     verify(underlyingStore, times(1)).get(1L);
@@ -575,6 +587,9 @@ public class XATransactionContextTest {
       }
     });
 
+    when(underlyingStore.replace(any(Long.class), any(SoftLock.class), any(SoftLock.class))).thenReturn(ReplaceStatus.MISS_NOT_PRESENT);
+    when(underlyingStore.remove(any(Long.class), any(SoftLock.class))).thenReturn(RemoveStatus.KEY_MISSING);
+
     xaTransactionContext.commit(false);
 
     verify(underlyingStore, times(1)).replace(eq(1L), eq(new SoftLock<String>(new TransactionId(new TestXid(0, 0)), "old1", new XAValueHolder<String>("new1", timeSource.getTimeMillis()))), eq(new SoftLock<String>(null, "new1", null)));
@@ -593,6 +608,8 @@ public class XATransactionContextTest {
 
     xaTransactionContext.addCommand(1L, new StorePutCommand<String>("one", new XAValueHolder<String>("un", timeSource.getTimeMillis())));
     xaTransactionContext.addCommand(2L, new StoreRemoveCommand<String>("two"));
+
+    when(underlyingStore.replace(any(Long.class), any(SoftLock.class), any(SoftLock.class))).thenReturn(ReplaceStatus.MISS_NOT_PRESENT);
 
     xaTransactionContext.prepare();
 
@@ -632,6 +649,9 @@ public class XATransactionContextTest {
         return new SoftLock<String>(new TransactionId(new TestXid(0, 0)), "old2", null);
       }
     });
+
+    when(underlyingStore.replace(any(Long.class), any(SoftLock.class), any(SoftLock.class))).thenReturn(ReplaceStatus.MISS_NOT_PRESENT);
+    when(underlyingStore.remove(any(Long.class), any(SoftLock.class))).thenReturn(RemoveStatus.KEY_MISSING);
 
     xaTransactionContext.rollback(false);
 

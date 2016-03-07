@@ -34,6 +34,8 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.util.StatisticsTestUtils;
 import org.ehcache.core.spi.cache.Store.Iterator;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
+import org.ehcache.core.spi.cache.Store.RemoveStatus;
+import org.ehcache.core.spi.cache.Store.ReplaceStatus;
 import org.ehcache.core.spi.cache.events.StoreEventListener;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
@@ -328,8 +330,8 @@ public abstract class BaseOnHeapStoreTest {
     store.put("key", "value");
 
 
-    boolean removed = store.remove("key", "value");
-    assertThat(removed, equalTo(true));
+    RemoveStatus removed = store.remove("key", "value");
+    assertThat(removed, equalTo(RemoveStatus.REMOVED));
     verify(eventSink).removed(eq("key"), eq("value"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED));
@@ -340,8 +342,8 @@ public abstract class BaseOnHeapStoreTest {
   public void testRemoveTwoArgNoMatch() throws Exception {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");
-    boolean removed = store.remove("key", "not value");
-    assertThat(removed, equalTo(false));
+    RemoveStatus removed = store.remove("key", "not value");
+    assertThat(removed, equalTo(RemoveStatus.KEY_PRESENT));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS));
     assertThat(store.get("key").value(), equalTo("value"));
   }
@@ -354,8 +356,8 @@ public abstract class BaseOnHeapStoreTest {
     store.put("key", "value");
     assertThat(store.get("key").value(), equalTo("value"));
     timeSource.advanceTime(1);
-    boolean removed = store.remove("key", "value");
-    assertThat(removed, equalTo(false));
+    RemoveStatus removed = store.remove("key", "value");
+    assertThat(removed, equalTo(RemoveStatus.KEY_MISSING));
     checkExpiryEvent(eventSink, "key", "value");
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
   }
@@ -405,8 +407,8 @@ public abstract class BaseOnHeapStoreTest {
 
     store.put("key", "value");
 
-    boolean replaced = store.replace("key", "value", "value2");
-    assertThat(replaced, equalTo(true));
+    ReplaceStatus replaced = store.replace("key", "value", "value2");
+    assertThat(replaced, equalTo(ReplaceStatus.HIT));
     assertThat(store.get("key").value(), equalTo("value2"));
     verify(eventSink).updated(eq("key"), eq("value"), eq("value2"));
     verifyListenerReleaseEventsInOrder(eventDispatcher);
@@ -417,14 +419,14 @@ public abstract class BaseOnHeapStoreTest {
   public void testReplaceThreeArgNoMatch() throws Exception {
     OnHeapStore<String, String> store = newStore();
 
-    boolean replaced = store.replace("key", "value", "value2");
-    assertThat(replaced, equalTo(false));
+    ReplaceStatus replaced = store.replace("key", "value", "value2");
+    assertThat(replaced, equalTo(ReplaceStatus.MISS_NOT_PRESENT));
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS));
 
     store.put("key", "value");
 
     replaced = store.replace("key", "not value", "value2");
-    assertThat(replaced, equalTo(false));
+    assertThat(replaced, equalTo(ReplaceStatus.MISS_PRESENT));
     StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.MISS, 2L);
   }
 
@@ -436,8 +438,8 @@ public abstract class BaseOnHeapStoreTest {
 
     store.put("key", "value");
     timeSource.advanceTime(1);
-    boolean replaced = store.replace("key", "value", "value2");
-    assertThat(replaced, equalTo(false));
+    ReplaceStatus replaced = store.replace("key", "value", "value2");
+    assertThat(replaced, equalTo(ReplaceStatus.MISS_NOT_PRESENT));
     assertThat(store.get("key"), nullValue());
     checkExpiryEvent(eventSink, "key", "value");
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));

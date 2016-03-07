@@ -27,12 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * Utility methods and common data for {@link Ehcache Ehcache}
+ * Utility methods and common data for {@link EhcacheWithLoaderWriter Ehcache}
  * bulk method unit tests.
  *
  * @author Clifford W. Johnson

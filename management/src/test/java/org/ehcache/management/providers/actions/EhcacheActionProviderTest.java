@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers.actions;
 
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.hamcrest.Matcher;
@@ -54,8 +54,8 @@ public class EhcacheActionProviderTest {
   public void testDescriptions() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext);
 
-    ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(Ehcache.class)));
-    ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(Ehcache.class)));
+    ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(EhcacheWithLoaderWriter.class)));
+    ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(EhcacheWithLoaderWriter.class)));
 
     Collection<Descriptor> descriptions = ehcacheActionProvider.getDescriptors();
     assertThat(descriptions.size(), is(4));
@@ -71,8 +71,8 @@ public class EhcacheActionProviderTest {
   public void testCapabilityContext() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext);
 
-    ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(Ehcache.class)));
-    ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(Ehcache.class)));
+    ehcacheActionProvider.register(new CacheBinding("myCacheName1", mock(EhcacheWithLoaderWriter.class)));
+    ehcacheActionProvider.register(new CacheBinding("myCacheName2", mock(EhcacheWithLoaderWriter.class)));
 
     CapabilityContext capabilityContext = ehcacheActionProvider.getCapabilityContext();
 
@@ -103,7 +103,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_happyPathNoParam() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
-    Ehcache ehcache = mock(Ehcache.class);
+    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
@@ -121,7 +121,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_happyPathWithParams() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
-    Ehcache ehcache = mock(Ehcache.class);
+    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(cacheRuntimeConfiguration.getKeyType()).thenReturn(Long.class);
@@ -140,7 +140,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchCache() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
-    Ehcache ehcache = mock(Ehcache.class);
+    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
     Context context = cmContext_0.with("cacheName", "cache-1");
@@ -159,7 +159,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchCacheManager() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
-    Ehcache ehcache = mock(Ehcache.class);
+    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
 
     Context context = Context.empty()
@@ -180,7 +180,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchMethodName() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
-    Ehcache ehcache = mock(Ehcache.class);
+    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
@@ -200,7 +200,7 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchMethod() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmContext_0);
 
-    Ehcache ehcache = mock(Ehcache.class);
+    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
     CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
