@@ -239,17 +239,21 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
-    PutStatus status = PutStatus.UPDATE;
+    PutStatus status = PutStatus.NOOP;
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
         status = PutStatus.NOOP;
       } else {
-        currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValue(), new XAValueHolder<V>(value, timeSource.getTimeMillis())));
+        if (currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValue(), new XAValueHolder<V>(value, timeSource.getTimeMillis())))) {
+          status = PutStatus.UPDATE;
+        }
       }
     } else {
-      currentContext.addCommand(key, new StorePutCommand<V>(null, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
+      if (currentContext.addCommand(key, new StorePutCommand<V>(null, new XAValueHolder<V>(value, timeSource.getTimeMillis())))) {
+        status = PutStatus.PUT;
+      }
     }
     return status;
   }
@@ -278,10 +282,9 @@ public class XAStore<K, V> implements Store<K, V> {
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
-        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
-        status = false;
+        status = currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
       } else {
-        currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValue()));
+        status = currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValue()));
       }
     }
     return status;

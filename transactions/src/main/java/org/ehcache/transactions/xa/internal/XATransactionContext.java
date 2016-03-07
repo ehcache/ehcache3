@@ -68,12 +68,13 @@ public class XATransactionContext<K, V> {
     return transactionId;
   }
 
-  public void addCommand(K key, Command<V> command) {
+  public boolean addCommand(K key, Command<V> command) {
     if (commands.get(key) instanceof StoreEvictCommand) {
       // once a mapping is marked as evict, that's the only thing that can happen
-      return;
+      return false;
     }
     commands.put(key, command);
+    return true;
   }
 
   public Map<K, XAValueHolder<V>> newValueHolders() {
