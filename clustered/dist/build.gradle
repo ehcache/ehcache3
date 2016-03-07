@@ -63,3 +63,8 @@ distributions {
     }
   }
 }
+
+distTar {
+  compression = Compression.GZIP
+  extension = 'tar.gz'
+}
