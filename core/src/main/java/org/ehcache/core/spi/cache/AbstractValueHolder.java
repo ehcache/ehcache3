@@ -34,6 +34,9 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
   private volatile long expirationTime;
   private volatile long hits;
 
+  private static final AtomicLongFieldUpdater<AbstractValueHolder> ACCESSTIME_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "lastAccessTime");
+  private static final AtomicLongFieldUpdater<AbstractValueHolder> EXPIRATIONTIME_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "expirationTime");
+
   protected AbstractValueHolder(long id, long creationTime) {
     this(id, creationTime, NO_EXPIRE);
   }
@@ -54,12 +57,24 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
 
   public void setExpirationTime(long expirationTime, TimeUnit unit) {
     if (expirationTime == NO_EXPIRE) {
-      this.expirationTime = NO_EXPIRE;
+      updateExpirationTime(NO_EXPIRE);
     } else if (expirationTime <= 0) {
       throw new IllegalArgumentException("invalid expiration time: " + expirationTime);
     } else {
-      this.expirationTime = nativeTimeUnit().convert(expirationTime, unit);;
+      updateExpirationTime(nativeTimeUnit().convert(expirationTime, unit));
     }
+  }
+
+  private void updateExpirationTime(long update) {
+    while (true) {
+      long current = this.expirationTime;
+      if (current >= update) {
+        break;
+      }
+      if (EXPIRATIONTIME_UPDATER.compareAndSet(this, current, update)) {
+        break;
+      }
+    };
   }
 
   public void accessed(long now, Duration expiration) {
@@ -109,7 +124,16 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
   }
 
   public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
-    this.lastAccessTime = unit.convert(lastAccessTime, nativeTimeUnit());
+    long update = unit.convert(lastAccessTime, nativeTimeUnit());
+    while (true) {
+      long current = this.lastAccessTime;
+      if (current >= update) {
+        break;
+      }
+      if (ACCESSTIME_UPDATER.compareAndSet(this, current, update)) {
+        break;
+      }
+    };
   }
 
   @Override
