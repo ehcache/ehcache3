@@ -27,8 +27,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.core.events.CacheEventDispatcherImpl;
 import org.ehcache.event.CacheEventListener;
@@ -704,7 +702,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds or updates the {@link SizeOfEngineConfiguration} with the specified object graph maximum size to the configured
+   * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified object graph maximum size to the configured
    * builder.
    * </P>
    * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
@@ -721,7 +719,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds or updates the {@link SizeOfEngineConfiguration} with the specified maximum mapping size to the configured
+   * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified maximum mapping size to the configured
    * builder.
    * </P>
    * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
@@ -791,7 +789,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    */
   public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
-    if (serviceConfiguration instanceof SizeOfEngineProviderConfiguration) {
+    if (serviceConfiguration instanceof DefaultSizeOfEngineProviderConfiguration) {
       removeAnySizeOfEngine(otherBuilder);
     }
     otherBuilder.serviceCreationConfigurations.add(serviceConfiguration);
@@ -800,7 +798,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   private static void removeAnySizeOfEngine(UserManagedCacheBuilder builder) {
     builder.services.remove(findSingletonAmongst(SizeOfEngineProvider.class, builder.services));
-    builder.serviceCreationConfigurations.remove(findSingletonAmongst(SizeOfEngineProviderConfiguration.class, builder.serviceCreationConfigurations));
+    builder.serviceCreationConfigurations.remove(findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, builder.serviceCreationConfigurations));
   }
 
 }

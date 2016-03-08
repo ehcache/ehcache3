@@ -46,7 +46,6 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -216,7 +215,7 @@ public class XmlConfiguration implements Configuration {
       if (configurationParser.getHeapStore().getMaxObjectSize().getUnit().value().equalsIgnoreCase("entries")) {
         throw new IllegalArgumentException("SizeOfEngine cannot be configured with entries.");
       }
-      SizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(configurationParser.getHeapStore().getMaxObjectSize().getValue().longValue(),
+      DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(configurationParser.getHeapStore().getMaxObjectSize().getValue().longValue(),
         MemoryUnit.valueOf(configurationParser.getHeapStore().getMaxObjectSize().getUnit().value().toUpperCase()), configurationParser.getHeapStore().getMaxObjectGraphSize().getValue().longValue());
       serviceConfigs.add(configuration);
     }

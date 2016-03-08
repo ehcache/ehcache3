@@ -22,7 +22,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
@@ -561,7 +560,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   /**
-   * Adds or updates the {@link SizeOfEngineConfiguration} with the specified object graph maximum size to the configured
+   * Adds or updates the {@link DefaultSizeOfEngineConfiguration} with the specified object graph maximum size to the configured
    * builder.
    * </P>
    * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
@@ -571,7 +570,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    */
   public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectGraph(long size) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    SizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
+    DefaultSizeOfEngineConfiguration configuration = otherBuilder.getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
     if (configuration == null) {
       otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(DEFAULT_MAX_OBJECT_SIZE, DEFAULT_UNIT, size));
     } else {
@@ -582,7 +581,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   /**
-   * Adds or updates the {@link SizeOfEngineConfiguration} with the specified maximum mapping size to the configured
+   * Adds or updates the {@link DefaultSizeOfEngineConfiguration} with the specified maximum mapping size to the configured
    * builder.
    * </P>
    * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
@@ -593,7 +592,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    */
   public CacheConfigurationBuilder<K, V> withSizeOfMaxObjectSize(long size, MemoryUnit unit) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    SizeOfEngineConfiguration configuration = getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
+    DefaultSizeOfEngineConfiguration configuration = getExistingServiceConfiguration(DefaultSizeOfEngineConfiguration.class);
     if (configuration == null) {
       otherBuilder.serviceConfigurations.add(new DefaultSizeOfEngineConfiguration(size, unit, DEFAULT_OBJECT_GRAPH_SIZE));
     } else {

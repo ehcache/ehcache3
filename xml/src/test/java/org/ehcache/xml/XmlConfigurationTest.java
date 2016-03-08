@@ -37,8 +37,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
@@ -621,19 +619,19 @@ public class XmlConfigurationTest {
   public void testSizeOfEngineLimits() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
-    SizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
     assertEquals(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), 200);
     assertEquals(sizeOfEngineProviderConfig.getMaxObjectSize(), 100000);
 
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("usesDefaultSizeOfEngine");
-    SizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig, nullValue());
 
     CacheConfiguration<?, ?> cacheConfig1 = xmlConfig.getCacheConfigurations().get("usesConfiguredInCache");
-    SizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig1, notNullValue());
     assertEquals(sizeOfEngineConfig1.getMaxObjectGraphSize(), 500);

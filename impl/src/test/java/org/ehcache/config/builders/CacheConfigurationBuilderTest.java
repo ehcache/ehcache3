@@ -30,8 +30,8 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -265,7 +265,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectSize(10, MemoryUnit.B).withSizeOfMaxObjectGraph(100);
     CacheConfiguration<String, String> configuration = builder.build();
 
-    SizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertThat(sizeOfEngineConfiguration, notNullValue());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectSize(), 10);
     assertEquals(sizeOfEngineConfiguration.getUnit(), MemoryUnit.B);
@@ -274,7 +274,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(1000);
     configuration = builder.build();
 
-    sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 1000);
 
   }

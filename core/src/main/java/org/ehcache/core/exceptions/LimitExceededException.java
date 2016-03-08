@@ -16,13 +16,11 @@
 
 package org.ehcache.core.exceptions;
 
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.spi.sizeof.SizeOfEngine;
 
 /**
- * This exception is thrown when {@link SizeOfEngine} reaches
- * the maximum limit defined in {@link SizeOfEngineConfiguration}
- * while sizing the object on heap
+ * This exception is thrown when {@link SizeOfEngine} reaches the maximum limit defined in configuration while sizing
+ * the object on heap.
  *
  * @author Abhilash
  *
