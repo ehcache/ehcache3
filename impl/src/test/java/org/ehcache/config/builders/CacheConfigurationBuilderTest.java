@@ -21,7 +21,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.core.config.serializer.SerializerConfiguration;
-import org.ehcache.core.config.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.BulkCacheWritingException;
@@ -30,6 +29,7 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.spi.ServiceLocator;
@@ -105,7 +105,7 @@ public class CacheConfigurationBuilderTest {
         .withLoaderWriter(loaderWriter)
         .build();
 
-    CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceLocator.findSingletonAmongst(CacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceLocator.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
     Object instance = ((ClassInstanceConfiguration) cacheLoaderWriterConfiguration).getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(loaderWriter));
   }
