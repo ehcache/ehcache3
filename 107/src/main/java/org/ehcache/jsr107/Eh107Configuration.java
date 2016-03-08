@@ -16,12 +16,14 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.copy.CopierConfiguration;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+
+import java.util.Collection;
 
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.spi.ServiceLocator.findAmongst;
 
 /**
  * Eh107Configuration
@@ -78,8 +80,8 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
 
     @Override
     public boolean isStoreByValue() {
-      CopierConfiguration copierConfig = findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
-      return copierConfig != null;
+      Collection<DefaultCopierConfiguration> copierConfig = findAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      return !copierConfig.isEmpty();
     }
   }
 }

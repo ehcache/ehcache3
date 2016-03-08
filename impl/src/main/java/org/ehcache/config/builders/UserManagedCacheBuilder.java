@@ -27,11 +27,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.config.serializer.SerializerConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.core.events.CacheEventDispatcherImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
@@ -195,14 +191,14 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     List<ServiceConfiguration<?>> serviceConfigsList = new ArrayList<ServiceConfiguration<?>>();
 
     if (keyCopier != null) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>(keyCopier, CopierConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultCopierConfiguration<K>(keyCopier, DefaultCopierConfiguration.Type.KEY));
     } else if (useKeySerializingCopier) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
     }
     if (valueCopier != null) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<V>(valueCopier, CopierConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultCopierConfiguration<V>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     } else if (useValueSerializingCopier) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
     }
 
     Set<ResourceType> resources = resourcePools.getResourceTypeSet();
@@ -233,10 +229,10 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     Serializer<V> valueSerializer = this.valueSerializer;
 
     if (keySerializer != null) {
-      serviceConfigsList.add(new DefaultSerializerConfiguration<K>(this.keySerializer, SerializerConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultSerializerConfiguration<K>(this.keySerializer, DefaultSerializerConfiguration.Type.KEY));
     }
     if (valueSerializer != null) {
-      serviceConfigsList.add(new DefaultSerializerConfiguration<V>(this.valueSerializer, SerializerConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultSerializerConfiguration<V>(this.valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
@@ -706,7 +702,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds or updates the {@link SizeOfEngineConfiguration} with the specified object graph maximum size to the configured
+   * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified object graph maximum size to the configured
    * builder.
    * </P>
    * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
@@ -723,7 +719,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds or updates the {@link SizeOfEngineConfiguration} with the specified maximum mapping size to the configured
+   * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified maximum mapping size to the configured
    * builder.
    * </P>
    * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
@@ -793,7 +789,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    */
   public UserManagedCacheBuilder<K, V, T> using(ServiceCreationConfiguration<?> serviceConfiguration) {
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
-    if (serviceConfiguration instanceof SizeOfEngineProviderConfiguration) {
+    if (serviceConfiguration instanceof DefaultSizeOfEngineProviderConfiguration) {
       removeAnySizeOfEngine(otherBuilder);
     }
     otherBuilder.serviceCreationConfigurations.add(serviceConfiguration);
@@ -802,7 +798,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
   private static void removeAnySizeOfEngine(UserManagedCacheBuilder builder) {
     builder.services.remove(findSingletonAmongst(SizeOfEngineProvider.class, builder.services));
-    builder.serviceCreationConfigurations.remove(findSingletonAmongst(SizeOfEngineProviderConfiguration.class, builder.serviceCreationConfigurations));
+    builder.serviceCreationConfigurations.remove(findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, builder.serviceCreationConfigurations));
   }
 
 }

@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.spi.copy;
 
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.ReadWriteCopier;
@@ -38,7 +37,7 @@ public class DefaultCopyProviderTest {
     DefaultCopyProvider provider = new DefaultCopyProvider(null);
 
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)TestCopier.class, CopierConfiguration.Type.KEY);
+        (Class)TestCopier.class, DefaultCopierConfiguration.Type.KEY);
 
     assertThat(provider.createKeyCopier(Long.class, null, config), instanceOf(TestCopier.class));
   }
@@ -54,7 +53,7 @@ public class DefaultCopyProviderTest {
   public void testCreateKeyCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)SerializingCopier.class, CopierConfiguration.Type.KEY);
+        (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.KEY);
 
     assertThat(copyProvider.createKeyCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
   }
@@ -64,7 +63,7 @@ public class DefaultCopyProviderTest {
     DefaultCopyProvider provider = new DefaultCopyProvider(null);
 
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)TestCopier.class, CopierConfiguration.Type.VALUE);
+        (Class)TestCopier.class, DefaultCopierConfiguration.Type.VALUE);
 
     assertThat(provider.createValueCopier(Long.class, null, config), instanceOf(TestCopier.class));
   }
@@ -80,7 +79,7 @@ public class DefaultCopyProviderTest {
   public void testCreateValueCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)SerializingCopier.class, CopierConfiguration.Type.VALUE);
+        (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
 
     assertThat(copyProvider.createValueCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
   }

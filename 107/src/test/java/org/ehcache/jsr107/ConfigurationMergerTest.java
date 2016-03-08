@@ -17,7 +17,6 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.expiry.Duration;
@@ -90,7 +89,7 @@ public class ConfigurationMergerTest {
     boolean storeByValue = false;
     Collection<ServiceConfiguration<?>> serviceConfigurations = configHolder.cacheConfiguration.getServiceConfigurations();
     for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
-      if (serviceConfiguration instanceof CopierConfiguration) {
+      if (serviceConfiguration instanceof DefaultCopierConfiguration) {
         storeByValue = true;
         break;
       }
@@ -196,8 +195,8 @@ public class ConfigurationMergerTest {
   @Test
   public void jsr107StoreByValueGetsOverriddenByTemplate() throws Exception {
     CacheConfigurationBuilder<Object, Object> builder = newCacheConfigurationBuilder(Object.class, Object.class)
-        .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, CopierConfiguration.Type.KEY))
-        .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, CopierConfiguration.Type.VALUE));
+        .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, DefaultCopierConfiguration.Type.KEY))
+        .add(new DefaultCopierConfiguration<Object>((Class)IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
 
     when(jsr107Service.getTemplateNameForCache("cache")).thenReturn("cacheTemplate");
     when(xmlConfiguration.newCacheConfigurationBuilderFromTemplate("cacheTemplate", Object.class, Object.class))

@@ -19,7 +19,6 @@ package org.ehcache.osgi;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.impl.copy.ReadWriteCopier;
@@ -76,7 +75,7 @@ public class SimpleOsgiTest {
   public void testEhcache3WithSerializationAndClientClass() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-            .add(new DefaultCopierConfiguration<Person>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<Person>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .withClassLoader(getClass().getClassLoader())
             .build())
         .build(true);
@@ -91,7 +90,7 @@ public class SimpleOsgiTest {
   public void testCustomCopier() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-            .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .withClassLoader(getClass().getClassLoader())
             .build())
         .build(true);

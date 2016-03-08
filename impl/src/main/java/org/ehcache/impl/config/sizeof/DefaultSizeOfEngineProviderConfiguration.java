@@ -17,14 +17,14 @@
 package org.ehcache.impl.config.sizeof;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
  * @author Abhilash
  *
  */
-public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEngineProviderConfiguration {
+public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreationConfiguration<SizeOfEngineProvider> {
 
   private final long objectGraphSize;
   private final long maxObjectSize;
@@ -52,7 +52,6 @@ public class DefaultSizeOfEngineProviderConfiguration implements SizeOfEnginePro
     return this.maxObjectSize;
   }
 
-  @Override
   public MemoryUnit getUnit() {
     return this.unit;
   }

@@ -16,7 +16,6 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -115,7 +114,7 @@ class Eh107CompleteConfiguration<K, V> extends Eh107Configuration<K, V> implemen
       for (ServiceConfiguration<?> serviceConfiguration : serviceConfigurations) {
         if (serviceConfiguration instanceof DefaultCopierConfiguration) {
           DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
-          if(copierConfig.getType().equals(CopierConfiguration.Type.VALUE)) {
+          if(copierConfig.getType().equals(DefaultCopierConfiguration.Type.VALUE)) {
             if(copierConfig.getClazz().isAssignableFrom(IdentityCopier.class)) {
               return false;
             } else {

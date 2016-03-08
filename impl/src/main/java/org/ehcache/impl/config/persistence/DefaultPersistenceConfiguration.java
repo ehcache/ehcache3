@@ -14,29 +14,30 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config.copy;
+package org.ehcache.impl.config.persistence;
 
-import org.ehcache.spi.copy.CopyProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.core.spi.service.LocalPersistenceService;
+
+import java.io.File;
 
 /**
- * @author Albin Suresh
+ * DefaultPersistenceConfiguration
  */
-public interface CopierConfiguration extends ServiceConfiguration<CopyProvider> {
+public class DefaultPersistenceConfiguration implements PersistenceConfiguration {
 
-  /**
-   * Get the type of the copier configured
-   *
-   * @return the type
-   */
-  Type getType();
+  private final File rootDirectory;
 
-  /**
-   * Copy provider types
-   */
-  enum Type {
-    KEY,
-    VALUE,
+  public DefaultPersistenceConfiguration(File rootDirectory) {
+    this.rootDirectory = rootDirectory;
   }
 
+  @Override
+  public File getRootDirectory() {
+    return rootDirectory;
+  }
+
+  @Override
+  public Class<LocalPersistenceService> getServiceType() {
+    return LocalPersistenceService.class;
+  }
 }

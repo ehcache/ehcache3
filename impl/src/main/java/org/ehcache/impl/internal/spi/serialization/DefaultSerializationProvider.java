@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.spi.serialization;
 
-import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
@@ -222,7 +221,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     @Override
     public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
-      DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.KEY, configs);
+      DefaultSerializerConfiguration<T> conf = find(DefaultSerializerConfiguration.Type.KEY, configs);
       Serializer<T> instance = getUserProvidedSerializer(conf);
       if(instance != null) {
         return instance;
@@ -232,7 +231,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     @Override
     public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
-      DefaultSerializerConfiguration<T> conf = find(SerializerConfiguration.Type.VALUE, configs);
+      DefaultSerializerConfiguration<T> conf = find(DefaultSerializerConfiguration.Type.VALUE, configs);
       Serializer<T> instance = getUserProvidedSerializer(conf);
       if(instance != null) {
         return instance;
@@ -300,7 +299,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> DefaultSerializerConfiguration<T> find(SerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
+  private static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultSerializerConfiguration<T> result = null;
 
     Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);

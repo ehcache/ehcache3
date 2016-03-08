@@ -25,7 +25,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -332,14 +331,14 @@ public class XACacheTest {
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath())))
         .withCache("txCache1", cacheConfigurationBuilder
                 .add(new XAStoreConfiguration("txCache1"))
-                .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
-                .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+                .add(new DefaultCopierConfiguration<Long>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
+                .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
                 .build()
         )
         .withCache("txCache2", cacheConfigurationBuilder
             .add(new XAStoreConfiguration("txCache2"))
-            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
         .using(new XAStoreProviderConfiguration())
@@ -391,14 +390,14 @@ public class XACacheTest {
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath())))
         .withCache("txCache1", cacheConfigurationBuilder
                 .add(new XAStoreConfiguration("txCache1"))
-                .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
-                .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+                .add(new DefaultCopierConfiguration<Long>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
+                .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
                 .build()
         )
         .withCache("txCache2", cacheConfigurationBuilder
             .add(new XAStoreConfiguration("txCache2"))
-            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, CopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<String>(StringCopier.class, CopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<Long>(LongCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
         .using(new XAStoreProviderConfiguration())

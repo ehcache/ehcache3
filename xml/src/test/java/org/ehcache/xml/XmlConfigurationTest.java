@@ -21,13 +21,12 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
-import org.ehcache.core.config.persistence.PersistenceConfiguration;
+import org.ehcache.impl.config.persistence.PersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
@@ -38,8 +37,6 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
@@ -450,7 +447,7 @@ public class XmlConfigurationTest {
     for(ServiceConfiguration<?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
-        if(copierConfig.getType() == CopierConfiguration.Type.KEY) {
+        if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
           assertEquals(SerializingCopier.class, copierConfig.getClazz());
         } else {
           assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
@@ -464,7 +461,7 @@ public class XmlConfigurationTest {
     for(ServiceConfiguration<?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
-        if(copierConfig.getType() == CopierConfiguration.Type.KEY) {
+        if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
           assertEquals(SerializingCopier.class, copierConfig.getClazz());
         } else {
           assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
@@ -622,19 +619,19 @@ public class XmlConfigurationTest {
   public void testSizeOfEngineLimits() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
-    SizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
     assertEquals(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), 200);
     assertEquals(sizeOfEngineProviderConfig.getMaxObjectSize(), 100000);
 
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("usesDefaultSizeOfEngine");
-    SizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig, nullValue());
 
     CacheConfiguration<?, ?> cacheConfig1 = xmlConfig.getCacheConfigurations().get("usesConfiguredInCache");
-    SizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig1, notNullValue());
     assertEquals(sizeOfEngineConfig1.getMaxObjectGraphSize(), 500);

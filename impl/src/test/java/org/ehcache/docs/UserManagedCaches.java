@@ -21,7 +21,7 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.UserManagedCacheBuilder;
-import org.ehcache.core.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.config.units.EntryUnit;

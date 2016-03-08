@@ -18,7 +18,6 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -140,12 +139,12 @@ class ConfigurationMerger {
             if (defaults.containsKey(jsr107Configuration.getKeyType())) {
               matchingDefault = true;
             } else {
-              builder = builder.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+              builder = builder.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
             }
             if (defaults.containsKey(jsr107Configuration.getValueType())) {
               matchingDefault = true;
             } else {
-              builder = builder.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+              builder = builder.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
             }
             if (matchingDefault) {
               LOG.info("CacheManager level copier configuration overwriting JSR-107 by-value semantics for cache {}", cacheName);
@@ -153,8 +152,8 @@ class ConfigurationMerger {
             return builder;
           }
         }
-        builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));
+        builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
         LOG.debug("Using default SerializingCopier for JSR-107 store-by-value cache {}", cacheName);
       }
     } else {

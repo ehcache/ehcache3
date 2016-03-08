@@ -20,7 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -760,9 +759,9 @@ public class XAStore<K, V> implements Store<K, V> {
         DefaultCopierConfiguration keyCopierConfig = null;
         DefaultCopierConfiguration valueCopierConfig = null;
         for (DefaultCopierConfiguration copierConfig : copierConfigs) {
-          if (copierConfig.getType().equals(CopierConfiguration.Type.KEY)) {
+          if (copierConfig.getType().equals(DefaultCopierConfiguration.Type.KEY)) {
             keyCopierConfig = copierConfig;
-          } else if (copierConfig.getType().equals(CopierConfiguration.Type.VALUE)) {
+          } else if (copierConfig.getType().equals(DefaultCopierConfiguration.Type.VALUE)) {
             valueCopierConfig = copierConfig;
           }
           underlyingServiceConfigs.remove(copierConfig);
@@ -770,19 +769,19 @@ public class XAStore<K, V> implements Store<K, V> {
 
         // force-in a key copier if none is configured
         if (keyCopierConfig == null) {
-          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
         } else {
           underlyingServiceConfigs.add(keyCopierConfig);
         }
 
         // force-in a value copier if none is configured, or wrap the configured one in a soft lock copier
         if (valueCopierConfig == null) {
-          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
         } else {
           CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
           Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);
           SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
-          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, CopierConfiguration.Type.VALUE));
+          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, DefaultCopierConfiguration.Type.VALUE));
         }
 
         // lookup the required XAStore services

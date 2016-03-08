@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config.loaderwriter.writebehind;
+package org.ehcache.impl.config.loaderwriter.writebehind;
 
 import java.util.concurrent.TimeUnit;
 

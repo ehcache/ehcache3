@@ -20,7 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.config.persistence.PersistenceConfiguration;
+import org.ehcache.impl.config.persistence.PersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
