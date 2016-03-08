@@ -14,16 +14,30 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config.persistence;
+package org.ehcache.impl.config.persistence;
 
 import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.io.File;
 
 /**
- * PersistenceConfiguration
+ * DefaultPersistenceConfiguration
  */
-public interface PersistenceConfiguration extends ServiceCreationConfiguration<LocalPersistenceService> {
-  File getRootDirectory();
+public class DefaultPersistenceConfiguration implements PersistenceConfiguration {
+
+  private final File rootDirectory;
+
+  public DefaultPersistenceConfiguration(File rootDirectory) {
+    this.rootDirectory = rootDirectory;
+  }
+
+  @Override
+  public File getRootDirectory() {
+    return rootDirectory;
+  }
+
+  @Override
+  public Class<LocalPersistenceService> getServiceType() {
+    return LocalPersistenceService.class;
+  }
 }

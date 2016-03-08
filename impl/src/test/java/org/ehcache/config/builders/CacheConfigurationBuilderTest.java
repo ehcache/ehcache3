@@ -20,7 +20,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
-import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.BulkCacheWritingException;
@@ -30,6 +29,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.spi.ServiceLocator;
@@ -134,9 +134,9 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    SerializerConfiguration serializerConfiguration = ServiceLocator.findSingletonAmongst(SerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
-    assertThat(serializerConfiguration.getType(), is(SerializerConfiguration.Type.KEY));
-    Object instance = ((ClassInstanceConfiguration) serializerConfiguration).getInstance();
+    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceLocator.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.KEY));
+    Object instance = serializerConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(keySerializer));
   }
 
@@ -164,8 +164,8 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    SerializerConfiguration serializerConfiguration = ServiceLocator.findSingletonAmongst(SerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
-    assertThat(serializerConfiguration.getType(), is(SerializerConfiguration.Type.VALUE));
+    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceLocator.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.VALUE));
     Object instance = ((ClassInstanceConfiguration) serializerConfiguration).getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(valueSerializer));
   }

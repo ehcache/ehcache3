@@ -19,7 +19,6 @@ package org.ehcache.integration;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -134,7 +133,7 @@ public class CacheCopierTest {
   public void testSerializingCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
         .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
-        .add(new DefaultSerializerConfiguration<Person>(PersonSerializer.class, SerializerConfiguration.Type.VALUE))
+        .add(new DefaultSerializerConfiguration<Person>(PersonSerializer.class, DefaultSerializerConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);

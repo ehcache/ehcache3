@@ -26,7 +26,7 @@ import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
-import org.ehcache.core.config.persistence.PersistenceConfiguration;
+import org.ehcache.impl.config.persistence.PersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;

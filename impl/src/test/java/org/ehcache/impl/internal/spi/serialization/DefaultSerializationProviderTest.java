@@ -15,7 +15,6 @@
  */
 package org.ehcache.impl.internal.spi.serialization;
 
-import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
@@ -154,7 +153,7 @@ public class DefaultSerializationProviderTest {
   public void testCreateKeySerializerWithActualInstanceInServiceConfig() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     TestSerializer serializer = mock(TestSerializer.class);
-    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, SerializerConfiguration.Type.KEY);
+    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, DefaultSerializerConfiguration.Type.KEY);
     Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
     assertSame(serializer, created);
   }
@@ -163,7 +162,7 @@ public class DefaultSerializationProviderTest {
   public void testSameInstanceRetrievedMultipleTimesUpdatesTheProvidedCount() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     TestSerializer serializer = mock(TestSerializer.class);
-    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, SerializerConfiguration.Type.KEY);
+    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, DefaultSerializerConfiguration.Type.KEY);
 
     Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
     assertSame(serializer, created);

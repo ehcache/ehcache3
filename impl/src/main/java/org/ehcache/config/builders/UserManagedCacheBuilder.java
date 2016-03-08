@@ -27,7 +27,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
@@ -232,10 +231,10 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     Serializer<V> valueSerializer = this.valueSerializer;
 
     if (keySerializer != null) {
-      serviceConfigsList.add(new DefaultSerializerConfiguration<K>(this.keySerializer, SerializerConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultSerializerConfiguration<K>(this.keySerializer, DefaultSerializerConfiguration.Type.KEY));
     }
     if (valueSerializer != null) {
-      serviceConfigsList.add(new DefaultSerializerConfiguration<V>(this.valueSerializer, SerializerConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultSerializerConfiguration<V>(this.valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);

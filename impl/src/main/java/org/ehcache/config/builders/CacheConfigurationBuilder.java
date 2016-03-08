@@ -22,7 +22,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
@@ -425,7 +424,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     }
   }
 
-  private void removeExistingSerializerConfigFor(SerializerConfiguration.Type type, CacheConfigurationBuilder<K, V> otherBuilder) {
+  private void removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type type, CacheConfigurationBuilder<K, V> otherBuilder) {
     List<DefaultSerializerConfiguration> existingServiceConfigurations = otherBuilder.getExistingServiceConfigurations(DefaultSerializerConfiguration.class);
     for (DefaultSerializerConfiguration configuration : existingServiceConfigurations) {
       if (configuration.getType().equals(type)) {
@@ -447,8 +446,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       throw new NullPointerException("Null key serializer");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingSerializerConfigFor(SerializerConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>(keySerializer, SerializerConfiguration.Type.KEY));
+    removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type.KEY, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>(keySerializer, DefaultSerializerConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -465,8 +464,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       throw new NullPointerException("Null key serializer class");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingSerializerConfigFor(SerializerConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>(keySerializerClass, SerializerConfiguration.Type.KEY));
+    removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type.KEY, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<K>(keySerializerClass, DefaultSerializerConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -483,8 +482,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       throw new NullPointerException("Null value serializer");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingSerializerConfigFor(SerializerConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializer, SerializerConfiguration.Type.VALUE));
+    removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type.VALUE, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -501,8 +500,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       throw new NullPointerException("Null value serializer class");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingSerializerConfigFor(SerializerConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializerClass, SerializerConfiguration.Type.VALUE));
+    removeExistingSerializerConfigFor(DefaultSerializerConfiguration.Type.VALUE, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultSerializerConfiguration<V>(valueSerializerClass, DefaultSerializerConfiguration.Type.VALUE));
     return otherBuilder;
   }
 

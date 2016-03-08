@@ -18,8 +18,8 @@ package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.persistence.DefaultPersistenceConfiguration;
-import org.ehcache.core.config.persistence.PersistenceConfiguration;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.impl.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
