@@ -20,13 +20,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.ehcache.Status;
-import org.ehcache.core.EhcacheBasicCrudBase.FakeStore;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.Matchers.is;

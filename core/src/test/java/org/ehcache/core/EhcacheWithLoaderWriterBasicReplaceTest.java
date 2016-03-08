@@ -54,7 +54,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * Provides testing of basic REPLACE(key, value) operations on an {@code Ehcache}.
+ * Provides testing of basic REPLACE(key, value) operations on an {@code EhcacheWithLoaderWriter}.
  *
  * @author Clifford W. Johnson
  */

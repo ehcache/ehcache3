@@ -18,12 +18,9 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;

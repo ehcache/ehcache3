@@ -19,23 +19,14 @@ import java.util.Collections;
 import java.util.EnumSet;
 
 import org.ehcache.Status;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -43,11 +34,9 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Abhilash

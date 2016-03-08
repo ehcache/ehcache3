@@ -17,7 +17,6 @@
 package org.ehcache.core;
 
 import org.ehcache.Status;
-import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.exceptions.CacheAccessException;
 import org.hamcrest.Matchers;
