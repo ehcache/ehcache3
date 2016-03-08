@@ -16,8 +16,6 @@
 
 package org.ehcache.core;
 
-import org.ehcache.core.CacheConfigurationChangeEvent;
-
 /**
  * @author rism
  */
