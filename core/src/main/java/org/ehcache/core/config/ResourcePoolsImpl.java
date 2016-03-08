@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * @author Ludovic Orban
+ * Implementation of the {@link ResourcePools} interface.
  */
 public class ResourcePoolsImpl implements ResourcePools {
 
@@ -40,16 +40,25 @@ public class ResourcePoolsImpl implements ResourcePools {
     this.pools = pools;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ResourcePool getPoolForResource(ResourceType resourceType) {
     return pools.get(resourceType);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Set<ResourceType> getResourceTypeSet() {
     return pools.keySet();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ResourcePools validateAndMerge(ResourcePools toBeUpdated) {
     if(!getResourceTypeSet().containsAll(toBeUpdated.getResourceTypeSet())) {
@@ -85,6 +94,11 @@ public class ResourcePoolsImpl implements ResourcePools {
     return new ResourcePoolsImpl(poolsMap);
   }
 
+  /**
+   * Validates some required relationships between {@link ResourceType.Core core resources}.
+   *
+   * @param pools the resource pools to validate
+   */
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
     EnumMap<ResourceType.Core, ResourcePool> coreResources = new EnumMap<ResourceType.Core, ResourcePool>(ResourceType.Core.class);
     for (ResourcePool pool : pools) {

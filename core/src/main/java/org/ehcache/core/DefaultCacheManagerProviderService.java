@@ -24,11 +24,11 @@ import org.ehcache.spi.service.Service;
 /**
  * @author Mathieu Carbou
  */
-public class DefaultCacheManagerProviderService implements CacheManagerProviderService {
+class DefaultCacheManagerProviderService implements CacheManagerProviderService {
 
   private final InternalCacheManager cacheManager;
 
-  public DefaultCacheManagerProviderService(InternalCacheManager cacheManager) {
+  DefaultCacheManagerProviderService(InternalCacheManager cacheManager) {
     this.cacheManager = cacheManager;
   }
 

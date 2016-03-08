@@ -72,8 +72,13 @@ import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingExcept
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
- * @author Abhilash
+ * Implementation of the {@link Cache} interface when no {@link CacheLoaderWriter} is involved.
+ * <P>
+ *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ *   {@code org.ehcache}.
+ * </P>
  *
+ * @see EhcacheWithLoaderWriter
  */
 public class Ehcache<K, V> implements InternalCache<K, V> {
 
@@ -96,6 +101,14 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();
   private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
 
+  /**
+   * Creates a new {@code Ehcache} based on the provided parameters.
+   *
+   * @param configuration the cache configuration
+   * @param store the store to use
+   * @param eventDispatcher the event dispatcher
+   * @param logger the logger
+   */
   public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, CacheEventDispatcher<K, V> eventDispatcher, Logger logger) {
     this(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, new StatusTransitioner(logger));
   }
@@ -122,6 +135,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Map<BulkOps, LongAdder> getBulkMethodEntries() {
     return bulkMethodEntries;
@@ -132,6 +148,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     return (RecoveryCache<K>) store;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public V get(final K key) {
     getObserver.begin();
@@ -158,6 +177,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void put(final K key, final V value) {
     putObserver.begin();
@@ -213,6 +235,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     return Duration.ZERO.equals(duration);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean containsKey(final K key) {
     statusTransitioner.checkAvailable();
@@ -224,6 +249,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void remove(K key) {
     removeInternal(key); // ignore return value;
@@ -254,6 +282,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     return removed;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void clear() {
     statusTransitioner.checkAvailable();
@@ -264,12 +295,18 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Iterator<Entry<K, V>> iterator() {
     statusTransitioner.checkAvailable();
     return new CacheEntryIterator(false);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoadingException {
     return getAllInternal(keys, true);
@@ -336,6 +373,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     return entries;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
     putAllObserver.begin();
@@ -399,6 +439,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
     removeAllObserver.begin();
@@ -451,6 +494,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public V putIfAbsent(final K key, final V value) {
     putIfAbsentObserver.begin();
@@ -477,6 +523,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean remove(final K key, final V value) {
     conditionalRemoveObserver.begin();
@@ -511,6 +560,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     return removed;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public V replace(final K key, final V value) {
     replaceObserver.begin();
@@ -534,6 +586,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean replace(final K key, final V oldValue, final V newValue) {
     replaceObserver.begin();
@@ -570,6 +625,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     return runtimeConfiguration;
@@ -583,16 +641,25 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     statusTransitioner.init().succeeded();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close() {
     statusTransitioner.close().succeeded();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Status getStatus() {
     return statusTransitioner.currentStatus();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void addHook(LifeCycled hook) {
     statusTransitioner.addHook(hook);
@@ -625,11 +692,17 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     bulkMethodEntries.get(op).add(count);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Jsr107Cache<K, V> getJsr107Cache() {
     return jsr107Cache;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
     return null;

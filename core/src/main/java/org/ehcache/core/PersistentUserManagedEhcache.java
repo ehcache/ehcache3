@@ -40,7 +40,12 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * PersistentUserManagedEhcache
+ * Implementation of {@link PersistentUserManagedCache} which is a cache with a persistent resource outside of a
+ * {@link org.ehcache.CacheManager}.
+ * <P>
+ *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ *   {@code org.ehcache}.
+ * </P>
  */
 public class PersistentUserManagedEhcache<K, V> implements PersistentUserManagedCache<K, V> {
 
@@ -50,6 +55,16 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   private final LocalPersistenceService localPersistenceService;
   private final String id;
 
+  /**
+   * Creates a new {@code PersistentUserManagedCache} based on the provided parameters.
+   *
+   * @param configuration the cache configuration
+   * @param store the underlying store
+   * @param localPersistenceService the persistence service
+   * @param cacheLoaderWriter the optional loader writer
+   * @param eventDispatcher the event dispatcher
+   * @param id an id for this cache
+   */
   public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
@@ -62,6 +77,9 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     this.id = id;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
@@ -110,11 +128,17 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void init() {
     cache.init();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close() {
     cache.close();
@@ -127,81 +151,129 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Status getStatus() {
     return statusTransitioner.currentStatus();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public V get(K key) throws CacheLoadingException {
     return cache.get(key);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void put(K key, V value) throws CacheWritingException {
     cache.put(key, value);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean containsKey(K key) {
     return cache.containsKey(key);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void remove(K key) throws CacheWritingException {
     cache.remove(key);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoadingException {
     return cache.getAll(keys);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
     cache.putAll(entries);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void removeAll(Set<? extends K> keys) throws BulkCacheWritingException {
     cache.removeAll(keys);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void clear() {
     cache.clear();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public V putIfAbsent(K key, V value) throws CacheLoadingException, CacheWritingException {
     return cache.putIfAbsent(key, value);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean remove(K key, V value) throws CacheWritingException {
     return cache.remove(key, value);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public V replace(K key, V value) throws CacheLoadingException, CacheWritingException {
     return cache.replace(key, value);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean replace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException {
     return cache.replace(key, oldValue, newValue);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     return cache.getRuntimeConfiguration();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Iterator<Entry<K, V>> iterator() {
     return cache.iterator();
   }
 
+  /**
+   * Adds a hook to lifecycle transitions.
+   */
   public void addHook(LifeCycled lifeCycled) {
     statusTransitioner.addHook(lifeCycled);
   }

@@ -14,22 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config.events;
-
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.spi.service.ServiceConfiguration;
-
 /**
- * StoreEventSourceConfiguration
+ * Package holding implementation of {@link org.ehcache.core.spi.cache.Store.Configuration} and related types.
  */
-public interface StoreEventSourceConfiguration extends ServiceConfiguration<Store.Provider> {
-
-  int DEFAULT_EVENT_PARALLELISM = 8;
-
-  /**
-   * Indicates over how many buckets should ordered events be spread
-   *
-   * @return the number of buckets to use
-   */
-  int getOrderedEventParallelism();
-}
+package org.ehcache.core.config.store;

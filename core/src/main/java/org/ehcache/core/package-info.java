@@ -14,17 +14,8 @@
  * limitations under the License.
  */
 
-package org.ehcache.core;
-
 /**
- * Interface allowing types to declare their interest in {@link CacheConfigurationChangeEvent}s.
+ * Package for core implementation classes such as {@link org.ehcache.core.EhcacheManager} and
+ * {@link org.ehcache.core.Ehcache}.
  */
-public interface CacheConfigurationChangeListener {
-
-  /**
-   * Method invoked on a cache configuration change.
-   *
-   * @param event the event describing the change
-   */
-  void cacheConfigurationChange(CacheConfigurationChangeEvent event);
-}
+package org.ehcache.core;

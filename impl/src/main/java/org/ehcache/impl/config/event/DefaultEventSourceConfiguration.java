@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.config.event;
 
-import org.ehcache.core.config.events.StoreEventSourceConfiguration;
+import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.core.spi.cache.Store;
 
 /**

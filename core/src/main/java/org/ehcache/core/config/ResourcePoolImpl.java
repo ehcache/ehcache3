@@ -21,7 +21,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 
 /**
- * @author Ludovic Orban
+ * Implementation of the {@link ResourcePool} interface.
  */
 public class ResourcePoolImpl implements ResourcePool {
 
@@ -30,6 +30,14 @@ public class ResourcePoolImpl implements ResourcePool {
   private final ResourceUnit unit;
   private final boolean persistent;
 
+  /**
+   * Creates a new resource pool based on the provided parameters.
+   *
+   * @param type the resource type
+   * @param size the size
+   * @param unit the unit for the size
+   * @param persistent whether the pool is to be persistent
+   */
   public ResourcePoolImpl(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
     if (!type.isPersistable() && persistent) {
       throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
@@ -40,23 +48,41 @@ public class ResourcePoolImpl implements ResourcePool {
     this.persistent = persistent;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public ResourceType getType() {
     return type;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public long getSize() {
     return size;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public ResourceUnit getUnit() {
     return unit;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean isPersistent() {
     return persistent;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String toString() {
     return "Pool {" + getSize() + " " + getUnit() + " " + getType() + (isPersistent() ? "(persistent)}" : "}");

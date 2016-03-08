@@ -28,7 +28,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Alex Snaps
+ * Base implementation of {@link CacheConfiguration}.
  */
 public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
@@ -40,6 +40,17 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
   private final Expiry<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
 
+  /**
+   * Creates a new {@code BaseCacheConfiguration} from the given parameters.
+   *
+   * @param keyType the key type
+   * @param valueType the value type
+   * @param evictionVeto the eviction veto
+   * @param classLoader the class loader
+   * @param expiry the expiry policy
+   * @param resourcePools the resource pools
+   * @param serviceConfigurations the service configurations
+   */
   public BaseCacheConfiguration(Class<? super K> keyType, Class<? super V> valueType,
           EvictionVeto<? super K, ? super V> evictionVeto,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
@@ -57,35 +68,57 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
     this.serviceConfigurations = Collections.unmodifiableCollection(Arrays.asList(serviceConfigurations));
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Collection<ServiceConfiguration<?>> getServiceConfigurations() {
     return serviceConfigurations;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<K> getKeyType() {
     return (Class) keyType;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<V> getValueType() {
     return (Class) valueType;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public EvictionVeto<? super K, ? super V> getEvictionVeto() {
     return evictionVeto;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public ClassLoader getClassLoader() {
     return classLoader;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Expiry<? super K, ? super V> getExpiry() {
     return expiry;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ResourcePools getResourcePools() {
     return resourcePools;
