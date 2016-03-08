@@ -16,9 +16,11 @@
 
 package org.ehcache.core;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.ehcache.Cache;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
@@ -40,4 +42,7 @@ public interface Jsr107Cache<K, V> {
       final NullaryFunction<Boolean> withStatsAndEvents);
 
   void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> function);
+
+  Iterator<Cache.Entry<K, V>> crappyterator();
+
 }

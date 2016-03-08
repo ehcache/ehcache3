@@ -525,7 +525,27 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   @Override
   public java.util.Iterator<Cache.Entry<K, V>> iterator() {
-    return new Iterator<K, V>(ehCache);
+    if (isClosed()) {
+      throw new IllegalStateException();
+    }
+
+    final java.util.Iterator<org.ehcache.Cache.Entry<K, V>> crappyterator = jsr107Cache.crappyterator();
+    return new java.util.Iterator<Entry<K, V>>() {
+      @Override
+      public boolean hasNext() {
+        return crappyterator.hasNext();
+      }
+
+      @Override
+      public Entry<K, V> next() {
+        return new WrappedEhcacheEntry<K, V>(crappyterator.next());
+      }
+
+      @Override
+      public void remove() {
+        crappyterator.remove();
+      }
+    };
   }
 
   private void checkClosed() {

@@ -648,6 +648,69 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       }
     }
 
+    /**
+     * The reason behind this method's name is because the 107 standard is so fucked up in so many mixed aspects
+     * <b>and</b> its TCK is so ridiculously relying on implementation details when it actually does test something
+     * remotely useful, Ehcache's 'sane' iterator contract (whatever sane might mean in this context) makes
+     * the 107 TCK unhappy.
+     *
+     * The 107 iteration contract combined with stats and expiration is so mind-blowingly lame that there is no way
+     * to adapt Ehcache's iterator. A secondary, really, really crappy one must be implemented.
+     */
+    @Override
+    public Iterator<Entry<K, V>> crappyterator() {
+      final Store.Iterator<Entry<K, ValueHolder<V>>> iterator = store.iterator();
+      return new Iterator<Entry<K, V>>() {
+        K current;
+        @Override
+        public boolean hasNext() {
+          return iterator.hasNext();
+        }
+
+        /**
+         * The multiple get calls are a necessary stupidity to please the 107 TCK's stats and
+         * you-cannot-expire-on-creation-but-immediately-expire-upon-retrieval-but-not-the-first-one-of-course contract.
+         */
+        @Override
+        public Entry<K, V> next() {
+          try {
+            final Entry<K, ValueHolder<V>> next = iterator.next();
+            // call Cache.get() here to check for expiry *and* account for a get in the stats
+            if (get(next.getKey()) == null) {
+              current = null;
+              return null;
+            }
+            // call Store.get() here to check check for hasNext()' expiry *and do not* account for an extra get in the stats
+            store.get(next.getKey());
+            current = next.getKey();
+
+            return new Entry<K, V>() {
+              @Override
+              public K getKey() {
+                return next.getKey();
+              }
+
+              @Override
+              public V getValue() {
+                return next.getValue().value();
+              }
+            };
+          } catch (CacheAccessException e) {
+            current = null;
+            return null;
+          }
+        }
+
+        @Override
+        public void remove() {
+          if (current == null) {
+            throw new IllegalStateException();
+          }
+          Ehcache.this.remove(current);
+        }
+      };
+    }
+
     @Override
     public Map<K, V> getAll(Set<? extends K> keys) {
       return Ehcache.this.getAllInternal(keys, false);
@@ -824,9 +887,14 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     @Override
     public void removeAll() {
-      for (Iterator<Cache.Entry<K, V>> iter = new CacheEntryIterator(true); iter.hasNext(); ) {
-        K key = iter.next().getKey();
-        remove(key);
+      Store.Iterator<Entry<K, ValueHolder<V>>> iterator = store.iterator();
+      while (iterator.hasNext()) {
+        try {
+          Entry<K, ValueHolder<V>> next = iterator.next();
+          remove(next.getKey());
+        } catch (CacheAccessException e) {
+          // skip
+        }
       }
     }
   }
@@ -835,22 +903,38 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
     private final boolean quiet;
-    private boolean cacheAccessError = false;
     private Cache.Entry<K, ValueHolder<V>> current;
+    private Cache.Entry<K, ValueHolder<V>> next;
+    private CacheAccessException nextException;
 
     public CacheEntryIterator(boolean quiet) {
       this.quiet = quiet;
       this.iterator = store.iterator();
+      advance();
+    }
+
+    private void advance() {
+      try {
+        while (iterator.hasNext()) {
+          next = iterator.next();
+          if (get(next.getKey()) != null) {
+            return;
+          }
+        }
+        next = null;
+      } catch (RuntimeException re) {
+        nextException = new CacheAccessException(re);
+        next = null;
+      } catch (CacheAccessException cae) {
+        nextException = cae;
+        next = null;
+      }
     }
 
     @Override
     public boolean hasNext() {
       statusTransitioner.checkAvailable();
-
-      if (cacheAccessError) {
-        return false;
-      }
-      return iterator.hasNext();
+      return nextException != null || next != null;
     }
 
     @Override
@@ -860,16 +944,17 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       }
 
       if (!quiet) getObserver.begin();
-      try {
-        current = iterator.next();
+      if (nextException == null) {
         if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
-      } catch (CacheAccessException e) {
+        current = next;
+        advance();
+        return new ValueHolderBasedEntry<K, V>(current);
+      } else {
         if (!quiet) getObserver.end(GetOutcome.FAILURE);
-        cacheAccessError = true;
-        return resilienceStrategy.iteratorFailure(e);
+        CacheAccessException cae = nextException;
+        nextException = null;
+        return resilienceStrategy.iteratorFailure(cae);
       }
-
-      return new ValueHolderBasedEntry<K, V>(current);
     }
 
     @Override

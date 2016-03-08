@@ -335,16 +335,17 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     doReturn(storeEntry).when(storeIterator).next();
 
     doReturn(storeIterator).when(this.store).iterator();
+    doReturn(true).when(this.store).containsKey(anyString());
 
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator, is(notNullValue()));
     assertThat(iterator.hasNext(), is(true));
+    doThrow(new CacheAccessException("")).when(storeIterator).next();
     Cache.Entry<String, String> entry = iterator.next();
     assertThat(entry.getKey(), is("foo"));
     assertThat(entry.getValue(), is("bar"));
 
-    doThrow(new CacheAccessException("")).when(storeIterator).next();
 
     try {
       iterator.next();
