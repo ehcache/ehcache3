@@ -21,7 +21,6 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
@@ -450,7 +449,7 @@ public class XmlConfigurationTest {
     for(ServiceConfiguration<?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
-        if(copierConfig.getType() == CopierConfiguration.Type.KEY) {
+        if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
           assertEquals(SerializingCopier.class, copierConfig.getClazz());
         } else {
           assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
@@ -464,7 +463,7 @@ public class XmlConfigurationTest {
     for(ServiceConfiguration<?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
-        if(copierConfig.getType() == CopierConfiguration.Type.KEY) {
+        if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
           assertEquals(SerializingCopier.class, copierConfig.getClazz());
         } else {
           assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());

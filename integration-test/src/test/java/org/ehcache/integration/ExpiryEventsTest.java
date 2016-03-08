@@ -21,7 +21,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -64,7 +63,7 @@ public class ExpiryEventsTest {
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
       byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<String>(
-          (Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));;
+          (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));;
 
   private static final TestTimeSource testTimeSource = new TestTimeSource();
 

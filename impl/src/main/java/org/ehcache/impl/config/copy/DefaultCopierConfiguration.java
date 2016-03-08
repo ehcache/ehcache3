@@ -16,15 +16,15 @@
 
 package org.ehcache.impl.config.copy;
 
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * @author Albin Suresh
  */
-public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Copier<T>> implements CopierConfiguration {
+public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Copier<T>> implements ServiceConfiguration<CopyProvider> {
 
   private final Type type;
 
@@ -52,4 +52,11 @@ public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Co
     return type;
   }
 
+  /**
+   * Copy provider types
+   */
+  public enum Type {
+    KEY,
+    VALUE,
+  }
 }

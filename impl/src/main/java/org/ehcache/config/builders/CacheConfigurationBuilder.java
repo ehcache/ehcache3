@@ -22,7 +22,6 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.expiry.Expiry;
@@ -326,8 +325,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    */
   public CacheConfigurationBuilder<K, V> withKeySerializingCopier() {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingCopierConfigFor(CopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+    removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -340,8 +339,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    */
   public CacheConfigurationBuilder<K, V> withValueSerializingCopier() {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingCopierConfigFor(CopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+    removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -358,8 +357,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       throw new NullPointerException("Null key copier");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingCopierConfigFor(CopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(keyCopier, CopierConfiguration.Type.KEY));
+    removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(keyCopier, DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -376,8 +375,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       throw new NullPointerException("Null key copier class");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingCopierConfigFor(CopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(keyCopierClass, CopierConfiguration.Type.KEY));
+    removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(keyCopierClass, DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -394,8 +393,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       throw new NullPointerException("Null value copier");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingCopierConfigFor(CopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopier, CopierConfiguration.Type.VALUE));
+    removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
@@ -412,12 +411,12 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
       throw new NullPointerException("Null value copier");
     }
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    removeExistingCopierConfigFor(CopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopierClass, CopierConfiguration.Type.VALUE));
+    removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(valueCopierClass, DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
-  private void removeExistingCopierConfigFor(CopierConfiguration.Type type, CacheConfigurationBuilder<K, V> otherBuilder) {
+  private void removeExistingCopierConfigFor(DefaultCopierConfiguration.Type type, CacheConfigurationBuilder<K, V> otherBuilder) {
     List<DefaultCopierConfiguration> existingServiceConfigurations = otherBuilder.getExistingServiceConfigurations(DefaultCopierConfiguration.class);
     for (DefaultCopierConfiguration configuration : existingServiceConfigurations) {
       if (configuration.getType().equals(type)) {

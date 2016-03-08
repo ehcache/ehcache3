@@ -18,7 +18,6 @@ package org.ehcache.impl.config.serializer;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -78,8 +77,8 @@ public class SerializerCountingTest {
   public void testOnHeapPutGet() {
 
     Cache<Long, String> cache = cacheManager.createCache("onHeap", newCacheConfigurationBuilder(Long.class, String.class)
-                .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.KEY))
-                .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.VALUE))
+                .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.KEY))
+                .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
                 .build());
 
     cache.put(42L, "TheAnswer!");
@@ -120,8 +119,8 @@ public class SerializerCountingTest {
   public void testOffHeapOnHeapCopyPutGet() {
     Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class)
             .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
-            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build()
     );
 
@@ -144,8 +143,8 @@ public class SerializerCountingTest {
   public void testDiskOffHeapOnHeapCopyPutGet() {
     Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class)
             .withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).disk(100, MemoryUnit.MB))
-            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build()
     );
 

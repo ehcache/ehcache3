@@ -23,7 +23,6 @@ import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -69,7 +68,7 @@ public class CacheCopierTest {
   @Test
   public void testCopyValueOnRead() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>(PersonOnReadCopier.class, CopierConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>(PersonOnReadCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
@@ -92,7 +91,7 @@ public class CacheCopierTest {
   @Test
   public void testCopyValueOnWrite() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>(PersonOnWriteCopier.class, CopierConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>(PersonOnWriteCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
@@ -134,7 +133,7 @@ public class CacheCopierTest {
   @Test
   public void testSerializingCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .add(new DefaultSerializerConfiguration<Person>(PersonSerializer.class, SerializerConfiguration.Type.VALUE))
         .build();
 
@@ -158,7 +157,7 @@ public class CacheCopierTest {
   @Test
   public void testReadWriteCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>(PersonCopier.class, CopierConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);

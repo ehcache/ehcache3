@@ -31,7 +31,6 @@ import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.core.events.CacheEventDispatcherImpl;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
@@ -195,14 +194,14 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     List<ServiceConfiguration<?>> serviceConfigsList = new ArrayList<ServiceConfiguration<?>>();
 
     if (keyCopier != null) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>(keyCopier, CopierConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultCopierConfiguration<K>(keyCopier, DefaultCopierConfiguration.Type.KEY));
     } else if (useKeySerializingCopier) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
     }
     if (valueCopier != null) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<V>(valueCopier, CopierConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultCopierConfiguration<V>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     } else if (useValueSerializingCopier) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, CopierConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
     }
 
     Set<ResourceType> resources = resourcePools.getResourceTypeSet();

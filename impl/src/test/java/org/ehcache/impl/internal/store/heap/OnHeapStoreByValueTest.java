@@ -22,7 +22,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.CacheAccessException;
@@ -164,7 +163,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     cacheManager.init();
 
     DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration(
-        SerializingCopier.class, CopierConfiguration.Type.VALUE);
+        SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
             .build());

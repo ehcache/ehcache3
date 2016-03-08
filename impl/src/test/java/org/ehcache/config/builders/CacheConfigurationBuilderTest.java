@@ -21,7 +21,6 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.core.config.serializer.SerializerConfiguration;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.core.config.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -30,6 +29,7 @@ import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
 import org.ehcache.core.spi.ServiceLocator;
@@ -189,9 +189,9 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    CopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
-    assertThat(copierConfiguration.getType(), is(CopierConfiguration.Type.KEY));
-    Object instance = ((ClassInstanceConfiguration) copierConfiguration).getInstance();
+    DefaultCopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
+    Object instance = copierConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(keyCopier));
   }
 
@@ -214,9 +214,9 @@ public class CacheConfigurationBuilderTest {
         .build();
 
 
-    CopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
-    assertThat(copierConfiguration.getType(), is(CopierConfiguration.Type.VALUE));
-    Object instance = ((ClassInstanceConfiguration) copierConfiguration).getInstance();
+    DefaultCopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
+    Object instance = copierConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(valueCopier));
   }
 

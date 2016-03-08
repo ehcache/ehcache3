@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.spi.copy;
 
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
@@ -47,15 +46,15 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
 
   @Override
   public <T> Copier<T> createKeyCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs) {
-    return createCopier(CopierConfiguration.Type.KEY, clazz, serializer, configs);
+    return createCopier(DefaultCopierConfiguration.Type.KEY, clazz, serializer, configs);
   }
 
   @Override
   public <T> Copier<T> createValueCopier(final Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs) {
-    return createCopier(CopierConfiguration.Type.VALUE, clazz, serializer, configs);
+    return createCopier(DefaultCopierConfiguration.Type.VALUE, clazz, serializer, configs);
   }
 
-  private <T> Copier<T> createCopier(CopierConfiguration.Type type, Class<T> clazz,
+  private <T> Copier<T> createCopier(DefaultCopierConfiguration.Type type, Class<T> clazz,
                                      Serializer<T> serializer, ServiceConfiguration<?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);
     Copier<T> copier;
@@ -88,7 +87,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
   }
 
   @SuppressWarnings("unchecked")
-  private static <T> DefaultCopierConfiguration<T> find(CopierConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
+  private static <T> DefaultCopierConfiguration<T> find(DefaultCopierConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultCopierConfiguration<T> result = null;
 
     Collection<DefaultCopierConfiguration> copierConfigurations =
