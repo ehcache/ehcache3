@@ -19,7 +19,6 @@ package org.ehcache.impl.internal.store.offheap;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
@@ -28,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
@@ -604,7 +602,31 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
-    return new OffHeapStoreIterator();
+    return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
+      private final java.util.Iterator<Map.Entry<K, OffHeapValueHolder<V>>> mapIterator = backingMap().entrySet().iterator();
+
+      @Override
+      public boolean hasNext() {
+        return mapIterator.hasNext();
+      }
+
+      @Override
+      public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
+        Map.Entry<K, OffHeapValueHolder<V>> next = mapIterator.next();
+        final K key = next.getKey();
+        final OffHeapValueHolder<V> value = next.getValue();
+        return new Cache.Entry<K, ValueHolder<V>>() {
+          @Override
+          public K getKey() {
+            return key;
+          }
+          @Override
+          public ValueHolder<V> getValue() {
+            return value;
+          }
+        };
+      }
+    };
   }
 
   @Override
@@ -1290,92 +1312,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
                   "- Eviction will assume entry is NOT vetoed", e);
         return false;
       }
-    }
-  }
-
-  class OffHeapStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
-    private final java.util.Iterator<Map.Entry<K, OffHeapValueHolder<V>>> mapIterator;
-    private Cache.Entry<K, ValueHolder<V>> next = null;
-    private StoreAccessException prefetchFailure = null;
-
-    OffHeapStoreIterator() {
-      mapIterator = backingMap().entrySet().iterator();
-      advance();
-    }
-
-    private void advance() {
-      next = null;
-      try {
-        while (next == null && mapIterator.hasNext()) {
-          final Map.Entry<K, OffHeapValueHolder<V>> entry = mapIterator.next();
-          final OffHeapValueHolder<V> value = (OffHeapValueHolder<V>) internalGet(entry.getKey(), false, true);
-          if (value != null) {
-            next = new Cache.Entry<K, ValueHolder<V>>() {
-              @Override
-              public K getKey() {
-                return entry.getKey();
-              }
-
-              @Override
-              public ValueHolder<V> getValue() {
-                return value;
-              }
-            };
-          }
-        }
-      } catch (StoreAccessException ce) {
-        prefetchFailure = ce;
-      } catch (RuntimeException re) {
-        prefetchFailure = new StoreAccessException(re);
-      }
-    }
-
-    @Override
-    public boolean hasNext() {
-      return next != null || prefetchFailure != null;
-    }
-
-    @Override
-    public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
-      if(prefetchFailure != null) {
-        throw prefetchFailure;
-      }
-
-      if (next == null) {
-        throw new NoSuchElementException();
-      }
-
-      final Cache.Entry<K, ValueHolder<V>> thisEntry = next;
-      advance();
-
-      final long now = timeSource.getTimeMillis();
-      final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
-      try {
-        backingMap().computeIfPresent(thisEntry.getKey(), new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-          @Override
-          public OffHeapValueHolder<V> apply(final K k, final OffHeapValueHolder<V> currentMapping) {
-            if (currentMapping.getId() == thisEntry.getValue().getId()) {
-              return setAccessTimeAndExpiryThenReturnMapping(k, currentMapping, now, eventSink);
-            }
-            return currentMapping;
-          }
-        });
-        eventDispatcher.releaseEventSink(eventSink);
-      } catch (RuntimeException re) {
-        eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-        throw re;
-      }
-
-      Duration duration;
-      try {
-        duration = expiry.getExpiryForAccess(thisEntry.getKey(), thisEntry.getValue());
-      } catch (RuntimeException re) {
-        LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-        duration = Duration.ZERO;
-      }
-      ((OffHeapValueHolder<V>) thisEntry.getValue()).accessed(now, duration);
-
-      return thisEntry;
     }
   }
 

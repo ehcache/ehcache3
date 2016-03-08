@@ -39,11 +39,12 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
 
 /**
  * Provides testing of basic ITERATOR operations on an {@code Ehcache}.
@@ -218,11 +219,13 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     doReturn(storeEntry).when(storeIterator).next();
 
     doReturn(storeIterator).when(this.store).iterator();
+    doReturn(valueHolder).when(this.store).get(eq("foo"));
 
     final InternalCache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator, is(notNullValue()));
     assertThat(iterator.hasNext(), is(true));
+    doThrow(new StoreAccessException("")).when(storeIterator).next();
     Cache.Entry<String, String> entry = iterator.next();
     assertThat(entry.getKey(), is("foo"));
     assertThat(entry.getValue(), is("bar"));

@@ -516,25 +516,20 @@ public abstract class BaseOnHeapStoreTest {
         Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
     store.put("key1", "value1");
     store.put("key2", "value2");
-    timeSource.advanceTime(1);
     store.put("key3", "value3");
+    timeSource.advanceTime(1);
 
     Map<String, String> observed = observe(store.iterator());
-    assertThat(1, equalTo(observed.size()));
+    assertThat(3, equalTo(observed.size()));
+    assertThat(observed.get("key1"), equalTo("value1"));
+    assertThat(observed.get("key2"), equalTo("value2"));
     assertThat(observed.get("key3"), equalTo("value3"));
 
-    timeSource.advanceTime(1);
-    observed = observe(store.iterator());
-    assertThat(0, equalTo(observed.size()));
-    checkExpiryEvent(eventSink, "key1", "value1");
-    checkExpiryEvent(eventSink, "key2", "value2");
-    checkExpiryEvent(eventSink, "key3", "value3");
-    verifyListenerReleaseEventsInOrder(eventDispatcher);
-    StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ExpirationOutcome.SUCCESS, 3L);
+    StatisticsTestUtils.validateStat(store, StoreOperationOutcomes.ExpirationOutcome.SUCCESS, 0L);
   }
 
   @Test
-  public void testIteratorUpdatesAccessTime() throws Exception {
+  public void testIteratorDoesNotUpdateAccessTime() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStore<String, String> store = newStore(timeSource, Expirations.noExpiration());
 
@@ -545,8 +540,8 @@ public abstract class BaseOnHeapStoreTest {
 
     Map<String, Long> times = observeAccessTimes(store.iterator());
     assertThat(2, equalTo(times.size()));
-    assertThat(times.get("key1"), equalTo(5L));
-    assertThat(times.get("key2"), equalTo(5L));
+    assertThat(times.get("key1"), equalTo(0L));
+    assertThat(times.get("key2"), equalTo(0L));
   }
 
   @Test

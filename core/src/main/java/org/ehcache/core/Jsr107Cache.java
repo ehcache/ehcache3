@@ -16,9 +16,11 @@
 
 package org.ehcache.core;
 
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import org.ehcache.Cache;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
@@ -95,4 +97,20 @@ public interface Jsr107Cache<K, V> {
    * @param function the function performing the loading
    */
   void loadAll(Set<? extends K> keys, boolean replaceExistingValues, Function<Iterable<? extends K>, Map<K, V>> function);
+
+  /**
+   * Return an iterator that follows the JSR 107 spec.
+   *
+   * @return the iterator.
+   */
+  Iterator<Cache.Entry<K, V>> specIterator();
+
+  /**
+   * Perform a cache get that does not make use of any configured loader
+   *
+   * @param key the key
+   * @return the value
+   */
+  V getNoLoader(K key);
+
 }

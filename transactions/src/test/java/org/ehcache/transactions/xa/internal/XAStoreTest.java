@@ -867,6 +867,31 @@ public class XAStoreTest {
         public String apply(Long aLong, String s) {
           assertThat(aLong, is(1L));
           assertThat(s, equalTo("one"));
+          return null;
+        }
+      });
+      assertThat(computed2, is(nullValue()));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, null);
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          assertThat(aLong, is(1L));
+          assertThat(s, is(nullValue()));
+          return "one";
+        }
+      });
+      assertThat(computed1.value(), equalTo("one"));
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          assertThat(aLong, is(1L));
+          assertThat(s, equalTo("one"));
           return "un";
         }
       });
