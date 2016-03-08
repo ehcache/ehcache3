@@ -52,6 +52,7 @@ import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
+import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.service.Service;
@@ -1442,7 +1443,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     boolean veto = checkVeto(key, realValue);
     OnHeapValueHolder<V> clonedValueHolder = null;
     if(valueCopier instanceof SerializingCopier) {
-      clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, realValue, veto, ((SerializingCopier)valueCopier).getSerializer(), now, expiration);
+      if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
+        clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, ((BinaryValueHolder) valueHolder).getBinaryValue(),
+            veto, ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
+      } else {
+        clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, realValue, veto,
+            ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
+      }
     } else {
       clonedValueHolder = new CopiedOnHeapValueHolder<V>(valueHolder, realValue, veto, valueCopier, now, expiration);
     }
@@ -1456,7 +1463,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     boolean veto = checkVeto(key, value);
     OnHeapValueHolder<V> valueHolder = null;
     if (valueCopier instanceof SerializingCopier) {
-      valueHolder = new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, ((SerializingCopier) valueCopier).getSerializer());
+      valueHolder = new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, ((SerializingCopier<V>) valueCopier).getSerializer());
     } else {
       valueHolder = new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, valueCopier);
     }

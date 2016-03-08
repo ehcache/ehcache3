@@ -444,6 +444,65 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
   }
 
   @Test
+  public void testComputeIfPresentAndPinNoOpNoMapping() throws Exception {
+    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
+    segment.computeIfPresentAndPin("key", new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String s, String s2) {
+        fail("Function should not be invoked");
+        return null;
+      }
+    });
+  }
+
+  @Test
+  public void testComputeIfPresentAndPinDoesPin() throws Exception {
+    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
+    final String value = "value";
+    segment.put("key", value);
+    segment.computeIfPresentAndPin("key", new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String s, String s2) {
+        assertThat(s2, is(value));
+        return value;
+      }
+    });
+    assertThat(isPinned("key", segment), is(true));
+  }
+
+  @Test
+  public void testComputeIfPresentAndPinPreservesPin() throws Exception {
+    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
+    final String value = "value";
+    putPinned("key", value, segment);
+    segment.computeIfPresentAndPin("key", new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String s, String s2) {
+        assertThat(s2, is(value));
+        return value;
+      }
+    });
+    assertThat(isPinned("key", segment), is(true));
+  }
+
+  @Test
+  public void testComputeIfPresentAndPinReplacesAndPins() throws Exception {
+    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment();
+    final String value = "value";
+    final String newValue = "newValue";
+    segment.put("key", value);
+    segment.computeIfPresentAndPin("key", new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String s, String s2) {
+        assertThat(s2, is(value));
+        return newValue;
+      }
+    });
+    assertThat(isPinned("key", segment), is(true));
+    assertThat(segment.get("key"), is(newValue));
+  }
+
+  @Test
   public void testPutVetoedComputesMetadata() throws Exception {
     EhcacheOffHeapBackingMap<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
       @Override

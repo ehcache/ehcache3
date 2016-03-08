@@ -97,7 +97,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       @Override
       public Store.ValueHolder<String> newValueHolder(String value) {
-        return new OffHeapValueHolder<String>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), OffHeapValueHolder.NO_EXPIRE);
+        return new BasicOffHeapValueHolder<String>(-1, value, SystemTimeSource.INSTANCE.getTimeMillis(), OffHeapValueHolder.NO_EXPIRE);
       }
 
       @Override

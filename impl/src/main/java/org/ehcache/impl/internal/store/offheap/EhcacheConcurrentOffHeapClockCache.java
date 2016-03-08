@@ -91,6 +91,26 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
   }
 
   @Override
+  public V computeIfPresentAndPin(final K key, final BiFunction<K, V, V> mappingFunction) {
+    MetadataTuple<V> result = computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {
+      @Override
+      public MetadataTuple<V> apply(K k, MetadataTuple<V> current) {
+        V oldValue = current.value();
+        V newValue = mappingFunction.apply(k, oldValue);
+
+        if (newValue == null) {
+          return null;
+        } else if (oldValue == newValue) {
+          return metadataTuple(newValue, PINNED | current.metadata());
+        } else {
+          return metadataTuple(newValue, PINNED | (evictionVeto.vetoes(k, newValue) ? VETOED : 0));
+        }
+      }
+    });
+    return result == null ? null : result.value();
+  }
+
+  @Override
   public boolean computeIfPinned(final K key, final BiFunction<K,V,V> remappingFunction, final Function<V,Boolean> unpinFunction) {
     final AtomicBoolean unpin = new AtomicBoolean();
     computeIfPresentWithMetadata(key, new org.terracotta.offheapstore.jdk8.BiFunction<K, MetadataTuple<V>, MetadataTuple<V>>() {

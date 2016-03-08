@@ -17,8 +17,6 @@
 package org.ehcache.impl.internal.store.offheap.factories;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
 
 import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
