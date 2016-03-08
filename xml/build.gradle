@@ -22,6 +22,8 @@ apply plugin: EhDeploy
 
 dependencies {
   compile project(':api'), project(':core'), project(':impl')
+
+  // Constrained to JAXB 2.1 due to JDK 1.6 compatibility requirements
   jaxb 'com.sun.xml.bind:jaxb-xjc:2.1.17'
   jaxb 'com.sun.xml.bind:jaxb-impl:2.1.17'
   jaxb 'javax.xml:jaxb-api:2.1'

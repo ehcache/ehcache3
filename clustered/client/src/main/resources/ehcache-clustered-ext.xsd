@@ -16,8 +16,8 @@
   -->
 
 <xs:schema version="1.0"
-           xmlns:tc="http://www.ehcache.org/v3/clustered"
            xmlns:eh="http://www.ehcache.org/v3"
+           xmlns:tc="http://www.ehcache.org/v3/clustered"
            xmlns:xs="http://www.w3.org/2001/XMLSchema"
            elementFormDefault="qualified"
            targetNamespace="http://www.ehcache.org/v3/clustered">
@@ -36,10 +36,16 @@
     </xs:annotation>
   </xs:element>
 
+  <xs:element name="server-side-config" type="tc:server-side-config-spec">
+    <xs:annotation>
+      <xs:documentation>
+        Specifies the server-side configuration of the entity to be accessed and or created.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
   <xs:complexType name="cluster-spec">
-
     <xs:sequence minOccurs="1" maxOccurs="1">
-
       <xs:element name="connection" type="tc:connection-spec" minOccurs="1" maxOccurs="1">
         <xs:annotation>
           <xs:documentation>
@@ -47,9 +53,8 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-
+      <xs:element ref="tc:server-side-config" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
-
   </xs:complexType>
 
   <xs:complexType name="connection-spec">
@@ -68,4 +73,96 @@
     </xs:restriction>
   </xs:simpleType>
 
+  <xs:complexType name="server-side-config-spec">
+    <xs:sequence>
+      <xs:element name="default-resource" type="tc:default-resource-spec" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies the default server-side storage resource to use for storing cache data.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="shared-pool" type="tc:shared-pool-spec" minOccurs="0" maxOccurs="unbounded">
+        <xs:annotation>
+          <xs:documentation>
+            Defines a pool of server-side storage resource to be shared amongst multiple caches.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+
+  <xs:complexType name="default-resource-spec">
+    <xs:attributeGroup ref="tc:from-required"/>
+  </xs:complexType>
+
+  <xs:complexType name="shared-pool-spec">
+    <xs:complexContent>
+      <xs:extension base="eh:memory-type">
+        <xs:attribute name="name" type="xs:string" use="required">
+          <xs:annotation>
+            <xs:documentation>
+              Shared pool name.
+            </xs:documentation>
+          </xs:annotation>
+        </xs:attribute>
+        <xs:attributeGroup ref="tc:from-optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="cluster-fixed" type="tc:cluster-fixed-resource-type" substitutionGroup="eh:resource">
+    <xs:annotation>
+      <xs:documentation>
+        Clustered cache resource with a fixed size.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="cluster-fixed-resource-type">
+    <xs:complexContent>
+      <xs:extension base="eh:memory-type">
+        <xs:attributeGroup ref="tc:from-optional"/>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+  <xs:element name="cluster-shared" type="tc:cluster-shared-resource-type" substitutionGroup="eh:resource">
+    <xs:annotation>
+      <xs:documentation>
+        Clustered cache resource sharing a pool with other cache resources.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="cluster-shared-resource-type">
+    <xs:attribute name="sharing" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Name of the shared pool this resource uses.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:complexType>
+
+  <xs:attributeGroup name="from-optional">
+    <xs:attribute name="from" type="xs:string" use="optional">
+      <xs:annotation>
+        <xs:documentation>
+          Optional reference to a server-side storage resource.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:attributeGroup>
+
+  <xs:attributeGroup name="from-required">
+    <xs:attribute name="from" type="xs:string" use="required">
+      <xs:annotation>
+        <xs:documentation>
+          Required reference to a server-side storage resource.
+        </xs:documentation>
+      </xs:annotation>
+    </xs:attribute>
+  </xs:attributeGroup>
 </xs:schema>
