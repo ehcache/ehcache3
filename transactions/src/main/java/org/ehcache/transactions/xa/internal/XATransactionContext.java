@@ -77,6 +77,10 @@ public class XATransactionContext<K, V> {
     return true;
   }
 
+  public void removeCommand(K key) {
+    commands.remove(key);
+  }
+
   public Map<K, XAValueHolder<V>> newValueHolders() {
     Map<K, XAValueHolder<V>> puts = new HashMap<K, XAValueHolder<V>>();
 

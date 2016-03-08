@@ -547,6 +547,8 @@ public class XAStore<K, V> implements Store<K, V> {
     if (newValue == null) {
       if (!(oldValue == null && !replaceEqual.apply())) {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
+      } else {
+        currentContext.removeCommand(key);
       }
     } else {
       checkValue(newValue);
