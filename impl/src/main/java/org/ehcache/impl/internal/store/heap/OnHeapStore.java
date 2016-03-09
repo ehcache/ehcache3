@@ -17,53 +17,53 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
-import org.ehcache.core.CacheConfigurationChangeEvent;
-import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.CacheConfigurationChangeEvent;
+import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.exceptions.LimitExceededException;
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
+import org.ehcache.core.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.core.statistics.CachingTierOperationOutcomes;
+import org.ehcache.core.statistics.HigherCachingTierOperationOutcomes;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
+import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ScopedStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
-import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.events.StoreEventSource;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
-import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
-import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
-import org.ehcache.core.statistics.CachingTierOperationOutcomes;
-import org.ehcache.core.statistics.HigherCachingTierOperationOutcomes;
-import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
@@ -79,7 +79,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -638,66 +637,28 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
-    final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
-      private Map.Entry<K, OnHeapValueHolder<V>> next = null;
-      private CacheAccessException prefetchFailure = null;
-
-      {
-        advance();
-      }
-
-      private void advance() {
-        next = null;
-        try {
-          while (next == null && it.hasNext()) {
-            Map.Entry<K, OnHeapValueHolder<V>> entry = it.next();
-            final long now = timeSource.getTimeMillis();
-            if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
-              internalGet(entry.getKey(), false);
-              continue;
-            }
-
-            next = entry;
-          }
-        } catch (RuntimeException re) {
-          prefetchFailure = new CacheAccessException(re);
-        } catch (CacheAccessException e) {
-          prefetchFailure = e;
-        }
-      }
+      private final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
 
       @Override
       public boolean hasNext() {
-        return next != null || prefetchFailure != null;
+        return it.hasNext();
       }
 
       @Override
       public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
-        if(prefetchFailure != null) {
-          throw prefetchFailure;
-        }
-
-        if (next == null) {
-          throw new NoSuchElementException();
-        }
-
-        final Map.Entry<K, OnHeapValueHolder<V>> thisEntry = next;
-        advance();
-
-        setAccessTimeAndExpiryThenReturnMapping(thisEntry.getKey(), thisEntry.getValue(), timeSource.getTimeMillis());
-
+        Entry<K, OnHeapValueHolder<V>> next = it.next();
+        final K key = next.getKey();
+        final OnHeapValueHolder<V> value = next.getValue();
         return new Cache.Entry<K, ValueHolder<V>>() {
           @Override
           public K getKey() {
-            return thisEntry.getKey();
+            return key;
           }
-
           @Override
           public ValueHolder<V> getValue() {
-            return thisEntry.getValue();
+            return value;
           }
-
         };
       }
     };

@@ -18,7 +18,6 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
-import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheIterationException;
 import org.ehcache.core.spi.cache.Store;
@@ -40,6 +39,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -335,16 +335,17 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     doReturn(storeEntry).when(storeIterator).next();
 
     doReturn(storeIterator).when(this.store).iterator();
+    doReturn(valueHolder).when(this.store).get(eq("foo"));
 
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator, is(notNullValue()));
     assertThat(iterator.hasNext(), is(true));
+    doThrow(new CacheAccessException("")).when(storeIterator).next();
     Cache.Entry<String, String> entry = iterator.next();
     assertThat(entry.getKey(), is("foo"));
     assertThat(entry.getValue(), is("bar"));
 
-    doThrow(new CacheAccessException("")).when(storeIterator).next();
 
     try {
       iterator.next();

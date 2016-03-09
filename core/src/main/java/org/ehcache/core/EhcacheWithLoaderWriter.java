@@ -163,6 +163,32 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
   }
 
   @Override
+  public V getNoLoader(K key) {
+    getObserver.begin();
+    statusTransitioner.checkAvailable();
+    checkNonNull(key);
+
+    try {
+      final Store.ValueHolder<V> valueHolder = store.get(key);
+
+      // Check for expiry first
+      if (valueHolder == null) {
+        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        return null;
+      } else {
+        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        return valueHolder.value();
+      }
+    } catch (CacheAccessException e) {
+      try {
+        return resilienceStrategy.getFailure(key, e);
+      } finally {
+        getObserver.end(GetOutcome.FAILURE);
+      }
+    }
+  }
+
+  @Override
   public V get(final K key) throws CacheLoadingException {
     getObserver.begin();
     statusTransitioner.checkAvailable();
@@ -1130,6 +1156,11 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     }
 
     @Override
+    public Iterator<Entry<K, V>> crappyterator() {
+      return new Crappyterator<K, V>(EhcacheWithLoaderWriter.this, store);
+    }
+
+    @Override
     public Map<K, V> getAll(Set<? extends K> keys) {
       return EhcacheWithLoaderWriter.this.getAllInternal(keys, false);
     }
@@ -1332,33 +1363,55 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
     @Override
     public void removeAll() {
-      for (Iterator<Cache.Entry<K, V>> iter = new CacheEntryIterator(true); iter.hasNext(); ) {
-        K key = iter.next().getKey();
-        remove(key);
+      Store.Iterator<Entry<K, ValueHolder<V>>> iterator = store.iterator();
+      while (iterator.hasNext()) {
+        try {
+          Entry<K, ValueHolder<V>> next = iterator.next();
+          remove(next.getKey());
+        } catch (CacheAccessException cae) {
+          // skip
+        }
       }
     }
   }
 
+  //TODO: this is an exact copy of the same class in Ehcache
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
     private final boolean quiet;
-    private boolean cacheAccessError = false;
     private Cache.Entry<K, ValueHolder<V>> current;
+    private Cache.Entry<K, ValueHolder<V>> next;
+    private CacheAccessException nextException;
 
     public CacheEntryIterator(boolean quiet) {
       this.quiet = quiet;
       this.iterator = store.iterator();
+      advance();
+    }
+
+    private void advance() {
+      try {
+        while (iterator.hasNext()) {
+          next = iterator.next();
+          if (getNoLoader(next.getKey()) != null) {
+            return;
+          }
+        }
+        next = null;
+      } catch (RuntimeException re) {
+        nextException = new CacheAccessException(re);
+        next = null;
+      } catch (CacheAccessException cae) {
+        nextException = cae;
+        next = null;
+      }
     }
 
     @Override
     public boolean hasNext() {
       statusTransitioner.checkAvailable();
-
-      if (cacheAccessError) {
-        return false;
-      }
-      return iterator.hasNext();
+      return nextException != null || next != null;
     }
 
     @Override
@@ -1368,16 +1421,17 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       }
 
       if (!quiet) getObserver.begin();
-      try {
-        current = iterator.next();
+      if (nextException == null) {
         if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
-      } catch (CacheAccessException e) {
+        current = next;
+        advance();
+        return new ValueHolderBasedEntry<K, V>(current);
+      } else {
         if (!quiet) getObserver.end(GetOutcome.FAILURE);
-        cacheAccessError = true;
-        return resilienceStrategy.iteratorFailure(e);
+        CacheAccessException cae = nextException;
+        nextException = null;
+        return resilienceStrategy.iteratorFailure(cae);
       }
-
-      return new ValueHolderBasedEntry<K, V>(current);
     }
 
     @Override

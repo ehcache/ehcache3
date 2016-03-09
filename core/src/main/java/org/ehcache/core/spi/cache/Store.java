@@ -210,7 +210,8 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
   /**
    * Returns an iterator over the elements in this store.  The elements are
    * returned in no particular order (unless this set is an instance of some
-   * class that provides a guarantee).
+   * class that provides a guarantee). Expired mappings may be part of the
+   * iteration.
    *
    * @return an iterator over the mappings in this set
    */
