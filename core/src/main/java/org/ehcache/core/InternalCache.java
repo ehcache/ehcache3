@@ -30,6 +30,14 @@ import org.terracotta.statistics.jsr166e.LongAdder;
 public interface InternalCache<K, V> extends UserManagedCache<K, V> {
 
   /**
+   * Perform a cache get that does not make use of any configured loader
+   *
+   * @param key the key
+   * @return the value
+   */
+  V getNoLoader(K key);
+
+  /**
    * BulkMethodEntries
    *
    * @return BulkMethodEntries

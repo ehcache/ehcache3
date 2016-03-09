@@ -133,6 +133,11 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   }
 
   @Override
+  public V getNoLoader(K key) {
+    return get(key);
+  }
+
+  @Override
   public V get(final K key) {
     getObserver.begin();
     statusTransitioner.checkAvailable();
@@ -648,67 +653,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       }
     }
 
-    /**
-     * The reason behind this method's name is because the 107 standard is so fucked up in so many mixed aspects
-     * <b>and</b> its TCK is so ridiculously relying on implementation details when it actually does test something
-     * remotely useful, Ehcache's 'sane' iterator contract (whatever sane might mean in this context) makes
-     * the 107 TCK unhappy.
-     *
-     * The 107 iteration contract combined with stats and expiration is so mind-blowingly lame that there is no way
-     * to adapt Ehcache's iterator. A secondary, really, really crappy one must be implemented.
-     */
     @Override
     public Iterator<Entry<K, V>> crappyterator() {
-      final Store.Iterator<Entry<K, ValueHolder<V>>> iterator = store.iterator();
-      return new Iterator<Entry<K, V>>() {
-        K current;
-        @Override
-        public boolean hasNext() {
-          return iterator.hasNext();
-        }
-
-        /**
-         * The multiple get calls are a necessary stupidity to please the 107 TCK's stats and
-         * you-cannot-expire-on-creation-but-immediately-expire-upon-retrieval-but-not-the-first-one-of-course contract.
-         */
-        @Override
-        public Entry<K, V> next() {
-          try {
-            final Entry<K, ValueHolder<V>> next = iterator.next();
-            // call Cache.get() here to check for expiry *and* account for a get in the stats
-            if (get(next.getKey()) == null) {
-              current = null;
-              return null;
-            }
-            // call Store.get() here to check check for hasNext()' expiry *and do not* account for an extra get in the stats
-            store.get(next.getKey());
-            current = next.getKey();
-
-            return new Entry<K, V>() {
-              @Override
-              public K getKey() {
-                return next.getKey();
-              }
-
-              @Override
-              public V getValue() {
-                return next.getValue().value();
-              }
-            };
-          } catch (CacheAccessException e) {
-            current = null;
-            return null;
-          }
-        }
-
-        @Override
-        public void remove() {
-          if (current == null) {
-            throw new IllegalStateException();
-          }
-          Ehcache.this.remove(current);
-        }
-      };
+      return new Crappyterator<K, V>(Ehcache.this, store);
     }
 
     @Override
@@ -892,13 +839,14 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         try {
           Entry<K, ValueHolder<V>> next = iterator.next();
           remove(next.getKey());
-        } catch (CacheAccessException e) {
+        } catch (CacheAccessException cae) {
           // skip
         }
       }
     }
   }
 
+  //TODO: this is an exact copy of the same class in EhcacheWithLoaderWriter
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;
@@ -917,7 +865,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       try {
         while (iterator.hasNext()) {
           next = iterator.next();
-          if (get(next.getKey()) != null) {
+          if (getNoLoader(next.getKey()) != null) {
             return;
           }
         }
