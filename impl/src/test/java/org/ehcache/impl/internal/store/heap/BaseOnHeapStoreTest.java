@@ -1340,7 +1340,7 @@ public abstract class BaseOnHeapStoreTest {
     store.put("keyC", "valueC");
   }
 
-  @Test
+  @Test(timeout = 2000L)
   public void testIteratorExpiryHappensUnderExpiredKeyLockScope() throws Exception {
     TestTimeSource testTimeSource = new TestTimeSource();
     final OnHeapStore<String, String> store = newStore(testTimeSource, Expirations.timeToLiveExpiration(new Duration(10, TimeUnit.MILLISECONDS)));
@@ -1368,13 +1368,10 @@ public abstract class BaseOnHeapStoreTest {
       @Override
       public void onInvalidation(String key, ValueHolder<String> valueHolder) {
         expiryLatch.countDown();
-        long now = System.nanoTime();
         while (!thread.getState().equals(Thread.State.BLOCKED)) {
           Thread.yield();
-          if (System.nanoTime() - now > TimeUnit.MILLISECONDS.toNanos(500)) {
-            assertThat(thread.getState(), is(Thread.State.BLOCKED));
-          }
         }
+        assertThat(thread.getState(), is(Thread.State.BLOCKED));
       }
     });
 
