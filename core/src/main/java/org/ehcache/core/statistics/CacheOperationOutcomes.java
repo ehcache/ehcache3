@@ -17,9 +17,7 @@
 package org.ehcache.core.statistics;
 
 /**
- *
- * @author Hung Huynh
- *
+ * CacheOperationOutcomes
  */
 public interface CacheOperationOutcomes {
 
@@ -27,11 +25,11 @@ public interface CacheOperationOutcomes {
    * Outcomes for cache Get operations.
    */
   enum GetOutcome implements CacheOperationOutcomes {
-    /** hit, no loader. */
+    /** hit, no loader */
     HIT_NO_LOADER,
     /** miss, no loader */
     MISS_NO_LOADER,
-    /** hit. */
+    /** hit */
     HIT_WITH_LOADER,
     /** miss */
     MISS_WITH_LOADER,
@@ -43,7 +41,13 @@ public interface CacheOperationOutcomes {
    * Outcomes for cache getAll operation
    */
   enum GetAllOutcome implements  CacheOperationOutcomes {
+    /**
+     * success, can be partial
+     */
     SUCCESS,
+    /**
+     * failure
+     */
     FAILURE
   }
 
@@ -65,7 +69,13 @@ public interface CacheOperationOutcomes {
    * Outcomes for cache putAll operation
    */
   enum PutAllOutcome implements CacheOperationOutcomes {
+    /**
+     * success
+     */
     SUCCESS,
+    /**
+     * failure
+     */
     FAILURE
   }
 
@@ -85,7 +95,13 @@ public interface CacheOperationOutcomes {
    * Outcomes for cache removeAll operation
    */
   enum RemoveAllOutcome implements CacheOperationOutcomes {
+    /**
+     * success
+     */
     SUCCESS,
+    /**
+     * failure
+     */
     FAILURE
   }
 
@@ -93,9 +109,21 @@ public interface CacheOperationOutcomes {
    * The outcomes for conditional remove operations.
    */
   enum ConditionalRemoveOutcome implements CacheOperationOutcomes {
+    /**
+     * Remove success
+     */
     SUCCESS,
+    /**
+     * Remove failed, a mapping was present
+     */
     FAILURE_KEY_PRESENT,
+    /**
+     * Remove failed, a mapping was not present
+     */
     FAILURE_KEY_MISSING,
+    /**
+     * Operation failure
+     */
     FAILURE
   };
 
@@ -113,8 +141,17 @@ public interface CacheOperationOutcomes {
    * The putIfAbsent outcomes.
    */
   enum PutIfAbsentOutcome implements CacheOperationOutcomes {
+    /**
+     * operation installed a mapping
+     */
     PUT,
+    /**
+     * there was a mapping present
+     */
     HIT,
+    /**
+     * operation failure
+     */
     FAILURE
   };
 
@@ -122,9 +159,21 @@ public interface CacheOperationOutcomes {
    * The replace outcomes.
    */
   enum ReplaceOutcome implements CacheOperationOutcomes {
+    /**
+     * replaced mapping
+     */
     HIT,
+    /**
+     * mapping present and not replaced
+     */
     MISS_PRESENT,
+    /**
+     * no mapping present
+     */
     MISS_NOT_PRESENT,
+    /**
+     * operation failure
+     */
     FAILURE
   };
 }

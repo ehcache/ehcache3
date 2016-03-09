@@ -14,23 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.statistics;
-
 /**
- * HigherCachingTierOperationOutcomes
+ * Package holding the {@code enum}s representing operations statistics results.
  */
-public interface HigherCachingTierOperationOutcomes {
-  /**
-   * the silentInvalidate outcomes
-   */
-  enum SilentInvalidateOutcome implements HigherCachingTierOperationOutcomes {
-    /**
-     * mapping removed
-     */
-    REMOVED,
-    /**
-     * miss
-     */
-    MISS
-  }
-}
+package org.ehcache.core.statistics;
