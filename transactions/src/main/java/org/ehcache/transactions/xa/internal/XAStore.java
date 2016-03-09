@@ -65,6 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import javax.transaction.RollbackException;
@@ -290,8 +291,20 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public RemoveStatus remove(K key, V value) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+  public RemoveStatus remove(K key, final V value) throws CacheAccessException {
+    final AtomicReference<RemoveStatus> status = new AtomicReference<RemoveStatus>(RemoveStatus.KEY_MISSING);
+    computeIfPresent(key, new BiFunction<K, V, V>() {
+      @Override
+      public V apply(K k, V v) {
+        if (value.equals(v)) {
+          status.set(RemoveStatus.REMOVED);
+          return null;
+        }
+        status.set(RemoveStatus.KEY_PRESENT);
+        return v;
+      }
+    });
+    return status.get();
   }
 
   @Override
