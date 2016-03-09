@@ -55,7 +55,7 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testPutNullNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.put(null, null);
@@ -67,7 +67,7 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testPutKeyNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.put("key", null);
@@ -79,7 +79,7 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testPutNullValue() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.put(null, "value");
@@ -93,15 +93,14 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link EhcacheWithLoaderWriter#put(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testPutNoStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testPutNoStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.put("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -189,16 +188,15 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testPutNoStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testPutNoStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.put("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -300,15 +298,14 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link EhcacheWithLoaderWriter#put(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testPutHasStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testPutHasStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.put("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -396,16 +393,15 @@ public class EhcacheWithLoaderWriterBasicPutTest extends EhcacheBasicCrudBase {
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testPutHasStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testPutHasStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.put("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());

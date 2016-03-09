@@ -20,7 +20,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.function.Function;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.junit.Test;
@@ -55,7 +54,7 @@ public class EhcacheBulkMethodsTest {
   public void testPutAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
 
-    InternalCache<Number, CharSequence> ehcache = getCache(store, null);
+    InternalCache<Number, CharSequence> ehcache = getCache(store);
     ehcache.init();
 
     ehcache.putAll(new HashMap<Number, CharSequence>() {{
@@ -80,7 +79,7 @@ public class EhcacheBulkMethodsTest {
       }
     });
 
-    InternalCache<Number, CharSequence> ehcache = getCache(store, null);
+    InternalCache<Number, CharSequence> ehcache = getCache(store);
     ehcache.init();
     Map<Number, CharSequence> result = ehcache.getAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
@@ -94,14 +93,14 @@ public class EhcacheBulkMethodsTest {
   public void testRemoveAll() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
 
-    InternalCache<Number, CharSequence> ehcache = getCache(store, null);
+    InternalCache<Number, CharSequence> ehcache = getCache(store);
     ehcache.init();
     ehcache.removeAll(new HashSet<Number>(Arrays.asList(1, 2, 3)));
 
     verify(store).bulkCompute((Set<? extends Number>) argThat(hasItems(1, 2, 3)), any(Function.class));
   }
 
-  protected InternalCache<Number, CharSequence> getCache(Store<Number, CharSequence> store, CacheLoaderWriter cacheLoaderWriter) {
+  protected InternalCache<Number, CharSequence> getCache(Store<Number, CharSequence> store) {
     CacheConfiguration<Number, CharSequence> cacheConfig = mock(CacheConfiguration.class);
     when(cacheConfig.getExpiry()).thenReturn(mock(Expiry.class));
     CacheEventDispatcher<Number, CharSequence> cacheEventDispatcher = mock(CacheEventDispatcher.class);

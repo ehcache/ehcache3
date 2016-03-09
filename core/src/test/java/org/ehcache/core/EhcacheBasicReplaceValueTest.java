@@ -219,7 +219,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testReplaceValueUnequalStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testReplaceValueUnequalStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));
@@ -241,7 +241,7 @@ public class EhcacheBasicReplaceValueTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testReplaceValueEqualStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testReplaceValueEqualStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).replace(eq("key"), eq("oldValue"), eq("newValue"));

@@ -58,7 +58,7 @@ public class EhcacheWithLoaderWriterBasicGetTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testGetNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.get(null);
@@ -72,17 +72,16 @@ public class EhcacheWithLoaderWriterBasicGetTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link EhcacheWithLoaderWriter#get(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testGetNoStoreEntryNoCacheLoaderWriter() throws Exception {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+  public void testGetNoStoreEntry() throws Exception {
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertThat(ehcache.get("key"), is(nullValue()));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
   }
 
@@ -159,29 +158,6 @@ public class EhcacheWithLoaderWriterBasicGetTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.CacheLoadingOutcome.FAILURE));
-  }
-
-  /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#get(Object)} for
-   * <ul>
-   *   <li>key not present in {@code Store}</li>
-   *   <li>{@code Store.computeIfAbsent} throws</li>
-   *   <li>{@code CacheLoaderWriter} omitted</li>
-   * </ul>
-   */
-  @Test
-  public void testGetNoStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
-    this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
-
-    ehcache.get("key");
-    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(CacheAccessException.class));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
   }
 
   /**
@@ -267,22 +243,21 @@ public class EhcacheWithLoaderWriterBasicGetTest extends EhcacheBasicCrudBase {
    * Tests the effect of a {@link EhcacheWithLoaderWriter#get(Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testGetHasStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testGetHasStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertThat(ehcache.get("key"), equalTo("value"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER));
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
   }
 
@@ -357,30 +332,6 @@ public class EhcacheWithLoaderWriterBasicGetTest extends EhcacheBasicCrudBase {
     verifyZeroInteractions(this.spiedResilienceStrategy);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
-    validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
-  }
-
-  /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#get(Object)} for
-   * <ul>
-   *   <li>key present in {@code Store}</li>
-   *   <li>{@code Store.computeIfAbsent} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
-   * </ul>
-   */
-  @Test
-  public void testGetHasStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
-    final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
-    this.store = spy(fakeStore);
-    assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    doThrow(new CacheAccessException("")).when(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
-
-    ehcache.get("key");
-    verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
-    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(CacheAccessException.class));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
   }
 

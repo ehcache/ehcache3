@@ -22,7 +22,6 @@ import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -87,7 +86,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     try {
       ehcache.removeAll(null);
       fail();
@@ -111,7 +110,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
         keys.add(null);
       }
     }
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     try {
       ehcache.removeAll(keys);
       fail();
@@ -136,7 +135,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     ehcache.removeAll(Collections.<String>emptySet());
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -164,7 +163,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -196,7 +195,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -228,7 +227,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> contentUpdates = fanIn(KEY_SET_A, KEY_SET_C);
     ehcache.removeAll(contentUpdates);
@@ -246,18 +245,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link InternalCache Ehcache} instance using the
-   * {@link CacheLoaderWriter} provided.
-   *
-   * @param cacheLoaderWriter
-   *    the {@code CacheLoaderWriter} to use; may be {@code null}
+   * Gets an initialized {@link Ehcache Ehcache} instance
    *
    * @return a new {@code Ehcache} instance
    */
-  protected InternalCache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    if (cacheLoaderWriter != null) {
-      fail();
-    }
+  private Ehcache<String, String> getEhcache() {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
@@ -302,7 +294,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    *    {@code Iterator} over the resulting {@code Set} returns the values
    *    in the order observed by the captor.
    */
-  protected Set<String> getBulkComputeArgs() {
+  private Set<String> getBulkComputeArgs() {
     final Set<String> bulkComputeArgs = new LinkedHashSet<String>();
     for (final Set<String> set : this.bulkComputeSetCaptor.getAllValues()) {
       bulkComputeArgs.addAll(set);

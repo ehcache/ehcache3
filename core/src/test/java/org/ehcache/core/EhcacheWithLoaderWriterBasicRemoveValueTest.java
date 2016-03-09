@@ -54,7 +54,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
 
   @Test
   public void testRemoveNullNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.remove(null, null);
@@ -66,7 +66,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
 
   @Test
   public void testRemoveKeyNull() throws Exception {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.remove("key", null);
@@ -78,7 +78,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
 
   @Test
   public void testRemoveNullValue() throws Exception {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.remove(null, "value");
@@ -92,15 +92,14 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
    * Tests the effect of a {@link EhcacheWithLoaderWriter#remove(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveValueNoStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testRemoveValueNoStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertFalse(ehcache.remove("key", "value"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -113,15 +112,14 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
    * Tests the effect of a {@link EhcacheWithLoaderWriter#remove(Object, Object)} for
    * <ul>
    *   <li>key with unequal value in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveValueUnequalStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testRemoveValueUnequalStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertFalse(ehcache.remove("key", "value"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -134,15 +132,14 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
    * Tests the effect of a {@link EhcacheWithLoaderWriter#remove(Object, Object)} for
    * <ul>
    *   <li>key with equal value in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveValueEqualStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testRemoveValueEqualStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertTrue(ehcache.remove("key", "value"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -156,16 +153,15 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveValueNoStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testRemoveValueNoStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.remove("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -179,16 +175,15 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
    *   <li>>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveValueUnequalStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testRemoveValueUnequalStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.remove("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -202,16 +197,15 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
    *   <li>>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveValueEqualStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testRemoveValueEqualStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.remove("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());

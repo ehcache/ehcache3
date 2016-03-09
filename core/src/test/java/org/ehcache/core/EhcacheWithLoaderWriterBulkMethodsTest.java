@@ -42,12 +42,14 @@ import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.ehcache.core.EhcacheBulkMethodsTest.entry;
+import static org.ehcache.core.EhcacheBulkMethodsTest.valueHolder;
 
 /**
  * @author Abhilash
  *
  */
-public class EhcacheWithLoaderWriterBulkMethodsTest extends EhcacheBulkMethodsTest {
+public class EhcacheWithLoaderWriterBulkMethodsTest {
 
   @Test
   public void testPutAllWithWriter() throws Exception {

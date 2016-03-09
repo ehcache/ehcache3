@@ -27,6 +27,7 @@ import org.ehcache.core.spi.cache.Store.Configuration;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.CoreMatchers;
@@ -50,73 +51,56 @@ public class UserManagedCacheTest {
     final Store store = mock(Store.class);
     CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null,
         null, ResourcePoolsHelper.createHeapOnlyPools());
-    EhcacheWithLoaderWriter ehcache = new EhcacheWithLoaderWriter(config, store, new DisabledCacheEventNotificationService(), LoggerFactory.getLogger("testUserManagedCacheDelegatesLifecycleCallsToStore"));
+    Ehcache ehcache = new Ehcache(config, store, new DisabledCacheEventNotificationService(), LoggerFactory.getLogger(Ehcache.class + "testUserManagedCacheDelegatesLifecycleCallsToStore"));
+    assertCacheDelegatesLifecycleCallsToStore(ehcache);
+
+    EhcacheWithLoaderWriter ehcacheWithLoaderWriter = new EhcacheWithLoaderWriter(config, store,
+        mock(CacheLoaderWriter.class), new DisabledCacheEventNotificationService(), LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "testUserManagedCacheDelegatesLifecycleCallsToStore"));
+    assertCacheDelegatesLifecycleCallsToStore(ehcacheWithLoaderWriter);
+  }
+
+  private void assertCacheDelegatesLifecycleCallsToStore(InternalCache cache) throws Exception {
     final LifeCycled mock = mock(LifeCycled.class);
-    ehcache.addHook(mock);
-    ehcache.init();
+    cache.addHook(mock);
+    cache.init();
     verify(mock).init();
-    ehcache.close();
+    cache.close();
     verify(mock).close();
   }
 
   @Test
   public void testUserManagedEhcacheFailingTransitionGoesToLowestStatus() throws Exception {
     final Store store = mock(Store.class);
-    Store.Provider storeProvider = spy(new TestStoreProvider(store));
-    ServiceLocator locator = new ServiceLocator(storeProvider);
     CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
-    EhcacheWithLoaderWriter ehcache = new EhcacheWithLoaderWriter(config, store, new DisabledCacheEventNotificationService(), LoggerFactory.getLogger("testUserManagedEhcacheFailingTransitionGoesToLowestStatus"));
+    Ehcache ehcache = new Ehcache(config, store, new DisabledCacheEventNotificationService(), LoggerFactory.getLogger(Ehcache.class + "testUserManagedEhcacheFailingTransitionGoesToLowestStatus"));
+    assertFailingTransitionGoesToLowestStatus(ehcache);
+    EhcacheWithLoaderWriter ehcacheWithLoaderWriter = new EhcacheWithLoaderWriter(config, store,
+        mock(CacheLoaderWriter.class), new DisabledCacheEventNotificationService(), LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "testUserManagedCacheDelegatesLifecycleCallsToStore"));
+    assertFailingTransitionGoesToLowestStatus(ehcacheWithLoaderWriter);
+  }
+
+  private void assertFailingTransitionGoesToLowestStatus(InternalCache cache) throws Exception {
     final LifeCycled mock = mock(LifeCycled.class);
-    ehcache.addHook(mock);
+    cache.addHook(mock);
     doThrow(new Exception()).when(mock).init();
     try {
-      ehcache.init();
+      cache.init();
       fail();
     } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), CoreMatchers.is(Status.UNINITIALIZED));
+      assertThat(cache.getStatus(), CoreMatchers.is(Status.UNINITIALIZED));
     }
 
     reset(mock);
-    ehcache.init();
-    assertThat(ehcache.getStatus(), is(Status.AVAILABLE));
+    cache.init();
+    assertThat(cache.getStatus(), is(Status.AVAILABLE));
     doThrow(new Exception()).when(mock).close();
     try {
-      ehcache.close();
+      cache.close();
       fail();
     } catch (StateTransitionException e) {
-      assertThat(ehcache.getStatus(), is(Status.UNINITIALIZED));
-    }
-  }
-
-  private class TestStoreProvider implements Store.Provider {
-    private Store store;
-
-    public TestStoreProvider(Store store) {
-      this.store = store;
-    }
-
-    @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
-    }
-
-    @Override
-    public void stop() {
-    }
-
-    @Override
-    public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return store;
-    }
-
-    @Override
-    public void releaseStore(Store<?, ?> resource) {
-//      resource.close();
-    }
-
-    @Override
-    public void initStore(Store<?, ?> resource) {
-
+      assertThat(cache.getStatus(), is(Status.UNINITIALIZED));
     }
 
   }
+
 }

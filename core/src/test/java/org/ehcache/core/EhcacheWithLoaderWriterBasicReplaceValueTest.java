@@ -64,7 +64,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
   @Test
   public void testReplaceValueNullNullNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.replace(null, null, null);
@@ -76,7 +76,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
   @Test
   public void testReplaceKeyNullNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.replace("key", null, null);
@@ -88,7 +88,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
   @Test
   public void testReplaceKeyValueNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.replace("key", "oldValue", null);
@@ -100,7 +100,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
   @Test
   public void testReplaceKeyNullValue() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.replace("key", null, "newValue");
@@ -112,7 +112,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
   @Test
   public void testReplaceNullValueNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.replace(null, "oldValue", null);
@@ -124,7 +124,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
   @Test
   public void testReplaceNullValueValue() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.replace(null, "oldValue", "newValue");
@@ -136,7 +136,7 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
 
   @Test
   public void testReplaceNullNullValue() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.replace(null, null, "newValue");
@@ -151,15 +151,14 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
    * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceValueNoStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testReplaceValueNoStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -172,15 +171,14 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
    * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with unequal value in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceValueUnequalStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testReplaceValueUnequalStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertFalse(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -193,15 +191,14 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
    * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object, Object)} for
    * <ul>
    *   <li>key with equal value in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceValueEqualStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testReplaceValueEqualStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     assertTrue(ehcache.replace("key", "oldValue", "newValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -215,16 +212,15 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceValueNoStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testReplaceValueNoStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -238,16 +234,15 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
    * <ul>
    *   <li>key with unequal value present in {@code Store}</li>
    *   <li>>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceValueUnequalStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testReplaceValueUnequalStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
@@ -261,16 +256,15 @@ public class EhcacheWithLoaderWriterBasicReplaceValueTest extends EhcacheBasicCr
    * <ul>
    *   <li>key with equal value present in {@code Store}</li>
    *   <li>>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testReplaceValueEqualStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testReplaceValueEqualStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.replace("key", "oldValue", "newValue");
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());

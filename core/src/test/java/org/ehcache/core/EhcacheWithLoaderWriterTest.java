@@ -56,7 +56,8 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
         null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
-    return new EhcacheWithLoaderWriter(config, store, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterTest"));
+    CacheLoaderWriter<Object, Object> cacheLoaderWriter = mock(CacheLoaderWriter.class);
+    return new EhcacheWithLoaderWriter(config, store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterTest"));
   }
 
   @Test

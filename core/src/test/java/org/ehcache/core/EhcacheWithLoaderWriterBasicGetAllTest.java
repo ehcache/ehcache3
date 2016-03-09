@@ -63,6 +63,9 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.ehcache.core.EhcacheBasicGetAllTest.getAnyStringSet;
+import static org.ehcache.core.EhcacheBasicGetAllTest.getAnyIterableFunction;
+import static org.ehcache.core.EhcacheBasicGetAllTest.validateBulkCounters;
 
 /**
  * Provides testing of basic GET_ALL operations on an {@code EhcacheWithLoaderWriter}.
@@ -75,7 +78,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
  *
  * @author Clifford W. Johnson
  */
-public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTest {
+public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase {
 
   @Mock
   private CacheLoaderWriter<String, String> loaderWriter;
@@ -121,7 +124,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(TEST_ENTRIES);
     this.loaderWriter = spy(fakeLoaderWriter);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Map<String, String> actual = ehcache.getAll(Collections.<String>emptySet());
     final Map<String, String> expected = Collections.emptyMap();
@@ -155,7 +158,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -195,7 +198,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -235,7 +238,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
     Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
       ehcache.getAll(fetchKeys);
@@ -279,7 +282,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -325,7 +328,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -372,7 +375,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
     Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
       ehcache.getAll(fetchKeys);
@@ -418,7 +421,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -462,7 +465,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -507,7 +510,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
     Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
 
     try {
@@ -552,7 +555,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));
@@ -589,7 +592,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     final Map<String, String> expected = getNullEntryMap(KEY_SET_A);
@@ -627,7 +630,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     final Map<String, String> expected = getNullEntryMap(KEY_SET_A);
@@ -664,7 +667,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_F);
     try {
@@ -707,7 +710,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_F);
     try {
@@ -752,7 +755,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_F);
     try {
@@ -799,7 +802,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -838,7 +841,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -878,7 +881,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -917,7 +920,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -956,7 +959,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -996,7 +999,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1035,7 +1038,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1074,7 +1077,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1114,7 +1117,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1157,7 +1160,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1197,7 +1200,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1237,7 +1240,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1281,7 +1284,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1328,7 +1331,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1376,7 +1379,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1424,7 +1427,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1470,7 +1473,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -1514,7 +1517,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1560,7 +1563,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1599,7 +1602,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1639,7 +1642,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1678,7 +1681,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F), KEY_SET_D);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1719,7 +1722,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_D, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1763,7 +1766,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F), KEY_SET_D);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1811,7 +1814,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(fetchKeys);
@@ -1856,7 +1859,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B), KEY_SET_D);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1903,7 +1906,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1942,7 +1945,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1982,7 +1985,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2021,7 +2024,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_E), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2063,7 +2066,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_D, KEY_SET_F), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2108,7 +2111,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_E), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2155,7 +2158,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_E);
     try {
@@ -2202,7 +2205,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_E), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2251,7 +2254,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_D, KEY_SET_F), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2292,7 +2295,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2331,7 +2334,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2371,7 +2374,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2415,7 +2418,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2454,7 +2457,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2502,7 +2505,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -2549,7 +2552,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2597,7 +2600,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2643,7 +2646,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -2687,7 +2690,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2732,7 +2735,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2770,7 +2773,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2809,7 +2812,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2847,7 +2850,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2895,7 +2898,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -2939,7 +2942,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_F), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2983,7 +2986,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3021,7 +3024,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3060,7 +3063,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3098,7 +3101,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C), KEY_SET_A);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3137,7 +3140,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C), KEY_SET_A);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3184,7 +3187,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3232,7 +3235,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C), KEY_SET_A);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3277,7 +3280,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3322,7 +3325,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3360,7 +3363,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3401,7 +3404,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3424,8 +3427,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicGetAllTe
     validateBulkCounters(ehcache, 0, 0);
   }
 
-  @Override
-  protected InternalCache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
     final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterBasicGetAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));

@@ -21,7 +21,6 @@ import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -70,25 +69,11 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 /**
  * Provides testing of basic PUT_ALL operations on an {@code Ehcache}.
- * <p/>
- * In an effort compromise, this class intentionally omits test cases in which
- * the {@code Store} is pre-populated with no entries, pre-populated only with
- * entries having keys not in the {@code putAll} request map, and pre-populated
- * with entries for all keys in the {@code putAll} request map.  This reduces
- * the potential test cases by about 70% without, hopefully, compromising code
- * coverage.
- * <p/>
- * Since the processing in {@link EhcacheWithLoaderWriter#putAll} relies on non-deterministically ordered Maps in several stages
- * of processing, the result of {@code putAll} when handling failures is *not* deterministic -- changes in
- * iteration order of the {@code putAll} request map can change the results of the {@code putAll} operation under
- * error scenarios.  The test assertions attempt to confirm results in aggregate over successes and failures and
- * do not specify specific success and failures for each test.
  *
  * @author Clifford W. Johnson
  */
 @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
 public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
-
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
@@ -96,7 +81,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    Store.bulkCompute(Set, Function, NullaryFunction} method.
    */
   @Captor
-  protected ArgumentCaptor<Set<String>> bulkComputeSetCaptor;
+  private ArgumentCaptor<Set<String>> bulkComputeSetCaptor;
 
   @Test
   public void testPutAllNull() throws Exception {
@@ -104,7 +89,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     try {
       ehcache.putAll(null);
       fail();
@@ -129,7 +114,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         entries.put(null, "nullKey");
       }
     }
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     try {
       ehcache.putAll(entries);
       fail();
@@ -154,7 +139,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
         entries.put("keyA2a", null);
       }
     }
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     try {
       ehcache.putAll(entries);
       fail();
@@ -179,7 +164,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     ehcache.putAll(Collections.<String, String>emptyMap());
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
@@ -205,7 +190,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -237,7 +222,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -269,7 +254,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Map<String, String> contentUpdates = getAltEntryMap("new_", fanIn(KEY_SET_A, KEY_SET_C));
     ehcache.putAll(contentUpdates);
@@ -287,21 +272,10 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link InternalCache Ehcache} instance using the
-   * {@link CacheLoaderWriter} provided.
-   *
-   * @param cacheLoaderWriter
-   *    the {@code CacheLoaderWriter} to use; may be {@code null}
+   * Gets an initialized {@link Ehcache Ehcache} instance
    *
    * @return a new {@code Ehcache} instance
    */
-  protected InternalCache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    if (cacheLoaderWriter != null) {
-      fail();
-    }
-    return getEhcache();
-  }
-
   private Ehcache<String, String> getEhcache() {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
@@ -416,7 +390,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    *    {@code Iterator} over the resulting {@code Set} returns the values
    *    in the order observed by the captor.
    */
-  protected Set<String> getBulkComputeArgs() {
+  private Set<String> getBulkComputeArgs() {
     final Set<String> bulkComputeArgs = new LinkedHashSet<String>();
     for (final Set<String> set : this.bulkComputeSetCaptor.getAllValues()) {
       bulkComputeArgs.addAll(set);

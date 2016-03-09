@@ -21,7 +21,6 @@ import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.Function;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -64,7 +63,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testGetAllNull() throws Exception {
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     try {
       ehcache.getAll(null);
       fail();
@@ -82,7 +81,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
         keys.add(null);     // Add a null element
       }
     }
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
     try {
       ehcache.getAll(keys);
       fail();
@@ -103,7 +102,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Map<String, String> actual = ehcache.getAll(Collections.<String>emptySet());
     assertThat(actual, is(notNullValue()));
@@ -115,17 +114,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStatsNoneof(ehcache);
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
   }
-
-
-  static void validateBulkCounters(InternalCache<?, ?> ehcache, int expectedHitCount, int expectedMissCount) {
-    LongAdder hitAdder = ehcache.getBulkMethodEntries().get(BulkOps.GET_ALL_HITS);
-    LongAdder missAdder = ehcache.getBulkMethodEntries().get(BulkOps.GET_ALL_MISS);
-    int hitCount = hitAdder == null ? 0 : hitAdder.intValue();
-    int missCount = missAdder == null ? 0 : missAdder.intValue();
-    assertThat(hitCount, is(expectedHitCount));
-    assertThat(missCount, is(expectedMissCount));
-  }
-
 
   /**
    * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
@@ -140,7 +128,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));
@@ -153,8 +141,6 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetAllOutcome.SUCCESS));
     validateBulkCounters(ehcache, 0, KEY_SET_A.size());
   }
-
-
 
   /**
    * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
@@ -172,7 +158,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -201,7 +187,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -233,7 +219,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));
@@ -262,7 +248,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -294,7 +280,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new CacheAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final InternalCache<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -310,7 +296,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateBulkCounters(ehcache, 0, 0);
   }
 
-  private void validateStatsNoneof(InternalCache<String, String> cache) {
+  private void validateStatsNoneof(Ehcache<String, String> cache) {
     validateStats(cache, EnumSet.noneOf(CacheOperationOutcomes.GetOutcome.class));
     if (!(cache instanceof Ehcache)) {
       validateStats(cache, EnumSet.noneOf(CacheOperationOutcomes.CacheLoadingOutcome.class));
@@ -318,22 +304,25 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link InternalCache Ehcache} instance using the
-   * {@link CacheLoaderWriter} provided.
+   * Gets an initialized {@link Ehcache Ehcache} instance
    *
-   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to use; may be {@code null}
-   *
-   * @return a new {@code InternalCache} instance
+   * @return a new {@code Ehcache} instance
    */
-  protected InternalCache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    if (cacheLoaderWriter != null) {
-      fail();
-    }
+  private Ehcache<String, String> getEhcache() {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicGetAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
+  }
+
+  static void validateBulkCounters(InternalCache<?, ?> ehcache, int expectedHitCount, int expectedMissCount) {
+    LongAdder hitAdder = ehcache.getBulkMethodEntries().get(BulkOps.GET_ALL_HITS);
+    LongAdder missAdder = ehcache.getBulkMethodEntries().get(BulkOps.GET_ALL_MISS);
+    int hitCount = hitAdder == null ? 0 : hitAdder.intValue();
+    int missCount = missAdder == null ? 0 : missAdder.intValue();
+    assertThat(hitCount, is(expectedHitCount));
+    assertThat(missCount, is(expectedMissCount));
   }
 
   /**

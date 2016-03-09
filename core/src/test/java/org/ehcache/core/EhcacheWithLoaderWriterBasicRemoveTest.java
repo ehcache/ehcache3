@@ -53,7 +53,7 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
 
   @Test
   public void testRemoveNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.remove(null);
@@ -67,15 +67,14 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
    * Tests the effect of a {@link EhcacheWithLoaderWriter#remove(Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveNoStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testRemoveNoStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.remove("key");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -163,16 +162,15 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveNoStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testRemoveNoStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.remove("key");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -274,15 +272,14 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
    * Tests the effect of a {@link EhcacheWithLoaderWriter#remove(Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveHasStoreEntryNoCacheLoaderWriter() throws Exception {
+  public void testRemoveHasStoreEntry() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.remove("key");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -370,16 +367,15 @@ public class EhcacheWithLoaderWriterBasicRemoveTest extends EhcacheBasicCrudBase
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
-   *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  public void testRemoveHasStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testRemoveHasStoreEntryCacheAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
     doThrow(new CacheAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     ehcache.remove("key");
     verify(this.store).compute(eq("key"), getAnyBiFunction());

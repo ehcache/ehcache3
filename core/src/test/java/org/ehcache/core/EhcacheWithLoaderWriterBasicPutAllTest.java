@@ -17,6 +17,7 @@ package org.ehcache.core;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -30,6 +31,7 @@ import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.function.Function;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
@@ -67,6 +69,9 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyEntryIterable;
+import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyEntryIterableFunction;
+import static org.ehcache.core.EhcacheBasicPutAllTest.getAnyStringSet;
 
 /**
  * Provides testing of basic PUT_ALL operations on an {@code EhcacheWithLoaderWriter}.
@@ -86,10 +91,18 @@ import static org.mockito.Mockito.when;
  *
  * @author Clifford W. Johnson
  */
-public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicPutAllTest {
+public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase {
 
   @Mock
   private CacheLoaderWriter<String, String> cacheLoaderWriter;
+
+  /**
+   * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
+   * {@link Store#bulkCompute(Set, Function, org.ehcache.function.NullaryFunction)
+   *    Store.bulkCompute(Set, Function, NullaryFunction} method.
+   */
+  @Captor
+  private ArgumentCaptor<Set<String>> bulkComputeSetCaptor;
 
   /**
    * A Mockito {@code ArgumentCaptor} for the
@@ -1910,8 +1923,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicPutAllTe
         .entrySet())));
   }
 
-  @Override
-  protected InternalCache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
     return getEhcache(cacheLoaderWriter, CACHE_CONFIGURATION);
   }
 
@@ -1927,6 +1939,21 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicPutAllTe
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
     return ehcache;
+  }
+
+  /**
+   * Collects all arguments captured by {@link #bulkComputeSetCaptor}.
+   *
+   * @return the argument values collected by {@link #bulkComputeSetCaptor}; the
+   *    {@code Iterator} over the resulting {@code Set} returns the values
+   *    in the order observed by the captor.
+   */
+  private Set<String> getBulkComputeArgs() {
+    final Set<String> bulkComputeArgs = new LinkedHashSet<String>();
+    for (final Set<String> set : this.bulkComputeSetCaptor.getAllValues()) {
+      bulkComputeArgs.addAll(set);
+    }
+    return bulkComputeArgs;
   }
 
 }
