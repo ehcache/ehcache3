@@ -25,14 +25,31 @@ import org.ehcache.core.spi.cache.events.StoreEventSource;
  * This interface controls the lifecycle of {@link StoreEventSink}s, enabling implementations to decouple the event
  * raising inside the {@link Store} from the firing to outside collaborators.
  * <P/>
+ *
  * {@link Store} implementations are expected to get a {@link StoreEventSink} per
  * operation and release it once the operation completes.
  */
 public interface StoreEventDispatcher<K, V> extends StoreEventSource<K, V> {
 
+  /**
+   * Hands over an event sink for recording store events.
+   *
+   * @return the event sink to use
+   */
   StoreEventSink<K, V> eventSink();
 
+  /**
+   * Releases the event sink after normal completion of an operation.
+   *
+   * @param eventSink the event sink to release
+   */
   void releaseEventSink(StoreEventSink<K, V> eventSink);
 
+  /**
+   * Releases the event sink after failure of an operation.
+   *
+   * @param eventSink the event sink to release
+   * @param throwable the exception
+   */
   void releaseEventSinkAfterFailure(StoreEventSink<K, V> eventSink, Throwable throwable);
 }

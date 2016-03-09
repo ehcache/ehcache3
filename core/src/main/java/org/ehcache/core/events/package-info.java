@@ -14,21 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.events;
-
-import org.ehcache.Status;
-
 /**
- * Interface for listeners interested in {@link org.ehcache.CacheManager} state transitions.
+ * Package holding interfaces that relate to events, either at the {@link org.ehcache.CacheManager} level like
+ * {@link org.ehcache.core.events.CacheManagerListener} or the {@link org.ehcache.event.CacheEvent} subsystem like
+ * {@link org.ehcache.core.events.CacheEventDispatcher} and {@link org.ehcache.core.events.StoreEventDispatcher}.
  */
-public interface StateChangeListener {
-
-  /**
-   * Is notified when a state transition occurred.
-   * Any exception thrown by this listener will not affect the transition.
-   *
-   * @param from previous state
-   * @param to new state
-   */
-  void stateTransition(Status from, Status to);
-}
+package org.ehcache.core.events;

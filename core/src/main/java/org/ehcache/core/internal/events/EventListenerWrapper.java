@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.events;
+package org.ehcache.core.internal.events;
 
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
@@ -24,13 +24,16 @@ import org.ehcache.event.EventType;
 
 import java.util.EnumSet;
 
+/**
+ * Internal wrapper for {@link CacheEventListener} and their configuration.
+ */
 public final class EventListenerWrapper implements CacheEventListener {
   private final CacheEventListener listener;
   private final EventFiring firing;
   private final EventOrdering ordering;
   private final EnumSet<EventType> forEvents;
 
-  EventListenerWrapper(CacheEventListener listener) {
+  public EventListenerWrapper(CacheEventListener listener) {
     this.listener = listener;
     this.firing = null;
     this.ordering = null;
@@ -79,19 +82,19 @@ public final class EventListenerWrapper implements CacheEventListener {
     listener.onEvent(event);
   }
 
-  CacheEventListener getListener() {
+  public CacheEventListener getListener() {
     return listener;
   }
 
-  boolean isForEventType(EventType type) {
+  public boolean isForEventType(EventType type) {
     return forEvents.contains(type);
   }
 
-  boolean isOrdered() {
+  public boolean isOrdered() {
     return ordering.isOrdered();
   }
 
-  EventFiring getFiringMode() {
+  public EventFiring getFiringMode() {
     return firing;
   }
 }

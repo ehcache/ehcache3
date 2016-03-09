@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.events;
+package org.ehcache.impl.events;
 
+import org.ehcache.core.internal.events.EventListenerWrapper;
 import org.ehcache.event.CacheEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

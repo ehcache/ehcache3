@@ -20,25 +20,84 @@ import org.ehcache.Cache;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.EventType;
 
+/**
+ * Utility class for the creation of {@link CacheEvent} instances.
+ */
 public final class CacheEvents {
   private CacheEvents() { }
 
+  /**
+   * Creates an {@link EventType#EXPIRED expired} {@link CacheEvent}.
+   *
+   * @param expiredKey the key for which the mapping expired
+   * @param expiredValue the expired value
+   * @param source the event source
+   * @param <K> the key type
+   * @param <V> the value type
+   *
+   * @return an expiry cache event
+   */
   public static <K, V> CacheEvent<K, V> expiry(K expiredKey, V expiredValue, Cache<K, V> source) {
     return new ExpiryEvent<K, V>(expiredKey, expiredValue, source);
   }
 
+  /**
+   * Creates an {@link EventType#EVICTED evicted} {@link CacheEvent}.
+   *
+   * @param evictedKey the key for which the mapping was evicted
+   * @param evictedValue the evicted value
+   * @param source the event source
+   * @param <K> the key type
+   * @param <V> the value type
+   *
+   * @return an evicted cache event
+   */
   public static <K, V> CacheEvent<K, V> eviction(K evictedKey, V evictedValue, Cache<K, V> source) {
     return new EvictionEvent<K, V>(evictedKey, evictedValue, source);
   }
 
+  /**
+   * Creates a {@link EventType#CREATED created} {@link CacheEvent}.
+   *
+   * @param newKey the new key
+   * @param newValue the new value
+   * @param source the event source
+   * @param <K> the key type
+   * @param <V> the value type
+   *
+   * @return a created cache event
+   */
   public static <K, V> CacheEvent<K, V> creation(K newKey, V newValue, Cache<K, V> source) {
     return new CreationEvent<K, V>(newKey, newValue, source);
   }
 
+  /**
+   * Creates a {@link EventType#REMOVED removed} {@link CacheEvent}.
+   *
+   * @param removedKey the removed key
+   * @param removedValue the removed value
+   * @param source the event source
+   * @param <K> the key type
+   * @param <V> the value type
+   *
+   * @return a removed cache event
+   */
   public static <K, V> CacheEvent<K, V> removal(K removedKey, V removedValue, Cache<K, V> source) {
     return new RemovalEvent<K, V>(removedKey, removedValue, source);
   }
 
+  /**
+   * Creates an {@link EventType#UPDATED updated} {@link CacheEvent}.
+   *
+   * @param key the key for which the mapping was updated
+   * @param oldValue the old value
+   * @param newValue the new value
+   * @param source the event source
+   * @param <K> the key type
+   * @param <V> the value type
+   *
+   * @return an updated cache event
+   */
   public static <K, V> CacheEvent<K, V> update(K key, V oldValue, V newValue, Cache<K, V> source) {
     return new UpdateEvent<K, V>(key, oldValue, newValue, source);
   }

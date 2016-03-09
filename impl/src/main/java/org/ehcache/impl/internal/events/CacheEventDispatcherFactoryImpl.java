@@ -19,7 +19,7 @@ import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.events.CacheEventDispatcherImpl;
+import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.service.ExecutionService;
@@ -75,9 +75,9 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   }
 
   @Override
-  public <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> cenlService) {
-    if (cenlService != null) {
-      cenlService.shutdown();
+  public <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> eventDispatcher) {
+    if (eventDispatcher != null) {
+      eventDispatcher.shutdown();
     }
   }
 
