@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.core.spi.cache.AbstractValueHolder;
 import org.ehcache.core.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.BinaryValueHolder;
+import org.ehcache.core.spi.cache.tiering.BinaryValueHolder;
 
 import java.util.concurrent.TimeUnit;
 

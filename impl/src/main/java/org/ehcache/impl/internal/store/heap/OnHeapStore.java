@@ -52,7 +52,7 @@ import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
-import org.ehcache.spi.cache.tiering.BinaryValueHolder;
+import org.ehcache.core.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.service.Service;
