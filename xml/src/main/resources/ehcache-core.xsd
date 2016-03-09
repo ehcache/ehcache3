@@ -459,7 +459,7 @@
   <xs:complexType name="memory-type">
     <xs:simpleContent>
       <xs:extension base="xs:positiveInteger">
-        <xs:attribute name="unit" type="ehcache:memory-unit" default="b" use="optional">
+        <xs:attribute name="unit" type="ehcache:memory-unit" default="B" use="optional">
           <xs:annotation>
             <xs:documentation xml:lang="en">
               The memory unit (see org.ehcache.config.units.MemoryUnit) this value is expressed in.
@@ -546,24 +546,24 @@
   </xs:simpleType>
   <xs:simpleType name="memory-unit">
     <xs:restriction base="xs:string">
-      <xs:enumeration value="b"/>
-      <xs:enumeration value="kb"/>
-      <xs:enumeration value="mb"/>
-      <xs:enumeration value="gb"/>
-      <xs:enumeration value="tb"/>
-      <xs:enumeration value="pb"/>
+      <xs:enumeration value="B"/>
+      <xs:enumeration value="kB"/>
+      <xs:enumeration value="MB"/>
+      <xs:enumeration value="GB"/>
+      <xs:enumeration value="TB"/>
+      <xs:enumeration value="PB"/>
     </xs:restriction>
   </xs:simpleType>
   <!-- Keeping the below explicit instead of union with the above to ease auto complete -->
   <xs:simpleType name="resource-unit">
     <xs:restriction base="xs:string">
       <xs:enumeration value="entries"/>
-      <xs:enumeration value="b"/>
-      <xs:enumeration value="kb"/>
-      <xs:enumeration value="mb"/>
-      <xs:enumeration value="gb"/>
-      <xs:enumeration value="tb"/>
-      <xs:enumeration value="pb"/>
+      <xs:enumeration value="B"/>
+      <xs:enumeration value="kB"/>
+      <xs:enumeration value="MB"/>
+      <xs:enumeration value="GB"/>
+      <xs:enumeration value="TB"/>
+      <xs:enumeration value="PB"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="event-firing-type">

@@ -22,12 +22,12 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.CharSequenceSerializer;
@@ -313,8 +313,8 @@ public class GettingStarted {
     // tag::updateResourcesAtRuntime[]
     ResourcePools pools = ResourcePoolsBuilder.newResourcePoolsBuilder().heap(20L, EntryUnit.ENTRIES).build(); // <1>
     cache.getRuntimeConfiguration().updateResourcePools(pools); // <2>
-    assertThat(cache.getRuntimeConfiguration().getResourcePools()
-        .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
+    assertThat(((SizedResourcePool)cache.getRuntimeConfiguration().getResourcePools()
+        .getPoolForResource(ResourceType.Core.HEAP)).getSize(), is(20L));
     // end::updateResourcesAtRuntime[]
 
     for(long i = 0; i < 20; i++ ){

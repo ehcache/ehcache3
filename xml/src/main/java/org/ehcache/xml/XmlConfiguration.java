@@ -83,16 +83,12 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link CacheConfigurationBuilder} expressed
- * in a XML file that obeys the ehcache-core.xsd (todo link this to proper location, wherever this ends up being)
+ * in a XML file that obeys the ehcache-core.xsd.
  * <p>
- * Instances of this class are not thread-safe
- *
- * @author Chris Dennis
- * @author Alex Snaps
+ * Instances of this class are not thread-safe.
  */
 public class XmlConfiguration implements Configuration {
 
-  private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
   private static final Logger LOGGER = LoggerFactory.getLogger(XmlConfiguration.class);
 
   private final URL xml;
@@ -163,6 +159,8 @@ public class XmlConfiguration implements Configuration {
     this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
     try {
       parseConfiguration();
+    } catch (XmlConfigurationException e) {
+      throw e;
     } catch (Exception e) {
       throw new XmlConfigurationException("Error parsing XML configuration at " + url, e);
     }
@@ -172,7 +170,7 @@ public class XmlConfiguration implements Configuration {
   private void parseConfiguration()
       throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException, JAXBException, ParserConfigurationException {
     LOGGER.info("Loading Ehcache XML configuration from {}.", xml.getPath());
-    ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
+    ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm());
 
     final ArrayList<ServiceCreationConfiguration<?>> serviceConfigs = new ArrayList<ServiceCreationConfiguration<?>>();
 
@@ -288,7 +286,7 @@ public class XmlConfiguration implements Configuration {
       }
       ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
       for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
-        resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
+        resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
       }
       builder = builder.withResourcePools(resourcePoolsBuilder);
       final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
@@ -473,7 +471,7 @@ public class XmlConfiguration implements Configuration {
     builder = handleListenersConfig(cacheTemplate.listenersConfig(), defaultClassLoader, builder);
     ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
     for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
-      resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool.getType(), resourcePool.getSize(), resourcePool.getUnit(), resourcePool.isPersistent());
+      resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
     }
     builder = builder.withResourcePools(resourcePoolsBuilder);
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {

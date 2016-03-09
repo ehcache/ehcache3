@@ -26,6 +26,7 @@ import java.util.Collection;
  * Specific interface for services that are dedicated to handling a {@link ResourceType} which is
  * {@link ResourceType#isPersistable() persistable}.
  */
+@PluralService
 public interface PersistableResourceService extends MaintainableService {
 
   /**

@@ -25,6 +25,7 @@ import org.ehcache.clustered.ServerSideConfiguration;
 import org.ehcache.clustered.client.EhcacheClientEntity;
 
 import org.ehcache.clustered.client.EhcacheClientEntityFactory;
+import org.ehcache.clustered.config.ClusteredResourceType;
 import org.ehcache.clustered.config.ClusteringServiceConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -44,12 +45,13 @@ import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 import static java.util.Collections.emptyList;
 
 /**
- * @author Clifford W. Johnson
+ * Provides support for accessing server-based cluster services.
  */
 public class DefaultClusteringService implements ClusteringService {
 
   private static final String AUTO_CREATE_QUERY = "auto-create";
 
+  private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
   private final String entityIdentifier;
   private final boolean autoCreate;
@@ -61,6 +63,7 @@ public class DefaultClusteringService implements ClusteringService {
   private EhcacheClientEntity entity;
 
   public DefaultClusteringService(final ClusteringServiceConfiguration configuration) {
+    this.configuration = configuration;
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
@@ -73,6 +76,11 @@ public class DefaultClusteringService implements ClusteringService {
     } catch (URISyntaxException e) {
       throw new AssertionError(e);
     }
+  }
+
+  @Override
+  public ClusteringServiceConfiguration getConfiguration() {
+    return this.configuration;
   }
 
   @Override
@@ -146,7 +154,7 @@ public class DefaultClusteringService implements ClusteringService {
 
   @Override
   public boolean handlesResourceType(ResourceType resourceType) {
-    return false;
+    return (ClusteredResourceType.class.isAssignableFrom(resourceType.getClass()));
   }
 
   @Override

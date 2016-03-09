@@ -18,14 +18,14 @@
   <cache-template name="diskCache">
     <resources>
       <heap unit="entries">10</heap>
-      <disk unit="mb">10</disk>
+      <disk unit="MB">10</disk>
     </resources>
   </cache-template>
   
   <cache-template name="offheapCache">
     <resources>
       <heap unit="entries">10</heap>
-      <offheap unit="mb">10</offheap>
+      <offheap unit="MB">10</offheap>
     </resources>
   </cache-template>
 

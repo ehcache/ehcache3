@@ -16,10 +16,10 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
@@ -135,7 +135,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
-      ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
+      SizedResourcePool offHeapPool = (SizedResourcePool)storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapStore only supports resources with memory unit");
       }
