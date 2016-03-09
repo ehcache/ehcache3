@@ -66,6 +66,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -78,12 +79,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
@@ -271,7 +266,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         }
       }
     }
-    final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
+
+    // TODO: Replace this with Store.Provider acquisition based on ResourceType collection
+    final Collection<Store.Provider> storeProviders = serviceLocator.getServicesOfType(Store.Provider.class);
+    if (storeProviders.isEmpty()) {
+      throw new IllegalStateException("No Store.Provider available");
+    }
+    final Store.Provider storeProvider = storeProviders.iterator().next();
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, classLoader,
             expiry, resourcePools, orderedEventParallelism, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);

@@ -20,6 +20,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.cache.ConfigurationChangeSupport;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -76,6 +77,7 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   }
 
+  @PluralService
   interface Provider extends Service {
     <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 

@@ -19,6 +19,7 @@ package org.ehcache.core.spi.cache.tiering;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -52,6 +53,7 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
    */
   boolean flush(K key, ValueHolder<V> valueHolder);
 
+  @PluralService
   interface Provider extends Service {
     <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 

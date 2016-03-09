@@ -427,7 +427,12 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
     }
 
-    final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
+    // TODO: Replace this with Store.Provider acquisition based on ResourceType collection
+    final Collection<Store.Provider> storeProviders = serviceLocator.getServicesOfType(Store.Provider.class);
+    if (storeProviders.isEmpty()) {
+      throw new IllegalStateException("No Store.Provider available");
+    }
+    final Store.Provider storeProvider = storeProviders.iterator().next();
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
@@ -700,6 +705,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       @Override
       public <U extends MaintainableService> U getService(Class<U> serviceType) {
         return serviceLocator.getService(serviceType);
+      }
+      @Override
+      public <U extends MaintainableService> Collection<U> getServicesOfType(final Class<U> serviceType) {
+        return serviceLocator.getServicesOfType(serviceType);
       }
     };
   }

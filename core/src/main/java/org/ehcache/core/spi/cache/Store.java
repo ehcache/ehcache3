@@ -26,6 +26,7 @@ import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -647,6 +648,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * The Service used to create Stores.
    * Implementation of {@link Provider} have be thread-safe.
    */
+  @PluralService
   interface Provider extends Service {
 
     /**

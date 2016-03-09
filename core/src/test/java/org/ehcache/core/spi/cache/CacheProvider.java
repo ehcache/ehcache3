@@ -17,6 +17,7 @@
 package org.ehcache.core.spi.cache;
 
 import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -24,6 +25,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
  * @author Chris Dennis
  * @author Alex Snaps
  */
+@PluralService
 public interface CacheProvider extends Service {
 
   <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);

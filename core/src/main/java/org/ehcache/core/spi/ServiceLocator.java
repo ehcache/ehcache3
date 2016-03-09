@@ -17,12 +17,12 @@
 package org.ehcache.core.spi;
 
 import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -50,7 +51,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 public final class ServiceLocator implements ServiceProvider<Service> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocator.class);
-  private final ConcurrentMap<Class<? extends Service>, Service> services = new ConcurrentHashMap<Class<? extends Service>, Service>();
+  private final ConcurrentMap<Class<? extends Service>, Set<Service>> services =
+      new ConcurrentHashMap<Class<? extends Service>, Set<Service>>();
 
   @SuppressWarnings("rawtypes")
   private final ServiceLoader<ServiceFactory> serviceFactory = ClassLoading.libraryServiceLoaderFor(ServiceFactory.class);
@@ -65,15 +67,37 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     }
   }
 
-  private <T extends Service> T discoverService(Class<T> serviceClass, ServiceCreationConfiguration<T> config, boolean abstractRegistration) {
+  /**
+   * For the {@link Service} class specified, attempt to instantiate the service using the
+   * {@link ServiceFactory} infrastructure.  If a configuration is provided, only the first
+   * discovered factory is used to instantiate one copy of the service; if no configuration
+   * is provided, use each discovered factory for the service type to attempt to create a
+   * service from that factory.
+   *
+   * @param serviceClass the {@code Service} type to create
+   * @param config the service configuration to use; may be null
+   * @param <T> the type of the {@code Service}
+   *
+   * @return the collection of created services; may be empty
+   *
+   * @throws IllegalStateException if the configured service is already registered or the configured service
+   *        implements a {@code Service} subtype that is not marked with the {@link PluralService} annotation
+   *        but is already registered
+   */
+  private <T extends Service> Collection<T> discoverServices(Class<T> serviceClass, ServiceCreationConfiguration<T> config) {
+    final List<T> addedServices = new ArrayList<T>();
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
       if (serviceClass.isAssignableFrom(factory.getServiceType())) {
         T service = factory.create(config);
-        addService(service, abstractRegistration);
-        return service;
+        addService(service);
+        addedServices.add(service);
+        if (config != null) {
+          // Each configuration should be manifested in exactly one service; look no further
+          return addedServices;
+        }
       }
     }
-    return null;
+    return addedServices;
   }
 
   @SuppressWarnings("unchecked")
@@ -85,11 +109,20 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return list;
   }
 
+  /**
+   * Registers the {@code Service} provided with this {@code ServiceLocator}.  If the service is
+   * already registered, the registration fails.  The service specified is also registered under
+   * each {@code Service} subtype it implements.  Duplicate registration of implemented {@code Service}
+   * subtypes causes registration failure unless that subtype is marked with the {@link PluralService}
+   * annotation.
+   *
+   * @param service the concrete {@code Service} to register
+   *
+   * @throws IllegalStateException if the configured service is already registered or {@code service}
+   *        implements a {@code Service} subtype that is not marked with the {@link PluralService} annotation
+   *        but is already registered
+   */
   public void addService(final Service service) {
-    addService(service, false);
-  }
-
-  void addService(final Service service, final boolean expectsAbstractRegistration) {
     final Lock lock = runningLock.readLock();
     lock.lock();
     try {
@@ -105,35 +138,45 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         }
       }
 
-      if (services.putIfAbsent(service.getClass(), service) != null) {
+      if (services.putIfAbsent(service.getClass(), Collections.singleton(service)) != null) {
         throw new IllegalStateException("Registration of duplicate service " + service.getClass());
       }
 
-      if (!service.getClass().isAnnotationPresent(SupplementaryService.class)) {
-        boolean registered = false;
-        for (Class<? extends Service> serviceClazz : serviceClazzes) {
-          if (services.putIfAbsent(serviceClazz, service) == null && !registered) {
-            registered = true;
+      /*
+       * Register the concrete service under all Service subtypes it implements.  If
+       * the Service subtype is annotated with @PluralService, permit multiple registrations;
+       * otherwise, fail the registration,
+       */
+      for (Class<? extends Service> serviceClazz : serviceClazzes) {
+        if (serviceClazz.isAnnotationPresent(PluralService.class)) {
+          //  TODO: Determine if thread-safety is a concern here ...
+          // Permit multiple registrations
+          Set<Service> registeredServices = services.get(serviceClazz);
+          if (registeredServices == null) {
+            registeredServices = new LinkedHashSet<Service>();
+            services.put(serviceClazz, registeredServices);
           }
-        }
-        if (!registered) {
-          final StringBuilder message = new StringBuilder("Duplicate service implementation found for ").append(serviceClazzes)
-              .append(" by ")
-              .append(service.getClass());
-          for (Class<? extends Service> serviceClass : serviceClazzes) {
-            final Service declaredService = services.get(serviceClass);
-            if (declaredService != null) {
-              message
-                  .append("\n\t\t- ")
-                  .append(serviceClass)
-                  .append(" already has ")
-                  .append(declaredService.getClass());
+          registeredServices.add(service);
+
+        } else {
+          // Only a single registration permitted
+          if (services.putIfAbsent(serviceClazz, Collections.singleton(service)) != null) {
+            final StringBuilder message = new StringBuilder("Duplicate service implementation(s) found for ")
+                .append(service.getClass());
+            for (Class<? extends Service> serviceClass : serviceClazzes) {
+              if (!serviceClass.isAnnotationPresent(PluralService.class)) {
+                final Service declaredService = services.get(serviceClass).iterator().next();
+                if (declaredService != null) {
+                  message
+                      .append("\n\t\t- ")
+                      .append(serviceClass)
+                      .append(" already has ")
+                      .append(declaredService.getClass());
+                }
+              }
             }
-          }
-          if (expectsAbstractRegistration) {
             throw new IllegalStateException(message.toString());
           }
-          LOGGER.debug(message.toString());
         }
       }
 
@@ -157,21 +200,60 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return interfaces;
   }
 
+  /**
+   * Obtains the service supporting the configuration provided.  If a registered service
+   * is not available, an attempt to create the service using the {@link ServiceFactory}
+   * discovery process will be made.
+   *
+   * @param config the configuration for the service
+   * @param <T> the expected service type
+   * @return the service instance for {@code T} type, or {@code null} if it couldn't be located or instantiated
+   *
+   * @throws IllegalArgumentException if {@link ServiceCreationConfiguration#getServiceType() config.getServiceType()}
+   *        is marked with the {@link org.ehcache.spi.service.PluralService PluralService} annotation
+   */
   public <T extends Service> T getOrCreateServiceFor(ServiceCreationConfiguration<T> config) {
-    return findService(config.getServiceType(), config, true, true);
+    return getServiceInternal(config.getServiceType(), config, true);
   }
 
+  /**
+   * Obtains the identified service.  If a registered service is not available, an attempt
+   * to create the service using the {@link ServiceFactory} discovery process will be made.
+   *
+   * @param serviceType the {@code class} of the service being looked up
+   * @param <T> the expected service type
+   * @return the service instance for {@code T} type, or {@code null} if a {@code Service} of type
+   *        {@code serviceType} is not available
+   *
+   * @throws IllegalArgumentException if {@code serviceType} is marked with the
+   *        {@link org.ehcache.spi.service.PluralService PluralService} annotation;
+   *        use {@link #getServicesOfType(Class)} for plural services
+   */
   @Override
   public <T extends Service> T getService(Class<T> serviceType) {
-    return findService(serviceType, null, false, true);
+    return getServiceInternal(serviceType, null, false);
   }
 
-  private <T extends Service> T findService(Class<T> serviceType, ServiceCreationConfiguration<T> config, boolean shouldCreate, boolean abstractRegistration) {
-    T service = serviceType.cast(services.get(serviceType));
-    if (service == null && shouldCreate) {
-      return discoverService(serviceType, config, abstractRegistration);
+  private <T extends Service> T getServiceInternal(
+      final Class<T> serviceType, final ServiceCreationConfiguration<T> config, final boolean shouldCreate) {
+    if (serviceType.isAnnotationPresent(PluralService.class)) {
+      throw new IllegalArgumentException(serviceType.getName() + " is marked as a PluralService");
+    }
+    final Collection<T> registeredServices = findServices(serviceType, config, shouldCreate);
+    if (registeredServices.size() > 1) {
+      throw new AssertionError("The non-PluralService type" + serviceType.getName()
+          + " has more than one service registered");
+    }
+    return (registeredServices.isEmpty() ? null : registeredServices.iterator().next());
+  }
+
+  private <T extends Service> Collection<T> findServices(
+      Class<T> serviceType, ServiceCreationConfiguration<T> config, boolean shouldCreate) {
+    final Collection<T> registeredServices = getServicesOfTypeInternal(serviceType);
+    if (registeredServices.isEmpty() && shouldCreate) {
+      return discoverServices(serviceType, config);
     } else {
-      return service;
+      return registeredServices;
     }
   }
 
@@ -215,10 +297,12 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         throw new IllegalStateException("Already started!");
       }
 
-      for (Service service : services.values()) {
-        if (!started.contains(service)) {
-          service.start(this);
-          started.push(service);
+      for (Set<Service> registeredServices : services.values()) {
+        for (Service service : registeredServices) {
+          if (!started.contains(service)) {
+            service.start(this);
+            started.push(service);
+          }
         }
       }
       LOGGER.info("All Services successfully started.");
@@ -238,12 +322,10 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   }
 
   private void resolveMissingDependencies() {
-    int previousSize = services.size();
-    for (Service service : services.values()) {
-      loadDependenciesOf(service.getClass());
-    }
-    if (previousSize < services.size()) {
-      resolveMissingDependencies();
+    for (Set<Service> registeredServices : services.values()) {
+      for (Service service : registeredServices) {
+        loadDependenciesOf(service.getClass());
+      }
     }
   }
 
@@ -256,20 +338,22 @@ public final class ServiceLocator implements ServiceProvider<Service> {
         throw new IllegalStateException("Already stopped!");
       }
       Set<Service> stoppedServices = Collections.newSetFromMap(new IdentityHashMap<Service, Boolean>());
-      for (Service service : services.values()) {
-        if (stoppedServices.contains(service)) {
-          continue;
-        }
-        try {
-          service.stop();
-        } catch (Exception e) {
-          if (firstException == null) {
-            firstException = e;
-          } else {
-            LOGGER.error("Stopping Service failed due to ", e);
+      for (Set<Service> registeredServices : services.values()) {
+        for (Service service : registeredServices) {
+          if (stoppedServices.contains(service)) {
+            continue;
           }
+          try {
+            service.stop();
+          } catch (Exception e) {
+            if (firstException == null) {
+              firstException = e;
+            } else {
+              LOGGER.error("Stopping Service failed due to ", e);
+            }
+          }
+          stoppedServices.add(service);
         }
-        stoppedServices.add(service);
       }
     } finally {
       lock.unlock();
@@ -279,26 +363,107 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     }
   }
 
+  /**
+   * Ensures the dependencies, as declared using the {@link ServiceDependencies} annotation,
+   * of the specified class are registered in this {@code ServiceLocator}.  If a dependency
+   * is not registered when this method is invoked, an attempt to load it will be made using
+   * the {@link ServiceFactory} infrastructure.
+   *
+   * @param clazz the class for which dependency availability is checked
+   */
   public void loadDependenciesOf(Class<?> clazz) {
-    ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
-    if (annotation != null) {
-      for (Class aClass : annotation.value()) {
-        if (findService(aClass, null, true, false) == null) {
-          throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getSimpleName());
-        }
+    final Collection<Class<?>> transitiveDependencies = identifyTransitiveDependenciesOf(clazz);
+    for (Class aClass : transitiveDependencies) {
+      if (findServices(aClass, null, true).isEmpty()) {
+        throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getSimpleName());
       }
     }
   }
 
-  public boolean knowsServiceFor(ServiceConfiguration serviceConfig) {
-    return getService(serviceConfig.getServiceType()) != null;
+  /**
+   * Identifies, transitively, all dependencies declared for the designated class through
+   * {@link ServiceDependencies} annotations.  This method intentionally accepts
+   * {@code ServiceDependencies} annotations on non-{@code Service} implementations to
+   * permit classes like cache manager implementations to declare dependencies on
+   * services.  All types referred to by the {@code ServiceDependencies} annotation
+   * <b>must</b> be subtypes of {@link Service}.
+   *
+   * @param clazz the top-level class instance for which the dependencies are to be determined
+   *
+   * @return the collection of declared dependencies
+   *
+   * @see #identifyTransitiveDependenciesOf(Class, Set)
+   */
+  // Package-private for unit tests
+  Collection<Class<?>> identifyTransitiveDependenciesOf(final Class<?> clazz) {
+    return identifyTransitiveDependenciesOf(clazz, new LinkedHashSet<Class<?>>());
   }
 
-  public <T extends Service> Collection<T> getServicesOfType(Class<T> serviceClass) {
-    HashSet<T> result = new HashSet<T>();
-    for (Service service : services.values()) {
-      if (serviceClass.isAssignableFrom(service.getClass())) {
-        result.add(serviceClass.cast(service));
+  /**
+   * Identifies the transitive dependencies of the designated class as declared through
+   * {@link ServiceDependencies} annotations.
+   *
+   * @param clazz the class to check for declared dependencies
+   * @param dependencies the current set of declared dependencies; this set will be added updated
+   *
+   * @return the set {@code dependencies}
+   *
+   * @see #identifyTransitiveDependenciesOf(Class)
+   */
+  private Collection<Class<?>> identifyTransitiveDependenciesOf(final Class<?> clazz, final Set<Class<?>> dependencies) {
+    if (clazz == null || clazz == Object.class) {
+      return dependencies;
+    }
+
+    final ServiceDependencies annotation = clazz.getAnnotation(ServiceDependencies.class);
+    if (annotation != null) {
+      for (final Class<?> dependency : annotation.value()) {
+        if (!dependencies.contains(dependency)) {
+          if (!Service.class.isAssignableFrom(dependency)) {
+            throw new IllegalStateException("Service dependency declared by " + clazz.getName() +
+                " is not a Service: " + dependency.getName());
+          }
+          dependencies.add(dependency);
+          identifyTransitiveDependenciesOf(dependency, dependencies);
+        }
+      }
+    }
+
+    // TODO: Since we examine ServiceDependencies on non-service concrete classes, why not interfaces?
+    for (Class<?> interfaceClazz : clazz.getInterfaces()) {
+      if (Service.class != interfaceClazz && Service.class.isAssignableFrom(interfaceClazz)) {
+        identifyTransitiveDependenciesOf(interfaceClazz, dependencies);
+      }
+    }
+
+    identifyTransitiveDependenciesOf(clazz.getSuperclass(), dependencies);
+
+    return dependencies;
+  }
+
+  public boolean knowsServiceFor(ServiceConfiguration serviceConfig) {
+    return !getServicesOfType(serviceConfig.getServiceType()).isEmpty();
+  }
+
+  @Override
+  public <T extends Service> Collection<T> getServicesOfType(Class<T> serviceType) {
+    return getServicesOfTypeInternal(serviceType);
+  }
+
+  /**
+   * Gets the collection of services implementing the type specified.
+   *
+   * @param serviceType the subtype of {@code Service} to return
+   * @param <T> the {@code Service} subtype
+   *
+   * @return a collection, possibly empty, of the registered services implementing {@code serviceType}
+   */
+  private <T extends Service> Collection<T> getServicesOfTypeInternal(final Class<T> serviceType) {
+    HashSet<T> result = new LinkedHashSet<T>();
+    final Set<Service> registeredServices = this.services.get(serviceType);
+    if (registeredServices != null) {
+      for (Service service : registeredServices) {
+        result.add(serviceType.cast(service));
       }
     }
     return result;

@@ -237,7 +237,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.index");
   }
 
-  @SupplementaryService
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 

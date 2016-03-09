@@ -335,7 +335,6 @@ public class CacheStore<K, V> implements Store<K, V> {
     return cachingTierRef.get();
   }
 
-  @SupplementaryService
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
