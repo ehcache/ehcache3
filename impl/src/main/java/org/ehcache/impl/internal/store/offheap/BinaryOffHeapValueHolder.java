@@ -29,9 +29,11 @@ import java.nio.ByteBuffer;
 final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
 
   private final ByteBuffer binaryValue;
+  private final V value;
 
-  BinaryOffHeapValueHolder(long id, ByteBuffer binaryValue, long creationTime, long expireTime, long lastAccessTime, long hits) {
+  BinaryOffHeapValueHolder(long id, V value, ByteBuffer binaryValue, long creationTime, long expireTime, long lastAccessTime, long hits) {
     super(id, creationTime, expireTime);
+    this.value = value;
     setLastAccessTime(lastAccessTime, TIME_UNIT);
     this.binaryValue = binaryValue;
     this.setHits(hits);
@@ -70,7 +72,7 @@ final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
 
   @Override
   public V value() {
-    throw new UnsupportedOperationException();
+    return value;
   }
 
   private void writeObject(java.io.ObjectOutputStream out) throws IOException {
