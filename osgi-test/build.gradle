@@ -47,6 +47,7 @@ test {
   systemProperty 'ehcache.osgi.jar', project(':dist').jar.archivePath.getPath()
   systemProperty 'ehcache.osgi.jcache.version', parent.jcacheVersion
   systemProperty 'ehcache.osgi.slf4j.version', parent.slf4jVersion
+  systemProperty 'jta.osgi.jar', "$projectDir/lib/com.springsource.javax.transaction-1.1.0.jar"
 }
 
 test.dependsOn ':dist:jar'
