@@ -1363,9 +1363,14 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
     @Override
     public void removeAll() {
-      for (Iterator<Cache.Entry<K, V>> iter = new CacheEntryIterator(true); iter.hasNext(); ) {
-        K key = iter.next().getKey();
-        remove(key);
+      Store.Iterator<Entry<K, ValueHolder<V>>> iterator = store.iterator();
+      while (iterator.hasNext()) {
+        try {
+          Entry<K, ValueHolder<V>> next = iterator.next();
+          remove(next.getKey());
+        } catch (CacheAccessException cae) {
+          // skip
+        }
       }
     }
   }
