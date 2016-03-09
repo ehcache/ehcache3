@@ -36,7 +36,7 @@
   <ehcache:write-behind thread-pool="wb"/>
   <ehcache:heap-store>
     <ehcache:max-object-graph-size>1000</ehcache:max-object-graph-size>
-    <ehcache:max-object-size unit="mb">100</ehcache:max-object-size>
+    <ehcache:max-object-size unit="MB">100</ehcache:max-object-size>
   </ehcache:heap-store>
   <ehcache:disk-store thread-pool="pool-disk"/>
 
@@ -65,12 +65,12 @@
       </ehcache:listener>
     </ehcache:listeners>
     <ehcache:resources>
-      <ehcache:heap unit="mb">100</ehcache:heap>
-      <ehcache:disk unit="gb" persistent="true">100</ehcache:disk>
+      <ehcache:heap unit="MB">100</ehcache:heap>
+      <ehcache:disk unit="GB" persistent="true">100</ehcache:disk>
     </ehcache:resources>
     <ehcache:heap-store-settings>
       <ehcache:max-object-graph-size>10</ehcache:max-object-graph-size>
-      <ehcache:max-object-size unit="mb">100</ehcache:max-object-size>
+      <ehcache:max-object-size unit="MB">100</ehcache:max-object-size>
     </ehcache:heap-store-settings>
     <ehcache:disk-store-settings thread-pool="pool-disk" writer-threads="10"/>
     <foo:foo/>

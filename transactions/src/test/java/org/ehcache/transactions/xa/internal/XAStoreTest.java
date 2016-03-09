@@ -1468,13 +1468,13 @@ public class XAStoreTest {
     provider.start(serviceLocator);
 
     final Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.<ServiceConfiguration<?>>singleton(configuration);
-    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.HEAP);
-    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.DISK);
-    assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.HEAP);
+    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.DISK);
+    assertRank(provider, 1002, xaStoreConfigs, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
     assertRank(provider, -1, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 13, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 1002, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 1003, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     final Set<ServiceConfiguration<?>> emptyConfigs = Collections.emptySet();
     assertRank(provider, 0, emptyConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);

@@ -745,7 +745,7 @@ public class XAStore<K, V> implements Store<K, V> {
       }
 
       final Store.Provider candidateUnderlyingProvider = selectProvider(resourceTypes, serviceConfigs, xaServiceConfiguration);
-      return 10 + candidateUnderlyingProvider.rank(resourceTypes, serviceConfigs);
+      return 1000 + candidateUnderlyingProvider.rank(resourceTypes, serviceConfigs);
     }
 
     @Override

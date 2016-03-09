@@ -20,6 +20,8 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.config.SizedResourcePoolImpl;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.BaseCacheType;
 import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheTemplateType;
@@ -89,16 +91,21 @@ class ConfigurationParser {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
+  private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
+  private static final String CORE_SCHEMA_NAMESPACE = "http://www.ehcache.org/v3";
+  private static final String CORE_SCHEMA_ROOT_ELEMENT = "config";
+  private static final String CORE_SCHEMA_JAXB_MODEL_PACKAGE = "org.ehcache.xml.model";
+
   private final Map<URI, CacheManagerServiceConfigurationParser<?>> xmlParsers = new HashMap<URI, CacheManagerServiceConfigurationParser<?>>();
   private final Map<URI, CacheServiceConfigurationParser<?>> cacheXmlParsers = new HashMap<URI, CacheServiceConfigurationParser<?>>();
   private final Unmarshaller unmarshaller;
+  private final Map<URI, CacheResourceConfigurationParser> resourceXmlParsers = new HashMap<URI, CacheResourceConfigurationParser>();
   private final ConfigType config;
 
-  public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException, JAXBException, ParserConfigurationException {
+  public ConfigurationParser(String xml) throws IOException, SAXException, JAXBException, ParserConfigurationException {
     Collection<Source> schemaSources = new ArrayList<Source>();
-    for (URL source : sources) {
-      schemaSources.add(new StreamSource(source.openStream()));
-    }
+    schemaSources.add(new StreamSource(CORE_SCHEMA_URL.openStream()));
+
     for (CacheManagerServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
@@ -106,6 +113,11 @@ class ConfigurationParser {
     for (CacheServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheServiceConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       cacheXmlParsers.put(parser.getNamespace(), parser);
+    }
+    // Parsers for /config/cache/resources extensions
+    for (CacheResourceConfigurationParser parser : ClassLoading.libraryServiceLoaderFor(CacheResourceConfigurationParser.class)) {
+      schemaSources.add(parser.getXmlSchema());
+      resourceXmlParsers.put(parser.getNamespace(), parser);
     }
 
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -118,9 +130,13 @@ class ConfigurationParser {
     DocumentBuilder domBuilder = factory.newDocumentBuilder();
     domBuilder.setErrorHandler(new FatalErrorHandler());
     Element dom = domBuilder.parse(xml).getDocumentElement();
+    if (!CORE_SCHEMA_ROOT_ELEMENT.equals(dom.getLocalName()) || !CORE_SCHEMA_NAMESPACE.equals(dom.getNamespaceURI())) {
+      throw new XmlConfigurationException("Expecting {" + CORE_SCHEMA_NAMESPACE + "}" + CORE_SCHEMA_ROOT_ELEMENT
+          + " element; found {" + dom.getNamespaceURI() + "}" + dom.getLocalName());
+    }
 
     Class<ConfigType> configTypeClass = ConfigType.class;
-    JAXBContext jc = JAXBContext.newInstance("org.ehcache.xml.model", configTypeClass.getClassLoader());
+    JAXBContext jc = JAXBContext.newInstance(CORE_SCHEMA_JAXB_MODEL_PACKAGE, configTypeClass.getClassLoader());
     this.unmarshaller = jc.createUnmarshaller();
     this.config = unmarshaller.unmarshal(dom, configTypeClass).getValue();
   }
@@ -379,37 +395,6 @@ class ConfigurationParser {
     return Collections.unmodifiableList(cacheCfgs);
   }
 
-  private static final class ResourcePoolImpl implements ResourcePool {
-    private final org.ehcache.config.ResourceType type;
-    private final long size;
-    private final ResourceUnit unit;
-    private final boolean persistent;
-
-    public ResourcePoolImpl(org.ehcache.config.ResourceType type, long size, ResourceUnit unit, boolean persistent) {
-      this.type = type;
-      this.size = size;
-      this.unit = unit;
-      this.persistent = persistent;
-    }
-
-    public org.ehcache.config.ResourceType getType() {
-      return type;
-    }
-
-    public long getSize() {
-      return size;
-    }
-
-    public ResourceUnit getUnit() {
-      return unit;
-    }
-
-    @Override
-    public boolean isPersistent() {
-      return persistent;
-    }
-  }
-
   public Map<String, CacheTemplate> getTemplates() {
     final Map<String, CacheTemplate> templates = new HashMap<String, CacheTemplate>();
     final List<BaseCacheType> cacheOrCacheTemplate = config.getCacheOrCacheTemplate();
@@ -541,27 +526,31 @@ class ConfigurationParser {
 
   private ResourcePool parseResource(Heap resource) {
     ResourceType heapResource = resource.getValue();
-    return new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP,
+    return new SizedResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP,
             heapResource.getValue().longValue(), parseUnit(heapResource), false);
   }
 
   private ResourcePool parseResource(Element element) {
+    if (!CORE_SCHEMA_NAMESPACE.equals(element.getNamespaceURI())) {
+      return parseResourceExtension(element);
+    }
     try {
       Object resource = unmarshaller.unmarshal(element);
       if (resource instanceof Heap) {
         ResourceType heapResource = ((Heap) resource).getValue();
-        return new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP,
+        return new SizedResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP,
                 heapResource.getValue().longValue(), parseUnit(heapResource), false);
       } else if (resource instanceof Offheap) {
         MemoryType offheapResource = ((Offheap) resource).getValue();
-        return new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP,
+        return new SizedResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP,
                 offheapResource.getValue().longValue(), parseMemory(offheapResource), false);
       } else if (resource instanceof Disk) {
         PersistableMemoryType diskResource = ((Disk) resource).getValue();
-        return new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK,
+        return new SizedResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK,
                 diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent());
       } else {
-        throw new AssertionError();
+        // Someone updated the core resources without updating *this* code ...
+        throw new AssertionError("Unrecognized resource: " + element + " / " + resource.getClass().getName());
       }
     } catch (JAXBException e) {
       throw new IllegalArgumentException("Can't find parser for resource: " + element, e);
@@ -596,6 +585,15 @@ class ConfigurationParser {
       throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
     }
     return xmlConfigurationParser.parseServiceConfiguration(element);
+  }
+
+  ResourcePool parseResourceExtension(final Element element) {
+    URI namespace = URI.create(element.getNamespaceURI());
+    final CacheResourceConfigurationParser xmlConfigurationParser = resourceXmlParsers.get(namespace);
+    if (xmlConfigurationParser == null) {
+      throw new XmlConfigurationException("Can't find parser for namespace: " + namespace);
+    }
+    return xmlConfigurationParser.parseResourceConfiguration(element);
   }
 
   static class FatalErrorHandler implements ErrorHandler {

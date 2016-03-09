@@ -16,12 +16,15 @@
 
 package org.ehcache.clustered.service;
 
+import org.ehcache.clustered.config.ClusteringServiceConfiguration;
 import org.ehcache.spi.service.PersistableResourceService;
 
 /**
  * @author Clifford W. Johnson
  */
 public interface ClusteringService extends PersistableResourceService {
+
+  ClusteringServiceConfiguration getConfiguration();
 
   void connect();
 }

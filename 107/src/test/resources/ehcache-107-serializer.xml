@@ -15,7 +15,7 @@
     <value-type>java.lang.String</value-type>
     <resources>
       <heap unit="entries">20</heap>
-      <offheap unit="mb">1</offheap>
+      <offheap unit="MB">1</offheap>
     </resources>
   </cache>
 
@@ -24,7 +24,7 @@
     <value-type serializer = "org.ehcache.jsr107.StringSerializer">java.lang.String</value-type>
     <resources>
       <heap unit="entries">20</heap>
-      <offheap unit="mb">1</offheap>
+      <offheap unit="MB">1</offheap>
     </resources>
   </cache>
 </config>

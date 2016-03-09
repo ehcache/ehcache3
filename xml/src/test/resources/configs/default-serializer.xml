@@ -38,7 +38,7 @@
     </ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="entries">10</ehcache:heap>
-      <ehcache:offheap unit="mb">1</ehcache:offheap>
+      <ehcache:offheap unit="MB">1</ehcache:offheap>
     </ehcache:resources>
   </ehcache:cache>
 
@@ -51,7 +51,7 @@
                 </ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="entries">10</ehcache:heap>
-      <ehcache:offheap unit="mb">1</ehcache:offheap>
+      <ehcache:offheap unit="MB">1</ehcache:offheap>
     </ehcache:resources>
   </ehcache:cache>
 </ehcache:config>

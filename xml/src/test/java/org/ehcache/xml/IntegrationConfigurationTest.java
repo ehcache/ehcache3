@@ -279,16 +279,16 @@ public class IntegrationConfigurationTest {
         usesDefaultSizeOfEngine.getRuntimeConfiguration().updateResourcePools(pools);
         fail();
       } catch (Exception ex) {
-        assertThat(ex, instanceOf(UnsupportedOperationException.class));
-        assertThat(ex.getMessage(), equalTo("Modifying ResourceUnit type is not supported"));
+        assertThat(ex, instanceOf(IllegalArgumentException.class));
+        assertThat(ex.getMessage(), equalTo("ResourcePool for heap with ResourceUnit 'entries' can not replace 'kB'"));
       }
 
       try {
         usesConfiguredInCache.getRuntimeConfiguration().updateResourcePools(pools);
         fail();
       } catch (Exception ex) {
-        assertThat(ex, instanceOf(UnsupportedOperationException.class));
-        assertThat(ex.getMessage(), equalTo("Modifying ResourceUnit type is not supported"));
+        assertThat(ex, instanceOf(IllegalArgumentException.class));
+        assertThat(ex.getMessage(), equalTo("ResourcePool for heap with ResourceUnit 'entries' can not replace 'kB'"));
       }
 
     } finally {

@@ -17,12 +17,12 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
@@ -163,10 +163,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if(event.getProperty().equals(CacheConfigurationProperty.UPDATE_SIZE)) {
         ResourcePools updatedPools = (ResourcePools)event.getNewValue();
         ResourcePools configuredPools = (ResourcePools)event.getOldValue();
-        if(updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize() !=
-           configuredPools.getPoolForResource(ResourceType.Core.HEAP).getSize()) {
-          LOG.info("Setting size: " + updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
-          ResourcePool pool = updatedPools.getPoolForResource(ResourceType.Core.HEAP);
+        if(((SizedResourcePool)updatedPools.getPoolForResource(ResourceType.Core.HEAP)).getSize() !=
+            ((SizedResourcePool)configuredPools.getPoolForResource(ResourceType.Core.HEAP)).getSize()) {
+          LOG.info("Setting size: " + ((SizedResourcePool)updatedPools.getPoolForResource(ResourceType.Core.HEAP)).getSize());
+          SizedResourcePool pool = (SizedResourcePool)updatedPools.getPoolForResource(ResourceType.Core.HEAP);
           if (pool.getUnit() instanceof MemoryUnit) {
             capacity = ((MemoryUnit)pool.getUnit()).toBytes(pool.getSize());
           } else {
@@ -209,7 +209,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (valueCopier == null) {
       throw new NullPointerException("valueCopier must not be null");
     }
-    ResourcePool heapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
+    SizedResourcePool heapPool = (SizedResourcePool)config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
     }
@@ -1570,7 +1570,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
 
       SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
-      SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit(), serviceConfigs);
+      SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(
+          ((SizedResourcePool)storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP)).getUnit(), serviceConfigs);
       OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher);
       createdStores.add(onHeapStore);
       return onHeapStore;

@@ -36,39 +36,39 @@ public class ResourcePoolsHelper {
 
   public static ResourcePools createHeapOnlyPools(long heapSize) {
     Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
-    poolsMap.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, heapSize, EntryUnit.ENTRIES, false));
+    poolsMap.put(ResourceType.Core.HEAP, new SizedResourcePoolImpl(ResourceType.Core.HEAP, heapSize, EntryUnit.ENTRIES, false));
     return new ResourcePoolsImpl(poolsMap);
   }
 
   public static ResourcePools createHeapOnlyPools(long heapSize, ResourceUnit resourceUnit) {
     Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
-    poolsMap.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, heapSize, resourceUnit, false));
+    poolsMap.put(ResourceType.Core.HEAP, new SizedResourcePoolImpl(ResourceType.Core.HEAP, heapSize, resourceUnit, false));
     return new ResourcePoolsImpl(poolsMap);
   }
 
   public static ResourcePools createOffheapOnlyPools(long offheapSizeInMb) {
     Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
-    poolsMap.put(ResourceType.Core.OFFHEAP, new ResourcePoolImpl(ResourceType.Core.OFFHEAP, offheapSizeInMb, MemoryUnit.MB, false));
+    poolsMap.put(ResourceType.Core.OFFHEAP, new SizedResourcePoolImpl(ResourceType.Core.OFFHEAP, offheapSizeInMb, MemoryUnit.MB, false));
     return new ResourcePoolsImpl(poolsMap);
   }
 
   public static ResourcePools createDiskOnlyPools(long diskSize, ResourceUnit resourceUnit) {
     Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
-    poolsMap.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, diskSize, resourceUnit, false));
+    poolsMap.put(ResourceType.Core.DISK, new SizedResourcePoolImpl(ResourceType.Core.DISK, diskSize, resourceUnit, false));
     return new ResourcePoolsImpl(poolsMap);
   }
 
   public static ResourcePools createHeapDiskPools(long heapSize, long diskSizeInMb) {
     Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
-    poolsMap.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, heapSize, EntryUnit.ENTRIES, false));
-    poolsMap.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, diskSizeInMb, MemoryUnit.MB, false));
+    poolsMap.put(ResourceType.Core.HEAP, new SizedResourcePoolImpl(ResourceType.Core.HEAP, heapSize, EntryUnit.ENTRIES, false));
+    poolsMap.put(ResourceType.Core.DISK, new SizedResourcePoolImpl(ResourceType.Core.DISK, diskSizeInMb, MemoryUnit.MB, false));
     return new ResourcePoolsImpl(poolsMap);
   }
 
   public static ResourcePools createHeapDiskPools(long heapSize, ResourceUnit heapResourceUnit, long diskSizeInMb) {
     Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
-    poolsMap.put(ResourceType.Core.HEAP, new ResourcePoolImpl(ResourceType.Core.HEAP, heapSize, heapResourceUnit, false));
-    poolsMap.put(ResourceType.Core.DISK, new ResourcePoolImpl(ResourceType.Core.DISK, diskSizeInMb, MemoryUnit.MB, false));
+    poolsMap.put(ResourceType.Core.HEAP, new SizedResourcePoolImpl(ResourceType.Core.HEAP, heapSize, heapResourceUnit, false));
+    poolsMap.put(ResourceType.Core.DISK, new SizedResourcePoolImpl(ResourceType.Core.DISK, diskSizeInMb, MemoryUnit.MB, false));
     return new ResourcePoolsImpl(poolsMap);
   }
 

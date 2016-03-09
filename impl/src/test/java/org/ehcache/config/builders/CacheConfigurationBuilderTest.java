@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.BulkCacheWritingException;
@@ -255,7 +256,7 @@ public class CacheConfigurationBuilderTest {
         .withExpiry(expiry)
         .build();
     assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getType(), Matchers.<ResourceType>is(ResourceType.Core.OFFHEAP));
-    assertThat(config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
+    assertThat(((SizedResourcePool)config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP)).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
   }
 
   @Test

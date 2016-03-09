@@ -24,7 +24,7 @@
     <key-type>java.lang.String</key-type> <!--2-->
     <resources>
       <heap unit="entries">2000</heap> <!--3-->
-      <offheap unit="mb">500</offheap> <!--4-->
+      <offheap unit="MB">500</offheap> <!--4-->
     </resources>
   </cache>
 
