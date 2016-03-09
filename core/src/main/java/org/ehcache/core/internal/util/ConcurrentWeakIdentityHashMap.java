@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.util;
+package org.ehcache.core.internal.util;
 
 import java.lang.ref.Reference;
 import java.lang.ref.ReferenceQueue;

@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.util;
+package org.ehcache.core.internal.util;
 
-import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
 import org.junit.Test;
 
 import java.util.AbstractMap;

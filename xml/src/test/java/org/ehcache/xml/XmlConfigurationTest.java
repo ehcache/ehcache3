@@ -43,7 +43,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;

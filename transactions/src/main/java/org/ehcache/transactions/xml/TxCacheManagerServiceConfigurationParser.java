@@ -22,7 +22,7 @@ import org.ehcache.transactions.xa.configuration.XAStoreProviderConfiguration;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProviderConfiguration;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;

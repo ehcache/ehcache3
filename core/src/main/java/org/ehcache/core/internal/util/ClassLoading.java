@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.util;
+package org.ehcache.core.internal.util;
 
 import java.io.IOException;
 import java.net.URL;

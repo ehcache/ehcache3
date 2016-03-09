@@ -33,7 +33,7 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceProvider;

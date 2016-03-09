@@ -51,7 +51,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.ConfigurationParser.Batching;
 import org.ehcache.xml.ConfigurationParser.WriteBehind;
 import org.ehcache.xml.model.CopierType;

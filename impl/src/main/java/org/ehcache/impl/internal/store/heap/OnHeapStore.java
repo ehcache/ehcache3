@@ -63,7 +63,7 @@ import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.HigherCachingTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
