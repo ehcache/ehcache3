@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
@@ -26,8 +27,15 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.junit.Test;
+
+import java.util.Collections;
 
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
 
@@ -65,6 +73,33 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }
+  }
+
+  @Test
+  public void testRank() throws Exception {
+    OffHeapStore.Provider provider = new OffHeapStore.Provider();
+
+    assertThat(provider.rank(
+        Collections.<ResourceType>singleton(ResourceType.Core.OFFHEAP), Collections.<ServiceConfiguration<?>>emptyList()),
+        is(greaterThanOrEqualTo(1)));
+    assertThat(provider.rank(
+        Collections.<ResourceType>singleton(ResourceType.Core.HEAP), Collections.<ServiceConfiguration<?>>emptyList()),
+        is(0));
+
+    final ResourceType unmatchedResourceType = new ResourceType() {
+      @Override
+      public boolean isPersistable() {
+        return true;
+      }
+
+      @Override
+      public boolean requiresSerialization() {
+        return true;
+      }
+    };
+    assertThat(provider.rank(
+        Collections.singleton(unmatchedResourceType), Collections.<ServiceConfiguration<?>>emptyList()),
+        is(0));
   }
 
   @Override

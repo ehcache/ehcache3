@@ -15,6 +15,7 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -27,6 +28,7 @@ import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -34,6 +36,7 @@ import org.mockito.stubbing.Answer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -678,6 +681,36 @@ public class CacheStoreTest {
     cacheStoreProvider.initStore(cacheStore);
     cacheStoreProvider.releaseStore(cacheStore);
     verify(cachingTierProvider, times(1)).releaseCachingTier(any(CachingTier.class));
+  }
+
+  @Test
+  public void testRank() throws Exception {
+    CacheStore.Provider provider = new CacheStore.Provider();
+
+    Assert.assertThat(provider.rank(
+        Collections.<ResourceType>singleton(ResourceType.Core.DISK), Collections.<ServiceConfiguration<?>>emptyList()),
+        Matchers.is(0));
+    Assert.assertThat(provider.rank(
+        Collections.<ResourceType>singleton(ResourceType.Core.HEAP), Collections.<ServiceConfiguration<?>>emptyList()),
+        Matchers.is(0));
+    Assert.assertThat(provider.rank(
+        Collections.<ResourceType>singleton(ResourceType.Core.OFFHEAP), Collections.<ServiceConfiguration<?>>emptyList()),
+        Matchers.is(0));
+
+    final ResourceType unmatchedResourceType = new ResourceType() {
+      @Override
+      public boolean isPersistable() {
+        return true;
+      }
+
+      @Override
+      public boolean requiresSerialization() {
+        return true;
+      }
+    };
+    Assert.assertThat(provider.rank(
+        Collections.singleton(unmatchedResourceType), Collections.<ServiceConfiguration<?>>emptyList()),
+        Matchers.is(0));
   }
 
   public Map.Entry<? extends Number, ? extends CharSequence> newMapEntry(Number key, CharSequence value) {

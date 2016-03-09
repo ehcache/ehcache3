@@ -18,6 +18,7 @@ package org.ehcache.integration;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.exceptions.BulkCacheLoadingException;
@@ -42,6 +43,7 @@ import org.junit.Test;
 import org.mockito.Matchers;
 
 import java.util.AbstractMap;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -503,6 +505,11 @@ public class EhcacheBulkMethodsITest {
    * A Store provider that creates stores that throw...
    */
   private static class CustomStoreProvider implements Store.Provider {
+    @Override
+    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      return Integer.MAX_VALUE;     // Ensure this Store.Provider is ranked highest
+    }
+
     @Override
     public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       ServiceLocator serviceLocator = new ServiceLocator(new DefaultSerializationProvider(null));

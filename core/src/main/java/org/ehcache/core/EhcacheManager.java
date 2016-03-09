@@ -36,6 +36,7 @@ import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.cache.StoreSupport;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
@@ -413,7 +414,8 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
                                        final Collection<ServiceConfiguration<?>> serviceConfigs,
                                        final List<LifeCycled> lifeCycledList) {
 
-    for (ResourceType resourceType : config.getResourcePools().getResourceTypeSet()) {
+    final Set<ResourceType> resourceTypes = config.getResourcePools().getResourceTypeSet();
+    for (ResourceType resourceType : resourceTypes) {
       if (resourceType.isPersistable()) {
         PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
 
@@ -427,16 +429,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
     }
 
-    // TODO: Replace this with Store.Provider acquisition based on ResourceType collection
-    final Collection<Store.Provider> storeProviders = serviceLocator.getServicesOfType(Store.Provider.class);
-    if (storeProviders.isEmpty()) {
-      throw new IllegalStateException("No Store.Provider available");
-    }
-    final Store.Provider storeProvider = storeProviders.iterator().next();
+    final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resourceTypes, serviceConfigs);
+
     Serializer<K> keySerializer = null;
     Serializer<V> valueSerializer = null;
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
-    Set<ResourceType> resources = config.getResourcePools().getResourceTypeSet();
     ServiceConfiguration<?>[] serviceConfigArray = serviceConfigs.toArray(new ServiceConfiguration[serviceConfigs.size()]);
     if (serialization != null) {
       try {
@@ -449,7 +446,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         });
         keySerializer = keySer;
       } catch (UnsupportedTypeException e) {
-        for (ResourceType resource : resources) {
+        for (ResourceType resource : resourceTypes) {
           if (resource.requiresSerialization()) {
             throw new RuntimeException(e);
           }
@@ -466,7 +463,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         });
         valueSerializer = valueSer;
       } catch (UnsupportedTypeException e) {
-        for (ResourceType resource : resources) {
+        for (ResourceType resource : resourceTypes) {
           if (resource.requiresSerialization()) {
             throw new RuntimeException(e);
           }

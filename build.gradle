@@ -82,6 +82,7 @@ subprojects {
 
   test {
     maxHeapSize = "512m"
+    systemProperty 'java.awt.headless', 'true'
   }
 
   task slowTest(type: Test) {

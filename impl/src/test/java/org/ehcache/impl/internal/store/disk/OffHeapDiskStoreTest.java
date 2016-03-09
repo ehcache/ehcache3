@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
@@ -38,15 +39,19 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -147,7 +152,33 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("No LocalPersistenceService could be found - did you configure it at the CacheManager level?"));
     }
+  }
 
+  @Test
+  public void testRank() throws Exception {
+    OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
+
+    assertThat(provider.rank(
+        Collections.<ResourceType>singleton(ResourceType.Core.DISK), Collections.<ServiceConfiguration<?>>emptyList()),
+        is(greaterThanOrEqualTo(1)));
+    assertThat(provider.rank(
+        Collections.<ResourceType>singleton(ResourceType.Core.HEAP), Collections.<ServiceConfiguration<?>>emptyList()),
+        is(0));
+
+    final ResourceType unmatchedResourceType = new ResourceType() {
+      @Override
+      public boolean isPersistable() {
+        return true;
+      }
+
+      @Override
+      public boolean requiresSerialization() {
+        return true;
+      }
+    };
+    assertThat(provider.rank(
+        Collections.singleton(unmatchedResourceType), Collections.<ServiceConfiguration<?>>emptyList()),
+        is(0));
   }
 
   private FileBasedPersistenceContext getPersistenceContext() {

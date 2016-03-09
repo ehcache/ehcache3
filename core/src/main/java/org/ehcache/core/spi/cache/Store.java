@@ -19,6 +19,7 @@ package org.ehcache.core.spi.cache;
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
@@ -30,6 +31,7 @@ import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -672,6 +674,19 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      */
     void initStore(Store<?, ?> resource);
 
+    /**
+     * Gets the internal ranking for the {@link Store} instances provided by this {@code Provider} of the store's
+     * ability to handle the specified resources.  A higher rank value indicates a more capable {@code Store}.
+     *
+     * @param resourceTypes the set of {@code ResourceType}s for the store to handle
+     * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute
+     *                       to the ranking
+     *
+     * @return a non-negative rank indicating the ability of a {@code Store} created by this {@code Provider}
+     *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the store
+     *      can not handle all types specified in {@code resourceTypes}
+     */
+    int rank(Set<ResourceType> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs);
   }
 
   /**

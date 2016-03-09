@@ -29,6 +29,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
+import org.ehcache.core.spi.cache.StoreSupport;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
@@ -66,7 +67,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -217,7 +217,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
     }
 
-    ServiceConfiguration<?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?>[0]);
     List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     Serializer<K> keySerializer = this.keySerializer;
@@ -230,6 +229,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       serviceConfigsList.add(new DefaultSerializerConfiguration<V>(this.valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
+    ServiceConfiguration<?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?>[0]);
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
     if (serialization != null) {
       try {
@@ -267,12 +267,8 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
     }
 
-    // TODO: Replace this with Store.Provider acquisition based on ResourceType collection
-    final Collection<Store.Provider> storeProviders = serviceLocator.getServicesOfType(Store.Provider.class);
-    if (storeProviders.isEmpty()) {
-      throw new IllegalStateException("No Store.Provider available");
-    }
-    final Store.Provider storeProvider = storeProviders.iterator().next();
+    final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, classLoader,
             expiry, resourcePools, orderedEventParallelism, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);

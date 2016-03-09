@@ -87,7 +87,12 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   private <T extends Service> Collection<T> discoverServices(Class<T> serviceClass, ServiceCreationConfiguration<T> config) {
     final List<T> addedServices = new ArrayList<T>();
     for (ServiceFactory<T> factory : ServiceLocator.<T> getServiceFactories(serviceFactory)) {
-      if (serviceClass.isAssignableFrom(factory.getServiceType())) {
+      final Class<T> factoryServiceType = factory.getServiceType();
+      if (serviceClass.isAssignableFrom(factoryServiceType)) {
+        if (services.containsKey(factoryServiceType)) {
+          // Can have only one service registered under a concrete type
+          continue;
+        }
         T service = factory.create(config);
         addService(service);
         addedServices.add(service);
@@ -250,11 +255,10 @@ public final class ServiceLocator implements ServiceProvider<Service> {
   private <T extends Service> Collection<T> findServices(
       Class<T> serviceType, ServiceCreationConfiguration<T> config, boolean shouldCreate) {
     final Collection<T> registeredServices = getServicesOfTypeInternal(serviceType);
-    if (registeredServices.isEmpty() && shouldCreate) {
-      return discoverServices(serviceType, config);
-    } else {
-      return registeredServices;
+    if (shouldCreate && (registeredServices.isEmpty() || serviceType.isAnnotationPresent(PluralService.class))) {
+      registeredServices.addAll(discoverServices(serviceType, config));
     }
+    return registeredServices;
   }
 
   public static <T> Collection<T> findAmongst(Class<T> clazz, Collection<?> instances) {
@@ -375,7 +379,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     final Collection<Class<?>> transitiveDependencies = identifyTransitiveDependenciesOf(clazz);
     for (Class aClass : transitiveDependencies) {
       if (findServices(aClass, null, true).isEmpty()) {
-        throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getSimpleName());
+        throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getName());
       }
     }
   }

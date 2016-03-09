@@ -35,7 +35,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 /**
@@ -46,8 +49,20 @@ import java.util.concurrent.ConcurrentMap;
 public class DefaultStoreProvider implements Store.Provider {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultStoreProvider.class);
 
+  private static final Set<ResourceType> SUPPORTED_RESOURCE_TYPES =
+      new HashSet<ResourceType>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP, ResourceType.Core.DISK));
+
   private volatile ServiceProvider<Service> serviceProvider;
   private final ConcurrentMap<Store<?, ?>, Store.Provider> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Store.Provider>();
+
+  @Override
+  public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    if (SUPPORTED_RESOURCE_TYPES.containsAll(resourceTypes)) {
+      return resourceTypes.size();
+    } else {
+      return 0;
+    }
+  }
 
   @Override
   public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {

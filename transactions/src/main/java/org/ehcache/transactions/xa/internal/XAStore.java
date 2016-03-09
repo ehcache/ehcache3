@@ -17,6 +17,7 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
@@ -769,6 +770,20 @@ public class XAStore<K, V> implements Store<K, V> {
     private volatile Store.Provider underlyingStoreProvider;
     private volatile TransactionManagerProvider transactionManagerProvider;
     private final Map<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper>();
+
+    @Override
+    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      if (findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs) == null) {
+        // An XAStore must be configured for use
+        return 0;
+      }
+      final int underlyingRank = underlyingStoreProvider.rank(resourceTypes, serviceConfigs);
+      if (underlyingRank != 0) {
+        return 10 + underlyingRank;
+      } else {
+        return 0;
+      }
+    }
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
