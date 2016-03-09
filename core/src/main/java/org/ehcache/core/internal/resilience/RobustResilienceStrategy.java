@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.resilience;
+package org.ehcache.core.internal.resilience;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import org.ehcache.core.resilience.RecoveryCache;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.exceptions.RethrowingCacheAccessException;
-import org.ehcache.resilience.ResilienceStrategy;
 
 import static java.util.Collections.emptyMap;
 

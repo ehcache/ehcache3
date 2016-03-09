@@ -15,12 +15,13 @@
  */
 package org.ehcache.transactions.xa;
 
-import org.ehcache.exceptions.RethrowingCacheAccessException;
+import org.ehcache.core.internal.resilience.ResilienceStrategy;
+import org.ehcache.core.internal.resilience.RethrowingCacheAccessException;
 import org.ehcache.transactions.xa.internal.XAStore;
 
 /**
  * A {@link org.ehcache.exceptions.CacheAccessException} thrown by the {@link XAStore} that is not handled by the
- * {@link org.ehcache.resilience.ResilienceStrategy} but used to throw a {@link RuntimeException} to the user of the cache.
+ * {@link ResilienceStrategy} but used to throw a {@link RuntimeException} to the user of the cache.
  *
  * @author Ludovic Orban
  */

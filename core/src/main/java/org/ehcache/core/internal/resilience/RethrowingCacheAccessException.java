@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
+package org.ehcache.core.internal.resilience;
+
+import org.ehcache.exceptions.CacheAccessException;
 
 /**
  * Generic exception used when an internal operation fails on a {@link org.ehcache.Cache} but shouldn't be
  * handled by a resilience strategy but rather rethrown to the caller.
  *
- * @deprecated This mechanism is a stop-gap solution until {@link org.ehcache.resilience.ResilienceStrategy}
+ * @deprecated This mechanism is a stop-gap solution until {@link ResilienceStrategy}
  * instances can be plugged-in.
  *
  * @author Ludovic Orban

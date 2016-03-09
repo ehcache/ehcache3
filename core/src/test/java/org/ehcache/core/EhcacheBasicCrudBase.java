@@ -30,7 +30,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.function.BiFunction;
 import org.ehcache.function.Function;
 import org.ehcache.function.NullaryFunction;
-import org.ehcache.resilience.ResilienceStrategy;
+import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
@@ -83,7 +83,7 @@ public abstract class EhcacheBasicCrudBase {
 
   /**
    * Holds a {@link org.mockito.Mockito#spy(Object)}-wrapped reference to the
-   * {@link org.ehcache.resilience.ResilienceStrategy ResilienceStrategy} used in the
+   * {@link ResilienceStrategy ResilienceStrategy} used in the
    * {@link EhcacheWithLoaderWriter Ehcache} instance being tested.
    *
    * @see #setResilienceStrategySpy(EhcacheWithLoaderWriter)
@@ -208,7 +208,7 @@ public abstract class EhcacheBasicCrudBase {
   }
 
   /**
-   * Replaces the {@link org.ehcache.resilience.ResilienceStrategy ResilienceStrategy} instance in the
+   * Replaces the {@link ResilienceStrategy ResilienceStrategy} instance in the
    * {@link InternalCache Ehcache} instance provided with a
    * {@link org.mockito.Mockito#spy(Object) Mockito <code>spy</code>} wrapping the original
    * {@code ResilienceStrategy} instance.
@@ -656,7 +656,7 @@ public abstract class EhcacheBasicCrudBase {
 
     /**
      * A {@link Store.ValueHolder} implementation for use within
-     * {@link org.ehcache.EhcacheBasicCrudBase.FakeStore}.
+     * {@link org.ehcache.core.EhcacheBasicCrudBase.FakeStore}.
      */
     private static class FakeValueHolder implements ValueHolder<String>  {
 
