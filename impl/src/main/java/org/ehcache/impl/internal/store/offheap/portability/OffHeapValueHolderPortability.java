@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.store.offheap.portability;
 
 import org.ehcache.impl.internal.store.offheap.LazyOffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
+import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 import org.terracotta.offheapstore.storage.portability.WriteBackPortability;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
@@ -45,8 +46,8 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
   @Override
   public ByteBuffer encode(OffHeapValueHolder<V> valueHolder) {
     ByteBuffer serialized;
-    if (valueHolder.isBinaryValueAvailable()) {
-      serialized = valueHolder.getBinaryValue();
+    if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder)valueHolder).isBinaryValueAvailable()) {
+      serialized = ((BinaryValueHolder)valueHolder).getBinaryValue();
     } else {
       serialized = serializer.serialize(valueHolder.value());
     }

@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 
 import java.io.IOException;
@@ -26,7 +27,7 @@ import java.nio.ByteBuffer;
  * BinaryOffHeapValueHolder
  */
 @FindbugsSuppressWarnings("SE_BAD_FIELD")
-final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
+final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements BinaryValueHolder {
 
   private final ByteBuffer binaryValue;
   private final V value;

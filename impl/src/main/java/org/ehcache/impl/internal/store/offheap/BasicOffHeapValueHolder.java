@@ -62,14 +62,4 @@ public class BasicOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
   public V value() {
     return value;
   }
-
-  @Override
-  public ByteBuffer getBinaryValue() throws IllegalStateException {
-    throw new IllegalStateException("No binary value available");
-  }
-
-  @Override
-  public boolean isBinaryValueAvailable() {
-    return false;
-  }
 }
