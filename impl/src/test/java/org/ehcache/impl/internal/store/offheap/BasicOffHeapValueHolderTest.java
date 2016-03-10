@@ -41,16 +41,6 @@ public class BasicOffHeapValueHolderTest {
     assertThat(valueHolder.value(), is(value));
   }
 
-  @Test
-  public void testDoesNotGiveBinaryValue() {
-    assertThat(valueHolder.isBinaryValueAvailable(), is(false));
-  }
-
-  @Test(expected = IllegalStateException.class)
-  public void testThrowsAccessingBinaryValue() {
-    valueHolder.getBinaryValue();
-  }
-
   @Test(expected = UnsupportedOperationException.class)
   public void testDoesNotSupportDelayedDeserialization() {
     valueHolder.detach();

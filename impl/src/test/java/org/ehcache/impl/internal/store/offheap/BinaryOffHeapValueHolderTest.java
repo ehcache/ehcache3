@@ -38,7 +38,7 @@ public class BinaryOffHeapValueHolderTest {
   public void setUp() {
     serializer = new StringSerializer();
     value = "aValue";
-    valueHolder = new BinaryOffHeapValueHolder<String>(-1, serializer.serialize(value), 0, 0, 0, 0);
+    valueHolder = new BinaryOffHeapValueHolder<String>(-1, value, serializer.serialize(value), 0, 0, 0, 0);
   }
 
   @Test
@@ -48,8 +48,28 @@ public class BinaryOffHeapValueHolderTest {
     assertThat(serializer.read(binaryValue), is(value));
   }
 
+  @Test
+  public void testCanAccessValue() {
+    assertThat(valueHolder.value(), is(value));
+  }
+
   @Test(expected = UnsupportedOperationException.class)
-  public void testCannotAccessValue() {
-    valueHolder.value();
+  public void testCantBeDetached() {
+    valueHolder.detach();
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testCantUpdateMetadata() {
+    valueHolder.updateMetadata(null);
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testCantForceDeserialization() {
+    valueHolder.forceDeserialization();
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testCantWriteback() {
+    valueHolder.writeBack();
   }
 }

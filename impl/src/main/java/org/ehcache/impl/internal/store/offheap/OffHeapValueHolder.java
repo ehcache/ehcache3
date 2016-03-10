@@ -25,7 +25,7 @@ import java.util.concurrent.TimeUnit;
 /**
 * OffHeapValueHolder
 */
-public abstract class OffHeapValueHolder<V> extends AbstractValueHolder<V> implements BinaryValueHolder {
+public abstract class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
 
   public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 

@@ -50,7 +50,7 @@ public class LazyOffHeapValueHolderTest {
     JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
 
     valueHolder.detach();
 
@@ -63,7 +63,7 @@ public class LazyOffHeapValueHolderTest {
     JavaSerializer<String> serializer = new JavaSerializer<String>(getClass().getClassLoader());
     String testValue = "Let's get binary!";
     ByteBuffer serialized = serializer.serialize(testValue);
-    OffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
+    LazyOffHeapValueHolder<String> valueHolder = new LazyOffHeapValueHolder<String>(1L, serialized, serializer, 10L, 20L, 15L, 3, mock(WriteContext.class));
 
     try {
       valueHolder.getBinaryValue();

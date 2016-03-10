@@ -1137,7 +1137,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private OffHeapValueHolder<V> newTransferValueHolder(ValueHolder<V> valueHolder) {
     if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
-      return new BinaryOffHeapValueHolder<V>(valueHolder.getId(), ((BinaryValueHolder)valueHolder).getBinaryValue(),
+      return new BinaryOffHeapValueHolder<V>(valueHolder.getId(), valueHolder.value(), ((BinaryValueHolder)valueHolder).getBinaryValue(),
           valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT), valueHolder.expirationTime(OffHeapValueHolder.TIME_UNIT),
           valueHolder.lastAccessTime(OffHeapValueHolder.TIME_UNIT), valueHolder.hits());
     } else {

@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.offheap;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
+import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
@@ -31,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 * OffHeapValueHolder variant that supports lazy deserialization and also serving the binary value if detached.
 */
 @FindbugsSuppressWarnings("SE_BAD_FIELD")
-public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> {
+public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements BinaryValueHolder {
 
   private final Serializer<V> valueSerializer;
   private final WriteContext writeContext;
