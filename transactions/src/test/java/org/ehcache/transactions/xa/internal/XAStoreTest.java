@@ -228,7 +228,9 @@ public class XAStoreTest {
       assertThat(xaStore.put(1L, "een"), equalTo(Store.PutStatus.UPDATE));
     }
     testTransactionManager.commit();
+
     assertThat(exception.get(), is(nullValue()));
+    assertMapping(xaStore, 1L, null);
 
     testTransactionManager.begin();
     {
@@ -255,7 +257,9 @@ public class XAStoreTest {
       assertThat(xaStore.put(1L, "yksi"), equalTo(Store.PutStatus.UPDATE));
     }
     testTransactionManager.commit();
+
     assertThat(exception.get(), is(nullValue()));
+    assertMapping(xaStore, 1L, null);
   }
 
   private void executeWhileIn2PC(final AtomicReference<Throwable> exception, final Callable callable) {
