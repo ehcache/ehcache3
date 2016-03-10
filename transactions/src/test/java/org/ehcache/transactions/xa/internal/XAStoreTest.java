@@ -19,6 +19,7 @@ package org.ehcache.transactions.xa.internal;
 import org.ehcache.Cache;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.function.NullaryFunction;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -286,6 +287,66 @@ public class XAStoreTest {
         public String apply(Long aLong, String s) {
           assertThat(aLong, is(1L));
           assertThat(s, equalTo("one"));
+          return null;
+        }
+      });
+      Assert.assertThat(computed2, is(nullValue()));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, null);
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          assertThat(aLong, is(1L));
+          assertThat(s, is(nullValue()));
+          return "one";
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return Boolean.FALSE;
+        }
+      });
+      Assert.assertThat(computed1.value(), equalTo("one"));
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          assertThat(aLong, is(1L));
+          assertThat(s, equalTo("one"));
+          return null;
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return Boolean.FALSE;
+        }
+      });
+      Assert.assertThat(computed2, is(nullValue()));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, null);
+
+    testTransactionManager.begin();
+    {
+      Store.ValueHolder<String> computed1 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          assertThat(aLong, is(1L));
+          assertThat(s, is(nullValue()));
+          return "one";
+        }
+      });
+      Assert.assertThat(computed1.value(), equalTo("one"));
+      Store.ValueHolder<String> computed2 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          assertThat(aLong, is(1L));
+          assertThat(s, equalTo("one"));
           return "un";
         }
       });
@@ -528,10 +589,10 @@ public class XAStoreTest {
         public String apply(Long aLong, String s) {
           assertThat(aLong, is(1L));
           assertThat(s, equalTo("un"));
-          return "one";
+          return "eins";
         }
       });
-      Assert.assertThat(computed1.value(), equalTo("one"));
+      Assert.assertThat(computed1.value(), equalTo("eins"));
 
       xaStore.remove(1L);
 
@@ -543,6 +604,29 @@ public class XAStoreTest {
         }
       });
       Assert.assertThat(computed2, is(nullValue()));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, null);
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "eins");
+
+      Store.ValueHolder<String> computed1 = xaStore.computeIfPresent(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          assertThat(aLong, is(1L));
+          assertThat(s, equalTo("eins"));
+          return null;
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return Boolean.FALSE;
+        }
+      });
+      Assert.assertThat(computed1, is(nullValue()));
     }
     testTransactionManager.commit();
 
@@ -589,6 +673,8 @@ public class XAStoreTest {
     testTimeSource.advanceTime(2000);
 
     assertMapping(xaStore, 1L, null);
+
+    OffHeapStoreLifecycleHelper.close(offHeapStore);
   }
 
   @Test
@@ -842,6 +928,8 @@ public class XAStoreTest {
     assertMapping(xaStore, 0L, "otherStuff#0");
     assertMapping(xaStore, 1L, "otherStuff#1");
     assertMapping(xaStore, 2L, "stuff#2");
+
+    OffHeapStoreLifecycleHelper.close(offHeapStore);
   }
 
   @Test
@@ -920,6 +1008,8 @@ public class XAStoreTest {
     assertMapping(xaStore, 1L, "stuff#1");
     assertMapping(xaStore, 2L, "stuff#2");
     assertMapping(xaStore, 3L, "stuff#3");
+
+    OffHeapStoreLifecycleHelper.close(offHeapStore);
   }
 
   private Set<Long> asSet(Long... longs) {
