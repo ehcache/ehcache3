@@ -25,50 +25,111 @@ import org.ehcache.event.EventType;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 
 import java.util.EnumSet;
+import java.util.Set;
 
 /**
- * @author rism
+ * {@link CacheEventListenerConfiguration} implementation
  */
 public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfiguration<CacheEventListener<?, ?>>
     implements CacheEventListenerConfiguration {
 
+  private final EnumSet<EventType> eventsToFireOn;
   private EventFiring eventFiringMode = EventFiring.ASYNCHRONOUS;
   private EventOrdering eventOrderingMode = EventOrdering.UNORDERED;
-  private EnumSet<EventType> eventsToFireOn;
 
-  public DefaultCacheEventListenerConfiguration(final Class<? extends CacheEventListener<?, ?>> clazz, Object... arguments) {
+  /**
+   * Creates a new {@code DefaultCacheEventListenerConfiguration} with the provided parameters.
+   * <P>
+   *   <UL>
+   *     <LI>Default event firing mode is {@link EventFiring#ASYNCHRONOUS}</LI>
+   *     <LI>Default event ordering mode is {@link EventOrdering#UNORDERED}</LI>
+   *   </UL>
+   * </P>
+   *
+   * @param fireOn the events to fire on
+   * @param clazz the cache event listener class
+   * @param arguments optional constructor arguments
+   *
+   * @see #setEventFiringMode(EventFiring)
+   * @see #setEventOrderingMode(EventOrdering)
+   */
+  public DefaultCacheEventListenerConfiguration(Set<EventType> fireOn, Class<? extends CacheEventListener<?, ?>> clazz, Object... arguments) {
     super(clazz, arguments);
+    if (fireOn.isEmpty()) {
+      throw new IllegalArgumentException("Set of event types to fire on must not be empty");
+    }
+    eventsToFireOn = EnumSet.copyOf(fireOn);
   }
 
-  public DefaultCacheEventListenerConfiguration(CacheEventListener<?, ?> listener) {
+  /**
+   * Creates a new {@code DefaultCacheEventListenerConfiguration} with the provided parameters.
+   * <P>
+   *   <UL>
+   *     <LI>Default event firing mode is {@link EventFiring#ASYNCHRONOUS}</LI>
+   *     <LI>Default event ordering mode is {@link EventOrdering#UNORDERED}</LI>
+   *   </UL>
+   * </P>
+   *
+   * @param fireOn the events to fire on
+   * @param listener the cache event listener instance
+   *
+   * @see #setEventFiringMode(EventFiring)
+   * @see #setEventOrderingMode(EventOrdering)
+   */
+  public DefaultCacheEventListenerConfiguration(Set<EventType> fireOn, CacheEventListener<?, ?> listener) {
     super(listener);
+    if (fireOn.isEmpty()) {
+      throw new IllegalArgumentException("Set of event types to fire on must not be empty");
+    }
+    eventsToFireOn = EnumSet.copyOf(fireOn);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<CacheEventListenerProvider> getServiceType() {
     return CacheEventListenerProvider.class;
   }
 
+  /**
+   * Sets the event firing mode on this configuration object.
+   *
+   * @param firingMode the event firing mode
+   */
   public void setEventFiringMode(EventFiring firingMode) {
     this.eventFiringMode = firingMode;
   }
 
+  /**
+   * Sets the event orderign mode on this configuration object.
+   *
+   * @param orderingMode the event ordering mode
+   */
   public void setEventOrderingMode(EventOrdering orderingMode) {
     this.eventOrderingMode = orderingMode;
   }
 
-  public void setEventsToFireOn(EnumSet<EventType> fireOn) {
-    this.eventsToFireOn = fireOn;
-  }
-
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public EventFiring firingMode() {
     return eventFiringMode;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public EventOrdering orderingMode() {
     return eventOrderingMode;
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public EnumSet<EventType> fireOn() {
     return eventsToFireOn;
   }

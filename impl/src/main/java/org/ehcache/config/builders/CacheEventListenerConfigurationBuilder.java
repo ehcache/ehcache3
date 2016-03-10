@@ -264,11 +264,10 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
   public DefaultCacheEventListenerConfiguration build() {
     DefaultCacheEventListenerConfiguration defaultCacheEventListenerConfiguration;
     if (this.listenerClass != null) {
-      defaultCacheEventListenerConfiguration = new DefaultCacheEventListenerConfiguration(this.listenerClass, this.listenerArguments);
+      defaultCacheEventListenerConfiguration = new DefaultCacheEventListenerConfiguration(this.eventsToFireOn, this.listenerClass, this.listenerArguments);
     } else {
-      defaultCacheEventListenerConfiguration = new DefaultCacheEventListenerConfiguration(this.listenerInstance);
+      defaultCacheEventListenerConfiguration = new DefaultCacheEventListenerConfiguration(this.eventsToFireOn, this.listenerInstance);
     }
-    defaultCacheEventListenerConfiguration.setEventsToFireOn(this.eventsToFireOn);
     if (eventOrdering != null) {
       defaultCacheEventListenerConfiguration.setEventOrderingMode(this.eventOrdering);
     }
