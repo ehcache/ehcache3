@@ -47,7 +47,6 @@ import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIden
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,7 +74,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**

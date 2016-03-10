@@ -31,20 +31,17 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.spi.services.DefaultTestProvidedService;
 import org.ehcache.core.spi.services.DefaultTestService;
 import org.ehcache.core.spi.services.FancyCacheProvider;
 import org.ehcache.core.spi.services.TestProvidedService;
 import org.ehcache.core.spi.services.TestService;
 import org.hamcrest.CoreMatchers;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
@@ -74,37 +71,6 @@ public class ServiceLocatorTest {
     assertThat(servicesOfType, is(not(empty())));
     assertThat(servicesOfType.iterator().next(), sameInstance(fancyCacheProvider));
   }
-
-  @Ignore
-  @Test
-  public void testAcceptsMultipleIdenticalServices() {
-    ServiceLocator serviceLocator = new ServiceLocator();
-
-    Service fancyCacheProvider = new FancyCacheProvider();
-    DullCacheProvider dullCacheProvider = new DullCacheProvider();
-
-    serviceLocator.addService(fancyCacheProvider);
-    serviceLocator.addService(dullCacheProvider);
-
-    assertThat(serviceLocator.getService(FooProvider.class), nullValue());
-    assertThat(serviceLocator.getService(CacheProvider.class), sameInstance(fancyCacheProvider));
-    assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
-  }
-
-  @Ignore
-  @Test
-  public void testDoesNotRegisterSupplementaryServiceUnderAbstractType() {
-    ServiceLocator serviceLocator = new ServiceLocator();
-
-    DullCacheProvider dullCacheProvider = new DullCacheProvider();
-
-    serviceLocator.addService(dullCacheProvider);
-
-    assertThat(serviceLocator.getService(FooProvider.class), nullValue());
-    assertThat(serviceLocator.getService(CacheProvider.class), nullValue());
-    assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
-  }
-
 
   @Test
   public void testDoesNotUseTCCL() {
@@ -442,28 +408,5 @@ class ChildTestService extends ParentTestService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
-  }
-}
-
-@SupplementaryService
-class DullCacheProvider implements CacheProvider {
-  @Override
-  public <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
-    return null;
-  }
-
-  @Override
-  public void releaseCache(final EhcacheWithLoaderWriter<?, ?> resource) {
-    //
-  }
-
-  @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void stop() {
-    throw new UnsupportedOperationException();
   }
 }
