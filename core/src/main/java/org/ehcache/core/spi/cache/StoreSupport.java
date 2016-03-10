@@ -18,9 +18,13 @@ package org.ehcache.core.spi.cache;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -49,26 +53,55 @@ public final class StoreSupport {
    *
    * @return the non-{@code null} {@code Store.Provider} implementation chosen
    *
-   * @throws IllegalStateException if no suitable {@code Store.Provider} is available
+   * @throws IllegalStateException if no suitable {@code Store.Provider} is available or if
+   *        multiple {@code Store.Provider} implementations return the same top ranking
    */
   public static Store.Provider selectStoreProvider(
-      final ServiceLocator serviceLocator, final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      final ServiceProvider<Service> serviceLocator, final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+
     final Collection<Store.Provider> storeProviders = serviceLocator.getServicesOfType(Store.Provider.class);
-    if (storeProviders.isEmpty()) {
-      throw new IllegalStateException("No Store.Provider available");
-    }
     int highRank = 0;
-    Store.Provider rankingProvider = null;
+    List<Store.Provider> rankingProviders = new ArrayList<Store.Provider>();
     for (final Store.Provider provider : storeProviders) {
       int rank = provider.rank(resourceTypes, serviceConfigs);
       if (rank > highRank) {
         highRank = rank;
-        rankingProvider = provider;
+        rankingProviders.clear();
+        rankingProviders.add(provider);
+      } else if (rank != 0 && rank == highRank) {
+        rankingProviders.add(provider);
       }
     }
-    if (rankingProvider == null) {
-      throw new IllegalStateException("No Store.Provider found to handle configured resource types: " + resourceTypes);
+
+    if (rankingProviders.isEmpty()) {
+      final StringBuilder sb = new StringBuilder("No Store.Provider found to handle configured resource types ");
+      sb.append(resourceTypes);
+      sb.append(" from ");
+      formatStoreProviders(storeProviders, sb);
+      throw new IllegalStateException(sb.toString());
+    } else if (rankingProviders.size() > 1) {
+      final StringBuilder sb = new StringBuilder("Multiple Store.Providers found to handle configured resource types ");
+      sb.append(resourceTypes);
+      sb.append(": ");
+      formatStoreProviders(rankingProviders, sb);
+      throw new IllegalStateException(sb.toString());
     }
-    return rankingProvider;
+
+    return rankingProviders.get(0);
+  }
+
+  private static StringBuilder formatStoreProviders(final Collection<Store.Provider> storeProviders, final StringBuilder sb) {
+    sb.append('{');
+    boolean prependSeparator = false;
+    for (final Store.Provider provider : storeProviders) {
+      if (prependSeparator) {
+        sb.append(", ");
+      } else {
+        prependSeparator = true;
+      }
+      sb.append(provider.getClass().getName());
+    }
+    sb.append('}');
+    return sb;
   }
 }

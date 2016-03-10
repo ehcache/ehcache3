@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
 
 /**
@@ -41,6 +42,21 @@ import static org.junit.Assert.*;
  */
 public class StoreSupportTest {
 
+  private final ResourceType anyResourceType = new ResourceType() {
+    @Override
+    public boolean isPersistable() {
+      return false;
+    }
+    @Override
+    public boolean requiresSerialization() {
+      return false;
+    }
+    @Override
+    public String toString() {
+      return "anyResourceType";
+    }
+  };
+
   @Test
   public void testSelectStoreProvider() throws Exception {
 
@@ -48,20 +64,7 @@ public class StoreSupportTest {
     final TestBaseProvider[] storeProviders = {
         new SecondaryProvider1(),
         new ZeroProvider(),
-        expectedProvider,
-        new SecondaryProvider2(),
-        new PrimaryProvider2()
-    };
-
-    final ResourceType anyResourceType = new ResourceType() {
-      @Override
-      public boolean isPersistable() {
-        return false;
-      }
-      @Override
-      public boolean requiresSerialization() {
-        return false;
-      }
+        expectedProvider
     };
 
     final ServiceLocator serviceLocator = new ServiceLocator(storeProviders);
@@ -77,6 +80,85 @@ public class StoreSupportTest {
     }
   }
 
+  @Test
+  public void testSelectStoreProviderMultiple() throws Exception {
+
+    final TestBaseProvider expectedProvider = new PrimaryProvider1();
+    final TestBaseProvider[] storeProviders = {
+        new SecondaryProvider1(),
+        new ZeroProvider(),
+        expectedProvider,
+        new SecondaryProvider2(),
+        new PrimaryProvider2()
+    };
+
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProviders);
+
+    try {
+      StoreSupport.selectStoreProvider(serviceLocator,
+          Collections.singleton(anyResourceType),
+          Collections.<ServiceConfiguration<?>>emptyList());
+      fail();
+    } catch (IllegalStateException e) {
+      // expected
+      assertThat(e.getMessage(), startsWith("Multiple Store.Providers "));
+    }
+
+    for (final TestBaseProvider provider : storeProviders) {
+      assertThat(provider.rankAccessCount.get(), is(1));
+    }
+  }
+
+  @Test
+  public void testSelectStoreProviderNoProviders() throws Exception {
+
+    final ServiceLocator serviceLocator = new ServiceLocator();
+    try {
+      StoreSupport.selectStoreProvider(serviceLocator,
+          Collections.singleton(anyResourceType),
+          Collections.<ServiceConfiguration<?>>emptyList());
+      fail();
+    } catch (IllegalStateException e) {
+      // expected
+      assertThat(e.getMessage(), startsWith("No Store.Provider "));
+    }
+  }
+
+  @Test
+  public void testSelectStoreProviderNoHits() throws Exception {
+
+    final ResourceType otherResourceType = new ResourceType() {
+      @Override
+      public boolean isPersistable() {
+        return true;
+      }
+      @Override
+      public boolean requiresSerialization() {
+        return true;
+      }
+    };
+
+    final TestBaseProvider[] storeProviders = {
+        new SecondaryProvider1(),
+        new ZeroProvider(),
+        new PrimaryProvider1()
+    };
+
+    final ServiceLocator serviceLocator = new ServiceLocator(storeProviders);
+    try {
+      StoreSupport.selectStoreProvider(serviceLocator,
+          Collections.singleton(otherResourceType),
+          Collections.<ServiceConfiguration<?>>emptyList());
+      fail();
+    } catch (IllegalStateException e) {
+      // expected
+      assertThat(e.getMessage(), startsWith("No Store.Provider "));
+    }
+
+    for (final TestBaseProvider provider : storeProviders) {
+      assertThat(provider.rankAccessCount.get(), is(1));
+    }
+  }
 
   private final class ZeroProvider extends TestBaseProvider {
     public ZeroProvider() {
@@ -137,7 +219,11 @@ public class StoreSupportTest {
       assertThat(serviceConfigs, is(not(nullValue())));
       rankAccessCount.incrementAndGet();
 
-      return this.rank;
+      if (resourceTypes.contains(anyResourceType)) {
+        return this.rank;
+      }
+
+      return 0;
     }
 
     @Override

@@ -17,12 +17,14 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
@@ -35,12 +37,13 @@ public class OnHeapStoreProviderTest {
   public void testRank() throws Exception {
     OnHeapStore.Provider provider = new OnHeapStore.Provider();
 
-    assertThat(provider.rank(
-        Collections.<ResourceType>singleton(ResourceType.Core.HEAP), Collections.<ServiceConfiguration<?>>emptyList()),
-        is(greaterThanOrEqualTo(1)));
-    assertThat(provider.rank(
-        Collections.<ResourceType>singleton(ResourceType.Core.DISK), Collections.<ServiceConfiguration<?>>emptyList()),
-        is(0));
+    assertRank(provider, 1, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     final ResourceType unmatchedResourceType = new ResourceType() {
       @Override
@@ -53,8 +56,15 @@ public class OnHeapStoreProviderTest {
         return true;
       }
     };
+
+    assertRank(provider, 0, unmatchedResourceType);
+    assertRank(provider, 0, ResourceType.Core.HEAP, unmatchedResourceType);
+  }
+
+  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType... resources) {
     assertThat(provider.rank(
-        Collections.singleton(unmatchedResourceType), Collections.<ServiceConfiguration<?>>emptyList()),
-        is(0));
+        new HashSet<ResourceType>(Arrays.asList(resources)),
+        Collections.<ServiceConfiguration<?>>emptyList()),
+        is(expectedRank));
   }
 }

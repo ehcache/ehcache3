@@ -44,13 +44,14 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 
 import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -158,12 +159,13 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   public void testRank() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
 
-    assertThat(provider.rank(
-        Collections.<ResourceType>singleton(ResourceType.Core.DISK), Collections.<ServiceConfiguration<?>>emptyList()),
-        is(greaterThanOrEqualTo(1)));
-    assertThat(provider.rank(
-        Collections.<ResourceType>singleton(ResourceType.Core.HEAP), Collections.<ServiceConfiguration<?>>emptyList()),
-        is(0));
+    assertRank(provider, 1, ResourceType.Core.DISK);
+    assertRank(provider, 0, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     final ResourceType unmatchedResourceType = new ResourceType() {
       @Override
@@ -176,9 +178,15 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
         return true;
       }
     };
+    assertRank(provider, 0, unmatchedResourceType);
+    assertRank(provider, 0, ResourceType.Core.DISK, unmatchedResourceType);
+  }
+
+  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType... resources) {
     assertThat(provider.rank(
-        Collections.singleton(unmatchedResourceType), Collections.<ServiceConfiguration<?>>emptyList()),
-        is(0));
+        new HashSet<ResourceType>(Arrays.asList(resources)),
+        Collections.<ServiceConfiguration<?>>emptyList()),
+        is(expectedRank));
   }
 
   private FileBasedPersistenceContext getPersistenceContext() {

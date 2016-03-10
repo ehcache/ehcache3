@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -777,7 +778,15 @@ public class XAStore<K, V> implements Store<K, V> {
         // An XAStore must be configured for use
         return 0;
       }
-      final int underlyingRank = underlyingStoreProvider.rank(resourceTypes, serviceConfigs);
+
+      // TODO: Introduce proper Provider discovery & tracking and remove this *HACK*
+      final int underlyingRank;
+      if (resourceTypes.equals(EnumSet.of(ResourceType.Core.HEAP))) {
+        // DefaultStoreProvider supports HEAP-only but does not declare it
+        underlyingRank = 1;
+      } else {
+        underlyingRank = underlyingStoreProvider.rank(resourceTypes, serviceConfigs);
+      }
       if (underlyingRank != 0) {
         return 10 + underlyingRank;
       } else {

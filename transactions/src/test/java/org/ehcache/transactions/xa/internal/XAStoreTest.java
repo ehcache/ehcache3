@@ -57,6 +57,7 @@ import org.ehcache.transactions.xa.utils.TestXid;
 import org.junit.Test;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1538,26 +1539,17 @@ public class XAStoreTest {
 
     provider.start(serviceLocator);
 
-    assertThat(provider.rank(
-        Collections.<ResourceType>singleton(ResourceType.Core.DISK), Collections.<ServiceConfiguration<?>>singleton(configuration)),
-        is(greaterThanOrEqualTo(1)));
-    assertThat(provider.rank(
-        Collections.<ResourceType>singleton(ResourceType.Core.HEAP), Collections.<ServiceConfiguration<?>>singleton(configuration)),
-        is(greaterThanOrEqualTo(1)));
-    assertThat(provider.rank(
-        Collections.<ResourceType>singleton(ResourceType.Core.OFFHEAP), Collections.<ServiceConfiguration<?>>singleton(configuration)),
-        is(greaterThanOrEqualTo(1)));
-    assertThat(provider.rank(
-        new HashSet<ResourceType>(
-            Arrays.asList(ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP)),
-        Collections.<ServiceConfiguration<?>>singleton(configuration)),
-        is(greaterThanOrEqualTo(1)));
+    final Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.<ServiceConfiguration<?>>singleton(configuration);
+    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.HEAP);
+    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK);
+    assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 13, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    assertThat(provider.rank(
-        new HashSet<ResourceType>(
-            Arrays.asList(ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP)),
-        Collections.<ServiceConfiguration<?>>emptyList()),
-        is(0));
+    final Set<ServiceConfiguration<?>> emptyConfigs = Collections.emptySet();
+    assertRank(provider, 0, emptyConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     final ResourceType unmatchedResourceType = new ResourceType() {
       @Override
@@ -1570,15 +1562,14 @@ public class XAStoreTest {
         return true;
       }
     };
-    assertThat(provider.rank(
-        Collections.singleton(unmatchedResourceType), Collections.<ServiceConfiguration<?>>singleton(configuration)),
-        is(0));
 
-    assertThat(provider.rank(
-        new HashSet<ResourceType>(
-            Arrays.asList(ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType)),
-        Collections.<ServiceConfiguration<?>>emptyList()),
-        is(0));
+    assertRank(provider, 0, xaStoreConfigs, unmatchedResourceType);
+    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType);
+  }
+
+  private void assertRank(final Store.Provider provider, final int expectedRank,
+                          final Collection<ServiceConfiguration<?>> serviceConfigs, final ResourceType... resources) {
+    assertThat(provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
   }
 
   private Set<Long> asSet(Long... longs) {

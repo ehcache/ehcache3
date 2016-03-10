@@ -36,6 +36,7 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -49,15 +50,21 @@ import java.util.concurrent.ConcurrentMap;
 public class DefaultStoreProvider implements Store.Provider {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultStoreProvider.class);
 
-  private static final Set<ResourceType> SUPPORTED_RESOURCE_TYPES =
-      new HashSet<ResourceType>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP, ResourceType.Core.DISK));
+  private static final Set<Set<ResourceType.Core>> SUPPORTED_RESOURCE_COMBINATIONS;
+  static {
+    final Set<Set<ResourceType.Core>> supported = new HashSet<Set<ResourceType.Core>>();
+    supported.add(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.DISK));
+    supported.add(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
+    supported.add(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP, ResourceType.Core.DISK));
+    SUPPORTED_RESOURCE_COMBINATIONS = supported;
+  }
 
   private volatile ServiceProvider<Service> serviceProvider;
   private final ConcurrentMap<Store<?, ?>, Store.Provider> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Store.Provider>();
 
   @Override
   public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-    if (SUPPORTED_RESOURCE_TYPES.containsAll(resourceTypes)) {
+    if (SUPPORTED_RESOURCE_COMBINATIONS.contains(resourceTypes)) {
       return resourceTypes.size();
     } else {
       return 0;
@@ -96,6 +103,7 @@ public class DefaultStoreProvider implements Store.Provider {
       enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(OffHeapStore.Provider.class));
     } else {
+      // TODO: Remove once XAStore has proper underlying Store.Provider selection support
       // default to on-heap cache
       provider = serviceProvider.getService(OnHeapStore.Provider.class);
     }
