@@ -378,7 +378,39 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public ReplaceStatus replace(K key, V oldValue, V newValue) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    checkKey(key);
+    checkValue(oldValue);
+    checkValue(newValue);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.touched(key)) {
+      V modifiedValue = currentContext.newValueOf(key);
+      if (modifiedValue == null) {
+        return ReplaceStatus.MISS_NOT_PRESENT;
+      } else if (!modifiedValue.equals(oldValue)) {
+        return ReplaceStatus.MISS_PRESENT;
+      } else {
+        V previousValue = currentContext.oldValueOf(key);
+        currentContext.addCommand(key, new StorePutCommand<V>(previousValue, new XAValueHolder<V>(newValue, timeSource.getTimeMillis())));
+        return ReplaceStatus.HIT;
+      }
+    }
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    if (softLockValueHolder != null) {
+      SoftLock<V> softLock = softLockValueHolder.value();
+      V previousValue = softLock.getOldValue();
+      if (isInDoubt(softLock)) {
+        currentContext.addCommand(key, new StoreEvictCommand<V>(previousValue));
+        return ReplaceStatus.MISS_NOT_PRESENT;
+      } else if (!previousValue.equals(oldValue)) {
+        return ReplaceStatus.MISS_PRESENT;
+      } else {
+        currentContext.addCommand(key, new StorePutCommand<V>(previousValue, new XAValueHolder<V>(newValue, timeSource.getTimeMillis())));
+        return ReplaceStatus.HIT;
+      }
+    } else {
+      return ReplaceStatus.MISS_NOT_PRESENT;
+    }
   }
 
   @Override
@@ -567,7 +599,11 @@ public class XAStore<K, V> implements Store<K, V> {
       currentContext.addCommand(key, new StoreEvictCommand<V>(softLockValueHolder.value().getOldValue()));
       xaValueHolder = new XAValueHolder<V>(softLockValueHolder, softLockValueHolder.value().getNewValueHolder().value());
     } else {
-      xaValueHolder = new XAValueHolder<V>(softLockValueHolder, softLockValueHolder.value().getOldValue());
+      if (updated) {
+        xaValueHolder = currentContext.newValueHolderOf(key);
+      } else {
+        xaValueHolder = new XAValueHolder<V>(softLockValueHolder, softLockValueHolder.value().getOldValue());
+      }
     }
 
     return xaValueHolder;

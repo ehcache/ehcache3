@@ -545,6 +545,8 @@ public class XACacheTest {
     txCache1.clear();
     replace2ArgsAssertions(transactionManager, txCache1);
     txCache1.clear();
+    replace3ArgsAssertions(transactionManager, txCache1);
+    txCache1.clear();
 
     cacheManager.close();
     transactionManager.shutdown();
@@ -579,6 +581,9 @@ public class XACacheTest {
     txCache1.clear();
     loaderWriter.clear();
     replace2ArgsAssertions(transactionManager, txCache1);
+    txCache1.clear();
+    loaderWriter.clear();
+    replace3ArgsAssertions(transactionManager, txCache1);
     txCache1.clear();
     loaderWriter.clear();
 
@@ -665,6 +670,31 @@ public class XACacheTest {
     transactionManager.commit();
 
     assertMapping(transactionManager, txCache1, 1L, null);
+  }
+
+  private void replace3ArgsAssertions(BitronixTransactionManager transactionManager, Cache<Long, String> txCache1) throws Exception {
+    transactionManager.begin();
+    {
+      assertThat(txCache1.replace(1L, "one", "un"), is(false));
+      txCache1.put(1L, "un");
+      assertThat(txCache1.replace(1L, "uno", "eins"), is(false));
+      assertThat(txCache1.replace(1L, "un", "eins"), is(true));
+      assertThat(txCache1.get(1L), equalTo("eins"));
+    }
+    transactionManager.commit();
+
+    assertMapping(transactionManager, txCache1, 1L, "eins");
+
+    transactionManager.begin();
+    {
+      assertThat(txCache1.replace(1L, "one", "un"), is(false));
+      assertThat(txCache1.replace(1L, "eins", "un"), is(true));
+      assertThat(txCache1.replace(1L, "uno", "een"), is(false));
+      assertThat(txCache1.get(1L), equalTo("un"));
+    }
+    transactionManager.commit();
+
+    assertMapping(transactionManager, txCache1, 1L, "un");
   }
 
   private void assertMapping(BitronixTransactionManager transactionManager, Cache<Long, String> cache, long key, String expected) throws Exception {
