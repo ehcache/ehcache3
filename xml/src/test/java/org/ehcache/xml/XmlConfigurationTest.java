@@ -638,6 +638,15 @@ public class XmlConfigurationTest {
     assertEquals(sizeOfEngineConfig1.getMaxObjectSize(), 200000);
   }
 
+  @Test
+  public void testCustomResource() throws Exception {
+    try {
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("Can't find parser for resource: [fancy:fancy: null]"));
+    }
+  }
+
   private void checkListenerConfigurationExists(Collection<?> configuration) {
     int count = 0;
     for (Object o : configuration) {

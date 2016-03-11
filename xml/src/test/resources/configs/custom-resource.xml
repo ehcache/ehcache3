@@ -1,4 +1,3 @@
-<?xml version="1.0"?>
 <!--
   ~ Copyright Terracotta, Inc.
   ~
@@ -15,12 +14,17 @@
   ~ limitations under the License.
   -->
 
-
-<xs:schema version="1.0"
-           xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns:eh="http://www.ehcache.org/v3"
-           elementFormDefault="qualified"
-           targetNamespace="http://www.example.com/foo">
-  <xs:import namespace="http://www.ehcache.org/v3"/>
-  <xs:element name="foo" substitutionGroup="eh:service-configuration"/>
-</xs:schema>
+<ehcache:config
+  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+  xmlns:fancy='http://www.example.com/fancy'
+  xmlns:ehcache='http://www.ehcache.org/v3'
+  xsi:schemaLocation="http://www.example.com/fancy fancy.xsd
+                     http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
+  <ehcache:cache alias="fancy">
+    <ehcache:key-type>java.lang.String</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <fancy:fancy/>
+    </ehcache:resources>
+  </ehcache:cache>
+</ehcache:config>

@@ -17,14 +17,17 @@
 
 <xs:schema version="1.0"
            xmlns:tc="http://www.ehcache.org/v3/clustered"
+           xmlns:eh="http://www.ehcache.org/v3"
            xmlns:xs="http://www.w3.org/2001/XMLSchema"
            elementFormDefault="qualified"
            targetNamespace="http://www.ehcache.org/v3/clustered">
 
+  <xs:import namespace="http://www.ehcache.org/v3"/>
+
   <!--
     Service configuration elements
   -->
-  <xs:element name="cluster" type="tc:cluster-spec">
+  <xs:element name="cluster" type="tc:cluster-spec" substitutionGroup="eh:service-creation-configuration">
     <xs:annotation>
       <xs:documentation xml:lang="en">
         Used within the /config/service element of an Ehcache configuration, this element
