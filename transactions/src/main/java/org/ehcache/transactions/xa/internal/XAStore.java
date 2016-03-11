@@ -229,12 +229,9 @@ public class XAStore<K, V> implements Store<K, V> {
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
+      V newValue = currentContext.newValueOf(key);
       currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
-      if (oldValue == null) {
-        return PutStatus.PUT;
-      } else {
-        return PutStatus.UPDATE;
-      }
+      return newValue == null ? PutStatus.PUT : PutStatus.UPDATE;
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
@@ -243,7 +240,6 @@ public class XAStore<K, V> implements Store<K, V> {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
         currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
-        status = PutStatus.NOOP;
       } else {
         if (currentContext.addCommand(key, new StorePutCommand<V>(softLock.getOldValue(), new XAValueHolder<V>(value, timeSource.getTimeMillis())))) {
           status = PutStatus.UPDATE;
@@ -258,30 +254,22 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
   public boolean remove(K key) throws CacheAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
       V oldValue = currentContext.oldValueOf(key);
+      V newValue = currentContext.newValueOf(key);
       currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
-      if (oldValue == null) {
-        return false;
-      } else {
-        return true;
-      }
+      return newValue != null;
     }
 
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
-    boolean status = true;
+    boolean status = false;
     if (softLockValueHolder != null) {
       SoftLock<V> softLock = softLockValueHolder.value();
       if (isInDoubt(softLock)) {
-        status = currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
       } else {
         status = currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValue()));
       }
@@ -290,8 +278,69 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
+  public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
+    checkKey(key);
+    checkValue(value);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.touched(key)) {
+      V oldValue = currentContext.oldValueOf(key);
+      V newValue = currentContext.newValueOf(key);
+      if (newValue == null) {
+        currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
+        return null;
+      } else {
+        return currentContext.newValueHolderOf(key);
+      }
+    }
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    if (softLockValueHolder != null) {
+      SoftLock<V> softLock = softLockValueHolder.value();
+      if (isInDoubt(softLock)) {
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
+        return null;
+      } else {
+        return new XAValueHolder<V>(softLockValueHolder, softLock.getOldValue());
+      }
+    } else {
+      currentContext.addCommand(key, new StorePutCommand<V>(null, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
+      return null;
+    }
+  }
+
+  @Override
   public RemoveStatus remove(K key, V value) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    checkKey(key);
+    checkValue(value);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.touched(key)) {
+      V oldValue = currentContext.oldValueOf(key);
+      V newValue = currentContext.newValueOf(key);
+      if (newValue == null) {
+        return RemoveStatus.KEY_MISSING;
+      } else if (!newValue.equals(value)) {
+        return RemoveStatus.KEY_PRESENT;
+      } else {
+        currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
+        return RemoveStatus.REMOVED;
+      }
+    }
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    if (softLockValueHolder != null) {
+      SoftLock<V> softLock = softLockValueHolder.value();
+      if (isInDoubt(softLock)) {
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
+        return RemoveStatus.KEY_MISSING;
+      } else if (!softLock.getOldValue().equals(value)) {
+        return RemoveStatus.KEY_PRESENT;
+      } else {
+        currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValue()));
+        return RemoveStatus.REMOVED;
+      }
+    } else {
+      return RemoveStatus.KEY_MISSING;
+    }
   }
 
   @Override
@@ -476,7 +525,7 @@ public class XAStore<K, V> implements Store<K, V> {
     ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
     if (softLockValueHolder == null) {
       if (updated) {
-        xaValueHolder = null;
+        xaValueHolder = currentContext.newValueHolderOf(key);
       } else {
         V computed = mappingFunction.apply(key);
         if (computed != null) {
@@ -547,6 +596,8 @@ public class XAStore<K, V> implements Store<K, V> {
     if (newValue == null) {
       if (!(oldValue == null && !replaceEqual.apply())) {
         currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
+      } else {
+        currentContext.removeCommand(key);
       }
     } else {
       checkValue(newValue);
