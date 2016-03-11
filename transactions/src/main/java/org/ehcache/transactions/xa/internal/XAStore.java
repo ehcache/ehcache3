@@ -310,7 +310,37 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public RemoveStatus remove(K key, V value) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    checkKey(key);
+    checkValue(value);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.touched(key)) {
+      V oldValue = currentContext.oldValueOf(key);
+      V newValue = currentContext.newValueOf(key);
+      if (newValue == null) {
+        return RemoveStatus.KEY_MISSING;
+      } else if (!newValue.equals(value)) {
+        return RemoveStatus.KEY_PRESENT;
+      } else {
+        currentContext.addCommand(key, new StoreRemoveCommand<V>(oldValue));
+        return RemoveStatus.REMOVED;
+      }
+    }
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    if (softLockValueHolder != null) {
+      SoftLock<V> softLock = softLockValueHolder.value();
+      if (isInDoubt(softLock)) {
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
+        return RemoveStatus.KEY_MISSING;
+      } else if (!softLock.getOldValue().equals(value)) {
+        return RemoveStatus.KEY_PRESENT;
+      } else {
+        currentContext.addCommand(key, new StoreRemoveCommand<V>(softLock.getOldValue()));
+        return RemoveStatus.REMOVED;
+      }
+    } else {
+      return RemoveStatus.KEY_MISSING;
+    }
   }
 
   @Override

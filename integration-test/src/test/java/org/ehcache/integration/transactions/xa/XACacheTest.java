@@ -27,7 +27,6 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
@@ -536,6 +535,9 @@ public class XACacheTest {
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
 
     putIfAbsentAssertions(transactionManager, txCache1);
+    txCache1.clear();
+    remove2ArgsAssertions(transactionManager, txCache1);
+    txCache1.clear();
 
     cacheManager.close();
     transactionManager.shutdown();
@@ -545,10 +547,11 @@ public class XACacheTest {
   public void testAtomicsWithLoaderWriter() throws Exception {
     TestTimeSource testTimeSource = new TestTimeSource();
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
+    SampleLoaderWriter<Long, String> loaderWriter = new SampleLoaderWriter<Long, String>();
 
     CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
-        .withLoaderWriter(new SampleLoaderWriter<Long, String>())
+        .withLoaderWriter(loaderWriter)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10, EntryUnit.ENTRIES)
             .offheap(10, MemoryUnit.MB)
@@ -563,6 +566,11 @@ public class XACacheTest {
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
 
     putIfAbsentAssertions(transactionManager, txCache1);
+    txCache1.clear();
+    loaderWriter.clear();
+    remove2ArgsAssertions(transactionManager, txCache1);
+    txCache1.clear();
+    loaderWriter.clear();
 
     cacheManager.close();
     transactionManager.shutdown();
@@ -587,6 +595,41 @@ public class XACacheTest {
     transactionManager.commit();
 
     assertMapping(transactionManager, txCache1, 1L, "een");
+  }
+
+  private void remove2ArgsAssertions(BitronixTransactionManager transactionManager, Cache<Long, String> txCache1) throws Exception {
+    transactionManager.begin();
+    {
+      assertThat(txCache1.remove(1L, "one"), is(false));
+      assertThat(txCache1.putIfAbsent(1L, "un"), is(nullValue()));
+      assertThat(txCache1.remove(1L, "one"), is(false));
+      assertThat(txCache1.remove(1L, "un"), is(true));
+      assertThat(txCache1.remove(1L, "un"), is(false));
+    }
+    transactionManager.commit();
+
+    assertMapping(transactionManager, txCache1, 1L, null);
+
+    transactionManager.begin();
+    {
+      txCache1.put(1L, "one");
+    }
+    transactionManager.commit();
+
+    assertMapping(transactionManager, txCache1, 1L, "one");
+
+    transactionManager.begin();
+    {
+      assertThat(txCache1.remove(1L, "un"), is(false));
+      assertThat(txCache1.remove(1L, "one"), is(true));
+      assertThat(txCache1.remove(1L, "one"), is(false));
+      assertThat(txCache1.putIfAbsent(1L, "un"), is(nullValue()));
+      assertThat(txCache1.remove(1L, "one"), is(false));
+      assertThat(txCache1.remove(1L, "un"), is(true));
+    }
+    transactionManager.commit();
+
+    assertMapping(transactionManager, txCache1, 1L, null);
   }
 
   private void assertMapping(BitronixTransactionManager transactionManager, Cache<Long, String> cache, long key, String expected) throws Exception {

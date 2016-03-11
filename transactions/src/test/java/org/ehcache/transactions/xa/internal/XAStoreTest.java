@@ -454,6 +454,105 @@ public class XAStoreTest {
   }
 
   @Test
+  public void testRemove2Args() throws Exception {
+    String uniqueXAResourceId = "testRemove2Args";
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
+        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
+        0, keySerializer, valueSerializer);
+    TestTimeSource testTimeSource = new TestTimeSource();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
+    Journal<Long> journal = new TransientJournal<Long>();
+
+    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
+
+    testTransactionManager.begin();
+    {
+      assertThat(xaStore.remove(1L, "one"), equalTo(Store.RemoveStatus.KEY_MISSING));
+      assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
+      assertThat(xaStore.remove(1L, "un"), equalTo(Store.RemoveStatus.KEY_PRESENT));
+      assertThat(xaStore.remove(1L, "one"), equalTo(Store.RemoveStatus.REMOVED));
+      assertThat(xaStore.remove(1L, "eins"), equalTo(Store.RemoveStatus.KEY_MISSING));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, null);
+
+    testTransactionManager.begin();
+    {
+      assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, "one");
+
+    testTransactionManager.begin();
+    {
+      assertThat(xaStore.remove(1L, "een"), equalTo(Store.RemoveStatus.KEY_PRESENT));
+      assertThat(xaStore.remove(1L, "one"), equalTo(Store.RemoveStatus.REMOVED));
+      assertThat(xaStore.remove(1L, "eins"), equalTo(Store.RemoveStatus.KEY_MISSING));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, null);
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "eins");
+      executeWhileIn2PC(exception, new Callable() {
+        @Override
+        public Object call() throws Exception {
+          testTransactionManager.begin();
+
+          assertThat(xaStore.remove(1L, "un"), equalTo(Store.RemoveStatus.KEY_MISSING));
+
+          testTransactionManager.commit();
+          return null;
+        }
+      });
+    }
+    testTransactionManager.commit();
+    assertThat(exception.get(), is(nullValue()));
+
+    assertMapping(xaStore, 1L, null);
+
+    testTransactionManager.begin();
+    {
+      assertThat(xaStore.put(1L, "one"), equalTo(Store.PutStatus.PUT));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, "one");
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "eins");
+      executeWhileIn2PC(exception, new Callable() {
+        @Override
+        public Object call() throws Exception {
+          testTransactionManager.begin();
+
+          assertThat(xaStore.remove(1L, "un"), equalTo(Store.RemoveStatus.KEY_MISSING));
+
+          testTransactionManager.commit();
+          return null;
+        }
+      });
+    }
+    testTransactionManager.commit();
+    assertThat(exception.get(), is(nullValue()));
+
+    assertMapping(xaStore, 1L, null);
+  }
+
+  @Test
   public void testCompute() throws Exception {
     String uniqueXAResourceId = "testCompute";
     TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
