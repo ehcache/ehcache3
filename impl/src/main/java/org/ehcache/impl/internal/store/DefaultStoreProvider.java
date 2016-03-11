@@ -104,9 +104,7 @@ public class DefaultStoreProvider implements Store.Provider {
       enhancedServiceConfigs.add(new CacheStoreServiceConfiguration().cachingTierProvider(OnHeapStore.Provider.class)
           .authoritativeTierProvider(OffHeapStore.Provider.class));
     } else {
-      // TODO: Remove once XAStore has proper underlying Store.Provider selection support
-      // default to on-heap cache
-      provider = serviceProvider.getService(OnHeapStore.Provider.class);
+      throw new IllegalStateException("DefaultStoreProvider does not support heap-only stores");
     }
 
     Store<K, V> store = provider.createStore(storeConfig, enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[0]));

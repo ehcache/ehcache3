@@ -36,6 +36,7 @@ import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.spi.copy.DefaultCopyProvider;
 import org.ehcache.impl.internal.store.DefaultStoreProvider;
+import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.MemorySizeParser;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
@@ -88,6 +89,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -1535,16 +1537,20 @@ public class XAStoreTest {
   public void testRank() throws Exception {
     XAStore.Provider provider = new XAStore.Provider();
     XAStoreConfiguration configuration = new XAStoreConfiguration("testXAResourceId");
-    ServiceLocator serviceLocator = new ServiceLocator(new DefaultStoreProvider());
+    ServiceLocator serviceLocator = new ServiceLocator(
+        new DefaultStoreProvider(),
+        new OnHeapStore.Provider(),
+        new OffHeapStore.Provider(),
+        new OffHeapDiskStore.Provider());
 
     provider.start(serviceLocator);
 
     final Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.<ServiceConfiguration<?>>singleton(configuration);
     assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.HEAP);
-    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK);
+    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.DISK);
     assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, -1, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
     assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
     assertRank(provider, 13, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
@@ -1563,13 +1569,23 @@ public class XAStoreTest {
       }
     };
 
-    assertRank(provider, 0, xaStoreConfigs, unmatchedResourceType);
-    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType);
+    assertRank(provider, -1, xaStoreConfigs, unmatchedResourceType);
+    assertRank(provider, -1, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType);
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank,
                           final Collection<ServiceConfiguration<?>> serviceConfigs, final ResourceType... resources) {
-    assertThat(provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
+    if (expectedRank == -1) {
+      try {
+        provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)), serviceConfigs);
+        fail();
+      } catch (IllegalStateException e) {
+        // Expected
+        assertThat(e.getMessage(), startsWith("No Store.Provider "));
+      }
+    } else {
+      assertThat(provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
+    }
   }
 
   private Set<Long> asSet(Long... longs) {

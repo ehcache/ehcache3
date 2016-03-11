@@ -21,6 +21,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.spi.cache.StoreSupport;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
@@ -61,7 +62,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -762,196 +762,199 @@ public class XAStore<K, V> implements Store<K, V> {
     }
   }
 
-  @ServiceDependencies({TransactionManagerProvider.class, TimeSourceService.class, JournalProvider.class, CopyProvider.class, DefaultStoreProvider.class})
+  private static final class CreatedStoreRef {
+    final Store.Provider storeProvider;
+    final SoftLockValueCombinedSerializerLifecycleHelper lifecycleHelper;
+
+    public CreatedStoreRef(final Store.Provider storeProvider, final SoftLockValueCombinedSerializerLifecycleHelper lifecycleHelper) {
+      this.storeProvider = storeProvider;
+      this.lifecycleHelper = lifecycleHelper;
+    }
+  }
+
+  @ServiceDependencies({TransactionManagerProvider.class, TimeSourceService.class, JournalProvider.class, CopyProvider.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private volatile Store.Provider underlyingStoreProvider;
     private volatile TransactionManagerProvider transactionManagerProvider;
-    private final Map<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper>();
+    private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, CreatedStoreRef>();
 
     @Override
     public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-      if (findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs) == null) {
+      final XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
+      if (xaServiceConfiguration == null) {
         // An XAStore must be configured for use
         return 0;
       }
 
-      // TODO: Introduce proper Provider discovery & tracking and remove this *HACK*
-      final int underlyingRank;
-      if (resourceTypes.equals(EnumSet.of(ResourceType.Core.HEAP))) {
-        // DefaultStoreProvider supports HEAP-only but does not declare it
-        underlyingRank = 1;
-      } else {
-        underlyingRank = underlyingStoreProvider.rank(resourceTypes, serviceConfigs);
-      }
-      if (underlyingRank != 0) {
-        return 10 + underlyingRank;
-      } else {
-        return 0;
-      }
+      final Store.Provider candidateUnderlyingProvider = selectProvider(resourceTypes, serviceConfigs, xaServiceConfiguration);
+      return 10 + candidateUnderlyingProvider.rank(resourceTypes, serviceConfigs);
     }
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, (Object[]) serviceConfigs);
-      Store<K, V> store;
-      SoftLockValueCombinedSerializerLifecycleHelper helper;
       if (xaServiceConfiguration == null) {
-        // non-tx cache
-        store = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
-        helper = new SoftLockValueCombinedSerializerLifecycleHelper(null, null);
-      } else {
-        String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
-        List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
-        underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
-
-        // TODO: do we want to support pluggable veto?
-
-        // eviction veto
-        EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
-          @Override
-          public boolean vetoes(K key, SoftLock lock) {
-            return lock.getTransactionId() != null;
-          }
-        };
-
-        // expiry
-        final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
-        Expiry<? super K, ? super SoftLock> expiry = new Expiry<K, SoftLock>() {
-          @Override
-          public Duration getExpiryForCreation(K key, SoftLock softLock) {
-            if (softLock.getTransactionId() != null) {
-              // phase 1 prepare, create -> forever
-              return Duration.FOREVER;
-            } else {
-              // phase 2 commit, or during a TX's lifetime, create -> some time
-              Duration duration;
-              try {
-                duration = configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
-              } catch (RuntimeException re) {
-                LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-                return Duration.ZERO;
-              }
-              return duration;
-            }
-          }
-
-          @Override
-          public Duration getExpiryForAccess(K key, SoftLock softLock) {
-            if (softLock.getTransactionId() != null) {
-              // phase 1 prepare, access -> forever
-              return Duration.FOREVER;
-            } else {
-              // phase 2 commit, or during a TX's lifetime, access -> some time
-              Duration duration;
-              try {
-                duration = configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
-              } catch (RuntimeException re) {
-                LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-                return Duration.ZERO;
-              }
-              return duration;
-            }
-          }
-
-          @Override
-          public Duration getExpiryForUpdate(K key, SoftLock oldSoftLock, SoftLock newSoftLock) {
-            if (oldSoftLock.getTransactionId() == null) {
-              // phase 1 prepare, update -> forever
-              return Duration.FOREVER;
-            } else {
-              // phase 2 commit, or during a TX's lifetime
-              if (oldSoftLock.getOldValue() == null) {
-                // there is no old value -> it's a CREATE, update -> create -> some time
-                Duration duration;
-                try {
-                  duration = configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
-                } catch (RuntimeException re) {
-                  LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-                  return Duration.ZERO;
-                }
-                return duration;
-              } else {
-                // there is an old value -> it's an UPDATE, update -> some time
-                V value = oldSoftLock.getNewValueHolder() == null ? null : (V) oldSoftLock.getNewValueHolder().value();
-                Duration duration;
-                try {
-                  duration = configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
-                } catch (RuntimeException re) {
-                  LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-                  return Duration.ZERO;
-                }
-                return duration;
-              }
-            }
-          }
-        };
-
-        // get the PersistenceSpaceIdentifier if the cache is persistent, null otherwise
-        LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = findSingletonAmongst(LocalPersistenceService.PersistenceSpaceIdentifier.class, serviceConfigs);
-
-        // find the copiers
-        Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs);
-        DefaultCopierConfiguration keyCopierConfig = null;
-        DefaultCopierConfiguration valueCopierConfig = null;
-        for (DefaultCopierConfiguration copierConfig : copierConfigs) {
-          if (copierConfig.getType().equals(DefaultCopierConfiguration.Type.KEY)) {
-            keyCopierConfig = copierConfig;
-          } else if (copierConfig.getType().equals(DefaultCopierConfiguration.Type.VALUE)) {
-            valueCopierConfig = copierConfig;
-          }
-          underlyingServiceConfigs.remove(copierConfig);
-        }
-
-        // force-in a key copier if none is configured
-        if (keyCopierConfig == null) {
-          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
-        } else {
-          underlyingServiceConfigs.add(keyCopierConfig);
-        }
-
-        // force-in a value copier if none is configured, or wrap the configured one in a soft lock copier
-        if (valueCopierConfig == null) {
-          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
-        } else {
-          CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
-          Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);
-          SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
-          underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, DefaultCopierConfiguration.Type.VALUE));
-        }
-
-        // lookup the required XAStore services
-        Journal<K> journal = serviceProvider.getService(JournalProvider.class).getJournal(persistenceSpaceId, storeConfig.getKeySerializer());
-        TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
-
-        // create the soft lock serializer
-        AtomicReference<Serializer<SoftLock<V>>> softLockSerializerRef = new AtomicReference<Serializer<SoftLock<V>>>();
-        SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
-
-        // create the underlying store
-        Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto,
-            storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getOrderedEventParallelism(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
-        Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
-
-        // create the XA store
-        TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
-        store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore, transactionManagerWrapper, timeSource, journal, uniqueXAResourceId);
-
-        // create the softLockSerializer lifecycle helper
-        helper = new SoftLockValueCombinedSerializerLifecycleHelper((AtomicReference) softLockSerializerRef, storeConfig.getClassLoader());
+        throw new IllegalStateException("XAStore.Provider.createStore called without XAStoreConfiguration");
       }
 
-      createdStores.put(store, helper);
+      final Store.Provider underlyingStoreProvider =
+          selectProvider(storeConfig.getResourcePools().getResourceTypeSet(), Arrays.asList(serviceConfigs), xaServiceConfiguration);
+
+      String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
+      List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
+      underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
+
+      // TODO: do we want to support pluggable veto?
+
+      // eviction veto
+      EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
+        @Override
+        public boolean vetoes(K key, SoftLock lock) {
+          return lock.getTransactionId() != null;
+        }
+      };
+
+      // expiry
+      final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
+      Expiry<? super K, ? super SoftLock> expiry = new Expiry<K, SoftLock>() {
+        @Override
+        public Duration getExpiryForCreation(K key, SoftLock softLock) {
+          if (softLock.getTransactionId() != null) {
+            // phase 1 prepare, create -> forever
+            return Duration.FOREVER;
+          } else {
+            // phase 2 commit, or during a TX's lifetime, create -> some time
+            Duration duration;
+            try {
+              duration = configuredExpiry.getExpiryForCreation(key, (V) softLock.getOldValue());
+            } catch (RuntimeException re) {
+              LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+              return Duration.ZERO;
+            }
+            return duration;
+          }
+        }
+
+        @Override
+        public Duration getExpiryForAccess(K key, SoftLock softLock) {
+          if (softLock.getTransactionId() != null) {
+            // phase 1 prepare, access -> forever
+            return Duration.FOREVER;
+          } else {
+            // phase 2 commit, or during a TX's lifetime, access -> some time
+            Duration duration;
+            try {
+              duration = configuredExpiry.getExpiryForAccess(key, (V) softLock.getOldValue());
+            } catch (RuntimeException re) {
+              LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+              return Duration.ZERO;
+            }
+            return duration;
+          }
+        }
+
+        @Override
+        public Duration getExpiryForUpdate(K key, SoftLock oldSoftLock, SoftLock newSoftLock) {
+          if (oldSoftLock.getTransactionId() == null) {
+            // phase 1 prepare, update -> forever
+            return Duration.FOREVER;
+          } else {
+            // phase 2 commit, or during a TX's lifetime
+            if (oldSoftLock.getOldValue() == null) {
+              // there is no old value -> it's a CREATE, update -> create -> some time
+              Duration duration;
+              try {
+                duration = configuredExpiry.getExpiryForCreation(key, (V) oldSoftLock.getOldValue());
+              } catch (RuntimeException re) {
+                LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+                return Duration.ZERO;
+              }
+              return duration;
+            } else {
+              // there is an old value -> it's an UPDATE, update -> some time
+              V value = oldSoftLock.getNewValueHolder() == null ? null : (V) oldSoftLock.getNewValueHolder().value();
+              Duration duration;
+              try {
+                duration = configuredExpiry.getExpiryForUpdate(key, (V) oldSoftLock.getOldValue(), value);
+              } catch (RuntimeException re) {
+                LOGGER.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+                return Duration.ZERO;
+              }
+              return duration;
+            }
+          }
+        }
+      };
+
+      // get the PersistenceSpaceIdentifier if the cache is persistent, null otherwise
+      LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = findSingletonAmongst(LocalPersistenceService.PersistenceSpaceIdentifier.class, serviceConfigs);
+
+      // find the copiers
+      Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs);
+      DefaultCopierConfiguration keyCopierConfig = null;
+      DefaultCopierConfiguration valueCopierConfig = null;
+      for (DefaultCopierConfiguration copierConfig : copierConfigs) {
+        if (copierConfig.getType().equals(DefaultCopierConfiguration.Type.KEY)) {
+          keyCopierConfig = copierConfig;
+        } else if (copierConfig.getType().equals(DefaultCopierConfiguration.Type.VALUE)) {
+          valueCopierConfig = copierConfig;
+        }
+        underlyingServiceConfigs.remove(copierConfig);
+      }
+
+      // force-in a key copier if none is configured
+      if (keyCopierConfig == null) {
+        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+      } else {
+        underlyingServiceConfigs.add(keyCopierConfig);
+      }
+
+      // force-in a value copier if none is configured, or wrap the configured one in a soft lock copier
+      if (valueCopierConfig == null) {
+        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+      } else {
+        CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+        Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);
+        SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
+        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, DefaultCopierConfiguration.Type.VALUE));
+      }
+
+      // lookup the required XAStore services
+      Journal<K> journal = serviceProvider.getService(JournalProvider.class).getJournal(persistenceSpaceId, storeConfig.getKeySerializer());
+      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+
+      // create the soft lock serializer
+      AtomicReference<Serializer<SoftLock<V>>> softLockSerializerRef = new AtomicReference<Serializer<SoftLock<V>>>();
+      SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
+
+      // create the underlying store
+      Store.Configuration<K, SoftLock> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock>(storeConfig.getKeyType(), SoftLock.class, evictionVeto,
+          storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getOrderedEventParallelism(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
+      Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
+
+      // create the XA store
+      TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
+      Store<K, V> store = new XAStore<K, V>(storeConfig.getKeyType(), storeConfig.getValueType(), underlyingStore,
+          transactionManagerWrapper, timeSource, journal, uniqueXAResourceId);
+
+      // create the softLockSerializer lifecycle helper
+      SoftLockValueCombinedSerializerLifecycleHelper helper =
+          new SoftLockValueCombinedSerializerLifecycleHelper((AtomicReference)softLockSerializerRef, storeConfig.getClassLoader());
+
+      createdStores.put(store, new CreatedStoreRef(underlyingStoreProvider, helper));
       return store;
     }
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      SoftLockValueCombinedSerializerLifecycleHelper helper = createdStores.remove(resource);
-      if (helper == null) {
+      CreatedStoreRef createdStoreRef = createdStores.remove(resource);
+      if (createdStoreRef == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
+
+      Store.Provider underlyingStoreProvider = createdStoreRef.storeProvider;
+      SoftLockValueCombinedSerializerLifecycleHelper helper = createdStoreRef.lifecycleHelper;
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
 
@@ -971,10 +974,13 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      SoftLockValueCombinedSerializerLifecycleHelper helper = createdStores.get(resource);
-      if (helper == null) {
+      CreatedStoreRef createdStoreRef = createdStores.get(resource);
+      if (createdStoreRef == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
+
+      Store.Provider underlyingStoreProvider = createdStoreRef.storeProvider;
+      SoftLockValueCombinedSerializerLifecycleHelper helper = createdStoreRef.lifecycleHelper;
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
 
@@ -994,15 +1000,21 @@ public class XAStore<K, V> implements Store<K, V> {
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
-      this.underlyingStoreProvider = serviceProvider.getService(DefaultStoreProvider.class);
       this.transactionManagerProvider = serviceProvider.getService(TransactionManagerProvider.class);
     }
 
     @Override
     public void stop() {
       this.transactionManagerProvider = null;
-      this.underlyingStoreProvider = null;
       this.serviceProvider = null;
+    }
+
+    private Store.Provider selectProvider(final Set<ResourceType> resourceTypes,
+                                          final Collection<ServiceConfiguration<?>> serviceConfigs,
+                                          final XAStoreConfiguration xaConfig) {
+      List<ServiceConfiguration<?>> configsWithoutXA = new ArrayList<ServiceConfiguration<?>>(serviceConfigs);
+      configsWithoutXA.remove(xaConfig);
+      return StoreSupport.selectStoreProvider(serviceProvider, resourceTypes, configsWithoutXA);
     }
   }
 
