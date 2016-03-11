@@ -33,8 +33,8 @@ class EhDeploy implements Plugin<Project> {
     project.plugins.apply 'maven'
 
     project.signing {
-      required { project.isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
-      Sign archives
+      required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
+      sign project.configurations.getByName('archives')
     }
 
     project.uploadArchives {

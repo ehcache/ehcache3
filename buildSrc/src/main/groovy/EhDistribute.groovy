@@ -129,8 +129,8 @@ class EhDistribute implements Plugin<Project> {
     }
 
     project.signing {
-      required { project.isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
-      Sign archives
+      required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
+      sign project.configurations.getByName('archives')
     }
 
     def artifactFiltering = {
