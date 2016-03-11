@@ -46,9 +46,14 @@ import javax.transaction.Status;
 import javax.transaction.Transaction;
 import java.io.File;
 import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -645,6 +650,112 @@ public class XACacheTest {
     transactionManager.commit();
   }
 
+  @Test
+  public void testIterate() throws Throwable {
+    TestTimeSource testTimeSource = new TestTimeSource();
+    final BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
+
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10, EntryUnit.ENTRIES)
+            .offheap(10, MemoryUnit.MB)
+        );
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
+        .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
+        .using(new XAStoreProviderConfiguration())
+        .build(true);
+
+    final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
+
+    transactionManager.begin();
+    {
+      txCache1.put(1L, "one");
+      txCache1.put(2L, "two");
+
+      Map<Long, String> result = new HashMap<Long, String>();
+      Iterator<Cache.Entry<Long, String>> iterator = txCache1.iterator();
+      while (iterator.hasNext()) {
+        Cache.Entry<Long, String> next = iterator.next();
+        result.put(next.getKey(), next.getValue());
+        iterator.remove();
+      }
+      assertThat(result.size(), equalTo(2));
+      assertThat(result.keySet(), containsInAnyOrder(1L, 2L));
+    }
+    transactionManager.commit();
+
+    transactionManager.begin();
+    {
+      Map<Long, String> result = new HashMap<Long, String>();
+      for (Cache.Entry<Long, String> next : txCache1) {
+        result.put(next.getKey(), next.getValue());
+      }
+      assertThat(result.size(), equalTo(0));
+    }
+    transactionManager.commit();
+
+    transactionManager.begin();
+    {
+      final AtomicReference<Throwable> throwableRef = new AtomicReference<Throwable>();
+      txCache1.put(1L, "one");
+      txCache1.put(2L, "two");
+
+      Thread t = new Thread() {
+        @Override
+        public void run() {
+          try {
+            transactionManager.begin();
+            Map<Long, String> result = new HashMap<Long, String>();
+            for (Cache.Entry<Long, String> next : txCache1) {
+              result.put(next.getKey(), next.getValue());
+            }
+            assertThat(result.size(), equalTo(0));
+            transactionManager.commit();
+          } catch (Throwable t) {
+            throwableRef.set(t);
+          }
+        }
+      };
+      t.start();
+      t.join();
+
+      if (throwableRef.get() != null) {
+        throw throwableRef.get();
+      }
+
+    }
+    transactionManager.commit();
+
+    transactionManager.begin();
+    {
+      Map<Long, String> result = new HashMap<Long, String>();
+      Iterator<Cache.Entry<Long, String>> iterator = txCache1.iterator();
+      while (iterator.hasNext()) {
+        Cache.Entry<Long, String> next = iterator.next();
+        iterator.remove();
+        result.put(next.getKey(), next.getValue());
+      }
+      assertThat(result.size(), equalTo(2));
+      assertThat(result.keySet(), containsInAnyOrder(1L, 2L));
+    }
+    transactionManager.commit();
+
+    transactionManager.begin();
+    {
+      Map<Long, String> result = new HashMap<Long, String>();
+      for (Cache.Entry<Long, String> next : txCache1) {
+        result.put(next.getKey(), next.getValue());
+      }
+      assertThat(result.size(), equalTo(0));
+    }
+    transactionManager.commit();
+
+    cacheManager.close();
+    transactionManager.shutdown();
+  }
 
   static abstract class TxThread extends Thread {
 
