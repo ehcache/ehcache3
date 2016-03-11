@@ -19,21 +19,21 @@ import bitronix.tm.BitronixTransactionManager;
 import bitronix.tm.TransactionManagerServices;
 import bitronix.tm.internal.TransactionStatusChangeListener;
 import bitronix.tm.recovery.Recoverer;
-
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.internal.TimeSourceConfiguration;
-import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
@@ -42,14 +42,13 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import javax.transaction.RollbackException;
+import javax.transaction.Status;
+import javax.transaction.Transaction;
 import java.io.File;
 import java.net.URISyntaxException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
-
-import javax.transaction.RollbackException;
-import javax.transaction.Status;
-import javax.transaction.Transaction;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -515,6 +514,94 @@ public class XACacheTest {
     cacheManager.close();
     transactionManager.shutdown();
   }
+
+  @Test
+  public void testAtomicsWithoutLoaderWriter() throws Exception {
+    TestTimeSource testTimeSource = new TestTimeSource();
+    BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
+
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10, EntryUnit.ENTRIES)
+            .offheap(10, MemoryUnit.MB)
+        );
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
+        .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
+        .using(new XAStoreProviderConfiguration())
+        .build(true);
+
+    final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
+
+    putIfAbsentAssertions(transactionManager, txCache1);
+
+    cacheManager.close();
+    transactionManager.shutdown();
+  }
+
+  @Test
+  public void testAtomicsWithLoaderWriter() throws Exception {
+    TestTimeSource testTimeSource = new TestTimeSource();
+    BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
+
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
+        .withLoaderWriter(new SampleLoaderWriter<Long, String>())
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10, EntryUnit.ENTRIES)
+            .offheap(10, MemoryUnit.MB)
+        );
+
+    CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+        .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
+        .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
+        .using(new XAStoreProviderConfiguration())
+        .build(true);
+
+    final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
+
+    putIfAbsentAssertions(transactionManager, txCache1);
+
+    cacheManager.close();
+    transactionManager.shutdown();
+  }
+
+  private void putIfAbsentAssertions(BitronixTransactionManager transactionManager, Cache<Long, String> txCache1) throws Exception {
+    transactionManager.begin();
+    {
+      assertThat(txCache1.putIfAbsent(1L, "one"), is(nullValue()));
+      assertThat(txCache1.putIfAbsent(1L, "un"), equalTo("one"));
+    }
+    transactionManager.commit();
+
+    assertMapping(transactionManager, txCache1, 1L, "one");
+
+    transactionManager.begin();
+    {
+      assertThat(txCache1.putIfAbsent(1L, "eins"), equalTo("one"));
+      txCache1.remove(1L);
+      assertThat(txCache1.putIfAbsent(1L, "een"), is(nullValue()));
+    }
+    transactionManager.commit();
+
+    assertMapping(transactionManager, txCache1, 1L, "een");
+  }
+
+  private void assertMapping(BitronixTransactionManager transactionManager, Cache<Long, String> cache, long key, String expected) throws Exception {
+    transactionManager.begin();
+
+    String value = cache.get(key);
+    if (expected == null) {
+      assertThat(value, is(nullValue()));
+    } else {
+      assertThat(value, equalTo(expected));
+    }
+
+    transactionManager.commit();
+  }
+
 
   static abstract class TxThread extends Thread {
 

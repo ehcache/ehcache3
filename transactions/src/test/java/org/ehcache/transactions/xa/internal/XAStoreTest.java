@@ -391,6 +391,69 @@ public class XAStoreTest {
   }
 
   @Test
+  public void testPutIfAbsent() throws Exception {
+    String uniqueXAResourceId = "testPutIfAbsent";
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
+        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
+        0, keySerializer, valueSerializer);
+    TestTimeSource testTimeSource = new TestTimeSource();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
+    Journal<Long> journal = new TransientJournal<Long>();
+
+    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+    final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
+
+    testTransactionManager.begin();
+    {
+      assertThat(xaStore.putIfAbsent(1L, "one"), is(nullValue()));
+      assertThat(xaStore.get(1L).value(), equalTo("one"));
+      assertThat(xaStore.putIfAbsent(1L, "un").value(), equalTo("one"));
+      assertThat(xaStore.get(1L).value(), equalTo("one"));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, "one");
+
+    testTransactionManager.begin();
+    {
+      assertThat(xaStore.putIfAbsent(1L, "un").value(), equalTo("one"));
+      assertThat(xaStore.get(1L).value(), equalTo("one"));
+      assertThat(xaStore.remove(1L), equalTo(true));
+      assertThat(xaStore.putIfAbsent(1L, "uno"), is(nullValue()));
+    }
+    testTransactionManager.commit();
+
+    assertMapping(xaStore, 1L, "uno");
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "eins");
+      executeWhileIn2PC(exception, new Callable() {
+        @Override
+        public Object call() throws Exception {
+          testTransactionManager.begin();
+
+          assertThat(xaStore.putIfAbsent(1L, "un"), is(nullValue()));
+
+          testTransactionManager.commit();
+          return null;
+        }
+      });
+    }
+    testTransactionManager.commit();
+    assertThat(exception.get(), is(nullValue()));
+
+    assertMapping(xaStore, 1L, null);
+  }
+
+  @Test
   public void testCompute() throws Exception {
     String uniqueXAResourceId = "testCompute";
     TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
@@ -432,10 +495,19 @@ public class XAStoreTest {
         public String apply(Long aLong, String s) {
           assertThat(aLong, is(1L));
           assertThat(s, equalTo("one"));
+          return "un";
+        }
+      });
+      assertThat(computed2.value(), equalTo("un"));
+      Store.ValueHolder<String> computed3 = xaStore.compute(1L, new BiFunction<Long, String, String>() {
+        @Override
+        public String apply(Long aLong, String s) {
+          assertThat(aLong, is(1L));
+          assertThat(s, equalTo("un"));
           return null;
         }
       });
-      assertThat(computed2, is(nullValue()));
+      assertThat(computed3, is(nullValue()));
     }
     testTransactionManager.commit();
 
@@ -639,7 +711,7 @@ public class XAStoreTest {
           throw new AssertionError();
         }
       });
-      assertThat(computed2, is(nullValue()));
+      assertThat(computed2.value(), equalTo("one"));
     }
     testTransactionManager.commit();
 
@@ -1143,8 +1215,8 @@ public class XAStoreTest {
 
       assertThat(computedMap.size(), is(3));
       assertThat(computedMap.get(0L).value(), equalTo("otherStuff#0"));
-      assertThat(computedMap.get(1L), is(nullValue()));
-      assertThat(computedMap.get(3L), is(nullValue()));
+      assertThat(computedMap.get(1L).value(), equalTo("stuff#1"));
+      assertThat(computedMap.get(3L).value(), equalTo("stuff#3"));
     }
     testTransactionManager.commit();
 
