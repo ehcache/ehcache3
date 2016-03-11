@@ -14,24 +14,26 @@
  * limitations under the License.
  */
 
-package org.ehcache.core;
+package org.ehcache.core.config.store;
+
+import org.ehcache.core.spi.cache.Store;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * Enumeration of the properties that can change on a live cache.
+ * {@link ServiceConfiguration} used by the {@link org.ehcache.core.EhcacheManager} to populate the ordered event
+ * parallelism in the {@link StoreConfigurationImpl}.
  */
-public enum CacheConfigurationProperty {
-  /**
-   * used to update size of ResourcePool in RuntimeConfig
-   */
-  UPDATE_SIZE,
+public interface StoreEventSourceConfiguration extends ServiceConfiguration<Store.Provider> {
 
   /**
-   * used to register new {@link org.ehcache.event.CacheEventListener}
+   * Default ordered event parallelism
    */
-  ADD_LISTENER,
+  int DEFAULT_EVENT_PARALLELISM = 8;
 
   /**
-   * used to remove {@link org.ehcache.event.CacheEventListener}
+   * Indicates over how many buckets should ordered events be spread
+   *
+   * @return the number of buckets to use
    */
-  REMOVE_LISTENER
+  int getOrderedEventParallelism();
 }

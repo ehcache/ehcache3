@@ -17,10 +17,7 @@
 package org.ehcache.impl.serialization;
 
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.serialization.Serializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;

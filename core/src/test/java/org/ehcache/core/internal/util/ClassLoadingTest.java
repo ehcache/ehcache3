@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.util;
+package org.ehcache.core.internal.util;
 
 import static org.junit.Assert.*;
 
@@ -25,7 +25,7 @@ import java.net.URL;
 import java.util.Enumeration;
 import java.util.Vector;
 
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.junit.Test;
 
 public class ClassLoadingTest {

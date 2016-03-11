@@ -24,8 +24,12 @@ import org.ehcache.statistics.BulkOps;
 import org.terracotta.statistics.jsr166e.LongAdder;
 
 /**
- * @author Abhilash
- *
+ * Extension of the {@link org.ehcache.Cache} and {@link UserManagedCache} interfaces defining common methods used by
+ * collaborators of {@link org.ehcache.Cache} implementations.
+ * <P>
+ *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ *   {@code org.ehcache}.
+ * </P>
  */
 public interface InternalCache<K, V> extends UserManagedCache<K, V> {
 

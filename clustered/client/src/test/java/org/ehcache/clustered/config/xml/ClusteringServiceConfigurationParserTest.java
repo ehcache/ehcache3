@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.config.xml;
 
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.junit.Test;
 import org.w3c.dom.Attr;

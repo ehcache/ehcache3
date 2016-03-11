@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;

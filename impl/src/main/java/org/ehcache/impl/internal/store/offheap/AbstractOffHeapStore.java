@@ -47,7 +47,7 @@ import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.spi.cache.tiering.BinaryValueHolder;
+import org.ehcache.core.spi.cache.tiering.BinaryValueHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.Segment;

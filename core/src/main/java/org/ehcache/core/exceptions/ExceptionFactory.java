@@ -20,7 +20,7 @@ import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
 
 /**
- * @author Alex Snaps
+ * Factory to help creation of {@link CacheLoadingException} and {@link CacheWritingException}.
  */
 public final class ExceptionFactory {
 
@@ -28,9 +28,22 @@ public final class ExceptionFactory {
     throw new UnsupportedOperationException("Thou shalt not instantiate me!");
   }
 
+  /**
+   * Creates a new {@code CacheWritingException} with the provided exception as cause.
+   *
+   * @param e the cause
+   * @return a cache writing exception
+   */
   public static CacheWritingException newCacheWritingException(Exception e) {
     return new CacheWritingException(e);
   }
+
+  /**
+   * Creates a new {@code CacheLoadingException} with the provided exception as cause.
+   *
+   * @param e the cause
+   * @return a cache loading exception
+   */
   public static CacheLoadingException newCacheLoadingException(Exception e) {
     return new CacheLoadingException(e);
   }

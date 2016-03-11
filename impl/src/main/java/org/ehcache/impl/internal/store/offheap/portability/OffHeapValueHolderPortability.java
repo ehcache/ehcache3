@@ -16,9 +16,9 @@
 
 package org.ehcache.impl.internal.store.offheap.portability;
 
+import org.ehcache.core.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.impl.internal.store.offheap.LazyOffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
-import org.ehcache.spi.cache.tiering.BinaryValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 import org.terracotta.offheapstore.storage.portability.WriteBackPortability;
 import org.terracotta.offheapstore.storage.portability.WriteContext;

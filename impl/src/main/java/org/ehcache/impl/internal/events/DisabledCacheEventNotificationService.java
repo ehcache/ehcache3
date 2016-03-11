@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.events;
+package org.ehcache.impl.internal.events;
 
 import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;

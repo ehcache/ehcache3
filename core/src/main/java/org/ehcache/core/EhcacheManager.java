@@ -27,7 +27,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.RuntimeConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
-import org.ehcache.core.config.events.StoreEventSourceConfiguration;
+import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
@@ -37,7 +37,7 @@ import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.cache.InternalCacheManager;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
@@ -75,6 +75,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
+ * <P>
+ *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
+ *   {@code org.ehcache}.
+ * </P>
  */
 public class EhcacheManager implements PersistentCacheManager, InternalCacheManager {
 

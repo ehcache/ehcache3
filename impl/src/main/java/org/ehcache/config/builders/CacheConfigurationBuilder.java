@@ -22,6 +22,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
@@ -505,7 +506,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   /**
-   * Adds {@link org.ehcache.core.config.events.StoreEventSourceConfiguration} with the specified ordered event parallelism
+   * Adds {@link StoreEventSourceConfiguration} with the specified ordered event parallelism
    * to the configured builder.
    *
    * @param eventParallelism the amount of parallelism for handling events when ordering is required

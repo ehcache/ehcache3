@@ -16,31 +16,35 @@
 
 package org.ehcache.core.events;
 
-import org.ehcache.CacheManager;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.service.Service;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * A provider {@link org.ehcache.spi.service.Service} that will facilitate {@link CacheEventDispatcher} instance
- *
- * @author palmanojkumar
- *
+ * {@link Service} interface for providing {@link CacheEventDispatcher}s, consumed by
+ * {@link org.ehcache.core.EhcacheManager}.
  */
 public interface CacheEventDispatcherFactory extends Service {
 
   /**
-   * Creates an instance of {@link CacheEventDispatcher} to be used by {@link CacheManager}
+   * Creates an instance of {@link CacheEventDispatcher} to be used with a {@link org.ehcache.Cache} and provided
+   * {@link Store}.
+   *
+   * @param store the store to link to
+   * @param serviceConfigs the service configurations
+   * @param <K> the key type
+   * @param <V> the value type
    *
    * @return the {@link CacheEventDispatcher}
    */
   <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs);
 
   /**
-   * Invoked by {@link CacheManager} to release all {@link CacheEventListener} listeners registered with {@link CacheEventDispatcher}
+   * Releases an instance of {@link CacheEventDispatcher}, causing it to shutdown and release all
+   * {@link CacheEventListener}s registered with it.
    *
-   * @param cenlService the {@link CacheEventDispatcher}
+   * @param eventDispatcher the {@link CacheEventDispatcher} to release
    */
-  <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> cenlService);
+  <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> eventDispatcher);
 }

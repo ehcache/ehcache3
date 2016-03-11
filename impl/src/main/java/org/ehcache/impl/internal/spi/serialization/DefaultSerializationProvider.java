@@ -37,7 +37,7 @@ import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

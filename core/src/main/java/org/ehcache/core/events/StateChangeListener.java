@@ -19,7 +19,7 @@ package org.ehcache.core.events;
 import org.ehcache.Status;
 
 /**
- * @author Alex Snaps
+ * Interface for listeners interested in {@link org.ehcache.CacheManager} state transitions.
  */
 public interface StateChangeListener {
 

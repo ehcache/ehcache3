@@ -15,6 +15,7 @@
  */
 
 /**
- * Package for the resilience strategy API in Ehcache
+ * Package holding some core implementations related to configuration such as
+ * {@link org.ehcache.core.config.ResourcePoolsImpl} and {@link org.ehcache.core.config.DefaultConfiguration}.
  */
-package org.ehcache.resilience;
+package org.ehcache.core.config;

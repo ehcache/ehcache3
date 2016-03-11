@@ -16,16 +16,14 @@
 
 package org.ehcache.core.spi;
 
-import org.ehcache.config.ResourceType;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.PersistableResourceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.spi.service.SupplementaryService;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -30,11 +30,10 @@ import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
-import org.ehcache.core.events.CacheEventDispatcherImpl;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.spi.ServiceProvider;
@@ -185,7 +184,7 @@ public class EhcacheManagerTest {
     final Store mock = mock(Store.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(mock)).thenReturn(cenlServiceMock);
 
     final Collection<Service> services = getServices(storeProvider, cenlProvider);
@@ -219,7 +218,7 @@ public class EhcacheManagerTest {
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(mock)).thenReturn(cenlServiceMock);
 
     final Collection<Service> services = getServices(storeProvider, cenlProvider);
@@ -252,7 +251,7 @@ public class EhcacheManagerTest {
     final Store mock = mock(Store.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(mock)).thenReturn(cenlServiceMock);
     final Collection<Service> services = getServices(storeProvider, cenlProvider);
 
@@ -280,7 +279,7 @@ public class EhcacheManagerTest {
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(mock)).thenReturn(cenlServiceMock);
     final Collection<Service> services = getServices(storeProvider, cenlProvider);
 
@@ -317,7 +316,7 @@ public class EhcacheManagerTest {
     final Store mock = mock(Store.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(mock)).thenReturn(cenlServiceMock);
 
     final Collection<Service> services = getServices(storeProvider, cenlProvider);
@@ -382,7 +381,7 @@ public class EhcacheManagerTest {
     final Store.Provider storeProvider = mock(Store.Provider.class);
     final Store mock = mock(Store.class);
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(mock)).thenReturn(cenlServiceMock);
     final Collection<Service> services = getServices(cacheLoaderWriterProvider, decoratorLoaderWriterProvider, storeProvider, cenlProvider);
     when(storeProvider
@@ -406,7 +405,7 @@ public class EhcacheManagerTest {
     final Store.Provider mock = mock(Store.Provider.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(any(Store.class))).thenReturn(cenlServiceMock);
 
     final Collection<Service> services = getServices(mock, cenlProvider);
@@ -431,7 +430,7 @@ public class EhcacheManagerTest {
     final Store.Provider mock = mock(Store.Provider.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(any(Store.class))).thenReturn(cenlServiceMock);
 
     final Collection<Service> services = getServices(mock, cenlProvider);
@@ -505,7 +504,7 @@ public class EhcacheManagerTest {
     final Store.Provider storeProvider = mock(Store.Provider.class);
 
     final CacheEventDispatcherFactory cenlProvider = mock(CacheEventDispatcherFactory.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(any(Store.class))).thenReturn(cenlServiceMock);
 
     final Collection<Service> services = getServices(storeProvider, cenlProvider);
@@ -603,12 +602,12 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      public <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> cenlService) {
-        cenlService.shutdown();
+      public <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> eventDispatcher) {
+        eventDispatcher.shutdown();
       }
     });
     Store mockStore = mock(Store.class);
-    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcherImpl.class);
+    final CacheEventDispatcher<Object, Object> cenlServiceMock = mock(CacheEventDispatcher.class);
     when(cenlProvider.createCacheEventDispatcher(mockStore)).thenReturn(cenlServiceMock);
     final Collection<Service> services = getServices(storeProvider, cenlProvider);
     List<CacheConfigurationChangeListener> configurationChangeListenerList = new ArrayList<CacheConfigurationChangeListener>();

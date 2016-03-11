@@ -14,18 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.events;
+package org.ehcache.impl.events;
 
 import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
+import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.events.CacheEvents;
+import org.ehcache.core.internal.events.EventListenerWrapper;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.events.StoreEvent;
 import org.ehcache.core.spi.cache.events.StoreEventListener;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
