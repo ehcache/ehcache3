@@ -16,7 +16,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.BiFunction;
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;

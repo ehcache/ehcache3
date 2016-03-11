@@ -20,8 +20,8 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
-import org.ehcache.function.NullaryFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -268,7 +268,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Returns a Mockito {@code any} Matcher for a {@link org.ehcache.function.Function} over a {@code Map.Entry} {@code Iterable}.
+   * Returns a Mockito {@code any} Matcher for a {@link Function} over a {@code Map.Entry} {@code Iterable}.
    *
    * @return a Mockito {@code any} matcher for {@code Function}
    */

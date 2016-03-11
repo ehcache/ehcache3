@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;

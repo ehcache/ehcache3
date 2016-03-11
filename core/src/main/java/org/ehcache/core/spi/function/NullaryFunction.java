@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
-package org.ehcache.function;
+package org.ehcache.core.spi.function;
 
 /**
- * Generic function interface for transforming an argument into a value.
+ * Generic function that returns a value.
  *
- * @param <A> the function parameter type
- * @param <T> the function result type
+ * @param <T> the function return type
  *
- * @author Alex Snaps
+ * @author teck
  */
-public interface Function<A,T> {
+public interface NullaryFunction<T> {
 
   /**
-   * Applies the function to the provided value
+   * Returns the function result
    *
-   * @param a the value to apply the function to
    * @return the function result
    */
-  T apply(A a);
+  T apply();
 }

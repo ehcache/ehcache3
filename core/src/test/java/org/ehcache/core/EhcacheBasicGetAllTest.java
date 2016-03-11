@@ -20,7 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -336,7 +336,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Returns a Mockito {@code any} Matcher for {@link org.ehcache.function.Function} over {@code java.lang.Iterable}.
+   * Returns a Mockito {@code any} Matcher for {@link Function} over {@code java.lang.Iterable}.
    *
    * @return a Mockito {@code any} matcher for {@code Function}.
    */

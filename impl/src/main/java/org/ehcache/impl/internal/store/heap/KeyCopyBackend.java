@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.spi.cache.Store;
-import org.ehcache.function.BiFunction;
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.LookupOnlyOnHeapKey;

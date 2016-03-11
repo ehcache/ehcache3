@@ -16,9 +16,9 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
-import org.ehcache.function.NullaryFunction;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.RemoveStatus;

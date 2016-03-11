@@ -27,7 +27,7 @@ import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;

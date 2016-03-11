@@ -20,7 +20,7 @@ import org.ehcache.event.EventType;
 import org.ehcache.core.spi.cache.events.StoreEvent;
 import org.ehcache.core.spi.cache.events.StoreEventListener;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.BiFunction;
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;

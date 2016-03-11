@@ -20,7 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.LifeCycled;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;

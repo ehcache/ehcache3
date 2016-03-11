@@ -27,9 +27,9 @@ import org.ehcache.core.spi.cache.events.StoreEventSource;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
-import org.ehcache.function.NullaryFunction;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Description;
@@ -178,7 +178,7 @@ public abstract class EhcacheBasicCrudBase {
   }
 
   /**
-   * Returns a Mockito {@code any} Matcher for {@link org.ehcache.function.Function}.
+   * Returns a Mockito {@code any} Matcher for {@link Function}.
    *
    * @return a Mockito {@code any} matcher for {@code Function}.
    */
@@ -188,7 +188,7 @@ public abstract class EhcacheBasicCrudBase {
   }
 
   /**
-   * Returns a Mockito {@code any} Matcher for {@link org.ehcache.function.BiFunction}.
+   * Returns a Mockito {@code any} Matcher for {@link BiFunction}.
    *
    * @return a Mockito {@code any} matcher for {@code BiFunction}.
    */
@@ -620,7 +620,7 @@ public abstract class EhcacheBasicCrudBase {
      * This implementation is based, in part, on the implementation found in
      * {@code org.ehcache.internal.store.OnHeapStore}.  This implementation calls
      * {@code mappingFunction} for each key through an internal function supplied
-     * to {@link #computeIfAbsent(String, org.ehcache.function.Function) computeIfAbsent}.
+     * to {@link #computeIfAbsent(String, Function) computeIfAbsent}.
      */
     @Override
     public Map<String, ValueHolder<String>> bulkComputeIfAbsent(final Set<? extends String> keys, final Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction)

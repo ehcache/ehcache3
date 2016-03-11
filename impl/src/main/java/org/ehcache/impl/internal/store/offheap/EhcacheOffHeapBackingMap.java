@@ -19,8 +19,8 @@ package org.ehcache.impl.internal.store.offheap;
 import java.util.List;
 import java.util.concurrent.ConcurrentMap;
 
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 import org.terracotta.offheapstore.Segment;
 
 public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V> {

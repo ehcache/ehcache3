@@ -17,4 +17,4 @@
 /**
  * Package holding functional interfaces for Ehcache
  */
-package org.ehcache.function;
+package org.ehcache.core.spi.function;

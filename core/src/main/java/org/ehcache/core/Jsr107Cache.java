@@ -19,9 +19,9 @@ package org.ehcache.core;
 import java.util.Map;
 import java.util.Set;
 
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
-import org.ehcache.function.NullaryFunction;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.function.NullaryFunction;
 
 /**
  * Bridge interface for enabling specific JSR-107 methods not available on {@link org.ehcache.Cache}.
