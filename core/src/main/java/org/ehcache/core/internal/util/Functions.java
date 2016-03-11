@@ -16,8 +16,8 @@
 
 package org.ehcache.core.internal.util;
 
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 
 /**
  * A set of utilities methods and Classes around Functions
@@ -27,7 +27,7 @@ import org.ehcache.function.Function;
 public class Functions {
 
   /**
-   * Will transform the passed in {@link org.ehcache.function.Function} in a apply once and only once Function.
+   * Will transform the passed in {@link Function} in to an apply once and only once Function.
    * Irrespectively of the argument passed in! And isn't thread safe. Basically acts as a dumb cache.
    *
    * @param f the function to memoize
@@ -40,7 +40,7 @@ public class Functions {
   }
 
   /**
-   * Will transform the passed in {@link org.ehcache.function.BiFunction} in a apply once and only once BiFunction.
+   * Will transform the passed in {@link BiFunction} in to an apply once and only once BiFunction.
    * Irrespectively of the arguments passed in! And isn't thread safe. Basically acts as a dumb cache.
    *
    * @param f the bifunction to memoize

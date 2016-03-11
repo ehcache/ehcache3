@@ -18,8 +18,8 @@ package org.ehcache.impl.internal.store.offheap;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 
 import org.terracotta.offheapstore.MetadataTuple;
 import org.terracotta.offheapstore.concurrent.AbstractConcurrentOffHeapCache;

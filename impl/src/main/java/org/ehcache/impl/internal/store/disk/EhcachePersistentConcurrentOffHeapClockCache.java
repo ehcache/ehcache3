@@ -17,8 +17,8 @@
 package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
 import org.terracotta.offheapstore.Metadata;

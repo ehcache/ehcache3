@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.events;
 
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.function.BiFunction;
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.spi.cache.events.StoreEvent;
 import org.ehcache.core.spi.cache.events.StoreEventFilter;

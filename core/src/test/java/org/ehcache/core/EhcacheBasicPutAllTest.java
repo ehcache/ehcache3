@@ -18,9 +18,10 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
@@ -77,7 +78,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link Store#bulkCompute(Set, Function, org.ehcache.function.NullaryFunction)
+   * {@link Store#bulkCompute(Set, Function, NullaryFunction)
    *    Store.bulkCompute(Set, Function, NullaryFunction} method.
    */
   @Captor

@@ -26,12 +26,13 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
@@ -98,7 +99,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link Store#bulkCompute(Set, Function, org.ehcache.function.NullaryFunction)
+   * {@link Store#bulkCompute(Set, Function, NullaryFunction)
    *    Store.bulkCompute(Set, Function, NullaryFunction} method.
    */
   @Captor
@@ -108,7 +109,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
    * A Mockito {@code ArgumentCaptor} for the
    * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}
    * provided to the
-   * {@link org.ehcache.resilience.ResilienceStrategy#putAllFailure(Map, CacheAccessException, BulkCacheWritingException)}
+   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#putAllFailure(Map, CacheAccessException, BulkCacheWritingException)}
    *    ResilienceStrategy.putAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)} method.
    */
   @Captor

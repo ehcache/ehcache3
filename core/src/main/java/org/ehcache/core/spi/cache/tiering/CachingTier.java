@@ -17,7 +17,7 @@
 package org.ehcache.core.spi.cache.tiering;
 
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.cache.ConfigurationChangeSupport;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.service.Service;

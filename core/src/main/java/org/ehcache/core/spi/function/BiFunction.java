@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.function;
+package org.ehcache.core.spi.function;
 
 /**
  * Generic function interface for operating on two parameters and returning a result.

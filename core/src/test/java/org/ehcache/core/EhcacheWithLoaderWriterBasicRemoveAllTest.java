@@ -26,8 +26,8 @@ import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.BulkCacheWritingException;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
-import org.ehcache.function.NullaryFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
 import org.hamcrest.Matchers;
@@ -88,7 +88,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * A Mockito {@code ArgumentCaptor} for the
    * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}
    * provided to the
-   * {@link org.ehcache.resilience.ResilienceStrategy#removeAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)}
+   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#removeAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)}
    *    ResilienceStrategy.putAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)} method.
    */
   @Captor

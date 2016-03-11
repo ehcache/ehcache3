@@ -19,7 +19,7 @@ package org.ehcache.core;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.junit.Test;

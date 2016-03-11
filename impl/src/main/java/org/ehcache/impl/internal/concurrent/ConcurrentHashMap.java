@@ -45,11 +45,9 @@ import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
 import org.ehcache.config.EvictionVeto;
 
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 
-import org.ehcache.impl.internal.concurrent.CountedCompleter;
-import org.ehcache.impl.internal.concurrent.ForkJoinPool;
 import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
 
 
