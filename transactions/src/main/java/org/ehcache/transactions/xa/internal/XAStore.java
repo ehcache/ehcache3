@@ -345,7 +345,35 @@ public class XAStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
-    throw new UnsupportedOperationException();
+    checkKey(key);
+    checkValue(value);
+    XATransactionContext<K, V> currentContext = getCurrentContext();
+    if (currentContext.touched(key)) {
+      V newValue = currentContext.newValueOf(key);
+      if (newValue == null) {
+        return null;
+      } else {
+        V oldValue = currentContext.oldValueOf(key);
+        XAValueHolder<V> newValueHolder = currentContext.newValueHolderOf(key);
+        currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
+        return newValueHolder;
+      }
+    }
+
+    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
+    if (softLockValueHolder != null) {
+      SoftLock<V> softLock = softLockValueHolder.value();
+      if (isInDoubt(softLock)) {
+        currentContext.addCommand(key, new StoreEvictCommand<V>(softLock.getOldValue()));
+        return null;
+      } else {
+        V oldValue = softLock.getOldValue();
+        currentContext.addCommand(key, new StorePutCommand<V>(oldValue, new XAValueHolder<V>(value, timeSource.getTimeMillis())));
+        return new XAValueHolder<V>(oldValue, softLockValueHolder.creationTime(XAValueHolder.NATIVE_TIME_UNIT));
+      }
+    } else {
+      return null;
+    }
   }
 
   @Override

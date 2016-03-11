@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class XAValueHolder<V> extends AbstractValueHolder<V> {
 
-  private static final TimeUnit NATIVE_TIME_UNIT = TimeUnit.MILLISECONDS;
+  static final TimeUnit NATIVE_TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private final V value;
   private final byte[] valueSerialized;
