@@ -61,8 +61,10 @@ class EhDistribute implements Plugin<Project> {
     project.jar {
       dependsOn project.shadowJar
       from(project.zipTree(project.shadowJar.archivePath.getPath())) {
-        exclude("META-INF/MANIFEST.MF")
+        exclude 'META-INF/MANIFEST.MF', 'LICENSE', 'NOTICE'
       }
+      // LICENSE is included in root gradle build
+      from "$project.rootDir/NOTICE"
     }
 
     project.jar.doFirst {
