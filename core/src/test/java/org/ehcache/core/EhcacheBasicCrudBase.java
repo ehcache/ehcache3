@@ -86,7 +86,7 @@ public abstract class EhcacheBasicCrudBase {
    * {@link ResilienceStrategy ResilienceStrategy} used in the
    * {@link EhcacheWithLoaderWriter Ehcache} instance being tested.
    *
-   * @see #setResilienceStrategySpy(EhcacheWithLoaderWriter)
+   * @see #setResilienceStrategySpy(InternalCache)
    */
   protected ResilienceStrategy<String, String> spiedResilienceStrategy;
 

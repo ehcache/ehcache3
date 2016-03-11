@@ -88,7 +88,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * A Mockito {@code ArgumentCaptor} for the
    * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}
    * provided to the
-   * {@link org.ehcache.resilience.ResilienceStrategy#removeAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)}
+   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#removeAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)}
    *    ResilienceStrategy.putAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)} method.
    */
   @Captor
