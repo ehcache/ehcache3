@@ -278,11 +278,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (updateAccess) {
         setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, mapping, now);
       }
-      if (mapping != null) {
-        getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
-      } else {
-        getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
-      }
+      getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
       return mapping;
     } catch (RuntimeException re) {
       handleRuntimeException(re);
@@ -779,10 +775,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           return null;
         }
         // TODO find a way to increment hit count on a fault
-        if (setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now) == null) {
-          getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
-          return null;
-        }
+        setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now);
       }
 
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.HIT);
@@ -1234,11 +1227,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       duration = expiry.getExpiryForAccess(key, valueHolder.value());
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+      duration = Duration.ZERO;
+    }
+    valueHolder.accessed(now, duration);
+    if (Duration.ZERO.equals(duration)) {
       // Expires mapping through computeIfPresent
       expireMappingUnderLock(key, valueHolder);
       return null;
     }
-    valueHolder.accessed(now, duration);
     return valueHolder;
   }
 
