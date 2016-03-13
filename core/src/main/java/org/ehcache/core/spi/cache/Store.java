@@ -372,7 +372,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *       }
    *       return newValue;
    *     }
-   *     return null;
+   *     return store.get(key);
    *   </PRE>
    * except that the action is performed atomically.
    * </P>

@@ -355,6 +355,38 @@ public class ByteAccountingTest {
   }
 
   @Test
+  public void testComputeIfAbsentExpiryOnAccess() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.computeIfAbsent(KEY, new Function<String, String>() {
+      @Override
+      public String apply(String s) {
+        fail("should not be called");
+        return s;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
   public void testComputeIfPresentRemove() throws CacheAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
