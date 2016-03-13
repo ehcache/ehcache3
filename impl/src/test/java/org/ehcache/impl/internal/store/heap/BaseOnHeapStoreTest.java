@@ -849,8 +849,9 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testExpiryAccessException() throws Exception {
+  public void testExpiryAccessExceptionReturnsValueAndExpiresIt() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(5);
     OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
 
       @Override
@@ -870,7 +871,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     store.put("key", "value");
-    assertThat(store.get("key").value(), is("value"));
+    assertThat(store.get("key"), valueHeld("value"));
     assertNull(store.get("key"));
   }
 
