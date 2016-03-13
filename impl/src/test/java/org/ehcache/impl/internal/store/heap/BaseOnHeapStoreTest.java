@@ -870,6 +870,7 @@ public abstract class BaseOnHeapStoreTest {
     });
 
     store.put("key", "value");
+    assertThat(store.get("key").value(), is("value"));
     assertNull(store.get("key"));
   }
 
