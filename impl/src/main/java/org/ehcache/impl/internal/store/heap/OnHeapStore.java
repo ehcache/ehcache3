@@ -294,10 +294,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public PutStatus put(final K key, final V value) throws CacheAccessException {
-    return putReturnHolder(key, value);
-  }
-
-  private PutStatus putReturnHolder(final K key, final V value) throws CacheAccessException {
     putObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -331,7 +327,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if (entryActuallyAdded.get()) {
         enforceCapacity(valuePut.size(), eventSink);
       } else {
-        long replacedDelta = valuePut == null ? 0 : valuePut.size() - (replacedValue.get() == null ? 0 : replacedValue.get().size());
+        long replacedDelta = (valuePut == null ? 0 : valuePut.size()) - (replacedValue.get() == null ? 0 : replacedValue.get().size());
         replaceByteCapacity(replacedDelta, eventSink);
       }
 
@@ -1368,7 +1364,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
     }
     if (Duration.ZERO.equals(duration)) {
-      eventSink.removed(key, oldValue);
+      eventSink.updated(key, oldValue, newValue);
+      eventSink.expired(key, newValue);
       return null;
     }
 
