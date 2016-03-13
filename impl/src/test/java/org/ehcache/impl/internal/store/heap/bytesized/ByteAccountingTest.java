@@ -156,6 +156,45 @@ public class ByteAccountingTest {
   }
 
   @Test
+  public void testPutUpdate() throws CacheAccessException {
+    OnHeapStoreForTests<String, String> store = newStore();
+
+    store.put(KEY, VALUE);
+    String otherValue = "otherValue";
+    store.put(KEY, otherValue);
+
+    long delta = SIZEOF.deepSizeOf(otherValue) - SIZEOF.deepSizeOf(VALUE);
+
+    assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR + delta));
+  }
+
+  @Test
+  public void testPutExpiryOnUpdate() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.put(KEY, "otherValue");
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
   public void testRemove() throws CacheAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
