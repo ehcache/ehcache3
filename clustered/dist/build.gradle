@@ -51,7 +51,7 @@ dependencies {
 
 distributions {
   main {
-    baseName = "ehcache-clustered-kit"
+    baseName = archivesBaseName
     contents {
       into ('') {
         from configurations.kit.files.collect { tarTree(it) }
@@ -67,6 +67,10 @@ distributions {
 }
 
 distTar {
+  classifier = 'kit'
   compression = Compression.GZIP
-  extension = 'tar.gz'
+}
+
+distZip {
+  classifier = 'kit'
 }
