@@ -53,12 +53,14 @@ distributions {
   main {
     baseName = "ehcache-clustered-kit"
     contents {
-      from configurations.kit.files.collect { tarTree(it) }
+      into ('') {
+        from configurations.kit.files.collect { tarTree(it) }
+      }
       into ("terracotta-$terracottaCoreVersion/plugins/lib") {
         from configurations.serverLibs
       }
       into ('client') {
-        from jar.archivePath
+        from jar
       }
     }
   }
