@@ -725,6 +725,113 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
+  public void testComputeWhenExpireOnCreate() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(1000L);
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String key, String value) {
+        return "value";
+      }
+    }, new NullaryFunction<Boolean>() {
+      @Override
+      public Boolean apply() {
+        return false;
+      }
+    });
+    assertThat(result, nullValue());
+  }
+
+  @Test
+  public void testComputeWhenExpireOnUpdate() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(1000L);
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    store.put("key", "value");
+    ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String key, String value) {
+        return "newValue";
+      }
+    }, new NullaryFunction<Boolean>() {
+      @Override
+      public Boolean apply() {
+        return false;
+      }
+    });
+    assertThat(result, valueHeld("newValue"));
+  }
+
+  @Test
+  public void testComputeWhenExpireOnAccess() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(1000L);
+    OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put("key", "value");
+    ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String key, String value) {
+        return value;
+      }
+    }, new NullaryFunction<Boolean>() {
+      @Override
+      public Boolean apply() {
+        return false;
+      }
+    });
+    assertThat(result, valueHeld("value"));
+  }
+
+  @Test
   public void testComputeIfAbsent() throws Exception {
     OnHeapStore<String, String> store = newStore();
 

@@ -1013,6 +1013,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     try {
       final AtomicBoolean write = new AtomicBoolean(false);
       final AtomicReference<OnHeapValueHolder<V>> replacedOrRemovedValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+      final AtomicReference<OnHeapValueHolder<V>> valueHeld = new AtomicReference<OnHeapValueHolder<V>>();
 
       OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
@@ -1033,7 +1034,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             return null;
           } else if ((eq(existingValue, computedValue)) && (!replaceEqual.apply())) {
             if (mappedValue != null) {
-              return setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+              OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+              if (holder == null) {
+                write.set(true);
+                valueHeld.set(mappedValue);
+              }
+              return holder;
             }
           }
 
@@ -1041,7 +1047,15 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           write.set(true);
           if (mappedValue != null) {
             long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
-            return newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime, eventSink);
+            OnHeapValueHolder<V> valueHolder = newUpdateValueHolder(key, existingValue, computedValue, now, expirationTime, eventSink);
+            if (valueHolder == null) {
+              try {
+                valueHeld.set(makeValue(key, computedValue, now, expirationTime, valueCopier, false));
+              } catch (LimitExceededException e) {
+                // Not happening
+              }
+            }
+            return valueHolder;
           } else {
             return newCreateValueHolder(key, computedValue, now, eventSink);
           }
@@ -1052,8 +1066,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           decrementCurrentUsageInBytesIfRequired(replacedOrRemovedValue.get().size());
         }
       } else if (write.get()) {
-        long delta = replacedOrRemovedValue.get() == null ? computeResult.size() : computeResult.size() - replacedOrRemovedValue.get().size();
+        long delta = replacedOrRemovedValue.get() == null ? computeResult.size() : (computeResult.size() - replacedOrRemovedValue.get().size());
         replaceByteCapacity(delta, eventSink);
+      }
+      if (computeResult == null && valueHeld.get() != null) {
+        computeResult = valueHeld.get();
       }
       storeEventDispatcher.releaseEventSink(eventSink);
       if (computeResult == null) {
@@ -1397,15 +1414,21 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return clonedValueHolder;
   }
 
-  private OnHeapValueHolder<V> makeValue(K key, V value, long creationTime, long expirationTime, Copier<V> valueCopier) throws LimitExceededException{
+  private OnHeapValueHolder<V> makeValue(K key, V value, long creationTime, long expirationTime, Copier<V> valueCopier) throws LimitExceededException {
+    return makeValue(key, value, creationTime, expirationTime, valueCopier, true);
+  }
+
+  private OnHeapValueHolder<V> makeValue(K key, V value, long creationTime, long expirationTime, Copier<V> valueCopier, boolean size) throws LimitExceededException {
     boolean veto = checkVeto(key, value);
-    OnHeapValueHolder<V> valueHolder = null;
+    OnHeapValueHolder<V> valueHolder;
     if (valueCopier instanceof SerializingCopier) {
       valueHolder = new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, ((SerializingCopier<V>) valueCopier).getSerializer());
     } else {
       valueHolder = new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, valueCopier);
     }
-    valueHolder.setSize(getSizeOfKeyValuePairs(key, valueHolder));
+    if (size) {
+      valueHolder.setSize(getSizeOfKeyValuePairs(key, valueHolder));
+    }
     return valueHolder;
   }
 
