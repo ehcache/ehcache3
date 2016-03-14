@@ -712,20 +712,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             final ValueHolder<V> value = fault.get();
             final OnHeapValueHolder<V> newValue;
             if(value != null) {
-              try {
-                newValue = importValueFromLowerTier(key, value, now);
-              } catch (RuntimeException re) {
-                LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-                invalidateInGetorComputeIfAbsent(backEnd, key, value, fault, now);
-                getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-                return null;
-              } catch (LimitExceededException e) {
-                LOG.warn(e.getMessage());
-                OnHeapValueHolder<V> toReturn = invalidateInGetorComputeIfAbsent(backEnd, key, value, fault, now);
-                getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-                return toReturn;
+              newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
+              if (newValue == null) {
+                // Inline expiry or sizing failure
+                return value;
               }
-
             } else {
               backEnd.remove(key, fault);
               getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
@@ -784,24 +775,21 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private OnHeapValueHolder<V> invalidateInGetorComputeIfAbsent(Backend<K, V> map, final K key, final ValueHolder<V> value, final Fault<V> fault, final long now) {
-    final AtomicReference<OnHeapValueHolder<V>> toInvalidate = new AtomicReference<OnHeapValueHolder<V>>();
+  private void invalidateInGetOrComputeIfAbsent(Backend<K, V> map, final K key, final ValueHolder<V> value, final Fault<V> fault, final long now, final Duration expiration) {
     map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
       @Override
       public OnHeapValueHolder<V> apply(K mappedKey, final OnHeapValueHolder<V> mappedValue) {
         if(mappedValue.equals(fault)) {
           try {
-            toInvalidate.set(cloneValueHolder(key, value, now, Duration.ZERO, false));
+            invalidationListener.onInvalidation(key, cloneValueHolder(key, value, now, expiration, false));
           } catch (LimitExceededException ex) {
             throw new AssertionError("Sizing is not expected to happen.");
           }
-          invalidationListener.onInvalidation(key, toInvalidate.get());
           return null;
         }
         return mappedValue;
       }
     });
-    return toInvalidate.get();
   }
 
   @Override
@@ -1363,10 +1351,29 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return holder;
   }
 
-  private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now) throws LimitExceededException {
+  private OnHeapValueHolder<V> importValueFromLowerTier(K key, ValueHolder<V> valueHolder, long now, Backend<K, V> backEnd, Fault<V> fault) {
     V realValue = valueHolder.value();
-    Duration expiration = expiry.getExpiryForAccess(key, realValue);
-    return cloneValueHolder(key, valueHolder, now, expiration, true);
+    Duration expiration = Duration.ZERO;
+    try {
+      expiration = expiry.getExpiryForAccess(key, realValue);
+    } catch (RuntimeException re) {
+      LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+    }
+
+    if (Duration.ZERO.equals(expiration)) {
+      invalidateInGetOrComputeIfAbsent(backEnd, key, valueHolder, fault, now, Duration.ZERO);
+      getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+      return null;
+    }
+
+    try{
+      return cloneValueHolder(key, valueHolder, now, expiration, true);
+    } catch (LimitExceededException e) {
+      LOG.warn(e.getMessage());
+      invalidateInGetOrComputeIfAbsent(backEnd, key, valueHolder, fault, now, expiration);
+      getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+      return null;
+    }
   }
 
   private OnHeapValueHolder<V> cloneValueHolder(K key, ValueHolder<V> valueHolder, long now, Duration expiration, boolean sizingEnabled) throws LimitExceededException {
