@@ -54,7 +54,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.withSettings;
 
 /**
- * @author Alex Snaps
+ * Tests for {@link ServiceLocator}.
  */
 public class ServiceLocatorTest {
 

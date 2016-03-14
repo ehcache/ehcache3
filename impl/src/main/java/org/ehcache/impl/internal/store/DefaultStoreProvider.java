@@ -43,7 +43,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * @author Ludovic Orban
+ * A {@link org.ehcache.core.spi.cache.Store.Provider Store.Provider} implementation supporting
+ * generation of {@link Store} instances supporting heap-anchored, tiered caching.
  */
 @ServiceDependencies({CacheStore.Provider.class, CompoundCachingTier.Provider.class,
     OnHeapStore.Provider.class, OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})

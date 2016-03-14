@@ -46,7 +46,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /**
- * @author Alex Snaps
+ * Provides discovery and tracking services for {@link Service} implementations.
  */
 public final class ServiceLocator implements ServiceProvider<Service> {
 

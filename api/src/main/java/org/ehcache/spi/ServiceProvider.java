@@ -25,7 +25,6 @@ import java.util.Collection;
  * look them up by type.
  *
  * @param <T> A bound on service types this provider can return
- * @author Alex Snaps
  */
 public interface ServiceProvider<T extends Service> {
 

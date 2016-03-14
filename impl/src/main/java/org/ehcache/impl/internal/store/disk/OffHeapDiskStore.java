@@ -77,8 +77,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
- *
- * @author Chris Dennis
+ * Implementation of {@link Store} supporting disk-resident persistence.
  */
 public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 

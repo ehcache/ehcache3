@@ -36,7 +36,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
- * @author Clifford W. Johnson
+ * Tests handling of {@link PluralService} by {@link ServiceLocator}.
  */
 public class ServiceLocatorPluralTest {
 

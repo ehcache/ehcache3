@@ -25,7 +25,6 @@ import org.ehcache.spi.service.Service;
 
 /**
  *
- * @author cdennis
  */
 public final class TestServiceProvider {
 
@@ -45,7 +44,6 @@ public final class TestServiceProvider {
 
       @Override
       public <U extends Service> Collection<U> getServicesOfType(final Class<U> serviceType) {
-        // TODO: Implement .getServicesOfType
         throw new UnsupportedOperationException(".getServicesOfType not implemented");
       }
     };

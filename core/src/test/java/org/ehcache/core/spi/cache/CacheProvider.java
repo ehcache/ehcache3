@@ -22,8 +22,7 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Chris Dennis
- * @author Alex Snaps
+ * Test service.
  */
 @PluralService
 public interface CacheProvider extends Service {

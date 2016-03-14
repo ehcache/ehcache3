@@ -39,7 +39,7 @@ import java.util.concurrent.ConcurrentMap;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
- * @author Ludovic Orban
+ * A {@link CachingTier} implementation supporting a cache hierarchy.
  */
 public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
 

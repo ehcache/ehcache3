@@ -37,8 +37,6 @@ import static org.junit.Assert.*;
 
 /**
  * Tests functionality of {@link StoreSupport} methods.
- *
- * @author Clifford W. Johnson
  */
 public class StoreSupportTest {
 

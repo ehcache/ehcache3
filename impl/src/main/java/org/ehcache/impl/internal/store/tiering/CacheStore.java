@@ -49,7 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
- * @author Ludovic Orban
+ * A {@link Store} implementation supporting a tiered caching model.
  */
 public class CacheStore<K, V> implements Store<K, V> {
 

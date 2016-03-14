@@ -29,8 +29,6 @@ import java.util.Set;
 
 /**
  * Defines methods supporting working with {@link Store} implementations.
- *
- * @author Clifford W. Johnson
  */
 public final class StoreSupport {
   /**

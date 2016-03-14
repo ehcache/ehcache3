@@ -29,7 +29,7 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 /**
- * @author Clifford W. Johnson
+ * Basic tests for {@link DefaultStoreProvider}.
  */
 public class DefaultStoreProviderTest {
 

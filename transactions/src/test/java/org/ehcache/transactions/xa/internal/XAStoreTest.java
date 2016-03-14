@@ -92,7 +92,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
- * @author Ludovic Orban
+ * Tests for {@link XAStore} and {@link org.ehcache.transactions.xa.internal.XAStore.Provider XAStore.Provider}.
  */
 public class XAStoreTest {
 

@@ -80,8 +80,6 @@ import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 /**
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA
  * {@link javax.transaction.TransactionManager} using the XA 2-phase commit protocol.
- *
- * @author Ludovic Orban
  */
 public class XAStore<K, V> implements Store<K, V> {
 

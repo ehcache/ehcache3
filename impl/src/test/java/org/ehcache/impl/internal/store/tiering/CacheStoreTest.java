@@ -59,7 +59,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * @author Ludovic Orban
+ * Tests for {@link CacheStore}.
  */
 public class CacheStoreTest {
 

@@ -36,7 +36,6 @@ import org.ops4j.pax.exam.spi.reactors.ExamReactorStrategy;
 import org.ops4j.pax.exam.spi.reactors.PerMethod;
 
 /**
- * @author Abhilash
  *
  */
 @RunWith(PaxExam.class)

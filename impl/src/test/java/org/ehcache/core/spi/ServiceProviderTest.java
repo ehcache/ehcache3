@@ -27,7 +27,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertThat;
 
 /**
- * @author Alex Snaps
+ *
  */
 public class ServiceProviderTest {
 

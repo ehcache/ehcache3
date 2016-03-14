@@ -26,8 +26,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Caching tier, according to Montreal design.
- *
- * @author Ludovic Orban
  */
 public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 

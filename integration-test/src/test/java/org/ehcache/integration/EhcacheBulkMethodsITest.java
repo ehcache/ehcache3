@@ -64,7 +64,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * Created by anthony on 2014-10-23.
+ * Tests for bulk processing methods in {@link org.ehcache.core.Ehcache Ehcache}.
  */
 @SuppressWarnings({ "unchecked", "rawtypes", "serial" })
 public class EhcacheBulkMethodsITest {

@@ -104,8 +104,6 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  * </ul></p>
  *
  * The storage of mappings is handled by a {@link ConcurrentHashMap} accessed through {@link Backend}.
- *
- * @author Alex Snaps
  */
 public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
