@@ -48,7 +48,6 @@ public class Jsr107OsgiTest {
     return options(
         mavenBundle("org.slf4j", "slf4j-api", System.getProperty("ehcache.osgi.slf4j.version")),
         mavenBundle("org.slf4j", "slf4j-simple", System.getProperty("ehcache.osgi.slf4j.version")).noStart(),
-        bundle("file:" + System.getProperty("jta.osgi.jar")),
         bundle("file:" + System.getProperty("ehcache.osgi.jar")),
         mavenBundle("javax.cache", "cache-api", System.getProperty("ehcache.osgi.jcache.version")),
         junitBundles()
