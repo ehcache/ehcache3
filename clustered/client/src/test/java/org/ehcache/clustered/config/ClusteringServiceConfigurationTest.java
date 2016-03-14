@@ -16,11 +16,13 @@
 
 package org.ehcache.clustered.config;
 
+import org.ehcache.clustered.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.service.ClusteringService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.junit.Test;
 
 import java.net.URI;
+import java.util.Collections;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -34,24 +36,24 @@ public class ClusteringServiceConfigurationTest {
 
   @Test(expected = NullPointerException.class)
   public void testGetConnectionUrlNull() throws Exception {
-    new ClusteringServiceConfiguration(null);
+    new ClusteringServiceConfiguration(null, Collections.<String, PoolDefinition>emptyMap());
   }
 
   @Test
   public void testGetConnectionUrl() throws Exception {
     final URI connectionUrl = URI.create("http://localhost:9450");
-    assertThat(new ClusteringServiceConfiguration(connectionUrl).getConnectionUrl(), is(connectionUrl));
+    assertThat(new ClusteringServiceConfiguration(connectionUrl, Collections.<String, PoolDefinition>emptyMap()).getConnectionUrl(), is(connectionUrl));
   }
 
   @Test
   public void testGetServiceType() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450")).getServiceType(),
+    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), Collections.<String, PoolDefinition>emptyMap()).getServiceType(),
         is(equalTo(ClusteringService.class)));
   }
 
   @Test
   public void testBuilder() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"))
+    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), Collections.<String, PoolDefinition>emptyMap())
         .builder(CacheManagerBuilder.newCacheManagerBuilder()), is(instanceOf(CacheManagerBuilder.class)));
   }
 }

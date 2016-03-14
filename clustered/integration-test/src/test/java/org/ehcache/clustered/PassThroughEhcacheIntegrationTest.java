@@ -23,6 +23,7 @@ import org.ehcache.Maintainable;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.EhcacheClientEntity;
 import org.ehcache.clustered.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.config.builder.ClusteringServiceConfigurationBuilder;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public class PassThroughEhcacheIntegrationTest {
     UnitTestConnectionService.reset();
     assertEntityNotExists(EhcacheClientEntity.class, "myCacheManager");
     PersistentCacheManager manager = newCacheManagerBuilder()
-            .with(new ClusteringServiceConfiguration(URI.create("http://example.com:9540/myCacheManager?auto-create")))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/myCacheManager?auto-create")).build())
             .build();
     assertEntityNotExists(EhcacheClientEntity.class, "myCacheManager");
     manager.init();
@@ -75,7 +76,7 @@ public class PassThroughEhcacheIntegrationTest {
     UnitTestConnectionService.reset();
     try {
       newCacheManagerBuilder()
-              .with(new ClusteringServiceConfiguration(URI.create("http://example.com:9540/myCacheManager")))
+              .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/myCacheManager")).build())
               .build(true);
       fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
@@ -87,7 +88,7 @@ public class PassThroughEhcacheIntegrationTest {
   public void testCacheManagerCreatedUsingMaintenance() throws Exception {
     UnitTestConnectionService.reset();
     PersistentCacheManager manager = newCacheManagerBuilder()
-            .with(new ClusteringServiceConfiguration(URI.create("http://example.com:9540/myCacheManager")))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/myCacheManager")).build())
             .build(false);
     Maintainable m = manager.toMaintenance();
     try {
