@@ -1033,7 +1033,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             return null;
           } else if ((eq(existingValue, computedValue)) && (!replaceEqual.apply())) {
             if (mappedValue != null) {
-              return setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+              OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+              write.set(holder == null);
+              return holder;
             }
           }
 
@@ -1052,7 +1054,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           decrementCurrentUsageInBytesIfRequired(replacedOrRemovedValue.get().size());
         }
       } else if (write.get()) {
-        long delta = replacedOrRemovedValue.get() == null ? computeResult.size() : computeResult.size() - replacedOrRemovedValue.get().size();
+        long delta = replacedOrRemovedValue.get() == null ? computeResult.size() : (computeResult.size() - replacedOrRemovedValue.get().size());
         replaceByteCapacity(delta, eventSink);
       }
       storeEventDispatcher.releaseEventSink(eventSink);
@@ -1172,7 +1174,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           }
 
           if ((eq(existingValue, computedValue)) && (!replaceEqual.apply())) {
-            return setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+            OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+            write.set(holder == null);
+            return holder;
           }
 
           checkValue(computedValue);
