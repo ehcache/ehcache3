@@ -37,6 +37,7 @@ import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.stats.ContextualStatistics;
 import org.terracotta.management.stats.primitive.Counter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -209,7 +210,7 @@ public class DefaultSharedManagementServiceTest {
     cacheManager1.getCache("aCache4", Long.class, String.class).put(4L, "4");
     assertThat(cacheManager1.getCache("aCache4", Long.class, String.class).get(4L), equalTo("4"));
 
-    ResultSet<ContextualReturn<Void>> results = service.withCapability("ActionsCapability")
+    ResultSet<ContextualReturn<Serializable>> results = service.withCapability("ActionsCapability")
         .call("clear")
         .on(contextList)
         .build()

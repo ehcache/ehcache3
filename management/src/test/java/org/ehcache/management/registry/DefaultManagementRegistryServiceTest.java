@@ -35,6 +35,7 @@ import org.terracotta.management.stats.Sample;
 import org.terracotta.management.stats.history.CounterHistory;
 import org.terracotta.management.stats.primitive.Counter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
@@ -296,7 +297,7 @@ public class DefaultManagementRegistryServiceTest {
         .with("cacheManagerName", "myCM2")
         .with("cacheName", "aCache2");
 
-    ResultSet<ContextualReturn<Void>> results = managementRegistry.withCapability("ActionsCapability")
+    ResultSet<ContextualReturn<Serializable>> results = managementRegistry.withCapability("ActionsCapability")
         .call("clear")
         .on(inexisting)
         .build()
