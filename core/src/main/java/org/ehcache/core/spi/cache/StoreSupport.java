@@ -44,7 +44,7 @@ public final class StoreSupport {
    * {@link Store.Provider#rank(Set, Collection) Store.Provider.rank} method in making the
    * selection.
    *
-   * @param serviceLocator the {@code ServiceLocator} instance to use
+   * @param serviceProvider the {@code ServiceProvider} instance to use
    * @param resourceTypes the set of {@code ResourceType}s that must be supported by the provider
    * @param serviceConfigs the collection of {@code ServiceConfiguration}s used to influence the
    *                       selection
@@ -55,9 +55,9 @@ public final class StoreSupport {
    *        multiple {@code Store.Provider} implementations return the same top ranking
    */
   public static Store.Provider selectStoreProvider(
-      final ServiceProvider<Service> serviceLocator, final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      final ServiceProvider<Service> serviceProvider, final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
 
-    final Collection<Store.Provider> storeProviders = serviceLocator.getServicesOfType(Store.Provider.class);
+    final Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
     int highRank = 0;
     List<Store.Provider> rankingProviders = new ArrayList<Store.Provider>();
     for (final Store.Provider provider : storeProviders) {
