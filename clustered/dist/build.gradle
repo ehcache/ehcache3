@@ -36,8 +36,10 @@ dependencies {
   compile project(':clustered:common')
   compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion" changing true
 
-  serverLibs project(':clustered:server')
-  serverLibs"org.terracotta:coordinator-entity-server:$parent.coordinatorVersion" changing true
+  serverLibs(project(':clustered:server')) {
+    exclude group: 'org.terracotta', module: 'entity-server-api'
+  }
+  serverLibs "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion" changing true
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz" changing true
 }
