@@ -15,21 +15,29 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.RemoveStatus;
 import org.ehcache.core.spi.cache.Store.ReplaceStatus;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.OffHeapStore;
+import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
@@ -63,28 +71,36 @@ import static org.mockito.Mockito.when;
  */
 public class CacheStoreTest {
 
+  @Mock
+  private CachingTier<Number, CharSequence> numberCachingTier;
+  @Mock
+  private AuthoritativeTier<Number, CharSequence> numberAuthoritativeTier;
+  @Mock
+  private CachingTier<String, String> stringCachingTier;
+  @Mock
+  private AuthoritativeTier<String, String> stringAuthoritativeTier;
+
+  @Before
+  public void setUp() throws Exception {
+    MockitoAnnotations.initMocks(this);
+  }
+
   @Test
   public void testGetHitsCachingTier() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
+    when(numberCachingTier.getOrComputeIfAbsent(eq(1), any(Function.class))).thenReturn(newValueHolder("one"));
 
-    when(cachingTier.getOrComputeIfAbsent(eq(1), any(Function.class))).thenReturn(newValueHolder("one"));
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.get(1).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(authoritativeTier, times(0)).getAndFault(any(Number.class));
+    verify(numberAuthoritativeTier, times(0)).getAndFault(any(Number.class));
   }
 
   @Test
   public void testGetHitsAuthoritativeTier() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
     Store.ValueHolder<CharSequence> valueHolder = newValueHolder("one");
-    when(authoritativeTier.getAndFault(eq(1))).thenReturn(valueHolder);
-    when(cachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberAuthoritativeTier.getAndFault(eq(1))).thenReturn(valueHolder);
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -93,21 +109,18 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.get(1).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
-    verify(authoritativeTier, times(1)).getAndFault(any(Number.class));
+    verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).getAndFault(any(Number.class));
   }
 
   @Test
   public void testGetMisses() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(authoritativeTier.getAndFault(eq(1))).thenReturn(null);
-    when(cachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberAuthoritativeTier.getAndFault(eq(1))).thenReturn(null);
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -116,177 +129,141 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.get(1), is(nullValue()));
 
-    verify(cachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
-    verify(authoritativeTier, times(1)).getAndFault(any(Number.class));
+    verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).getAndFault(any(Number.class));
   }
 
   @Test
   public void testPut() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     cacheStore.put(1, "one");
 
-    verify(cachingTier, times(1)).invalidate(eq(1));
-    verify(authoritativeTier, times(1)).put(eq(1), eq("one"));
+    verify(numberCachingTier, times(1)).invalidate(eq(1));
+    verify(numberAuthoritativeTier, times(1)).put(eq(1), eq("one"));
   }
 
   @Test
   public void testPutIfAbsent_whenAbsent() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.putIfAbsent(1, "one"), is(nullValue()));
 
-    verify(cachingTier, times(1)).invalidate(eq(1));
-    verify(authoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
+    verify(numberCachingTier, times(1)).invalidate(eq(1));
+    verify(numberAuthoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
   }
 
   @Test
   public void testPutIfAbsent_whenPresent() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
+    when(numberAuthoritativeTier.putIfAbsent(eq(1), eq("one"))).thenReturn(newValueHolder("un"));
 
-    when(authoritativeTier.putIfAbsent(eq(1), eq("one"))).thenReturn(newValueHolder("un"));
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.putIfAbsent(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
 
-    verify(cachingTier, times(0)).invalidate(any(Number.class));
-    verify(authoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
+    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberAuthoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
   }
 
   @Test
   public void testRemove() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     cacheStore.remove(1);
 
-    verify(cachingTier, times(1)).invalidate(eq(1));
-    verify(authoritativeTier, times(1)).remove(eq(1));
+    verify(numberCachingTier, times(1)).invalidate(eq(1));
+    verify(numberAuthoritativeTier, times(1)).remove(eq(1));
   }
 
   @Test
   public void testRemove2Args_removes() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
+    when(numberAuthoritativeTier.remove(eq(1), eq("one"))).thenReturn(RemoveStatus.REMOVED);
 
-    when(authoritativeTier.remove(eq(1), eq("one"))).thenReturn(RemoveStatus.REMOVED);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.remove(1, "one"), is(RemoveStatus.REMOVED));
 
-    verify(cachingTier, times(1)).invalidate(eq(1));
-    verify(authoritativeTier, times(1)).remove(eq(1), eq("one"));
+    verify(numberCachingTier, times(1)).invalidate(eq(1));
+    verify(numberAuthoritativeTier, times(1)).remove(eq(1), eq("one"));
   }
 
   @Test
   public void testRemove2Args_doesNotRemove() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
+    when(numberAuthoritativeTier.remove(eq(1), eq("one"))).thenReturn(RemoveStatus.KEY_MISSING);
 
-    when(authoritativeTier.remove(eq(1), eq("one"))).thenReturn(RemoveStatus.KEY_MISSING);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.remove(1, "one"), is(RemoveStatus.KEY_MISSING));
 
-    verify(cachingTier, times(0)).invalidate(any(Number.class));
-    verify(authoritativeTier, times(1)).remove(eq(1), eq("one"));
+    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberAuthoritativeTier, times(1)).remove(eq(1), eq("one"));
   }
 
   @Test
   public void testReplace2Args_replaces() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
+    when(numberAuthoritativeTier.replace(eq(1), eq("one"))).thenReturn(newValueHolder("un"));
 
-    when(authoritativeTier.replace(eq(1), eq("one"))).thenReturn(newValueHolder("un"));
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.replace(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
 
-    verify(cachingTier, times(1)).invalidate(eq(1));
-    verify(authoritativeTier, times(1)).replace(eq(1), eq("one"));
+    verify(numberCachingTier, times(1)).invalidate(eq(1));
+    verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("one"));
   }
 
   @Test
   public void testReplace2Args_doesNotReplace() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
+    when(numberAuthoritativeTier.replace(eq(1), eq("one"))).thenReturn(null);
 
-    when(authoritativeTier.replace(eq(1), eq("one"))).thenReturn(null);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.replace(1, "one"), is(nullValue()));
 
-    verify(cachingTier, times(0)).invalidate(any(Number.class));
-    verify(authoritativeTier, times(1)).replace(eq(1), eq("one"));
+    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("one"));
   }
 
   @Test
   public void testReplace3Args_replaces() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
+    when(numberAuthoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.HIT);
 
-    when(authoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.HIT);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.replace(1, "un", "one"), is(ReplaceStatus.HIT));
 
-    verify(cachingTier, times(1)).invalidate(eq(1));
-    verify(authoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
+    verify(numberCachingTier, times(1)).invalidate(eq(1));
+    verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
   }
 
   @Test
   public void testReplace3Args_doesNotReplace() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
+    when(numberAuthoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.MISS_NOT_PRESENT);
 
-    when(authoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.MISS_NOT_PRESENT);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.replace(1, "un", "one"), is(ReplaceStatus.MISS_NOT_PRESENT));
 
-    verify(cachingTier, times(0)).invalidate(any(Number.class));
-    verify(authoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
+    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
   }
 
   @Test
   public void testClear() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     cacheStore.clear();
 
-    verify(cachingTier, times(1)).clear();
-    verify(authoritativeTier, times(1)).clear();
+    verify(numberCachingTier, times(1)).clear();
+    verify(numberAuthoritativeTier, times(1)).clear();
   }
 
   @Test
   public void testCompute2Args() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(authoritativeTier.compute(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -295,7 +272,7 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.compute(1, new BiFunction<Number, CharSequence, CharSequence>() {
       @Override
@@ -304,16 +281,13 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).invalidate(any(Number.class));
-    verify(authoritativeTier, times(1)).compute(eq(1), any(BiFunction.class));
+    verify(numberCachingTier, times(1)).invalidate(any(Number.class));
+    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class));
   }
 
   @Test
   public void testCompute3Args() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(authoritativeTier.compute(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -322,7 +296,7 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.compute(1, new BiFunction<Number, CharSequence, CharSequence>() {
       @Override
@@ -336,16 +310,13 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).invalidate(any(Number.class));
-    verify(authoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(NullaryFunction.class));
+    verify(numberCachingTier, times(1)).invalidate(any(Number.class));
+    verify(numberAuthoritativeTier, times(1)).compute(eq(1), any(BiFunction.class), any(NullaryFunction.class));
   }
 
   @Test
   public void testComputeIfAbsent_computes() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(cachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -353,7 +324,7 @@ public class CacheStoreTest {
         return function.apply(key);
       }
     });
-    when(authoritativeTier.computeIfAbsentAndFault(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberAuthoritativeTier.computeIfAbsentAndFault(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -362,7 +333,7 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.computeIfAbsent(1, new Function<Number, CharSequence>() {
       @Override
@@ -371,24 +342,21 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
-    verify(authoritativeTier, times(1)).computeIfAbsentAndFault(eq(1), any(Function.class));
+    verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
+    verify(numberAuthoritativeTier, times(1)).computeIfAbsentAndFault(eq(1), any(Function.class));
   }
 
   @Test
   public void testComputeIfAbsent_doesNotCompute() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
     final Store.ValueHolder<CharSequence> valueHolder = newValueHolder("one");
-    when(cachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         return valueHolder;
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.computeIfAbsent(1, new Function<Number, CharSequence>() {
       @Override
@@ -397,16 +365,13 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
-    verify(authoritativeTier, times(0)).computeIfAbsentAndFault(eq(1), any(Function.class));
+    verify(numberCachingTier, times(1)).getOrComputeIfAbsent(eq(1), any(Function.class));
+    verify(numberAuthoritativeTier, times(0)).computeIfAbsentAndFault(eq(1), any(Function.class));
   }
 
   @Test
   public void testComputeIfPresent2Args() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(authoritativeTier.computeIfPresent(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(numberAuthoritativeTier.computeIfPresent(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -415,7 +380,7 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.computeIfPresent(1, new BiFunction<Number, CharSequence, CharSequence>() {
       @Override
@@ -424,16 +389,14 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).invalidate(any(Number.class));
-    verify(authoritativeTier, times(1)).computeIfPresent(eq(1), any(BiFunction.class));
+    verify(numberCachingTier, times(1)).invalidate(any(Number.class));
+    verify(numberAuthoritativeTier, times(1)).computeIfPresent(eq(1), any(BiFunction.class));
   }
 
   @Test
   public void testComputeIfPresent3Args() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(authoritativeTier.computeIfPresent(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
+    when(
+        numberAuthoritativeTier.computeIfPresent(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
       public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
         Number key = (Number) invocation.getArguments()[0];
@@ -442,7 +405,7 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(cacheStore.computeIfPresent(1, new BiFunction<Number, CharSequence, CharSequence>() {
       @Override
@@ -456,16 +419,13 @@ public class CacheStoreTest {
       }
     }).value(), Matchers.<CharSequence>equalTo("one"));
 
-    verify(cachingTier, times(1)).invalidate(any(Number.class));
-    verify(authoritativeTier, times(1)).computeIfPresent(eq(1), any(BiFunction.class), any(NullaryFunction.class));
+    verify(numberCachingTier, times(1)).invalidate(any(Number.class));
+    verify(numberAuthoritativeTier, times(1)).computeIfPresent(eq(1), any(BiFunction.class), any(NullaryFunction.class));
   }
 
   @Test
   public void testBulkCompute2Args() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(authoritativeTier.bulkCompute(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
+    when(numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
       public Map<Number, Store.ValueHolder<CharSequence>> answer(InvocationOnMock invocation) throws Throwable {
         Set<Number> keys = (Set) invocation.getArguments()[0];
@@ -487,7 +447,7 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     Map<Number, Store.ValueHolder<CharSequence>> result = cacheStore.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
       @Override
@@ -501,18 +461,16 @@ public class CacheStoreTest {
     assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
     assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
 
-    verify(cachingTier, times(1)).invalidate(1);
-    verify(cachingTier, times(1)).invalidate(2);
-    verify(cachingTier, times(1)).invalidate(3);
-    verify(authoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class));
+    verify(numberCachingTier, times(1)).invalidate(1);
+    verify(numberCachingTier, times(1)).invalidate(2);
+    verify(numberCachingTier, times(1)).invalidate(3);
+    verify(numberAuthoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class));
   }
 
   @Test
   public void testBulkCompute3Args() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(authoritativeTier.bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
+    when(
+        numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
       public Map<Number, Store.ValueHolder<CharSequence>> answer(InvocationOnMock invocation) throws Throwable {
         Set<Number> keys = (Set) invocation.getArguments()[0];
@@ -534,7 +492,7 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     Map<Number, Store.ValueHolder<CharSequence>> result = cacheStore.bulkCompute(new HashSet<Number>(Arrays.asList(1, 2, 3)), new Function<Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
       @Override
@@ -553,18 +511,15 @@ public class CacheStoreTest {
     assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
     assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
 
-    verify(cachingTier, times(1)).invalidate(1);
-    verify(cachingTier, times(1)).invalidate(2);
-    verify(cachingTier, times(1)).invalidate(3);
-    verify(authoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class));
+    verify(numberCachingTier, times(1)).invalidate(1);
+    verify(numberCachingTier, times(1)).invalidate(2);
+    verify(numberCachingTier, times(1)).invalidate(3);
+    verify(numberAuthoritativeTier, times(1)).bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class));
   }
 
   @Test
   public void testBulkComputeIfAbsent() throws Exception {
-    CachingTier<Number, CharSequence> cachingTier = mock(CachingTier.class);
-    AuthoritativeTier<Number, CharSequence> authoritativeTier = mock(AuthoritativeTier.class);
-
-    when(authoritativeTier.bulkComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
+    when(numberAuthoritativeTier.bulkComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
       public Map<Number, Store.ValueHolder<CharSequence>> answer(InvocationOnMock invocation) throws Throwable {
         Set<Number> keys = (Set) invocation.getArguments()[0];
@@ -586,7 +541,7 @@ public class CacheStoreTest {
       }
     });
 
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(cachingTier, authoritativeTier);
+    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
 
     Map<Number, Store.ValueHolder<CharSequence>> result = cacheStore.bulkComputeIfAbsent(new HashSet<Number>(Arrays.asList(1, 2, 3)), new Function<Iterable<? extends Number>, Iterable<? extends Map.Entry<? extends Number, ? extends CharSequence>>>() {
@@ -601,20 +556,15 @@ public class CacheStoreTest {
     assertThat(result.get(2).value(), Matchers.<CharSequence>equalTo("two"));
     assertThat(result.get(3).value(), Matchers.<CharSequence>equalTo("three"));
 
-    verify(cachingTier, times(1)).invalidate(1);
-    verify(cachingTier, times(1)).invalidate(2);
-    verify(cachingTier, times(1)).invalidate(3);
-    verify(authoritativeTier, times(1)).bulkComputeIfAbsent(any(Set.class), any(Function.class));
+    verify(numberCachingTier, times(1)).invalidate(1);
+    verify(numberCachingTier, times(1)).invalidate(2);
+    verify(numberCachingTier, times(1)).invalidate(3);
+    verify(numberAuthoritativeTier, times(1)).bulkComputeIfAbsent(any(Set.class), any(Function.class));
   }
 
   @Test
   public void CachingTierDoesNotSeeAnyOperationDuringClear() throws CacheAccessException, BrokenBarrierException, InterruptedException {
-
-
-    final CachingTier<String, String> cachingTier = mock(CachingTier.class);
-    final AuthoritativeTier<String, String> authoritativeTier = mock(AuthoritativeTier.class);
-
-    final CacheStore<String, String> cacheStore = new CacheStore<String, String>(cachingTier, authoritativeTier);
+    final CacheStore<String, String> cacheStore = new CacheStore<String, String>(stringCachingTier, stringAuthoritativeTier);
 
     final CyclicBarrier barrier = new CyclicBarrier(2);
 
@@ -625,7 +575,7 @@ public class CacheStoreTest {
         barrier.await();
         return null;
       }
-    }).when(authoritativeTier).clear();
+    }).when(stringAuthoritativeTier).clear();
     Thread t = new Thread(new Runnable() {
       @Override
       public void run() {
@@ -642,45 +592,44 @@ public class CacheStoreTest {
     cacheStore.get("foo");
     barrier.await();
     t.join();
-    verify(cachingTier, never()).getOrComputeIfAbsent(
+    verify(stringCachingTier, never()).getOrComputeIfAbsent(
         org.mockito.Matchers.<String>any(), org.mockito.Matchers.<Function<String, Store.ValueHolder<String>>>anyObject());
   }
 
   @Test
   public void testReleaseStoreFlushes () throws CacheAccessException {
-    final CachingTier<String, String> cachingTier = mock(CachingTier.class);
-    final AuthoritativeTier<String, String> authoritativeTier = mock(AuthoritativeTier.class);
-
     CacheStore.Provider cacheStoreProvider = new CacheStore.Provider();
-    final CachingTier.Provider cachingTierProvider = mock(CachingTier.Provider.class);
-    final AuthoritativeTier.Provider authoritativeTierProvider = mock(AuthoritativeTier.Provider.class);
-    when(cachingTierProvider.createCachingTier(any(Store.Configuration.class), any(ServiceConfiguration.class))).thenReturn(cachingTier);
-    when(authoritativeTierProvider.createAuthoritativeTier(any(Store.Configuration.class), any(ServiceConfiguration.class))).thenReturn(authoritativeTier);
+
+    ResourcePools resourcePools = mock(ResourcePools.class);
+    when(resourcePools.getResourceTypeSet())
+        .thenReturn(new HashSet<ResourceType>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP)));
+
+    ResourcePool heapPool = mock(ResourcePool.class);
+    when(heapPool.getType()).thenReturn(ResourceType.Core.HEAP);
+    when(resourcePools.getPoolForResource(ResourceType.Core.HEAP)).thenReturn(heapPool);
+    OnHeapStore.Provider onHeapStoreProvider = mock(OnHeapStore.Provider.class);
+    when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class), any(ServiceConfiguration.class)))
+        .thenReturn(stringCachingTier);
+
+    ResourcePool offHeapPool = mock(ResourcePool.class);
+    when(heapPool.getType()).thenReturn(ResourceType.Core.OFFHEAP);
+    when(resourcePools.getPoolForResource(ResourceType.Core.OFFHEAP)).thenReturn(offHeapPool);
+    OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
+    when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class), any(ServiceConfiguration.class)))
+        .thenReturn(stringAuthoritativeTier);
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
-    CacheStoreServiceConfiguration serviceConfiguration = mock(CacheStoreServiceConfiguration.class);
-    when(serviceConfiguration.cachingTierProvider()).thenAnswer(new Answer<Class<? extends CachingTier.Provider>>() {
+    when(configuration.getResourcePools()).thenReturn(resourcePools);
 
-      @Override
-      public Class<? extends CachingTier.Provider> answer(final InvocationOnMock invocation) throws Throwable {
-        return cachingTierProvider.getClass();
-      }
-    });
-    when(serviceConfiguration.authoritativeTierProvider()).thenAnswer(new Answer<Class<? extends AuthoritativeTier.Provider>>() {
-      @Override
-      public Class<? extends AuthoritativeTier.Provider> answer(final InvocationOnMock invocation) throws Throwable {
-        return authoritativeTierProvider.getClass();
-      }
-    });
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(cachingTierProvider);
-    serviceLocator.addService(authoritativeTierProvider);
-    cacheStoreProvider.start(serviceLocator);
+    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    when(serviceProvider.getService(OnHeapStore.Provider.class)).thenReturn(onHeapStoreProvider);
+    when(serviceProvider.getService(OffHeapStore.Provider.class)).thenReturn(offHeapStoreProvider);
+    cacheStoreProvider.start(serviceProvider);
 
-    final Store<String, String> cacheStore = cacheStoreProvider.createStore(configuration, serviceConfiguration);
+    final Store<String, String> cacheStore = cacheStoreProvider.createStore(configuration);
     cacheStoreProvider.initStore(cacheStore);
     cacheStoreProvider.releaseStore(cacheStore);
-    verify(cachingTierProvider, times(1)).releaseCachingTier(any(CachingTier.class));
+    verify(onHeapStoreProvider, times(1)).releaseCachingTier(any(CachingTier.class));
   }
 
   @Test
@@ -690,10 +639,10 @@ public class CacheStoreTest {
     assertRank(provider, 0, ResourceType.Core.DISK);
     assertRank(provider, 0, ResourceType.Core.HEAP);
     assertRank(provider, 0, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 2, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 2, ResourceType.Core.DISK, ResourceType.Core.HEAP);
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 3, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     final ResourceType unmatchedResourceType = new ResourceType() {
       @Override
@@ -707,6 +656,7 @@ public class CacheStoreTest {
       }
     };
     assertRank(provider, 0, unmatchedResourceType);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType);
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType... resources) {

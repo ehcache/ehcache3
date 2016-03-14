@@ -35,7 +35,6 @@ import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.spi.copy.DefaultCopyProvider;
-import org.ehcache.impl.internal.store.DefaultStoreProvider;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.MemorySizeParser;
@@ -86,7 +85,6 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -1538,7 +1536,7 @@ public class XAStoreTest {
     XAStore.Provider provider = new XAStore.Provider();
     XAStoreConfiguration configuration = new XAStoreConfiguration("testXAResourceId");
     ServiceLocator serviceLocator = new ServiceLocator(
-        new DefaultStoreProvider(),
+        new CacheStore.Provider(),
         new OnHeapStore.Provider(),
         new OffHeapStore.Provider(),
         new OffHeapDiskStore.Provider());
