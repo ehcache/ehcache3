@@ -18,8 +18,11 @@ package org.ehcache.core.spi;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.Collection;
 import java.util.Enumeration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.spi.cache.CacheProvider;
@@ -28,7 +31,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.spi.services.DefaultTestProvidedService;
 import org.ehcache.core.spi.services.DefaultTestService;
 import org.ehcache.core.spi.services.FancyCacheProvider;
@@ -40,12 +42,10 @@ import org.junit.Test;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.notNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -54,7 +54,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.withSettings;
 
 /**
- * @author Alex Snaps
+ * Tests for {@link ServiceLocator}.
  */
 public class ServiceLocatorTest {
 
@@ -66,37 +66,11 @@ public class ServiceLocatorTest {
     assertThat(provider.getService(FooProvider.class), sameInstance(service));
     final Service fancyCacheProvider = new FancyCacheProvider();
     provider.addService(fancyCacheProvider);
-    assertThat(provider.getService(CacheProvider.class), sameInstance(fancyCacheProvider));
+
+    final Collection<CacheProvider> servicesOfType = provider.getServicesOfType(CacheProvider.class);
+    assertThat(servicesOfType, is(not(empty())));
+    assertThat(servicesOfType.iterator().next(), sameInstance(fancyCacheProvider));
   }
-
-  @Test
-  public void testAcceptsMultipleIdenticalServices() {
-    ServiceLocator serviceLocator = new ServiceLocator();
-
-    Service fancyCacheProvider = new FancyCacheProvider();
-    DullCacheProvider dullCacheProvider = new DullCacheProvider();
-
-    serviceLocator.addService(fancyCacheProvider);
-    serviceLocator.addService(dullCacheProvider);
-
-    assertThat(serviceLocator.getService(FooProvider.class), nullValue());
-    assertThat(serviceLocator.getService(CacheProvider.class), sameInstance(fancyCacheProvider));
-    assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
-  }
-
-  @Test
-  public void testDoesNotRegisterSupplementaryServiceUnderAbstractType() {
-    ServiceLocator serviceLocator = new ServiceLocator();
-
-    DullCacheProvider dullCacheProvider = new DullCacheProvider();
-
-    serviceLocator.addService(dullCacheProvider);
-
-    assertThat(serviceLocator.getService(FooProvider.class), nullValue());
-    assertThat(serviceLocator.getService(CacheProvider.class), nullValue());
-    assertThat(serviceLocator.getService(DullCacheProvider.class), sameInstance(dullCacheProvider));
-  }
-
 
   @Test
   public void testDoesNotUseTCCL() {
@@ -251,7 +225,7 @@ public class ServiceLocatorTest {
     verify(consumer1, times(1)).start(serviceLocator);
     verify(consumer1, times(1)).stop();
 
-    assertThat(consumer2.testProvidedService.ctors(), equalTo(1));
+    assertThat(consumer2.testProvidedService.ctors(), greaterThanOrEqualTo(1));
     assertThat(consumer2.testProvidedService.stops(), equalTo(1));
     assertThat(consumer2.testProvidedService.starts(), equalTo(1));
   }
@@ -266,52 +240,83 @@ public class ServiceLocatorTest {
   @Test
   public void testCircularDeps() throws Exception {
 
+    final class StartStopCounter {
+      final AtomicInteger startCounter = new AtomicInteger(0);
+      final AtomicReference<ServiceProvider<Service>> startServiceProvider = new AtomicReference<ServiceProvider<Service>>();
+      final AtomicInteger stopCounter = new AtomicInteger(0);
+      public void countStart(ServiceProvider<Service> serviceProvider) {
+        startCounter.incrementAndGet();
+        startServiceProvider.set(serviceProvider);
+      }
+      public void countStop() {
+        stopCounter.incrementAndGet();
+      }
+    }
+
     @ServiceDependencies(TestProvidedService.class)
     class Consumer1 implements Service {
+      final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
       public void start(ServiceProvider<Service> serviceProvider) {
-        assertThat(serviceProvider.getService(TestProvidedService.class), is(notNull()));
+        assertThat(serviceProvider.getService(TestProvidedService.class), is(notNullValue()));
+        startStopCounter.countStart(serviceProvider);
       }
       @Override
-      public void stop() {}
+      public void stop() {
+        startStopCounter.countStop();
+      }
     }
 
     @ServiceDependencies(Consumer1.class)
     class Consumer2 implements Service {
-      TestProvidedService testProvidedService;
+      final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
       public void start(ServiceProvider<Service> serviceProvider) {
-        assertThat(serviceProvider.getService(Consumer1.class), is(notNull()));
+        assertThat(serviceProvider.getService(Consumer1.class), is(notNullValue()));
+        startStopCounter.countStart(serviceProvider);
       }
       @Override
-      public void stop() {}
+      public void stop() {
+        startStopCounter.countStop();
+      }
     }
 
     @ServiceDependencies(Consumer2.class)
     class MyTestProvidedService extends DefaultTestProvidedService {
+      final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
       public void start(ServiceProvider<Service> serviceProvider) {
-        assertThat(serviceProvider.getService(Consumer2.class), is(notNull()));
+        assertThat(serviceProvider.getService(Consumer2.class), is(notNullValue()));
+        startStopCounter.countStart(serviceProvider);
         super.start(serviceProvider);
+      }
+      @Override
+      public void stop() {
+        startStopCounter.countStop();
+        super.stop();
       }
     }
 
     @ServiceDependencies(DependsOnMe.class)
     class DependsOnMe implements Service {
+      final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
       public void start(ServiceProvider<Service> serviceProvider) {
-        assertThat(serviceProvider.getService(DependsOnMe.class), sameInstance(this));;
+        assertThat(serviceProvider.getService(DependsOnMe.class), sameInstance(this));
+        startStopCounter.countStart(serviceProvider);
       }
       @Override
-      public void stop() {}
+      public void stop() {
+        startStopCounter.countStop();
+      }
     }
 
     ServiceLocator serviceLocator = new ServiceLocator();
 
-    Consumer1 consumer1 = mock(Consumer1.class);
-    Consumer2 consumer2 = mock(Consumer2.class);
-    MyTestProvidedService myTestProvidedService = mock(MyTestProvidedService.class);
-    DependsOnMe dependsOnMe = mock(DependsOnMe.class);
+    Consumer1 consumer1 = new Consumer1();
+    Consumer2 consumer2 = new Consumer2();
+    MyTestProvidedService myTestProvidedService = new MyTestProvidedService();
+    DependsOnMe dependsOnMe = new DependsOnMe();
 
     // add some services
     serviceLocator.addService(consumer1);
@@ -324,15 +329,19 @@ public class ServiceLocatorTest {
 
     serviceLocator.stopAllServices();
 
-    verify(consumer1, times(1)).start(serviceLocator);
-    verify(consumer2, times(1)).start(serviceLocator);
-    verify(myTestProvidedService, times(1)).start(serviceLocator);
-    verify(dependsOnMe, times(1)).start(serviceLocator);
+    assertThat(consumer1.startStopCounter.startCounter.get(), is(1));
+    assertThat(consumer1.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(consumer2.startStopCounter.startCounter.get(), is(1));
+    assertThat(consumer2.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(myTestProvidedService.startStopCounter.startCounter.get(), is(1));
+    assertThat(myTestProvidedService.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(dependsOnMe.startStopCounter.startCounter.get(), is(1));
+    assertThat(dependsOnMe.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
 
-    verify(consumer1, times(1)).stop();
-    verify(consumer2, times(1)).stop();
-    verify(myTestProvidedService, times(1)).stop();
-    verify(dependsOnMe, times(1)).stop();
+    assertThat(consumer1.startStopCounter.stopCounter.get(), is(1));
+    assertThat(consumer2.startStopCounter.stopCounter.get(), is(1));
+    assertThat(myTestProvidedService.startStopCounter.stopCounter.get(), is(1));
+    assertThat(dependsOnMe.startStopCounter.stopCounter.get(), is(1));
   }
 }
 
@@ -399,28 +408,5 @@ class ChildTestService extends ParentTestService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
-  }
-}
-
-@SupplementaryService
-class DullCacheProvider implements CacheProvider {
-  @Override
-  public <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config) {
-    return null;
-  }
-
-  @Override
-  public void releaseCache(final EhcacheWithLoaderWriter<?, ?> resource) {
-    //
-  }
-
-  @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
-    throw new UnsupportedOperationException("Implement me!");
-  }
-
-  @Override
-  public void stop() {
-    throw new UnsupportedOperationException();
   }
 }

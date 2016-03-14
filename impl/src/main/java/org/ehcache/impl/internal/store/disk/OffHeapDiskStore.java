@@ -47,7 +47,6 @@ import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIden
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +67,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -75,11 +75,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
- *
- * @author Chris Dennis
+ * Implementation of {@link Store} supporting disk-resident persistence.
  */
 public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V> {
 
@@ -237,7 +235,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.index");
   }
 
-  @SupplementaryService
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
@@ -251,6 +248,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     public Provider(String threadPoolAlias) {
       this.defaultThreadPool = threadPoolAlias;
+    }
+
+    @Override
+    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      return resourceTypes.equals(Collections.singleton(ResourceType.Core.DISK)) ? 1 : 0;
     }
 
     @Override

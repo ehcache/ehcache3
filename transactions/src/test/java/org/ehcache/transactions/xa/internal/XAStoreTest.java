@@ -17,11 +17,13 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
+import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.spi.ServiceLocator;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -33,6 +35,7 @@ import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.spi.copy.DefaultCopyProvider;
+import org.ehcache.impl.internal.store.DefaultStoreProvider;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.MemorySizeParser;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
@@ -42,7 +45,9 @@ import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.XACacheException;
+import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.transactions.xa.internal.journal.TransientJournal;
 import org.ehcache.transactions.xa.internal.txmgr.NullXAResourceRegistry;
@@ -50,6 +55,21 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.utils.JavaSerializer;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.transaction.HeuristicMixedException;
 import javax.transaction.HeuristicRollbackException;
@@ -63,27 +83,16 @@ import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 /**
- * @author Ludovic Orban
+ * Tests for {@link XAStore} and {@link org.ehcache.transactions.xa.internal.XAStore.Provider XAStore.Provider}.
  */
 public class XAStoreTest {
 
@@ -1522,6 +1531,47 @@ public class XAStoreTest {
     OffHeapStoreLifecycleHelper.close(offHeapStore);
   }
 
+  @Test
+  public void testRank() throws Exception {
+    XAStore.Provider provider = new XAStore.Provider();
+    XAStoreConfiguration configuration = new XAStoreConfiguration("testXAResourceId");
+    ServiceLocator serviceLocator = new ServiceLocator(new DefaultStoreProvider());
+
+    provider.start(serviceLocator);
+
+    final Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.<ServiceConfiguration<?>>singleton(configuration);
+    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.HEAP);
+    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK);
+    assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 13, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    final Set<ServiceConfiguration<?>> emptyConfigs = Collections.emptySet();
+    assertRank(provider, 0, emptyConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    final ResourceType unmatchedResourceType = new ResourceType() {
+      @Override
+      public boolean isPersistable() {
+        return true;
+      }
+
+      @Override
+      public boolean requiresSerialization() {
+        return true;
+      }
+    };
+
+    assertRank(provider, 0, xaStoreConfigs, unmatchedResourceType);
+    assertRank(provider, 0, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType);
+  }
+
+  private void assertRank(final Store.Provider provider, final int expectedRank,
+                          final Collection<ServiceConfiguration<?>> serviceConfigs, final ResourceType... resources) {
+    assertThat(provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
+  }
+
   private Set<Long> asSet(Long... longs) {
     return new HashSet<Long>(Arrays.asList(longs));
   }
@@ -1758,6 +1808,5 @@ public class XAStoreTest {
   interface TwoPcListener {
     void inMiddleOf2PC();
   }
-
 
 }

@@ -15,6 +15,7 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -27,6 +28,7 @@ import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -34,6 +36,7 @@ import org.mockito.stubbing.Answer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -56,7 +59,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * @author Ludovic Orban
+ * Tests for {@link CacheStore}.
  */
 public class CacheStoreTest {
 
@@ -678,6 +681,39 @@ public class CacheStoreTest {
     cacheStoreProvider.initStore(cacheStore);
     cacheStoreProvider.releaseStore(cacheStore);
     verify(cachingTierProvider, times(1)).releaseCachingTier(any(CachingTier.class));
+  }
+
+  @Test
+  public void testRank() throws Exception {
+    CacheStore.Provider provider = new CacheStore.Provider();
+
+    assertRank(provider, 0, ResourceType.Core.DISK);
+    assertRank(provider, 0, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    final ResourceType unmatchedResourceType = new ResourceType() {
+      @Override
+      public boolean isPersistable() {
+        return true;
+      }
+
+      @Override
+      public boolean requiresSerialization() {
+        return true;
+      }
+    };
+    assertRank(provider, 0, unmatchedResourceType);
+  }
+
+  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType... resources) {
+    Assert.assertThat(provider.rank(
+        new HashSet<ResourceType>(Arrays.asList(resources)),
+        Collections.<ServiceConfiguration<?>>emptyList()),
+        Matchers.is(expectedRank));
   }
 
   public Map.Entry<? extends Number, ? extends CharSequence> newMapEntry(Number key, CharSequence value) {

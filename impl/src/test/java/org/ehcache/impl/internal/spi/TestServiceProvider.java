@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.spi;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,7 +25,6 @@ import org.ehcache.spi.service.Service;
 
 /**
  *
- * @author cdennis
  */
 public final class TestServiceProvider {
 
@@ -40,6 +40,11 @@ public final class TestServiceProvider {
       @Override
       public <T extends Service> T getService(Class<T> serviceType) {
         return serviceType.cast(servicesMap.get(serviceType));
+      }
+
+      @Override
+      public <U extends Service> Collection<U> getServicesOfType(final Class<U> serviceType) {
+        throw new UnsupportedOperationException(".getServicesOfType not implemented");
       }
     };
   }

@@ -72,6 +72,7 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -103,8 +104,6 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  * </ul></p>
  *
  * The storage of mappings is handled by a {@link ConcurrentHashMap} accessed through {@link Backend}.
- *
- * @author Alex Snaps
  */
 public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
@@ -1637,6 +1636,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+
+    @Override
+    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      return resourceTypes.equals(Collections.singleton(ResourceType.Core.HEAP)) ? 1 : 0;
+    }
 
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {

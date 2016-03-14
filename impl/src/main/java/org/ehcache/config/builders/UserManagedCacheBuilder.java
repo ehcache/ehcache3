@@ -29,6 +29,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
+import org.ehcache.core.spi.cache.StoreSupport;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
@@ -78,12 +79,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
@@ -222,7 +217,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       }
     }
 
-    ServiceConfiguration<?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?>[0]);
     List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     Serializer<K> keySerializer = this.keySerializer;
@@ -235,6 +229,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       serviceConfigsList.add(new DefaultSerializerConfiguration<V>(this.valueSerializer, DefaultSerializerConfiguration.Type.VALUE));
     }
 
+    ServiceConfiguration<?>[] serviceConfigs = serviceConfigsList.toArray(new ServiceConfiguration<?>[0]);
     final SerializationProvider serialization = serviceLocator.getService(SerializationProvider.class);
     if (serialization != null) {
       try {
@@ -271,7 +266,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         }
       }
     }
-    final Store.Provider storeProvider = serviceLocator.getService(Store.Provider.class);
+
+    final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
+
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, classLoader,
             expiry, resourcePools, orderedEventParallelism, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);

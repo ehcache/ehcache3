@@ -17,6 +17,7 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
@@ -60,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,8 +80,6 @@ import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 /**
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA
  * {@link javax.transaction.TransactionManager} using the XA 2-phase commit protocol.
- *
- * @author Ludovic Orban
  */
 public class XAStore<K, V> implements Store<K, V> {
 
@@ -769,6 +769,28 @@ public class XAStore<K, V> implements Store<K, V> {
     private volatile Store.Provider underlyingStoreProvider;
     private volatile TransactionManagerProvider transactionManagerProvider;
     private final Map<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, SoftLockValueCombinedSerializerLifecycleHelper>();
+
+    @Override
+    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      if (findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs) == null) {
+        // An XAStore must be configured for use
+        return 0;
+      }
+
+      // TODO: Introduce proper Provider discovery & tracking and remove this *HACK*
+      final int underlyingRank;
+      if (resourceTypes.equals(EnumSet.of(ResourceType.Core.HEAP))) {
+        // DefaultStoreProvider supports HEAP-only but does not declare it
+        underlyingRank = 1;
+      } else {
+        underlyingRank = underlyingStoreProvider.rank(resourceTypes, serviceConfigs);
+      }
+      if (underlyingRank != 0) {
+        return 10 + underlyingRank;
+      } else {
+        return 0;
+      }
+    }
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {

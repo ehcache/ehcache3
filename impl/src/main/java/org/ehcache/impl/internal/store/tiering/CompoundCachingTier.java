@@ -25,7 +25,6 @@ import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
 import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +39,7 @@ import java.util.concurrent.ConcurrentMap;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
- * @author Ludovic Orban
+ * A {@link CachingTier} implementation supporting a cache hierarchy.
  */
 public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
 
@@ -167,7 +166,6 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
 
-  @SupplementaryService
   public static class Provider implements CachingTier.Provider {
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>>();

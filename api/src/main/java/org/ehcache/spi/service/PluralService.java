@@ -14,19 +14,18 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache;
+package org.ehcache.spi.service;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * @author Chris Dennis
- * @author Alex Snaps
+ * Used to indicate that a {@link Service} subtype is permitted to have more than
+ * one concrete implementation registered with a {@link org.ehcache.spi.ServiceProvider}.
  */
-public interface CacheProvider extends Service {
-
-  <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
-
-  void releaseCache(EhcacheWithLoaderWriter<?, ?> resource);
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.TYPE)
+public @interface PluralService {
 }

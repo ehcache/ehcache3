@@ -17,8 +17,10 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.spi.cache.Store;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
@@ -26,8 +28,16 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.junit.Test;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
 
@@ -65,6 +75,41 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }
+  }
+
+  @Test
+  public void testRank() throws Exception {
+    OffHeapStore.Provider provider = new OffHeapStore.Provider();
+
+    assertRank(provider, 1, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK);
+    assertRank(provider, 0, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    final ResourceType unmatchedResourceType = new ResourceType() {
+      @Override
+      public boolean isPersistable() {
+        return true;
+      }
+
+      @Override
+      public boolean requiresSerialization() {
+        return true;
+      }
+    };
+
+    assertRank(provider, 0, unmatchedResourceType);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP, unmatchedResourceType);
+  }
+
+  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType... resources) {
+    assertThat(provider.rank(
+        new HashSet<ResourceType>(Arrays.asList(resources)),
+        Collections.<ServiceConfiguration<?>>emptyList()),
+        is(expectedRank));
   }
 
   @Override

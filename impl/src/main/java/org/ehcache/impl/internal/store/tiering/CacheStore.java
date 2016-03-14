@@ -16,6 +16,7 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.Cache;
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.BiFunction;
@@ -28,7 +29,6 @@ import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.SupplementaryService;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +38,7 @@ import org.terracotta.statistics.StatisticsManager;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
 
 /**
- * @author Ludovic Orban
+ * A {@link Store} implementation supporting a tiered caching model.
  */
 public class CacheStore<K, V> implements Store<K, V> {
 
@@ -335,11 +336,15 @@ public class CacheStore<K, V> implements Store<K, V> {
     return cachingTierRef.get();
   }
 
-  @SupplementaryService
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>>();
+
+    @Override
+    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      return 0;
+    }
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
