@@ -24,6 +24,11 @@ import org.ehcache.config.builders.CacheManagerConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
+import org.terracotta.offheapstore.util.MemoryUnit;
+
+import static java.util.Collections.unmodifiableMap;
 
 /**
  * Specifies the configuration for a {@link ClusteringService}.
@@ -32,21 +37,45 @@ import java.net.URI;
  */
 // TODO: Should this accept/hold a *list* of URIs?
 // TODO: Add validation for connection URI(s)
-public class ClusteringServiceConfiguration
+public final class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<PersistentCacheManager> {
 
-  private final URI connectionUrl;
+  private final URI clusterUri;
+  private final String defaultPool;
+  private final Map<String, PoolDefinition> pools;
 
-  public ClusteringServiceConfiguration(final URI connectionUrl) {
-    if (connectionUrl == null) {
+  public ClusteringServiceConfiguration(final URI clusterUri, String defaultPool, Map<String, PoolDefinition> pools) {
+    if (clusterUri == null) {
       throw new NullPointerException("connectionUrl");
     }
-    this.connectionUrl = connectionUrl;
+    if (defaultPool == null) {
+      throw new NullPointerException("defaultPool");
+    }
+    this.clusterUri = clusterUri;
+    this.defaultPool = defaultPool;
+    this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
+  }
+
+  public ClusteringServiceConfiguration(URI clusterUri, Map<String, PoolDefinition> pools) {
+    if (clusterUri == null) {
+      throw new NullPointerException("connectionUrl");
+    }
+    this.clusterUri = clusterUri;
+    this.defaultPool = null;
+    this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
   }
 
   public URI getConnectionUrl() {
-    return connectionUrl;
+    return clusterUri;
+  }
+
+  public String getDefaultPool() {
+    return defaultPool;
+  }
+
+  public Map<String, PoolDefinition> getPools() {
+    return pools;
   }
 
   @Override
@@ -57,5 +86,45 @@ public class ClusteringServiceConfiguration
   @Override
   public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
     return (CacheManagerBuilder<PersistentCacheManager>) other.using(this);
+  }
+
+  public static final class PoolDefinition {
+
+    private final long size;
+    private final MemoryUnit unit;
+    private final String from;
+
+    public PoolDefinition(long size, MemoryUnit unit, String from) {
+      if (unit == null) {
+        throw new NullPointerException("Unit cannot be null");
+      }
+      if (from == null) {
+        throw new NullPointerException("Source resource cannot be null");
+      }
+      this.size = size;
+      this.unit = unit;
+      this.from = from;
+    }
+
+    public PoolDefinition(long size, MemoryUnit unit) {
+      if (unit == null) {
+        throw new NullPointerException("Unit cannot be null");
+      }
+      this.size = size;
+      this.unit = unit;
+      this.from = null;
+    }
+
+    public long getSize() {
+      return size;
+    }
+
+    public MemoryUnit getUnit() {
+      return unit;
+    }
+
+    public String getFrom() {
+      return from;
+    }
   }
 }
