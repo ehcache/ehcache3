@@ -137,6 +137,12 @@ public class DefaultSerializationProvider implements SerializationProvider {
     persistentProvider.stop();
   }
 
+  private static <T> void addDefaultSerializerIfNoneRegistered(Map<Class<?>, Class<? extends Serializer<?>>> serializers, Class<T> clazz, Class<? extends Serializer<T>> serializerClass) {
+    if (!serializers.containsKey(clazz)) {
+      serializers.put(clazz, serializerClass);
+    }
+  }
+
   static class TransientProvider extends AbstractProvider {
 
     public TransientProvider(Map<Class<?>, Class<? extends Serializer<?>>> serializers) {
@@ -155,27 +161,13 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
-      if (!serializers.containsKey(Serializable.class)) {
-        serializers.put(Serializable.class, (Class) CompactJavaSerializer.class);
-      }
-      if (!serializers.containsKey(Long.class)) {
-        serializers.put(Long.class, LongSerializer.class);
-      }
-      if (!serializers.containsKey(Integer.class)) {
-        serializers.put(Integer.class, IntegerSerializer.class);
-      }
-      if (!serializers.containsKey(Float.class)) {
-        serializers.put(Float.class, FloatSerializer.class);
-      }
-      if (!serializers.containsKey(Double.class)) {
-        serializers.put(Double.class, DoubleSerializer.class);
-      }
-      if (!serializers.containsKey(Character.class)) {
-        serializers.put(Character.class, CharSerializer.class);
-      }
-      if (!serializers.containsKey(String.class)) {
-        serializers.put(String.class, StringSerializer.class);
-      }
+      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) CompactJavaSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Integer.class, IntegerSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Float.class, FloatSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Double.class, DoubleSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Character.class, CharSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, String.class, StringSerializer.class);
     }
   }
 
@@ -205,10 +197,15 @@ public class DefaultSerializationProvider implements SerializationProvider {
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       persistence = serviceProvider.getService(LocalPersistenceService.class);
-      if (!serializers.containsKey(Serializable.class)) {
-        serializers.put(Serializable.class, (Class) CompactPersistentJavaSerializer.class);
-      }
+      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) CompactPersistentJavaSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Integer.class, IntegerSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Float.class, FloatSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Double.class, DoubleSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Character.class, CharSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, String.class, StringSerializer.class);
     }
+
   }
 
   static abstract class AbstractProvider implements SerializationProvider  {
