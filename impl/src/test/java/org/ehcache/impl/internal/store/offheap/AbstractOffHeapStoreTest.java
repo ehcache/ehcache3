@@ -548,6 +548,88 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
+  public void testComputeExpiresOnAccess() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(1000L);
+    AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    try {
+      store.put("key", "value");
+      Store.ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
+        @Override
+        public String apply(String s, String s2) {
+          return s2;
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return false;
+        }
+      });
+
+      assertThat(result, valueHeld("value"));
+    } finally {
+      destroyStore(store);
+    }
+  }
+
+  @Test
+  public void testComputeExpiresOnUpdate() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(1000L);
+    AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    try {
+      store.put("key", "value");
+      Store.ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
+        @Override
+        public String apply(String s, String s2) {
+          return "newValue";
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return false;
+        }
+      });
+
+      assertThat(result, valueHeld("newValue"));
+    } finally {
+      destroyStore(store);
+    }
+  }
+
+  @Test
   public void testComputeOnExpiredEntry() throws CacheAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));

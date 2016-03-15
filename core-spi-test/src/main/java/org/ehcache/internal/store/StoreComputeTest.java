@@ -15,9 +15,13 @@
  */
 package org.ehcache.internal.store;
 
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -205,5 +209,92 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     assertThat(kvStore.get(key).value(), is(value));
+  }
+
+  @SPITest
+  public void testComputeExpiresOnAccess() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource(10042L);
+    kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
+      @Override
+      public Duration getExpiryForCreation(K key, V value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(K key, V value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
+        return Duration.FOREVER;
+      }
+    }, timeSource);
+
+    final K key = factory.createKey(1042L);
+    final V value = factory.createValue(1340142L);
+
+    try {
+      kvStore.put(key, value);
+
+      Store.ValueHolder<V> result = kvStore.compute(key, new BiFunction<K, V, V>() {
+        @Override
+        public V apply(K k, V v) {
+          return v;
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return false;
+        }
+      });
+      assertThat(result.value(), is(value));
+    } catch (CacheAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+  }
+
+  @SPITest
+  public void testComputeExpiresOnUpdate() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource(10042L);
+    kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
+      @Override
+      public Duration getExpiryForCreation(K key, V value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(K key, V value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
+        return Duration.ZERO;
+      }
+    }, timeSource);
+
+    final K key = factory.createKey(1042L);
+    final V value = factory.createValue(1340142L);
+    final V newValue = factory.createValue(134054142L);
+
+    try {
+      kvStore.put(key, value);
+
+      Store.ValueHolder<V> result = kvStore.compute(key, new BiFunction<K, V, V>() {
+        @Override
+        public V apply(K k, V v) {
+          return newValue;
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return false;
+        }
+      });
+      assertThat(result.value(), is(newValue));
+    } catch (CacheAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
   }
 }
