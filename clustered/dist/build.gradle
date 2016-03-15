@@ -36,8 +36,10 @@ dependencies {
   compile project(':clustered:common')
   compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion" changing true
 
-  serverLibs project(':clustered:server')
-  serverLibs"org.terracotta:coordinator-entity-server:$parent.coordinatorVersion" changing true
+  serverLibs(project(':clustered:server')) {
+    exclude group: 'org.terracotta', module: 'entity-server-api'
+  }
+  serverLibs "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion" changing true
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz" changing true
 }
@@ -51,20 +53,26 @@ dependencies {
 
 distributions {
   main {
-    baseName = "ehcache-clustered-kit"
+    baseName = archivesBaseName
     contents {
-      from configurations.kit.files.collect { tarTree(it) }
+      into ('') {
+        from configurations.kit.files.collect { tarTree(it) }
+      }
       into ("terracotta-$terracottaCoreVersion/plugins/lib") {
         from configurations.serverLibs
       }
       into ('client') {
-        from jar.archivePath
+        from jar
       }
     }
   }
 }
 
 distTar {
+  classifier = 'kit'
   compression = Compression.GZIP
-  extension = 'tar.gz'
+}
+
+distZip {
+  classifier = 'kit'
 }
