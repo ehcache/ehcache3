@@ -16,12 +16,17 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.Cache;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
+import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.events.StoreEventSource;
@@ -30,6 +35,7 @@ import org.ehcache.core.spi.cache.tiering.CachingTier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
@@ -39,6 +45,8 @@ import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -46,7 +54,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static java.util.Collections.unmodifiableSet;
+import static org.ehcache.config.ResourceType.Core.DISK;
+import static org.ehcache.config.ResourceType.Core.HEAP;
+import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 
 /**
  * A {@link Store} implementation supporting a tiered caching model.
@@ -103,6 +114,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   static class ComputationException extends RuntimeException {
+
     public ComputationException(CacheAccessException cause) {
       super(cause);
     }
@@ -336,46 +348,117 @@ public class CacheStore<K, V> implements Store<K, V> {
     return cachingTierRef.get();
   }
 
+  @ServiceDependencies({CompoundCachingTier.Provider.class,
+      OnHeapStore.Provider.class, OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})
   public static class Provider implements Store.Provider {
+
+    private static final Set<Set<ResourceType.Core>> SUPPORTED_RESOURCE_COMBINATIONS;
+    static {
+      // Logic in setTierConfigurations must mirror this set
+      final Set<Set<ResourceType.Core>> supported = new HashSet<Set<ResourceType.Core>>();
+      supported.add(unmodifiableSet(EnumSet.of(HEAP, DISK)));
+      supported.add(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP)));
+      supported.add(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP, DISK)));
+      SUPPORTED_RESOURCE_COMBINATIONS = unmodifiableSet(supported);
+    }
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>>();
 
     @Override
     public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-      return 0;
+      if (SUPPORTED_RESOURCE_COMBINATIONS.contains(resourceTypes)) {
+        return resourceTypes.size();
+      } else {
+        return 0;
+      }
     }
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      CacheStoreServiceConfiguration cacheStoreServiceConfig = findSingletonAmongst(CacheStoreServiceConfiguration.class, (Object[])serviceConfigs);
-      if (cacheStoreServiceConfig == null) {
-        throw new IllegalArgumentException("Cache store cannot be configured without explicit config");
-      }
+      final ArrayList<ServiceConfiguration<?>> enhancedServiceConfigs =
+          new ArrayList<ServiceConfiguration<?>>(Arrays.asList(serviceConfigs));
+      CacheStoreConfiguration cacheStoreServiceConfig = setTierConfigurations(storeConfig, enhancedServiceConfigs);
 
       Class<? extends CachingTier.Provider> cachingTierProviderClass = cacheStoreServiceConfig.cachingTierProvider();
-      if (cachingTierProviderClass == null) {
-        throw new IllegalArgumentException("Caching tier provider must be specified");
-      }
       CachingTier.Provider cachingTierProvider = serviceProvider.getService(cachingTierProviderClass);
       if (cachingTierProvider == null) {
         throw new IllegalArgumentException("No registered service for caching tier provider " + cachingTierProviderClass.getName());
       }
+
       Class<? extends AuthoritativeTier.Provider> authoritativeTierProviderClass = cacheStoreServiceConfig.authoritativeTierProvider();
-      if (authoritativeTierProviderClass == null) {
-        throw new IllegalArgumentException("Authoritative tier provider must be specified");
-      }
       AuthoritativeTier.Provider authoritativeTierProvider = serviceProvider.getService(authoritativeTierProviderClass);
       if (authoritativeTierProvider == null) {
         throw new IllegalArgumentException("No registered service for authoritative tier provider " + authoritativeTierProviderClass.getName());
       }
 
-      CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, serviceConfigs);
-      AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, serviceConfigs);
+      final ServiceConfiguration<?>[] configurations =
+          enhancedServiceConfigs.toArray(new ServiceConfiguration<?>[enhancedServiceConfigs.size()]);
+      CachingTier<K, V> cachingTier = cachingTierProvider.createCachingTier(storeConfig, configurations);
+      AuthoritativeTier<K, V> authoritativeTier = authoritativeTierProvider.createAuthoritativeTier(storeConfig, configurations);
 
       CacheStore<K, V> store = new CacheStore<K, V>(cachingTier, authoritativeTier);
       registerStore(store, cachingTierProvider, authoritativeTierProvider);
       return store;
+    }
+
+    /**
+     * Creates a {@link CacheStoreConfiguration} and any component configurations fitting
+     * the resources provided.
+     *
+     * @param storeConfig the basic {@code Store} configuration
+     * @param enhancedServiceConfigs a modifiable list containing the collection of user-supplied
+     *                               service configurations; this list is modified to include component
+     *                               configurations created by this method
+     * @param <K> the cache key type
+     * @param <V> the cache value type
+     *
+     * @return the new {@code CacheStoreConfiguration}
+     *
+     * @throws IllegalArgumentException if the resource type set is not supported
+     */
+    private <K, V> CacheStoreConfiguration setTierConfigurations(
+        final Configuration<K, V> storeConfig, final List<ServiceConfiguration<?>> enhancedServiceConfigs) {
+
+      final ResourcePools resourcePools = storeConfig.getResourcePools();
+      if (rank(resourcePools.getResourceTypeSet(), enhancedServiceConfigs) == 0) {
+        throw new IllegalArgumentException("CacheService.Provider does not support configured resource types "
+            + resourcePools.getResourceTypeSet());
+      }
+
+      ResourcePool heapPool = resourcePools.getPoolForResource(HEAP);
+      ResourcePool offHeapPool = resourcePools.getPoolForResource(OFFHEAP);
+      ResourcePool diskPool = resourcePools.getPoolForResource(DISK);
+
+      // Values in SUPPORTED_RESOURCE_COMBINATIONS must mirror this logic
+      final CacheStoreConfiguration cacheStoreConfiguration;
+      if (diskPool != null) {
+        if (heapPool == null) {
+          throw new IllegalStateException("Cannot store to disk without heap resource");
+        }
+        if (offHeapPool != null) {
+          enhancedServiceConfigs.add(new CompoundCachingTierServiceConfiguration().higherProvider(OnHeapStore.Provider.class)
+              .lowerProvider(OffHeapStore.Provider.class));
+          cacheStoreConfiguration = new CacheStoreConfiguration()
+              .cachingTierProvider(CompoundCachingTier.Provider.class)
+              .authoritativeTierProvider(OffHeapDiskStore.Provider.class);
+        } else {
+          cacheStoreConfiguration = new CacheStoreConfiguration()
+              .cachingTierProvider(OnHeapStore.Provider.class)
+              .authoritativeTierProvider(OffHeapDiskStore.Provider.class);
+        }
+      } else if (offHeapPool != null) {
+        if (heapPool == null) {
+          throw new IllegalStateException("Cannot store to offheap without heap resource");
+        }
+        cacheStoreConfiguration = new CacheStoreConfiguration()
+            .cachingTierProvider(OnHeapStore.Provider.class)
+            .authoritativeTierProvider(OffHeapStore.Provider.class);
+      } else {
+        throw new IllegalStateException("CacheStore.Provider does not support heap-only stores");
+      }
+
+      return cacheStoreConfiguration;
     }
 
     <K, V> void registerStore(final CacheStore<K, V> store, final CachingTier.Provider cachingTierProvider, final AuthoritativeTier.Provider authoritativeTierProvider) {
@@ -415,6 +498,30 @@ public class CacheStore<K, V> implements Store<K, V> {
     public void stop() {
       this.serviceProvider = null;
       providersMap.clear();
+    }
+
+    private static class CacheStoreConfiguration {
+
+      private Class<? extends CachingTier.Provider> cachingTierProvider;
+      private Class<? extends AuthoritativeTier.Provider> authoritativeTierProvider;
+
+      public CacheStoreConfiguration cachingTierProvider(Class<? extends CachingTier.Provider> cachingTierProvider) {
+        this.cachingTierProvider = cachingTierProvider;
+        return this;
+      }
+
+      public CacheStoreConfiguration authoritativeTierProvider(Class<? extends AuthoritativeTier.Provider> authoritativeTierProvider) {
+        this.authoritativeTierProvider = authoritativeTierProvider;
+        return this;
+      }
+
+      public Class<? extends CachingTier.Provider> cachingTierProvider() {
+        return cachingTierProvider;
+      }
+
+      public Class<? extends AuthoritativeTier.Provider> authoritativeTierProvider() {
+        return authoritativeTierProvider;
+      }
     }
   }
 

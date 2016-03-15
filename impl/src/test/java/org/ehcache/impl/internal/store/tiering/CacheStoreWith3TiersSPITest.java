@@ -77,8 +77,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 /**
  * Test the {@link CacheStore} compliance to the
  * {@link Store} contract when using 3 tiers.
- *
- * @author Ludovic Orban
  */
 public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
@@ -277,7 +275,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[]{new CacheStoreServiceConfiguration().cachingTierProvider(FakeCachingTierProvider.class).authoritativeTierProvider(FakeAuthoritativeTierProvider.class)};
+        return new ServiceConfiguration[0];
       }
 
       @Override

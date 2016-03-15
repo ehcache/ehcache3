@@ -44,13 +44,7 @@ import java.io.Serializable;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
-/**
- * @author rism
- */
 public class CacheStoreFlushWhileShutdownTest {
 
   @Rule
@@ -108,10 +102,6 @@ public class CacheStoreFlushWhileShutdownTest {
       }
     };
 
-    CacheStoreServiceConfiguration serviceConfiguration = new CacheStoreServiceConfiguration();
-    serviceConfiguration.authoritativeTierProvider(OffHeapDiskStore.Provider.class);
-    serviceConfiguration.cachingTierProvider(OnHeapStore.Provider.class);
-
     ServiceLocator serviceLocator = getServiceLocator(persistenceLocation);
     serviceLocator.startAllServices();
     CacheStore.Provider cacheStoreProvider = new CacheStore.Provider();
@@ -120,7 +110,7 @@ public class CacheStoreFlushWhileShutdownTest {
 
     LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
     PersistenceSpaceIdentifier persistenceSpace = persistenceService.getOrCreatePersistenceSpace("testCacheStoreReleaseFlushesEntries");
-    Store<Number, String> cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {serviceConfiguration, persistenceSpace});
+    Store<Number, String> cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace});
     cacheStoreProvider.initStore(cacheStore);
     for (int i = 0; i < 100; i++) {
       cacheStore.put(i, "hello");
@@ -143,7 +133,7 @@ public class CacheStoreFlushWhileShutdownTest {
 
     LocalPersistenceService persistenceService1 = serviceLocator1.getService(LocalPersistenceService.class);
     PersistenceSpaceIdentifier persistenceSpace1 = persistenceService1.getOrCreatePersistenceSpace("testCacheStoreReleaseFlushesEntries");
-    cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {serviceConfiguration, persistenceSpace1});
+    cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace1});
     cacheStoreProvider.initStore(cacheStore);
 
     for(int i = 0; i < 20; i++) {
