@@ -608,14 +608,16 @@ public class CacheStoreTest {
     when(heapPool.getType()).thenReturn(ResourceType.Core.HEAP);
     when(resourcePools.getPoolForResource(ResourceType.Core.HEAP)).thenReturn(heapPool);
     OnHeapStore.Provider onHeapStoreProvider = mock(OnHeapStore.Provider.class);
-    when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class), any(ServiceConfiguration.class)))
+    when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
+        org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
         .thenReturn(stringCachingTier);
 
     ResourcePool offHeapPool = mock(ResourcePool.class);
     when(heapPool.getType()).thenReturn(ResourceType.Core.OFFHEAP);
     when(resourcePools.getPoolForResource(ResourceType.Core.OFFHEAP)).thenReturn(offHeapPool);
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
-    when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class), any(ServiceConfiguration.class)))
+    when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class),
+        org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
         .thenReturn(stringAuthoritativeTier);
 
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);

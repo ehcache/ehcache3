@@ -74,8 +74,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 /**
  * Test the {@link CacheStore} compliance to the
  * {@link Store} contract.
- *
- * @author Ludovic Orban
  */
 
 public class CacheStoreSPITest extends StoreSPITest<String, String> {
@@ -262,7 +260,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
-        return new ServiceConfiguration[]{new CacheStoreServiceConfiguration().cachingTierProvider(FakeCachingTierProvider.class).authoritativeTierProvider(FakeAuthoritativeTierProvider.class)};
+        return new ServiceConfiguration[0];
       }
 
       @Override
