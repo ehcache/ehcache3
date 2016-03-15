@@ -18,7 +18,6 @@ package org.ehcache.transactions.xml;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.transactions.xa.configuration.XAStoreProviderConfiguration;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProviderConfiguration;
@@ -63,8 +62,6 @@ public class TxCacheManagerServiceConfigurationParser implements CacheManagerSer
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
-    } else if ("xa-store-provider".equals(localName)) {
-      return (ServiceCreationConfiguration) new XAStoreProviderConfiguration();
     } else {
       throw new RuntimeException("Unsupported XML fragment : " + fragment.getNodeName());
     }

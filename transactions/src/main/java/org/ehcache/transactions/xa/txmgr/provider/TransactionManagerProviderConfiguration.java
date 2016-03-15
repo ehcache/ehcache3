@@ -15,21 +15,44 @@
  */
 package org.ehcache.transactions.xa.txmgr.provider;
 
+import bitronix.tm.TransactionManagerServices;
+
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
+import org.ehcache.transactions.xa.txmgr.btm.BitronixXAResourceRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Ludovic Orban
  */
 public class TransactionManagerProviderConfiguration implements ServiceCreationConfiguration<TransactionManagerProvider> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransactionManagerProviderConfiguration.class);
+
+
   private final TransactionManagerWrapper transactionManagerWrapper;
+
+  public TransactionManagerProviderConfiguration() {
+    transactionManagerWrapper = null;
+  }
 
   public TransactionManagerProviderConfiguration(TransactionManagerWrapper transactionManagerWrapper) {
     this.transactionManagerWrapper = transactionManagerWrapper;
   }
 
   public TransactionManagerWrapper getTransactionManagerWrapper() {
-    return transactionManagerWrapper;
+    if (transactionManagerWrapper == null) {
+      if (!TransactionManagerServices.isTransactionManagerRunning()) {
+        throw new IllegalStateException("BTM must be started beforehand");
+      }
+      TransactionManagerWrapper tmWrapper = new TransactionManagerWrapper(TransactionManagerServices.getTransactionManager(),
+          new BitronixXAResourceRegistry());
+      LOGGER.info("Using looked up transaction manager : {}", tmWrapper);
+      return tmWrapper;
+    } else {
+      return transactionManagerWrapper;
+    }
   }
 
   @Override
