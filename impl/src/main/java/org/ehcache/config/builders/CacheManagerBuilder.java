@@ -134,22 +134,22 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
 
   /**
    * Convenience method to add a {@link CacheConfiguration} linked to the specified alias to the returned builder by
-   * building it from the provided {@link CacheConfigurationBuilder}.
+   * building it from the provided {@link Builder}.
    *
    * @param alias the cache alias
-   * @param configurationBuilder the {@code CacheConfigurationBuilder} to get {@code CacheConfiguration} from
+   * @param configurationBuilder the {@code Builder} to get {@code CacheConfiguration} from
    * @param <K> the cache key type
    * @param <V> the cache value type
    * @return a new builder with the added cache configuration
    *
    * @see CacheConfigurationBuilder
    */
-  public <K, V> CacheManagerBuilder<T> withCache(String alias, CacheConfigurationBuilder<K, V> configurationBuilder) {
+  public <K, V> CacheManagerBuilder<T> withCache(String alias, Builder<? extends CacheConfiguration<K, V>> configurationBuilder) {
     return withCache(alias, configurationBuilder.build());
   }
 
   /**
-   * Specifies the returned {@link CacheManager} subtype through a specific {@link CacheManagerConfiguration} which
+   * Specializes the returned {@link CacheManager} subtype through a specific {@link CacheManagerConfiguration} which
    * will optionally add configurations to the returned builder.
    *
    * @param cfg the {@code CacheManagerConfiguration} to use
@@ -162,6 +162,19 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
    */
   public <N extends T> CacheManagerBuilder<N> with(CacheManagerConfiguration<N> cfg) {
     return cfg.builder(this);
+  }
+
+  /**
+   * Convenience method to specialize the returned {@link CacheManager} subtype through a {@link CacheManagerConfiguration}
+   * built using the provided {@link Builder}.
+   *
+   * @param cfgBuilder the {@code Builder} to get the {@code CacheManagerConfiguration} from
+   * @return a new builder ready to build a more specific subtype of cache manager
+   *
+   * @see CacheConfigurationBuilder
+   */
+  public <N extends T> CacheManagerBuilder<N> with(Builder<? extends CacheManagerConfiguration<N>> cfgBuilder) {
+    return with(cfgBuilder.build());
   }
 
   /**

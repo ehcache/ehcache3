@@ -49,11 +49,10 @@ public class GettingStarted {
     // tag::clusteredCacheManagerExample
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create")).build())
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create")))
             .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES))
-                .build());
+                    .heap(10, EntryUnit.ENTRIES)));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     cacheManager.close();
@@ -68,12 +67,10 @@ public class GettingStarted {
                 .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
                         .defaultServerResource("primary-server-resource")
                         .resourcePool("resource-pool-a", 128, MemoryUnit.GIGABYTES)
-                        .resourcePool("resource-pool-b", 128, MemoryUnit.GIGABYTES, "secondary-server-resource")
-                        .build())
+                        .resourcePool("resource-pool-b", 128, MemoryUnit.GIGABYTES, "secondary-server-resource"))
                 .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES))
-                .build());
+                    .heap(10, EntryUnit.ENTRIES)));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     cacheManager.close();
