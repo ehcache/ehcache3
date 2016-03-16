@@ -535,27 +535,6 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testComputeIfPresentOnExpiredEntry() throws CacheAccessException {
-    TestTimeSource timeSource = new TestTimeSource();
-    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
-    try {
-      offHeapStore.put("key", "value");
-      timeSource.advanceTime(20L);
-
-      offHeapStore.computeIfPresent("key", new BiFunction<String, String, String>() {
-        @Override
-        public String apply(String mappedKey, String mappedValue) {
-          fail("Mapping should be expired");
-          return null;
-        }
-      });
-      assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
-    } finally {
-      destroyStore(offHeapStore);
-    }
-  }
-
-  @Test
   public void testComputeIfAbsentOnExpiredEntry() throws CacheAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));

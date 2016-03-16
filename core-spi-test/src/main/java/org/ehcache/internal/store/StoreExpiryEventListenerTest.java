@@ -156,21 +156,6 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     verifyListenerInteractions(listener);
   }
 
-  @SPITest
-  public void testComputeIfPresentOnExpiration() throws Exception {
-    kvStore.put(k, v);
-    StoreEventListener<K, V> listener = addListener(kvStore);
-    timeSource.advanceTime(1);
-
-    assertThat(kvStore.computeIfPresent(k, new BiFunction<K, V, V>() {
-      @Override
-      public V apply(K mappedKey, V mappedValue) {
-        throw new AssertionError();
-      }
-    }), nullValue());
-    verifyListenerInteractions(listener);
-  }
-
   private void verifyListenerInteractions(StoreEventListener<K, V> listener) {
     Matcher<StoreEvent<K, V>> matcher = eventType(EventType.EXPIRED);
     verify(listener).onEvent(argThat(matcher));

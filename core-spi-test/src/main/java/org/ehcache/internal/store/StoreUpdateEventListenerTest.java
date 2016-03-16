@@ -120,25 +120,6 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SPITest
-  public void testComputeIfPresentUpdates() throws LegalSPITesterException {
-
-    try {
-      K key = factory.createKey(125L);
-      store.put(key, factory.createValue(125L));
-      StoreEventListener<K, V> listener = addListener(store);
-      store.computeIfPresent(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return factory.createValue(512L);
-        }
-      });
-      verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
-  }
-
   private void verifyListenerInteractions(StoreEventListener<K, V> listener) {
     Matcher<StoreEvent<K, V>> matcher = eventType(EventType.UPDATED);
     verify(listener).onEvent(argThat(matcher));

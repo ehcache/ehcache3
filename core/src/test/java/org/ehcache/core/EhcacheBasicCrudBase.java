@@ -447,10 +447,7 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     /**
-     * Common core for the
-     * {@link #compute(String, BiFunction, NullaryFunction)} and
-     * {@link #computeIfPresent(String, BiFunction, NullaryFunction)}
-     * methods.
+     * Common core for the {@link #compute(String, BiFunction, NullaryFunction)} method.
      *
      * @param key the key of the entry to process
      * @param currentValue the existing value, if any, for {@code key}
@@ -544,26 +541,6 @@ public abstract class EhcacheBasicCrudBase {
         currentValue.lastAccessTime = System.currentTimeMillis();
       }
       return currentValue;
-    }
-
-    @Override
-    public ValueHolder<String> computeIfPresent(final String key, final BiFunction<? super String, ? super String, ? extends String> remappingFunction)
-        throws CacheAccessException {
-      return this.computeIfPresent(key, remappingFunction, REPLACE_EQUAL_TRUE);
-    }
-
-    @Override
-    public ValueHolder<String> computeIfPresent(
-        final String key,
-        final BiFunction<? super String, ? super String, ? extends String> remappingFunction,
-        final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-      this.checkFailingKey(key);
-
-      final FakeValueHolder currentValue = this.entries.get(key);
-      if (currentValue == null) {
-        return null;
-      }
-      return this.computeInternal(key, this.entries.get(key), remappingFunction, replaceEqual);
     }
 
     /**

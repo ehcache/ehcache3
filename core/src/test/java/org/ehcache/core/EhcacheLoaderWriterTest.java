@@ -267,7 +267,7 @@ public class EhcacheLoaderWriterTest {
 
   @Test
   public void testTwoArgRemoveKeyNotInCache() throws Exception {
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
@@ -394,7 +394,7 @@ public class EhcacheLoaderWriterTest {
     final String oldValue = "cached";
     final String newValue = "toReplace";
 
-    when(store.computeIfPresent(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
+    when(store.compute(any(Number.class), anyBiFunction())).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         BiFunction<Number, String, String> function = asBiFunction(invocation);

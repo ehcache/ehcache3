@@ -608,50 +608,6 @@ public class XAStore<K, V> implements Store<K, V> {
     return xaValueHolder;
   }
 
-  @Override
-  public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
-    return computeIfPresent(key, remappingFunction, REPLACE_EQUALS_TRUE);
-  }
-
-  @Override
-  public ValueHolder<V> computeIfPresent(K key, BiFunction<? super K, ? super V, ? extends V> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    checkKey(key);
-    XATransactionContext<K, V> currentContext = getCurrentContext();
-    if (currentContext.updated(key)) {
-      return updateCommandForKey(key, remappingFunction, replaceEqual, currentContext);
-    }
-    if (currentContext.evicted(key)) {
-      return null;
-    }
-    boolean removed = currentContext.touched(key);
-
-    ValueHolder<SoftLock<V>> softLockValueHolder = getSoftLockValueHolderFromUnderlyingStore(key);
-
-    XAValueHolder<V> xaValueHolder;
-    SoftLock<V> softLock = softLockValueHolder == null ? null : softLockValueHolder.value();
-    V oldValue = softLock == null ? null : softLock.getOldValue();
-
-    if (softLock != null && isInDoubt(softLock)) {
-      currentContext.addCommand(key, new StoreEvictCommand<V>(oldValue));
-      xaValueHolder = null;
-    } else if (softLock == null) {
-      xaValueHolder = null;
-    } else if (removed) {
-      xaValueHolder = null;
-    } else {
-      V newValue = remappingFunction.apply(key, oldValue);
-      if (newValue != null) {
-        checkValue(newValue);
-        xaValueHolder = new XAValueHolder<V>(newValue, timeSource.getTimeMillis());
-      } else {
-        xaValueHolder = null;
-      }
-      currentContext.addCommand(key, new StorePutCommand<V>(oldValue, xaValueHolder));
-    }
-
-    return xaValueHolder;
-  }
-
   private ValueHolder<V> updateCommandForKey(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual, XATransactionContext<K, V> currentContext) {
     V newValue = mappingFunction.apply(key, currentContext.newValueOf(key));
     XAValueHolder<V> xaValueHolder = null;

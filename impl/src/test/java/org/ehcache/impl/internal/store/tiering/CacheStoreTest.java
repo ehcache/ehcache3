@@ -370,60 +370,6 @@ public class CacheStoreTest {
   }
 
   @Test
-  public void testComputeIfPresent2Args() throws Exception {
-    when(numberAuthoritativeTier.computeIfPresent(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
-        return newValueHolder(function.apply(key, null));
-      }
-    });
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
-
-    assertThat(cacheStore.computeIfPresent(1, new BiFunction<Number, CharSequence, CharSequence>() {
-      @Override
-      public CharSequence apply(Number number, CharSequence charSequence) {
-        return "one";
-      }
-    }).value(), Matchers.<CharSequence>equalTo("one"));
-
-    verify(numberCachingTier, times(1)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).computeIfPresent(eq(1), any(BiFunction.class));
-  }
-
-  @Test
-  public void testComputeIfPresent3Args() throws Exception {
-    when(
-        numberAuthoritativeTier.computeIfPresent(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
-      @Override
-      public Store.ValueHolder<CharSequence> answer(InvocationOnMock invocation) throws Throwable {
-        Number key = (Number) invocation.getArguments()[0];
-        BiFunction<Number, CharSequence, CharSequence> function = (BiFunction<Number, CharSequence, CharSequence>) invocation.getArguments()[1];
-        return newValueHolder(function.apply(key, null));
-      }
-    });
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
-
-    assertThat(cacheStore.computeIfPresent(1, new BiFunction<Number, CharSequence, CharSequence>() {
-      @Override
-      public CharSequence apply(Number number, CharSequence charSequence) {
-        return "one";
-      }
-    }, new NullaryFunction<Boolean>() {
-      @Override
-      public Boolean apply() {
-        return true;
-      }
-    }).value(), Matchers.<CharSequence>equalTo("one"));
-
-    verify(numberCachingTier, times(1)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).computeIfPresent(eq(1), any(BiFunction.class), any(NullaryFunction.class));
-  }
-
-  @Test
   public void testBulkCompute2Args() throws Exception {
     when(numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
