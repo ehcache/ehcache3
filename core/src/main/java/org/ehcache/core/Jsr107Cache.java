@@ -84,7 +84,7 @@ public interface Jsr107Cache<K, V> {
    * @param withStatsAndEvents should statistics be updated and events fired
    * @return the new value mapped to key
    */
-  V compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
+  void compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
       NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter,
       final NullaryFunction<Boolean> withStatsAndEvents);
 

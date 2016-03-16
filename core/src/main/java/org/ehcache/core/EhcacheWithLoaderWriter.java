@@ -1178,7 +1178,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     }
 
     @Override
-    public V compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
+    public void compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
         final NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter, final NullaryFunction<Boolean> withStatsAndEvents) {
       putObserver.begin();
       removeObserver.begin();
@@ -1230,8 +1230,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
           }
         };
 
-        ValueHolder<V> valueHolder = store.compute(key, fn, replaceEqual);
-        return valueHolder == null ? null : valueHolder.value();
+        store.compute(key, fn, replaceEqual);
       } catch (CacheAccessException e) {
         // XXX:
         throw new RuntimeException(e);
