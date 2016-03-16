@@ -186,33 +186,6 @@ public class OversizeMappingTest {
   }
 
   @Test
-  public void testComputeIfPresent() throws Exception {
-    OnHeapStore<String, String> store = newStore();
-
-    store.computeIfPresent(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return OVER_SIZED_VALUE;
-      }
-    });
-    assertNullMapping(store);
-
-    store.put(KEY, VALUE);
-    assertNotNullMapping(store);
-
-    store.computeIfPresent(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return OVER_SIZED_VALUE;
-      }
-    });
-    assertNullMapping(store);
-
-  }
-
-  @Test
   public void testComputeIfAbsent() throws Exception {
     OnHeapStore<String, String> store = newStore();
 

@@ -285,24 +285,6 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction) throws CacheAccessException {
-    try {
-      return authoritativeTier.computeIfPresent(key, remappingFunction);
-    } finally {
-      cachingTier().invalidate(key);
-    }
-  }
-
-  @Override
-  public ValueHolder<V> computeIfPresent(final K key, final BiFunction<? super K, ? super V, ? extends V> remappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-    try {
-      return authoritativeTier.computeIfPresent(key, remappingFunction, replaceEqual);
-    } finally {
-      cachingTier().invalidate(key);
-    }
-  }
-
-  @Override
   public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
     try {
       return authoritativeTier.bulkCompute(keys, remappingFunction);

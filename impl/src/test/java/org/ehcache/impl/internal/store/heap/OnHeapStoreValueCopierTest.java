@@ -202,63 +202,6 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testComputeIfPresent() throws CacheAccessException {
-    store.put(KEY, VALUE);
-    final Store.ValueHolder<Value> computeValue = store.computeIfPresent(KEY, new BiFunction<Long, Value, Value>() {
-      @Override
-      public Value apply(Long aLong, Value value) {
-        return value;
-      }
-    });
-    store.computeIfPresent(KEY, new BiFunction<Long, Value, Value>() {
-      @Override
-      public Value apply(Long aLong, Value value) {
-        compareReadValues(computeValue.value(), value);
-        return value;
-      }
-    });
-    compareValues(VALUE, computeValue.value());
-  }
-
-  @Test
-  public void testComputeIfPresentWithoutReplaceEqual() throws CacheAccessException {
-    store.put(KEY, VALUE);
-    final Store.ValueHolder<Value> computeValue = store.computeIfPresent(KEY, new BiFunction<Long, Value, Value>() {
-      @Override
-      public Value apply(Long aLong, Value value) {
-        return value;
-      }
-    }, NOT_REPLACE_EQUAL);
-    store.computeIfPresent(KEY, new BiFunction<Long, Value, Value>() {
-      @Override
-      public Value apply(Long aLong, Value value) {
-        compareReadValues(computeValue.value(), value);
-        return value;
-      }
-    }, NOT_REPLACE_EQUAL);
-    compareValues(VALUE, computeValue.value());
-  }
-
-  @Test
-  public void testComputeIfPresentWithReplaceEqual() throws CacheAccessException {
-    store.put(KEY, VALUE);
-    final Store.ValueHolder<Value> computeValue = store.computeIfPresent(KEY, new BiFunction<Long, Value, Value>() {
-      @Override
-      public Value apply(Long aLong, Value value) {
-        return value;
-      }
-    }, REPLACE_EQUAL);
-    store.computeIfPresent(KEY, new BiFunction<Long, Value, Value>() {
-      @Override
-      public Value apply(Long aLong, Value value) {
-        compareReadValues(computeValue.value(), value);
-        return value;
-      }
-    }, REPLACE_EQUAL);
-    compareValues(VALUE, computeValue.value());
-  }
-
-  @Test
   public void testBulkCompute() throws CacheAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), new Function<Iterable<? extends Map.Entry<? extends Long, ? extends Value>>, Iterable<? extends Map.Entry<? extends Long, ? extends Value>>>() {
       @Override

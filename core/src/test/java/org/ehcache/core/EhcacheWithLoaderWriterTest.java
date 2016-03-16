@@ -178,16 +178,6 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public ValueHolder<String> computeIfPresent(String key, BiFunction<? super String, ? super String, ? extends String> remappingFunction) throws CacheAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
-    public ValueHolder<String> computeIfPresent(String key, BiFunction<? super String, ? super String, ? extends String> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
     public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction) throws CacheAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
