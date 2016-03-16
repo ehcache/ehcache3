@@ -60,6 +60,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -72,6 +73,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anySet;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -734,6 +736,39 @@ public class EhcacheManagerTest {
     } finally {
       cacheManager.close();
     }
+  }
+
+  @Test(timeout = 1000L)
+  public void testCloseWhenRuntimeCacheCreationFails() throws Exception {
+    Store.Provider storeProvider = mock(Store.Provider.class);
+    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    doThrow(new Error("Test EhcacheManager close.")).when(storeProvider).createStore(any(Store.Configuration.class), Matchers.<ServiceConfiguration>anyVararg());
+
+    Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
+    DefaultConfiguration config = new DefaultConfiguration(caches, null);
+    final CacheManager cacheManager = new EhcacheManager(config, Arrays.asList(
+        storeProvider,
+        mock(CacheLoaderWriterProvider.class),
+        mock(WriteBehindProvider.class),
+        mock(CacheEventDispatcherFactory.class),
+        mock(CacheEventListenerProvider.class),
+        mock(LocalPersistenceService.class)
+    ));
+
+    cacheManager.init();
+
+    CacheConfiguration<Long, String> cacheConfiguration = new BaseCacheConfiguration<Long, String>(Long.class, String.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
+
+    try {
+      cacheManager.createCache("cache", cacheConfiguration);
+      fail();
+    } catch (Error err) {
+      assertThat(err.getMessage(), equalTo("Test EhcacheManager close."));
+    }
+
+    cacheManager.close();
+    assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
+
   }
 
   private Collection<Service> getServices(Store.Provider storeProvider, CacheEventDispatcherFactory cenlProvider) {

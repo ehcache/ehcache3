@@ -257,6 +257,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     InternalCache<K, V> cache = null;
 
+    boolean success = false;
     RuntimeException failure = null;
     try {
       cache = createNewEhcache(alias, config, keyType, valueType);
@@ -266,8 +267,14 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       } else {
         configuration.replaceCacheConfiguration(alias, originalConfig, cache.getRuntimeConfiguration());
       }
+      success = true;
     } catch (RuntimeException e) {
       failure = e;
+    } finally {
+      if (!success) {
+        caches.remove(alias);
+        value.setCache(null);
+      }
     }
 
     if(failure == null) {
@@ -281,8 +288,6 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         value.setCache(cache);
       }
     } else {
-      caches.remove(alias);
-      value.setCache(null);
       throw new IllegalStateException("Cache '"+alias+"' creation in " + simpleName +
           " failed.", failure);
     }
