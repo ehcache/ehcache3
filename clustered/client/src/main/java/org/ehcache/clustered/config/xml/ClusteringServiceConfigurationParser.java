@@ -17,6 +17,7 @@
 package org.ehcache.clustered.config.xml;
 
 import org.ehcache.clustered.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.service.ClusteringService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
@@ -29,6 +30,7 @@ import org.w3c.dom.NodeList;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Collections;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
@@ -94,7 +96,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
         }
       }
       // TODO: Validate connectionUri is valid URL with proper content
-      return new ClusteringServiceConfiguration(connectionUri);
+      return new ClusteringServiceConfiguration(connectionUri, Collections.<String, PoolDefinition>emptyMap());
     }
     throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
         fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));

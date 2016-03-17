@@ -63,21 +63,4 @@ public class SimpleClusteredCacheByXmlTest {
       cacheManager.close();
     }
   }
-
-  @Test
-  public void testViaXmlDirect() throws Exception {
-    final Configuration configuration = new XmlConfiguration(this.getClass().getResource(SIMPLE_CLUSTER_XML));
-    final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
-
-    assertThat(cacheManager, is(instanceOf(PersistentCacheManager.class)));
-
-    cacheManager.init();
-
-    final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
-    assertThat(cache, is(not(nullValue())));
-
-    if (cacheManager.getStatus() != Status.UNINITIALIZED) {
-      cacheManager.close();
-    }
-  }
 }

@@ -61,7 +61,7 @@ public class DefaultClusteringService implements ClusteringService {
   private EhcacheClientEntity entity;
 
   public DefaultClusteringService(final ClusteringServiceConfiguration configuration) {
-    URI ehcacheUri = configuration.getConnectionUrl();
+    URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
     this.autoCreate = AUTO_CREATE_QUERY.equalsIgnoreCase(ehcacheUri.getQuery());
