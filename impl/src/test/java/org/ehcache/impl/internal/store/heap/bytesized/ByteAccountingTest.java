@@ -318,11 +318,62 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.putIfAbsent(KEY, VALUE);
-    long curent = 0l;
-    assertThat(curent = store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
+    long current = store.getCurrentUsageInBytes();
+    assertThat(current, is(SIZE_OF_KEY_VALUE_PAIR));
 
     store.putIfAbsent(KEY, "New Value to Put");
-    assertThat(store.getCurrentUsageInBytes(), is(curent));
+    assertThat(store.getCurrentUsageInBytes(), is(current));
+  }
+
+  @Test
+  public void testPutIfAbsentOverExpired() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return new Duration(600L, TimeUnit.MILLISECONDS);
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put(KEY, "an expired value");
+    timeSource.advanceTime(1000L);
+    store.putIfAbsent(KEY, VALUE);
+    assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
+  }
+
+  @Test
+  public void testPutIfAbsentExpiresOnAccess() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.putIfAbsent(KEY, "another value ... whatever");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
