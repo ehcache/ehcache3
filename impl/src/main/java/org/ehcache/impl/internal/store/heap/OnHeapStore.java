@@ -68,6 +68,7 @@ import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -316,51 +317,55 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkKey(key);
     checkValue(value);
 
-    final AtomicBoolean entryActuallyAdded = new AtomicBoolean();
     final long now = timeSource.getTimeMillis();
-    final AtomicReference<OnHeapValueHolder<V>> replacedValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final AtomicReference<StoreOperationOutcomes.PutOutcome> statOutcome = new AtomicReference<StoreOperationOutcomes.PutOutcome>(StoreOperationOutcomes.PutOutcome.NOOP);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
 
     try {
-      OnHeapValueHolder<V> valuePut = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
 
           if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            updateUsageInBytesIfRequired(- mappedValue.size());
             mappedValue = null;
           }
 
           if (mappedValue == null) {
             OnHeapValueHolder<V> newValue = newCreateValueHolder(key, value, now, eventSink);
-            entryActuallyAdded.set(newValue != null);
+            if (newValue != null) {
+              updateUsageInBytesIfRequired(newValue.size());
+              statOutcome.set(StoreOperationOutcomes.PutOutcome.PUT);
+            }
             return newValue;
           } else {
             OnHeapValueHolder<V> newValue = newUpdateValueHolder(key, mappedValue, value, now, eventSink);
-            replacedValue.set(mappedValue);
+            if (newValue != null) {
+              updateUsageInBytesIfRequired(newValue.size() - mappedValue.size());
+            } else {
+              updateUsageInBytesIfRequired(- mappedValue.size());
+            }
+            statOutcome.set(StoreOperationOutcomes.PutOutcome.REPLACED);
             return newValue;
           }
         }
       });
-
-      if (entryActuallyAdded.get()) {
-        enforceCapacity(valuePut.size(), eventSink);
-      } else {
-        long replacedDelta = (valuePut == null ? 0 : valuePut.size()) - (replacedValue.get() == null ? 0 : replacedValue.get().size());
-        replaceByteCapacity(replacedDelta, eventSink);
-      }
-
       storeEventDispatcher.releaseEventSink(eventSink);
-      if (replacedValue.get() != null) {
-        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
-        return PutStatus.UPDATE;
-      } else if (entryActuallyAdded.get()) {
-        putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
-        return PutStatus.PUT;
-      } else {
-        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
-        return PutStatus.NOOP;
-      }
 
+      enforceCapacity();
+
+      StoreOperationOutcomes.PutOutcome outcome = statOutcome.get();
+      putObserver.end(outcome);
+      switch (outcome) {
+        case REPLACED:
+          return PutStatus.UPDATE;
+        case PUT:
+          return PutStatus.PUT;
+        case NOOP:
+          return PutStatus.NOOP;
+        default:
+          throw new AssertionError("Unknown enum value " + outcome);
+      }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
@@ -1288,21 +1293,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
     try {
-      final AtomicReference<OnHeapValueHolder<V>> expiredValue = new AtomicReference<OnHeapValueHolder<V>>(null);
-      OnHeapValueHolder<V> presentValue = map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, final OnHeapValueHolder<V> mappedValue) {
           if(mappedValue.equals(value)) {
             fireOnExpirationEvent(key, value, eventSink);
-            expiredValue.set(mappedValue);
+            decrementCurrentUsageInBytesIfRequired(mappedValue.size());
             return null;
           }
           return mappedValue;
         }
       });
-      if(presentValue == null) {
-        decrementCurrentUsageInBytesIfRequired(expiredValue.get().size());
-      }
       storeEventDispatcher.releaseEventSink(eventSink);
     } catch(RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
@@ -1473,6 +1474,15 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
+  private void updateUsageInBytesIfRequired(long delta) {
+    if (byteSized) {
+      long currentSize = currentUsageinBytes.addAndGet(delta);
+      if(currentSize < 0L) {
+        throw new AssertionError("Current usage can never be negative - " + currentSize);
+      }
+    }
+  }
+
   private void incrementCurrentUsageInBytesIfRequired(long delta) {
     if(byteSized) {
       currentUsageinBytes.addAndGet(delta);
@@ -1493,6 +1503,31 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return currentUsageinBytes.get();
     }
     return 0L;
+  }
+
+  private long size() {
+    if (byteSized) {
+      return currentUsageinBytes.get();
+    } else {
+      return map.size();
+    }
+  }
+
+  @FindbugsSuppressWarnings("QF_QUESTIONABLE_FOR_LOOP")
+  protected void enforceCapacity() {
+    StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
+    try {
+      for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO && evicted < EVICTION_RATIO
+              && capacity < size(); attempts++) {
+        if (evict(eventSink)) {
+          evicted++;
+        }
+      }
+      storeEventDispatcher.releaseEventSink(eventSink);
+    } catch (RuntimeException re){
+      storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
+      throw re;
+    }
   }
 
   private void enforceCapacity(long delta) {
