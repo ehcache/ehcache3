@@ -75,7 +75,6 @@ public class OnHeapStoreEvictionTest {
   public void testComputeIfAbsentCalledEnforceCapacity() throws Exception {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.put("key", "value");
     store.computeIfAbsent("key", new Function<String, String>() {
       @Override
       public String apply(String mappedKey) {
