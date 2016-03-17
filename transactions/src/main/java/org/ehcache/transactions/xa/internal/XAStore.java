@@ -74,8 +74,8 @@ import javax.transaction.Synchronization;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 
-import static org.ehcache.core.spi.ServiceLocator.findAmongst;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.ehcache.core.util.ValueSuppliers.supplierOf;
 
 /**

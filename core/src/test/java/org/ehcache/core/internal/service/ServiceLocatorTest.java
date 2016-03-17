@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi;
+package org.ehcache.core.internal.service;
 
 import java.io.IOException;
 import java.net.URL;

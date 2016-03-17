@@ -83,7 +83,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;

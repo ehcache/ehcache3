@@ -20,7 +20,7 @@ import org.ehcache.core.InternalCache;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.statistics.BulkOps;
+import org.ehcache.core.statistics.BulkOps;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;

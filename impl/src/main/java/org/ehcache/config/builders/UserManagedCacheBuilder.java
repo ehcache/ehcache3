@@ -47,7 +47,7 @@ import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.copy.Copier;
@@ -79,7 +79,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * The {@code UserManagedCacheBuilder} enables building {@link UserManagedCache}s using a fluent style.

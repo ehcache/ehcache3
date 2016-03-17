@@ -32,7 +32,7 @@ import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;

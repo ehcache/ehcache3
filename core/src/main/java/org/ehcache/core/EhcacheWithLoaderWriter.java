@@ -38,7 +38,7 @@ import org.ehcache.spi.LifeCycled;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.Store.ValueHolder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.statistics.BulkOps;
+import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;

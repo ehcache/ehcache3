@@ -43,7 +43,7 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;

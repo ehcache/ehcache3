@@ -22,7 +22,7 @@ import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProvider;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;

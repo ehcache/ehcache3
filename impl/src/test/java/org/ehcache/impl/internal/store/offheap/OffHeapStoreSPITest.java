@@ -31,7 +31,7 @@ import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.tier.AuthoritativeTierFactory;
 import org.ehcache.internal.tier.AuthoritativeTierSPITest;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;

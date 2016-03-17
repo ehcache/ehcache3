@@ -16,6 +16,7 @@
 
 package org.ehcache.core.spi;
 
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;

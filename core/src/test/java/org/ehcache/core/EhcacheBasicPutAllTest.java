@@ -22,7 +22,7 @@ import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.Function;
-import org.ehcache.statistics.BulkOps;
+import org.ehcache.core.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;

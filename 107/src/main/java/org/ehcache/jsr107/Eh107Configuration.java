@@ -23,7 +23,7 @@ import java.util.Collection;
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
 
-import static org.ehcache.core.spi.ServiceLocator.findAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findAmongst;
 
 /**
  * Eh107Configuration

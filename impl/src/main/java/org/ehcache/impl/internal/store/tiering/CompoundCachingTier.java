@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * A {@link CachingTier} implementation supporting a cache hierarchy.

@@ -22,7 +22,7 @@ import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.impl.serialization.CharSerializer;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.serialization.DoubleSerializer;
 import org.ehcache.impl.serialization.FloatSerializer;
 import org.ehcache.impl.serialization.IntegerSerializer;
@@ -52,8 +52,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Ludovic Orban

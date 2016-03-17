@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi;
+package org.ehcache.core.internal.service;
 
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.PluralService;

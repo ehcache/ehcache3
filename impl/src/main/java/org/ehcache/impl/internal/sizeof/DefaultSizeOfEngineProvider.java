@@ -17,7 +17,7 @@ package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;

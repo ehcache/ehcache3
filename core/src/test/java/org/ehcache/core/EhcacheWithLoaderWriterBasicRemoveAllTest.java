@@ -29,7 +29,7 @@ import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.statistics.BulkOps;
+import org.ehcache.core.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
