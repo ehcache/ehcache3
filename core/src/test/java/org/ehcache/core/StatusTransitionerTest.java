@@ -299,6 +299,30 @@ public class StatusTransitionerTest {
     assertThat(calls, equalTo(asList("adapter2-init", "adapter4-init", "adapter4-close", "adapter3-close")));
   }
 
+  @Test
+  public void testTransitionDuringFailures() {
+    StatusTransitioner transitioner = new StatusTransitioner(LoggerFactory.getLogger(StatusTransitionerTest.class));
+    assertThat(transitioner.currentStatus(), CoreMatchers.is(Status.UNINITIALIZED));
+    StatusTransitioner.Transition st = transitioner.init();
+    st.failed(new Throwable());
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
+    try {
+      st.failed(new Throwable());
+      fail();
+    } catch (AssertionError err) {
+      assertThat(err.getMessage(), is("Throwable cannot be null if Transition is done."));
+    }
+
+    st.failed(null);
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
+
+    StatusTransitioner.Transition st1 = transitioner.init();
+    assertThat(transitioner.currentStatus(), is(Status.AVAILABLE));
+    st1.failed(null);
+    assertThat(transitioner.currentStatus(), is(Status.UNINITIALIZED));
+
+  }
+
   private static class Recorder implements LifeCycled {
     private final List<LifeCycled> order;
     private final String name;

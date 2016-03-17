@@ -192,14 +192,17 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
       final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
-      if(!statusTransitioner.isTransitioning()) {
-        for (CacheManagerListener listener : listeners) {
-          listener.cacheRemoved(alias, ehcache);
+      if (ehcache != null) {
+        if (!statusTransitioner.isTransitioning()) {
+          for (CacheManagerListener listener : listeners) {
+            listener.cacheRemoved(alias, ehcache);
+          }
         }
-      }
-      closeCache(alias, ehcache);
-      if (removeFromConfig) {
-        configuration.removeCacheConfiguration(alias);
+
+        closeCache(alias, ehcache);
+        if (removeFromConfig) {
+          configuration.removeCacheConfiguration(alias);
+        }
       }
       this.getLogger().info("Cache '{}' is removed from {}.", alias, simpleName);
     }
@@ -580,10 +583,12 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         }
         throw e;
       }
+      st.succeeded();
     } catch (Exception e) {
       throw st.failed(e);
+    } finally {
+      st.failed(null);
     }
-    st.succeeded();
   }
 
   @Override
@@ -610,15 +615,19 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
 
       serviceLocator.stopAllServices();
+      if (firstException == null) {
+        st.succeeded();
+      }
     } catch (Exception e) {
       if(firstException == null) {
         firstException = e;
       }
+    } finally {
+      if(firstException != null) {
+        throw st.failed(firstException);
+      }
+      st.failed(null);
     }
-    if(firstException != null) {
-      throw st.failed(firstException);
-    }
-    st.succeeded();
   }
 
   @Override

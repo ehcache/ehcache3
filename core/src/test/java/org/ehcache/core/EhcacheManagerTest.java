@@ -58,6 +58,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
 
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -767,6 +769,48 @@ public class EhcacheManagerTest {
     }
 
     cacheManager.close();
+    assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
+
+  }
+
+  @Test(timeout = 1000L)
+  public void testCloseWhenCacheCreationFailsDuringInitialization() throws Exception {
+    Store.Provider storeProvider = mock(Store.Provider.class);
+    when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
+    doThrow(new Error("Test EhcacheManager close.")).when(storeProvider).createStore(any(Store.Configuration.class), Matchers.<ServiceConfiguration>anyVararg());
+
+    CacheConfiguration<Long, String> cacheConfiguration = new BaseCacheConfiguration<Long, String>(Long.class, String.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
+    caches.put("cache1", cacheConfiguration);
+    DefaultConfiguration config = new DefaultConfiguration(caches, null);
+    final CacheManager cacheManager = new EhcacheManager(config, Arrays.asList(
+        storeProvider,
+        mock(CacheLoaderWriterProvider.class),
+        mock(WriteBehindProvider.class),
+        mock(CacheEventDispatcherFactory.class),
+        mock(CacheEventListenerProvider.class),
+        mock(LocalPersistenceService.class)
+    ));
+
+    final CountDownLatch countDownLatch = new CountDownLatch(1);
+
+    Executors.newSingleThreadExecutor().submit(new Runnable() {
+      @Override
+      public void run() {
+        try {
+          cacheManager.init();
+        } catch (Error err) {
+          assertThat(err.getMessage(), equalTo("Test EhcacheManager close."));
+          countDownLatch.countDown();
+        }
+      }
+    });
+    countDownLatch.await();
+    try {
+      cacheManager.close();
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), is("Close not supported from UNINITIALIZED"));
+    }
     assertThat(cacheManager.getStatus(), is(Status.UNINITIALIZED));
 
   }
