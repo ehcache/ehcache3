@@ -261,24 +261,35 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private OnHeapValueHolder<V> internalGet(final K key, final boolean updateAccess) throws CacheAccessException {
     getObserver.begin();
     try {
-      OnHeapValueHolder<V> mapping = map.get(key);
+      OnHeapValueHolder<V> mapping = getQuiet(key);
 
       if (mapping == null) {
         getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
         return null;
       }
 
-      long now = timeSource.getTimeMillis();
-      if (mapping.isExpired(now, TimeUnit.MILLISECONDS)) {
-        expireMappingUnderLock(key, mapping);
-        getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
+      if (updateAccess) {
+        setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, mapping, timeSource.getTimeMillis());
+      }
+      getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
+      return mapping;
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
+      return null;
+    }
+  }
+
+  private OnHeapValueHolder getQuiet(final K key) throws CacheAccessException {
+    try {
+      OnHeapValueHolder<V> mapping = map.get(key);
+      if (mapping == null) {
         return null;
       }
 
-      if (updateAccess) {
-        setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, mapping, now);
+      if (mapping.isExpired(timeSource.getTimeMillis(), TimeUnit.MILLISECONDS)) {
+        expireMappingUnderLock(key, mapping);
+        return null;
       }
-      getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
       return mapping;
     } catch (RuntimeException re) {
       handleRuntimeException(re);
@@ -289,7 +300,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @Override
   public boolean containsKey(final K key) throws CacheAccessException {
     checkKey(key);
-    return internalGet(key, false) != null;
+    return getQuiet(key) != null;
   }
 
   @Override

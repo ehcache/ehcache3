@@ -135,11 +135,17 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   @Override
   public Store.ValueHolder<V> get(K key) throws CacheAccessException {
     checkKey(key);
-    return internalGet(key, true, true);
+    getObserver.begin();
+    ValueHolder<V> result = internalGet(key, true, true);
+    if (result == null) {
+      getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
+    } else {
+      getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
+    }
+    return result;
   }
 
   private Store.ValueHolder<V> internalGet(K key, final boolean updateAccess, final boolean touchValue) throws CacheAccessException {
-    getObserver.begin();
 
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     final AtomicReference<OffHeapValueHolder<V>> heldValue = new AtomicReference<OffHeapValueHolder<V>>();
@@ -170,11 +176,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         result = heldValue.get();
       }
       eventDispatcher.releaseEventSink(eventSink);
-      if (result == null) {
-        getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
-      } else {
-        getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
-      }
       return result;
     } catch (RuntimeException re) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
