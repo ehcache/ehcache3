@@ -83,6 +83,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -250,6 +251,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     getOrComputeIfAbsentObserver = operation(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.class).named("getOrComputeIfAbsent").of(this).tag("onheap-store").build();
     invalidateObserver = operation(CachingTierOperationOutcomes.InvalidateOutcome.class).named("invalidate").of(this).tag("onheap-store").build();
     silentInvalidateObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.class).named("silentInvalidate").of(this).tag("onheap-store").build();
+    StatisticsManager.createPassThroughStatistic(this, "mappingsCount", Collections.singleton("onheap-store"), new Callable<Number>() {
+      @Override
+      public Number call() throws Exception {
+        return map.size();
+      }
+    });
   }
 
   @Override
