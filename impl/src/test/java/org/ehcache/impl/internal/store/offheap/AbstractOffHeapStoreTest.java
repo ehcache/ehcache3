@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.impl.internal.util.Matchers.valueHeld;
 import static org.ehcache.impl.internal.util.StatisticsTestUtils.validateStats;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -420,6 +421,39 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
+  public void testGetWithExpiryOnAccess() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+    store.put("key", "value");
+    final AtomicReference<String> expired = new AtomicReference<String>();
+    store.getStoreEventSource().addEventListener(new StoreEventListener<String, String>() {
+      @Override
+      public void onEvent(StoreEvent<String, String> event) {
+        if (event.getType() == EventType.EXPIRED) {
+          expired.set(event.getKey());
+        }
+      }
+    });
+    assertThat(store.get("key"), valueHeld("value"));
+    assertThat(expired.get(), is("key"));
+  }
+
+  @Test
   public void testExpiryCreateException() throws Exception{
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
@@ -463,6 +497,7 @@ public abstract class AbstractOffHeapStoreTest {
     });
 
     offHeapStore.put("key", "value");
+    assertThat(offHeapStore.get("key"), valueHeld("value"));
     assertNull(offHeapStore.get("key"));
   }
 
@@ -509,6 +544,88 @@ public abstract class AbstractOffHeapStoreTest {
       assertThat(getExpirationStatistic(offHeapStore).count(StoreOperationOutcomes.ExpirationOutcome.SUCCESS), is(1L));
     } finally {
       destroyStore(offHeapStore);
+    }
+  }
+
+  @Test
+  public void testComputeExpiresOnAccess() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(1000L);
+    AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    try {
+      store.put("key", "value");
+      Store.ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
+        @Override
+        public String apply(String s, String s2) {
+          return s2;
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return false;
+        }
+      });
+
+      assertThat(result, valueHeld("value"));
+    } finally {
+      destroyStore(store);
+    }
+  }
+
+  @Test
+  public void testComputeExpiresOnUpdate() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(1000L);
+    AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    try {
+      store.put("key", "value");
+      Store.ValueHolder<String> result = store.compute("key", new BiFunction<String, String, String>() {
+        @Override
+        public String apply(String s, String s2) {
+          return "newValue";
+        }
+      }, new NullaryFunction<Boolean>() {
+        @Override
+        public Boolean apply() {
+          return false;
+        }
+      });
+
+      assertThat(result, valueHeld("newValue"));
+    } finally {
+      destroyStore(store);
     }
   }
 

@@ -1191,7 +1191,11 @@ public class XAStoreTest {
 
     testTimeSource.advanceTime(1000);
     testTransactionManager.begin();
-    assertThat(xaStore.get(1L), is(nullValue()));
+    assertThat(xaStore.get(1L).value(), is("one"));
+    testTransactionManager.commit();
+
+    testTransactionManager.begin();
+    assertThat(xaStore.get(1L), nullValue());
     testTransactionManager.commit();
   }
 

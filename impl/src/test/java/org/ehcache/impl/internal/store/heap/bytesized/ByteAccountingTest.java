@@ -19,6 +19,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CacheAccessException;
@@ -156,6 +157,45 @@ public class ByteAccountingTest {
   }
 
   @Test
+  public void testPutUpdate() throws CacheAccessException {
+    OnHeapStoreForTests<String, String> store = newStore();
+
+    store.put(KEY, VALUE);
+    String otherValue = "otherValue";
+    store.put(KEY, otherValue);
+
+    long delta = SIZEOF.deepSizeOf(otherValue) - SIZEOF.deepSizeOf(VALUE);
+
+    assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR + delta));
+  }
+
+  @Test
+  public void testPutExpiryOnUpdate() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.put(KEY, "otherValue");
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
   public void testRemove() throws CacheAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
@@ -290,6 +330,73 @@ public class ByteAccountingTest {
   }
 
   @Test
+  public void testComputeExpiryOnAccess() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.compute(KEY, new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String s, String s2) {
+        return s2;
+      }
+    }, new NullaryFunction<Boolean>() {
+      @Override
+      public Boolean apply() {
+        return false;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testComputeExpiryOnUpdate() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.compute(KEY, new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String s, String s2) {
+        return s2;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
   public void testComputeIfAbsent() throws CacheAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
@@ -313,6 +420,38 @@ public class ByteAccountingTest {
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
+  }
+
+  @Test
+  public void testComputeIfAbsentExpiryOnAccess() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, String oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.computeIfAbsent(KEY, new Function<String, String>() {
+      @Override
+      public String apply(String s) {
+        fail("should not be called");
+        return s;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test

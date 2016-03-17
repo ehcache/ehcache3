@@ -142,6 +142,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     getObserver.begin();
 
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
+    final AtomicReference<OffHeapValueHolder<V>> heldValue = new AtomicReference<OffHeapValueHolder<V>>();
     try {
       OffHeapValueHolder<V> result = backingMap().computeIfPresent(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
         @Override
@@ -154,13 +155,20 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }
 
           if (updateAccess) {
-            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
+            OffHeapValueHolder<V> valueHolder = setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
+            if (valueHolder == null) {
+              heldValue.set(mappedValue);
+            }
+            return valueHolder;
           } else if (touchValue) {
-            mappedValue.value();
+            mappedValue.forceDeserialization();
           }
           return mappedValue;
         }
       });
+      if (result == null && heldValue.get() != null) {
+        result = heldValue.get();
+      }
       eventDispatcher.releaseEventSink(eventSink);
       if (result == null) {
         getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
@@ -533,6 +541,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkKey(key);
 
     final AtomicBoolean write = new AtomicBoolean(false);
+    final AtomicReference<OffHeapValueHolder<V>> valueHeld = new AtomicReference<OffHeapValueHolder<V>>();
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
@@ -556,15 +565,24 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return null;
         } else if (safeEquals(existingValue, computedValue) && !replaceEqual.apply()) {
           if (mappedValue != null) {
-            return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
+            OffHeapValueHolder<V> valueHolder = setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
+            if (valueHolder == null) {
+              valueHeld.set(mappedValue);
+            }
+            return valueHolder;
+          } else {
+            return null;
           }
-          return mappedValue;
         }
 
         checkValue(computedValue);
         write.set(true);
         if (mappedValue != null) {
-          return newUpdatedValueHolder(key, computedValue, mappedValue, now, eventSink);
+          OffHeapValueHolder<V> valueHolder = newUpdatedValueHolder(key, computedValue, mappedValue, now, eventSink);
+          if (valueHolder == null) {
+            valueHeld.set(new BasicOffHeapValueHolder<V>(mappedValue.getId(), computedValue, now, now));
+          }
+          return valueHolder;
         } else {
           return newCreateValueHolder(key, computedValue, now, eventSink);
         }
@@ -583,6 +601,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
+      }
+      if (result == null && valueHeld.get() != null) {
+        result = valueHeld.get();
       }
       eventDispatcher.releaseEventSink(eventSink);
       if (result == null) {
@@ -620,6 +641,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     checkKey(key);
 
     final AtomicBoolean write = new AtomicBoolean(false);
+    final AtomicReference<OffHeapValueHolder<V>> valueHeld = new AtomicReference<OffHeapValueHolder<V>>();
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
@@ -638,10 +660,15 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return newCreateValueHolder(mappedKey, computedValue, now, eventSink);
           }
         } else {
-          if (delayedDeserialization) {
-            mappedValue.detach();
+          OffHeapValueHolder<V> valueHolder = setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
+          if (valueHolder != null) {
+            if (delayedDeserialization) {
+              mappedValue.detach();
+            }
+          } else {
+            valueHeld.set(mappedValue);
           }
-          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
+          return valueHolder;
         }
       }
     };
@@ -657,6 +684,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
+      }
+      if (computeResult == null && valueHeld.get() != null) {
+        computeResult = valueHeld.get();
       }
       eventDispatcher.releaseEventSink(eventSink);
       if (write.get()) {
@@ -1002,11 +1032,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   };
 
   private OffHeapValueHolder<V> setAccessTimeAndExpiryThenReturnMapping(K key, OffHeapValueHolder<V> valueHolder, long now, StoreEventSink<K, V> eventSink) {
-    Duration duration;
+    Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForAccess(key, valueHolder.value());
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+    }
+    if (Duration.ZERO.equals(duration)) {
       onExpiration(key, valueHolder, eventSink);
       return null;
     }
@@ -1017,13 +1049,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private OffHeapValueHolder<V> newUpdatedValueHolder(K key, V value, OffHeapValueHolder<V> existing, long now, StoreEventSink<K, V> eventSink) {
     eventSink.updated(key, existing.value(), value);
-    Duration duration;
+    Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForUpdate(key, existing.value(), value);
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-      eventSink.expired(key, value);
-      return null;
     }
     if (Duration.ZERO.equals(duration)) {
       eventSink.expired(key, value);
@@ -1040,12 +1070,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   private OffHeapValueHolder<V> newCreateValueHolder(K key, V value, long now, StoreEventSink<K, V> eventSink) {
-    Duration duration;
+    Duration duration = Duration.ZERO;
     try {
       duration = expiry.getExpiryForCreation(key, value);
     } catch (RuntimeException re) {
       LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-      return null;
     }
     if (Duration.ZERO.equals(duration)) {
       return null;

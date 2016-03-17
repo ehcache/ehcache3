@@ -18,6 +18,9 @@ package org.ehcache.internal.store;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.cache.Store;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -28,6 +31,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.fail;
 
 public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
@@ -207,5 +211,44 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     assertThat(kvStore.get(key), nullValue());
+  }
+
+  @SPITest
+  public void testComputeIfAbsentValuePresentExpiresOnAccess() throws LegalSPITesterException {
+    TestTimeSource timeSource = new TestTimeSource(10043L);
+    kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
+      @Override
+      public Duration getExpiryForCreation(K key, V value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(K key, V value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
+        return Duration.FOREVER;
+      }
+    }, timeSource);
+
+    K key = factory.createKey(250928L);
+    V value = factory.createValue(2059820L);
+    final V newValue = factory.createValue(205982025L);
+
+    try {
+      kvStore.put(key, value);
+      Store.ValueHolder<V> result = kvStore.computeIfAbsent(key, new Function<K, V>() {
+        @Override
+        public V apply(K k) {
+          fail("Should not be invoked");
+          return newValue;
+        }
+      });
+      assertThat(result.value(), is(value));
+    } catch (CacheAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
   }
 }
