@@ -230,7 +230,33 @@ public class ByteAccountingTest {
     store.remove("Another Key");
     assertThat(store.getCurrentUsageInBytes(), is(beforeRemove));
     store.remove(KEY);
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testRemoveExpired() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return new Duration(600L, TimeUnit.MILLISECONDS);
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    timeSource.advanceTime(1000L);
+    store.remove(KEY);
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test

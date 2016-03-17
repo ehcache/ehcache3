@@ -381,33 +381,33 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final long now = timeSource.getTimeMillis();
 
     try {
-      final AtomicReference<OnHeapValueHolder<V>> removedValue = new AtomicReference<OnHeapValueHolder<V>>();
+      final AtomicReference<StoreOperationOutcomes.RemoveOutcome> statisticOutcome = new AtomicReference<StoreOperationOutcomes.RemoveOutcome>(StoreOperationOutcomes.RemoveOutcome.MISS);
 
       map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-
-          if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+          updateUsageInBytesIfRequired(- mappedValue.size());
+          if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
             return null;
           }
 
-          if (mappedValue != null) {
-            removedValue.set(mappedValue);
-            eventSink.removed(mappedKey, mappedValue);
-          }
+          statisticOutcome.set(StoreOperationOutcomes.RemoveOutcome.REMOVED);
+          eventSink.removed(mappedKey, mappedValue);
           return null;
         }
       });
       storeEventDispatcher.releaseEventSink(eventSink);
-      OnHeapValueHolder<V> removedValueHolder = removedValue.get();
-      if (removedValueHolder != null) {
-        removeObserver.end(StoreOperationOutcomes.RemoveOutcome.REMOVED);
-        decrementCurrentUsageInBytesIfRequired(removedValueHolder.size());
-      } else {
-        removeObserver.end(StoreOperationOutcomes.RemoveOutcome.MISS);
+      StoreOperationOutcomes.RemoveOutcome outcome = statisticOutcome.get();
+      removeObserver.end(outcome);
+      switch (outcome) {
+        case REMOVED:
+          return true;
+        case MISS:
+          return false;
+        default:
+          throw new AssertionError("Unknow enum value " + outcome);
       }
-      return removedValueHolder != null;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
