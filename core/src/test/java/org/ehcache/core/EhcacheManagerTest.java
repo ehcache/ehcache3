@@ -32,7 +32,7 @@ import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheManagerListener;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListenerProvider;

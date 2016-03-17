@@ -23,7 +23,7 @@ import org.ehcache.impl.internal.sizeof.listeners.exceptions.VisitorListenerExce
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.sizeof.SizeOf;
 import org.ehcache.sizeof.SizeOfFilterSource;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.sizeof.SizeOfEngine;
 
 /**

@@ -20,7 +20,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.internal.store.StoreFactory;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 
 /**
  * @author Aurelien Broszniowski

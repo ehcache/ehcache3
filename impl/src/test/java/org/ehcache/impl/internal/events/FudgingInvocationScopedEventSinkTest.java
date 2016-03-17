@@ -18,8 +18,8 @@ package org.ehcache.impl.internal.events;
 
 import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.events.StoreEventFilter;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;

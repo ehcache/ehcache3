@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.ehcache.Status;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.CacheAccessException;

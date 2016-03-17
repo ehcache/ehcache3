@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache;
+package org.ehcache.core.spi.store.events;
 
-import java.util.List;
-
-import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.events.StoreEventDispatcher;
 
 /**
- * The interface to listen to change in configuration at runtime
+ * Interface used by a Store to notify of events happening to mappings it contains.
+ * <P/>
+ * Implementations of this class are expected to work in combination with an implementation of
+ * {@link StoreEventDispatcher}.
  *
- * @author Abhilash
- *
+ * @param <K> the key type of the mappings
+ * @param <V> the value type of the mappings
  */
-public interface ConfigurationChangeSupport {
+public interface StoreEventListener<K, V> {
 
   /**
-   * get the {@link List} {@link CacheConfigurationChangeListener} defined in the {@link Store}
-   * @return a list of {@link CacheConfigurationChangeListener}
+   * Invoked on any {@link StoreEvent}.
+   *
+   * @param event the actual {@link StoreEvent}
    */
-  List<CacheConfigurationChangeListener> getConfigurationChangeListeners();
-
+  void onEvent(StoreEvent<K, V> event);
 }

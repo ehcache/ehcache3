@@ -15,6 +15,6 @@
  */
 
 /**
- * Package holding implementation of {@link org.ehcache.core.spi.cache.Store.Configuration} and related types.
+ * Package holding implementation of {@link org.ehcache.core.spi.store.Store.Configuration} and related types.
  */
 package org.ehcache.core.config.store;

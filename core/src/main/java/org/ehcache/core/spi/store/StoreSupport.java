@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache;
+package org.ehcache.core.spi.store;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.service.ServiceLocator;
@@ -38,7 +38,7 @@ public final class StoreSupport {
   }
 
   /**
-   * Chooses a {@link org.ehcache.core.spi.cache.Store.Provider Store.Provider} from those
+   * Chooses a {@link org.ehcache.core.spi.store.Store.Provider Store.Provider} from those
    * available through the {@link ServiceLocator} that best supports the resource types and
    * service configurations provided.  This method relies on the
    * {@link Store.Provider#rank(Set, Collection) Store.Provider.rank} method in making the

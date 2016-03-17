@@ -18,7 +18,7 @@ package org.ehcache.management.registry;
 import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
-import org.ehcache.core.spi.cache.InternalCacheManager;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache.events;
+package org.ehcache.core.spi.store.events;
 
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 
 /**
  * Interface to enable listening and configuring the {@link Store} eventing system.

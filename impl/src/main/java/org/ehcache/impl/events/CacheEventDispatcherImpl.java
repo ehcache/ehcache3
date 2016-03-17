@@ -28,9 +28,9 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
-import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

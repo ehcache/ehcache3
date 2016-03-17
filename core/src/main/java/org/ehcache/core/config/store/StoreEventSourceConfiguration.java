@@ -16,7 +16,7 @@
 
 package org.ehcache.core.config.store;
 
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

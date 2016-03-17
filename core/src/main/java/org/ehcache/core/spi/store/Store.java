@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache;
+package org.ehcache.core.spi.store;
 
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
@@ -26,7 +26,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;

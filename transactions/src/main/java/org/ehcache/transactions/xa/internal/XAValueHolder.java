@@ -16,8 +16,8 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.core.spi.cache.AbstractValueHolder;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 

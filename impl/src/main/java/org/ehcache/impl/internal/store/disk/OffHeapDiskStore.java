@@ -36,8 +36,8 @@ import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.ExecutionService;

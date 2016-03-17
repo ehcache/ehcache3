@@ -16,8 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;

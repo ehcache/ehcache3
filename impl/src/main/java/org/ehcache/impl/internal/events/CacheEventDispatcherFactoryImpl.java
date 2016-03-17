@@ -21,7 +21,7 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;

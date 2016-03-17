@@ -17,7 +17,7 @@
 package org.ehcache.core.spi.sizeof;
 
 import org.ehcache.core.exceptions.LimitExceededException;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 
 /**
  * SizeOf engines are used to calculate the size of objects.

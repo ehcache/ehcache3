@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache;
+package org.ehcache.core.spi.store;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.service.ServiceLocator;

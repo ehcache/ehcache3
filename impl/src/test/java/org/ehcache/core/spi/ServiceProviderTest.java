@@ -20,8 +20,8 @@ import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 

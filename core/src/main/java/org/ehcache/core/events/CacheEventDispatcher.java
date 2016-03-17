@@ -17,14 +17,14 @@
 package org.ehcache.core.events;
 
 import org.ehcache.Cache;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.ConfigurationChangeSupport;
+import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 
 import java.util.EnumSet;
 

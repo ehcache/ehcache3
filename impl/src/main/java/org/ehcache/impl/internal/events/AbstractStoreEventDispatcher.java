@@ -19,8 +19,8 @@ package org.ehcache.impl.internal.events;
 import org.ehcache.ValueSupplier;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.cache.events.StoreEventFilter;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;

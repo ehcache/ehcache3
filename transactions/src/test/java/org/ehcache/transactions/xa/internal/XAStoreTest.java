@@ -25,7 +25,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;

@@ -20,7 +20,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 

@@ -16,8 +16,8 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.core.spi.cache.AbstractValueHolder;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.Store;
 
 import java.util.concurrent.TimeUnit;
 

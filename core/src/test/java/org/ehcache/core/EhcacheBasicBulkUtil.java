@@ -27,8 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**

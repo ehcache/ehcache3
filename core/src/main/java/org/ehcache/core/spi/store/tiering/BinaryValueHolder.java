@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache.tiering;
+package org.ehcache.core.spi.store.tiering;
 
 import java.nio.ByteBuffer;
 
 /**
- * Companion interface for {@link org.ehcache.core.spi.cache.Store.ValueHolder} to indicate that a binary representation
+ * Companion interface for {@link org.ehcache.core.spi.store.Store.ValueHolder} to indicate that a binary representation
  * of the value can be provided.
  */
 public interface BinaryValueHolder {

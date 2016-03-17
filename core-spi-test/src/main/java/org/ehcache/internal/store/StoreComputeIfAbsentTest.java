@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 import org.ehcache.ValueSupplier;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TestTimeSource;

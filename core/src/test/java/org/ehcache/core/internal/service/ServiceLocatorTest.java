@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.core.spi.cache.CacheProvider;
+import org.ehcache.core.spi.store.CacheProvider;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.service.Service;

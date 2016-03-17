@@ -20,9 +20,9 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventFilter;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 
 import java.util.HashSet;
 import java.util.Set;

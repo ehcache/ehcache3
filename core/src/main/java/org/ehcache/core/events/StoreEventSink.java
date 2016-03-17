@@ -19,7 +19,7 @@ package org.ehcache.core.events;
 import org.ehcache.ValueSupplier;
 
 /**
- * Interface on which {@link org.ehcache.core.spi.cache.Store} operations are to record events.
+ * Interface on which {@link org.ehcache.core.spi.store.Store} operations are to record events.
  */
 public interface StoreEventSink<K, V> {
 

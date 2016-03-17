@@ -14,20 +14,24 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache;
+package org.ehcache.core.spi.store;
 
+import java.util.List;
 
-import org.ehcache.CacheManager;
-import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.CacheConfigurationChangeListener;
 
 /**
- * The {@code Service}-facing version of a {@code CacheManager}.  This interface adds
- * methods used internally by service implementations.
+ * The interface to listen to change in configuration at runtime
  *
- * @author Clifford W. Johnson
+ * @author Abhilash
+ *
  */
-public interface InternalCacheManager extends CacheManager {
-  void registerListener(CacheManagerListener listener);
+public interface ConfigurationChangeSupport {
 
-  void deregisterListener(CacheManagerListener listener);
+  /**
+   * get the {@link List} {@link CacheConfigurationChangeListener} defined in the {@link Store}
+   * @return a list of {@link CacheConfigurationChangeListener}
+   */
+  List<CacheConfigurationChangeListener> getConfigurationChangeListeners();
+
 }

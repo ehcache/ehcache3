@@ -22,7 +22,7 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.Serializable;

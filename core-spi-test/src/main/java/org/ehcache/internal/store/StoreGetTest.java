@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.ValueSupplier;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -27,7 +27,7 @@ import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 
-import static org.ehcache.core.spi.cache.Store.ValueHolder;
+import static org.ehcache.core.spi.store.Store.ValueHolder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;

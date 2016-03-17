@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.ehcache.Status;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.exceptions.CacheAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;

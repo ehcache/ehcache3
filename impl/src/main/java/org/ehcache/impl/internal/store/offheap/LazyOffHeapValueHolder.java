@@ -16,8 +16,8 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.BinaryValueHolder;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.BinaryValueHolder;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.spi.serialization.Serializer;

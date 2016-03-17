@@ -14,20 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.cache;
+package org.ehcache.core.spi.store;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.spi.service.PluralService;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+
+import org.ehcache.CacheManager;
+import org.ehcache.core.events.CacheManagerListener;
 
 /**
- * Test service.
+ * The {@code Service}-facing version of a {@code CacheManager}.  This interface adds
+ * methods used internally by service implementations.
+ *
+ * @author Clifford W. Johnson
  */
-@PluralService
-public interface CacheProvider extends Service {
+public interface InternalCacheManager extends CacheManager {
+  void registerListener(CacheManagerListener listener);
 
-  <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
-
-  void releaseCache(EhcacheWithLoaderWriter<?, ?> resource);
+  void deregisterListener(CacheManagerListener listener);
 }

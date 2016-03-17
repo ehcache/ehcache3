@@ -20,7 +20,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;

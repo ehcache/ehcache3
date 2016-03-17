@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.service;
+package org.ehcache.core.spi.store;
 
-import org.ehcache.CacheManager;
-import org.ehcache.core.spi.store.InternalCacheManager;
+import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * Special service that services can depend onto to be able to recover the instance of the current {@link CacheManager}
- *
- * @author Mathieu Carbou
+ * Test service.
  */
-public interface CacheManagerProviderService extends Service {
+@PluralService
+public interface CacheProvider extends Service {
 
-  InternalCacheManager getCacheManager();
+  <K, V> EhcacheWithLoaderWriter<K, V> createCache(Class<K> keyClazz, Class<V> valueClazz, ServiceConfiguration<?>... config);
 
+  void releaseCache(EhcacheWithLoaderWriter<?, ?> resource);
 }

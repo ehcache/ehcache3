@@ -19,7 +19,7 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TestTimeSource;

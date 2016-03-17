@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;

@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.heap.holders;
 
-import org.ehcache.core.spi.cache.AbstractValueHolder;
+import org.ehcache.core.spi.store.AbstractValueHolder;
 
 import java.util.concurrent.TimeUnit;
 

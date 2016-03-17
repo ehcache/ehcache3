@@ -16,8 +16,8 @@
 
 package org.ehcache.core.events;
 
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEventSource;
 
 /**
  * Part of the events subsystem at the {@link Store} level.
