@@ -238,14 +238,12 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");
     assertThat(store.containsKey("key"), is(true));
-    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.HIT));
   }
 
   @Test
   public void testNotContainsKey() throws Exception {
     OnHeapStore<String, String> store = newStore();
     assertThat(store.containsKey("key"), is(false));
-    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS));
   }
 
   @Test
@@ -261,7 +259,6 @@ public abstract class BaseOnHeapStoreTest {
     checkExpiryEvent(eventSink, "key", "value");
     verifyListenerReleaseEventsInOrder(eventDispatcher);
     StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
-    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS));
   }
 
   @Test
