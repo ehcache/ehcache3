@@ -160,7 +160,7 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link Ehcache Ehcache} instance using {@link #cacheLoaderWriter}.
+   * Gets an initialized {@link Ehcache Ehcache}.
    *
    * @return a new {@code Ehcache} instance
    */

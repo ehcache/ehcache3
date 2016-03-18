@@ -93,7 +93,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
 
   /**
    * A Mockito {@code ArgumentCaptor} for the {@code Set} argument to the
-   * {@link org.ehcache.resilience.ResilienceStrategy#getAllFailure(Iterable, Map, StoreAccessException)
+   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#getAllFailure(Iterable, Map, StoreAccessException)
    *    ResilienceStrategy.getAllFailure(Iterable, Map, StoreAccessException)} method.
    */
   @Captor
@@ -103,7 +103,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
    * A Mockito {@code ArgumentCaptor} for the
    * {@link org.ehcache.exceptions.BulkCacheLoadingException BulkCacheLoadingException}
    * provided to the
-   * {@link org.ehcache.resilience.ResilienceStrategy#getAllFailure(Iterable, StoreAccessException, BulkCacheLoadingException)
+   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#getAllFailure(Iterable, StoreAccessException, BulkCacheLoadingException)
    *    ResilienceStrategy.getAllFailure(Iterable, StoreAccessException, BulkCacheLoadingException)} method.
    */
   @Captor
