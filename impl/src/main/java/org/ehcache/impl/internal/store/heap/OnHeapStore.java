@@ -865,30 +865,27 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     silentInvalidateObserver.begin();
     checkKey(key);
     try {
-      final AtomicReference<OnHeapValueHolder<V>> invalidatedValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+      final AtomicReference<HigherCachingTierOperationOutcomes.SilentInvalidateOutcome> outcome =
+          new AtomicReference<HigherCachingTierOperationOutcomes.SilentInvalidateOutcome>(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.MISS);
 
       map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
-        public OnHeapValueHolder<V> apply(K k, OnHeapValueHolder<V> onHeapValueHolder) {
-          if (onHeapValueHolder != null) {
-            invalidatedValue.set(onHeapValueHolder);
-          }
-          OnHeapValueHolder<V> holderToPass = onHeapValueHolder;
-          if (onHeapValueHolder instanceof Fault) {
-            holderToPass = null;
-            invalidatedValue.set(null);
+        public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+          long size = 0L;
+          OnHeapValueHolder<V> holderToPass = null;
+          if (mappedValue != null) {
+            size = mappedValue.size();
+            if (!(mappedValue instanceof Fault)) {
+              holderToPass = mappedValue;
+              outcome.set(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.REMOVED);
+            }
           }
           function.apply(holderToPass);
+          updateUsageInBytesIfRequired(- size);
           return null;
         }
       });
-      OnHeapValueHolder<V> invalidated = null;
-      if ((invalidated = invalidatedValue.get()) != null) {
-        silentInvalidateObserver.end(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.REMOVED);
-        decrementCurrentUsageInBytesIfRequired(invalidated.size());
-      } else {
-        silentInvalidateObserver.end(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.MISS);
-      }
+      silentInvalidateObserver.end(outcome.get());
     } catch (RuntimeException re) {
       handleRuntimeException(re);
     }

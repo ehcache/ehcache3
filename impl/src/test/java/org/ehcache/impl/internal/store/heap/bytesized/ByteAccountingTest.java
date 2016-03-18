@@ -539,6 +539,21 @@ public class ByteAccountingTest {
   }
 
   @Test
+  public void testSilentInvalidate() throws CacheAccessException {
+    OnHeapStoreForTests<Object, Object> store = newStore();
+    store.put(KEY, VALUE);
+    store.silentInvalidate(KEY, new Function<Store.ValueHolder<Object>, Void>() {
+      @Override
+      public Void apply(Store.ValueHolder<Object> objectValueHolder) {
+        // Nothing to do
+        return null;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
   public void testComputeRemove() throws CacheAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
