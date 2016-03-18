@@ -14,22 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.store;
-
-import java.util.List;
-
-import org.ehcache.core.CacheConfigurationChangeListener;
-
 /**
- * Interface that implementors use to declare interest in {@link org.ehcache.config.CacheRuntimeConfiguration} changes.
+ * Package for the {@link org.ehcache.core.spi.store.Store} SPI and related types.
  */
-public interface ConfigurationChangeSupport {
-
-  /**
-   * Returns the {@link List} of {@link CacheConfigurationChangeListener} defined.
-   *
-   * @return a list of {@code CacheConfigurationChangeListener}
-   */
-  List<CacheConfigurationChangeListener> getConfigurationChangeListeners();
-
-}
+package org.ehcache.core.spi.store;

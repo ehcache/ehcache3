@@ -29,7 +29,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
-import org.ehcache.core.spi.store.StoreSupport;
+import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;

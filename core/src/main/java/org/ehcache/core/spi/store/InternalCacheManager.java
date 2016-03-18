@@ -23,11 +23,20 @@ import org.ehcache.core.events.CacheManagerListener;
 /**
  * The {@code Service}-facing version of a {@code CacheManager}.  This interface adds
  * methods used internally by service implementations.
- *
- * @author Clifford W. Johnson
  */
 public interface InternalCacheManager extends CacheManager {
+
+  /**
+   * Registers a {@link CacheManagerListener}.
+   *
+   * @param listener the listener to register
+   */
   void registerListener(CacheManagerListener listener);
 
+  /**
+   * De-registers a {@link CacheManagerListener}.
+   *
+   * @param listener the listener to de-register
+   */
   void deregisterListener(CacheManagerListener listener);
 }

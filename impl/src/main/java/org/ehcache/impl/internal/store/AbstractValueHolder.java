@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.store;
+package org.ehcache.impl.internal.store;
 
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
 
 import java.util.concurrent.TimeUnit;

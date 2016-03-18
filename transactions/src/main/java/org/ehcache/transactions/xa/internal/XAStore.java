@@ -22,7 +22,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
-import org.ehcache.core.spi.store.StoreSupport;
+import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;

@@ -36,7 +36,7 @@ import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.StoreSupport;
+import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;

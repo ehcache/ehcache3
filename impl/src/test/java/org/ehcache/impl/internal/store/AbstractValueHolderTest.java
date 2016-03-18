@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.core.spi.store;
+
+package org.ehcache.impl.internal.store;
 
 import org.ehcache.expiry.Duration;
 import org.ehcache.core.spi.time.TimeSource;
