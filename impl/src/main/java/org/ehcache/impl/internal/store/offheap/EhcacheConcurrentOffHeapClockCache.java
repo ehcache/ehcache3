@@ -22,6 +22,7 @@ import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 
 import org.terracotta.offheapstore.MetadataTuple;
+import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.concurrent.AbstractConcurrentOffHeapCache;
 import org.terracotta.offheapstore.pinning.PinnableSegment;
 import org.terracotta.offheapstore.util.Factory;
@@ -48,6 +49,102 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
     for(int i = 0; i < segments.length; i++) {
       counters[i] = new AtomicLong();
     }
+  }
+
+  public long allocatedMemory() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getAllocatedMemory();
+    }
+    return total;
+  }
+
+  public long occupiedMemory() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getOccupiedMemory();
+    }
+    return total;
+  }
+
+  public long dataAllocatedMemory() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getDataAllocatedMemory();
+    }
+    return total;
+  }
+
+  public long dataOccupiedMemory() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getDataOccupiedMemory();
+    }
+    return total;
+  }
+
+  public long dataSize() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getDataSize();
+    }
+    return total;
+  }
+
+  public long longSize() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getSize();
+    }
+    return total;
+  }
+
+  public long tableCapacity() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getTableCapacity();
+    }
+    return total;
+  }
+
+  public long usedSlotCount() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getUsedSlotCount();
+    }
+    return total;
+  }
+
+  public long removedSlotCount() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getRemovedSlotCount();
+    }
+    return total;
+  }
+
+  public long reprobeLength() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getReprobeLength();
+    }
+    return total;
+  }
+
+  public long vitalMemory() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getVitalMemory();
+    }
+    return total;
+  }
+
+  public long dataVitalMemory() {
+    long total = 0L;
+    for (Segment<K, V> segment : segments) {
+      total += segment.getDataVitalMemory();
+    }
+    return total;
   }
 
   @Override
