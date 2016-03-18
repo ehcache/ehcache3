@@ -19,6 +19,7 @@ import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.internal.XAStore;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
@@ -52,7 +53,8 @@ public class TxCacheServiceConfigurationParser implements CacheServiceConfigurat
       String uniqueXAResourceId = fragment.getAttribute("unique-XAResource-id");
       return new XAStoreConfiguration(uniqueXAResourceId);
     } else {
-      throw new RuntimeException("Unsupported XML fragment : " + fragment.getNodeName());
+      throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
+          fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
 }

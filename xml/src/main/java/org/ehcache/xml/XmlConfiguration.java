@@ -21,13 +21,21 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
-import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -35,25 +43,18 @@ import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfi
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.EventFiring;
-import org.ehcache.event.EventOrdering;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
+import org.ehcache.impl.config.store.disk.OffHeapDiskStoreProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.ConfigurationParser.Batching;
 import org.ehcache.xml.ConfigurationParser.WriteBehind;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.CopierType;
 import org.ehcache.xml.model.EventType;
 import org.ehcache.xml.model.SerializerType;
@@ -62,9 +63,10 @@ import org.ehcache.xml.model.ThreadPoolReferenceType;
 import org.ehcache.xml.model.ThreadPoolsType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
+import javax.xml.bind.JAXBException;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -108,14 +110,10 @@ public class XmlConfiguration implements Configuration {
    *
    * @param url URL pointing to the XML file's location
    *
-   * @throws IOException if anything went wrong accessing the URL
-   * @throws SAXException if anything went wrong parsing or validating the XML
-   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
-   * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
    */
   public XmlConfiguration(URL url)
-      throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
+      throws XmlConfigurationException {
     this(url, ClassLoading.getDefaultClassLoader());
   }
 
@@ -128,14 +126,10 @@ public class XmlConfiguration implements Configuration {
    * @param url URL pointing to the XML file's location
    * @param classLoader ClassLoader to use to load user types.
    *
-   * @throws IOException if anything went wrong accessing the URL
-   * @throws SAXException if anything went wrong parsing or validating the XML
-   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
-   * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader)
-      throws ClassNotFoundException, SAXException, InstantiationException, IOException, IllegalAccessException {
+      throws XmlConfigurationException {
     this(url, classLoader, Collections.<String, ClassLoader>emptyMap());
   }
 
@@ -151,14 +145,10 @@ public class XmlConfiguration implements Configuration {
    * @param classLoader ClassLoader to use to load user types.
    * @param cacheClassLoaders the map with mappings between cache names and the corresponding class loaders
    *
-   * @throws IOException if anything went wrong accessing the URL
-   * @throws SAXException if anything went wrong parsing or validating the XML
-   * @throws ClassNotFoundException if a {@link java.lang.Class} declared in the XML couldn't be found
-   * @throws InstantiationException if a user provided {@link java.lang.Class} couldn't get instantiated
-   * @throws IllegalAccessException if a method (including constructor) couldn't be invoked on a user provided type
+   * @throws XmlConfigurationException if anything went wrong parsing the XML
    */
   public XmlConfiguration(URL url, final ClassLoader classLoader, final Map<String, ClassLoader> cacheClassLoaders)
-      throws ClassNotFoundException, SAXException, InstantiationException, IllegalAccessException, IOException {
+      throws XmlConfigurationException {
     if(url == null) {
       throw new NullPointerException("The url can not be null");
     }
@@ -171,12 +161,16 @@ public class XmlConfiguration implements Configuration {
     this.xml = url;
     this.classLoader = classLoader;
     this.cacheClassLoaders = new HashMap<String, ClassLoader>(cacheClassLoaders);
-    parseConfiguration();
+    try {
+      parseConfiguration();
+    } catch (Exception e) {
+      throw new XmlConfigurationException("", e);
+    }
   }
 
   @SuppressWarnings({ "rawtypes", "unchecked" })
   private void parseConfiguration()
-      throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException {
+      throws ClassNotFoundException, IOException, SAXException, InstantiationException, IllegalAccessException, JAXBException, ParserConfigurationException {
     LOGGER.info("Loading Ehcache XML configuration from {}.", xml.getPath());
     ConfigurationParser configurationParser = new ConfigurationParser(xml.toExternalForm(), CORE_SCHEMA_URL);
 
@@ -191,11 +185,7 @@ public class XmlConfiguration implements Configuration {
       DefaultSerializationProviderConfiguration configuration = new DefaultSerializationProviderConfiguration();
 
       for (SerializerType.Serializer serializer : configurationParser.getDefaultSerializers().getSerializer()) {
-        try {
-          configuration.addSerializerFor(getClassForName(serializer.getType(), classLoader), (Class) getClassForName(serializer.getValue(), classLoader));
-        } catch (ClassNotFoundException e) {
-          throw new RuntimeException(e);
-        }
+        configuration.addSerializerFor(getClassForName(serializer.getType(), classLoader), (Class) getClassForName(serializer.getValue(), classLoader));
       }
       serviceConfigs.add(configuration);
     }
@@ -203,11 +193,7 @@ public class XmlConfiguration implements Configuration {
       DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
 
       for (CopierType.Copier copier : configurationParser.getDefaultCopiers().getCopier()) {
-        try {
-          configuration.addCopierFor(getClassForName(copier.getType(), classLoader), (Class)getClassForName(copier.getValue(), classLoader));
-        } catch (ClassNotFoundException e) {
-          throw new RuntimeException(e);
-        }
+        configuration.addCopierFor(getClassForName(copier.getType(), classLoader), (Class)getClassForName(copier.getValue(), classLoader));
       }
       serviceConfigs.add(configuration);
     }
