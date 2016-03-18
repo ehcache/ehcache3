@@ -1327,7 +1327,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         public OnHeapValueHolder<V> apply(K mappedKey, final OnHeapValueHolder<V> mappedValue) {
           if(mappedValue.equals(value)) {
             fireOnExpirationEvent(key, value, eventSink);
-            decrementCurrentUsageInBytesIfRequired(mappedValue.size());
+            updateUsageInBytesIfRequired(- mappedValue.size());
             return null;
           }
           return mappedValue;
@@ -1497,32 +1497,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return result;
   }
 
-  private void enforceByteCapacity(StoreEventSink<K, V> eventSink) {
-    while (capacity < currentUsageinBytes.get()) {
-      evict(eventSink);
-    }
-  }
-
   private void updateUsageInBytesIfRequired(long delta) {
     if (byteSized) {
       long currentSize = currentUsageinBytes.addAndGet(delta);
       if(currentSize < 0L) {
         throw new AssertionError("Current usage can never be negative - " + currentSize);
-      }
-    }
-  }
-
-  private void incrementCurrentUsageInBytesIfRequired(long delta) {
-    if(byteSized) {
-      currentUsageinBytes.addAndGet(delta);
-    }
-  }
-
-  private void decrementCurrentUsageInBytesIfRequired(long delta) {
-    if(byteSized) {
-      long current = currentUsageinBytes.addAndGet(-delta);
-      if(current < 0L) {
-        throw new AssertionError("Current usage can never be negative");
       }
     }
   }
@@ -1559,39 +1538,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private void enforceCapacity(long delta) {
-    StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
-    try {
-      enforceCapacity(delta, eventSink);
-      storeEventDispatcher.releaseEventSink(eventSink);
-    } catch (RuntimeException re){
-      storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw re;
-    }
-  }
-
-  protected void enforceCapacity(long delta, StoreEventSink<K, V> eventSink) {
-    if(byteSized) {
-      incrementCurrentUsageInBytesIfRequired(delta);
-      enforceByteCapacity(eventSink);
-      return;
-    }
-    for (int attempts = 0, evicted = 0; attempts < ATTEMPT_RATIO * delta && evicted < EVICTION_RATIO * delta
-            && capacity < map.size(); attempts++) {
-      if (evict(eventSink)) {
-        evicted++;
-      }
-    }
-  }
-
-  private void replaceByteCapacity(long delta, StoreEventSink<K, V> eventSink) {
-    if (delta < 0) {
-      decrementCurrentUsageInBytesIfRequired(Math.abs(delta));
-    } else {
-      enforceCapacity(delta, eventSink);
-    }
-  }
-
   /**
    * Try to evict a mapping.
    * @return true if a mapping was evicted, false otherwise.
@@ -1623,6 +1569,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
               eventSink.evicted(evictionCandidate.getKey(), evictionCandidate.getValue());
               invalidationListener.onInvalidation(mappedKey, evictionCandidate.getValue());
             }
+            updateUsageInBytesIfRequired(-mappedValue.size());
             return null;
           }
           return mappedValue;
@@ -1630,7 +1577,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       });
       if (removed.get()) {
         evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
-        decrementCurrentUsageInBytesIfRequired(evictionCandidate.getValue().size());
         return true;
       } else {
         evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.FAILURE);
