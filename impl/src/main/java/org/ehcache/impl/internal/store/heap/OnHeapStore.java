@@ -759,6 +759,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
               newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
               if (newValue == null) {
                 // Inline expiry or sizing failure
+                backEnd.remove(key, fault);
+                getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
                 return value;
               }
             } else {
@@ -769,7 +771,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
             if (backEnd.replace(key, fault, newValue)) {
               getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULTED);
-              enforceCapacity(newValue.size());
+              updateUsageInBytesIfRequired(newValue.size());
+              enforceCapacity();
               return getValue(newValue);
             } else {
               final AtomicReference<ValueHolder<V>> invalidatedValue = new AtomicReference<ValueHolder<V>>();
@@ -778,6 +781,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
                 public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
                   notifyInvalidation(key, mappedValue);
                   invalidatedValue.set(mappedValue);
+                  updateUsageInBytesIfRequired(mappedValue.size());
                   return null;
                 }
               });
@@ -1021,6 +1025,21 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public void setLastAccessTime(long lastAccessTime, TimeUnit unit) {
       throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setSize(long size) {
+      throw new UnsupportedOperationException("Faults should not be sized");
+    }
+
+    /**
+     * Faults always have a size of 0
+     *
+     * @return {@code 0}
+     */
+    @Override
+    public long size() {
+      return 0L;
     }
 
     @Override
