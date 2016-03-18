@@ -17,9 +17,11 @@
 package org.ehcache.impl.internal.spi.copy;
 
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.ReadWriteCopier;
 import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
@@ -82,6 +84,43 @@ public class DefaultCopyProviderTest {
         (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
 
     assertThat(copyProvider.createValueCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
+  }
+
+  @Test
+  public void testCreateKeyValueCopierForImmutableTypes() {
+    DefaultCopyProvider provider = new DefaultCopyProvider(null);
+
+    assertIdentityCopierFor(provider, Long.class);
+    assertIdentityCopierFor(provider, String.class);
+    assertIdentityCopierFor(provider, Character.class);
+    assertIdentityCopierFor(provider, Float.class);
+    assertIdentityCopierFor(provider, Double.class);
+    assertIdentityCopierFor(provider, Integer.class);
+  }
+
+  @Test
+  public void testKeyValueCopierForImmutableTypesIsOverriden() {
+    DefaultCopyProviderConfiguration configuration = new DefaultCopyProviderConfiguration();
+    configuration.addCopierFor(Long.class, (Class)TestCopier.class);
+    configuration.addCopierFor(String.class, (Class)TestCopier.class);
+    configuration.addCopierFor(Character.class, (Class)TestCopier.class);
+    configuration.addCopierFor(Float.class, (Class)TestCopier.class);
+    configuration.addCopierFor(Double.class, (Class)TestCopier.class);
+    configuration.addCopierFor(Integer.class, (Class)TestCopier.class);
+    DefaultCopyProvider provider = new DefaultCopyProvider(configuration);
+
+    assertIdentityCopierFor(provider, Long.class);
+    assertIdentityCopierFor(provider, String.class);
+    assertIdentityCopierFor(provider, Character.class);
+    assertIdentityCopierFor(provider, Float.class);
+    assertIdentityCopierFor(provider, Double.class);
+    assertIdentityCopierFor(provider, Integer.class);
+  }
+
+
+  private static void assertIdentityCopierFor(CopyProvider provider, Class clazz) {
+    assertThat(provider.createValueCopier(clazz, null), instanceOf(IdentityCopier.class));
+    assertThat(provider.createKeyCopier(clazz, null), instanceOf(IdentityCopier.class));
   }
 
   public static class TestCopier<T> extends ReadWriteCopier<T> {

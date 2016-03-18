@@ -31,6 +31,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Map;
 
 /**
  * @author Albin Suresh
@@ -41,6 +42,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
 
   public DefaultCopyProvider(DefaultCopyProviderConfiguration configuration) {
     super(configuration, (Class) DefaultCopierConfiguration.class);
+    overrideCopierForImmutableTypes();
   }
 
 
@@ -84,6 +86,20 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
       copier = new IdentityCopier<T>();
     }
     return copier;
+  }
+
+  private void overrideCopierForImmutableTypes() {
+    overrideCopierFor(preconfigured, Long.class);
+    overrideCopierFor(preconfigured, Integer.class);
+    overrideCopierFor(preconfigured, Float.class);
+    overrideCopierFor(preconfigured, Double.class);
+    overrideCopierFor(preconfigured, Character.class);
+    overrideCopierFor(preconfigured, String.class);
+  }
+
+  private static void overrideCopierFor(Map preconfigured,Class clazz) {
+    preconfigured.put(clazz, new DefaultCopierConfiguration(IdentityCopier.class, DefaultCopierConfiguration.Type.KEY));
+    preconfigured.put(clazz, new DefaultCopierConfiguration(IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
   }
 
   @SuppressWarnings("unchecked")
