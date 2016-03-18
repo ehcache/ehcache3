@@ -94,7 +94,7 @@ class ConfigurationParser {
   private final Unmarshaller unmarshaller;
   private final ConfigType config;
 
-  public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
+  public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException, JAXBException, ParserConfigurationException {
     Collection<Source> schemaSources = new ArrayList<Source>();
     for (URL source : sources) {
       schemaSources.add(new StreamSource(source.openStream()));
@@ -115,24 +115,14 @@ class ConfigurationParser {
     factory.setXIncludeAware(true);
     factory.setSchema(XSD_SCHEMA_FACTORY.newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
 
-    final DocumentBuilder domBuilder;
-    try {
-      domBuilder = factory.newDocumentBuilder();
-    } catch (ParserConfigurationException e) {
-      throw new AssertionError(e);
-    }
+    DocumentBuilder domBuilder = factory.newDocumentBuilder();
     domBuilder.setErrorHandler(new FatalErrorHandler());
-    final Element dom = domBuilder.parse(xml).getDocumentElement();
+    Element dom = domBuilder.parse(xml).getDocumentElement();
 
-    try {
-      Class<ConfigType> configTypeClass = ConfigType.class;
-      JAXBContext jc = JAXBContext.newInstance("org.ehcache.xml.model", configTypeClass.getClassLoader());
-      this.unmarshaller = jc.createUnmarshaller();
-      this.config = unmarshaller.unmarshal(dom, configTypeClass).getValue();
-    } catch (JAXBException e) {
-      throw new RuntimeException(e);
-    }
-
+    Class<ConfigType> configTypeClass = ConfigType.class;
+    JAXBContext jc = JAXBContext.newInstance("org.ehcache.xml.model", configTypeClass.getClassLoader());
+    this.unmarshaller = jc.createUnmarshaller();
+    this.config = unmarshaller.unmarshal(dom, configTypeClass).getValue();
   }
 
   public Iterable<ServiceType> getServiceElements() {
@@ -574,7 +564,7 @@ class ConfigurationParser {
         throw new AssertionError();
       }
     } catch (JAXBException e) {
-      throw new IllegalArgumentException("Can't find parser for resource: " + element);
+      throw new IllegalArgumentException("Can't find parser for resource: " + element, e);
     }
   }
 

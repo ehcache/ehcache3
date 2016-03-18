@@ -44,6 +44,7 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -136,8 +137,8 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentVeto-cache.xml"));
       fail();
-    } catch (ClassNotFoundException cnfe) {
-      // expected
+    } catch (XmlConfigurationException xce) {
+      assertThat(xce.getCause(), instanceOf(ClassNotFoundException.class));
     }
   }
 
@@ -146,8 +147,8 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentVeto-template.xml"));
       fail();
-    } catch (ClassNotFoundException cnfe) {
-      // expected
+    } catch (XmlConfigurationException xce) {
+      assertThat(xce.getCause(), instanceOf(ClassNotFoundException.class));
     }
   }
 
@@ -231,7 +232,8 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-core.xml"));
       fail();
-    } catch (SAXParseException e) {
+    } catch (XmlConfigurationException xce) {
+      SAXParseException e = (SAXParseException) xce.getCause();
       assertThat(e.getLineNumber(), is(5));
       assertThat(e.getColumnNumber(), is(29));
     }
@@ -241,7 +243,8 @@ public class XmlConfigurationTest {
   public void testInvalidServiceConfiguration() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
-    } catch (SAXParseException e) {
+    } catch (XmlConfigurationException xce) {
+      SAXParseException e = (SAXParseException) xce.getCause();
       assertThat(e.getLineNumber(), is(6));
       assertThat(e.getColumnNumber(), is(15));
     }
@@ -642,7 +645,8 @@ public class XmlConfigurationTest {
   public void testCustomResource() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
-    } catch (IllegalArgumentException e) {
+    } catch (XmlConfigurationException xce) {
+      IllegalArgumentException e = (IllegalArgumentException) xce.getCause();
       assertThat(e.getMessage(), containsString("Can't find parser for resource: [fancy:fancy: null]"));
     }
   }

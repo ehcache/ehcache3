@@ -22,6 +22,7 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProviderConfiguration;
 import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Element;
 
 import javax.xml.transform.Source;
@@ -60,10 +61,11 @@ public class TxCacheManagerServiceConfigurationParser implements CacheManagerSer
         TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
         return (ServiceCreationConfiguration) new TransactionManagerProviderConfiguration(transactionManagerWrapper);
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new XmlConfigurationException("Error configuring XA transaction manager", e);
       }
     } else {
-      throw new RuntimeException("Unsupported XML fragment : " + fragment.getNodeName());
+      throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
+          fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
     }
   }
 }
