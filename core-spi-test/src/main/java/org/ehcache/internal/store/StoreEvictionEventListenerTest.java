@@ -19,7 +19,7 @@ package org.ehcache.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.events.StoreEvent;
@@ -123,7 +123,7 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   private K getOnlyKey(Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iter)
-      throws CacheAccessException {
+      throws StoreAccessException {
     if (iter.hasNext()) {
       Cache.Entry<K, Store.ValueHolder<V>> entry = iter.next();
       return entry.getKey();

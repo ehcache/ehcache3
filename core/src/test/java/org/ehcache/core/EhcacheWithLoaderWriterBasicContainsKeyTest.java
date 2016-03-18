@@ -18,7 +18,7 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -87,18 +87,18 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
   /**
    * Tests {@link EhcacheWithLoaderWriter#containsKey(Object) EhcacheWithLoaderWriter.containsKey} over an empty cache
    * where {@link Store#containsKey(Object) Store.containsKey} throws a
-   * {@link org.ehcache.exceptions.CacheAccessException CacheAccessException}.
+   * {@link StoreAccessException StoreAccessException}.
    */
   @Test
-  public void testContainsKeyEmptyCacheAccessException() throws Exception {
+  public void testContainsKeyEmptyStoreAccessException() throws Exception {
     final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).containsKey("key");
+    doThrow(new StoreAccessException("")).when(this.store).containsKey("key");
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("key");
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("key"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("key"), any(StoreAccessException.class));
   }
 
   /**
@@ -119,18 +119,18 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
   /**
    * Tests {@link EhcacheWithLoaderWriter#containsKey(Object) EhcacheWithLoaderWriter.containsKey} over a cache holding
    * the target key where {@link Store#containsKey(Object) Store.containsKey}
-   * throws a {@link org.ehcache.exceptions.CacheAccessException CacheAccessException}.
+   * throws a {@link StoreAccessException StoreAccessException}.
    */
   @Test
-  public void testContainsKeyContainsCacheAccessException() throws Exception {
+  public void testContainsKeyContainsStoreAccessException() throws Exception {
     final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).containsKey("keyA");
+    doThrow(new StoreAccessException("")).when(this.store).containsKey("keyA");
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("keyA");
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("keyA"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("keyA"), any(StoreAccessException.class));
   }
 
   /**
@@ -151,18 +151,18 @@ public class EhcacheWithLoaderWriterBasicContainsKeyTest extends EhcacheBasicCru
   /**
    * Tests {@link EhcacheWithLoaderWriter#containsKey(Object) EhcacheWithLoaderWriter.containsKey} over a non-empty cache
    * not holding the target key where {@link Store#containsKey(Object) Store.containsKey}
-   * throws a {@link org.ehcache.exceptions.CacheAccessException CacheAccessException}.
+   * throws a {@link StoreAccessException StoreAccessException}.
    */
   @Test
-  public void testContainsKeyMissingCacheAccessException() throws Exception {
+  public void testContainsKeyMissingStoreAccessException() throws Exception {
     final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).containsKey("missingKey");
+    doThrow(new StoreAccessException("")).when(this.store).containsKey("missingKey");
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("missingKey");
     verifyZeroInteractions(this.cacheLoaderWriter);
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("missingKey"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("missingKey"), any(StoreAccessException.class));
   }
 
   private Map<String, String> getTestStoreEntries() {

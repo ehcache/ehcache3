@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -115,7 +115,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testPutAndGet() throws CacheAccessException {
+  public void testPutAndGet() throws StoreAccessException {
     store.put(KEY, VALUE);
 
     Store.ValueHolder<Value> firstStoreValue = store.get(KEY);
@@ -126,7 +126,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testCompute() throws CacheAccessException {
+  public void testCompute() throws StoreAccessException {
     final Store.ValueHolder<Value> firstValue = store.compute(KEY, new BiFunction<Long, Value, Value>() {
       @Override
       public Value apply(Long aLong, Value value) {
@@ -145,7 +145,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testComputeWithoutReplaceEqual() throws CacheAccessException {
+  public void testComputeWithoutReplaceEqual() throws StoreAccessException {
     final Store.ValueHolder<Value> firstValue = store.compute(KEY, new BiFunction<Long, Value, Value>() {
       @Override
       public Value apply(Long aLong, Value value) {
@@ -164,7 +164,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testComputeWithReplaceEqual() throws CacheAccessException {
+  public void testComputeWithReplaceEqual() throws StoreAccessException {
     final Store.ValueHolder<Value> firstValue = store.compute(KEY, new BiFunction<Long, Value, Value>() {
       @Override
       public Value apply(Long aLong, Value value) {
@@ -183,7 +183,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testComputeIfAbsent() throws CacheAccessException {
+  public void testComputeIfAbsent() throws StoreAccessException {
     Store.ValueHolder<Value> computedValue = store.computeIfAbsent(KEY, new Function<Long, Value>() {
       @Override
       public Value apply(Long aLong) {
@@ -202,7 +202,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testBulkCompute() throws CacheAccessException {
+  public void testBulkCompute() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), new Function<Iterable<? extends Map.Entry<? extends Long, ? extends Value>>, Iterable<? extends Map.Entry<? extends Long, ? extends Value>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends Long, ? extends Value>> apply(Iterable<? extends Map.Entry<? extends Long, ? extends Value>> entries) {
@@ -220,7 +220,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testBulkComputeWithoutReplaceEqual() throws CacheAccessException {
+  public void testBulkComputeWithoutReplaceEqual() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), new Function<Iterable<? extends Map.Entry<? extends Long, ? extends Value>>, Iterable<? extends Map.Entry<? extends Long, ? extends Value>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends Long, ? extends Value>> apply(Iterable<? extends Map.Entry<? extends Long, ? extends Value>> entries) {
@@ -238,7 +238,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testBulkComputeWithReplaceEqual() throws CacheAccessException {
+  public void testBulkComputeWithReplaceEqual() throws StoreAccessException {
     final Map<Long, Store.ValueHolder<Value>> results = store.bulkCompute(singleton(KEY), new Function<Iterable<? extends Map.Entry<? extends Long, ? extends Value>>, Iterable<? extends Map.Entry<? extends Long, ? extends Value>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends Long, ? extends Value>> apply(Iterable<? extends Map.Entry<? extends Long, ? extends Value>> entries) {
@@ -256,7 +256,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testBulkComputeIfAbsent() throws CacheAccessException {
+  public void testBulkComputeIfAbsent() throws StoreAccessException {
     Map<Long, Store.ValueHolder<Value>> results = store.bulkComputeIfAbsent(singleton(KEY), new Function<Iterable<? extends Long>, Iterable<? extends Map.Entry<? extends Long, ? extends Value>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends Long, ? extends Value>> apply(Iterable<? extends Long> longs) {
@@ -275,7 +275,7 @@ public class OnHeapStoreValueCopierTest {
   }
 
   @Test
-  public void testIterator() throws CacheAccessException {
+  public void testIterator() throws StoreAccessException {
     store.put(KEY, VALUE);
     Store.Iterator<Cache.Entry<Long, Store.ValueHolder<Value>>> iterator = store.iterator();
     assertThat(iterator.hasNext(), is(true));

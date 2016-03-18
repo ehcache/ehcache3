@@ -21,7 +21,7 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -70,9 +70,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws NullPointerException if the argument is {@code null}
    * @throws ClassCastException if the specified key is not an instance of {@code K}
-   * @throws CacheAccessException if the mapping can't be retrieved
+   * @throws StoreAccessException if the mapping can't be retrieved
    */
-  ValueHolder<V> get(K key) throws CacheAccessException;
+  ValueHolder<V> get(K key) throws StoreAccessException;
 
   /**
    * Returns {@code true} if this store contains the specified key
@@ -88,9 +88,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws NullPointerException if the argument is {@code null}
    * @throws ClassCastException if the specified key is not an instance of {@code K}
-   * @throws CacheAccessException if the presence can't be tested for
+   * @throws StoreAccessException if the presence can't be tested for
    */
-  boolean containsKey(K key) throws CacheAccessException;
+  boolean containsKey(K key) throws StoreAccessException;
 
   /**
    * Maps the specified key to the specified value in this store.
@@ -107,9 +107,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws NullPointerException if any of the arguments is {@code null}
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
-   * @throws CacheAccessException if the mapping can't be installed
+   * @throws StoreAccessException if the mapping can't be installed
    */
-  PutStatus put(K key, V value) throws CacheAccessException;
+  PutStatus put(K key, V value) throws StoreAccessException;
 
   /**
    * Maps the specified key to the specified value in this store, unless a non-expired mapping
@@ -138,11 +138,11 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws NullPointerException if any of the arguments is {@code null}
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
-   * @throws CacheAccessException if the mapping can't be installed
+   * @throws StoreAccessException if the mapping can't be installed
    *
    * @see #replace(Object, Object)
    */
-  ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException;
+  ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException;
 
   /**
    * Removes the key (and its corresponding value) from this store.
@@ -156,9 +156,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws NullPointerException if the specified key is null
    * @throws NullPointerException if the argument is {@code null}
-   * @throws CacheAccessException if the mapping can't be removed
+   * @throws StoreAccessException if the mapping can't be removed
    */
-  boolean remove(K key) throws CacheAccessException;
+  boolean remove(K key) throws StoreAccessException;
 
   /**
    * Removes the entry for a key only if currently mapped to the given value
@@ -183,9 +183,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
    * @throws NullPointerException if any of the arguments is {@code null}
-   * @throws CacheAccessException if the mapping can't be removed
+   * @throws StoreAccessException if the mapping can't be removed
    */
-  RemoveStatus remove(K key, V value) throws CacheAccessException;
+  RemoveStatus remove(K key, V value) throws StoreAccessException;
 
   /**
    * Replaces the entry for a key only if currently mapped to some value and the entry is not expired.
@@ -210,9 +210,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
    * @throws NullPointerException if any of the arguments is {@code null}
-   * @throws CacheAccessException if the mapping can't be replaced
+   * @throws StoreAccessException if the mapping can't be replaced
    */
-  ValueHolder<V> replace(K key, V value) throws CacheAccessException;
+  ValueHolder<V> replace(K key, V value) throws StoreAccessException;
 
   /**
    * Replaces the entry for a key only if currently mapped to the given value
@@ -237,9 +237,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws ClassCastException if the specified key or values are not of the correct types ({@code K} or {@code V})
    * @throws NullPointerException if any of the arguments is {@code null}
-   * @throws CacheAccessException if the mapping can't be replaced
+   * @throws StoreAccessException if the mapping can't be replaced
    */
-  ReplaceStatus replace(K key, V oldValue, V newValue) throws CacheAccessException;
+  ReplaceStatus replace(K key, V oldValue, V newValue) throws StoreAccessException;
 
   /**
    * Removes all of the mappings from this {@code Store}.
@@ -247,9 +247,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * This method provides no guarantee of atomicity.
    * </P>
    *
-   * @throws CacheAccessException if the store couldn't be partially or entirely be cleared.
+   * @throws StoreAccessException if the store couldn't be partially or entirely be cleared.
    */
-  void clear() throws CacheAccessException;
+  void clear() throws StoreAccessException;
 
   /**
    * Exposes the {@code Store} eventing system to allow configuration and registration of listeners.
@@ -273,7 +273,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * <P>
    * The function will be supplied with the key and existing value (or {@code null} if no entry exists) as parameters.
    * The function should return the desired new value for the entry or {@code null} to remove the entry.
-   * If the function throws an unchecked exception the Store will not be modified and a {@link CacheAccessException} will
+   * If the function throws an unchecked exception the Store will not be modified and a {@link StoreAccessException} will
    * be thrown.
    * </P>
    * <P>
@@ -301,11 +301,11 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws ClassCastException if the specified key is not of the correct type {@code K}
    * @throws NullPointerException if any of the arguments is {@code null}
-   * @throws CacheAccessException if the mapping can't be changed
+   * @throws StoreAccessException if the mapping can't be changed
    *
    * @see #compute(Object, BiFunction, NullaryFunction)
    */
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException;
+  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException;
 
   /**
    * Compute the value for the given key by invoking the given function to produce the value.
@@ -319,7 +319,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * {@code false} then the existing mapping will not be replaced and will have its metadata updated.
    * </P>
    * <P>
-   * If either function throws an unchecked exception the {@code Store} will not be modified and a {@link CacheAccessException}
+   * If either function throws an unchecked exception the {@code Store} will not be modified and a {@link StoreAccessException}
    * will be thrown.
    * </P>
    * <P>
@@ -349,18 +349,18 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    *
    * @throws ClassCastException if the specified key is not of the correct type {@code K}
    * @throws NullPointerException if any of the arguments is {@code null}
-   * @throws CacheAccessException if the mapping can't be changed
+   * @throws StoreAccessException if the mapping can't be changed
    *
    * @see #compute(Object, BiFunction)
    */
-  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException;
+  ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException;
 
   /**
    * Compute the value for the given key (only if absent or expired) by invoking the given function to produce the value.
    * <P>
    *   The function will be supplied with the key only if no mapping exists.
    *   The function should return the desired new value for the entry. {@code null} will result in a no-op.
-   *   If the function throws an unchecked exception the Store will not be modified and a {@link CacheAccessException}
+   *   If the function throws an unchecked exception the Store will not be modified and a {@link StoreAccessException}
    *   will be thrown.
    * </P>
    * <P>
@@ -388,9 +388,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws ClassCastException If the specified key is not of the correct type ({@code K}) or if the
    *         function returns a value that is not of type ({@code V})
    * @throws NullPointerException if any of the arguments is {@code null}
-   * @throws CacheAccessException if the mapping can't be changed
+   * @throws StoreAccessException if the mapping can't be changed
    */
-  ValueHolder<V> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException;
+  ValueHolder<V> computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException;
 
   /**
    * Compute a value for every key passed in the {@link Set} {@code keys} argument, using the {@code remappingFunction} to compute the value.
@@ -420,9 +420,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the
    *         given function produces entries with either incorrect key or value types
    * @throws NullPointerException if any of the arguments is null
-   * @throws CacheAccessException if mappings can't be changed
+   * @throws StoreAccessException if mappings can't be changed
    */
-  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException;
+  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException;
 
   /**
    * Compute a value for every key passed in the {@link Set} {@code keys} argument, using the {@code remappingFunction} to compute the value.
@@ -452,9 +452,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types
    * @throws NullPointerException if any of the arguments is null
-   * @throws CacheAccessException if mappings can't be changed
+   * @throws StoreAccessException if mappings can't be changed
    */
-  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException;
+  Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException;
 
   /**
    * Compute a value for every key passed in the {@link Set} <code>keys</code> argument using the <code>mappingFunction</code>
@@ -473,9 +473,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @return a {@link Map} of key/value pairs for each key in <code>keys</code> to the previously missing value.
    * @throws ClassCastException if the specified key(s) are not of the correct type ({@code K}). Also thrown if the given function produces
    *         entries with either incorrect key or value types
-   * @throws CacheAccessException
+   * @throws StoreAccessException
    */
-  Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException;
+  Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException;
 
   /**
    * Holds both a value, and all the metadata associated with a mapping in a Store.
@@ -671,9 +671,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      *
      * @return the next element in the iteration.
      * @throws java.util.NoSuchElementException iteration has no more elements.
-     * @throws CacheAccessException if accessing the next element failed
+     * @throws StoreAccessException if accessing the next element failed
      */
-    T next() throws CacheAccessException;
+    T next() throws StoreAccessException;
 
   }
 

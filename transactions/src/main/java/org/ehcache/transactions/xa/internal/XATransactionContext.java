@@ -16,7 +16,7 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
@@ -126,7 +126,7 @@ public class XATransactionContext<K, V> {
     return valueHolder == null ? null : valueHolder.value();
   }
 
-  public int prepare() throws CacheAccessException, IllegalStateException, TransactionTimeoutException {
+  public int prepare() throws StoreAccessException, IllegalStateException, TransactionTimeoutException {
     try {
       if (hasTimedOut()) {
         throw new TransactionTimeoutException();
@@ -173,7 +173,7 @@ public class XATransactionContext<K, V> {
    * @throws IllegalStateException if the transaction ID is unknown
    * @throws IllegalArgumentException if the transaction ID has not been prepared
    */
-  public void commit(boolean recovering) throws CacheAccessException, IllegalStateException, IllegalArgumentException {
+  public void commit(boolean recovering) throws StoreAccessException, IllegalStateException, IllegalArgumentException {
     if (!journal.isInDoubt(transactionId)) {
       if (recovering) {
         throw new IllegalStateException("Cannot commit unknown transaction : " + transactionId);
@@ -217,7 +217,7 @@ public class XATransactionContext<K, V> {
     journal.saveCommitted(transactionId, false);
   }
 
-  public void commitInOnePhase() throws CacheAccessException, IllegalStateException, TransactionTimeoutException {
+  public void commitInOnePhase() throws StoreAccessException, IllegalStateException, TransactionTimeoutException {
     if (journal.isInDoubt(transactionId)) {
       throw new IllegalStateException("Cannot commit-one-phase transaction that has been prepared : " + transactionId);
     }
@@ -231,7 +231,7 @@ public class XATransactionContext<K, V> {
   /**
    * @throws IllegalStateException if the transaction ID is unknown
    */
-  public void rollback(boolean recovering) throws CacheAccessException, IllegalStateException {
+  public void rollback(boolean recovering) throws StoreAccessException, IllegalStateException {
     boolean inDoubt = journal.isInDoubt(transactionId);
 
     if (inDoubt) {
@@ -278,30 +278,30 @@ public class XATransactionContext<K, V> {
   }
 
 
-  private boolean removeFromUnderlyingStore(K key, SoftLock<V> preparedSoftLock) throws CacheAccessException {
+  private boolean removeFromUnderlyingStore(K key, SoftLock<V> preparedSoftLock) throws StoreAccessException {
     if (underlyingStore.remove(key, preparedSoftLock).equals(RemoveStatus.REMOVED)) {
       return true;
     }
     return false;
   }
 
-  private boolean replaceInUnderlyingStore(K key, SoftLock<V> preparedSoftLock, SoftLock<V> definitiveSoftLock) throws CacheAccessException {
+  private boolean replaceInUnderlyingStore(K key, SoftLock<V> preparedSoftLock, SoftLock<V> definitiveSoftLock) throws StoreAccessException {
     if (underlyingStore.replace(key, preparedSoftLock, definitiveSoftLock).equals(ReplaceStatus.HIT)) {
       return true;
     }
     return false;
   }
 
-  private Store.ValueHolder<SoftLock<V>> putIfAbsentInUnderlyingStore(Map.Entry<K, Command<V>> entry, SoftLock<V> newSoftLock) throws CacheAccessException {
+  private Store.ValueHolder<SoftLock<V>> putIfAbsentInUnderlyingStore(Map.Entry<K, Command<V>> entry, SoftLock<V> newSoftLock) throws StoreAccessException {
     return underlyingStore.putIfAbsent(entry.getKey(), newSoftLock);
   }
 
-  private SoftLock<V> getFromUnderlyingStore(K key) throws CacheAccessException {
+  private SoftLock<V> getFromUnderlyingStore(K key) throws StoreAccessException {
     Store.ValueHolder<SoftLock<V>> softLockValueHolder = underlyingStore.get(key);
     return softLockValueHolder == null ? null : softLockValueHolder.value();
   }
 
-  private void evictFromUnderlyingStore(K key) throws CacheAccessException {
+  private void evictFromUnderlyingStore(K key) throws StoreAccessException {
     underlyingStore.remove(key);
   }
 

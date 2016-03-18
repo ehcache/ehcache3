@@ -20,7 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -148,17 +148,17 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testRemoveValueNoStoreEntryCacheAccessException() throws Exception {
+  public void testRemoveValueNoStoreEntryStoreAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).remove(eq("key"), eq("value"));
+    doThrow(new StoreAccessException("")).when(this.store).remove(eq("key"), eq("value"));
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.remove("key", "value");
     verify(this.store).remove(eq("key"), eq("value"));
     verify(this.spiedResilienceStrategy)
-        .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
+        .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -170,17 +170,17 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testRemoveValueUnequalStoreEntryCacheAccessException() throws Exception {
+  public void testRemoveValueUnequalStoreEntryStoreAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "unequalValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).remove(eq("key"), eq("value"));
+    doThrow(new StoreAccessException("")).when(this.store).remove(eq("key"), eq("value"));
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.remove("key", "value");
     verify(this.store).remove(eq("key"), eq("value"));
     verify(this.spiedResilienceStrategy)
-        .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
+        .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -192,17 +192,17 @@ public class EhcacheBasicRemoveValueTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testRemoveValueEqualStoreEntryCacheAccessException() throws Exception {
+  public void testRemoveValueEqualStoreEntryStoreAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).remove(eq("key"), eq("value"));
+    doThrow(new StoreAccessException("")).when(this.store).remove(eq("key"), eq("value"));
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.remove("key", "value");
     verify(this.store).remove(eq("key"), eq("value"));
     verify(this.spiedResilienceStrategy)
-        .removeFailure(eq("key"), eq("value"), any(CacheAccessException.class), eq(false));
+        .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 

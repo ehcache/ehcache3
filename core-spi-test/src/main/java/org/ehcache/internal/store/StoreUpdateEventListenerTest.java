@@ -19,7 +19,7 @@ package org.ehcache.internal.store;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
@@ -67,7 +67,7 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       StoreEventListener<K, V> listener = addListener(store);
       store.put(key, factory.createValue(123L));
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -81,7 +81,7 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       StoreEventListener<K, V> listener = addListener(store);
       store.replace(key, factory.createValue(123L));
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -96,7 +96,7 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       StoreEventListener<K, V> listener = addListener(store);
       store.replace(key, value, factory.createValue(123L));
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -115,7 +115,7 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         }
       });
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

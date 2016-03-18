@@ -20,7 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.statistics.BulkOps;
 import org.hamcrest.Matchers;
@@ -170,7 +170,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.spiedResilienceStrategy, never()).putAllFailure(eq(Collections.<String, String>emptyMap()), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy, never()).putAllFailure(eq(Collections.<String, String>emptyMap()), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
@@ -216,11 +216,11 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testPutAllStoreSomeOverlapCacheAccessExceptionBeforeNoWriter() throws Exception {
+  public void testPutAllStoreSomeOverlapStoreAccessExceptionBeforeNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -233,7 +233,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.spiedResilienceStrategy)
-        .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .putAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));
@@ -250,7 +250,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testPutAllStoreSomeOverlapCacheAccessExceptionAfterNoWriter() throws Exception {
+  public void testPutAllStoreSomeOverlapStoreAccessExceptionAfterNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -265,7 +265,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates.keySet())));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.spiedResilienceStrategy)
-        .putAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .putAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.PutOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutAllOutcome.FAILURE));

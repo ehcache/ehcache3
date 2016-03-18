@@ -23,8 +23,8 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.config.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.exceptions.CacheAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
@@ -115,7 +115,7 @@ public class XAStore<K, V> implements Store<K, V> {
     return softLock.getTransactionId() != null;
   }
 
-  private ValueHolder<SoftLock<V>> getSoftLockValueHolderFromUnderlyingStore(K key) throws CacheAccessException {
+  private ValueHolder<SoftLock<V>> getSoftLockValueHolderFromUnderlyingStore(K key) throws StoreAccessException {
     return underlyingStore.get(key);
   }
 
@@ -187,7 +187,7 @@ public class XAStore<K, V> implements Store<K, V> {
 
 
   @Override
-  public ValueHolder<V> get(K key) throws CacheAccessException {
+  public ValueHolder<V> get(K key) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
 
@@ -214,7 +214,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean containsKey(K key) throws CacheAccessException {
+  public boolean containsKey(K key) throws StoreAccessException {
     checkKey(key);
     if (getCurrentContext().touched(key)) {
       return getCurrentContext().newValueHolderOf(key) != null;
@@ -224,7 +224,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public PutStatus put(K key, V value) throws CacheAccessException {
+  public PutStatus put(K key, V value) throws StoreAccessException {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
@@ -255,7 +255,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean remove(K key) throws CacheAccessException {
+  public boolean remove(K key) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
@@ -279,7 +279,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
+  public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
@@ -310,7 +310,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public RemoveStatus remove(K key, V value) throws CacheAccessException {
+  public RemoveStatus remove(K key, V value) throws StoreAccessException {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
@@ -345,7 +345,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
+  public ValueHolder<V> replace(K key, V value) throws StoreAccessException {
     checkKey(key);
     checkValue(value);
     XATransactionContext<K, V> currentContext = getCurrentContext();
@@ -378,7 +378,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ReplaceStatus replace(K key, V oldValue, V newValue) throws CacheAccessException {
+  public ReplaceStatus replace(K key, V oldValue, V newValue) throws StoreAccessException {
     checkKey(key);
     checkValue(oldValue);
     checkValue(newValue);
@@ -415,7 +415,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void clear() throws CacheAccessException {
+  public void clear() throws StoreAccessException {
     // we don't want that to be transactional
     underlyingStore.clear();
   }
@@ -438,7 +438,7 @@ public class XAStore<K, V> implements Store<K, V> {
     private final Iterator<Cache.Entry<K, ValueHolder<SoftLock<V>>>> underlyingIterator;
     private final TransactionId transactionId;
     private Cache.Entry<K, ValueHolder<V>> next;
-    private CacheAccessException prefetchFailure = null;
+    private StoreAccessException prefetchFailure = null;
 
     XAIterator(Map<K, XAValueHolder<V>> valueHolderMap, Iterator<Cache.Entry<K, ValueHolder<SoftLock<V>>>> underlyingIterator, TransactionId transactionId) {
       this.transactionId = transactionId;
@@ -471,7 +471,7 @@ public class XAStore<K, V> implements Store<K, V> {
         final Cache.Entry<K, ValueHolder<SoftLock<V>>> next;
         try {
           next = underlyingIterator.next();
-        } catch (CacheAccessException e) {
+        } catch (StoreAccessException e) {
           prefetchFailure = e;
           break;
         }
@@ -513,7 +513,7 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+    public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
       if(prefetchFailure != null) {
         throw prefetchFailure;
       }
@@ -530,7 +530,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.touched(key)) {
@@ -566,12 +566,12 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
     return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public ValueHolder<V> computeIfAbsent(K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> computeIfAbsent(K key, final Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
     checkKey(key);
     XATransactionContext<K, V> currentContext = getCurrentContext();
     if (currentContext.removed(key)) {
@@ -643,12 +643,12 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     return bulkCompute(keys, remappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (K key : keys) {
       checkKey(key);
@@ -676,7 +676,7 @@ public class XAStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
 
     for (final K key : keys) {

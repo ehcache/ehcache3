@@ -21,7 +21,7 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -302,7 +302,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testWriteBackOfValueHolder() throws CacheAccessException {
+  public void testWriteBackOfValueHolder() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
     try {
@@ -320,7 +320,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testEvictionVeto() throws CacheAccessException {
+  public void testEvictionVeto() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {
@@ -335,7 +335,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testBrokenEvictionVeto() throws CacheAccessException {
+  public void testBrokenEvictionVeto() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {
@@ -350,7 +350,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testFlushUpdatesAccessStats() throws CacheAccessException {
+  public void testFlushUpdatesAccessStats() throws StoreAccessException {
     final TestTimeSource timeSource = new TestTimeSource();
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
     final AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, expiry);
@@ -375,7 +375,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testFlushUpdatesHits() throws CacheAccessException {
+  public void testFlushUpdatesHits() throws StoreAccessException {
     final TestTimeSource timeSource = new TestTimeSource();
     final AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, Expirations.noExpiration());
     final String key = "foo1";
@@ -391,7 +391,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testExpiryEventFiredOnExpiredCachedEntry() throws CacheAccessException {
+  public void testExpiryEventFiredOnExpiredCachedEntry() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
     try {
@@ -534,7 +534,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testGetAndFaultOnExpiredEntry() throws CacheAccessException {
+  public void testGetAndFaultOnExpiredEntry() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
     try {
@@ -550,7 +550,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testComputeExpiresOnAccess() throws CacheAccessException {
+  public void testComputeExpiresOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
     AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
@@ -591,7 +591,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testComputeExpiresOnUpdate() throws CacheAccessException {
+  public void testComputeExpiresOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     timeSource.advanceTime(1000L);
     AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
@@ -632,7 +632,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testComputeOnExpiredEntry() throws CacheAccessException {
+  public void testComputeOnExpiredEntry() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
     try {
@@ -654,7 +654,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testComputeIfAbsentOnExpiredEntry() throws CacheAccessException {
+  public void testComputeIfAbsentOnExpiredEntry() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
     try {
@@ -780,7 +780,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   protected abstract void destroyStore(AbstractOffHeapStore<?, ?> store);
 
-  private void performEvictionTest(TestTimeSource timeSource, Expiry<Object, Object> expiry, EvictionVeto<String, byte[]> evictionVeto) throws CacheAccessException {AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
+  private void performEvictionTest(TestTimeSource timeSource, Expiry<Object, Object> expiry, EvictionVeto<String, byte[]> evictionVeto) throws StoreAccessException {AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
     try {
       StoreEventListener<String, byte[]> listener = mock(StoreEventListener.class);
       offHeapStore.getStoreEventSource().addEventListener(listener);

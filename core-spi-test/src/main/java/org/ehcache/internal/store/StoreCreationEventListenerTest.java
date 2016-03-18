@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
@@ -67,7 +67,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     try {
       store.put(factory.createKey(1L), factory.createValue(1L));
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -79,7 +79,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     try {
       store.putIfAbsent(factory.createKey(42L), factory.createValue(42L));
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -96,7 +96,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         }
       });
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -113,7 +113,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         }
       });
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

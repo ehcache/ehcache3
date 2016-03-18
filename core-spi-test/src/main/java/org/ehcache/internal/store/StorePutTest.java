@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TestTimeSource;
@@ -74,7 +74,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -92,14 +92,14 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the value is null");
     } catch (NullPointerException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void indicatesValuePutAndCanBeRetrievedWithEqualKey()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -108,7 +108,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
     try {
       Store.PutStatus putStatus = kvStore.put(key, value);
       assertThat(putStatus, is(Store.PutStatus.PUT));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
@@ -132,7 +132,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -154,7 +154,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -172,7 +172,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       Store.PutStatus putStatus = store.put(key, newValue);
       assertThat(putStatus, is(Store.PutStatus.UPDATE));
       assertThat(store.get(key), notNullValue());
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -206,7 +206,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       Store.PutStatus putStatus = store.put(key, newValue);
       assertThat(putStatus, is(Store.PutStatus.UPDATE));
       assertThat(store.get(key), nullValue());
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
@@ -237,7 +237,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       Store.PutStatus putStatus = store.put(key, factory.createValue(42L));
       assertThat(putStatus, is(Store.PutStatus.NOOP));
       assertThat(store.get(key), nullValue());
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

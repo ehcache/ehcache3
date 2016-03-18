@@ -18,7 +18,7 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.LifeCycled;
@@ -62,7 +62,7 @@ public abstract class CacheTest {
   }
 
   @Test
-  public void testThrowsWhenNotAvailable() throws CacheAccessException {
+  public void testThrowsWhenNotAvailable() throws StoreAccessException {
     Store store = mock(Store.class);
     Store.Iterator mockIterator = mock(Store.Iterator.class);
     when(store.iterator()).thenReturn(mockIterator);
@@ -213,7 +213,7 @@ public abstract class CacheTest {
   }
 
   @Test
-  public void testPutIfAbsent() throws CacheAccessException {
+  public void testPutIfAbsent() throws StoreAccessException {
     final AtomicReference<Object> existingValue = new AtomicReference<Object>();
     final Store store = mock(Store.class);
     final String value = "bar";

@@ -54,7 +54,7 @@ import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -169,7 +169,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
         return valueHolder.value();
       }
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         return resilienceStrategy.getFailure(key, e);
       } finally {
@@ -202,7 +202,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       default:
         throw new AssertionError("Invalid Status.");
       }
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         resilienceStrategy.putFailure(key, value, e);
       } finally {
@@ -245,7 +245,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     checkNonNull(key);
     try {
       return store.containsKey(key);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       return resilienceStrategy.containsKeyFailure(key, e);
     }
   }
@@ -272,7 +272,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       } else {
         removeObserver.end(RemoveOutcome.NOOP);
       }
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         resilienceStrategy.removeFailure(key, e);
       } finally {
@@ -291,7 +291,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     statusTransitioner.checkAvailable();
     try {
       store.clear();
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       resilienceStrategy.clearFailure(e);
     }
   }
@@ -357,7 +357,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
       getAllObserver.end(GetAllOutcome.SUCCESS);
       return result;
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
          return resilienceStrategy.getAllFailure(keys, e);
       } finally {
@@ -431,7 +431,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       store.bulkCompute(entries.keySet(), computeFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount.get());
       putAllObserver.end(PutAllOutcome.SUCCESS);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         resilienceStrategy.putAllFailure(entries, e);
       } finally {
@@ -486,7 +486,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       store.bulkCompute(keys, removalFunction);
       addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount.get());
       removeAllObserver.end(RemoveAllOutcome.SUCCESS);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         resilienceStrategy.removeAllFailure(keys, e);
       } finally {
@@ -515,7 +515,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
         return inCache.value();
       }
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         return resilienceStrategy.putIfAbsentFailure(key, value, e, absent);
       } finally {
@@ -551,7 +551,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       default:
         throw new AssertionError("Invalid Status.");
       }
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         return resilienceStrategy.removeFailure(key, value, e, removed);
       } finally {
@@ -578,7 +578,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
       }
       return old == null ? null : old.value();
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         return resilienceStrategy.replaceFailure(key, value, e);
       } finally {
@@ -617,7 +617,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       }
 
       return success;
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       try {
         return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, success);
       } finally {
@@ -735,7 +735,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
             return cacheLoaderWriterLoadAllForKeys(absentKeys, loadFunction).entrySet();
           }
         });
-      } catch (CacheAccessException e) {
+      } catch (StoreAccessException e) {
         throw newCacheLoadingException(e);
       }
     }
@@ -768,7 +768,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
             return cacheLoaderWriterLoadAllForKeys(keys, loadFunction).entrySet();
           }
         });
-      } catch (CacheAccessException e) {
+      } catch (StoreAccessException e) {
         throw newCacheLoadingException(e);
       }
     }
@@ -815,7 +815,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         };
 
         store.compute(key, fn, replaceEqual);
-      } catch (CacheAccessException e) {
+      } catch (StoreAccessException e) {
         // XXX:
         throw new RuntimeException(e);
       }
@@ -836,7 +836,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
             return null;
           }
         });
-      } catch (CacheAccessException e) {
+      } catch (StoreAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
         // XXX:
@@ -872,7 +872,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
             return value;
           }
         });
-      } catch (CacheAccessException e) {
+      } catch (StoreAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
         // XXX:
@@ -936,7 +936,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       try {
         current = iterator.next();
         if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
-      } catch (CacheAccessException e) {
+      } catch (StoreAccessException e) {
         if (!quiet) getObserver.end(GetOutcome.FAILURE);
         cacheAccessError = true;
         return resilienceStrategy.iteratorFailure(e);
@@ -961,17 +961,17 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     return new RecoveryCache<K>() {
 
       @Override
-      public void obliterate() throws CacheAccessException {
+      public void obliterate() throws StoreAccessException {
         store.clear();
       }
 
       @Override
-      public void obliterate(K key) throws CacheAccessException {
+      public void obliterate(K key) throws StoreAccessException {
         store.remove(key);
       }
 
       @Override
-      public void obliterate(Iterable<? extends K> keys) throws CacheAccessException {
+      public void obliterate(Iterable<? extends K> keys) throws StoreAccessException {
         for (K key : keys) {
           obliterate(key);
         }

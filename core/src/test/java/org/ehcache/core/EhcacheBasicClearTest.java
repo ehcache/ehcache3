@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -57,17 +57,17 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#clear()} over an empty cache where
    * {@link Store#clear() Store.clear} throws a
-   * {@link org.ehcache.exceptions.CacheAccessException CacheAccessException}.
+   * {@link StoreAccessException StoreAccessException}.
    */
   @Test
-  public void testClearEmptyCacheAccessException() throws Exception {
+  public void testClearEmptyStoreAccessException() throws Exception {
     final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).clear();
+    doThrow(new StoreAccessException("")).when(this.store).clear();
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
-    verify(this.spiedResilienceStrategy).clearFailure(any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).clearFailure(any(StoreAccessException.class));
   }
 
   /**
@@ -88,18 +88,18 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#clear()} over a non-empty cache where
    * {@link Store#clear() Store.clear} throws a
-   * {@link org.ehcache.exceptions.CacheAccessException CacheAccessException}.
+   * {@link StoreAccessException StoreAccessException}.
    */
   @Test
-  public void testClearNonEmptyCacheAccessException() throws Exception {
+  public void testClearNonEmptyStoreAccessException() throws Exception {
     final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).clear();
+    doThrow(new StoreAccessException("")).when(this.store).clear();
     final Ehcache<String, String> ehcache = this.getEhcache();
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
-    verify(this.spiedResilienceStrategy).clearFailure(any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).clearFailure(any(StoreAccessException.class));
     // Not testing ResilienceStrategy implementation here
   }
 

@@ -16,7 +16,7 @@
 
 package org.ehcache.core.internal.resilience;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 
 /**
  * Generic exception used when an internal operation fails on a {@link org.ehcache.Cache} but shouldn't be
@@ -28,13 +28,13 @@ import org.ehcache.exceptions.CacheAccessException;
  * @author Ludovic Orban
  */
 @Deprecated
-public class RethrowingCacheAccessException extends CacheAccessException {
+public class RethrowingStoreAccessException extends StoreAccessException {
 
   /**
-   * Create an instance of RethrowingCacheAccessException.
+   * Create an instance of RethrowingStoreAccessException.
    * @param cause the cause RuntimeException that will be rethrown.
    */
-  public RethrowingCacheAccessException(RuntimeException cause) {
+  public RethrowingStoreAccessException(RuntimeException cause) {
     super(cause);
   }
 

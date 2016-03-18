@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.Service;
@@ -37,9 +37,9 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
    * @param key the key
    * @param function the function to call
    *
-   * @throws CacheAccessException if the mapping cannot be removed or the function throws
+   * @throws StoreAccessException if the mapping cannot be removed or the function throws
    */
-  void silentInvalidate(K key, Function<Store.ValueHolder<V>, Void> function) throws CacheAccessException;
+  void silentInvalidate(K key, Function<Store.ValueHolder<V>, Void> function) throws StoreAccessException;
 
   /**
    * {@link Service} interface for providing {@link HigherCachingTier} instances.

@@ -32,7 +32,7 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
@@ -207,7 +207,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public Store.ValueHolder<V> get(K key) throws CacheAccessException {
+  public Store.ValueHolder<V> get(K key) throws StoreAccessException {
     checkKey(key);
     getObserver.begin();
     ValueHolder<V> result = internalGet(key, true, true);
@@ -219,7 +219,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     return result;
   }
 
-  private Store.ValueHolder<V> internalGet(K key, final boolean updateAccess, final boolean touchValue) throws CacheAccessException {
+  private Store.ValueHolder<V> internalGet(K key, final boolean updateAccess, final boolean touchValue) throws StoreAccessException {
 
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     final AtomicReference<OffHeapValueHolder<V>> heldValue = new AtomicReference<OffHeapValueHolder<V>>();
@@ -260,13 +260,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public boolean containsKey(K key) throws CacheAccessException {
+  public boolean containsKey(K key) throws StoreAccessException {
     checkKey(key);
     return internalGet(key, false, false) != null;
   }
 
   @Override
-  public PutStatus put(final K key, final V value) throws CacheAccessException {
+  public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -315,7 +315,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
         return PutStatus.NOOP;
       }
-    } catch (CacheAccessException caex) {
+    } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
     } catch (RuntimeException re) {
@@ -325,7 +325,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public Store.ValueHolder<V> putIfAbsent(final K key, final V value) throws NullPointerException, CacheAccessException {
+  public Store.ValueHolder<V> putIfAbsent(final K key, final V value) throws NullPointerException, StoreAccessException {
     putIfAbsentObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -369,7 +369,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           handleRuntimeException(re);
         }
       }
-    } catch (CacheAccessException caex) {
+    } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
     } catch (RuntimeException re) {
@@ -379,7 +379,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public boolean remove(final K key) throws CacheAccessException {
+  public boolean remove(final K key) throws StoreAccessException {
     removeObserver.begin();
     checkKey(key);
 
@@ -422,7 +422,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public RemoveStatus remove(final K key, final V value) throws CacheAccessException {
+  public RemoveStatus remove(final K key, final V value) throws StoreAccessException {
     conditionalRemoveObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -474,7 +474,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> replace(final K key, final V value) throws NullPointerException, CacheAccessException {
+  public ValueHolder<V> replace(final K key, final V value) throws NullPointerException, StoreAccessException {
     replaceObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -516,7 +516,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
       }
       return resultHolder;
-    } catch (CacheAccessException caex) {
+    } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
     } catch (RuntimeException re) {
@@ -526,7 +526,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws NullPointerException, IllegalArgumentException, CacheAccessException {
+  public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws NullPointerException, IllegalArgumentException, StoreAccessException {
     conditionalReplaceObserver.begin();
     checkKey(key);
     checkValue(oldValue);
@@ -579,7 +579,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           return ReplaceStatus.MISS_NOT_PRESENT;
         }
       }
-    } catch (CacheAccessException caex) {
+    } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
     } catch (RuntimeException re) {
@@ -589,7 +589,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void clear() throws CacheAccessException {
+  public void clear() throws StoreAccessException {
     try {
       backingMap().clear();
     } catch (RuntimeException re) {
@@ -608,12 +608,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> compute(K key, BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
     return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
     computeObserver.begin();
     checkKey(key);
 
@@ -695,7 +695,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
       }
       return result;
-    } catch (CacheAccessException caex) {
+    } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
     } catch (RuntimeException re) {
@@ -705,11 +705,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
     return internalComputeIfAbsent(key, mappingFunction, false, false);
   }
 
-  private Store.ValueHolder<V> internalComputeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction, boolean fault, final boolean delayedDeserialization) throws CacheAccessException {
+  private Store.ValueHolder<V> internalComputeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction, boolean fault, final boolean delayedDeserialization) throws StoreAccessException {
     if (fault) {
       computeIfAbsentAndFaultObserver.begin();
     } else {
@@ -790,7 +790,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         }
       }
       return computeResult;
-    } catch (CacheAccessException caex) {
+    } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
       throw caex;
     } catch (RuntimeException re) {
@@ -800,12 +800,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     return bulkCompute(keys, remappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (K key : keys) {
       checkKey(key);
@@ -846,7 +846,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
     for (K key : keys) {
       checkKey(key);
@@ -870,7 +870,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> getAndFault(K key) throws CacheAccessException {
+  public ValueHolder<V> getAndFault(K key) throws StoreAccessException {
     getAndFaultObserver.begin();
     checkKey(key);
     ValueHolder<V> mappedValue = null;
@@ -903,7 +903,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
     return internalComputeIfAbsent(key, mappingFunction, true, true);
   }
 
@@ -954,7 +954,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void invalidate(final K key) throws CacheAccessException {
+  public void invalidate(final K key) throws StoreAccessException {
     invalidateObserver.begin();
     final AtomicBoolean removed = new AtomicBoolean(false);
     try {
@@ -977,7 +977,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void invalidate(K key, final NullaryFunction<K> function) throws CacheAccessException {
+  public void invalidate(K key, final NullaryFunction<K> function) throws StoreAccessException {
     invalidateObserver.begin();
 
     final AtomicBoolean removed = new AtomicBoolean(false);
@@ -1015,7 +1015,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
    * Note that this implementation is atomic.
    */
   @Override
-  public ValueHolder<V> getAndRemove(final K key) throws CacheAccessException {
+  public ValueHolder<V> getAndRemove(final K key) throws StoreAccessException {
     getAndRemoveObserver.begin();
     checkKey(key);
 
@@ -1052,7 +1052,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> installMapping(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+  public ValueHolder<V> installMapping(final K key, final Function<K, ValueHolder<V>> source) throws StoreAccessException {
     installMappingObserver.begin();
     BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
       @Override
@@ -1180,11 +1180,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause) throws CacheAccessException {
+  public void handleOversizeMappingException(K key, OversizeMappingException cause) throws StoreAccessException {
     handleOversizeMappingException(key, cause, null);
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve) throws CacheAccessException {
+  public void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve) throws StoreAccessException {
     if (!backingMap().shrinkOthers(key.hashCode())) {
       if(!invokeValve(invokeValve)) {
         for (Segment<K, OffHeapValueHolder<V>> segment : backingMap().getSegments()) {
@@ -1200,13 +1200,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             lock.unlock();
           }
         }
-        throw new CacheAccessException("The element with key '" + key + "' is too large to be stored"
-                                 + " in this offheap store.", cause);
+        throw new StoreAccessException("The element with key '" + key + "' is too large to be stored"
+                                       + " in this offheap store.", cause);
       }
     }
   }
 
-  private boolean invokeValve(final AtomicBoolean invokeValve) throws CacheAccessException {
+  private boolean invokeValve(final AtomicBoolean invokeValve) throws StoreAccessException {
     if(invokeValve == null || !invokeValve.get()) {
       return false;
     }
@@ -1216,7 +1216,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       try {
         valve.call();
       } catch (Exception exception) {
-        throw new CacheAccessException("Failed invoking valve", exception);
+        throw new StoreAccessException("Failed invoking valve", exception);
       }
     }
     return true;
@@ -1296,7 +1296,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   class OffHeapStoreIterator implements Iterator<Cache.Entry<K, ValueHolder<V>>> {
     private final java.util.Iterator<Map.Entry<K, OffHeapValueHolder<V>>> mapIterator;
     private Cache.Entry<K, ValueHolder<V>> next = null;
-    private CacheAccessException prefetchFailure = null;
+    private StoreAccessException prefetchFailure = null;
 
     OffHeapStoreIterator() {
       mapIterator = backingMap().entrySet().iterator();
@@ -1323,10 +1323,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             };
           }
         }
-      } catch (CacheAccessException ce) {
+      } catch (StoreAccessException ce) {
         prefetchFailure = ce;
       } catch (RuntimeException re) {
-        prefetchFailure = new CacheAccessException(re);
+        prefetchFailure = new StoreAccessException(re);
       }
     }
 
@@ -1336,7 +1336,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
 
     @Override
-    public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+    public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
       if(prefetchFailure != null) {
         throw prefetchFailure;
       }

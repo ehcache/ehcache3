@@ -22,7 +22,7 @@ import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.CachePassThroughException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.core.spi.function.BiFunction;
@@ -84,7 +84,7 @@ public class EhcacheLoaderWriterTest {
 
   @Test
   public void testGetThrowsOnCompute() throws Exception {
-    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new StoreAccessException("boom"));
     String expected = "foo";
     when((String)cache.getCacheLoaderWriter().load(any(Number.class))).thenReturn(expected);
     assertThat(cache.get(1), is(expected));
@@ -125,7 +125,7 @@ public class EhcacheLoaderWriterTest {
 
   @Test
   public void testPutThrowsOnCompute() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new StoreAccessException("boom"));
     cache.put(1, "one");
     verify(store).remove(1);
     verify(cache.getCacheLoaderWriter()).write(1, "one");
@@ -165,7 +165,7 @@ public class EhcacheLoaderWriterTest {
 
   @Test
   public void testRemoveThrowsOnCompute() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new StoreAccessException("boom"));
     cache.remove(1);
     verify(store).remove(1);
     verify(cache.getCacheLoaderWriter()).delete(1);
@@ -226,7 +226,7 @@ public class EhcacheLoaderWriterTest {
 
   @Test
   public void testPutIfAbsentThrowsOnCompute() throws Exception {
-    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.computeIfAbsent(any(Number.class), anyFunction())).thenThrow(new StoreAccessException("boom"));
     cache.putIfAbsent(1, "one");
     verify(cache.getCacheLoaderWriter()).write(1, "one");
     verify(store).remove(1);
@@ -299,7 +299,7 @@ public class EhcacheLoaderWriterTest {
   @Test
   public void testTwoArgRemoveThrowsOnCompute() throws Exception {
     String toRemove = "foo";
-    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new StoreAccessException("boom"));
     assertThat(cache.remove(1, toRemove), is(false));
     verify(cache.getCacheLoaderWriter(), never()).delete(1);
     verify(store).remove(1);
@@ -344,7 +344,7 @@ public class EhcacheLoaderWriterTest {
 
   @Test
   public void testReplaceThrowsOnCompute() throws Exception {
-    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction())).thenThrow(new StoreAccessException("boom"));
     String value = "foo";
     assertThat(cache.replace(1, value), nullValue());
     verify(cache.getCacheLoaderWriter()).load(1);
@@ -411,7 +411,7 @@ public class EhcacheLoaderWriterTest {
   public void testThreeArgReplaceThrowsOnCompute() throws Exception {
     final String oldValue = "cached";
     final String newValue = "toReplace";
-    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new CacheAccessException("boom"));
+    when(store.compute(any(Number.class), anyBiFunction(), anyNullaryFunction())).thenThrow(new StoreAccessException("boom"));
 
     assertThat(cache.replace(1, oldValue, newValue), is(false));
     verify(cache.getCacheLoaderWriter(), never()).write(1, newValue);

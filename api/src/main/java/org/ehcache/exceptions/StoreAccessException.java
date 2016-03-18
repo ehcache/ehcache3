@@ -21,7 +21,7 @@ package org.ehcache.exceptions;
  *
  * @author cdennis
  */
-public class CacheAccessException extends Exception {
+public class StoreAccessException extends Exception {
 
   private static final long serialVersionUID = 5249505200891654776L;
 
@@ -30,7 +30,7 @@ public class CacheAccessException extends Exception {
    *
    * @param cause the cause of this exception
    */
-  public CacheAccessException(Throwable cause) {
+  public StoreAccessException(Throwable cause) {
     super(cause);
   }
 
@@ -40,7 +40,7 @@ public class CacheAccessException extends Exception {
    * @param message information about the exception
    * @param cause the cause of this exception
    */
-  public CacheAccessException(String message, Throwable cause) {
+  public StoreAccessException(String message, Throwable cause) {
     super(message, cause);
   }
 
@@ -49,7 +49,7 @@ public class CacheAccessException extends Exception {
    *
    * @param message information about the exception
    */
-  public CacheAccessException(String message) {
+  public StoreAccessException(String message) {
     super(message);
   }
 

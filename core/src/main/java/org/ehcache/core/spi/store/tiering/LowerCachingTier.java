@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
@@ -44,9 +44,9 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @param source the function that computes the value
    * @return the value holder, or {@code null}
    *
-   * @throws CacheAccessException if the mapping cannot be accessed, installed or removed
+   * @throws StoreAccessException if the mapping cannot be accessed, installed or removed
    */
-  Store.ValueHolder<V> installMapping(K key, Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
+  Store.ValueHolder<V> installMapping(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
 
   /**
    * Return the value holder currently in this tier and removes it atomically.
@@ -54,9 +54,9 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @param key the key
    * @return the value holder, or {@code null}
    *
-   * @throws CacheAccessException if the mapping cannot be access or removed
+   * @throws StoreAccessException if the mapping cannot be access or removed
    */
-  Store.ValueHolder<V> getAndRemove(K key) throws CacheAccessException;
+  Store.ValueHolder<V> getAndRemove(K key) throws StoreAccessException;
 
   /**
    * Removes a mapping, triggering the {@link org.ehcache.core.spi.store.tiering.CachingTier.InvalidationListener} if
@@ -64,9 +64,9 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    *
    * @param key the key to remove
    *
-   * @throws CacheAccessException if the mapping cannot be removed
+   * @throws StoreAccessException if the mapping cannot be removed
    */
-  void invalidate(K key) throws CacheAccessException;
+  void invalidate(K key) throws StoreAccessException;
 
   /**
    * Removes a mapping, then call a function under the same lock scope irrespectively of a mapping being there or not.
@@ -74,16 +74,16 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @param key the key
    * @param function the function to call
    *
-   * @throws CacheAccessException if the mapping cannot be removed or the function throws
+   * @throws StoreAccessException if the mapping cannot be removed or the function throws
    */
-  void invalidate(K key, NullaryFunction<K> function) throws CacheAccessException;
+  void invalidate(K key, NullaryFunction<K> function) throws StoreAccessException;
 
   /**
    * Empty out this tier
    *
-   * @throws CacheAccessException if mappings cannot be removed
+   * @throws StoreAccessException if mappings cannot be removed
    */
-  void clear() throws CacheAccessException;
+  void clear() throws StoreAccessException;
 
   /**
    * Set the caching tier's invalidation listener.

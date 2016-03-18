@@ -20,7 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -82,16 +82,16 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testRemoveNoStoreEntryCacheAccessException() throws Exception {
+  public void testRemoveNoStoreEntryStoreAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).remove(eq("key"));
+    doThrow(new StoreAccessException("")).when(this.store).remove(eq("key"));
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.remove("key");
     verify(this.store, times(2)).remove(eq("key"));
-    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 
@@ -124,16 +124,16 @@ public class EhcacheBasicRemoveTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testRemoveHasStoreEntryCacheAccessException() throws Exception {
+  public void testRemoveHasStoreEntryStoreAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).remove(eq("key"));
+    doThrow(new StoreAccessException("")).when(this.store).remove(eq("key"));
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.remove("key");
     verify(this.store, times(2)).remove(eq("key"));
-    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).removeFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveOutcome.FAILURE));
   }
 

@@ -18,7 +18,7 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.Status;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.CacheIterationException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
@@ -201,11 +201,11 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
 
   /**
    * Tests the {@link java.util.Iterator} returned when the {@link Store Store}
-   * throws a {@link org.ehcache.exceptions.CacheAccessException CacheAccessException} from
+   * throws a {@link StoreAccessException StoreAccessException} from
    * {@code Store.iterator}.
    */
   @Test
-  public void testIteratorCacheAccessException() throws Exception {
+  public void testIteratorStoreAccessException() throws Exception {
     Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
     doReturn("bar").when(valueHolder).value();
 
@@ -227,7 +227,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     assertThat(entry.getKey(), is("foo"));
     assertThat(entry.getValue(), is("bar"));
 
-    doThrow(new CacheAccessException("")).when(storeIterator).next();
+    doThrow(new StoreAccessException("")).when(storeIterator).next();
     doReturn(RemoveStatus.REMOVED).when(this.store).remove(anyString(), anyString());
 
     try {

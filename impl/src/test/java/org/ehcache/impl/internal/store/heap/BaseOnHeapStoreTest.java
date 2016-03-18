@@ -21,7 +21,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -352,7 +352,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testRemove() throws CacheAccessException {
+  public void testRemove() throws StoreAccessException {
     OnHeapStore<String, String> store = newStore();
     store.put("key", "value");
 
@@ -673,7 +673,7 @@ public abstract class BaseOnHeapStoreTest {
         }
       });
       fail("RuntimeException expected");
-    } catch (CacheAccessException cae) {
+    } catch (StoreAccessException cae) {
       assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
     assertThat(store.get("key").value(), equalTo("value"));
@@ -895,7 +895,7 @@ public abstract class BaseOnHeapStoreTest {
         }
       });
       fail("Expected exception");
-    } catch (CacheAccessException cae) {
+    } catch (StoreAccessException cae) {
       assertThat(cae.getCause(), is((Throwable)RUNTIME_EXCEPTION));
     }
 
@@ -1039,7 +1039,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testGetOrComputeIfAbsentRemovesFault() throws CacheAccessException {
+  public void testGetOrComputeIfAbsentRemovesFault() throws StoreAccessException {
     final OnHeapStore<String, String> store = newStore();
     final CountDownLatch testCompletionLatch = new CountDownLatch(1);
     final CountDownLatch threadFaultCompletionLatch = new CountDownLatch(1);
@@ -1068,7 +1068,7 @@ public abstract class BaseOnHeapStoreTest {
               return null;
             }
           });
-        } catch (CacheAccessException e) {
+        } catch (StoreAccessException e) {
           e.printStackTrace();
         }
       }
@@ -1091,7 +1091,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testGetOrComputeIfAbsentInvalidatesFault() throws CacheAccessException, InterruptedException {
+  public void testGetOrComputeIfAbsentInvalidatesFault() throws StoreAccessException, InterruptedException {
     final OnHeapStore<String, String> store = newStore();
     final CountDownLatch testCompletionLatch = new CountDownLatch(1);
     final CountDownLatch threadFaultCompletionLatch = new CountDownLatch(1);
@@ -1126,7 +1126,7 @@ public abstract class BaseOnHeapStoreTest {
               return null;
             }
           });
-        } catch (CacheAccessException e) {
+        } catch (StoreAccessException e) {
           e.printStackTrace();
         }
       }
@@ -1219,8 +1219,8 @@ public abstract class BaseOnHeapStoreTest {
               return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
             }
           });
-        } catch (CacheAccessException caex) {
-          failedInThread.set(new AssertionError("CacheAccessException: " + caex.getMessage()));
+        } catch (StoreAccessException caex) {
+          failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
         }
       }
     }).start();
@@ -1266,8 +1266,8 @@ public abstract class BaseOnHeapStoreTest {
               return new CopiedOnHeapValueHolder<String>("TheAnswer!", System.currentTimeMillis(), false, new IdentityCopier<String>());
             }
           });
-        } catch (CacheAccessException caex) {
-          failedInThread.set(new AssertionError("CacheAccessException: " + caex.getMessage()));
+        } catch (StoreAccessException caex) {
+          failedInThread.set(new AssertionError("StoreAccessException: " + caex.getMessage()));
         }
       }
     }).start();
@@ -1317,7 +1317,7 @@ public abstract class BaseOnHeapStoreTest {
           store.put(key, "updateValue");
         } catch (InterruptedException e) {
           e.printStackTrace();
-        } catch (CacheAccessException e) {
+        } catch (StoreAccessException e) {
           e.printStackTrace();
         }
       }
@@ -1364,7 +1364,7 @@ public abstract class BaseOnHeapStoreTest {
           store.put("key", "newValue");
         } catch (InterruptedException e) {
           e.printStackTrace();
-        } catch (CacheAccessException e) {
+        } catch (StoreAccessException e) {
           e.printStackTrace();
         }
       }
@@ -1419,7 +1419,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   private static Map<String, Long> observeAccessTimes(Iterator<Entry<String, ValueHolder<String>>> iter)
-      throws CacheAccessException {
+      throws StoreAccessException {
     Map<String, Long> map = new HashMap<String, Long>();
     while (iter.hasNext()) {
       Entry<String, ValueHolder<String>> entry = iter.next();
@@ -1429,7 +1429,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   private static Map<String, String> observe(Iterator<Entry<String, ValueHolder<String>>> iter)
-      throws CacheAccessException {
+      throws StoreAccessException {
     Map<String, String> map = new HashMap<String, String>();
     while (iter.hasNext()) {
       Entry<String, ValueHolder<String>> entry = iter.next();

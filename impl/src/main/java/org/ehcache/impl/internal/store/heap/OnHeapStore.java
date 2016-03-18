@@ -29,7 +29,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.exceptions.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -261,12 +261,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> get(final K key) throws CacheAccessException {
+  public ValueHolder<V> get(final K key) throws StoreAccessException {
     checkKey(key);
     return internalGet(key, true);
   }
 
-  private OnHeapValueHolder<V> internalGet(final K key, final boolean updateAccess) throws CacheAccessException {
+  private OnHeapValueHolder<V> internalGet(final K key, final boolean updateAccess) throws StoreAccessException {
     getObserver.begin();
     try {
       OnHeapValueHolder<V> mapping = getQuiet(key);
@@ -287,7 +287,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private OnHeapValueHolder getQuiet(final K key) throws CacheAccessException {
+  private OnHeapValueHolder getQuiet(final K key) throws StoreAccessException {
     try {
       OnHeapValueHolder<V> mapping = map.get(key);
       if (mapping == null) {
@@ -306,13 +306,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public boolean containsKey(final K key) throws CacheAccessException {
+  public boolean containsKey(final K key) throws StoreAccessException {
     checkKey(key);
     return getQuiet(key) != null;
   }
 
   @Override
-  public PutStatus put(final K key, final V value) throws CacheAccessException {
+  public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -374,7 +374,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public boolean remove(final K key) throws CacheAccessException {
+  public boolean remove(final K key) throws StoreAccessException {
     removeObserver.begin();
     checkKey(key);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
@@ -416,11 +416,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(final K key, final V value) throws CacheAccessException {
+  public ValueHolder<V> putIfAbsent(final K key, final V value) throws StoreAccessException {
     return putIfAbsent(key, value, false);
   }
 
-  private OnHeapValueHolder<V> putIfAbsent(final K key, final V value, boolean returnCurrentMapping) throws CacheAccessException {
+  private OnHeapValueHolder<V> putIfAbsent(final K key, final V value, boolean returnCurrentMapping) throws StoreAccessException {
     putIfAbsentObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -478,7 +478,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public RemoveStatus remove(final K key, final V value) throws CacheAccessException {
+  public RemoveStatus remove(final K key, final V value) throws StoreAccessException {
     conditionalRemoveObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -534,7 +534,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> replace(final K key, final V value) throws CacheAccessException {
+  public ValueHolder<V> replace(final K key, final V value) throws StoreAccessException {
     replaceObserver.begin();
     checkKey(key);
     checkValue(value);
@@ -581,7 +581,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws CacheAccessException {
+  public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
     conditionalReplaceObserver.begin();
     checkKey(key);
     checkValue(oldValue);
@@ -643,7 +643,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public void clear() throws CacheAccessException {
+  public void clear() throws StoreAccessException {
     try {
       //TODO: Not thread safe, can we do better ?
       long current = currentUsageinBytes.get();
@@ -661,7 +661,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     for(K key : map.keySet()) {
       try {
         invalidate(key);
-      } catch (CacheAccessException cae) {
+      } catch (StoreAccessException cae) {
         LOG.warn("Failed to invalidate mapping for key {}", key, cae);
       }
     }
@@ -673,7 +673,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
       private Map.Entry<K, OnHeapValueHolder<V>> next = null;
-      private CacheAccessException prefetchFailure = null;
+      private StoreAccessException prefetchFailure = null;
 
       {
         advance();
@@ -693,8 +693,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             next = entry;
           }
         } catch (RuntimeException re) {
-          prefetchFailure = new CacheAccessException(re);
-        } catch (CacheAccessException e) {
+          prefetchFailure = new StoreAccessException(re);
+        } catch (StoreAccessException e) {
           prefetchFailure = e;
         }
       }
@@ -705,7 +705,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
 
       @Override
-      public Cache.Entry<K, ValueHolder<V>> next() throws CacheAccessException {
+      public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
         if(prefetchFailure != null) {
           throw prefetchFailure;
         }
@@ -736,7 +736,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+  public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws StoreAccessException {
     try {
       getOrComputeIfAbsentObserver.begin();
       Backend<K, V> backEnd = map;
@@ -800,7 +800,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
             }
           } catch (Throwable e) {
             backEnd.remove(key, fault);
-            throw new CacheAccessException(e);
+            throw new StoreAccessException(e);
           }
         }
       }
@@ -841,7 +841,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public void invalidate(final K key) throws CacheAccessException {
+  public void invalidate(final K key) throws StoreAccessException {
     invalidateObserver.begin();
     checkKey(key);
     try {
@@ -865,7 +865,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public void silentInvalidate(K key, final Function<Store.ValueHolder<V>, Void> function) throws CacheAccessException {
+  public void silentInvalidate(K key, final Function<Store.ValueHolder<V>, Void> function) throws StoreAccessException {
     silentInvalidateObserver.begin();
     checkKey(key);
     try {
@@ -1054,12 +1054,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
     return compute(key, mappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
     computeObserver.begin();
     checkKey(key);
 
@@ -1144,7 +1144,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
     computeIfAbsentObserver.begin();
     checkKey(key);
 
@@ -1206,7 +1206,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
     Map<K, ValueHolder<V>> result = new HashMap<K, ValueHolder<V>>();
 
     for (final K key : keys) {
@@ -1243,12 +1243,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Entry<? extends K, ? extends V>>, Iterable<? extends Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Entry<? extends K, ? extends V>>, Iterable<? extends Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     return bulkCompute(keys, remappingFunction, REPLACE_EQUALS_TRUE);
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K,? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K,? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
 
     // The Store here is free to slice & dice the keys as it sees fit
     // As this OnHeapStore doesn't operate in segments, the best it can do is do a "bulk" write in batches of... one!

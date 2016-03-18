@@ -20,7 +20,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
@@ -95,31 +95,31 @@ public class CacheStore<K, V> implements Store<K, V> {
 
 
   @Override
-  public ValueHolder<V> get(final K key) throws CacheAccessException {
+  public ValueHolder<V> get(final K key) throws StoreAccessException {
     try {
       return cachingTier().getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
         @Override
         public ValueHolder<V> apply(K key) {
           try {
             return authoritativeTier.getAndFault(key);
-          } catch (CacheAccessException cae) {
+          } catch (StoreAccessException cae) {
             throw new ComputationException(cae);
           }
         }
       });
     } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
+      throw ce.getStoreAccessException();
     }
   }
 
   static class ComputationException extends RuntimeException {
 
-    public ComputationException(CacheAccessException cause) {
+    public ComputationException(StoreAccessException cause) {
       super(cause);
     }
 
-    public CacheAccessException getCacheAccessException() {
-      return (CacheAccessException) getCause();
+    public StoreAccessException getStoreAccessException() {
+      return (StoreAccessException) getCause();
     }
 
     @Override
@@ -129,12 +129,12 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean containsKey(K key) throws CacheAccessException {
+  public boolean containsKey(K key) throws StoreAccessException {
     return authoritativeTier.containsKey(key);
   }
 
   @Override
-  public PutStatus put(final K key, final V value) throws CacheAccessException {
+  public PutStatus put(final K key, final V value) throws StoreAccessException {
     try {
       return authoritativeTier.put(key, value);
     } finally {
@@ -143,7 +143,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> putIfAbsent(K key, V value) throws CacheAccessException {
+  public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
     ValueHolder<V> previous = null;
     try {
       previous = authoritativeTier.putIfAbsent(key, value);
@@ -156,7 +156,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public boolean remove(K key) throws CacheAccessException {
+  public boolean remove(K key) throws StoreAccessException {
     try {
       return authoritativeTier.remove(key);
     } finally {
@@ -165,7 +165,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public RemoveStatus remove(K key, V value) throws CacheAccessException {
+  public RemoveStatus remove(K key, V value) throws StoreAccessException {
     RemoveStatus removed = null;
       try {
         removed = authoritativeTier.remove(key, value);
@@ -178,7 +178,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> replace(K key, V value) throws CacheAccessException {
+  public ValueHolder<V> replace(K key, V value) throws StoreAccessException {
     ValueHolder<V> previous = null;
     boolean exceptionThrown = true;
     try {
@@ -193,7 +193,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ReplaceStatus replace(K key, V oldValue, V newValue) throws CacheAccessException {
+  public ReplaceStatus replace(K key, V oldValue, V newValue) throws StoreAccessException {
     ReplaceStatus replaced = null;
     try {
       replaced = authoritativeTier.replace(key, oldValue, newValue);
@@ -206,7 +206,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public void clear() throws CacheAccessException {
+  public void clear() throws StoreAccessException {
     boolean interrupted = false;
     while(!cachingTierRef.compareAndSet(realCachingTier, noopCachingTier)) {
       synchronized (noopCachingTier) {
@@ -249,7 +249,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction) throws StoreAccessException {
     try {
       return authoritativeTier.compute(key, mappingFunction);
     } finally {
@@ -258,7 +258,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+  public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
     try {
       return authoritativeTier.compute(key, mappingFunction, replaceEqual);
     } finally {
@@ -266,25 +266,25 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
   }
 
-  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws CacheAccessException {
+  public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
     try {
       return cachingTier().getOrComputeIfAbsent(key, new Function<K, ValueHolder<V>>() {
         @Override
         public ValueHolder<V> apply(K k) {
           try {
             return authoritativeTier.computeIfAbsentAndFault(k, mappingFunction);
-          } catch (CacheAccessException cae) {
+          } catch (StoreAccessException cae) {
             throw new ComputationException(cae);
           }
         }
       });
     } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
+      throw ce.getStoreAccessException();
     }
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction) throws StoreAccessException {
     try {
       return authoritativeTier.bulkCompute(keys, remappingFunction);
     } finally {
@@ -295,7 +295,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkCompute(Set<? extends K> keys, Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
     try {
       return authoritativeTier.bulkCompute(keys, remappingFunction, replaceEqual);
     } finally {
@@ -306,7 +306,7 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws CacheAccessException {
+  public Map<K, ValueHolder<V>> bulkComputeIfAbsent(Set<? extends K> keys, Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction) throws StoreAccessException {
     try {
       return authoritativeTier.bulkComputeIfAbsent(keys, mappingFunction);
     } finally {
@@ -526,19 +526,19 @@ public class CacheStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws CacheAccessException {
+    public ValueHolder<V> getOrComputeIfAbsent(final K key, final Function<K, ValueHolder<V>> source) throws StoreAccessException {
       final ValueHolder<V> apply = source.apply(key);
       authoritativeTier.flush(key, apply);
       return apply;
     }
 
     @Override
-    public void invalidate(final K key) throws CacheAccessException {
+    public void invalidate(final K key) throws StoreAccessException {
       // noop
     }
 
     @Override
-    public void clear() throws CacheAccessException {
+    public void clear() throws StoreAccessException {
       // noop
     }
 

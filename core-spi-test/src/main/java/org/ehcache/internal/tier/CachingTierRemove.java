@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -91,7 +91,7 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
       });
 
       assertThat(newReturnedValueHolder.value(), is(equalTo(newValueHolder.value())));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

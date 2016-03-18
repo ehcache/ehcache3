@@ -16,7 +16,7 @@
 
 package org.ehcache.core.exceptions;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 
 /**
  * A generic wrapper runtime exception that will not be caught and
@@ -52,24 +52,24 @@ public class CachePassThroughException extends RuntimeException {
   /**
    * Helper method for handling runtime exceptions.
    * <P>
-   *   Throwing most as {@link CacheAccessException} except for {@code CachePassThroughException}.
+   *   Throwing most as {@link StoreAccessException} except for {@code CachePassThroughException}.
    *   In which case if its cause is a {@link RuntimeException} it is thrown back and if not it is
-   *   wrapped in a {@code CacheAccessException}.
+   *   wrapped in a {@code StoreAccessException}.
    * </P>
    *
    * @param re the exception to handler
-   * @throws CacheAccessException except for {@code CachePassThroughException} containing a {@code RuntimeException}
+   * @throws StoreAccessException except for {@code CachePassThroughException} containing a {@code RuntimeException}
    */
-  public static void handleRuntimeException(RuntimeException re) throws CacheAccessException {
+  public static void handleRuntimeException(RuntimeException re) throws StoreAccessException {
     if(re instanceof CachePassThroughException) {
       Throwable cause = re.getCause();
       if(cause instanceof RuntimeException) {
         throw   (RuntimeException) cause;
       } else {
-        throw new CacheAccessException(cause);
+        throw new StoreAccessException(cause);
       }
     } else {
-      throw new CacheAccessException(re);
+      throw new StoreAccessException(re);
     }
   }
 }

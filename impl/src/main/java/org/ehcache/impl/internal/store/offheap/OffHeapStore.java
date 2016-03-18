@@ -23,7 +23,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -215,14 +215,14 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     private void flushToLowerTier(OffHeapStore<Object, ?> resource) {
-      CacheAccessException lastFailure = null;
+      StoreAccessException lastFailure = null;
       int failureCount = 0;
       OffHeapStore<Object, ?> offheapStore = resource;
       Set<Object> keys = offheapStore.backingMap().keySet();
       for (Object key : keys) {
         try {
           offheapStore.invalidate(key);
-        } catch (CacheAccessException cae) {
+        } catch (StoreAccessException cae) {
           lastFailure = cae;
           failureCount++;
           LOGGER.warn("Error flushing '{}' to lower tier", key, cae);

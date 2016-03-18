@@ -18,7 +18,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.internal.TestTimeSource;
@@ -65,7 +65,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void existingKeyMappedInStoreReturnsValueHolder()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -75,7 +75,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       assertThat(kvStore.get(key), is(instanceOf(ValueHolder.class)));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -89,14 +89,14 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       assertThat(kvStore.get(key), is(nullValue()));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void existingKeyMappedInStoreReturnsCorrectValueHolder()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -106,7 +106,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       assertThat(kvStore.get(key).value(), is(equalTo(value)));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -123,7 +123,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -143,7 +143,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -174,7 +174,7 @@ public class StoreGetTest<K, V> extends SPIStoreTester<K, V> {
     try {
       kvStore.put(key, value);
       assertThat(kvStore.get(key).value(), is(value));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

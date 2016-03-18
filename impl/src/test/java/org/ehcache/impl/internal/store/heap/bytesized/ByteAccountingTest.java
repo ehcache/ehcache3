@@ -23,7 +23,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.exceptions.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -149,7 +149,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testPut() throws CacheAccessException {
+  public void testPut() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -158,7 +158,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testPutUpdate() throws CacheAccessException {
+  public void testPutUpdate() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -196,7 +196,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testPutExpiryOnUpdate() throws CacheAccessException {
+  public void testPutExpiryOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(1000L);
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
@@ -222,7 +222,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testRemove() throws CacheAccessException {
+  public void testRemove() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -260,7 +260,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testRemoveTwoArg() throws CacheAccessException {
+  public void testRemoveTwoArg() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -323,7 +323,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testReplace() throws CacheAccessException {
+  public void testReplace() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -395,7 +395,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testReplaceThreeArg() throws CacheAccessException {
+  public void testReplaceThreeArg() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -467,7 +467,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testPutIfAbsent() throws CacheAccessException {
+  public void testPutIfAbsent() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.putIfAbsent(KEY, VALUE);
@@ -554,7 +554,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testComputeRemove() throws CacheAccessException {
+  public void testComputeRemove() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -582,7 +582,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testCompute() throws CacheAccessException {
+  public void testCompute() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.compute(KEY, new BiFunction<String, String, String>() {
@@ -610,7 +610,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testComputeExpiryOnAccess() throws CacheAccessException {
+  public void testComputeExpiryOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
@@ -646,7 +646,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testComputeExpiryOnUpdate() throws CacheAccessException {
+  public void testComputeExpiryOnUpdate() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
@@ -677,7 +677,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testComputeIfAbsent() throws CacheAccessException {
+  public void testComputeIfAbsent() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.computeIfAbsent(KEY, new Function<String, String>() {
@@ -732,7 +732,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testComputeIfAbsentExpiryOnAccess() throws CacheAccessException {
+  public void testComputeIfAbsentExpiryOnAccess() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource(100L);
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
@@ -764,7 +764,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testExpiry() throws CacheAccessException {
+  public void testExpiry() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
 
@@ -777,7 +777,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testEviction() throws CacheAccessException {
+  public void testEviction() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore(1);
     StoreEventListener listener = mock(StoreEventListener.class);
     store.getStoreEventSource().addEventListener(listener);

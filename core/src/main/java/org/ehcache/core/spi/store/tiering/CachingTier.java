@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
@@ -47,18 +47,18 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
    *
    * @return the value holder, or {@code null}
    *
-   * @throws CacheAccessException if the mapping cannot be retrieved or stored
+   * @throws StoreAccessException if the mapping cannot be retrieved or stored
    */
-  Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
+  Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws StoreAccessException;
 
   /**
    * Removes a mapping, triggering the {@link InvalidationListener} if registered.
    *
    * @param key the key to remove
    *
-   * @throws CacheAccessException if the mapping cannot be removed
+   * @throws StoreAccessException if the mapping cannot be removed
    */
-  void invalidate(K key) throws CacheAccessException;
+  void invalidate(K key) throws StoreAccessException;
 
   /**
    * Empty out the caching tier.
@@ -66,9 +66,9 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
    *   Note that this operation is not atomic.
    * </P>
    *
-   * @throws CacheAccessException if mappings cannot be removed
+   * @throws StoreAccessException if mappings cannot be removed
    */
-  void clear() throws CacheAccessException;
+  void clear() throws StoreAccessException;
 
   /**
    * Set the caching tier's {@link InvalidationListener}.

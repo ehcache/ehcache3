@@ -20,7 +20,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
@@ -86,7 +86,7 @@ public class OnHeapStoreEvictionTest {
   }
 
   @Test
-  public void testFaultsDoNotGetToEvictionVeto() throws CacheAccessException {
+  public void testFaultsDoNotGetToEvictionVeto() throws StoreAccessException {
     final Semaphore semaphore = new Semaphore(0);
 
     final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, Eviction.none());

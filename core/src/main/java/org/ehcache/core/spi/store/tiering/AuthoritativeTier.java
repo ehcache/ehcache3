@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.PluralService;
@@ -39,18 +39,18 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
    *
    * @return the value holder
    *
-   * @throws CacheAccessException if the mapping can't be retrieved or updated.
+   * @throws StoreAccessException if the mapping can't be retrieved or updated.
    */
-  ValueHolder<V> getAndFault(K key) throws CacheAccessException;
+  ValueHolder<V> getAndFault(K key) throws StoreAccessException;
 
   /**
    * Marks the mapping as not evictable and performs computeIfAbsent() atomically.
    *
    * @return the value holder.
    *
-   * @throws CacheAccessException if the mapping can't be retrieved or updated.
+   * @throws StoreAccessException if the mapping can't be retrieved or updated.
    */
-  ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws CacheAccessException;
+  ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException;
 
   /**
    * This marks a mapping as evictable again if it matches the {@link ValueHolder} received.

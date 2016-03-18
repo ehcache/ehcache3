@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -77,17 +77,17 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#containsKey(Object) Ehcache.containsKey} over an empty cache
    * where {@link Store#containsKey(Object) Store.containsKey} throws a
-   * {@link org.ehcache.exceptions.CacheAccessException CacheAccessException}.
+   * {@link StoreAccessException StoreAccessException}.
    */
   @Test
-  public void testContainsKeyEmptyCacheAccessException() throws Exception {
+  public void testContainsKeyEmptyStoreAccessException() throws Exception {
     final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).containsKey("key");
+    doThrow(new StoreAccessException("")).when(this.store).containsKey("key");
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("key");
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("key"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("key"), any(StoreAccessException.class));
   }
 
   /**
@@ -107,17 +107,17 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#containsKey(Object) Ehcache.containsKey} over a cache holding
    * the target key where {@link Store#containsKey(Object) Store.containsKey}
-   * throws a {@link org.ehcache.exceptions.CacheAccessException CacheAccessException}.
+   * throws a {@link StoreAccessException StoreAccessException}.
    */
   @Test
-  public void testContainsKeyContainsCacheAccessException() throws Exception {
+  public void testContainsKeyContainsStoreAccessException() throws Exception {
     final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).containsKey("keyA");
+    doThrow(new StoreAccessException("")).when(this.store).containsKey("keyA");
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("keyA");
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("keyA"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("keyA"), any(StoreAccessException.class));
   }
 
   /**
@@ -137,17 +137,17 @@ public class EhcacheBasicContainsKeyTest extends EhcacheBasicCrudBase {
   /**
    * Tests {@link Ehcache#containsKey(Object) Ehcache.containsKey} over a non-empty cache
    * not holding the target key where {@link Store#containsKey(Object) Store.containsKey}
-   * throws a {@link org.ehcache.exceptions.CacheAccessException CacheAccessException}.
+   * throws a {@link StoreAccessException StoreAccessException}.
    */
   @Test
-  public void testContainsKeyMissingCacheAccessException() throws Exception {
+  public void testContainsKeyMissingStoreAccessException() throws Exception {
     final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
-    doThrow(new CacheAccessException("")).when(this.store).containsKey("missingKey");
+    doThrow(new StoreAccessException("")).when(this.store).containsKey("missingKey");
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.containsKey("missingKey");
-    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("missingKey"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).containsKeyFailure(eq("missingKey"), any(StoreAccessException.class));
   }
 
   private Map<String, String> getTestStoreEntries() {

@@ -16,17 +16,18 @@
 package org.ehcache.transactions.xa;
 
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
-import org.ehcache.core.internal.resilience.RethrowingCacheAccessException;
+import org.ehcache.core.internal.resilience.RethrowingStoreAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.transactions.xa.internal.XAStore;
 
 /**
- * A {@link org.ehcache.exceptions.CacheAccessException} thrown by the {@link XAStore} that is not handled by the
+ * A {@link StoreAccessException} thrown by the {@link XAStore} that is not handled by the
  * {@link ResilienceStrategy} but used to throw a {@link RuntimeException} to the user of the cache.
  *
  * @author Ludovic Orban
  */
-public class XACacheAccessException extends RethrowingCacheAccessException {
-  public XACacheAccessException(RuntimeException cause) {
+public class XAStoreAccessException extends RethrowingStoreAccessException {
+  public XAStoreAccessException(RuntimeException cause) {
     super(cause);
   }
 }
