@@ -20,21 +20,20 @@ import org.ehcache.core.exceptions.LimitExceededException;
 import org.ehcache.core.spi.store.Store;
 
 /**
- * SizeOf engines are used to calculate the size of objects.
- *
- * @author Abhilash
- *
+ * {@code SizeOfEngine} is the abstraction that byte sized {@link Store} will use to calculate memory size.
+ * <P>
+ *   Implementations are expected to be linked to {@link Store} implementations.
+ * </P>
  */
 public interface SizeOfEngine {
 
   /**
-   * Size of the objects on Heap including the
-   * overhead
+   * Size of the objects on heap including the overhead
    *
    * @param key key to be sized
    * @param holder value holder to be sized
    * @return size of the objects on heap including the overhead
-   * @throws LimitExceededException
+   * @throws LimitExceededException if a configured limit is breached
    */
   <K, V> long sizeof(K key, Store.ValueHolder<V> holder) throws LimitExceededException;
 

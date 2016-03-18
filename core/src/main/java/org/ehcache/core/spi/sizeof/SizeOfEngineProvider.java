@@ -22,14 +22,16 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Abhilash
- *
+ * {@link Service} responsible for providing {@link SizeOfEngine}.
  */
 public interface SizeOfEngineProvider extends Service {
 
   /**
-   * Creates a {@link SizeOfEngine} which will size objects
-   * with maximum depth and maximum size
+   * Creates a {@link SizeOfEngine} which will size objects.
+   * <P>
+   *   Implementations may have configuration options that will be expressed as {@link ServiceConfiguration} and used
+   *   to specify behavior of the returned engine.
+   * </P>
    *
    * @param resourceUnit type of the unit used to size the store
    * @param serviceConfigs Array of {@link ServiceConfiguration}s

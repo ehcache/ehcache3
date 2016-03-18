@@ -15,6 +15,6 @@
  */
 
 /**
- * Package for API related to sizeof in Ehcache
+ * Package for SPI related to sizeof in Ehcache
  */
 package org.ehcache.core.spi.sizeof;
