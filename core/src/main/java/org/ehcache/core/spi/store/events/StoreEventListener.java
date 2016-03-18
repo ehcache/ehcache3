@@ -19,7 +19,8 @@ package org.ehcache.core.spi.store.events;
 import org.ehcache.core.events.StoreEventDispatcher;
 
 /**
- * Interface used by a Store to notify of events happening to mappings it contains.
+ * Interface used to register on a {@link StoreEventSource} to get notified of events happening to mappings the
+ * {@link org.ehcache.core.spi.store.Store} contains.
  * <P/>
  * Implementations of this class are expected to work in combination with an implementation of
  * {@link StoreEventDispatcher}.

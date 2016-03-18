@@ -16,10 +16,8 @@
 
 package org.ehcache.core.spi.store.events;
 
-import org.ehcache.core.spi.store.Store;
-
 /**
- * Interface to enable listening and configuring the {@link Store} eventing system.
+ * Interface to enable listening on and configuring the {@link org.ehcache.core.spi.store.Store} eventing system.
  */
 public interface StoreEventSource<K, V> {
 
@@ -28,21 +26,27 @@ public interface StoreEventSource<K, V> {
   void removeEventListener(StoreEventListener<K, V> eventListener);
 
   /**
-   * Adds an event filter. When multiple event filters are added, an event must be accepted by all to be valid.
+   * Adds an event filter.
+   * <P>
+   *   When multiple event filters are added, an event must be accepted by all to be valid.
+   * </P>
    *
    * @param eventFilter the event filter
    */
   void addEventFilter(StoreEventFilter<K, V> eventFilter);
 
   /**
-   * Toggles event ordering, which means events will respect ordering of operations on a key basis.
+   * Toggles event ordering.
+   * <P>
+   *   If {@code true} it means events will respect ordering of operations on a key basis.
+   * </P>
    *
    * @param ordering {@code true} if ordering is desired, {@code false} for no ordering
    */
   void setEventOrdering(boolean ordering);
 
   /**
-   * Indicates if the current store is delivering events ordered or not.
+   * Indicates if the related {@link org.ehcache.core.spi.store.Store} is delivering events ordered or not.
    *
    * @return {@code true} if ordering is on, {@code false} otherwise
    */
