@@ -543,26 +543,30 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
 
     try {
-      OnHeapValueHolder<V> newValue = map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
           final long now = timeSource.getTimeMillis();
 
           if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            updateUsageInBytesIfRequired(- mappedValue.size());
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
             return null;
           } else {
             returnValue.set(mappedValue);
-            return newUpdateValueHolder(key, mappedValue, value, now, eventSink);
+            OnHeapValueHolder<V> holder = newUpdateValueHolder(key, mappedValue, value, now, eventSink);
+            if (holder != null) {
+              updateUsageInBytesIfRequired(holder.size() - mappedValue.size());
+            } else {
+              updateUsageInBytesIfRequired(- mappedValue.size());
+            }
+            return holder;
           }
         }
       });
       OnHeapValueHolder<V> valueHolder = returnValue.get();
-      if (valueHolder != null) {
-        long replacedDelta = (newValue == null ? 0 : newValue.size()) - returnValue.get().size();
-        replaceByteCapacity(replacedDelta, eventSink);
-      }
       storeEventDispatcher.releaseEventSink(eventSink);
+      enforceCapacity();
       if (valueHolder != null) {
         replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
       } else {
