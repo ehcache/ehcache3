@@ -483,9 +483,8 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkKey(key);
     checkValue(value);
 
-    final AtomicReference<OnHeapValueHolder<V>> removedValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+    final AtomicReference<RemoveStatus> outcome = new AtomicReference<RemoveStatus>(RemoveStatus.KEY_MISSING);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
-    final AtomicBoolean mappingExists = new AtomicBoolean();
 
     try {
       map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
@@ -494,31 +493,38 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           final long now = timeSource.getTimeMillis();
 
           if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            updateUsageInBytesIfRequired(- mappedValue.size());
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
             return null;
           } else if (value.equals(mappedValue.value())) {
-            removedValue.set(mappedValue);
+            updateUsageInBytesIfRequired(- mappedValue.size());
             eventSink.removed(mappedKey, mappedValue);
+            outcome.set(RemoveStatus.REMOVED);
             return null;
           } else {
-            mappingExists.set(true);
-            return setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+            outcome.set(RemoveStatus.KEY_PRESENT);
+            OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+            if (holder == null) {
+              updateUsageInBytesIfRequired(- mappedValue.size());
+            }
+            return holder;
           }
         }
       });
       storeEventDispatcher.releaseEventSink(eventSink);
-      if (removedValue.get() != null) {
-        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
-        decrementCurrentUsageInBytesIfRequired(removedValue.get().size());
-        return RemoveStatus.REMOVED;
-      } else {
-        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
-        if (mappingExists.get()) {
-          return RemoveStatus.KEY_PRESENT;
-        } else {
-          return RemoveStatus.KEY_MISSING;
-        }
+      RemoveStatus removeStatus = outcome.get();
+      switch (removeStatus) {
+        case REMOVED:
+          conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
+          break;
+        case KEY_MISSING:
+        case KEY_PRESENT:
+          conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
+          break;
+        default:
+
       }
+      return removeStatus;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);

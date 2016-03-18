@@ -268,7 +268,58 @@ public class ByteAccountingTest {
     store.remove(KEY, "Another value");
     assertThat(store.getCurrentUsageInBytes(), is(beforeRemove));
     store.remove(KEY, VALUE);
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testRemoveTwoArgExpired() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return new Duration(600L, TimeUnit.MILLISECONDS);
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    timeSource.advanceTime(1000L);
+    store.remove(KEY, "whatever value, it is expired anyway");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testRemoveTwoArgExpiresOnAccess() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.remove(KEY, "whatever value, it expires on access");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
