@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.tiering.BinaryValueHolder;
+import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 
 import java.io.IOException;

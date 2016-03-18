@@ -25,62 +25,114 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * Caching tier, according to Montreal design.
+ * Caching tier is the abstraction for tiers sitting atop the {@link AuthoritativeTier}.
+ * <P>
+ *   As soon as there is more than one tier in a {@link Store}, one will be the {@link AuthoritativeTier} while others
+ *   will be regrouped under the {@code CachingTier}
+ * </P>
+ *
+ * @param <K> the key type
+ * @param <V> the value type
  */
 public interface CachingTier<K, V> extends ConfigurationChangeSupport {
 
   /**
    * Either return the value holder currently in the caching tier, or compute and store it when it isn't present.
-   * Note that in case of expired value holders null will be returned and the mapping will be invalidated.
-   * @param key the key.
-   * @param source the function that computes the value.
-   * @return the value holder, or null.
-   * @throws CacheAccessException
+   * <P>
+   *   Note that in case of expired value holders, {@code null} will be returned and the mapping will be invalidated.
+   * </P>
+   *
+   * @param key the key
+   * @param source the function that computes the value when absent from this tier
+   *
+   * @return the value holder, or {@code null}
+   *
+   * @throws CacheAccessException if the mapping cannot be retrieved or stored
    */
   Store.ValueHolder<V> getOrComputeIfAbsent(K key, Function<K, Store.ValueHolder<V>> source) throws CacheAccessException;
 
   /**
-   * Remove a mapping.
-   * @param key the key.
-   * @throws CacheAccessException
+   * Removes a mapping, triggering the {@link InvalidationListener} if registered.
+   *
+   * @param key the key to remove
+   *
+   * @throws CacheAccessException if the mapping cannot be removed
    */
   void invalidate(K key) throws CacheAccessException;
 
   /**
-   * Empty out the caching store.
-   * @throws CacheAccessException
+   * Empty out the caching tier.
+   * <P>
+   *   Note that this operation is not atomic.
+   * </P>
+   *
+   * @throws CacheAccessException if mappings cannot be removed
    */
   void clear() throws CacheAccessException;
 
   /**
-   * Set the caching tier's invalidation listener. The invalidation listener can only be set once.
-   * @param invalidationListener the listener.
-   * @throws IllegalStateException if the invalidation listener is already set.
+   * Set the caching tier's {@link InvalidationListener}.
+   *
+   * @param invalidationListener the listener
    */
   void setInvalidationListener(InvalidationListener<K, V> invalidationListener);
 
   /**
    * Caching tier invalidation listener.
-   * @param <K>
-   * @param <V>
+   * <P>
+   *   Used to notify the {@link AuthoritativeTier} when a mapping is removed so that it can be flushed.
+   * </P>
+   *
+   * @param <K> the key type
+   * @param <V> the value type
    */
   interface InvalidationListener<K, V> {
 
     /**
      * Notification that a mapping was evicted or has expired.
-     * @param key the mapping's key.
-     * @param valueHolder the invalidated mapping's value holder.
+     *
+     * @param key the mapping's key
+     * @param valueHolder the invalidated mapping's value holder
      */
     void onInvalidation(K key, Store.ValueHolder<V> valueHolder);
 
   }
 
+  /**
+   * {@link Service} interface for providing {@link CachingTier} instances.
+   * <P>
+   *   Multiple providers may exist in a single {@link org.ehcache.CacheManager}.
+   * </P>
+   */
   @PluralService
   interface Provider extends Service {
+
+    /**
+     * Creates a new {@link CachingTier} instance using the provided configuration
+     *
+     * @param storeConfig the {@code Store} configuration
+     * @param serviceConfigs a collection of service configurations
+     * @param <K> the key type for this tier
+     * @param <V> the value type for this tier
+     *
+     * @return the new caching tier
+     */
     <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
+    /**
+     * Releases a {@link CachingTier}.
+     *
+     * @param resource the caching tier to release
+     *
+     * @throws IllegalArgumentException if this provider does not know about this caching tier
+     */
     void releaseCachingTier(CachingTier<?, ?> resource);
 
+    /**
+     * Initialises a {@link CachingTier}.
+     *
+     * @param resource the caching tier to initialise
+     */
     void initCachingTier(CachingTier<?, ?> resource);
   }
 

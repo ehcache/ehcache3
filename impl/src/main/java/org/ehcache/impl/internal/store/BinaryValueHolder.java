@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.store.tiering;
+package org.ehcache.impl.internal.store;
 
 import java.nio.ByteBuffer;
 

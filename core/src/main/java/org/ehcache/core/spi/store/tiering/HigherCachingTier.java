@@ -23,7 +23,10 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * HigherCachingTier
+ * Interface for the higher tier of a multi-tier {@link CachingTier}.
+ *
+ * @param <K> the key type
+ * @param <V> the value type
  */
 public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
 
@@ -31,17 +34,44 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
    * Removes a mapping without firing an invalidation event, then calls the function under the same lock scope
    * passing in the mapping or null if none was present.
    *
-   * @param key the key.
-   * @param function the function to call.
-   * @throws CacheAccessException
+   * @param key the key
+   * @param function the function to call
+   *
+   * @throws CacheAccessException if the mapping cannot be removed or the function throws
    */
   void silentInvalidate(K key, Function<Store.ValueHolder<V>, Void> function) throws CacheAccessException;
 
+  /**
+   * {@link Service} interface for providing {@link HigherCachingTier} instances.
+   */
   interface Provider extends Service {
+
+    /**
+     * Creates a new {@link HigherCachingTier} instance using the provided configuration
+     *
+     * @param storeConfig the {@code Store} configuration
+     * @param serviceConfigs a collection of service configurations
+     * @param <K> the key type for this tier
+     * @param <V> the value type for this tier
+     *
+     * @return the new higher caching tier
+     */
     <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs);
 
+    /**
+     * Releases a {@link HigherCachingTier}.
+     *
+     * @param resource the higher caching tier to release
+     *
+     * @throws IllegalArgumentException if this provider does not know about this higher caching tier
+     */
     void releaseHigherCachingTier(HigherCachingTier<?, ?> resource);
 
+    /**
+     * Initialises a {@link HigherCachingTier}.
+     *
+     * @param resource the higher caching tier to initialise
+     */
     void initHigherCachingTier(HigherCachingTier<?, ?> resource);
   }
 
