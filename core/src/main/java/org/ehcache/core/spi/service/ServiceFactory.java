@@ -16,15 +16,30 @@
 
 package org.ehcache.core.spi.service;
 
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
- * @author Alex Snaps
+ * A factory abstraction that can create {@link Service} instances.
  */
 public interface ServiceFactory<T extends Service> {
 
+  /**
+   * Creates an instance of the service using the passed in {@link ServiceCreationConfiguration}.
+   * <P>
+   *   Note that the mandatory aspect of the configuration is a service implementation concern.
+   * </P>
+   * @param configuration the creation configuration, can be {@code null} for some services
+   *
+   * @return the new service, not {@link Service#start(ServiceProvider) started}
+   */
   T create(ServiceCreationConfiguration<T> configuration);
 
+  /**
+   * Enables to query a {@code ServiceFactory} to know which {@link Service} type is produces.
+   *
+   * @return the class of the produced service.
+   */
   Class<T> getServiceType();
 }

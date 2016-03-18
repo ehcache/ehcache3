@@ -14,12 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.service;
-
 /**
- *
- * @author cdennis
+ * Package for Core SPI {@link org.ehcache.spi.service.Service} related types.
  */
-public interface ExecutionServiceFactory extends ServiceFactory<ExecutionService> {
-
-}
+package org.ehcache.core.spi.service;

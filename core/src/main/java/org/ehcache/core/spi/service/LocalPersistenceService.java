@@ -23,10 +23,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Service to provide persistence context to caches requiring it.
- *
+ * <P>
  * Will be used by caches with a disk store, whether or not the data should survive a program restart.
- *
- * @author Alex Snaps
+ * <P/>
  */
 public interface LocalPersistenceService extends PersistableResourceService {
 
