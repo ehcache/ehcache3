@@ -587,44 +587,54 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     checkValue(oldValue);
     checkValue(newValue);
 
-    final AtomicReference<OnHeapValueHolder<V>> returnValueHolder = new AtomicReference<OnHeapValueHolder<V>>(null);
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
-    final AtomicBoolean mappingExists = new AtomicBoolean();
+    final AtomicReference<ReplaceStatus> outcome = new AtomicReference<ReplaceStatus>(ReplaceStatus.MISS_NOT_PRESENT);
 
     try {
-      OnHeapValueHolder<V> replacedValue = map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+      map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
           final long now = timeSource.getTimeMillis();
 
+          V existingValue = mappedValue.value();
           if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
+            updateUsageInBytesIfRequired(- mappedValue.size());
             return null;
-          } else if (oldValue.equals(mappedValue.value())) {
-            returnValueHolder.set(mappedValue);
-            return newUpdateValueHolder(key, mappedValue, newValue, now, eventSink);
+          } else if (oldValue.equals(existingValue)) {
+            outcome.set(ReplaceStatus.HIT);
+            OnHeapValueHolder<V> holder = newUpdateValueHolder(key, mappedValue, newValue, now, eventSink);
+            if (holder != null) {
+              updateUsageInBytesIfRequired(holder.size() - mappedValue.size());
+            } else {
+              updateUsageInBytesIfRequired(- mappedValue.size());
+            }
+            return holder;
           } else {
-            mappingExists.set(true);
-            return setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+            outcome.set(ReplaceStatus.MISS_PRESENT);
+            OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+            if (holder == null) {
+              updateUsageInBytesIfRequired(- mappedValue.size());
+            }
+            return holder;
           }
         }
       });
-      if (returnValueHolder.get() != null) {
-        long replacedDelta = (replacedValue == null ? 0 : replacedValue.size()) - returnValueHolder.get().size();
-        replaceByteCapacity(replacedDelta, eventSink);
-      }
       storeEventDispatcher.releaseEventSink(eventSink);
-      if (returnValueHolder.get() != null) {
-        conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
-        return ReplaceStatus.HIT;
-      } else {
-        conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
-        if (mappingExists.get()) {
-          return ReplaceStatus.MISS_PRESENT;
-        } else {
-          return ReplaceStatus.MISS_NOT_PRESENT;
-        }
+      enforceCapacity();
+      ReplaceStatus replaceStatus = outcome.get();
+      switch (replaceStatus) {
+        case HIT:
+          conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
+          break;
+        case MISS_PRESENT:
+        case MISS_NOT_PRESENT:
+          conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
+          break;
+        default:
+          throw new AssertionError("Unknown enum value " + replaceStatus);
       }
+      return replaceStatus;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
       handleRuntimeException(re);
