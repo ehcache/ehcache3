@@ -218,7 +218,16 @@ final class StatusTransitioner {
     }
 
     public StateTransitionException failed(Throwable t) {
+      if (st.done()) {
+        if (t != null) {
+          throw new AssertionError("Throwable cannot be null if Transition is done.");
+        }
+        return null;
+      }
       st.failed();
+      if (t == null) {
+        return null;
+      }
       logger.error("{} failed.", action);
       if(t instanceof StateTransitionException) {
         return (StateTransitionException) t;
