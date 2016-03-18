@@ -699,7 +699,36 @@ public class ByteAccountingTest {
     });
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
+  }
 
+  @Test
+  public void testComputeIfAbsentExpireOnCreate() throws CacheAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.FOREVER;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.FOREVER;
+      }
+    });
+
+    store.computeIfAbsent(KEY, new Function<String, String>() {
+      @Override
+      public String apply(String s) {
+        return VALUE;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
