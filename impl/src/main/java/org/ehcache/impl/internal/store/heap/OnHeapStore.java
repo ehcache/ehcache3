@@ -1047,16 +1047,17 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final long now = timeSource.getTimeMillis();
     final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
     try {
-      final AtomicBoolean write = new AtomicBoolean(false);
-      final AtomicReference<OnHeapValueHolder<V>> replacedOrRemovedValue = new AtomicReference<OnHeapValueHolder<V>>(null);
       final AtomicReference<OnHeapValueHolder<V>> valueHeld = new AtomicReference<OnHeapValueHolder<V>>();
+      final AtomicReference<StoreOperationOutcomes.ComputeOutcome> outcome =
+          new AtomicReference<StoreOperationOutcomes.ComputeOutcome>(StoreOperationOutcomes.ComputeOutcome.MISS);
 
       OnHeapValueHolder<V> computeResult = map.compute(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-          replacedOrRemovedValue.set(mappedValue);
+          long sizeDelta = 0L;
           if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
             fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
+            sizeDelta -= mappedValue.size();
             mappedValue = null;
           }
 
@@ -1064,62 +1065,57 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           V computedValue = mappingFunction.apply(mappedKey, existingValue);
           if (computedValue == null) {
             if (existingValue != null) {
-              write.set(true);
               eventSink.removed(mappedKey, mappedValue);
+              outcome.set(StoreOperationOutcomes.ComputeOutcome.REMOVED);
+              updateUsageInBytesIfRequired(- mappedValue.size());
             }
             return null;
           } else if ((eq(existingValue, computedValue)) && (!replaceEqual.apply())) {
             if (mappedValue != null) {
               OnHeapValueHolder<V> holder = setAccessTimeAndExpiryThenReturnMappingUnderLock(key, mappedValue, now, eventSink);
+              outcome.set(StoreOperationOutcomes.ComputeOutcome.HIT);
               if (holder == null) {
-                write.set(true);
                 valueHeld.set(mappedValue);
+                updateUsageInBytesIfRequired(- mappedValue.size());
               }
               return holder;
             }
           }
 
           checkValue(computedValue);
-          write.set(true);
           if (mappedValue != null) {
+            outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
+            long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
             OnHeapValueHolder<V> valueHolder = newUpdateValueHolder(key, mappedValue, computedValue, now, eventSink);
+            sizeDelta -= mappedValue.size();
             if (valueHolder == null) {
               try {
-                long expirationTime = mappedValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
                 valueHeld.set(makeValue(key, computedValue, now, expirationTime, valueCopier, false));
               } catch (LimitExceededException e) {
                 // Not happening
               }
+            } else {
+              sizeDelta += valueHolder.size();
             }
+            updateUsageInBytesIfRequired(sizeDelta);
             return valueHolder;
           } else {
-            return newCreateValueHolder(key, computedValue, now, eventSink);
+            OnHeapValueHolder<V> holder = newCreateValueHolder(key, computedValue, now, eventSink);
+            if (holder != null) {
+              outcome.set(StoreOperationOutcomes.ComputeOutcome.PUT);
+              sizeDelta += holder.size();
+            }
+            updateUsageInBytesIfRequired(sizeDelta);
+            return holder;
           }
         }
       });
-      if (computeResult == null) {
-        if (write.get() && replacedOrRemovedValue.get() != null) {
-          decrementCurrentUsageInBytesIfRequired(replacedOrRemovedValue.get().size());
-        }
-      } else if (write.get()) {
-        long delta = replacedOrRemovedValue.get() == null ? computeResult.size() : (computeResult.size() - replacedOrRemovedValue.get().size());
-        replaceByteCapacity(delta, eventSink);
-      }
       if (computeResult == null && valueHeld.get() != null) {
         computeResult = valueHeld.get();
       }
       storeEventDispatcher.releaseEventSink(eventSink);
-      if (computeResult == null) {
-        if (write.get()) {
-          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.REMOVED);
-        } else {
-          computeObserver.end(StoreOperationOutcomes.ComputeOutcome.MISS);
-        }
-      } else if (write.get()) {
-        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.PUT);
-      } else {
-        computeObserver.end(StoreOperationOutcomes.ComputeOutcome.HIT);
-      }
+      enforceCapacity();
+      computeObserver.end(outcome.get());
       return computeResult;
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);

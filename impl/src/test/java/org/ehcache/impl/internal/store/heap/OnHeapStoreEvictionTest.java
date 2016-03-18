@@ -191,6 +191,12 @@ public class OnHeapStoreEvictionTest {
       super.enforceCapacity(delta, eventSink);
     }
 
+    @Override
+    protected void enforceCapacity() {
+      enforceCapacityWasCalled = true;
+      super.enforceCapacity();
+    }
+
     boolean enforceCapacityWasCalled() {
       return enforceCapacityWasCalled;
     }
