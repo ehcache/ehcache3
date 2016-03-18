@@ -14,28 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi;
-
-import org.ehcache.spi.LifeCycled;
-
 /**
- * Adapter class for {@link LifeCycled} in case you do not need to implement all methods from the interface.
+ * Parent package for core SPI
  */
-public abstract class LifeCycledAdapter implements LifeCycled {
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void init() throws Exception {
-
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void close() throws Exception {
-
-  }
-}
+package org.ehcache.core.spi;
