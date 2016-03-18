@@ -530,6 +530,15 @@ public class ByteAccountingTest {
   }
 
   @Test
+  public void testInvalidate() throws CacheAccessException {
+    OnHeapStoreForTests<Object, Object> store = newStore();
+    store.put(KEY, VALUE);
+    store.invalidate(KEY);
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
   public void testComputeRemove() throws CacheAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 

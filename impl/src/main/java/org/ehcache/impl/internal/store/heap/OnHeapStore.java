@@ -841,25 +841,20 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     invalidateObserver.begin();
     checkKey(key);
     try {
-      final AtomicReference<OnHeapValueHolder<V>> invalidatedValue = new AtomicReference<OnHeapValueHolder<V>>(null);
+      final AtomicReference<CachingTierOperationOutcomes.InvalidateOutcome> outcome = new AtomicReference<CachingTierOperationOutcomes.InvalidateOutcome>(CachingTierOperationOutcomes.InvalidateOutcome.MISS);
 
       map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
         @Override
         public OnHeapValueHolder<V> apply(final K k, final OnHeapValueHolder<V> present) {
           if (!(present instanceof Fault)) {
             notifyInvalidation(key, present);
-            invalidatedValue.set(present);
+            outcome.set(CachingTierOperationOutcomes.InvalidateOutcome.REMOVED);
           }
+          updateUsageInBytesIfRequired(- present.size());
           return null;
         }
       });
-      OnHeapValueHolder<V> invalidated = null;
-      if ((invalidated = invalidatedValue.get()) != null) {
-        invalidateObserver.end(CachingTierOperationOutcomes.InvalidateOutcome.REMOVED);
-        decrementCurrentUsageInBytesIfRequired(invalidated.size());
-      } else {
-        invalidateObserver.end(CachingTierOperationOutcomes.InvalidateOutcome.MISS);
-      }
+      invalidateObserver.end(outcome.get());
     } catch (RuntimeException re) {
       handleRuntimeException(re);
     }
