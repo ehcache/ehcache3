@@ -85,7 +85,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private final OperationObserver<StoreOperationOutcomes.ConditionalReplaceOutcome> conditionalReplaceObserver;
   private final OperationObserver<StoreOperationOutcomes.ComputeOutcome> computeObserver;
   private final OperationObserver<StoreOperationOutcomes.ComputeIfAbsentOutcome> computeIfAbsentObserver;
-  private final OperationObserver<StoreOperationOutcomes.ComputeIfPresentOutcome> computeIfPresentObserver;
   private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver;
   private final OperationObserver<StoreOperationOutcomes.ExpirationOutcome> expirationObserver;
 
@@ -118,7 +117,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).of(this).named("conditionalReplace").tag(statisticsTag).build();
     this.computeObserver = operation(StoreOperationOutcomes.ComputeOutcome.class).of(this).named("compute").tag(statisticsTag).build();
     this.computeIfAbsentObserver = operation(StoreOperationOutcomes.ComputeIfAbsentOutcome.class).of(this).named("computeIfAbsent").tag(statisticsTag).build();
-    this.computeIfPresentObserver = operation(StoreOperationOutcomes.ComputeIfPresentOutcome.class).of(this).named("computeIfPresent").tag(statisticsTag).build();
     this.evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).of(this).named("eviction").tag(statisticsTag).build();
     this.expirationObserver = operation(StoreOperationOutcomes.ExpirationOutcome.class).of(this).named("expiration").tag(statisticsTag).build();
 

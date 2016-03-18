@@ -187,7 +187,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.ConditionalReplaceOutcome> conditionalReplaceObserver;
   private final OperationObserver<StoreOperationOutcomes.ComputeOutcome> computeObserver;
   private final OperationObserver<StoreOperationOutcomes.ComputeIfAbsentOutcome> computeIfAbsentObserver;
-  private final OperationObserver<StoreOperationOutcomes.ComputeIfPresentOutcome> computeIfPresentObserver;
   private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver;
   private final OperationObserver<StoreOperationOutcomes.ExpirationOutcome> expirationObserver;
 
@@ -245,7 +244,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).named("conditionalReplace").of(this).tag("onheap-store").build();
     computeObserver = operation(StoreOperationOutcomes.ComputeOutcome.class).named("compute").of(this).tag("onheap-store").build();
     computeIfAbsentObserver = operation(StoreOperationOutcomes.ComputeIfAbsentOutcome.class).named("computeIfAbsent").of(this).tag("onheap-store").build();
-    computeIfPresentObserver = operation(StoreOperationOutcomes.ComputeIfPresentOutcome.class).named("computeIfPresent").of(this).tag("onheap-store").build();
     evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
     expirationObserver = operation(StoreOperationOutcomes.ExpirationOutcome.class).named("expiration").of(this).tag("onheap-store").build();
     getOrComputeIfAbsentObserver = operation(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.class).named("getOrComputeIfAbsent").of(this).tag("onheap-store").build();

@@ -159,28 +159,6 @@ public interface StoreOperationOutcomes {
   }
 
   /**
-   * the computeIfPresent outcomes
-   */
-  enum ComputeIfPresentOutcome implements StoreOperationOutcomes {
-    /**
-     * miss
-     */
-    MISS,
-    /**
-     * hit
-     */
-    HIT,
-    /**
-     * put
-     */
-    PUT,
-    /**
-     * removed
-     */
-    REMOVED
-  }
-
-  /**
    * The eviction outcomes.
    */
   enum EvictionOutcome implements StoreOperationOutcomes {
