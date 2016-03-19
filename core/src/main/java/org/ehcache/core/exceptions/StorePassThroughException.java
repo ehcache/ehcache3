@@ -26,7 +26,7 @@ import org.ehcache.exceptions.StoreAccessException;
  *   be propagated.
  * </P>
  */
-public class CachePassThroughException extends RuntimeException {
+public class StorePassThroughException extends RuntimeException {
 
   private static final long serialVersionUID = -2018452326214235671L;
 
@@ -36,7 +36,7 @@ public class CachePassThroughException extends RuntimeException {
    * @param message information about the exception
    * @param cause the cause of this exception
    */
-  public CachePassThroughException(final String message, final Throwable cause) {
+  public StorePassThroughException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
@@ -45,23 +45,23 @@ public class CachePassThroughException extends RuntimeException {
    *
    * @param cause the cause of this exception
    */
-  public CachePassThroughException(final Throwable cause) {
+  public StorePassThroughException(final Throwable cause) {
     super(cause);
   }
 
   /**
    * Helper method for handling runtime exceptions.
    * <P>
-   *   Throwing most as {@link StoreAccessException} except for {@code CachePassThroughException}.
+   *   Throwing most as {@link StoreAccessException} except for {@code StorePassThroughException}.
    *   In which case if its cause is a {@link RuntimeException} it is thrown back and if not it is
    *   wrapped in a {@code StoreAccessException}.
    * </P>
    *
    * @param re the exception to handler
-   * @throws StoreAccessException except for {@code CachePassThroughException} containing a {@code RuntimeException}
+   * @throws StoreAccessException except for {@code StorePassThroughException} containing a {@code RuntimeException}
    */
   public static void handleRuntimeException(RuntimeException re) throws StoreAccessException {
-    if(re instanceof CachePassThroughException) {
+    if(re instanceof StorePassThroughException) {
       Throwable cause = re.getCause();
       if(cause instanceof RuntimeException) {
         throw   (RuntimeException) cause;

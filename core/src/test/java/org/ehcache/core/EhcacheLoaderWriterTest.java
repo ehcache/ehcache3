@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.exceptions.CachePassThroughException;
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
@@ -99,7 +99,7 @@ public class EhcacheLoaderWriterTest {
         Function<Number, String> function = asFunction(invocation);
         try {
           function.apply((Number)invocation.getArguments()[0]);
-        } catch (CachePassThroughException e) {
+        } catch (StorePassThroughException e) {
           throw e.getCause();
         }
         return null;
@@ -139,7 +139,7 @@ public class EhcacheLoaderWriterTest {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
         try {
           function.apply((Number)invocation.getArguments()[0], null);
-        } catch (CachePassThroughException e) {
+        } catch (StorePassThroughException e) {
           throw e.getCause();
         }
         return null;
@@ -179,7 +179,7 @@ public class EhcacheLoaderWriterTest {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
         try {
           function.apply((Number)invocation.getArguments()[0], null);
-        } catch (CachePassThroughException e) {
+        } catch (StorePassThroughException e) {
           throw e.getCause();
         }
         return null;
@@ -240,7 +240,7 @@ public class EhcacheLoaderWriterTest {
         Function<Number, String> function = asFunction(invocation);
         try {
           function.apply((Number)invocation.getArguments()[0]);
-        } catch (CachePassThroughException e) {
+        } catch (StorePassThroughException e) {
           throw e.getCause();
         }
         return null;
@@ -314,7 +314,7 @@ public class EhcacheLoaderWriterTest {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
         try {
           function.apply((Number)invocation.getArguments()[0], expected);
-        } catch (CachePassThroughException e) {
+        } catch (StorePassThroughException e) {
           throw e.getCause();
         }
         return null;
@@ -360,7 +360,7 @@ public class EhcacheLoaderWriterTest {
         BiFunction<Number, String, String> function = asBiFunction(invocation);
         try {
           function.apply((Number)invocation.getArguments()[0], expected);
-        } catch (CachePassThroughException e) {
+        } catch (StorePassThroughException e) {
           throw e.getCause();
         }
         return null;
@@ -427,7 +427,7 @@ public class EhcacheLoaderWriterTest {
         final String applied;
         try {
           applied = function.apply((Number)invocation.getArguments()[0], "old");
-        } catch (CachePassThroughException e) {
+        } catch (StorePassThroughException e) {
           throw e.getCause();
         }
 

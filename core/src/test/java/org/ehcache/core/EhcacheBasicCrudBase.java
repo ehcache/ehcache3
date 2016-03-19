@@ -21,7 +21,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.exceptions.CachePassThroughException;
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.exceptions.BulkCacheLoadingException;
@@ -471,7 +471,7 @@ public abstract class EhcacheBasicCrudBase {
       String remappedValue = null;
       try {
         remappedValue = mappingFunction.apply(key, (currentValue == null ? null : currentValue.value()));
-      } catch (CachePassThroughException cpte) {
+      } catch (StorePassThroughException cpte) {
         Throwable cause = cpte.getCause();
         if(cause instanceof RuntimeException) {
           throw   (RuntimeException) cause;
@@ -522,7 +522,7 @@ public abstract class EhcacheBasicCrudBase {
         String newValue = null;
         try {
           newValue = mappingFunction.apply(key);
-        } catch (CachePassThroughException cpte) {
+        } catch (StorePassThroughException cpte) {
           Throwable cause = cpte.getCause();
           if(cause instanceof RuntimeException) {
             throw   (RuntimeException) cause;
