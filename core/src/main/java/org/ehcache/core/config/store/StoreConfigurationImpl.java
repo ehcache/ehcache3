@@ -24,8 +24,8 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
 
 /**
- * Implementation class of the {@link Store.Configuration} as used by {@link org.ehcache.core.EhcacheManager} in order
- * to prepare {@link Store} creation.
+ * Implementation class of the {@link org.ehcache.core.spi.store.Store.Configuration} as used by
+ * {@link org.ehcache.core.EhcacheManager} in order to prepare {@link Store} creation.
  */
 public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
 

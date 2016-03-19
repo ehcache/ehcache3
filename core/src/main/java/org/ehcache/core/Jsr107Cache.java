@@ -82,7 +82,6 @@ public interface Jsr107Cache<K, V> {
    * @param replaceEqual should equal value be replaced
    * @param invokeWriter should the writer be invoked
    * @param withStatsAndEvents should statistics be updated and events fired
-   * @return the new value mapped to key
    */
   void compute(K key, final BiFunction<? super K, ? super V, ? extends V> computeFunction,
       NullaryFunction<Boolean> replaceEqual, final NullaryFunction<Boolean> invokeWriter,

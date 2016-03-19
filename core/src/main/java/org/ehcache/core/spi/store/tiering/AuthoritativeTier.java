@@ -53,7 +53,8 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
   ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException;
 
   /**
-   * This marks a mapping as evictable again if it matches the {@link ValueHolder} received.
+   * This marks a mapping as evictable again if it matches the {@link org.ehcache.core.spi.store.Store.ValueHolder}
+   * received.
    *
    * @return {@code true} if a mapping exists for that key, the mapping was faulted, and the value of the
    * {@code ValueHolder} is equal to the value of the mapping in the {@code AuthoritativeTier}, {@code false} otherwise
