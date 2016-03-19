@@ -91,7 +91,7 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 ----
 <1> Obtain a `URL` to your XML file's location
 <2> Instantiate an `XmlConfiguration` passing the XML file's URL to it
-<3> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` allows you
+<3> Using the static `org.ehcache.config.builders.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` allows you
     to create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
 
 We can also use `<cache-template>` declared in the XML file to seed instances of `CacheConfigurationBuilder`. In order

@@ -27,7 +27,7 @@ WARNING: *This is still a work in progress*. While it represents the API as it e
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
 ----
 
-<1> Static method `org.ehcache.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.CacheManagerBuilder`
+<1> Static method `org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.config.builders.CacheManagerBuilder`
     instance;
 <2> Use the builder to register a pre-configured `Cache` to be created when we `.build()` the actual `CacheManager`.
     The first `String` argument is the alias used to interact with the `Cache` through the `CacheManager`; the second
@@ -408,7 +408,7 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 
 <1> Obtain a `URL` to your XML file's location
 <2> Instantiate an `XmlConfiguration` passing the XML file's URL to it
-<3> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
+<3> Using the static `org.ehcache.config.builders.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
     create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
 
 == Current development
