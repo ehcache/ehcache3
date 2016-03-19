@@ -19,7 +19,7 @@ package org.ehcache.impl.internal.store.disk;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CachePersistenceException;

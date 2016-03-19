@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;

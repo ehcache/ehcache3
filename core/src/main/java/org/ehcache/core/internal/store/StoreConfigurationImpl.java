@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.config.store;
+package org.ehcache.core.internal.store;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
@@ -24,8 +24,8 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
 
 /**
- * Implementation class of the {@link org.ehcache.core.spi.store.Store.Configuration} as used by
- * {@link org.ehcache.core.EhcacheManager} in order to prepare {@link Store} creation.
+ * Implementation of the {@link org.ehcache.core.spi.store.Store.Configuration store configuration interface} as used by
+ * {@link org.ehcache.core.EhcacheManager EhcacheManager} in order to prepare {@link Store} creation.
  */
 public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
 

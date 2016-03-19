@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;

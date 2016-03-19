@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.copy.IdentityCopier;

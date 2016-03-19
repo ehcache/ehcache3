@@ -28,7 +28,7 @@ import org.ehcache.config.RuntimeConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheManagerListener;

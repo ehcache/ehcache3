@@ -21,7 +21,7 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;

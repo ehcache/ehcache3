@@ -27,7 +27,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.event.CacheEventListener;

@@ -22,7 +22,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
