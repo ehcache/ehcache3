@@ -20,12 +20,18 @@ import org.ehcache.core.config.store.StoreEventSourceConfiguration;
 import org.ehcache.core.spi.store.Store;
 
 /**
- * DefaultEventSourceConfiguration
+ * {@link org.ehcache.spi.service.ServiceConfiguration} for a {@link org.ehcache.core.spi.store.Store.Provider}
+ * related to {@link org.ehcache.core.spi.store.events.StoreEvent}s.
  */
 public class DefaultEventSourceConfiguration implements StoreEventSourceConfiguration {
 
   private final int orderedEventParallelism;
 
+  /**
+   * Creates a new configuration with the provided level of parallelism for ordered events.
+   *
+   * @param orderedEventParallelism  the parallelism level for ordered events
+   */
   public DefaultEventSourceConfiguration(int orderedEventParallelism) {
     if (orderedEventParallelism <= 0) {
       throw new IllegalArgumentException("Event parallelism must be a value bigger than 0");
@@ -33,11 +39,17 @@ public class DefaultEventSourceConfiguration implements StoreEventSourceConfigur
     this.orderedEventParallelism = orderedEventParallelism;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getOrderedEventParallelism() {
     return orderedEventParallelism;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<Store.Provider> getServiceType() {
     return Store.Provider.class;

@@ -28,7 +28,10 @@ import java.util.EnumSet;
 import java.util.Set;
 
 /**
- * {@link CacheEventListenerConfiguration} implementation
+ * {@link org.ehcache.spi.service.ServiceConfiguration} for the default {@link CacheEventListenerProvider}.
+ * <P>
+ *   Enables configuring a {@link CacheEventListener} for a given cache.
+ * </P>
  */
 public class DefaultCacheEventListenerConfiguration extends ClassInstanceConfiguration<CacheEventListener<?, ?>>
     implements CacheEventListenerConfiguration {
