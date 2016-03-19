@@ -28,7 +28,7 @@ public interface ServiceFactory<T extends Service> {
   /**
    * Creates an instance of the service using the passed in {@link ServiceCreationConfiguration}.
    * <P>
-   *   Note that the mandatory aspect of the configuration is a service implementation concern.
+   *   Note that a {@code null} configuration may be supported or even required by a service implementation.
    * </P>
    * @param configuration the creation configuration, can be {@code null} for some services
    *
@@ -37,7 +37,7 @@ public interface ServiceFactory<T extends Service> {
   T create(ServiceCreationConfiguration<T> configuration);
 
   /**
-   * Enables to query a {@code ServiceFactory} to know which {@link Service} type is produces.
+   * Queries a {@code ServiceFactory} to know which {@link Service} type it produces.
    *
    * @return the class of the produced service.
    */
