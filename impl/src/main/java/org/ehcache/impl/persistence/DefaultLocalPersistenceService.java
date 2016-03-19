@@ -20,7 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.impl.config.persistence.PersistenceConfiguration;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
@@ -85,11 +85,11 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private boolean started;
 
-  public DefaultLocalPersistenceService(final PersistenceConfiguration persistenceConfiguration) {
+  public DefaultLocalPersistenceService(final DefaultPersistenceConfiguration persistenceConfiguration) {
     if(persistenceConfiguration != null) {
       rootDirectory = persistenceConfiguration.getRootDirectory();
     } else {
-      throw new NullPointerException("PersistenceConfiguration cannot be null");
+      throw new NullPointerException("DefaultPersistenceConfiguration cannot be null");
     }
     lockFile = new File(rootDirectory, ".lock");
   }

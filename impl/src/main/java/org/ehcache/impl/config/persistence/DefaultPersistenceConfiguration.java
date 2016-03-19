@@ -17,13 +17,14 @@
 package org.ehcache.impl.config.persistence;
 
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.io.File;
 
 /**
  * DefaultPersistenceConfiguration
  */
-public class DefaultPersistenceConfiguration implements PersistenceConfiguration {
+public class DefaultPersistenceConfiguration implements ServiceCreationConfiguration<LocalPersistenceService> {
 
   private final File rootDirectory;
 
@@ -31,7 +32,6 @@ public class DefaultPersistenceConfiguration implements PersistenceConfiguration
     this.rootDirectory = rootDirectory;
   }
 
-  @Override
   public File getRootDirectory() {
     return rootDirectory;
   }

@@ -27,21 +27,10 @@ import java.io.File;
 /**
  * @author Alex Snaps
  */
-public class CacheManagerPersistenceConfiguration implements PersistenceConfiguration, CacheManagerConfiguration<PersistentCacheManager> {
-
-  private final File rootDirectory;
+public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConfiguration implements CacheManagerConfiguration<PersistentCacheManager> {
 
   public CacheManagerPersistenceConfiguration(final File rootDirectory) {
-    this.rootDirectory = rootDirectory;
-  }
-
-  public File getRootDirectory() {
-    return rootDirectory;
-  }
-
-  @Override
-  public Class<LocalPersistenceService> getServiceType() {
-    return LocalPersistenceService.class;
+    super(rootDirectory);
   }
 
   @Override

@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.persistence;
 
-import org.ehcache.impl.config.persistence.PersistenceConfiguration;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -29,7 +29,7 @@ public class DefaultLocalPersistenceServiceFactory implements ServiceFactory<Loc
 
   @Override
   public DefaultLocalPersistenceService create(final ServiceCreationConfiguration<LocalPersistenceService> serviceConfiguration) {
-    return new DefaultLocalPersistenceService((PersistenceConfiguration) serviceConfiguration);
+    return new DefaultLocalPersistenceService((DefaultPersistenceConfiguration) serviceConfiguration);
   }
 
   @Override
