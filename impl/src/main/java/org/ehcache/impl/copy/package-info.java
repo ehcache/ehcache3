@@ -14,19 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.copy;
-
 /**
- * {@link ReadWriteCopier Copier} implementation that simply returns the value passed in, doing in fact no
- * copy at all.
+ * Package for bundled implementation of {@link org.ehcache.spi.copy.Copier copiers}.
  */
-public final class IdentityCopier<T> extends ReadWriteCopier<T> {
-
-  /**
-   * This implementation returns the instance passed in as-is.
-   */
-  @Override
-  public T copy(final T obj) {
-    return obj;
-  }
-}
+package org.ehcache.impl.copy;

@@ -20,14 +20,17 @@ import org.ehcache.exceptions.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
 /**
- * A helper copier implementation that performs the "copying" using serialization.
- *
- * @author Albin Suresh
+ * A helper copier implementation that performs the "copying" using {@link Serializer serialization}.
  */
 public final class SerializingCopier<T> extends ReadWriteCopier<T> {
 
   private final Serializer<T> serializer;
 
+  /**
+   * Creates a new copier that will using the provided {@link Serializer}.
+   *
+   * @param serializer the serializer to use
+   */
   public SerializingCopier(Serializer<T> serializer) {
     if (serializer == null) {
       throw new NullPointerException("A " + SerializingCopier.class.getName() + " instance requires a "
@@ -36,6 +39,9 @@ public final class SerializingCopier<T> extends ReadWriteCopier<T> {
     this.serializer = serializer;
   }
 
+  /**
+   * Returns a copy of the passed in instance by serializing and deserializing it.
+   */
   @Override
   public T copy(final T obj) {
     try {
@@ -45,6 +51,11 @@ public final class SerializingCopier<T> extends ReadWriteCopier<T> {
     }
   }
 
+  /**
+   * Returns the {@link Serializer} used by this copier.
+   *
+   * @return the serializer used
+   */
   public Serializer<T> getSerializer() {
     return serializer;
   }
