@@ -29,15 +29,42 @@ import java.nio.charset.Charset;
 public class StringSerializer implements Serializer<String> {
   private static final Charset UTF_8 = Charset.forName("UTF-8");
 
+  /**
+   * No arg constructor
+   */
   public StringSerializer() {
   }
 
+  /**
+   * Constructor to enable this serializer as a transient one.
+   * <P>
+   *   Parameter is ignored as {@link String} is a base java type.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   *
+   * @see Serializer
+   */
   public StringSerializer(ClassLoader classLoader) {
   }
 
+  /**
+   * Constructor to enable this serializer as a persistent one.
+   * <P>
+   *   Parameters are ignored as {@link String} is a base java type and this implementation requires no state.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   * @param persistenceContext the persistence context
+   *
+   * @see Serializer
+   */
   public StringSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ByteBuffer serialize(String object) {
     byte[] bytes = object.getBytes(UTF_8);
@@ -46,6 +73,9 @@ public class StringSerializer implements Serializer<String> {
     return byteBuffer;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String read(ByteBuffer binary) throws ClassNotFoundException {
     byte[] bytes = new byte[binary.remaining()];
@@ -53,6 +83,9 @@ public class StringSerializer implements Serializer<String> {
     return new String(bytes, UTF_8);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean equals(String object, ByteBuffer binary) throws ClassNotFoundException {
     return object.equals(read(binary));

@@ -27,16 +27,43 @@ import java.nio.ByteBuffer;
  */
 public class DoubleSerializer implements Serializer<Double> {
 
+  /**
+   * No arg constructor
+   */
   public DoubleSerializer() {
   }
 
+  /**
+   * Constructor to enable this serializer as a transient one.
+   * <P>
+   *   Parameter is ignored as {@link Double} is a base java type.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   *
+   * @see Serializer
+   */
   public DoubleSerializer(ClassLoader classLoader) {
   }
 
+  /**
+   * Constructor to enable this serializer as a persistent one.
+   * <P>
+   *   Parameters are ignored as {@link Double} is a base java type and this implementation requires no state.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   * @param persistenceContext the persistence context
+   *
+   * @see Serializer
+   */
   public DoubleSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ByteBuffer serialize(Double object) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(8);
@@ -44,12 +71,18 @@ public class DoubleSerializer implements Serializer<Double> {
     return byteBuffer;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Double read(ByteBuffer binary) throws ClassNotFoundException {
     double d = binary.getDouble();
     return d;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean equals(Double object, ByteBuffer binary) throws ClassNotFoundException {
     return object.equals(read(binary));
