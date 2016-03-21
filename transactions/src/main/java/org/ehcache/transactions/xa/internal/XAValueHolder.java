@@ -19,7 +19,10 @@ package org.ehcache.transactions.xa.internal;
 import org.ehcache.core.spi.cache.AbstractValueHolder;
 import org.ehcache.core.spi.cache.Store;
 import org.ehcache.spi.serialization.Serializer;
+import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 
+import java.io.ObjectStreamException;
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
@@ -28,7 +31,8 @@ import java.util.concurrent.TimeUnit;
  *
  * @author Ludovic Orban
  */
-public class XAValueHolder<V> extends AbstractValueHolder<V> {
+@FindbugsSuppressWarnings("SE_NO_SUITABLE_CONSTRUCTOR")
+public class XAValueHolder<V> extends AbstractValueHolder<V> implements Serializable {
 
   static final TimeUnit NATIVE_TIME_UNIT = TimeUnit.MILLISECONDS;
 
@@ -61,6 +65,14 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> {
     super(-1, valueHolder.creationTime(TimeUnit.MILLISECONDS), valueHolder.expirationTime(TimeUnit.MILLISECONDS));
     this.value = value;
     this.valueSerialized = null;
+  }
+
+  private XAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, long hits, V value, byte[] valueSerialized) {
+    super(id, creationTime, expirationTime);
+    setLastAccessTime(lastAccessTime, NATIVE_TIME_UNIT);
+    setHits(hits);
+    this.value = value;
+    this.valueSerialized = valueSerialized;
   }
 
   protected XAValueHolder<V> copyForSerialization(Serializer<V> valueSerializer) {
@@ -99,6 +111,40 @@ public class XAValueHolder<V> extends AbstractValueHolder<V> {
 
     if (!super.equals(that)) return false;
     return value.equals(that.value);
+  }
+
+  private Object writeReplace() throws ObjectStreamException {
+    return new SerializedXAValueHolder<V>(getId(), creationTime(NATIVE_TIME_UNIT), lastAccessTime(NATIVE_TIME_UNIT), expirationTime(NATIVE_TIME_UNIT),
+        hits(), value(), valueSerialized);
+  }
+
+  /**
+   * Synthetic type used as serialized form of XAValueHolder
+   *
+   * @param <V> the value type
+   */
+  private static class SerializedXAValueHolder<V> implements Serializable {
+    private final long id;
+    private final long creationTime;
+    private final long lastAccessTime;
+    private final long expirationTime;
+    private final long hits;
+    private final V value;
+    private final byte[] valueSerialized;
+
+    SerializedXAValueHolder(long id, long creationTime, long lastAccessTime, long expirationTime, long hits, V value, byte[] valueSerialized) {
+      this.id = id;
+      this.creationTime = creationTime;
+      this.lastAccessTime = lastAccessTime;
+      this.expirationTime = expirationTime;
+      this.hits = hits;
+      this.value = value;
+      this.valueSerialized = valueSerialized;
+    }
+
+    private Object readResolve() throws ObjectStreamException {
+      return new XAValueHolder<V>(id, creationTime, lastAccessTime, expirationTime, hits, value, valueSerialized);
+    }
   }
 
 }

@@ -26,7 +26,6 @@ import java.nio.ByteBuffer;
 /**
  * BinaryOffHeapValueHolder
  */
-@FindbugsSuppressWarnings("SE_BAD_FIELD")
 final class BinaryOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements BinaryValueHolder {
 
   private final ByteBuffer binaryValue;
