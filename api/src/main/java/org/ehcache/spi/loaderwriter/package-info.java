@@ -15,6 +15,6 @@
  */
 
 /**
- * Package holding the loader/writer API for a {@link org.ehcache.Cache}
+ * Package holding the loader/writer SPI for a {@link org.ehcache.Cache}
  */
 package org.ehcache.spi.loaderwriter;
