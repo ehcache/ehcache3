@@ -25,20 +25,34 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
+/**
+ * {@link ServiceCreationConfiguration} for the default {@link SerializationProvider}.
+ */
 public class DefaultSerializationProviderConfiguration implements ServiceCreationConfiguration<SerializationProvider> {
 
   private final Map<Class<?>, Class<? extends Serializer<?>>> transientSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
   private final Map<Class<?>, Class<? extends Serializer<?>>> persistentSerializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>();
 
+  /**
+   * Creates a new configuration instance.
+   */
   public DefaultSerializationProviderConfiguration() {
     // Default constructor
   }
 
+  /**
+   * Copy constructor
+   *
+   * @param other the other to copy from
+   */
   public DefaultSerializationProviderConfiguration(DefaultSerializationProviderConfiguration other) {
     transientSerializers.putAll(other.transientSerializers);
     persistentSerializers.putAll(other.persistentSerializers);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<SerializationProvider> getServiceType() {
     return SerializationProvider.class;
@@ -114,10 +128,20 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
     }
   }
 
+  /**
+   * Returns the map of class to serializer class for transient serializers.
+   *
+   * @return the map from class to serializer class
+   */
   public Map<Class<?>, Class<? extends Serializer<?>>> getTransientSerializers() {
     return unmodifiableMap(transientSerializers);
   }
 
+  /**
+   * Returns the map of class to serializer class for persistent serializers.
+   *
+   * @return the map from class to serializer class
+   */
   public Map<Class<?>, Class<? extends Serializer<?>>> getPersistentSerializers() {
     return unmodifiableMap(persistentSerializers);
   }
