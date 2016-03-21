@@ -23,18 +23,28 @@ import org.ehcache.config.builders.UserManagedCacheBuilder;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 
 /**
- * UserManagedPersistenceContext
+ * Convenience configuration type that enables the {@link UserManagedCacheBuilder} to return a more specific type of
+ * {@link UserManagedCache}, that is a {@link PersistentUserManagedCache}.
  */
 public class UserManagedPersistenceContext<K, V> implements UserManagedCacheConfiguration<K, V, PersistentUserManagedCache<K, V>> {
 
   private final String identifier;
   private final LocalPersistenceService persistenceService;
 
+  /**
+   * Creates a new configuration with the provided parameters.
+   *
+   * @param identifier the identifier of the cache for the persistence service
+   * @param persistenceService the local persistence service to use
+   */
   public UserManagedPersistenceContext(String identifier, LocalPersistenceService persistenceService) {
     this.identifier = identifier;
     this.persistenceService = persistenceService;
   }
 
+  /**
+   * Transforms the builder received in one that returns a {@link PersistentUserManagedCache}.
+   */
   @Override
   public UserManagedCacheBuilder<K, V, PersistentUserManagedCache<K, V>> builder(UserManagedCacheBuilder<K, V, ? extends UserManagedCache<K, V>> builder) {
     return (UserManagedCacheBuilder<K, V, PersistentUserManagedCache<K, V>>) builder.identifier(identifier).using(persistenceService);
