@@ -24,7 +24,7 @@ import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.exceptions.StoreAccessException;
-import org.ehcache.core.exceptions.LimitExceededException;
+import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -45,7 +45,7 @@ import org.ehcache.core.spi.store.events.StoreEvent;
 import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 

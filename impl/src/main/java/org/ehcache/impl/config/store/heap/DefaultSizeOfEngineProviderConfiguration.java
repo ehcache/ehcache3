@@ -14,15 +14,14 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.config.sizeof;
+package org.ehcache.impl.config.store.heap;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
+import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
- * @author Abhilash
- *
+ * {@link ServiceCreationConfiguration} for the default {@link SizeOfEngineProvider}.
  */
 public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreationConfiguration<SizeOfEngineProvider> {
 
@@ -30,6 +29,13 @@ public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreation
   private final long maxObjectSize;
   private final MemoryUnit unit;
 
+  /**
+   * Creates a new configuration object with the provided parameters.
+   *
+   * @param size the maximum object size
+   * @param unit the object size unit
+   * @param objectGraphSize the maximum object graph size
+   */
   public DefaultSizeOfEngineProviderConfiguration(long size, MemoryUnit unit, long objectGraphSize) {
     if (size <= 0 || objectGraphSize <= 0) {
       throw new IllegalArgumentException("SizeOfEngine cannot take non-positive arguments.");
@@ -39,19 +45,50 @@ public class DefaultSizeOfEngineProviderConfiguration implements ServiceCreation
     this.unit = unit;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<SizeOfEngineProvider> getServiceType() {
     return SizeOfEngineProvider.class;
   }
 
+  /**
+   * Returns the maximum object graph size before aborting sizing.
+   * <P>
+   *   This measure is a count of different instances that have to be sized from the root of the graph.
+   *   That is a collection with 1000 identical elements will count as two objects, while a collection with 1000
+   *   different elements will count as 1001 objects.
+   *
+   * </P>
+   *
+   * @return the maximum graph size
+   */
   public long getMaxObjectGraphSize() {
     return this.objectGraphSize;
   }
 
+  /**
+   * Returns the maximum object size before aborting sizing.
+   * <P>
+   *   This value applies to the sum of the size of objects composing the graph being sized.
+   * </P>
+   *
+   * @return the maximum object size
+   *
+   * @see #getUnit()
+   */
   public long getMaxObjectSize() {
     return this.maxObjectSize;
   }
 
+  /**
+   * Returns the maximum object size unit.
+   *
+   * @return the maximum object size unit
+   *
+   * @see #getMaxObjectSize()
+   */
   public MemoryUnit getUnit() {
     return this.unit;
   }

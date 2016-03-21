@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.fail;
 
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.junit.Test;
 
 /**

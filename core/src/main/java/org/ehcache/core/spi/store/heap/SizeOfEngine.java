@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.sizeof;
+package org.ehcache.core.spi.store.heap;
 
-import org.ehcache.core.exceptions.LimitExceededException;
 import org.ehcache.core.spi.store.Store;
 
 /**

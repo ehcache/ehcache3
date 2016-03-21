@@ -23,6 +23,7 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
@@ -32,7 +33,7 @@ import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguratio
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -44,9 +45,9 @@ import java.util.HashSet;
 import java.util.List;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
-import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
-import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
+import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
+import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
+import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
 
 
 /**
@@ -564,7 +565,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * Adds or updates the {@link DefaultSizeOfEngineConfiguration} with the specified object graph maximum size to the configured
    * builder.
    * </P>
-   * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
+   * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum graph size
    * @return a new builder with the added / updated configuration
@@ -585,7 +586,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
    * Adds or updates the {@link DefaultSizeOfEngineConfiguration} with the specified maximum mapping size to the configured
    * builder.
    * </P>
-   * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
+   * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum mapping size
    * @param unit the memory unit

@@ -14,20 +14,8 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.sizeof;
-
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
-
 /**
- * @author Abhilash
- *
+ * Package for configuration classes for the default {@link org.ehcache.core.spi.store.heap.SizeOfEngineProvider sizeof
+ * engine provider} implementation used by the on heap {@link org.ehcache.core.spi.store.Store store}.
  */
-public class NoopSizeOfEngine implements SizeOfEngine {
-
-  @Override
-  public <K, V> long sizeof(K key, Store.ValueHolder<V> holder) {
-    return 1L;
-  }
-
-}
+package org.ehcache.impl.config.store.heap;

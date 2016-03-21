@@ -14,23 +14,8 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.exceptions;
-
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
-
 /**
- * This exception is thrown when {@link SizeOfEngine} reaches one of the limits defined in configuration while sizing
- * the object on heap.
+ * Package for SPI related to the use of <a href="https://github.com/ehcache/sizeof">sizeof</a> in the on-heap
+ * {@link org.ehcache.core.spi.store.Store store} in Ehcache
  */
-public class LimitExceededException extends Exception {
-
-  /**
-   * Creates an exception with the provided message
-   *
-   * @param message information about the exception
-   */
-  public LimitExceededException(String message) {
-    super(message);
-  }
-
-}
+package org.ehcache.core.spi.store.heap;

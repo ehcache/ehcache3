@@ -30,7 +30,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.copy.Copier;

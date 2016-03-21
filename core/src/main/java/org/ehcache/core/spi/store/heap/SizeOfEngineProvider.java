@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.core.spi.sizeof;
+package org.ehcache.core.spi.store.heap;
 
 import org.ehcache.config.ResourceUnit;
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 

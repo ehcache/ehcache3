@@ -35,7 +35,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.junit.Test;
 
 import java.io.Serializable;

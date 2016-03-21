@@ -28,6 +28,7 @@ import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.event.CacheEventListener;
@@ -35,7 +36,7 @@ import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.CacheEventDispatcher;
@@ -56,7 +57,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
+import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -76,9 +77,9 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
-import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
-import static org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
+import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
+import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
+import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
@@ -702,7 +703,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified object graph maximum size to the configured
    * builder.
    * </P>
-   * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
+   * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum graph size
    * @return a new builder with the added / updated configuration
@@ -719,7 +720,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * Adds or updates the {@link DefaultSizeOfEngineProviderConfiguration} with the specified maximum mapping size to the configured
    * builder.
    * </P>
-   * {@link org.ehcache.core.spi.sizeof.SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
+   * {@link SizeOfEngine} is what enables the heap tier to be sized in {@link MemoryUnit}.
    *
    * @param size the maximum mapping size
    * @param unit the memory unit
