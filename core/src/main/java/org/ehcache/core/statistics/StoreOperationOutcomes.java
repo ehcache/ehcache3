@@ -45,7 +45,11 @@ public interface StoreOperationOutcomes {
     /**
      * replaced
      */
-    REPLACED
+    REPLACED,
+    /**
+     * no-op
+     */
+    NOOP
   }
 
   /**

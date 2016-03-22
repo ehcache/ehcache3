@@ -75,7 +75,6 @@ public class OnHeapStoreEvictionTest {
   public void testComputeIfAbsentCalledEnforceCapacity() throws Exception {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.put("key", "value");
     store.computeIfAbsent("key", new Function<String, String>() {
       @Override
       public String apply(String mappedKey) {
@@ -187,9 +186,9 @@ public class OnHeapStoreEvictionTest {
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    protected void enforceCapacity(long delta, StoreEventSink<K, V> eventSink) {
+    protected void enforceCapacity() {
       enforceCapacityWasCalled = true;
-      super.enforceCapacity(delta, eventSink);
+      super.enforceCapacity();
     }
 
     boolean enforceCapacityWasCalled() {
