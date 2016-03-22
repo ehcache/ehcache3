@@ -18,7 +18,6 @@ package org.ehcache.core.spi.cache;
 
 import org.ehcache.expiry.Duration;
 
-import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
@@ -27,7 +26,7 @@ import static java.lang.String.format;
 /**
  * @author Ludovic Orban
  */
-public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Serializable {
+public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
 
   private static final AtomicLongFieldUpdater<AbstractValueHolder> HITS_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "hits");
   private final long id;

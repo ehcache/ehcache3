@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 /**
 * OffHeapValueHolder variant that supports lazy deserialization and also serving the binary value if detached.
 */
-@FindbugsSuppressWarnings("SE_BAD_FIELD")
 public final class LazyOffHeapValueHolder<V> extends OffHeapValueHolder<V> implements BinaryValueHolder {
 
   private final Serializer<V> valueSerializer;
