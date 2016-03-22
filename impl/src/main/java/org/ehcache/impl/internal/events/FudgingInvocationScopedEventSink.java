@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.events;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.cache.events.StoreEventFilter;
 import org.ehcache.core.spi.cache.events.StoreEventListener;
@@ -44,7 +45,7 @@ class FudgingInvocationScopedEventSink<K, V> extends InvocationScopedEventSink<K
   }
 
   @Override
-  public void evicted(K key, V value) {
+  public void evicted(K key, ValueSupplier<V> value) {
     V eventFudgingValue = handleEvictionPostWriteOnSameKey(key);
     super.evicted(key, value);
     if (eventFudgingValue != null) {

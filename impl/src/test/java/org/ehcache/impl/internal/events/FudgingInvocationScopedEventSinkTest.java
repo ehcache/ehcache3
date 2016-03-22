@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.events;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.cache.events.StoreEventFilter;
 import org.ehcache.core.spi.cache.events.StoreEventListener;
@@ -27,6 +28,7 @@ import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
+import static org.ehcache.core.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.inOrder;
@@ -55,7 +57,7 @@ public class FudgingInvocationScopedEventSinkTest {
   @Test
   public void testEvictedDifferentKeyNoImpact() {
     eventSink.created("k1", "v1");
-    eventSink.evicted("k2", "v2");
+    eventSink.evicted("k2", supplierOf("v2"));
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
@@ -66,8 +68,8 @@ public class FudgingInvocationScopedEventSinkTest {
 
   @Test
   public void testEvictedSameKeyAfterUpdateReplacesWithEvictCreate() {
-    eventSink.updated("k1", "v0", "v1");
-    eventSink.evicted("k1", "v0");
+    eventSink.updated("k1", supplierOf("v0"), "v1");
+    eventSink.evicted("k1", supplierOf("v0"));
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
@@ -78,9 +80,9 @@ public class FudgingInvocationScopedEventSinkTest {
 
   @Test
   public void testEvictedSameKeyAfterCreateFudgesExpiryToo() {
-    eventSink.expired("k1", "v0");
+    eventSink.expired("k1", supplierOf("v0"));
     eventSink.created("k1", "v1");
-    eventSink.evicted("k1", "v0");
+    eventSink.evicted("k1", supplierOf("v0"));
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
@@ -91,10 +93,10 @@ public class FudgingInvocationScopedEventSinkTest {
 
   @Test
   public void testEvictedSameKeyAfterUpdateReplacesWithEvictCreateEvenWithMultipleEvictsInBetween() {
-    eventSink.updated("k1", "v0", "v1");
-    eventSink.evicted("k2", "v2");
-    eventSink.evicted("k3", "v3");
-    eventSink.evicted("k1", "v0");
+    eventSink.updated("k1", supplierOf("v0"), "v1");
+    eventSink.evicted("k2", supplierOf("v2"));
+    eventSink.evicted("k3", supplierOf("v3"));
+    eventSink.evicted("k1", supplierOf("v0"));
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
@@ -105,11 +107,11 @@ public class FudgingInvocationScopedEventSinkTest {
 
   @Test
   public void testEvictedSameKeyAfterCreateFudgesExpiryTooEvenWithMultipleEvictsInBetween() {
-    eventSink.expired("k1", "v0");
+    eventSink.expired("k1", supplierOf("v0"));
     eventSink.created("k1", "v1");
-    eventSink.evicted("k2", "v2");
-    eventSink.evicted("k3", "v3");
-    eventSink.evicted("k1", "v0");
+    eventSink.evicted("k2", supplierOf("v2"));
+    eventSink.evicted("k3", supplierOf("v3"));
+    eventSink.evicted("k1", supplierOf("v0"));
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);
@@ -120,9 +122,9 @@ public class FudgingInvocationScopedEventSinkTest {
 
   @Test
   public void testEvictedKeyDoesNotFudgeOlderEvents() {
-    eventSink.updated("k1", "v0", "v1");
+    eventSink.updated("k1", supplierOf("v0"), "v1");
     eventSink.created("k2", "v2");
-    eventSink.evicted("k1", "v0");
+    eventSink.evicted("k1", supplierOf("v0"));
     eventSink.close();
 
     InOrder inOrder = inOrder(listener);

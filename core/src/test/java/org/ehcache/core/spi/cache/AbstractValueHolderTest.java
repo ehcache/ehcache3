@@ -15,7 +15,6 @@
  */
 package org.ehcache.core.spi.cache;
 
-import org.ehcache.core.spi.cache.AbstractValueHolder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.core.spi.time.TimeSource;
 import org.junit.Test;

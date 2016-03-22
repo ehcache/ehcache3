@@ -68,6 +68,7 @@ public class SerializerCountingTest {
 
   @After
   public void tearDown() {
+    clearCounters();
     if (cacheManager != null) {
       cacheManager.close();
     }
@@ -85,11 +86,11 @@ public class SerializerCountingTest {
     assertCounters(2, 2, 0, 1, 0, 0);
     printSerializationCounters("Put OnHeap (create)");
     cache.get(42L);
-    assertCounters(0, 0, 0, 0, 2, 0);
+    assertCounters(0, 0, 0, 0, 1, 0);
     printSerializationCounters("Get OnHeap");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(2, 2, 0, 1, 1, 0);
+    assertCounters(2, 2, 0, 1, 0, 0);
     printSerializationCounters("Put OnHeap (update)");
   }
 
@@ -111,7 +112,7 @@ public class SerializerCountingTest {
     printSerializationCounters("Get Offheap faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(1, 0, 2, 1, 1, 0);
+    assertCounters(1, 0, 2, 1, 0, 0);
     printSerializationCounters("Put OffHeap (update faulted)");
   }
 
@@ -131,11 +132,11 @@ public class SerializerCountingTest {
     assertCounters(1, 1, 1, 0, 2, 0);
     printSerializationCounters("Get OffheapOnHeapCopy fault");
     cache.get(42L);
-    assertCounters(0, 0, 0, 0, 2, 0);
+    assertCounters(0, 0, 0, 0, 1, 0);
     printSerializationCounters("Get OffheapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 2, 1, 1, 0);
+    assertCounters(3, 2, 2, 1, 0, 0);
     printSerializationCounters("Put OffheapOnHeapCopy (update faulted)");
   }
 
@@ -156,11 +157,11 @@ public class SerializerCountingTest {
     assertCounters(1, 1, 1, 0, 2, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy fault");
     cache.get(42L);
-    assertCounters(0, 0, 0, 0, 2, 0);
+    assertCounters(0, 0, 0, 0, 1, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 2, 1, 1, 0);
+    assertCounters(3, 2, 2, 1, 0, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy (update faulted)");
   }
 
@@ -168,6 +169,10 @@ public class SerializerCountingTest {
     System.out.println("Operation " + operation);
     System.out.println(format("Key Serialization - %d / Deserialization - %d / Equals - %d", CountingSerializer.keySerializeCounter.get(), CountingSerializer.keyDeserializeCounter.get(), CountingSerializer.keyEqualsCounter.get()));
     System.out.println(format("Value Serialization - %d / Deserialization - %d / Equals - %d", CountingSerializer.serializeCounter.get(), CountingSerializer.deserializeCounter.get(), CountingSerializer.equalsCounter.get()));
+    clearCounters();
+  }
+
+  private void clearCounters() {
     CountingSerializer.serializeCounter.set(0);
     CountingSerializer.deserializeCounter.set(0);
     CountingSerializer.equalsCounter.set(0);

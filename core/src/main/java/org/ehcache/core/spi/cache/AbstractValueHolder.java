@@ -22,6 +22,8 @@ import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLongFieldUpdater;
 
+import static java.lang.String.format;
+
 /**
  * @author Ludovic Orban
  */
@@ -181,6 +183,6 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V>, Se
 
   @Override
   public String toString() {
-    return "" + value();
+    return format("%s", value());
   }
 }

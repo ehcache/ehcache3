@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.ehcache.Status;
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
@@ -35,6 +36,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.statistics.BulkOps;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -52,14 +54,17 @@ import static org.ehcache.core.EhcacheBasicBulkUtil.fanIn;
 import static org.ehcache.core.EhcacheBasicBulkUtil.getAltEntryMap;
 import static org.ehcache.core.EhcacheBasicBulkUtil.getEntryMap;
 import static org.ehcache.core.EhcacheBasicBulkUtil.union;
+import static org.ehcache.core.util.Matchers.holding;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doThrow;
@@ -1900,7 +1905,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
     final Expiry<String, String> expiry = mock(Expiry.class);
-    when(expiry.getExpiryForUpdate(any(String.class), any(String.class), any(String.class))).thenReturn(Duration.ZERO);
+    when(expiry.getExpiryForUpdate(any(String.class), argThat(org.ehcache.core.util.Matchers.<String>holding(instanceOf(String.class))), any(String.class))).thenReturn(Duration.ZERO);
 
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(cacheLoaderWriter, expiry);
 

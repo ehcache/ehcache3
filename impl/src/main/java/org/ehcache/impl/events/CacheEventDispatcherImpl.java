@@ -73,14 +73,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   }
 
   /**
-   * Allows for registering {@link org.ehcache.event.CacheEventListener} on the cache
-   *
-   * @param listener the listener instance to register
-   * @param ordering the {@link org.ehcache.event.EventOrdering} to invoke this listener
-   * @param firing the {@link org.ehcache.event.EventFiring} to invoke this listener
-   * @param forEventTypes the {@link org.ehcache.event.EventType} to notify this listener of
-   *
-   * @throws java.lang.IllegalStateException if the listener is already registered
+   * {@inheritDoc}
    */
   @Override
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,

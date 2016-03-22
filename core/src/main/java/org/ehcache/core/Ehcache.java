@@ -69,6 +69,7 @@ import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
+import static org.ehcache.core.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -225,7 +226,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       }
     } else {
       try {
-        duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, oldValue, newValue);
+        duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, supplierOf(oldValue), newValue);
       } catch (RuntimeException re) {
         logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
         return true;

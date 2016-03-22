@@ -15,6 +15,8 @@
  */
 package org.ehcache.expiry;
 
+import org.ehcache.ValueSupplier;
+
 /**
  * Utility class for getting predefined {@link Expiry} instances.
  */
@@ -82,7 +84,7 @@ public final class Expirations {
     }
 
     @Override
-    public Duration getExpiryForAccess(K key, V value) {
+    public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
       return access;
     }
 
@@ -118,7 +120,7 @@ public final class Expirations {
     }
 
     @Override
-    public Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
+    public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
       return update;
     }
   }
