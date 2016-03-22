@@ -28,7 +28,6 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.CoreMatchers;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -68,7 +67,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceNullNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     try {
       ehcache.replace(null, null);
@@ -80,7 +79,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceKeyNull() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     try {
       ehcache.replace("key", null);
@@ -92,7 +91,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testReplaceNullValue() {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     try {
       ehcache.replace(null, "value");
@@ -103,7 +102,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>no {@code CacheLoaderWriter}</li>
@@ -114,7 +113,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertNull(ehcache.replace("key", "value"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -124,7 +123,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>key not present via {@code CacheLoaderWriter}</li>
@@ -136,7 +135,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     assertNull(ehcache.replace("key", "value"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -147,7 +146,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>key present via {@code CacheLoaderWriter}</li>
@@ -159,7 +158,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     assertThat(ehcache.replace("key", "value"), is("oldValue"));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -170,7 +169,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code CacheLoaderWriter.write} throws</li>
@@ -184,7 +183,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "value");
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(cacheLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(cacheLoaderWriter);
 
     try {
       ehcache.replace("key", "value");
@@ -199,7 +198,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
@@ -212,7 +211,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     ehcache.replace("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -221,7 +220,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
@@ -236,7 +235,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -249,7 +248,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
@@ -264,7 +263,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -277,7 +276,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key not present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
@@ -293,7 +292,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "value");
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -311,19 +310,18 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>no {@code CacheLoaderWriter}</li>
    * </ul>
    */
   @Test
-  @Ignore
   public void testReplaceHasStoreEntryNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "oldValue"));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     assertThat(ehcache.replace("key", "value"), is(equalTo("oldValue")));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -333,7 +331,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>key not present via {@code CacheLoaderWriter}</li>
@@ -345,7 +343,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     assertThat(ehcache.replace("key", "value"), is(equalTo("oldValue")));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -356,7 +354,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>key present via {@code CacheLoaderWriter}</li>
@@ -368,7 +366,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
 
     assertThat(ehcache.replace("key", "value"), is(equalTo("oldValue")));
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -379,7 +377,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code CacheLoaderWriter.write} throws</li>
@@ -393,7 +391,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "value");
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     try {
       ehcache.replace("key", "value");
@@ -407,7 +405,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
@@ -420,7 +418,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     this.store = spy(fakeStore);
     doThrow(new StoreAccessException("")).when(this.store).compute(eq("key"), getAnyBiFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     ehcache.replace("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -429,7 +427,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
@@ -444,7 +442,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.<String, String>emptyMap());
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -458,7 +456,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
@@ -473,7 +471,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
 
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -486,7 +484,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests the effect of a {@link EhcacheWithLoaderWriter#replace(Object, Object)} for
+   * Tests the effect of a {@link Ehcache#replace(Object, Object)} for
    * <ul>
    *   <li>key present in {@code Store}</li>
    *   <li>{@code Store.compute} throws</li>
@@ -502,7 +500,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(Collections.singletonMap("key", "oldValue"));
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
     doThrow(new Exception()).when(this.cacheLoaderWriter).write("key", "value");
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
@@ -529,7 +527,7 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForUpdate(eq("key"), argThat(holding("old-value")), eq("value"))).thenReturn(Duration.ZERO);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriter, expiry);
 
     ehcache.replace("key", "value");
     verify(this.store).compute(eq("key"), getAnyBiFunction());
@@ -540,22 +538,22 @@ public class EhcacheBasicReplaceTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link EhcacheWithLoaderWriter Ehcache} instance using the
+   * Gets an initialized {@link Ehcache} instance using the
    * {@link CacheLoaderWriter} provided.
    *
    * @param cacheLoaderWriter the {@code CacheLoaderWriter} to use; may be {@code null}
    *
    * @return a new {@code Ehcache} instance
    */
-  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
     return getEhcache(cacheLoaderWriter, Expirations.noExpiration());
   }
 
-  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry) {
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter, Expiry<? super String, ? super String> expiry) {
     CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null, null,
         expiry, ResourcePoolsHelper.createHeapOnlyPools());
-    final EhcacheWithLoaderWriter<String, String> ehcache
-        = new EhcacheWithLoaderWriter<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicReplaceTest"));
+    final Ehcache<String, String> ehcache
+        = new Ehcache<String, String>(config, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicReplaceTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), CoreMatchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

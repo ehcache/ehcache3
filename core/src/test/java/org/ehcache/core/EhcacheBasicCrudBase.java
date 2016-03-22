@@ -84,9 +84,9 @@ public abstract class EhcacheBasicCrudBase {
   /**
    * Holds a {@link org.mockito.Mockito#spy(Object)}-wrapped reference to the
    * {@link ResilienceStrategy ResilienceStrategy} used in the
-   * {@link EhcacheWithLoaderWriter Ehcache} instance being tested.
+   * {@link Ehcache} instance being tested.
    *
-   * @see #setResilienceStrategySpy(InternalCache)
+   * @see #setResilienceStrategySpy(Ehcache)
    */
   protected ResilienceStrategy<String, String> spiedResilienceStrategy;
 
@@ -105,7 +105,7 @@ public abstract class EhcacheBasicCrudBase {
    * @param changed the statistics values that should have updated values
    * @param <E> the statistics enumeration type
    */
-  protected static <E extends Enum<E>> void validateStats(final EhcacheWithLoaderWriter<?, ?> ehcache, final EnumSet<E> changed) {
+  protected static <E extends Enum<E>> void validateStats(final Ehcache<?, ?> ehcache, final EnumSet<E> changed) {
     assert changed != null;
     final EnumSet<E> unchanged = EnumSet.complementOf(changed);
 
@@ -144,7 +144,7 @@ public abstract class EhcacheBasicCrudBase {
    * @return a reference to the {@code OperationStatistic} instance holding the {@code statsClass} statistics;
    *          may be {@code null} if {@code statsClass} statistics do not exist for {@code ehcache}
    */
-  private static <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final EhcacheWithLoaderWriter<?, ?> ehcache, final Class<E> statsClass) {
+  private static <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final Ehcache<?, ?> ehcache, final Class<E> statsClass) {
     for (final TreeNode statNode : ContextManager.nodeFor(ehcache).getChildren()) {
       final Object statObj = statNode.getContext().attributes().get("this");
       if (statObj instanceof OperationStatistic<?>) {
@@ -209,7 +209,7 @@ public abstract class EhcacheBasicCrudBase {
 
   /**
    * Replaces the {@link ResilienceStrategy ResilienceStrategy} instance in the
-   * {@link InternalCache Ehcache} instance provided with a
+   * {@link Ehcache} instance provided with a
    * {@link org.mockito.Mockito#spy(Object) Mockito <code>spy</code>} wrapping the original
    * {@code ResilienceStrategy} instance.
    *
@@ -217,7 +217,7 @@ public abstract class EhcacheBasicCrudBase {
    *
    * @return the <code>spy</code>-wrapped {@code ResilienceStrategy} instance
    */
-  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final EhcacheWithLoaderWriter<K, V> ehcache) {
+  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final Ehcache<K, V> ehcache) {
     assert ehcache != null;
     try {
       final Field resilienceStrategyField = ehcache.getClass().getDeclaredField("resilienceStrategy");

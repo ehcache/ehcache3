@@ -482,9 +482,9 @@ public class EhcacheManagerTest {
     EhcacheManager cacheManager = new EhcacheManager(config, services) {
 
       @Override
-      <K, V> InternalCache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                             final Class<K> keyType, final Class<V> valueType) {
-        final InternalCache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         caches.add(ehcache);
         if(caches.size() == 1) {
           when(storeProvider.createStore(Matchers.<Store.Configuration<K,V>>anyObject(),
@@ -495,7 +495,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
+      protected void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
         super.closeEhcache(alias, ehcache);
         caches.remove(ehcache);
       }
@@ -536,15 +536,15 @@ public class EhcacheManagerTest {
     EhcacheManager cacheManager = new EhcacheManager(config, services) {
 
       @Override
-      <K, V> InternalCache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                             final Class<K> keyType, final Class<V> valueType) {
-        final InternalCache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         caches.add(alias);
         return ehcache;
       }
 
       @Override
-      protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
+      protected void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
         super.closeEhcache(alias, ehcache);
         if(alias.equals("foobar")) {
           throw thrown;
@@ -643,8 +643,8 @@ public class EhcacheManagerTest {
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
     EhcacheManager cacheManager = new EhcacheManager(config, services) {
       @Override
-      <K, V> InternalCache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
-        final InternalCache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
+      <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config, final Class<K> keyType, final Class<V> valueType) {
+        final Ehcache<K, V> ehcache = super.createNewEhcache(alias, config, keyType, valueType);
         return spy(ehcache);
       }
     };

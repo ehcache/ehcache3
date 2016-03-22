@@ -49,13 +49,13 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   private CacheLoaderWriter<String, String> cacheLoaderWriter;
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#clear()} over an empty cache.
+   * Tests {@link Ehcache#clear()} over an empty cache.
    */
   @Test
   public void testClearEmpty() throws Exception {
     final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
     verifyZeroInteractions(this.cacheLoaderWriter);
@@ -64,7 +64,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#clear()} over an empty cache where
+   * Tests {@link Ehcache#clear()} over an empty cache where
    * {@link Store#clear() Store.clear} throws a
    * {@link StoreAccessException StoreAccessException}.
    */
@@ -73,7 +73,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     final FakeStore realStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).clear();
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.clear();
     verifyZeroInteractions(this.cacheLoaderWriter);
@@ -81,13 +81,13 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#clear()} over a non-empty cache.
+   * Tests {@link Ehcache#clear()} over a non-empty cache.
    */
   @Test
   public void testClearNonEmpty() throws Exception {
     final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
@@ -97,7 +97,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#clear()} over a non-empty cache where
+   * Tests {@link Ehcache#clear()} over a non-empty cache where
    * {@link Store#clear() Store.clear} throws a
    * {@link StoreAccessException StoreAccessException}.
    */
@@ -106,7 +106,7 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
     final FakeStore realStore = new FakeStore(this.getTestStoreEntries());
     this.store = spy(realStore);
     doThrow(new StoreAccessException("")).when(this.store).clear();
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     assertThat(realStore.getEntryMap().isEmpty(), is(false));
 
     ehcache.clear();
@@ -125,14 +125,14 @@ public class EhcacheBasicClearTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link EhcacheWithLoaderWriter Ehcache} instance using {@link #cacheLoaderWriter}.
+   * Gets an initialized {@link Ehcache} instance using {@link #cacheLoaderWriter}.
    *
    * @return a new {@code EhcacheWithLoaderWriter} instance
    */
-  private EhcacheWithLoaderWriter<String, String> getEhcache()
+  private Ehcache<String, String> getEhcache()
       throws Exception {
-    final EhcacheWithLoaderWriter<String, String> ehcache =
-        new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicClearTest"));
+    final Ehcache<String, String> ehcache =
+        new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, this.cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicClearTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

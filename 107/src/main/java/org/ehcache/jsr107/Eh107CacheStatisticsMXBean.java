@@ -16,7 +16,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.Cache;
-import org.ehcache.core.InternalCache;
+import org.ehcache.core.Ehcache;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.management.ManagementRegistryService;
@@ -63,7 +63,7 @@ public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cac
   private final StatisticQuery averagePutTime;
   private final StatisticQuery averageRemoveTime;
 
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, InternalCache<?, ?> cache, ManagementRegistryService managementRegistry) {
+  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, Ehcache<?, ?> cache, ManagementRegistryService managementRegistry) {
     super(cacheName, cacheManager, "CacheStatistics");
     this.bulkMethodEntries = cache.getBulkMethodEntries();
 

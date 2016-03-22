@@ -72,7 +72,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 /**
  * Provides testing of basic GET_ALL operations on an {@code Ehcache}.
  * <h3>Note</h3>
- * The current implementation of {@link EhcacheWithLoaderWriter#getAll(java.util.Set) Ehcache.getAll}
+ * The current implementation of {@link Ehcache#getAll(java.util.Set) Ehcache.getAll}
  * does <b>not</b> produce partial results while handling a
  * {@link org.ehcache.exceptions.StoreAccessException StoreAccessException}; all keys presented
  * to {@code getAll} succeed or fail based on the recovery call to
@@ -114,7 +114,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
   @Test
   public void testGetAllNull() throws Exception {
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
     try {
       ehcache.getAll(null);
       fail();
@@ -132,7 +132,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
         keys.add(null);     // Add a null element
       }
     }
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
     try {
       ehcache.getAll(keys);
       fail();
@@ -142,7 +142,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>empty request key set</li>
    *    <li>no {@code CacheLoaderWriter}</li>
@@ -153,7 +153,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Map<String, String> actual = ehcache.getAll(Collections.<String>emptySet());
     assertThat(actual, is(notNullValue()));
@@ -168,7 +168,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>empty request key set</li>
    *    <li>with a {@code CacheLoaderWriter} (loader-provided entries not relevant)</li>
@@ -182,7 +182,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(TEST_ENTRIES);
     this.loaderWriter = spy(fakeLoaderWriter);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Map<String, String> actual = ehcache.getAll(Collections.<String>emptySet());
     final Map<String, String> expected = Collections.emptyMap();
@@ -198,7 +198,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     validateBulkCounters(ehcache, 0, 0);
   }
 
-  private void validateBulkCounters(EhcacheWithLoaderWriter<?, ?> ehcache, int expectedHitCount, int expectedMissCount) {
+  private void validateBulkCounters(Ehcache<?, ?> ehcache, int expectedHitCount, int expectedMissCount) {
     LongAdder hitAdder = ehcache.getBulkMethodEntries().get(BulkOps.GET_ALL_HITS);
     LongAdder missAdder = ehcache.getBulkMethodEntries().get(BulkOps.GET_ALL_MISS);
     int hitCount = hitAdder == null ? 0 : hitAdder.intValue();
@@ -209,7 +209,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -221,7 +221,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));
@@ -237,7 +237,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -252,7 +252,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));
@@ -269,7 +269,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -286,7 +286,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -310,7 +310,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -326,7 +326,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -350,7 +350,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -366,7 +366,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
     Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
       ehcache.getAll(fetchKeys);
@@ -390,7 +390,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -410,7 +410,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -437,7 +437,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -456,7 +456,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -484,7 +484,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -503,7 +503,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
     Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
       ehcache.getAll(fetchKeys);
@@ -531,7 +531,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -549,7 +549,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -576,7 +576,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -593,7 +593,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(KEY_SET_A);
@@ -621,7 +621,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -638,7 +638,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
     Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
 
     try {
@@ -667,7 +667,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -683,7 +683,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     assertThat(actual, equalTo(getNullEntryMap(KEY_SET_A)));
@@ -701,7 +701,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(java.util.Set)} for
+   * Tests {@link Ehcache#getAll(java.util.Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -720,7 +720,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     final Map<String, String> expected = getNullEntryMap(KEY_SET_A);
@@ -741,7 +741,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -758,7 +758,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Map<String, String> actual = ehcache.getAll(KEY_SET_A);
     final Map<String, String> expected = getNullEntryMap(KEY_SET_A);
@@ -779,7 +779,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -795,7 +795,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_F);
     try {
@@ -819,7 +819,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -838,7 +838,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_F);
     try {
@@ -866,7 +866,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -883,7 +883,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_F);
     try {
@@ -914,7 +914,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -930,7 +930,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -950,7 +950,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -969,7 +969,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -992,7 +992,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -1009,7 +1009,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1032,7 +1032,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -1048,7 +1048,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1068,7 +1068,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -1087,7 +1087,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1110,7 +1110,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -1127,7 +1127,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1150,7 +1150,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -1166,7 +1166,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1186,7 +1186,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -1205,7 +1205,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1228,7 +1228,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>no {@link Store} entries match</li>
@@ -1245,7 +1245,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1268,7 +1268,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1280,7 +1280,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1298,7 +1298,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1313,7 +1313,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1331,7 +1331,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1348,7 +1348,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1372,7 +1372,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1388,7 +1388,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1412,7 +1412,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1428,7 +1428,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_C, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1452,7 +1452,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1472,7 +1472,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1500,7 +1500,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1519,7 +1519,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1548,7 +1548,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1567,7 +1567,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1597,7 +1597,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1615,7 +1615,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1643,7 +1643,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1661,7 +1661,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -1688,7 +1688,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1705,7 +1705,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     try {
@@ -1735,7 +1735,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1751,7 +1751,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1771,7 +1771,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1790,7 +1790,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1813,7 +1813,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1830,7 +1830,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -1853,7 +1853,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1869,7 +1869,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F), KEY_SET_D);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1894,7 +1894,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1910,7 +1910,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_D, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1935,7 +1935,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -1954,7 +1954,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_F), KEY_SET_D);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -1982,7 +1982,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2002,7 +2002,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     try {
       ehcache.getAll(fetchKeys);
@@ -2030,7 +2030,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2047,7 +2047,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B), KEY_SET_D);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     try {
@@ -2078,7 +2078,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2094,7 +2094,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2114,7 +2114,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2133,7 +2133,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2156,7 +2156,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2173,7 +2173,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_F));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2196,7 +2196,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2212,7 +2212,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_E), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2238,7 +2238,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2254,7 +2254,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_D, KEY_SET_F), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2280,7 +2280,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2299,7 +2299,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_E), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2327,7 +2327,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2346,7 +2346,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_A, KEY_SET_C), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_E);
     try {
@@ -2376,7 +2376,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2393,7 +2393,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C, KEY_SET_E), KEY_SET_F);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2425,7 +2425,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2442,7 +2442,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, union(KEY_SET_D, KEY_SET_F), true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D, KEY_SET_F);
     try {
@@ -2467,7 +2467,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2483,7 +2483,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2503,7 +2503,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2522,7 +2522,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2545,7 +2545,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>some {@link Store} entries match</li>
@@ -2562,7 +2562,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_D));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_C, KEY_SET_D);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2585,7 +2585,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2597,7 +2597,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeStore fakeStore = new FakeStore(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.store = spy(fakeStore);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2615,7 +2615,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2630,7 +2630,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     doThrow(new StoreAccessException("")).when(this.store)
         .bulkComputeIfAbsent(getAnyStringSet(), getAnyIterableFunction());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(null);
+    final Ehcache<String, String> ehcache = this.getEhcache(null);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2648,7 +2648,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2665,7 +2665,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -2684,7 +2684,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2704,7 +2704,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2732,7 +2732,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2752,7 +2752,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -2780,7 +2780,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2799,7 +2799,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2829,7 +2829,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2847,7 +2847,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     this.loaderWriter = spy(fakeLoader);
     doThrow(new Exception("loadAll failed")).when(this.loaderWriter).loadAll(getAnyStringSet());
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2875,7 +2875,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2893,7 +2893,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -2920,7 +2920,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2937,7 +2937,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -2966,7 +2966,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -2982,7 +2982,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3001,7 +3001,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3020,7 +3020,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3043,7 +3043,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3059,7 +3059,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3078,7 +3078,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3097,7 +3097,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_C, KEY_SET_F), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3125,7 +3125,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3145,7 +3145,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, fetchKeys, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
     try {
       ehcache.getAll(fetchKeys);
       fail();
@@ -3172,7 +3172,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3189,7 +3189,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_C, KEY_SET_F), KEY_SET_B);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3217,7 +3217,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3233,7 +3233,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3252,7 +3252,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3271,7 +3271,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3293,7 +3293,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3310,7 +3310,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B, KEY_SET_C));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3332,7 +3332,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3348,7 +3348,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C), KEY_SET_A);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3368,7 +3368,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3387,7 +3387,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C), KEY_SET_A);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3415,7 +3415,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3434,7 +3434,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3465,7 +3465,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
 
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3482,7 +3482,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_B, KEY_SET_C), KEY_SET_A);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3510,7 +3510,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3527,7 +3527,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(TEST_ENTRIES, KEY_SET_A, true);
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     try {
@@ -3556,7 +3556,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3572,7 +3572,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3591,7 +3591,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3610,7 +3610,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3634,7 +3634,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Tests {@link EhcacheWithLoaderWriter#getAll(Set)} for
+   * Tests {@link Ehcache#getAll(Set)} for
    * <ul>
    *    <li>non-empty request key set</li>
    *    <li>all {@link Store} entries match</li>
@@ -3651,7 +3651,7 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
     final FakeCacheLoaderWriter fakeLoader = new FakeCacheLoaderWriter(getEntryMap(KEY_SET_A, KEY_SET_B));
     this.loaderWriter = spy(fakeLoader);
 
-    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.loaderWriter);
+    final Ehcache<String, String> ehcache = this.getEhcache(this.loaderWriter);
 
     final Set<String> fetchKeys = fanIn(KEY_SET_A, KEY_SET_B);
     final Map<String, String> actual = ehcache.getAll(fetchKeys);
@@ -3680,15 +3680,15 @@ public class EhcacheBasicGetAllTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link EhcacheWithLoaderWriter Ehcache} instance using the
+   * Gets an initialized {@link Ehcache Ehcache} instance using the
    * {@link CacheLoaderWriter} provided.
    *
    * @param cacheLoaderWriter the {@code CacheLoaderWriter} to use; may be {@code null}
    *
-   * @return a new {@code EhcacheWithLoaderWriter} instance
+   * @return a new {@code Ehcache} instance
    */
-  private EhcacheWithLoaderWriter<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
-    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheBasicGetAllTest"));
+  private Ehcache<String, String> getEhcache(final CacheLoaderWriter<String, String> cacheLoaderWriter) {
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicGetAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);

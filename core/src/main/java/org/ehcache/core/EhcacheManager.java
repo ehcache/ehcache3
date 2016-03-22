@@ -191,7 +191,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     statusTransitioner.checkAvailable();
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
-      final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
+      final Ehcache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
       if (ehcache != null) {
         if (!statusTransitioner.isTransitioning()) {
           for (CacheManagerListener listener : listeners) {
@@ -208,7 +208,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
   }
 
-  private void closeCache(final String alias, final InternalCache<?, ?> ehcache) {
+  private void closeCache(final String alias, final Ehcache<?, ?> ehcache) {
     ehcache.close();
     closeEhcache(alias, ehcache);
     this.getLogger().info("Cache '{}' is closed from {}.", alias, simpleName);
@@ -221,7 +221,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
    * @param alias the cache alias
    * @param ehcache the {@code InternalCache} instance for the cache to close
    */
-  protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
+  protected void closeEhcache(final String alias, final Ehcache<?, ?> ehcache) {
     for (ResourceType resourceType : ehcache.getRuntimeConfiguration().getResourcePools().getResourceTypeSet()) {
       if (resourceType.isPersistable()) {
         ResourcePool resourcePool = ehcache.getRuntimeConfiguration()
@@ -258,7 +258,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       throw new IllegalArgumentException("Cache '" + alias +"' already exists");
     }
 
-    InternalCache<K, V> cache = null;
+    Ehcache<K, V> cache = null;
 
     boolean success = false;
     RuntimeException failure = null;
@@ -298,7 +298,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return cache;
   }
 
-  <K, V> InternalCache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
+  <K, V> Ehcache<K, V> createNewEhcache(final String alias, final CacheConfiguration<K, V> config,
                                         final Class<K> keyType, final Class<V> valueType) {
     Collection<ServiceConfiguration<?>> adjustedServiceConfigs = new ArrayList<ServiceConfiguration<?>>(config.getServiceConfigurations());
 
@@ -361,13 +361,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     });
     evtService.setStoreEventSource(store.getStoreEventSource());
 
-    final InternalCache<K, V> cache;
-    if (decorator == null) {
-      cache = new Ehcache<K, V>(config, store, evtService, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
-    } else {
-      cache = new EhcacheWithLoaderWriter<K, V>(config, store, decorator, evtService,
-                    useLoaderInAtomics, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + alias));
-    }
+    final Ehcache<K, V> cache = new Ehcache<K, V>(config, store, decorator, evtService, useLoaderInAtomics, LoggerFactory.getLogger(Ehcache.class + "-" + alias));
 
     final CacheEventListenerProvider evntLsnrFactory = serviceLocator.getService(CacheEventListenerProvider.class);
     if (evntLsnrFactory != null) {
@@ -644,7 +638,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   protected void removeAndCloseWithoutNotice(final String alias) {
     final CacheHolder cacheHolder = caches.remove(alias);
     if(cacheHolder != null) {
-      final InternalCache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
+      final Ehcache<?, ?> ehcache = cacheHolder.retrieve(cacheHolder.keyType, cacheHolder.valueType);
       if(ehcache.getStatus() == Status.AVAILABLE) {
         ehcache.close();
       }
@@ -756,16 +750,16 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   private static final class CacheHolder {
     private final Class<?> keyType;
     private final Class<?> valueType;
-    private volatile InternalCache<?, ?> cache;
+    private volatile Ehcache<?, ?> cache;
     private volatile boolean isValueSet = false;
 
-    CacheHolder(Class<?> keyType, Class<?> valueType, InternalCache<?, ?> cache) {
+    CacheHolder(Class<?> keyType, Class<?> valueType, Ehcache<?, ?> cache) {
       this.keyType = keyType;
       this.valueType = valueType;
       this.cache = cache;
     }
 
-    <K, V> InternalCache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
+    <K, V> Ehcache<K, V> retrieve(Class<K> refKeyType, Class<V> refValueType) {
       if (!isValueSet) {
         synchronized (this) {
           boolean interrupted = false;
@@ -792,11 +786,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
 
     @SuppressWarnings("unchecked")
-    private static <K, V> InternalCache<K, V> cast(InternalCache<?, ?> cache) {
-      return (InternalCache<K, V>)cache;
+    private static <K, V> Ehcache<K, V> cast(Ehcache<?, ?> cache) {
+      return (Ehcache<K, V>)cache;
     }
 
-    public synchronized void setCache(final InternalCache<?, ?> cache) {
+    public synchronized void setCache(final Ehcache<?, ?> cache) {
       this.cache = cache;
       this.isValueSet = true;
       notifyAll();

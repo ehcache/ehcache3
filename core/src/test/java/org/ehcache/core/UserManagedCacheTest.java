@@ -53,7 +53,7 @@ public class UserManagedCacheTest {
     final Store store = mock(Store.class);
     CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null,
         null, ResourcePoolsHelper.createHeapOnlyPools());
-    EhcacheWithLoaderWriter ehcache = new EhcacheWithLoaderWriter(config, store, mock(CacheEventDispatcher.class), LoggerFactory.getLogger("testUserManagedCacheDelegatesLifecycleCallsToStore"));
+    Ehcache ehcache = new Ehcache(config, store, mock(CacheEventDispatcher.class), LoggerFactory.getLogger("testUserManagedCacheDelegatesLifecycleCallsToStore"));
     final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     ehcache.init();
@@ -68,7 +68,7 @@ public class UserManagedCacheTest {
     Store.Provider storeProvider = spy(new TestStoreProvider(store));
     ServiceLocator locator = new ServiceLocator(storeProvider);
     CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapOnlyPools());
-    EhcacheWithLoaderWriter ehcache = new EhcacheWithLoaderWriter(config, store, mock(CacheEventDispatcher.class), LoggerFactory.getLogger("testUserManagedEhcacheFailingTransitionGoesToLowestStatus"));
+    Ehcache ehcache = new Ehcache(config, store, mock(CacheEventDispatcher.class), LoggerFactory.getLogger("testUserManagedEhcacheFailingTransitionGoesToLowestStatus"));
     final LifeCycled mock = mock(LifeCycled.class);
     ehcache.addHook(mock);
     doThrow(new Exception()).when(mock).init();

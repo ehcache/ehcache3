@@ -16,44 +16,32 @@
 
 package org.ehcache.core;
 
-import java.util.AbstractMap;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.EnumMap;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-
 import org.ehcache.Cache;
 import org.ehcache.Status;
+import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.internal.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.internal.resilience.RecoveryCache;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
-import org.ehcache.core.spi.store.Store.PutStatus;
-import org.ehcache.core.spi.store.Store.RemoveStatus;
-import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.CacheOperationOutcomes.CacheLoadingOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
+import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.exceptions.CacheWritingException;
 import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.core.spi.function.BiFunction;
@@ -68,27 +56,39 @@ import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.OperationObserver;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumMap;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
+import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
+import static org.ehcache.core.internal.util.Functions.memoize;
 import static org.ehcache.core.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
-/**
- * Implementation of the {@link Cache} interface when no {@link CacheLoaderWriter} is involved.
- * <P>
- *   {@code Ehcache} users should not have to depend on this type but rely exclusively on the api types in package
- *   {@code org.ehcache}.
- * </P>
- *
- * @see EhcacheWithLoaderWriter
- */
-public class Ehcache<K, V> implements InternalCache<K, V> {
+public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
 
   private final StatusTransitioner statusTransitioner;
 
   private final Store<K, V> store;
+  private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final ResilienceStrategy<K, V> resilienceStrategy;
   private final EhcacheRuntimeConfiguration<K, V> runtimeConfiguration;
   private final Jsr107CacheImpl jsr107Cache;
+  private final boolean useLoaderInAtomics;
   protected final Logger logger;
 
   private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
@@ -98,27 +98,42 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   private final OperationObserver<RemoveOutcome> removeObserver = operation(RemoveOutcome.class).named("remove").of(this).tag("cache").build();
   private final OperationObserver<RemoveAllOutcome> removeAllObserver = operation(RemoveAllOutcome.class).named("removeAll").of(this).tag("cache").build();
   private final OperationObserver<ConditionalRemoveOutcome> conditionalRemoveObserver = operation(ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("cache").build();
+  private final OperationObserver<CacheLoadingOutcome> cacheLoadingObserver = operation(CacheOperationOutcomes.CacheLoadingOutcome.class).named("cacheLoading").of(this).tag("cache").build();
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();
   private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
 
-  /**
-   * Creates a new {@code Ehcache} based on the provided parameters.
-   *
-   * @param configuration the cache configuration
-   * @param store the store to use
-   * @param eventDispatcher the event dispatcher
-   * @param logger the logger
-   */
+  private static final NullaryFunction<Boolean> REPLACE_FALSE = new NullaryFunction<Boolean>() {
+    @Override
+    public Boolean apply() {
+      return Boolean.FALSE;
+    }
+  };
+
   public Ehcache(CacheConfiguration<K, V> configuration, final Store<K, V> store, CacheEventDispatcher<K, V> eventDispatcher, Logger logger) {
-    this(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, new StatusTransitioner(logger));
+    this(configuration, store, null, eventDispatcher, logger);
+  }
+
+  public Ehcache(CacheConfiguration<K, V> configuration, Store<K, V> store,
+      final CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+      CacheEventDispatcher<K, V> eventDispatcher,
+      Logger logger) {
+    this(configuration, store, cacheLoaderWriter, eventDispatcher, true, logger);
+  }
+
+  Ehcache(CacheConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
+          CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+          CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger) {
+    this(new EhcacheRuntimeConfiguration<K, V>(runtimeConfiguration), store, cacheLoaderWriter, eventDispatcher, useLoaderInAtomics, logger, new StatusTransitioner(logger));
   }
 
   Ehcache(EhcacheRuntimeConfiguration<K, V> runtimeConfiguration, Store<K, V> store,
-            CacheEventDispatcher<K, V> eventDispatcher, Logger logger, StatusTransitioner statusTransitioner) {
+            CacheLoaderWriter<? super K, V> cacheLoaderWriter,
+            CacheEventDispatcher<K, V> eventDispatcher, boolean useLoaderInAtomics, Logger logger, StatusTransitioner statusTransitioner) {
     this.store = store;
     runtimeConfiguration.addCacheConfigurationListener(store.getConfigurationChangeListeners());
     StatisticsManager.associate(store).withParent(this);
+    this.cacheLoaderWriter = cacheLoaderWriter;
     if (store instanceof RecoveryCache) {
       this.resilienceStrategy = new LoggingRobustResilienceStrategy<K, V>(castToRecoveryCache(store));
     } else {
@@ -129,6 +144,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     runtimeConfiguration.addCacheConfigurationListener(eventDispatcher.getConfigurationChangeListeners());
     this.jsr107Cache = new Jsr107CacheImpl();
 
+    this.useLoaderInAtomics = useLoaderInAtomics;
     this.logger=logger;
     this.statusTransitioner = statusTransitioner;
     for (BulkOps bulkOp : BulkOps.values()) {
@@ -136,10 +152,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   public Map<BulkOps, LongAdder> getBulkMethodEntries() {
     return bulkMethodEntries;
   }
@@ -150,14 +162,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   }
 
   private V getNoLoader(K key) {
-    return get(key);
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public V get(final K key) {
     getObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key);
@@ -186,29 +190,98 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
    * {@inheritDoc}
    */
   @Override
-  public void put(final K key, final V value) {
-    putObserver.begin();
+  public V get(final K key) throws CacheLoadingException {
+    getObserver.begin();
     statusTransitioner.checkAvailable();
-    checkNonNull(key, value);
+    checkNonNull(key);
+    final Function<K, V> mappingFunction = memoize(new Function<K, V>() {
+          @Override
+          public V apply(final K k) {
+            V loaded = null;
+            try {
+              if (cacheLoaderWriter != null) {
+                cacheLoadingObserver.begin();
+                loaded = cacheLoaderWriter.load(k);
+                cacheLoadingObserver.end(CacheLoadingOutcome.SUCCESS);
+              }
+            } catch (Exception e) {
+              cacheLoadingObserver.end(CacheLoadingOutcome.FAILURE);
+              throw new StorePassThroughException(newCacheLoadingException(e));
+            }
+
+            return loaded;
+          }
+        });
 
     try {
-      PutStatus status = store.put(key, value);
-      switch (status) {
-      case PUT:
-        putObserver.end(PutOutcome.PUT);
-        break;
-      case UPDATE:
-        putObserver.end(PutOutcome.UPDATED);
-        break;
-      case NOOP:
-        putObserver.end(PutOutcome.NOOP);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
+      final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
+
+      // Check for expiry first
+      if (valueHolder == null) {
+        getObserver.end(cacheLoaderWriter == null ? GetOutcome.MISS_NO_LOADER : GetOutcome.MISS_WITH_LOADER);
+        return null;
+      } else {
+        getObserver.end(cacheLoaderWriter == null ? GetOutcome.HIT_NO_LOADER : GetOutcome.HIT_WITH_LOADER);
+        return valueHolder.value();
       }
     } catch (StoreAccessException e) {
       try {
-        resilienceStrategy.putFailure(key, value, e);
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.getFailure(key, e);
+        } else {
+          V fromLoader;
+          try {
+            fromLoader = mappingFunction.apply(key);
+          } catch (StorePassThroughException cpte) {
+            return resilienceStrategy.getFailure(key, e, (CacheLoadingException) cpte.getCause());
+          }
+          return resilienceStrategy.getFailure(key, fromLoader, e);
+        }
+      } finally {
+        getObserver.end(GetOutcome.FAILURE);
+      }
+    }
+  }
+
+  @Override
+  public void put(final K key, final V value) throws CacheWritingException {
+    putObserver.begin();
+    statusTransitioner.checkAvailable();
+    checkNonNull(key, value);
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K key, final V previousValue) {
+        try {
+          if (cacheLoaderWriter != null) {
+            cacheLoaderWriter.write(key, value);
+          }
+        } catch (Exception e) {
+          throw new StorePassThroughException(newCacheWritingException(e));
+        }
+        return value;
+      }
+    });
+
+    try {
+      ValueHolder<V> computed = store.compute(key, remappingFunction);
+      if (computed != null) {
+        putObserver.end(PutOutcome.PUT);
+      } else {
+        putObserver.end(PutOutcome.NOOP);
+      }
+    } catch (StoreAccessException e) {
+      try {
+        if (cacheLoaderWriter == null) {
+          resilienceStrategy.putFailure(key, value, e);
+        } else {
+          try {
+            remappingFunction.apply(key, value);
+          } catch (StorePassThroughException cpte) {
+            resilienceStrategy.putFailure(key, value, e, (CacheWritingException) cpte.getCause());
+            return;
+          }
+          resilienceStrategy.putFailure(key, value, e);
+        }
       } finally {
         putObserver.end(PutOutcome.FAILURE);
       }
@@ -240,9 +313,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     return Duration.ZERO.equals(duration);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public boolean containsKey(final K key) {
     statusTransitioner.checkAvailable();
@@ -254,42 +324,58 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public void remove(K key) {
+  public void remove(K key) throws CacheWritingException {
     removeInternal(key); // ignore return value;
   }
 
 
-  private boolean removeInternal(final K key) {
+  private boolean removeInternal(final K key) throws CacheWritingException {
     removeObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key);
 
-    boolean removed = false;
+    final AtomicBoolean modified = new AtomicBoolean();
+
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K key, final V previousValue) {
+        modified.set(previousValue != null);
+
+        try {
+          if (cacheLoaderWriter != null) {
+            cacheLoaderWriter.delete(key);
+          }
+        } catch (Exception e) {
+          throw new StorePassThroughException(newCacheWritingException(e));
+        }
+        return null;
+      }
+    });
+
     try {
-      removed = store.remove(key);
-      if (removed) {
+      store.compute(key, remappingFunction);
+      if (modified.get()) {
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
         removeObserver.end(RemoveOutcome.NOOP);
       }
     } catch (StoreAccessException e) {
       try {
+        try {
+          remappingFunction.apply(key, null);
+        } catch (StorePassThroughException f) {
+          resilienceStrategy.removeFailure(key, e, (CacheWritingException) f.getCause());
+        }
         resilienceStrategy.removeFailure(key, e);
       } finally {
         removeObserver.end(RemoveOutcome.FAILURE);
       }
     }
 
-    return removed;
+    return modified.get();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void clear() {
     statusTransitioner.checkAvailable();
@@ -300,18 +386,12 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Iterator<Entry<K, V>> iterator() {
     statusTransitioner.checkAvailable();
     return new CacheEntryIterator(false);
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Map<K, V> getAll(Set<? extends K> keys) throws BulkCacheLoadingException {
     return getAllInternal(keys, true);
@@ -325,6 +405,15 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       getAllObserver.end(GetAllOutcome.SUCCESS);
       return Collections.emptyMap();
     }
+    final Map<K, V> successes;
+    final Map<K, Exception> failures;
+    if (cacheLoaderWriter != null) {
+      successes = new HashMap<K, V>();
+      failures = new HashMap<K, Exception>();
+    } else {
+      successes = Collections.emptyMap();
+      failures = Collections.emptyMap();
+    }
 
     Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> computeFunction =
         new Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
@@ -335,6 +424,28 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         // put all the entries to get ordering correct
         for (K key : keys) {
           computeResult.put(key, null);
+        }
+
+        if (cacheLoaderWriter != null) {
+          Map<? super K, ? extends V> loaded = Collections.emptyMap();
+          try {
+            loaded = cacheLoaderWriter.loadAll(computeResult.keySet());
+          } catch(BulkCacheLoadingException bcle) {
+            collectSuccessesAndFailures(bcle, successes, failures);
+          } catch (Exception e) {
+            for (K key : computeResult.keySet()) {
+              failures.put(key, e);
+            }
+          }
+
+          if (!loaded.isEmpty()) {
+            for (K key : computeResult.keySet()) {
+              V value = loaded.get(key);
+              successes.put(key, value);
+              computeResult.put(key, value);
+            }
+          }
+
         }
 
         return computeResult.entrySet();
@@ -352,18 +463,39 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         if (entry.getValue() != null) {
           result.put(entry.getKey(), entry.getValue().value());
           hits++;
-        } else if (includeNulls) {
+        } else if (includeNulls && failures.isEmpty()) {
           result.put(entry.getKey(), null);
         }
       }
 
       addBulkMethodEntriesCount(BulkOps.GET_ALL_HITS, hits);
-      addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
-      getAllObserver.end(GetAllOutcome.SUCCESS);
-      return result;
+      if (failures.isEmpty()) {
+        addBulkMethodEntriesCount(BulkOps.GET_ALL_MISS, keyCount - hits);
+        getAllObserver.end(GetAllOutcome.SUCCESS);
+        return result;
+      } else {
+        successes.putAll(result);
+        getAllObserver.end(GetAllOutcome.FAILURE);
+        throw new BulkCacheLoadingException(failures, successes);
+      }
     } catch (StoreAccessException e) {
       try {
-         return resilienceStrategy.getAllFailure(keys, e);
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.getAllFailure(keys, e);
+        } else {
+          Set<K> toLoad = new HashSet<K>();
+          for (K key : keys) {
+            toLoad.add(key);
+          }
+          toLoad.removeAll(successes.keySet());
+          toLoad.removeAll(failures.keySet());
+          computeFunction.apply(toLoad);
+          if (failures.isEmpty()) {
+            return resilienceStrategy.getAllFailure(keys, successes, e);
+          } else {
+            return resilienceStrategy.getAllFailure(keys, e, new BulkCacheLoadingException(failures, successes));
+          }
+        }
       } finally {
         getAllObserver.end(GetAllOutcome.FAILURE);
       }
@@ -378,9 +510,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     return entries;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void putAll(final Map<? extends K, ? extends V> entries) throws BulkCacheWritingException {
     putAllObserver.begin();
@@ -389,6 +518,15 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     if(entries.isEmpty()) {
       putAllObserver.end(PutAllOutcome.SUCCESS);
       return;
+    }
+    final Set<K> successes;
+    final Map<K, Exception> failures;
+    if (cacheLoaderWriter != null) {
+      successes = new HashSet<K>();
+      failures = new HashMap<K, Exception>();
+    } else {
+      successes = Collections.emptySet();
+      failures = Collections.emptyMap();
     }
 
     // Copy all entries to write into a Map
@@ -409,6 +547,8 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
       @Override
       public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+        // If we have a writer, first write this batch
+        cacheLoaderWriterWriteAllCall(entries, entriesToRemap, successes, failures);
 
         Map<K, V> mutations = new LinkedHashMap<K, V>();
 
@@ -420,9 +560,12 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
           if (newValueAlreadyExpired(key, existingValue, newValue)) {
             mutations.put(key, null);
-          } else {
+          } else if (cacheLoaderWriter == null || successes.contains(key)) {
             actualPutCount.incrementAndGet();
             mutations.put(key, newValue);
+
+          } else {
+            mutations.put(key, existingValue);
           }
         }
 
@@ -434,19 +577,85 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     try {
       store.bulkCompute(entries.keySet(), computeFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, actualPutCount.get());
-      putAllObserver.end(PutAllOutcome.SUCCESS);
+      if (failures.isEmpty()) {
+        putAllObserver.end(PutAllOutcome.SUCCESS);
+      } else {
+        BulkCacheWritingException cacheWritingException = new BulkCacheWritingException(failures, successes);
+        tryRemoveFailedKeys(entries, failures, cacheWritingException);
+        putAllObserver.end(PutAllOutcome.FAILURE);
+        throw cacheWritingException;
+      }
     } catch (StoreAccessException e) {
       try {
-        resilienceStrategy.putAllFailure(entries, e);
+        if (cacheLoaderWriter == null) {
+          resilienceStrategy.putAllFailure(entries, e);
+        } else {
+          // just in case not all writes happened:
+          if (!entriesToRemap.isEmpty()) {
+            cacheLoaderWriterWriteAllCall(entriesToRemap.entrySet(), entriesToRemap, successes, failures);
+          }
+          if (failures.isEmpty()) {
+            resilienceStrategy.putAllFailure(entries, e);
+          } else {
+            resilienceStrategy.putAllFailure(entries, e, new BulkCacheWritingException(failures, successes));
+          }
+        }
       } finally {
         putAllObserver.end(PutAllOutcome.FAILURE);
       }
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  private void tryRemoveFailedKeys(Map<? extends K, ? extends V> entries, Map<K, Exception> failures, BulkCacheWritingException cacheWritingException) {
+    try {
+      store.bulkCompute(failures.keySet(), new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
+        @Override
+        public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+          HashMap<K, V> result = new HashMap<K, V>();
+          for (Map.Entry<? extends K, ? extends V> entry : entries) {
+            result.put(entry.getKey(), null);
+          }
+          return result.entrySet();
+        }
+      });
+    } catch (StoreAccessException e) {
+      resilienceStrategy.putAllFailure(entries, e, cacheWritingException);
+    }
+  }
+
+  private void cacheLoaderWriterWriteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) {
+    if (cacheLoaderWriter != null) {
+      Map<K, V> toWrite = new HashMap<K, V>();
+      for (Map.Entry<? extends K, ? extends V> entry: entries) {
+        toWrite.put(entry.getKey(), entriesToRemap.get(entry.getKey()));
+      }
+      try {
+        if (! toWrite.isEmpty()) {
+          // write all entries of this batch
+          cacheLoaderWriter.writeAll(toWrite.entrySet());
+          successes.addAll(toWrite.keySet());
+        }
+      } catch (BulkCacheWritingException bcwe) {
+        collectSuccessesAndFailures(bcwe, successes, failures);
+      } catch (Exception e) {
+        for (K key: toWrite.keySet()) {
+          failures.put(key, e);
+        }
+      }
+    }
+  }
+
+  @SuppressWarnings({ "unchecked" })
+  private static <K> void collectSuccessesAndFailures(BulkCacheWritingException bcwe, Set<K> successes, Map<K, Exception> failures) {
+    successes.addAll((Collection<K>)bcwe.getSuccesses());
+    failures.putAll((Map<K, Exception>)bcwe.getFailures());
+  }
+  @SuppressWarnings({ "unchecked" })
+  private void collectSuccessesAndFailures(BulkCacheLoadingException bcle, Map<K, V> successes, Map<K, Exception> failures) {
+    successes.putAll((Map<K, V>)bcle.getSuccesses());
+    failures.putAll((Map<K, Exception>)bcle.getFailures());
+  }
+
   @Override
   public void removeAll(final Set<? extends K> keys) throws BulkCacheWritingException {
     removeAllObserver.begin();
@@ -456,11 +665,22 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       removeAllObserver.end(RemoveAllOutcome.SUCCESS);
       return;
     }
+    final Set<K> successes;
+    final Map<K, Exception> failures;
+    if (cacheLoaderWriter != null) {
+      successes = new HashSet<K>();
+      failures = new HashMap<K, Exception>();
+    } else {
+      successes = Collections.emptySet();
+      failures = Collections.emptyMap();
+    }
 
+    final Map<K, ? extends V> entriesToRemove = new HashMap<K, V>();
     for (K key: keys) {
       if (key == null) {
         throw new NullPointerException();
       }
+      entriesToRemove.put(key, null);
     }
 
     final AtomicInteger actualRemoveCount = new AtomicInteger();
@@ -469,6 +689,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
+          Set<K> unknowns = cacheLoaderWriterDeleteAllCall(entries, successes, failures);
 
           Map<K, V> results = new LinkedHashMap<K, V>();
 
@@ -476,10 +697,19 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
             K key = entry.getKey();
             V existingValue = entry.getValue();
 
-          if (existingValue != null) {
-            actualRemoveCount.incrementAndGet();
-          }
-          results.put(key, null);
+            if (cacheLoaderWriter == null || successes.contains(key)) {
+              if (existingValue != null) {
+                actualRemoveCount.incrementAndGet();
+              }
+              results.put(key, null);
+              entriesToRemove.remove(key);
+            } else {
+              if (unknowns.contains(key)) {
+                results.put(key, null);
+              } else {
+                results.put(key, existingValue);
+              }
+            }
           }
 
           return results.entrySet();
@@ -489,31 +719,101 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     try {
       store.bulkCompute(keys, removalFunction);
       addBulkMethodEntriesCount(BulkOps.REMOVE_ALL, actualRemoveCount.get());
-      removeAllObserver.end(RemoveAllOutcome.SUCCESS);
+      if (failures.isEmpty()) {
+        removeAllObserver.end(RemoveAllOutcome.SUCCESS);
+      } else {
+        removeAllObserver.end(RemoveAllOutcome.FAILURE);
+        throw new BulkCacheWritingException(failures, successes);
+      }
     } catch (StoreAccessException e) {
       try {
-        resilienceStrategy.removeAllFailure(keys, e);
+        if (cacheLoaderWriter == null) {
+          resilienceStrategy.removeAllFailure(keys, e);
+        } else {
+          // just in case not all writes happened:
+          if (!entriesToRemove.isEmpty()) {
+            cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
+          }
+          if (failures.isEmpty()) {
+            resilienceStrategy.removeAllFailure(keys, e);
+          } else {
+            resilienceStrategy.removeAllFailure(keys, e, new BulkCacheWritingException(failures, successes));
+          }
+        }
       } finally {
         removeAllObserver.end(RemoveAllOutcome.FAILURE);
       }
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
+  private Set<K> cacheLoaderWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> successes, Map<K, Exception> failures) {
+    final Set<K> unknowns = new HashSet<K>();
+    if (cacheLoaderWriter != null) {
+      Set<K> toDelete = new HashSet<K>();
+      for (Map.Entry<? extends K, ? extends V> entry: entries) {
+        toDelete.add(entry.getKey());
+      }
+
+      try {
+        cacheLoaderWriter.deleteAll(toDelete);
+        successes.addAll(toDelete);
+      } catch (BulkCacheWritingException bcwe) {
+        collectSuccessesAndFailures(bcwe, successes, failures);
+      } catch (Exception e) {
+        for (K key : toDelete) {
+          failures.put(key, e);
+          unknowns.add(key);
+        }
+      }
+    }
+    return unknowns;
+  }
+
   @Override
-  public V putIfAbsent(final K key, final V value) {
+  public V putIfAbsent(final K key, final V value) throws CacheWritingException {
     putIfAbsentObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
+    final AtomicBoolean installed = new AtomicBoolean(false);
 
-    boolean absent = false;
+    final Function<K, V> mappingFunction = memoize(new Function<K, V>() {
+      @Override
+      public V apply(final K k) {
+        if (useLoaderInAtomics && cacheLoaderWriter != null) {
+          try {
+            V loaded = cacheLoaderWriter.load(k);
+            if (loaded != null) {
+              return loaded; // populate the cache
+            }
+          } catch (Exception e) {
+            throw new StorePassThroughException(newCacheLoadingException(e));
+          }
+        }
+
+        if (cacheLoaderWriter != null) {
+          try {
+            cacheLoaderWriter.write(k, value);
+          } catch (Exception e) {
+            throw new StorePassThroughException(newCacheWritingException(e));
+          }
+        }
+
+        installed.set(true);
+        return value;
+      }
+    });
+
     try {
-      ValueHolder<V> inCache = store.putIfAbsent(key, value);
-      absent = (inCache == null);
-      if (absent) {
+      ValueHolder<V> inCache = store.computeIfAbsent(key, mappingFunction);
+      if (installed.get()) {
         putIfAbsentObserver.end(PutIfAbsentOutcome.PUT);
+        return null;
+      } else if (inCache == null) {
+        /*
+         * XXX : This needs reassessing - this means different things whether
+         * there is a loader/writer or not.
+         */
+        putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
         return null;
       } else {
         putIfAbsentObserver.end(PutIfAbsentOutcome.HIT);
@@ -521,69 +821,169 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       }
     } catch (StoreAccessException e) {
       try {
-        return resilienceStrategy.putIfAbsentFailure(key, value, e, absent);
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.putIfAbsentFailure(key, value, e, installed.get());
+        } else {
+          try {
+            mappingFunction.apply(key);
+          } catch (StorePassThroughException f) {
+            Throwable cause = f.getCause();
+            if(cause instanceof CacheLoadingException) {
+              return resilienceStrategy.putIfAbsentFailure(key, value, e, (CacheLoadingException) cause);
+            } else if(cause instanceof CacheWritingException) {
+              return resilienceStrategy.putIfAbsentFailure(key, value, e, (CacheWritingException) cause);
+            } else {
+              throw new AssertionError();
+            }
+          }
+          return resilienceStrategy.putIfAbsentFailure(key, value, e, installed.get());
+        }
       } finally {
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       }
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public boolean remove(final K key, final V value) {
+  public boolean remove(final K key, final V value) throws CacheWritingException {
     conditionalRemoveObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
-    RemoveStatus status = null;
-    boolean removed = false;
+    final AtomicBoolean hit = new AtomicBoolean();
+    final AtomicBoolean removed = new AtomicBoolean();
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K k, V inCache) {
+        if (inCache == null) {
+          if (useLoaderInAtomics && cacheLoaderWriter != null) {
+            try {
+              inCache = cacheLoaderWriter.load(key);
+              if (inCache == null) {
+                return null;
+              }
+            } catch (Exception e) {
+              throw new StorePassThroughException(newCacheLoadingException(e));
+            }
+          } else {
+            return null;
+          }
+        }
 
+        hit.set(true);
+        if (value.equals(inCache)) {
+          if (cacheLoaderWriter != null) {
+            try {
+              cacheLoaderWriter.delete(k);
+            } catch (Exception e) {
+              throw new StorePassThroughException(newCacheWritingException(e));
+            }
+          }
+          removed.set(true);
+          return null;
+        }
+        return inCache;
+      }
+    });
     try {
-      status = store.remove(key, value);
-      switch (status) {
-      case REMOVED:
-        removed = true;
+      store.compute(key, remappingFunction, REPLACE_FALSE);
+      if (removed.get()) {
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.SUCCESS);
-        break;
-      case KEY_MISSING:
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
-        break;
-      case KEY_PRESENT:
-        conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
+      } else {
+        if (hit.get()) {
+          conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_PRESENT);
+        } else {
+          conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE_KEY_MISSING);
+        }
       }
     } catch (StoreAccessException e) {
       try {
-        return resilienceStrategy.removeFailure(key, value, e, removed);
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.removeFailure(key, value, e, removed.get());
+        } else {
+          try {
+            remappingFunction.apply(key, null);
+          } catch (StorePassThroughException f) {
+            Throwable cause = f.getCause();
+            if(cause instanceof CacheLoadingException) {
+              return resilienceStrategy.removeFailure(key, value, e, (CacheLoadingException) cause);
+            } else if(cause instanceof CacheWritingException) {
+              return resilienceStrategy.removeFailure(key, value, e, (CacheWritingException) cause);
+            } else {
+              throw new AssertionError();
+            }
+          }
+          return resilienceStrategy.removeFailure(key, value, e, removed.get());
+        }
       } finally {
         conditionalRemoveObserver.end(ConditionalRemoveOutcome.FAILURE);
       }
     }
-    return removed;
+    return removed.get();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public V replace(final K key, final V value) {
+  public V replace(final K key, final V value) throws CacheLoadingException, CacheWritingException {
     replaceObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, value);
+    final AtomicReference<V> old = new AtomicReference<V>();
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K k, V inCache) {
+        if (inCache == null) {
+          if (useLoaderInAtomics && cacheLoaderWriter != null) {
+            try {
+              inCache = cacheLoaderWriter.load(key);
+              if (inCache == null) {
+                return null;
+              }
+            } catch (Exception e) {
+              throw new StorePassThroughException(newCacheLoadingException(e));
+            }
+          } else {
+            return null;
+          }
+        }
+
+        if (cacheLoaderWriter != null) {
+          try {
+            cacheLoaderWriter.write(key, value);
+          } catch (Exception e) {
+            throw new StorePassThroughException(newCacheWritingException(e));
+          }
+        }
+
+        old.set(inCache);
+
+        if (newValueAlreadyExpired(key, inCache, value)) {
+          return null;
+        }
+        return value;
+      }
+    });
 
     try {
-      ValueHolder<V> old = store.replace(key, value);
-      if (old != null) {
+      store.compute(key, remappingFunction);
+      if (old.get() != null) {
         replaceObserver.end(ReplaceOutcome.HIT);
       } else {
         replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
       }
-      return old == null ? null : old.value();
+      return old == null ? null : old.get();
     } catch (StoreAccessException e) {
       try {
+        try {
+          remappingFunction.apply(key, null);
+        } catch (StorePassThroughException f) {
+          Throwable cause = f.getCause();
+          if(cause instanceof CacheLoadingException) {
+            return resilienceStrategy.replaceFailure(key, value, e, (CacheLoadingException) cause);
+          } else if(cause instanceof CacheWritingException) {
+            return resilienceStrategy.replaceFailure(key, value, e, (CacheWritingException)cause);
+          } else {
+            throw new AssertionError();
+          }
+        }
         return resilienceStrategy.replaceFailure(key, value, e);
       } finally {
         replaceObserver.end(ReplaceOutcome.FAILURE);
@@ -591,48 +991,91 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) {
+  public boolean replace(final K key, final V oldValue, final V newValue) throws CacheLoadingException, CacheWritingException {
     replaceObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key, oldValue, newValue);
 
-    ReplaceStatus status = null;
-    boolean success = false;
+    final AtomicBoolean success = new AtomicBoolean();
+    final AtomicBoolean hit = new AtomicBoolean();
 
+    final BiFunction<K, V, V> remappingFunction = memoize(new BiFunction<K, V, V>() {
+      @Override
+      public V apply(final K k, V inCache) {
+        if (inCache == null) {
+          if (useLoaderInAtomics && cacheLoaderWriter != null) {
+            try {
+              inCache = cacheLoaderWriter.load(key);
+              if (inCache == null) {
+                return null;
+              }
+            } catch (Exception e) {
+              throw new StorePassThroughException(newCacheLoadingException(e));
+            }
+          } else {
+            return null;
+          }
+        }
+
+        hit.set(true);
+        if (oldValue.equals(inCache)) {
+          if (cacheLoaderWriter != null) {
+            try {
+              cacheLoaderWriter.write(key, newValue);
+            } catch (Exception e) {
+              throw new StorePassThroughException(newCacheWritingException(e));
+            }
+          }
+
+          success.set(true);
+
+          if (newValueAlreadyExpired(key, oldValue, newValue)) {
+            return null;
+          }
+          return newValue;
+        }
+        return inCache;
+      }
+    });
     try {
-      status = store.replace(key, oldValue, newValue);
-      switch (status) {
-      case HIT:
-        success = true;
+      store.compute(key, remappingFunction, REPLACE_FALSE);
+      if (success.get()) {
         replaceObserver.end(ReplaceOutcome.HIT);
-        break;
-      case MISS_PRESENT:
-        replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
-        break;
-      case MISS_NOT_PRESENT:
-        replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
-        break;
-      default:
-        throw new AssertionError("Invalid Status.");
+      } else {
+        if (hit.get()) {
+          replaceObserver.end(ReplaceOutcome.MISS_PRESENT);
+        } else {
+          replaceObserver.end(ReplaceOutcome.MISS_NOT_PRESENT);
+        }
       }
 
-      return success;
+      return success.get();
     } catch (StoreAccessException e) {
       try {
-        return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, success);
+        if (cacheLoaderWriter == null) {
+          return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, success.get());
+        } else {
+          try {
+            remappingFunction.apply(key, null);
+          } catch (StorePassThroughException f) {
+            Throwable cause = f.getCause();
+            if(cause instanceof CacheLoadingException) {
+              return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, (CacheLoadingException) cause);
+            } else if(cause instanceof CacheWritingException) {
+              return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, (CacheWritingException)cause);
+            } else {
+              throw new AssertionError();
+            }
+          }
+          return resilienceStrategy.replaceFailure(key, oldValue, newValue, e, success.get());
+        }
       } finally {
         replaceObserver.end(ReplaceOutcome.FAILURE);
       }
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public CacheRuntimeConfiguration<K, V> getRuntimeConfiguration() {
     return runtimeConfiguration;
@@ -646,26 +1089,16 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     statusTransitioner.init().succeeded();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public void close() {
     statusTransitioner.close().succeeded();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public Status getStatus() {
     return statusTransitioner.currentStatus();
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   public void addHook(LifeCycled hook) {
     statusTransitioner.addHook(hook);
   }
@@ -697,20 +1130,27 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     bulkMethodEntries.get(op).add(count);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   public Jsr107Cache<K, V> getJsr107Cache() {
     return jsr107Cache;
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
   public CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
-    return null;
+    return this.cacheLoaderWriter;
+  }
+
+  private static <K, V> Cache.Entry<K, V> newCacheEntry(final K key, final V value) {
+    return new Cache.Entry<K, V>() {
+      @Override
+      public K getKey() {
+        return key;
+      }
+
+      @Override
+      public V getValue() {
+        return value;
+      }
+
+    };
   }
 
   private final class Jsr107CacheImpl implements Jsr107Cache<K, V> {
@@ -812,6 +1252,18 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
               }
             }
 
+            if (invokeWriter.apply() && cacheLoaderWriter != null) {
+              try {
+                if (newValue != null) {
+                  cacheLoaderWriter.write(mappedKey, newValue);
+                } else {
+                  cacheLoaderWriter.delete(mappedKey);
+                }
+              } catch (Exception e) {
+                throw new StorePassThroughException(newCacheWritingException(e));
+              }
+            }
+
             if (newValueAlreadyExpired(mappedKey, mappedValue, newValue)) {
               return null;
             }
@@ -847,6 +1299,13 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           public V apply(K mappedKey, V mappedValue) {
             existingValue.set(mappedValue);
 
+            if (cacheLoaderWriter != null) {
+              try {
+                cacheLoaderWriter.delete(mappedKey);
+              } catch (Exception e) {
+                throw new StorePassThroughException(newCacheWritingException(e));
+              }
+            }
             return null;
           }
         });
@@ -879,6 +1338,14 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           public V apply(K mappedKey, V mappedValue) {
             existingValue.set(mappedValue);
 
+            if (cacheLoaderWriter != null) {
+              try {
+                cacheLoaderWriter.write(mappedKey, value);
+              } catch (Exception e) {
+                throw new StorePassThroughException(newCacheWritingException(e));
+              }
+            }
+
             if (newValueAlreadyExpired(mappedKey, mappedValue, value)) {
               return null;
             }
@@ -896,11 +1363,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       V returnValue = existingValue.get();
       if (returnValue != null) {
         getObserver.end(GetOutcome.HIT_NO_LOADER);
-        putObserver.end(PutOutcome.UPDATED);
       } else {
         getObserver.end(GetOutcome.MISS_NO_LOADER);
-        putObserver.end(PutOutcome.PUT);
       }
+      putObserver.end(PutOutcome.PUT);
       return returnValue;
     }
 
