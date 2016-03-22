@@ -740,7 +740,7 @@ public class EhcacheManagerTest {
     }
   }
 
-  @Test(timeout = 1000L)
+  @Test
   public void testCloseWhenRuntimeCacheCreationFails() throws Exception {
     Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
@@ -773,7 +773,7 @@ public class EhcacheManagerTest {
 
   }
 
-  @Test(timeout = 1000L)
+  @Test(timeout = 2000L)
   public void testCloseWhenCacheCreationFailsDuringInitialization() throws Exception {
     Store.Provider storeProvider = mock(Store.Provider.class);
     when(storeProvider.rank(anySet(), anyCollection())).thenReturn(1);
