@@ -56,7 +56,6 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 /**
  * @author Ludovic Orban
  */
-@Ignore("Invalid while merging Cache impls")
 public class StoreStatisticsTest {
 
   @Test

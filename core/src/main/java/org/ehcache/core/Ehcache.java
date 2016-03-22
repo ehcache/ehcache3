@@ -194,6 +194,26 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
     getObserver.begin();
     statusTransitioner.checkAvailable();
     checkNonNull(key);
+
+    try {
+      ValueHolder<V> valueHolder = store.get(key);
+      if (valueHolder != null) {
+        getObserver.end(cacheLoaderWriter == null ? GetOutcome.HIT_NO_LOADER : GetOutcome.HIT_WITH_LOADER);
+        return valueHolder.value();
+      } else if (cacheLoaderWriter == null){
+        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        return null;
+      }
+    } catch (StoreAccessException e) {
+      if (cacheLoaderWriter == null) {
+        try {
+          return resilienceStrategy.getFailure(key, e);
+        } finally {
+          getObserver.end(GetOutcome.FAILURE);
+        }
+      }
+    }
+
     final Function<K, V> mappingFunction = memoize(new Function<K, V>() {
           @Override
           public V apply(final K k) {
@@ -209,19 +229,19 @@ public class Ehcache<K, V> implements Cache<K, V>, UserManagedCache<K, V> {
               throw new StorePassThroughException(newCacheLoadingException(e));
             }
 
-            return loaded;
-          }
-        });
+        return loaded;
+      }
+    });
 
     try {
-      final Store.ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
+      ValueHolder<V> valueHolder = store.computeIfAbsent(key, mappingFunction);
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(cacheLoaderWriter == null ? GetOutcome.MISS_NO_LOADER : GetOutcome.MISS_WITH_LOADER);
+        getObserver.end(GetOutcome.MISS_WITH_LOADER);
         return null;
       } else {
-        getObserver.end(cacheLoaderWriter == null ? GetOutcome.HIT_NO_LOADER : GetOutcome.HIT_WITH_LOADER);
+        getObserver.end(GetOutcome.HIT_WITH_LOADER);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
