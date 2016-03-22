@@ -401,45 +401,6 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testReplaceTwoArgPresent() throws Exception {
-    OnHeapStore<String, String> store = newStore();
-
-    store.put("key", "value");
-
-    ValueHolder<String> existing = store.replace("key", "value2");
-    assertThat(existing.value(), equalTo("value"));
-    assertThat(store.get("key").value(), equalTo("value2"));
-    verify(eventSink).updated(eq("key"), argThat(holding("value")), eq("value2"));
-    verifyListenerReleaseEventsInOrder(eventDispatcher);
-    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED));
-  }
-
-  @Test
-  public void testReplaceTwoArgAbsent() throws Exception {
-    OnHeapStore<String, String> store = newStore();
-
-    ValueHolder<String> existing = store.replace("key", "value");
-    assertThat(existing, nullValue());
-    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS));
-    assertThat(store.get("key"), nullValue());
-  }
-
-  @Test
-  public void testReplaceTwoArgExpired() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    OnHeapStore<String, String> store = newStore(timeSource,
-        Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
-
-    store.put("key", "value");
-    timeSource.advanceTime(1);
-    ValueHolder<String> existing = store.replace("key", "value2");
-    assertThat(existing, nullValue());
-    assertThat(store.get("key"), nullValue());
-    checkExpiryEvent(eventSink, "key", "value");
-    StatisticsTestUtils.validateStats(store, EnumSet.of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
-  }
-
-  @Test
   public void testReplaceThreeArgMatch() throws Exception {
     OnHeapStore<String, String> store = newStore();
 

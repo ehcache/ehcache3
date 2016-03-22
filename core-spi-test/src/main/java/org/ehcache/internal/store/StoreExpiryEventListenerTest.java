@@ -110,15 +110,6 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void testReplaceTwoArgsOnExpiration() throws Exception {
-    kvStore.put(k, v);
-    StoreEventListener<K, V> listener = addListener(kvStore);
-    timeSource.advanceTime(1);
-    assertThat(kvStore.replace(k, v), is(nullValue()));
-    verifyListenerInteractions(listener);
-  }
-
-  @SPITest
   public void testReplaceThreeArgsOnExpiration() throws Exception {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);

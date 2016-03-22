@@ -351,16 +351,6 @@ public abstract class EhcacheBasicCrudBase {
     }
 
     @Override
-    public ValueHolder<String> replace(final String key, final String value) throws StoreAccessException {
-      this.checkFailingKey(key);
-      final ValueHolder<String> currentValue = this.entries.get(key);
-      if (currentValue != null) {
-        this.entries.put(key, new FakeValueHolder(value));
-      }
-      return currentValue;
-    }
-
-    @Override
     public ReplaceStatus replace(final String key, final String oldValue, final String newValue) throws StoreAccessException {
       this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);

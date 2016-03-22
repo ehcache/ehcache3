@@ -204,30 +204,6 @@ public class CacheStoreTest {
   }
 
   @Test
-  public void testReplace2Args_replaces() throws Exception {
-    when(numberAuthoritativeTier.replace(eq(1), eq("one"))).thenReturn(newValueHolder("un"));
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
-
-    assertThat(cacheStore.replace(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
-
-    verify(numberCachingTier, times(1)).invalidate(eq(1));
-    verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("one"));
-  }
-
-  @Test
-  public void testReplace2Args_doesNotReplace() throws Exception {
-    when(numberAuthoritativeTier.replace(eq(1), eq("one"))).thenReturn(null);
-
-    CacheStore<Number, CharSequence> cacheStore = new CacheStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
-
-    assertThat(cacheStore.replace(1, "one"), is(nullValue()));
-
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("one"));
-  }
-
-  @Test
   public void testReplace3Args_replaces() throws Exception {
     when(numberAuthoritativeTier.replace(eq(1), eq("un"), eq("one"))).thenReturn(ReplaceStatus.HIT);
 

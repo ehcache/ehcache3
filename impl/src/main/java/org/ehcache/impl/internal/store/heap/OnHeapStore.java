@@ -532,53 +532,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   @Override
-  public ValueHolder<V> replace(final K key, final V value) throws StoreAccessException {
-    replaceObserver.begin();
-    checkKey(key);
-    checkValue(value);
-
-    final AtomicReference<OnHeapValueHolder<V>> returnValue = new AtomicReference<OnHeapValueHolder<V>>(null);
-    final StoreEventSink<K, V> eventSink = storeEventDispatcher.eventSink();
-
-    try {
-      map.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-        @Override
-        public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-          final long now = timeSource.getTimeMillis();
-
-          if (mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-            updateUsageInBytesIfRequired(- mappedValue.size());
-            fireOnExpirationEvent(mappedKey, mappedValue, eventSink);
-            return null;
-          } else {
-            returnValue.set(mappedValue);
-            OnHeapValueHolder<V> holder = newUpdateValueHolder(key, mappedValue, value, now, eventSink);
-            if (holder != null) {
-              updateUsageInBytesIfRequired(holder.size() - mappedValue.size());
-            } else {
-              updateUsageInBytesIfRequired(- mappedValue.size());
-            }
-            return holder;
-          }
-        }
-      });
-      OnHeapValueHolder<V> valueHolder = returnValue.get();
-      storeEventDispatcher.releaseEventSink(eventSink);
-      enforceCapacity();
-      if (valueHolder != null) {
-        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
-      } else {
-        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
-      }
-    } catch (RuntimeException re) {
-      storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      handleRuntimeException(re);
-    }
-
-    return returnValue.get();
-  }
-
-  @Override
   public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
     conditionalReplaceObserver.begin();
     checkKey(key);

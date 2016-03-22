@@ -178,21 +178,6 @@ public class CacheStore<K, V> implements Store<K, V> {
   }
 
   @Override
-  public ValueHolder<V> replace(K key, V value) throws StoreAccessException {
-    ValueHolder<V> previous = null;
-    boolean exceptionThrown = true;
-    try {
-      previous = authoritativeTier.replace(key, value);
-      exceptionThrown = false;
-    } finally {
-      if (exceptionThrown || previous != null) {
-        cachingTier().invalidate(key);
-      }
-    }
-    return previous;
-  }
-
-  @Override
   public ReplaceStatus replace(K key, V oldValue, V newValue) throws StoreAccessException {
     ReplaceStatus replaced = null;
     try {

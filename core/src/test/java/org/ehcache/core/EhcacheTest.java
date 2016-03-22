@@ -421,11 +421,6 @@ public class EhcacheTest {
     }
 
     @Override
-    public ValueHolder<String> replace(String key, String value) throws StoreAccessException {
-      throw new UnsupportedOperationException("TODO Implement me!");
-    }
-
-    @Override
     public ReplaceStatus replace(String key, String oldValue, String newValue) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
