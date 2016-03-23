@@ -31,6 +31,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Backend dealing with a key copier and storing keys as {@code OnHeapKey<K>}
@@ -41,9 +42,12 @@ import java.util.Random;
 class KeyCopyBackend<K, V> implements Backend<K, V> {
 
   private final ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+  private final boolean byteSized;
   private final Copier<K> keyCopier;
+  private final AtomicLong byteSize = new AtomicLong(0L);
 
-  KeyCopyBackend(Copier<K> keyCopier) {
+  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier) {
+    this.byteSized = byteSized;
     this.keyCopier = keyCopier;
     keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>>();
   }
@@ -68,6 +72,33 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   public int size() {
     return keyCopyMap.size();
   }
+
+  @Override
+  public long byteSize() {
+    if (byteSized) {
+      return byteSize.get();
+    } else {
+      throw new IllegalStateException("This store is not byte sized");
+    }
+  }
+
+  @Override
+  public long naturalSize() {
+    if (byteSized) {
+      return byteSize.get();
+    } else {
+      return keyCopyMap.size();
+    }
+  }
+
+  @Override
+  public void updateUsageInBytesIfRequired(long delta) {
+    if (byteSized) {
+      byteSize.addAndGet(delta);
+    }
+  }
+
+
 
   @Override
   public Iterable<K> keySet() {
@@ -130,8 +161,8 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public void clear() {
-    keyCopyMap.clear();
+  public Backend<K, V> clear() {
+    return new KeyCopyBackend<K, V>(byteSized, keyCopier);
   }
 
   @Override

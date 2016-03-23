@@ -25,6 +25,7 @@ import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Simple passthrough backend, no key translation
@@ -32,8 +33,11 @@ import java.util.Random;
 class SimpleBackend<K, V> implements Backend<K, V> {
 
   private final ConcurrentHashMap<K, OnHeapValueHolder<V>> realMap;
+  private final boolean byteSized;
+  private final AtomicLong byteSize = new AtomicLong(0L);
 
-  SimpleBackend() {
+  SimpleBackend(boolean byteSized) {
+    this.byteSized = byteSized;
     realMap = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
   }
 
@@ -53,6 +57,31 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
+  public long byteSize() {
+    if (byteSized) {
+      return byteSize.get();
+    } else {
+      throw new IllegalStateException("This store is not byte sized");
+    }
+  }
+
+  @Override
+  public long naturalSize() {
+    if (byteSized) {
+      return byteSize.get();
+    } else {
+      return realMap.size();
+    }
+  }
+
+  @Override
+  public void updateUsageInBytesIfRequired(long delta) {
+    if (byteSized) {
+      byteSize.addAndGet(delta);
+    }
+  }
+
+  @Override
   public Iterable<K> keySet() {
     return realMap.keySet();
   }
@@ -68,8 +97,8 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public void clear() {
-    realMap.clear();
+  public Backend<K, V> clear() {
+    return new SimpleBackend<K, V>(byteSized);
   }
 
   @Override

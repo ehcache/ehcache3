@@ -812,18 +812,17 @@ public class ByteAccountingTest {
     return size;
   }
 
-  public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
+  static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
-    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
-                               final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
+    OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
+                        final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, eventDispatcher);
     }
 
-    @Override
-    public long getCurrentUsageInBytes() {
-      return super.getCurrentUsageInBytes();
+    long getCurrentUsageInBytes() {
+      return super.byteSized();
     }
 
   }
