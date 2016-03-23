@@ -20,7 +20,7 @@ import java.util.EnumSet;
 
 import org.ehcache.Status;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.slf4j.LoggerFactory;
@@ -79,16 +79,16 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testGetNoStoreEntryCacheAccessException() throws Exception {
+  public void testGetNoStoreEntryStoreAccessException() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.<String, String>emptyMap());
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store).get(eq("key"));
+    doThrow(new StoreAccessException("")).when(this.store).get(eq("key"));
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.get("key");
     verify(this.store).get(eq("key"));
-    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 
@@ -121,17 +121,17 @@ public class EhcacheBasicGetTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testGetHasStoreEntryCacheAccessExceptionNoCacheLoaderWriter() throws Exception {
+  public void testGetHasStoreEntryStoreAccessExceptionNoCacheLoaderWriter() throws Exception {
     final FakeStore fakeStore = new FakeStore(Collections.singletonMap("key", "value"));
     this.store = spy(fakeStore);
     assertThat(fakeStore.getEntryMap().get("key"), equalTo("value"));
-    doThrow(new CacheAccessException("")).when(this.store).get(eq("key"));
+    doThrow(new StoreAccessException("")).when(this.store).get(eq("key"));
 
     final Ehcache<String, String> ehcache = this.getEhcache();
 
     ehcache.get("key");
     verify(this.store).get(eq("key"));
-    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy).getFailure(eq("key"), any(StoreAccessException.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE));
   }
 

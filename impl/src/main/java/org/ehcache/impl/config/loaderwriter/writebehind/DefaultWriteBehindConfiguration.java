@@ -20,9 +20,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
 
 /**
- * @author Geert Bevin
- * @author Chris Dennis
- *
+ * {@link org.ehcache.spi.service.ServiceConfiguration} for the default {@link WriteBehindProvider}.
  */
 public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration {
 
@@ -31,6 +29,14 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
   private final int queueSize;
   private final String executorAlias;
 
+  /**
+   * Creates a new configuration with the provided parameters.
+   *
+   * @param executorAlias the thread pool alias
+   * @param concurrency the write-behind concurrency
+   * @param queueSize the maximum queue size
+   * @param batchingConfig optional batching configuration
+   */
   public DefaultWriteBehindConfiguration(String executorAlias, int concurrency, int queueSize, BatchingConfiguration batchingConfig) {
     this.concurrency = concurrency;
     this.queueSize = queueSize;
@@ -38,26 +44,41 @@ public class DefaultWriteBehindConfiguration implements WriteBehindConfiguration
     this.batchingConfig = batchingConfig;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getConcurrency() {
     return concurrency;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getMaxQueueSize() {
     return queueSize;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String getThreadPoolAlias() {
     return executorAlias;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public BatchingConfiguration getBatchingConfiguration() {
     return batchingConfig;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<WriteBehindProvider> getServiceType() {
     return WriteBehindProvider.class;

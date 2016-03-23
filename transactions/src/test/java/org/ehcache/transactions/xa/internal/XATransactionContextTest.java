@@ -17,14 +17,14 @@
 package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.core.spi.cache.AbstractValueHolder;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.RemoveStatus;
+import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.transactions.xa.internal.commands.StoreEvictCommand;
 import org.ehcache.transactions.xa.internal.commands.StorePutCommand;
 import org.ehcache.transactions.xa.internal.commands.StoreRemoveCommand;
 import org.ehcache.transactions.xa.internal.journal.Journal;
-import org.ehcache.core.spi.cache.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;

@@ -16,8 +16,8 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.transactions.xa.EhcacheXAException;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 
@@ -82,7 +82,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
       throw new EhcacheXAException("Cannot commit unknown XID : " + xid, XAException.XAER_NOTA);
     } catch (IllegalStateException ise) {
       throw new EhcacheXAException("Cannot commit XID : " + xid, XAException.XAER_PROTO, ise);
-    } catch (CacheAccessException cae) {
+    } catch (StoreAccessException cae) {
       throw new EhcacheXAException("Cannot commit XID : " + xid, XAException.XAER_RMERR, cae);
     } finally {
       if (transactionContext != null) {
@@ -133,7 +133,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
       throw new EhcacheXAException("Transaction timed out", XAException.XA_RBTIMEOUT);
     } catch (IllegalStateException ise) {
       throw new EhcacheXAException("Cannot prepare XID : " + xid, XAException.XAER_PROTO, ise);
-    } catch (CacheAccessException cae) {
+    } catch (StoreAccessException cae) {
       throw new EhcacheXAException("Cannot prepare XID : " + xid, XAException.XAER_RMERR, cae);
     } finally {
       if (destroyContext) {
@@ -180,7 +180,7 @@ public class EhcacheXAResource<K, V> implements XAResource {
       rollbackContext.rollback(transactionContext == null);
     } catch (IllegalStateException ise) {
       throw new EhcacheXAException("Cannot rollback unknown XID : " + xid, XAException.XAER_NOTA);
-    } catch (CacheAccessException cae) {
+    } catch (StoreAccessException cae) {
       throw new EhcacheXAException("Cannot rollback XID : " + xid, XAException.XAER_RMERR, cae);
     } finally {
       if (transactionContext != null) {

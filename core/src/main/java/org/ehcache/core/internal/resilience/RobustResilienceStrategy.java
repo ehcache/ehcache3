@@ -21,7 +21,7 @@ import java.util.Map;
 
 import org.ehcache.exceptions.BulkCacheLoadingException;
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.CacheLoadingException;
 import org.ehcache.exceptions.CacheWritingException;
 
@@ -40,130 +40,130 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public V getFailure(K key, CacheAccessException e) {
+  public V getFailure(K key, StoreAccessException e) {
     cleanup(key, e);
     return null;
   }
 
   @Override
-  public V getFailure(K key, V loaded, CacheAccessException e) {
+  public V getFailure(K key, V loaded, StoreAccessException e) {
     cleanup(key, e);
     return loaded;
   }
 
   @Override
-  public V getFailure(K key, CacheAccessException e, CacheLoadingException f) {
+  public V getFailure(K key, StoreAccessException e, CacheLoadingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public boolean containsKeyFailure(K key, CacheAccessException e) {
+  public boolean containsKeyFailure(K key, StoreAccessException e) {
     cleanup(key, e);
     return false;
   }
 
   @Override
-  public void putFailure(K key, V value, CacheAccessException e) {
+  public void putFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
   }
 
   @Override
-  public void putFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
-    cleanup(key, e);
-    throw f;
-  }
-
-  @Override
-  public void removeFailure(K key, CacheAccessException e) {
-    cleanup(key, e);
-  }
-
-  @Override
-  public void removeFailure(K key, CacheAccessException e, CacheWritingException f) {
+  public void putFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public void clearFailure(CacheAccessException e) {
+  public void removeFailure(K key, StoreAccessException e) {
+    cleanup(key, e);
+  }
+
+  @Override
+  public void removeFailure(K key, StoreAccessException e, CacheWritingException f) {
+    cleanup(key, e);
+    throw f;
+  }
+
+  @Override
+  public void clearFailure(StoreAccessException e) {
     cleanup(e);
   }
 
   @Override
-  public V putIfAbsentFailure(K key, V value, CacheAccessException e, boolean knownToBeAbsent) {
+  public V putIfAbsentFailure(K key, V value, StoreAccessException e, boolean knownToBeAbsent) {
     cleanup(key, e);
     return null;
   }
 
   @Override
-  public V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
+  public V putIfAbsentFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public V putIfAbsentFailure(K key, V value, CacheAccessException e, CacheLoadingException f) {
+  public V putIfAbsentFailure(K key, V value, StoreAccessException e, CacheLoadingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public boolean removeFailure(K key, V value, CacheAccessException e, boolean knownToBePresent) {
+  public boolean removeFailure(K key, V value, StoreAccessException e, boolean knownToBePresent) {
     cleanup(key, e);
     return knownToBePresent;
   }
 
   @Override
-  public boolean removeFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
+  public boolean removeFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public boolean removeFailure(K key, V value, CacheAccessException e, CacheLoadingException f) {
+  public boolean removeFailure(K key, V value, StoreAccessException e, CacheLoadingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public V replaceFailure(K key, V value, CacheAccessException e) {
+  public V replaceFailure(K key, V value, StoreAccessException e) {
     cleanup(key, e);
     return null;
   }
 
   @Override
-  public V replaceFailure(K key, V value, CacheAccessException e, CacheWritingException f) {
+  public V replaceFailure(K key, V value, StoreAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public V replaceFailure(K key, V value, CacheAccessException e, CacheLoadingException f) {
+  public V replaceFailure(K key, V value, StoreAccessException e, CacheLoadingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, boolean knownToMatch) {
+  public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, boolean knownToMatch) {
     cleanup(key, e);
     return knownToMatch;
   }
 
   @Override
-  public boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheWritingException f) {
+  public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, CacheWritingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public boolean replaceFailure(K key, V value, V newValue, CacheAccessException e, CacheLoadingException f) {
+  public boolean replaceFailure(K key, V value, V newValue, StoreAccessException e, CacheLoadingException f) {
     cleanup(key, e);
     throw f;
   }
 
   @Override
-  public Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e) {
+  public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e) {
     cleanup(keys, e);
     HashMap<K, V> result = new HashMap<K, V>();
     for (K key : keys) {
@@ -173,67 +173,67 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, CacheAccessException e) {
+  public Map<K, V> getAllFailure(Iterable<? extends K> keys, Map<K, V> loaded, StoreAccessException e) {
     cleanup(keys, e);
     return loaded;
   }
 
   @Override
-  public Map<K, V> getAllFailure(Iterable<? extends K> keys, CacheAccessException e, BulkCacheLoadingException f) {
+  public Map<K, V> getAllFailure(Iterable<? extends K> keys, StoreAccessException e, BulkCacheLoadingException f) {
     cleanup(keys, e);
     throw f;
   }
 
   @Override
-  public void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e) {
+  public void putAllFailure(Map<? extends K, ? extends V> entries, StoreAccessException e) {
     cleanup(entries.keySet(), e);
   }
 
   @Override
-  public void putAllFailure(Map<? extends K, ? extends V> entries, CacheAccessException e, BulkCacheWritingException f) {
+  public void putAllFailure(Map<? extends K, ? extends V> entries, StoreAccessException e, BulkCacheWritingException f) {
     cleanup(entries.keySet(), e);
     throw f;
   }
 
   @Override
-  public Map<K, V> removeAllFailure(Iterable<? extends K> entries, CacheAccessException e) {
+  public Map<K, V> removeAllFailure(Iterable<? extends K> entries, StoreAccessException e) {
     cleanup(entries, e);
     return emptyMap();
   }
 
   @Override
-  public Map<K, V> removeAllFailure(Iterable<? extends K> entries, CacheAccessException e, BulkCacheWritingException f) {
+  public Map<K, V> removeAllFailure(Iterable<? extends K> entries, StoreAccessException e, BulkCacheWritingException f) {
     cleanup(entries, e);
     throw f;
   }
 
-  private void cleanup(CacheAccessException from) {
+  private void cleanup(StoreAccessException from) {
     filterException(from);
     try {
       cache.obliterate();
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       inconsistent(from, e);
       return;
     }
     recovered(from);
   }
 
-  private void cleanup(Iterable<? extends K> keys, CacheAccessException from) {
+  private void cleanup(Iterable<? extends K> keys, StoreAccessException from) {
     filterException(from);
     try {
       cache.obliterate(keys);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       inconsistent(keys, from, e);
       return;
     }
     recovered(keys, from);
   }
 
-  private void cleanup(K key, CacheAccessException from) {
+  private void cleanup(K key, StoreAccessException from) {
     filterException(from);
     try {
       cache.obliterate(key);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       inconsistent(key, from, e);
       return;
     }
@@ -241,21 +241,21 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Deprecated
-  void filterException(CacheAccessException cae) throws RuntimeException {
-    if (cae instanceof RethrowingCacheAccessException) {
-      throw ((RethrowingCacheAccessException) cae).getCause();
+  void filterException(StoreAccessException cae) throws RuntimeException {
+    if (cae instanceof RethrowingStoreAccessException) {
+      throw ((RethrowingStoreAccessException) cae).getCause();
     }
   }
 
-  protected abstract void recovered(K key, CacheAccessException from);
+  protected abstract void recovered(K key, StoreAccessException from);
 
-  protected abstract void recovered(Iterable<? extends K> keys, CacheAccessException from);
+  protected abstract void recovered(Iterable<? extends K> keys, StoreAccessException from);
 
-  protected abstract void recovered(CacheAccessException from);
+  protected abstract void recovered(StoreAccessException from);
 
-  protected abstract void inconsistent(K key, CacheAccessException because, CacheAccessException ... cleanup);
+  protected abstract void inconsistent(K key, StoreAccessException because, StoreAccessException... cleanup);
 
-  protected abstract void inconsistent(Iterable<? extends K> keys, CacheAccessException because, CacheAccessException ... cleanup);
+  protected abstract void inconsistent(Iterable<? extends K> keys, StoreAccessException because, StoreAccessException... cleanup);
 
-  protected abstract void inconsistent(CacheAccessException because, CacheAccessException ... cleanup);
+  protected abstract void inconsistent(StoreAccessException because, StoreAccessException... cleanup);
 }

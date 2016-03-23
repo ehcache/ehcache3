@@ -20,7 +20,7 @@ import java.util.Map;
 import org.ehcache.UserManagedCache;
 import org.ehcache.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.statistics.BulkOps;
+import org.ehcache.core.statistics.BulkOps;
 import org.terracotta.statistics.jsr166e.LongAdder;
 
 /**

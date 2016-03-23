@@ -16,13 +16,13 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
-import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
-import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.core.spi.store.tiering.HigherCachingTier;
+import org.ehcache.core.spi.store.tiering.LowerCachingTier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * A {@link CachingTier} implementation supporting a cache hierarchy.
@@ -62,7 +62,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
               return valueHolder;
             }
           });
-        } catch (CacheAccessException cae) {
+        } catch (StoreAccessException cae) {
           notifyInvalidation(key, valueHolder);
           LOGGER.warn("Error overflowing '{}' into lower caching tier {}", key, lower, cae);
         }
@@ -81,12 +81,12 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   static class ComputationException extends RuntimeException {
-    public ComputationException(CacheAccessException cause) {
+    public ComputationException(StoreAccessException cause) {
       super(cause);
     }
 
-    public CacheAccessException getCacheAccessException() {
-      return (CacheAccessException) getCause();
+    public StoreAccessException getStoreAccessException() {
+      return (StoreAccessException) getCause();
     }
 
     @Override
@@ -97,7 +97,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
 
 
   @Override
-  public Store.ValueHolder<V> getOrComputeIfAbsent(K key, final Function<K, Store.ValueHolder<V>> source) throws CacheAccessException {
+  public Store.ValueHolder<V> getOrComputeIfAbsent(K key, final Function<K, Store.ValueHolder<V>> source) throws StoreAccessException {
     try {
       return higher.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
         @Override
@@ -109,18 +109,18 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
             }
 
             return source.apply(k);
-          } catch (CacheAccessException cae) {
+          } catch (StoreAccessException cae) {
             throw new ComputationException(cae);
           }
         }
       });
     } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
+      throw ce.getStoreAccessException();
     }
   }
 
   @Override
-  public void invalidate(final K key) throws CacheAccessException {
+  public void invalidate(final K key) throws StoreAccessException {
     try {
       higher.silentInvalidate(key, new Function<Store.ValueHolder<V>, Void>() {
         @Override
@@ -131,19 +131,19 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
             }  else {
               lower.invalidate(key);
             }
-          } catch (CacheAccessException cae) {
+          } catch (StoreAccessException cae) {
             throw new ComputationException(cae);
           }
           return null;
         }
       });
     } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
+      throw ce.getStoreAccessException();
     }
   }
 
   @Override
-  public void clear() throws CacheAccessException {
+  public void clear() throws StoreAccessException {
     try {
       higher.clear();
     } finally {

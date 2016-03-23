@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Test;
 

@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 

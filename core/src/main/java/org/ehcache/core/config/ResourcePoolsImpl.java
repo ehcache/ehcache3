@@ -95,7 +95,7 @@ public class ResourcePoolsImpl implements ResourcePools {
   }
 
   /**
-   * Validates some required relationships between {@link ResourceType.Core core resources}.
+   * Validates some required relationships between {@link org.ehcache.config.ResourceType.Core core resources}.
    *
    * @param pools the resource pools to validate
    */

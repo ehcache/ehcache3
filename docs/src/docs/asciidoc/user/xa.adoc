@@ -189,7 +189,7 @@ include::{sourcedir}/transactions/src/test/java/org/ehcache/docs/transactions/xa
 <1> The Bitronix transaction manager must be started before the cache manager is initialized.
 <2> Create a `URL` to your XML file's location.
 <3> Instantiate a `XmlConfiguration` passing it the XML file's `URL`.
-<4> Using the static `org.ehcache.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
+<4> Using the static `org.ehcache.config.builders.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
     create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`.
 
 And here is what the `TransactionManagerProvider` implementation looks like:

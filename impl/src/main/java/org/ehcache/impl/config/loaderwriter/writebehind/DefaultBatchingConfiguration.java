@@ -21,8 +21,12 @@ import java.util.concurrent.TimeUnit;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 
 /**
- *
- * @author cdennis
+ * Configuration class for write-behind batching.
+ * <P>
+ *   Enables configuring write-behind batching, first by specifying the batch size.
+ *   Then a write delay must be configured. It will indicate how long an incomplete batch will wait for extra operations.
+ *   Finally coalescing can be configure which will make the batch forget all but the last operation on a per key basis.
+ * </P>
  */
 public class DefaultBatchingConfiguration implements BatchingConfiguration {
 
@@ -31,6 +35,14 @@ public class DefaultBatchingConfiguration implements BatchingConfiguration {
   private final int batchSize;
   private final boolean coalescing;
 
+  /**
+   * Creates a new configuration with the provided parameters.
+   *
+   * @param maxDelay the maximum write delay quantity
+   * @param maxDelayUnit the maximu write delay unit
+   * @param batchSize the batch size
+   * @param coalescing whether the batch is to be coalesced
+   */
   public DefaultBatchingConfiguration(long maxDelay, TimeUnit maxDelayUnit, int batchSize, boolean coalescing) {
     this.maxDelay = maxDelay;
     this.maxDelayUnit = maxDelayUnit;
@@ -38,21 +50,33 @@ public class DefaultBatchingConfiguration implements BatchingConfiguration {
     this.coalescing = coalescing;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public long getMaxDelay() {
     return maxDelay;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public TimeUnit getMaxDelayUnit() {
     return maxDelayUnit;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean isCoalescing() {
     return coalescing;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int getBatchSize() {
     return batchSize;

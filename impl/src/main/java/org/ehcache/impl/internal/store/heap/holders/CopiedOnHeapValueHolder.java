@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap.holders;
 
 import org.ehcache.expiry.Duration;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
 
 /**

@@ -16,7 +16,7 @@
 
 package org.ehcache.core.internal.resilience;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 
 /**
  *
@@ -24,9 +24,9 @@ import org.ehcache.exceptions.CacheAccessException;
  */
 public interface RecoveryCache<K> {
 
-  void obliterate() throws CacheAccessException;
+  void obliterate() throws StoreAccessException;
 
-  void obliterate(K key) throws CacheAccessException;
+  void obliterate(K key) throws StoreAccessException;
 
-  void obliterate(Iterable<? extends K> keys) throws CacheAccessException;
+  void obliterate(Iterable<? extends K> keys) throws StoreAccessException;
 }

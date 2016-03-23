@@ -16,12 +16,12 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.RemoveStatus;
-import org.ehcache.core.spi.cache.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.RemoveStatus;
+import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.core.spi.function.BiFunction;

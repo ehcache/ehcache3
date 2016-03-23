@@ -24,7 +24,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -33,8 +33,8 @@ import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.cache.AbstractValueHolder;
-import org.ehcache.core.spi.cache.Store.ValueHolder;
+import org.ehcache.impl.internal.store.AbstractValueHolder;
+import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.copy.Copier;
 import org.junit.Test;
@@ -103,7 +103,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     try {
       store.put("key1", new ArrayList<Object>() {{ add(new Object()); }});
       fail();
-    } catch (CacheAccessException cae) {
+    } catch (StoreAccessException cae) {
       assertThat(cae.getCause(), instanceOf(SerializerException.class));
     }
   }
@@ -114,7 +114,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     try {
       store.put(new ArrayList<Object>() {{ add(new Object()); }}, "value");
       fail();
-    } catch (CacheAccessException cae) {
+    } catch (StoreAccessException cae) {
       assertThat(cae.getCause(), instanceOf(SerializerException.class));
     }
   }

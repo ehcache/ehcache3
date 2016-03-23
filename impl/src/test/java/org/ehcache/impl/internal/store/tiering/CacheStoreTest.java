@@ -18,15 +18,15 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.RemoveStatus;
-import org.ehcache.core.spi.cache.Store.ReplaceStatus;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.RemoveStatus;
+import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.ServiceProvider;
@@ -509,7 +509,7 @@ public class CacheStoreTest {
   }
 
   @Test
-  public void CachingTierDoesNotSeeAnyOperationDuringClear() throws CacheAccessException, BrokenBarrierException, InterruptedException {
+  public void CachingTierDoesNotSeeAnyOperationDuringClear() throws StoreAccessException, BrokenBarrierException, InterruptedException {
     final CacheStore<String, String> cacheStore = new CacheStore<String, String>(stringCachingTier, stringAuthoritativeTier);
 
     final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -543,7 +543,7 @@ public class CacheStoreTest {
   }
 
   @Test
-  public void testReleaseStoreFlushes () throws CacheAccessException {
+  public void testReleaseStoreFlushes () throws StoreAccessException {
     CacheStore.Provider cacheStoreProvider = new CacheStore.Provider();
 
     ResourcePools resourcePools = mock(ResourcePools.class);

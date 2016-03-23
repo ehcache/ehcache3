@@ -28,10 +28,10 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
@@ -83,7 +83,7 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
   private static class LoadAllVerifyStore implements Store<String, String> {
 
     @Override
-    public Map<String, ValueHolder<String>> bulkComputeIfAbsent(Set<? extends String> keys, Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction) throws CacheAccessException {
+    public Map<String, ValueHolder<String>> bulkComputeIfAbsent(Set<? extends String> keys, Function<Iterable<? extends String>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> mappingFunction) throws StoreAccessException {
       Iterable<? extends Map.Entry<? extends String, ? extends String>> result = mappingFunction.apply(keys);
       ArrayList<String> functionReturnedKeys = new ArrayList<String>();
       for (Map.Entry<? extends String, ? extends String> entry : result) {
@@ -108,47 +108,47 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public ValueHolder<String> get(String key) throws CacheAccessException {
+    public ValueHolder<String> get(String key) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public boolean containsKey(String key) throws CacheAccessException {
+    public boolean containsKey(String key) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public PutStatus put(String key, String value) throws CacheAccessException {
+    public PutStatus put(String key, String value) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public ValueHolder<String> putIfAbsent(String key, String value) throws CacheAccessException {
+    public ValueHolder<String> putIfAbsent(String key, String value) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public boolean remove(String key) throws CacheAccessException {
+    public boolean remove(String key) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public RemoveStatus remove(String key, String value) throws CacheAccessException {
+    public RemoveStatus remove(String key, String value) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public ValueHolder<String> replace(String key, String value) throws CacheAccessException {
+    public ValueHolder<String> replace(String key, String value) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public ReplaceStatus replace(String key, String oldValue, String newValue) throws CacheAccessException {
+    public ReplaceStatus replace(String key, String oldValue, String newValue) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public void clear() throws CacheAccessException {
+    public void clear() throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
@@ -163,27 +163,27 @@ public class EhcacheWithLoaderWriterTest extends CacheTest {
     }
 
     @Override
-    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction) throws CacheAccessException {
+    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+    public ValueHolder<String> compute(String key, BiFunction<? super String, ? super String, ? extends String> mappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public ValueHolder<String> computeIfAbsent(String key, Function<? super String, ? extends String> mappingFunction) throws CacheAccessException {
+    public ValueHolder<String> computeIfAbsent(String key, Function<? super String, ? extends String> mappingFunction) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction) throws CacheAccessException {
+    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
 
     @Override
-    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws CacheAccessException {
+    public Map<String, ValueHolder<String>> bulkCompute(Set<? extends String> keys, Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> remappingFunction, NullaryFunction<Boolean> replaceEqual) throws StoreAccessException {
       throw new UnsupportedOperationException("TODO Implement me!");
     }
   }

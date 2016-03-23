@@ -21,7 +21,7 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.core.Jsr107Cache;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
-import org.ehcache.core.exceptions.CachePassThroughException;
+import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
@@ -352,9 +352,9 @@ class Eh107Cache<K, V> implements Cache<K, V> {
           processResult = entryProcessor.process(mutableEntry, arguments);
         } catch (Exception e) {
           if (e instanceof EntryProcessorException) {
-            throw new CachePassThroughException(e);
+            throw new StorePassThroughException(e);
           }
-          throw new CachePassThroughException(new EntryProcessorException(e));
+          throw new StorePassThroughException(new EntryProcessorException(e));
         }
 
         invokeResult.set(processResult);

@@ -21,7 +21,7 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -30,7 +30,7 @@ import org.ehcache.spi.service.ServiceDependencies;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * {@link CacheEventDispatcher} implementation that shares a single {@link ExecutorService} for unordered firing

@@ -20,7 +20,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.impl.config.persistence.PersistenceConfiguration;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
@@ -53,7 +53,8 @@ import static java.nio.charset.Charset.forName;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * @author Alex Snaps
+ * Default implementation of the {@link LocalPersistenceService} which can be used explicitly when
+ * {@link org.ehcache.PersistentUserManagedCache persistent user managed caches} are desired.
  */
 public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
@@ -85,20 +86,31 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private boolean started;
 
-  public DefaultLocalPersistenceService(final PersistenceConfiguration persistenceConfiguration) {
+  /**
+   * Creates a new service instance using the provided configuration.
+   *
+   * @param persistenceConfiguration the configuration to use
+   */
+  public DefaultLocalPersistenceService(final DefaultPersistenceConfiguration persistenceConfiguration) {
     if(persistenceConfiguration != null) {
       rootDirectory = persistenceConfiguration.getRootDirectory();
     } else {
-      throw new NullPointerException("PersistenceConfiguration cannot be null");
+      throw new NullPointerException("DefaultPersistenceConfiguration cannot be null");
     }
     lockFile = new File(rootDirectory, ".lock");
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public synchronized void start(final ServiceProvider<Service> serviceProvider) {
     internalStart();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public synchronized void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
     internalStart();
@@ -118,6 +130,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public synchronized void stop() {
     if (started) {
@@ -152,11 +167,17 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean handlesResourceType(ResourceType resourceType) {
     return ResourceType.Core.DISK.equals(resourceType);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException {
     if (!ResourceType.Core.DISK.equals(pool.getType())) {
@@ -176,6 +197,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException {
     PersistenceSpaceIdentifier existingSpace = knownPersistenceSpaces.get(name);
@@ -197,6 +221,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void destroy(String name) throws CachePersistenceException {
     DefaultPersistenceSpaceIdentifier space = knownPersistenceSpaces.remove(name);
@@ -207,6 +234,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void destroyAll() {
     if(recursiveDeleteDirectoryContent(rootDirectory)){
@@ -216,6 +246,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier space, String name) throws CachePersistenceException {
     if (knownPersistenceSpaces.containsValue(space)) {
@@ -235,7 +268,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     return lockFile;
   }
 
-  public File getDirectoryFor(String identifier) {
+  private File getDirectoryFor(String identifier) {
     File directory = new File(rootDirectory, safeIdentifier(identifier));
 
     for (File parent = directory.getParentFile(); parent != null; parent = parent.getParentFile()) {
@@ -247,7 +280,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     throw new IllegalArgumentException("Attempted to access file outside the persistence path");
   }
 
-  static void create(File directory) throws IOException, CachePersistenceException {
+  private static void create(File directory) throws IOException, CachePersistenceException {
     if (directory.isDirectory()) {
       LOGGER.info("Reusing " + directory.getAbsolutePath());
     } else if (directory.mkdir()) {
@@ -257,7 +290,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
-  static void destroy(String identifier, DefaultPersistenceSpaceIdentifier fileBasedPersistenceContext, boolean verbose) {
+  private static void destroy(String identifier, DefaultPersistenceSpaceIdentifier fileBasedPersistenceContext, boolean verbose) {
     if (verbose) {
       LOGGER.info("Destroying file based persistence context for {}", identifier);
     }
@@ -334,7 +367,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   /**
    * sanitize a name for valid file or directory name
    *
-   * @param name
+   * @param name the name to sanitize
    * @return sanitized version of name
    */
   private static String safeIdentifier(String name) {
@@ -370,6 +403,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void create() {
     //no-op
@@ -389,7 +425,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
   private static class DefaultPersistenceSpaceIdentifier extends FileHolder implements PersistenceSpaceIdentifier {
 
-    public DefaultPersistenceSpaceIdentifier(File directory) {
+    DefaultPersistenceSpaceIdentifier(File directory) {
       super(directory);
     }
 
@@ -401,7 +437,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private static class DefaultFileBasedPersistenceContext extends FileHolder implements FileBasedPersistenceContext {
 
-    public DefaultFileBasedPersistenceContext(File directory) {
+    DefaultFileBasedPersistenceContext(File directory) {
       super(directory);
     }
   }

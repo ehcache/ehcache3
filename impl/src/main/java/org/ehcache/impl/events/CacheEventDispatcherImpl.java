@@ -28,9 +28,9 @@ import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
-import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,15 +43,15 @@ import java.util.concurrent.Future;
 
 /**
  * Per-cache component that manages cache event listener registrations, and provides event delivery based on desired
- * firing mode and ordering, for specified event types.
- * <p>
- * <h5>Note on event ordering guarantees:</h5> {@link #onEvent(CacheEvent)} is assumed to be called within a key-based
- * lock scope. If that is not the case, this facility has no means of maintaining event ordering consistent with source
- * of such events. That is - listeners registered to receive events in the order they occurred in underlying store may be
- * invoked in an order inconsistent with actual ordering of corresponding operations on said store.
- * <p>
- * Conversely, sending events to this service inside lock scope, when there are no registered listeners interested in
- * ordered event delivery is harmless, i.e. event delivery to unordered listeners will still occur.
+ * firing mode for specified event types.
+ * <P>
+ *   Use of this class is linked to having cache events on a {@link org.ehcache.UserManagedCache user managed cache}.
+ * </P>
+ * <P>
+ * <EM>Note on event ordering guarantees:</EM> Events are received and transmitted to register listeners through the
+ * registration of a {@link StoreEventListener} on the linked {@link StoreEventSource} which is responsible for event
+ * ordering.
+ * </P>
  */
 public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V> {
 
@@ -67,8 +67,15 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   private volatile Cache<K, V> listenerSource;
   private volatile StoreEventSource<K, V> storeEventSource;
 
-  public CacheEventDispatcherImpl(ExecutorService unOrderedExectuor, ExecutorService orderedExecutor) {
-    this.unOrderedExectuor = unOrderedExectuor;
+  /**
+   * Creates a new {@link CacheEventDispatcher} instance that will use the provided {@link ExecutorService} to handle
+   * events firing.
+   *
+   * @param unOrderedExecutor the executor service used when ordering is not required
+   * @param orderedExecutor the executor service used when ordering is required
+   */
+  public CacheEventDispatcherImpl(ExecutorService unOrderedExecutor, ExecutorService orderedExecutor) {
+    this.unOrderedExectuor = unOrderedExecutor;
     this.orderedExecutor = orderedExecutor;
   }
 
@@ -115,11 +122,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   }
 
   /**
-   * Allows for deregistering of a previously registered {@link org.ehcache.event.CacheEventListener} instance
-   *
-   * @param listener the listener to deregister
-   *
-   * @throws java.lang.IllegalStateException if the listener isn't already registered
+   * {@inheritDoc}
    */
   @Override
   public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
@@ -153,6 +156,9 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     return false;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public synchronized void shutdown() {
     storeEventSource.removeEventListener(eventListener);
@@ -163,12 +169,15 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     orderedExecutor.shutdown();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public synchronized void setListenerSource(Cache<K, V> source) {
     this.listenerSource = source;
   }
 
-  public void onEvent(CacheEvent<K, V> event) {
+  void onEvent(CacheEvent<K, V> event) {
     ExecutorService executor;
     if (storeEventSource.isEventOrdering()) {
       executor = orderedExecutor;
@@ -188,6 +197,9 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> configurationChangeListenerList = new ArrayList<CacheConfigurationChangeListener>();
@@ -232,9 +244,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   }
 
   /**
-   * Sets {@link StoreEventSource} to enable eventing
-   *
-   * @param eventSource
+   * {@inheritDoc}
    */
   @Override
   public synchronized void setStoreEventSource(StoreEventSource<K, V> eventSource) {

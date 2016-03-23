@@ -20,8 +20,6 @@ import org.ehcache.spi.LifeCycled;
 
 /**
  * Adapter class for {@link LifeCycled} in case you do not need to implement all methods from the interface.
- *
- * @author Mathieu Carbou
  */
 public abstract class LifeCycledAdapter implements LifeCycled {
 

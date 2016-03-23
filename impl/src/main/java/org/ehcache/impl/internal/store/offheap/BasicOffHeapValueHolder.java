@@ -16,9 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.core.spi.cache.Store;
-
-import java.nio.ByteBuffer;
+import org.ehcache.core.spi.store.Store;
 
 /**
  * BasicOffHeapValueHolder

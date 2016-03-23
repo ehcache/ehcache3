@@ -16,8 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -58,7 +58,7 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void removesAllOfTheMappings()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     K key = factory.createKey(42);
     V value = factory.createValue(42);
 
@@ -66,7 +66,7 @@ public class StoreClearTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.clear();
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 

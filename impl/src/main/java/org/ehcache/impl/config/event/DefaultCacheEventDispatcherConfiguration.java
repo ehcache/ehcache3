@@ -20,21 +20,38 @@ import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * DefaultCacheEventDispatcherConfiguration
+ * {@link ServiceConfiguration} for the default {@link CacheEventDispatcherFactory} implementation.
+ * <P>
+ *   Enables configuring the thread pool to be used by a {@link org.ehcache.core.events.CacheEventDispatcher} for
+ *   a given cache.
+ * </P>
  */
 public class DefaultCacheEventDispatcherConfiguration implements ServiceConfiguration<CacheEventDispatcherFactory> {
 
   private final String threadPoolAlias;
 
+  /**
+   * Creates a new configuration with the provided pool alias
+   *
+   * @param threadPoolAlias the pool alias
+   */
   public DefaultCacheEventDispatcherConfiguration(String threadPoolAlias) {
     this.threadPoolAlias = threadPoolAlias;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<CacheEventDispatcherFactory> getServiceType() {
     return CacheEventDispatcherFactory.class;
   }
 
+  /**
+   * Returns the thread pool alias.
+   *
+   * @return the pool alias
+   */
   public String getThreadPoolAlias() {
     return threadPoolAlias;
   }

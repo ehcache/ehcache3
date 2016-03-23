@@ -16,9 +16,9 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.RemoveStatus;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.RemoveStatus;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -57,7 +57,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void removeEntryForKeyIfMappedToValue()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1L);
@@ -73,7 +73,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       kvStore.remove(equalKey, equalValue);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
@@ -82,7 +82,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void doNothingForKeyNotMappedToValue()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -93,14 +93,14 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     try {
       RemoveStatus status = kvStore.remove(key, value);
       assertThat(status, is(RemoveStatus.KEY_MISSING));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new AssertionError(e);
     }
   }
 
   @SPITest
   public void doNothingForWrongValue()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -114,14 +114,14 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       assertThat(kvStore.remove(key, notEqualValue), is(RemoveStatus.KEY_PRESENT));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new AssertionError(e);
     }
   }
 
   @SPITest
   public void returnRemovedIfValueWasRemoved()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -133,14 +133,14 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       assertThat(kvStore.remove(key, value), is(RemoveStatus.REMOVED));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void returnKeyMisingIfValueWasNotRemoved()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -150,7 +150,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       assertThat(kvStore.remove(key, value), is(RemoveStatus.KEY_MISSING));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -168,7 +168,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -186,7 +186,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the value is null");
     } catch (NullPointerException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -208,7 +208,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -230,7 +230,7 @@ public class StoreRemoveKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

@@ -17,7 +17,7 @@
 package org.ehcache.core.internal.resilience;
 
 import org.ehcache.Cache;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.CacheIterationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,38 +35,38 @@ public class LoggingRobustResilienceStrategy<K, V> extends RobustResilienceStrat
   }
 
   @Override
-  public Cache.Entry<K, V> iteratorFailure(CacheAccessException e) {
+  public Cache.Entry<K, V> iteratorFailure(StoreAccessException e) {
     LOGGER.error("Ehcache iterator terminated early due to exception", e);
     throw new CacheIterationException(e);
   }
 
   @Override
-  protected void recovered(K key, CacheAccessException from) {
+  protected void recovered(K key, StoreAccessException from) {
     LOGGER.info("Ehcache key {} recovered from", key, from);
   }
 
   @Override
-  protected void recovered(Iterable<? extends K> keys, CacheAccessException from) {
+  protected void recovered(Iterable<? extends K> keys, StoreAccessException from) {
     LOGGER.info("Ehcache keys {} recovered from", keys, from);
   }
 
   @Override
-  protected void recovered(CacheAccessException from) {
+  protected void recovered(StoreAccessException from) {
     LOGGER.info("Ehcache recovered from", from);
   }
 
   @Override
-  protected void inconsistent(K key, CacheAccessException because, CacheAccessException... cleanup) {
+  protected void inconsistent(K key, StoreAccessException because, StoreAccessException... cleanup) {
     LOGGER.error("Ehcache key {} in possible inconsistent state due to ", key, because);
   }
 
   @Override
-  protected void inconsistent(Iterable<? extends K> keys, CacheAccessException because, CacheAccessException... cleanup) {
+  protected void inconsistent(Iterable<? extends K> keys, StoreAccessException because, StoreAccessException... cleanup) {
     LOGGER.error("Ehcache keys {} in possible inconsistent state due to ", keys, because);
   }
 
   @Override
-  protected void inconsistent(CacheAccessException because, CacheAccessException... cleanup) {
+  protected void inconsistent(StoreAccessException because, StoreAccessException... cleanup) {
     LOGGER.error("Ehcache in possible inconsistent state due to ", because);
   }
 }

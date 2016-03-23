@@ -18,10 +18,10 @@ package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
@@ -32,8 +32,8 @@ import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.ServiceLocator;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -64,7 +64,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   public final TestLocalPersistenceService persistenceService = new TestLocalPersistenceService();
 
   @Test
-  public void testRecovery() throws CacheAccessException, IOException {
+  public void testRecovery() throws StoreAccessException, IOException {
     OffHeapDiskStore<String, String> offHeapDiskStore = createAndInitStore(SystemTimeSource.INSTANCE, noExpiration());
     try {
       offHeapDiskStore.put("key1", "value1");

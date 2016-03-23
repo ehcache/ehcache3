@@ -17,8 +17,8 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -55,7 +55,7 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void nextReturnsNextElement()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -68,14 +68,14 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
       Cache.Entry<K, Store.ValueHolder<V>> entry = iterator.next();
       assertThat(entry.getKey(), is(equalTo(key)));
       assertThat(entry.getValue().value(), is(equalTo(value)));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void noMoreElementThrowsException()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     kvStore.put(factory.createKey(1), factory.createValue(1));
@@ -88,7 +88,7 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NoSuchElementException because no more element could be found");
     } catch (NoSuchElementException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

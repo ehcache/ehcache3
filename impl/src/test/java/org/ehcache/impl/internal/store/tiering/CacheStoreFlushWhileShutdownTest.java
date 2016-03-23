@@ -19,7 +19,6 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
-import org.ehcache.impl.config.persistence.PersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
@@ -27,8 +26,8 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.core.spi.ServiceLocator;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.LocalPersistenceService;
@@ -142,7 +141,7 @@ public class CacheStoreFlushWhileShutdownTest {
   }
 
   private ServiceLocator getServiceLocator(File location) throws Exception {
-    PersistenceConfiguration persistenceConfiguration = new DefaultPersistenceConfiguration(location);
+    DefaultPersistenceConfiguration persistenceConfiguration = new DefaultPersistenceConfiguration(location);
     DefaultLocalPersistenceService persistenceService = new DefaultLocalPersistenceService(persistenceConfiguration);
     ServiceLocator serviceLocator = new ServiceLocator();
     serviceLocator.addService(persistenceService);

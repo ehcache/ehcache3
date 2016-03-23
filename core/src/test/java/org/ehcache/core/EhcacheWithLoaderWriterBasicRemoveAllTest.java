@@ -22,14 +22,14 @@ import java.util.Map;
 import java.util.Set;
 
 import org.ehcache.Status;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.statistics.BulkOps;
+import org.ehcache.core.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -88,8 +88,8 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * A Mockito {@code ArgumentCaptor} for the
    * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}
    * provided to the
-   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#removeAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)}
-   *    ResilienceStrategy.putAllFailure(Iterable, CacheAccessException, BulkCacheWritingException)} method.
+   * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#removeAllFailure(Iterable, StoreAccessException, BulkCacheWritingException)}
+   *    ResilienceStrategy.putAllFailure(Iterable, StoreAccessException, BulkCacheWritingException)} method.
    */
   @Captor
   private ArgumentCaptor<BulkCacheWritingException> bulkExceptionCaptor;
@@ -118,7 +118,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalStoreContent));
     verify(this.cacheLoaderWriter, never()).deleteAll(eq(Collections.<String>emptySet()));
-    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
 
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
@@ -172,11 +172,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterNoOverlapNoneFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterNoOverlapNoneFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
@@ -195,7 +195,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -213,7 +213,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterNoOverlapNoneFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterNoOverlapNoneFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -237,7 +237,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -299,11 +299,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterNoOverlapSomeFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterNoOverlapSomeFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
@@ -331,7 +331,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
@@ -351,7 +351,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterNoOverlapSomeFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterNoOverlapSomeFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -381,7 +381,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
 
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
 
@@ -449,11 +449,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterNoOverlapSomeFailWithAbort() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterNoOverlapSomeFailWithAbort() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
@@ -479,7 +479,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     @SuppressWarnings("unchecked")
     final Set<String> bcweSuccesses = (Set<String>)this.bulkExceptionCaptor.getValue().getSuccesses();
@@ -510,7 +510,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterNoOverlapSomeFailWithAbort() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterNoOverlapSomeFailWithAbort() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -538,7 +538,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     @SuppressWarnings("unchecked")
     final Set<String> bcweSuccesses = (Set<String>)this.bulkExceptionCaptor.getValue().getSuccesses();
@@ -611,11 +611,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterNoOverlapAllFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterNoOverlapAllFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_D);
@@ -640,7 +640,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), empty());
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
@@ -661,7 +661,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterNoOverlapAllFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterNoOverlapAllFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -688,7 +688,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), empty());
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
@@ -745,11 +745,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterSomeOverlapNoneFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterSomeOverlapNoneFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
@@ -769,7 +769,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -787,7 +787,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterSomeOverlapNoneFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterSomeOverlapNoneFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -809,7 +809,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -872,11 +872,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterSomeOverlapSomeFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterSomeOverlapSomeFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
@@ -903,7 +903,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -924,7 +924,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterSomeOverlapSomeFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterSomeOverlapSomeFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -953,7 +953,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1022,11 +1022,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterSomeOverlapSomeFailWithAbort() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterSomeOverlapSomeFailWithAbort() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
@@ -1052,7 +1052,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     @SuppressWarnings("unchecked")
     final Set<String> bcweSuccesses = (Set<String>)this.bulkExceptionCaptor.getValue().getSuccesses();
@@ -1084,7 +1084,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterSomeOverlapSomeFailWithAbort() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterSomeOverlapSomeFailWithAbort() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -1112,7 +1112,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     @SuppressWarnings("unchecked")
     final Set<String> bcweSuccesses = (Set<String>)this.bulkExceptionCaptor.getValue().getSuccesses();
@@ -1186,11 +1186,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterSomeOverlapAllFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterSomeOverlapAllFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
@@ -1215,7 +1215,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), empty());
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
@@ -1236,7 +1236,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterSomeOverlapAllFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterSomeOverlapAllFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -1263,7 +1263,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), empty());
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
@@ -1320,11 +1320,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterFullOverlapNoneFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterFullOverlapNoneFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C);
@@ -1344,7 +1344,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -1362,7 +1362,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterFullOverlapNoneFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterFullOverlapNoneFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyB3"));
     this.store = spy(fakeStore);
@@ -1384,7 +1384,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, contentUpdates)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -1447,11 +1447,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterFullOverlapSomeFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterFullOverlapSomeFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
@@ -1478,7 +1478,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1499,7 +1499,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterFullOverlapSomeFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterFullOverlapSomeFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyB3"));
     this.store = spy(fakeStore);
@@ -1528,7 +1528,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(copyWithout(originalWriterContent, expectedSuccesses)));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), Matchers.<Set<?>>equalTo(expectedSuccesses));
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(expectedFailures));
@@ -1598,11 +1598,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterFullOverlapSomeFailWithAbort() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterFullOverlapSomeFailWithAbort() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
@@ -1629,7 +1629,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     @SuppressWarnings("unchecked")
     final Set<String> bcweSuccesses = (Set<String>)this.bulkExceptionCaptor.getValue().getSuccesses();
@@ -1661,7 +1661,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterFullOverlapSomeFailWithAbort() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterFullOverlapSomeFailWithAbort() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyB3"));
     this.store = spy(fakeStore);
@@ -1690,7 +1690,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     @SuppressWarnings("unchecked")
     final Set<String> bcweSuccesses = (Set<String>)this.bulkExceptionCaptor.getValue().getSuccesses();
@@ -1765,11 +1765,11 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeWriterFullOverlapAllFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeWriterFullOverlapAllFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Map<String, String> originalWriterContent = getEntryMap(KEY_SET_B, KEY_SET_C, KEY_SET_D);
@@ -1795,7 +1795,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalWriterContent));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), empty());
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));
@@ -1816,7 +1816,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterWriterFullOverlapAllFail() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterWriterFullOverlapAllFail() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyB3"));
     this.store = spy(fakeStore);
@@ -1844,7 +1844,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
     ordered.verify(this.cacheLoaderWriter, atLeast(1)).deleteAll(getAnyStringIterable());
     assertThat(fakeLoaderWriter.getEntryMap(), equalTo(originalWriterContent));
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class), this.bulkExceptionCaptor.capture());
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class), this.bulkExceptionCaptor.capture());
 
     assertThat(this.bulkExceptionCaptor.getValue().getSuccesses(), empty());
     assertThat(this.bulkExceptionCaptor.getValue().getFailures().keySet(), Matchers.<Set<?>>equalTo(contentUpdates));

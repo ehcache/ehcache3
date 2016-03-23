@@ -18,6 +18,7 @@ package org.ehcache.clustered.docs;
 
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.UnitTestConnectionService;
+import org.ehcache.clustered.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;

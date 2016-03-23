@@ -17,12 +17,12 @@
 package org.ehcache.core;
 
 import org.ehcache.Status;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.statistics.BulkOps;
+import org.ehcache.core.statistics.BulkOps;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -140,7 +140,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
 
     verify(this.store, never()).bulkCompute(eq(Collections.<String>emptySet()), getAnyEntryIterableFunction());
     assertThat(fakeStore.getEntryMap(), equalTo(originalStoreContent));
-    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(CacheAccessException.class));
+    verify(this.spiedResilienceStrategy, never()).removeAllFailure(eq(Collections.<String>emptySet()), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.SUCCESS));
@@ -188,11 +188,11 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionBeforeNoWriter() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionBeforeNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent);
     this.store = spy(fakeStore);
-    doThrow(new CacheAccessException("")).when(this.store)
+    doThrow(new StoreAccessException("")).when(this.store)
         .bulkCompute(getAnyStringSet(), getAnyEntryIterableFunction());
 
     final Ehcache<String, String> ehcache = this.getEhcache();
@@ -205,7 +205,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));
@@ -222,7 +222,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * </ul>
    */
   @Test
-  public void testRemoveAllStoreSomeOverlapCacheAccessExceptionAfterNoWriter() throws Exception {
+  public void testRemoveAllStoreSomeOverlapStoreAccessExceptionAfterNoWriter() throws Exception {
     final Map<String, String> originalStoreContent = getEntryMap(KEY_SET_A, KEY_SET_B);
     final FakeStore fakeStore = new FakeStore(originalStoreContent, Collections.singleton("keyA3"));
     this.store = spy(fakeStore);
@@ -237,7 +237,7 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(this.getBulkComputeArgs(), everyItem(isIn(contentUpdates)));
     // ResilienceStrategy invoked; no assertions about Store content
     ordered.verify(this.spiedResilienceStrategy)
-        .removeAllFailure(eq(contentUpdates), any(CacheAccessException.class));
+        .removeAllFailure(eq(contentUpdates), any(StoreAccessException.class));
 
     validateStats(ehcache, EnumSet.noneOf(CacheOperationOutcomes.RemoveOutcome.class));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.RemoveAllOutcome.FAILURE));

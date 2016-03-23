@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.heap.holders;
 
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.cache.Store.ValueHolder;
+import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;

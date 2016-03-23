@@ -25,25 +25,23 @@ import org.ehcache.core.spi.service.LocalPersistenceService;
 import java.io.File;
 
 /**
- * @author Alex Snaps
+ * Convenience configuration type that enables the {@link CacheManagerBuilder} to return a more specific type of
+ * {@link CacheManager}, that is a {@link PersistentCacheManager}.
  */
-public class CacheManagerPersistenceConfiguration implements PersistenceConfiguration, CacheManagerConfiguration<PersistentCacheManager> {
+public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConfiguration implements CacheManagerConfiguration<PersistentCacheManager> {
 
-  private final File rootDirectory;
-
+  /**
+   * Creates a new configuration object with the provided parameters.
+   *
+   * @param rootDirectory the root directory to use for local persistence
+   */
   public CacheManagerPersistenceConfiguration(final File rootDirectory) {
-    this.rootDirectory = rootDirectory;
+    super(rootDirectory);
   }
 
-  public File getRootDirectory() {
-    return rootDirectory;
-  }
-
-  @Override
-  public Class<LocalPersistenceService> getServiceType() {
-    return LocalPersistenceService.class;
-  }
-
+  /**
+   * Transforms the builder received in one that returns a {@link PersistentCacheManager}.
+   */
   @Override
   public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
     return (CacheManagerBuilder<PersistentCacheManager>)other.using(this);
