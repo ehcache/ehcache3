@@ -52,7 +52,7 @@ import static org.mockito.Mockito.when;
  * @author vfunshteyn
  */
 public class EhcacheLoaderWriterTest {
-  private EhcacheWithLoaderWriter<Number, String> cache;
+  private Ehcache<Number, String> cache;
   private Store<Number, String> store;
 
   @SuppressWarnings("unchecked")
@@ -63,8 +63,8 @@ public class EhcacheLoaderWriterTest {
     final CacheConfiguration<Number, String> config = new BaseCacheConfiguration<Number, String>(Number.class, String.class, null,
         null, null, ResourcePoolsHelper.createHeapOnlyPools());
     CacheEventDispatcher<Number, String> notifier = mock(CacheEventDispatcher.class);
-    cache = new EhcacheWithLoaderWriter<Number, String>(
-        config, store, loaderWriter, notifier, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheLoaderWriterTest"));
+    cache = new Ehcache<Number, String>(
+        config, store, loaderWriter, notifier, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheLoaderWriterTest"));
     cache.init();
   }
 

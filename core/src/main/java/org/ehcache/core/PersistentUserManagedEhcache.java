@@ -51,7 +51,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
 
   private final StatusTransitioner statusTransitioner;
   private final Logger logger;
-  private final InternalCache<K,V> cache;
+  private final Ehcache<K,V> cache;
   private final LocalPersistenceService localPersistenceService;
   private final String id;
 
@@ -68,11 +68,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
   public PersistentUserManagedEhcache(CacheConfiguration<K, V> configuration, Store<K, V> store, LocalPersistenceService localPersistenceService, CacheLoaderWriter<? super K, V> cacheLoaderWriter, CacheEventDispatcher<K, V> eventDispatcher, String id) {
     this.logger = LoggerFactory.getLogger(PersistentUserManagedEhcache.class.getName() + "-" + id);
     this.statusTransitioner = new StatusTransitioner(logger);
-    if (cacheLoaderWriter == null) {
-      this.cache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, eventDispatcher, logger, statusTransitioner);
-    } else {
-      this.cache = new EhcacheWithLoaderWriter<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
-    }
+    this.cache = new Ehcache<K, V>(new EhcacheRuntimeConfiguration<K, V>(configuration), store, cacheLoaderWriter, eventDispatcher, true, logger, statusTransitioner);
     this.localPersistenceService = localPersistenceService;
     this.id = id;
   }

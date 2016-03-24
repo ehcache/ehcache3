@@ -81,20 +81,6 @@ public class StoreEvictionEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  @Ignore(reason = "See comment")
-  public void testReplaceTwoArgsOnEviction() throws Exception {
-    // The following makes no sense, what we may want to test here is that replace with a bigger value evicts
-    // But that would also mean supporting the fact that this may not impact the store (think count based)
-    kvStore = factory.newStoreWithCapacity(1L);
-    StoreEventListener<K, V> listener = addListener(kvStore);
-    kvStore.put(k, v);
-    kvStore.put(k2, v2);
-    verifyListenerInteractions(listener);
-    kvStore.replace(getOnlyKey(kvStore.iterator()), v3);
-    assertThat(kvStore.get(getOnlyKey(kvStore.iterator())).value(), is(v3));
-  }
-
-  @SPITest
   public void testComputeOnEviction() throws Exception {
     kvStore = factory.newStoreWithCapacity(1L);
     kvStore.put(k, v);

@@ -74,12 +74,6 @@ public abstract class StoreSPITest<K, V> {
   }
 
   @Test
-  public void testReplaceKeyValue() throws Exception {
-    StoreReplaceKeyValueTest<K, V> testSuite = new StoreReplaceKeyValueTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
   public void testReplaceKeyValueValue() throws Exception {
     StoreReplaceKeyValueValueTest<K, V> testSuite =
       new StoreReplaceKeyValueValueTest<K, V>(getStoreFactory());

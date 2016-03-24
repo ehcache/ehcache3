@@ -29,6 +29,7 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -90,7 +91,7 @@ public class SerializerCountingTest {
     printSerializationCounters("Get OnHeap");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(2, 2, 0, 1, 0, 0);
+    assertCounters(2, 2, 0, 1, 1, 0);
     printSerializationCounters("Put OnHeap (update)");
   }
 
@@ -112,7 +113,7 @@ public class SerializerCountingTest {
     printSerializationCounters("Get Offheap faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(1, 0, 2, 1, 0, 0);
+    assertCounters(1, 0, 2, 1, 1, 0);
     printSerializationCounters("Put OffHeap (update faulted)");
   }
 
@@ -136,7 +137,7 @@ public class SerializerCountingTest {
     printSerializationCounters("Get OffheapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 2, 1, 0, 0);
+    assertCounters(3, 2, 2, 1, 1, 0);
     printSerializationCounters("Put OffheapOnHeapCopy (update faulted)");
   }
 
@@ -161,7 +162,7 @@ public class SerializerCountingTest {
     printSerializationCounters("Get DiskOffHeapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 2, 1, 0, 0);
+    assertCounters(3, 2, 2, 1, 1, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy (update faulted)");
   }
 

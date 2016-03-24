@@ -73,20 +73,6 @@ public class StoreUpdateEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
-  public void testReplace2ArgsUpdates() throws LegalSPITesterException {
-
-    try {
-      K key = factory.createKey(1L);
-      store.put(key, factory.createValue(1L));
-      StoreEventListener<K, V> listener = addListener(store);
-      store.replace(key, factory.createValue(123L));
-      verifyListenerInteractions(listener);
-    } catch (StoreAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
-  }
-
-  @SPITest
   public void testReplace3ArgsUpdates() throws LegalSPITesterException {
 
     try {

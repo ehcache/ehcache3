@@ -84,9 +84,9 @@ public abstract class EhcacheBasicCrudBase {
   /**
    * Holds a {@link org.mockito.Mockito#spy(Object)}-wrapped reference to the
    * {@link ResilienceStrategy ResilienceStrategy} used in the
-   * {@link EhcacheWithLoaderWriter Ehcache} instance being tested.
+   * {@link Ehcache} instance being tested.
    *
-   * @see #setResilienceStrategySpy(InternalCache)
+   * @see #setResilienceStrategySpy(Ehcache)
    */
   protected ResilienceStrategy<String, String> spiedResilienceStrategy;
 
@@ -97,15 +97,15 @@ public abstract class EhcacheBasicCrudBase {
 
   /**
    * Validates expected {@link org.terracotta.statistics.OperationStatistic} updates for the
-   * indicated {@code InternalCache} instance.  The statistics identified in {@code changed} are
+   * indicated {@code Ehcache} instance.  The statistics identified in {@code changed} are
    * checked for a value of {@code 1}; all other statistics in the same enumeration class are
    * checked for a value of {@code 0}.
    *
-   * @param ehcache the {@code InternalCache} instance to check
+   * @param ehcache the {@code Ehcache} instance to check
    * @param changed the statistics values that should have updated values
    * @param <E> the statistics enumeration type
    */
-  protected static <E extends Enum<E>> void validateStats(final InternalCache<?, ?> ehcache, final EnumSet<E> changed) {
+  protected static <E extends Enum<E>> void validateStats(final Ehcache<?, ?> ehcache, final EnumSet<E> changed) {
     assert changed != null;
     final EnumSet<E> unchanged = EnumSet.complementOf(changed);
 
@@ -133,9 +133,9 @@ public abstract class EhcacheBasicCrudBase {
 
   /**
    * Gets a reference to the {@link org.terracotta.statistics.OperationStatistic} instance holding the
-   * class of statistics specified for the {@code InternalCache} instance provided.
+   * class of statistics specified for the {@code Ehcache} instance provided.
    *
-   * @param ehcache the {@code InternalCache} instance for which the {@code OperationStatistic} instance
+   * @param ehcache the {@code Ehcache} instance for which the {@code OperationStatistic} instance
    *          should be obtained
    * @param statsClass the {@code Class} of statistics for which the {@code OperationStatistic} instance
    *          should be obtained
@@ -144,7 +144,7 @@ public abstract class EhcacheBasicCrudBase {
    * @return a reference to the {@code OperationStatistic} instance holding the {@code statsClass} statistics;
    *          may be {@code null} if {@code statsClass} statistics do not exist for {@code ehcache}
    */
-  private static <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final InternalCache<?, ?> ehcache, final Class<E> statsClass) {
+  private static <E extends Enum<E>> OperationStatistic<E> getOperationStatistic(final Ehcache<?, ?> ehcache, final Class<E> statsClass) {
     for (final TreeNode statNode : ContextManager.nodeFor(ehcache).getChildren()) {
       final Object statObj = statNode.getContext().attributes().get("this");
       if (statObj instanceof OperationStatistic<?>) {
@@ -209,15 +209,15 @@ public abstract class EhcacheBasicCrudBase {
 
   /**
    * Replaces the {@link ResilienceStrategy ResilienceStrategy} instance in the
-   * {@link InternalCache Ehcache} instance provided with a
+   * {@link Ehcache} instance provided with a
    * {@link org.mockito.Mockito#spy(Object) Mockito <code>spy</code>} wrapping the original
    * {@code ResilienceStrategy} instance.
    *
-   * @param ehcache the {@code InternalCache} instance to alter
+   * @param ehcache the {@code Ehcache} instance to alter
    *
    * @return the <code>spy</code>-wrapped {@code ResilienceStrategy} instance
    */
-  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final InternalCache<K, V> ehcache) {
+  protected final <K, V> ResilienceStrategy<K, V> setResilienceStrategySpy(final Ehcache<K, V> ehcache) {
     assert ehcache != null;
     try {
       final Field resilienceStrategyField = ehcache.getClass().getDeclaredField("resilienceStrategy");
@@ -316,9 +316,7 @@ public abstract class EhcacheBasicCrudBase {
     public PutStatus put(final String key, final String value) throws StoreAccessException {
       this.checkFailingKey(key);
       FakeValueHolder toPut = new FakeValueHolder(value);
-      if (this.entries.put(key, toPut) != null) {
-        return PutStatus.UPDATE;
-      }
+      this.entries.put(key, toPut);
       return PutStatus.PUT;
     }
 
@@ -337,9 +335,7 @@ public abstract class EhcacheBasicCrudBase {
     @Override
     public boolean remove(final String key) throws StoreAccessException {
       this.checkFailingKey(key);
-      if (this.entries.remove(key) == null) {
-        return false;
-      }
+      this.entries.remove(key);
       return true;
     }
 
@@ -347,37 +343,22 @@ public abstract class EhcacheBasicCrudBase {
     public RemoveStatus remove(final String key, final String value) throws StoreAccessException {
       this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
-      if (currentValue == null) {
+      if (currentValue == null || !currentValue.value().equals(value)) {
         return RemoveStatus.KEY_MISSING;
-      } else if (!currentValue.value().equals(value)) {
-        return RemoveStatus.KEY_PRESENT;
       }
       this.entries.remove(key);
       return RemoveStatus.REMOVED;
     }
 
     @Override
-    public ValueHolder<String> replace(final String key, final String value) throws StoreAccessException {
-      this.checkFailingKey(key);
-      final ValueHolder<String> currentValue = this.entries.get(key);
-      if (currentValue != null) {
-        this.entries.put(key, new FakeValueHolder(value));
-      }
-      return currentValue;
-    }
-
-    @Override
     public ReplaceStatus replace(final String key, final String oldValue, final String newValue) throws StoreAccessException {
       this.checkFailingKey(key);
       final ValueHolder<String> currentValue = this.entries.get(key);
-      if (currentValue == null) {
-        return ReplaceStatus.MISS_NOT_PRESENT;
+      if (currentValue != null && currentValue.value().equals(oldValue)) {
+        this.entries.put(key, new FakeValueHolder(newValue));
+        return ReplaceStatus.HIT;
       }
-      if (!currentValue.value().equals(oldValue)) {
-        return ReplaceStatus.MISS_PRESENT;
-      }
-      this.entries.put(key, new FakeValueHolder(newValue));
-      return ReplaceStatus.HIT;
+      return ReplaceStatus.MISS_NOT_PRESENT;
     }
 
     @Override

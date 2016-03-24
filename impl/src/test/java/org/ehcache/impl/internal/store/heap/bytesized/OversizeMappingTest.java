@@ -133,15 +133,6 @@ public class OversizeMappingTest {
   }
 
   @Test
-  public void testReplace() throws Exception {
-    OnHeapStore<String, String> store = newStore();
-
-    store.put(KEY, VALUE);
-    store.replace(KEY, OVER_SIZED_VALUE);
-    assertNullMapping(store);
-  }
-
-  @Test
   public void testThreeArgReplace() throws Exception {
     OnHeapStore<String, String> store = newStore();
 

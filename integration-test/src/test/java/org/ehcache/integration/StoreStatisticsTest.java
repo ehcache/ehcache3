@@ -27,6 +27,7 @@ import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;

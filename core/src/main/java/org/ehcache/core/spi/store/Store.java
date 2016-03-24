@@ -139,8 +139,6 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws NullPointerException if any of the arguments is {@code null}
    * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
    * @throws StoreAccessException if the mapping can't be installed
-   *
-   * @see #replace(Object, Object)
    */
   ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException;
 
@@ -186,33 +184,6 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * @throws StoreAccessException if the mapping can't be removed
    */
   RemoveStatus remove(K key, V value) throws StoreAccessException;
-
-  /**
-   * Replaces the entry for a key only if currently mapped to some value and the entry is not expired.
-   * <P>
-   * This is equivalent to
-   * <pre>
-   *   V oldValue = store.get(key);
-   *   if (oldValue != null) {
-   *     map.put(key, value);
-   *   }
-   *   return oldValue; </pre>
-   * except that the action is performed atomically.
-   * </P>
-   * <P>
-   * Neither the key nor the value can be {@code null}.
-   * </P>
-   *
-   * @param key key with which the specified value is associated
-   * @param value value expected to be associated with the specified key
-   * @return the {@link Store.ValueHolder ValueHolder} to which the specified key was previously mapped,
-   *          or {@code null} if no such mapping existed
-   *
-   * @throws ClassCastException if the specified key or value are not of the correct types ({@code K} or {@code V})
-   * @throws NullPointerException if any of the arguments is {@code null}
-   * @throws StoreAccessException if the mapping can't be replaced
-   */
-  ValueHolder<V> replace(K key, V value) throws StoreAccessException;
 
   /**
    * Replaces the entry for a key only if currently mapped to the given value

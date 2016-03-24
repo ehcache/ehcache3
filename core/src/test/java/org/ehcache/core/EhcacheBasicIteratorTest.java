@@ -64,7 +64,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorEmptyStoreGet() throws Exception {
     this.store = new FakeStore(Collections.<String,String>emptyMap());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     assertThat(ehcache.iterator(), is(notNullValue()));
   }
 
@@ -74,7 +74,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorEmptyStoreHasNext() throws Exception {
     this.store = new FakeStore(Collections.<String,String>emptyMap());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator.hasNext(), is(false));
   }
@@ -85,7 +85,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorEmptyStoreNext() throws Exception {
     this.store = new FakeStore(Collections.<String,String>emptyMap());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
       iterator.next();
@@ -101,7 +101,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorEmptyStoreRemoveBeforeNext() throws Exception {
     this.store = new FakeStore(Collections.<String,String>emptyMap());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     try {
       iterator.remove();
@@ -117,7 +117,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorNonEmptyStoreGet() throws Exception {
     this.store = new FakeStore(this.getTestStoreEntries());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     assertThat(ehcache.iterator(), is(notNullValue()));
   }
@@ -128,7 +128,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorNonEmptyStoreHasNext() throws Exception {
     this.store = new FakeStore(this.getTestStoreEntries());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator.hasNext(), is(true));
@@ -140,7 +140,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorNonEmptyStoreNext() throws Exception {
     this.store = new FakeStore(this.getTestStoreEntries());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator.next(), is(notNullValue()));
   }
@@ -152,7 +152,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   public void testIteratorNonEmptyAll() throws Exception {
     final Map<String, String> testStoreEntries = this.getTestStoreEntries();
     this.store = new FakeStore(testStoreEntries);
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     for (Cache.Entry<String, String> cacheEntry : ehcache) {
       final String cacheEntryKey = cacheEntry.getKey();
       assertThat(testStoreEntries, hasEntry(equalTo(cacheEntryKey), equalTo(cacheEntry.getValue())));
@@ -162,13 +162,74 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   }
 
   /**
+   * Tests {@link java.util.Iterator#remove()} from {@link Ehcache#iterator()} on a non-empty cache.
+   */
+  @Test
+  public void testIteratorNonEmptyRemoveOne() throws Exception {
+    final Map<String, String> testStoreEntries = this.getTestStoreEntries();
+    final FakeStore fakeStore = new FakeStore(testStoreEntries);
+    this.store = fakeStore;
+
+    // Set CacheLoaderWriter & Store to have the same entries initially
+    final FakeCacheLoaderWriter fakeWriterWriter = new FakeCacheLoaderWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
+
+    final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
+    while (iterator.hasNext()) {
+      final Cache.Entry<String, String> entry = iterator.next();
+      if (entry.getKey().equals("keyA")) {
+        iterator.remove();
+      }
+    }
+
+    testStoreEntries.remove("keyA");
+    final Map<String, String> storeEntries = new HashMap<String, String>(fakeStore.getEntryMap());
+    for (Map.Entry<String, String> expectedEntry : testStoreEntries.entrySet()) {
+      final String expectedEntryKey = expectedEntry.getKey();
+      assertThat(storeEntries, hasEntry(equalTo(expectedEntryKey), equalTo(expectedEntry.getValue())));
+      storeEntries.remove(expectedEntryKey);
+    }
+    assertThat("Iterator.remove removed incorrect Store entry", storeEntries.isEmpty(), is(true));
+
+    final Map<String, String> writerEntries = new HashMap<String, String>(fakeWriterWriter.getEntryMap());
+    for (Map.Entry<String, String> expectedEntry : testStoreEntries.entrySet()) {
+      final String expectedEntryKey = expectedEntry.getKey();
+      assertThat(writerEntries, hasEntry(equalTo(expectedEntryKey), equalTo(expectedEntry.getValue())));
+      writerEntries.remove(expectedEntryKey);
+    }
+    assertThat("Iterator.remove removed incorrect Writer entry", writerEntries.isEmpty(), is(true));
+  }
+
+  /**
+   * Tests removal of all entries from {@link Ehcache#iterator()} on a non-empty cache.
+   */
+  @Test
+  public void testIteratorNonEmptyRemoveAll() throws Exception {
+    final Map<String, String> testStoreEntries = this.getTestStoreEntries();
+    final FakeStore fakeStore = new FakeStore(testStoreEntries);
+    this.store = fakeStore;
+
+    // Set CacheLoaderWriter & Store to have the same entries initially
+    final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeLoaderWriter);
+
+    final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
+    while (iterator.hasNext()) {
+      iterator.next();
+      iterator.remove();
+    }
+    assertThat("Failed to remove all entries from Store", fakeStore.getEntryMap().isEmpty(), is(true));
+    assertThat("Failed to remove all entries via CacheLoaderWriter", fakeLoaderWriter.getEntryMap().isEmpty(), is(true));
+  }
+
+  /**
    * Tests {@link java.util.Iterator#hasNext()} <b>after</b> exhausting the {@code Iterator} returned
    * from {@link Ehcache#iterator()} on a non-empty cache.
    */
   @Test
   public void testIteratorNonEmptyHasNextAfterLast() throws Exception {
     this.store = new FakeStore(this.getTestStoreEntries());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     while (iterator.hasNext()) {
@@ -185,7 +246,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   @Test
   public void testIteratorNonEmptyNextAfterLast() throws Exception {
     this.store = new FakeStore(this.getTestStoreEntries());
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
 
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     while (iterator.hasNext()) {
@@ -197,6 +258,62 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
       fail();
     } catch (NoSuchElementException e) {
       // expected
+    }
+  }
+
+  /**
+   * Tests {@link java.util.Iterator#remove()} twice on the same entry returned from the {@code Iterator}
+   * returned from {@link Ehcache#iterator()} on a non-empty cache.
+   */
+  @Test
+  public void testIteratorNonEmptyRemoveTwice() throws Exception {
+    final Map<String, String> testStoreEntries = this.getTestStoreEntries();
+    this.store = new FakeStore(testStoreEntries);
+
+    // Set CacheLoaderWriter & Store to have the same entries initially
+    final FakeCacheLoaderWriter fakeWriterWriter = new FakeCacheLoaderWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
+
+    final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
+    while (iterator.hasNext()) {
+      final Cache.Entry<String, String> entry = iterator.next();
+      if (entry.getKey().equals("keyA")) {
+        iterator.remove();
+        try {
+          iterator.remove();
+          fail();
+        } catch (IllegalStateException e) {
+          // Expected
+        }
+        break;
+      }
+    }
+  }
+
+  /**
+   * Tests {@link java.util.Iterator#remove()} <b>after</b> removing the last entry returned from the {@code Iterator}
+   * returned from {@link Ehcache#iterator()} on a non-empty cache.
+   */
+  @Test
+  public void testIteratorNonEmptyRemoveAfterLast() throws Exception {
+    final Map<String, String> testStoreEntries = this.getTestStoreEntries();
+    this.store = new FakeStore(testStoreEntries);
+
+    // Set CacheLoaderWriter & Store to have the same entries initially
+    final FakeCacheLoaderWriter fakeWriterWriter = new FakeCacheLoaderWriter(testStoreEntries);
+    final Ehcache<String, String> ehcache = this.getEhcache(fakeWriterWriter);
+
+    final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
+    while (iterator.hasNext()) {
+      iterator.next();
+    }
+
+    iterator.remove();      // Expected to remove last observed entry
+    try {
+      iterator.remove();
+      fail();
+    } catch (IllegalStateException e) {
+      // Expected
     }
   }
 
@@ -221,7 +338,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     doReturn(storeIterator).when(this.store).iterator();
     doReturn(valueHolder).when(this.store).get(eq("foo"));
 
-    final InternalCache<String, String> ehcache = this.getEhcache();
+    final Ehcache<String, String> ehcache = this.getEhcache();
     final Iterator<Cache.Entry<String, String>> iterator = ehcache.iterator();
     assertThat(iterator, is(notNullValue()));
     assertThat(iterator.hasNext(), is(true));
@@ -263,7 +380,7 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
     }
   }
 
-  protected Map<String, String> getTestStoreEntries() {
+  private Map<String, String> getTestStoreEntries() {
     final Map<String, String> storeEntries = new HashMap<String, String>();
     storeEntries.put("key1", "value1");
     storeEntries.put("keyA", "valueA");
@@ -273,13 +390,35 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   }
 
   /**
-   * Gets an initialized {@link InternalCache Ehcache} instance using a
+   * Gets an initialized {@link Ehcache Ehcache} instance using a
    * mock {@link CacheLoaderWriter} instance which throws for any method called.
    *
    * @return a new {@code Ehcache} instance
    */
-  protected InternalCache<String, String> getEhcache() throws Exception {
-    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
+  private Ehcache<String, String> getEhcache() throws Exception {
+
+    @SuppressWarnings("unchecked")
+    final CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).delete(anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).deleteAll(getAnyStringIterable());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).write(anyString(), anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).writeAll(getAnyMapEntryIterable());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).load(anyString());
+    doThrow(new UnsupportedOperationException()).when(cacheLoaderWriter).loadAll(getAnyStringIterable());
+
+
+    return this.getEhcache(cacheLoaderWriter);
+  }
+
+  /**
+   * Gets an initialized {@link Ehcache Ehcache} instance using the
+   * {@link CacheLoaderWriter} provided.
+   *
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to use in the {@link Ehcache Ehcache} instance
+   * @return a new {@code Ehcache} instance
+   */
+  private Ehcache<String, String> getEhcache(CacheLoaderWriter<String, String> cacheLoaderWriter) throws Exception {
+    final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicIteratorTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -287,12 +426,12 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
   }
 
   @SuppressWarnings("unchecked")
-  static Iterable<? extends String> getAnyStringIterable() {
+  private static Iterable<? extends String> getAnyStringIterable() {
     return any(Iterable.class);
   }
 
   @SuppressWarnings("unchecked")
-  static Iterable<? extends Map.Entry<? extends String, ? extends String>> getAnyMapEntryIterable() {
+  private static Iterable<? extends Map.Entry<? extends String, ? extends String>> getAnyMapEntryIterable() {
     return any(Iterable.class);
   }
 }

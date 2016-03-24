@@ -472,58 +472,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public ValueHolder<V> replace(final K key, final V value) throws NullPointerException, StoreAccessException {
-    replaceObserver.begin();
-    checkKey(key);
-    checkValue(value);
-
-    final AtomicReference<Store.ValueHolder<V>> returnValue = new AtomicReference<Store.ValueHolder<V>>(null);
-    final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
-    BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-      @Override
-      public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
-        long now = timeSource.getTimeMillis();
-
-        if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-          if (mappedValue != null) {
-            onExpiration(mappedKey, mappedValue, eventSink);
-          }
-          return null;
-        } else {
-          returnValue.set(mappedValue);
-          return newUpdatedValueHolder(mappedKey, value, mappedValue, now, eventSink);
-        }
-      }
-    };
-    try {
-      while (true) {
-        try {
-          backingMap().compute(key, mappingFunction, false);
-          break;
-        } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex);
-        } catch (RuntimeException re) {
-          handleRuntimeException(re);
-        }
-      }
-      eventDispatcher.releaseEventSink(eventSink);
-      ValueHolder<V> resultHolder = returnValue.get();
-      if (resultHolder != null) {
-        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
-      } else {
-        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
-      }
-      return resultHolder;
-    } catch (StoreAccessException caex) {
-      eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
-      throw caex;
-    } catch (RuntimeException re) {
-      eventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
-      throw re;
-    }
-  }
-
-  @Override
   public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws NullPointerException, IllegalArgumentException, StoreAccessException {
     conditionalReplaceObserver.begin();
     checkKey(key);
