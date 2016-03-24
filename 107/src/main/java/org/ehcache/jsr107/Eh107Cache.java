@@ -539,7 +539,8 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       @Override
       public Entry<K, V> next() {
         checkClosed();
-        return new WrappedEhcacheEntry<K, V>(specIterator.next());
+        org.ehcache.Cache.Entry<K, V> next = specIterator.next();
+        return next == null ? null : new WrappedEhcacheEntry<K, V>(next);
       }
 
       @Override
