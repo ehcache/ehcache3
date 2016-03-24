@@ -24,7 +24,7 @@ ext {
   slf4jVersion = '1.7.7'
   sizeofVersion = '0.3.0'
 
-  utils = new Utils(version: baseVersion)
+  utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
 }
 

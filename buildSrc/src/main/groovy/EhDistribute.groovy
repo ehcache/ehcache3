@@ -35,7 +35,7 @@ class EhDistribute implements Plugin<Project> {
 
   @Override
   void apply(Project project) {
-    def utils = new Utils(version: project.baseVersion)
+    def utils = new Utils(project.baseVersion, project.logger)
     def hashsetOfProjects = project.configurations.compile.dependencies.withType(ProjectDependency).dependencyProject
 
     project.plugins.apply 'java'
