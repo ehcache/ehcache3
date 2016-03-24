@@ -23,7 +23,9 @@ import org.ehcache.core.config.AbstractResourcePool;
 /**
  * Implementation for {@link SharedClusteredResourcePool}.
  */
-public class SharedClusteredResourcePoolImpl extends AbstractResourcePool implements SharedClusteredResourcePool {
+public class SharedClusteredResourcePoolImpl
+    extends AbstractResourcePool<SharedClusteredResourcePool, ClusteredResourceType<SharedClusteredResourcePool>>
+    implements SharedClusteredResourcePool {
 
   private final String sharedResource;
 
@@ -43,8 +45,8 @@ public class SharedClusteredResourcePoolImpl extends AbstractResourcePool implem
   }
 
   @Override
-  public ClusteredResourceType getType() {
-    return (ClusteredResourceType)super.getType();
+  public ClusteredResourceType<SharedClusteredResourcePool> getType() {
+    return super.getType();
   }
 
   @Override

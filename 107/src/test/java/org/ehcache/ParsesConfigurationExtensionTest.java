@@ -19,8 +19,6 @@ package org.ehcache;
 import com.pany.domain.Customer;
 import com.pany.domain.Product;
 import com.pany.ehcache.integration.ProductCacheLoaderWriter;
-
-import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.EhcacheManager;
@@ -82,7 +80,7 @@ public class ParsesConfigurationExtensionTest {
       // Test the config
       {
         final CacheRuntimeConfiguration<Long, Product> runtimeConfiguration = productCache.getRuntimeConfiguration();
-        assertThat(((SizedResourcePool)runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP)).getSize(), equalTo(200L));
+        assertThat(runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(200L));
 
         final Expiry<? super Long, ? super Product> expiry = runtimeConfiguration.getExpiry();
         assertThat(expiry.getClass().getName(), equalTo("org.ehcache.expiry.Expirations$TimeToIdleExpiry"));
@@ -128,7 +126,7 @@ public class ParsesConfigurationExtensionTest {
     {
       final Cache<Long, Customer> customerCache = cacheManager.getCache("customerCache", Long.class, Customer.class);
       final CacheRuntimeConfiguration<Long, Customer> runtimeConfiguration = customerCache.getRuntimeConfiguration();
-      assertThat(((SizedResourcePool)runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP)).getSize(), equalTo(200L));
+      assertThat(runtimeConfiguration.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(200L));
     }
   }
 }

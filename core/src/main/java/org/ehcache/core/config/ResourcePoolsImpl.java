@@ -34,9 +34,9 @@ import java.util.Set;
  */
 public class ResourcePoolsImpl implements ResourcePools {
 
-  private final Map<ResourceType, ResourcePool> pools;
+  private final Map<ResourceType<?>, ResourcePool> pools;
 
-  public ResourcePoolsImpl(Map<ResourceType, ResourcePool> pools) {
+  public ResourcePoolsImpl(Map<ResourceType<?>, ResourcePool> pools) {
     validateResourcePools(pools.values());
     this.pools = pools;
   }
@@ -45,15 +45,15 @@ public class ResourcePoolsImpl implements ResourcePools {
    * {@inheritDoc}
    */
   @Override
-  public ResourcePool getPoolForResource(ResourceType resourceType) {
-    return pools.get(resourceType);
+  public <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType) {
+    return resourceType.getResourcePoolClass().cast(pools.get(resourceType));
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public Set<ResourceType> getResourceTypeSet() {
+  public Set<ResourceType<?>> getResourceTypeSet() {
     return pools.keySet();
   }
 
@@ -74,13 +74,13 @@ public class ResourcePoolsImpl implements ResourcePools {
     if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.DISK)) {
       throw new UnsupportedOperationException("Updating DISK resource is not supported");
     }
-    for(ResourceType currentResourceType : toBeUpdated.getResourceTypeSet()) {
+    for(ResourceType<?> currentResourceType : toBeUpdated.getResourceTypeSet()) {
       getPoolForResource(currentResourceType).validateUpdate(toBeUpdated.getPoolForResource(currentResourceType));
     }
 
-    Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
+    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<ResourceType<?>, ResourcePool>();
     poolsMap.putAll(pools);
-    for(ResourceType currentResourceType : toBeUpdated.getResourceTypeSet()) {
+    for(ResourceType<?> currentResourceType : toBeUpdated.getResourceTypeSet()) {
       ResourcePool poolForResource = toBeUpdated.getPoolForResource(currentResourceType);
       poolsMap.put(currentResourceType, poolForResource);
     }

@@ -27,7 +27,7 @@ public interface ResourcePool {
    *
    * @return the type.
    */
-  ResourceType getType();
+  ResourceType<?> getType();
 
   /**
    * Whether the underlying resource is persistent.

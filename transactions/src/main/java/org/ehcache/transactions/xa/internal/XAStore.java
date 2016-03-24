@@ -737,7 +737,7 @@ public class XAStore<K, V> implements Store<K, V> {
     private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, CreatedStoreRef>();
 
     @Override
-    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
       final XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, serviceConfigs);
       if (xaServiceConfiguration == null) {
         // An XAStore must be configured for use
@@ -968,7 +968,7 @@ public class XAStore<K, V> implements Store<K, V> {
       this.serviceProvider = null;
     }
 
-    private Store.Provider selectProvider(final Set<ResourceType> resourceTypes,
+    private Store.Provider selectProvider(final Set<ResourceType<?>> resourceTypes,
                                           final Collection<ServiceConfiguration<?>> serviceConfigs,
                                           final XAStoreConfiguration xaConfig) {
       List<ServiceConfiguration<?>> configsWithoutXA = new ArrayList<ServiceConfiguration<?>>(serviceConfigs);

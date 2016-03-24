@@ -47,33 +47,33 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testMismatchedUnits() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, Integer.MAX_VALUE, ENTRIES, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10, MB, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, Integer.MAX_VALUE, ENTRIES, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
     validateResourcePools(pools);
   }
 
   @Test
   public void testMatchingEqualUnitsWellTiered() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, 9, MB, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10, MB, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 9, MB, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
     validateResourcePools(pools);
   }
 
   @Test
   public void testMatchingUnequalUnitsWellTiered() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, 9, MB, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10240, KB, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 9, MB, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10240, KB, false));
     validateResourcePools(pools);
   }
 
   @Test
   public void testEntryResourceMatch() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, 10, ENTRIES, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10, ENTRIES, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 10, ENTRIES, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, ENTRIES, false));
     try {
       validateResourcePools(pools);
       fail("Expected IllegalArgumentException");
@@ -84,9 +84,9 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testEntryResourceInversion() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, 11, ENTRIES, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10, ENTRIES, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 11, ENTRIES, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, ENTRIES, false));
     try {
       validateResourcePools(pools);
       fail("Expected IllegalArgumentException");
@@ -97,9 +97,9 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testMemoryResourceEqualUnitMatch() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, 10, MB, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10, MB, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 10, MB, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
     try {
       validateResourcePools(pools);
       fail("Expected IllegalArgumentException");
@@ -110,9 +110,9 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testMemoryResourceEqualUnitInversion() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, 11, MB, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10, MB, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 11, MB, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
     try {
       validateResourcePools(pools);
       fail("Expected IllegalArgumentException");
@@ -123,9 +123,9 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testMemoryResourceUnequalUnitMatch() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, 10240, KB, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10, MB, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 10240, KB, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
     try {
       validateResourcePools(pools);
       fail("Expected IllegalArgumentException");
@@ -136,9 +136,9 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testMemoryResourceUnequalUnitInversion() {
-    Collection<SizedResourcePoolImpl> pools = asList(
-            new SizedResourcePoolImpl(HEAP, 10241, KB, false),
-            new SizedResourcePoolImpl(OFFHEAP, 10, MB, false));
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+            new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 10241, KB, false),
+            new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
     try {
       validateResourcePools(pools);
       fail("Expected IllegalArgumentException");
@@ -149,10 +149,10 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testAddingNewTierWhileUpdating() {
-    ResourcePools existing = new ResourcePoolsImpl(Collections.<ResourceType, ResourcePool>singletonMap(
-        ResourceType.Core.HEAP, new SizedResourcePoolImpl(ResourceType.Core.HEAP, 10L, EntryUnit.ENTRIES, false)));
-    ResourcePools toBeUpdated = new ResourcePoolsImpl(Collections.<ResourceType, ResourcePool>singletonMap(
-        ResourceType.Core.DISK, new SizedResourcePoolImpl(ResourceType.Core.DISK, 10L, MemoryUnit.MB, false)));
+    ResourcePools existing = new ResourcePoolsImpl(Collections.<ResourceType<?>, ResourcePool>singletonMap(
+        ResourceType.Core.HEAP, new SizedResourcePoolImpl<SizedResourcePool>(ResourceType.Core.HEAP, 10L, EntryUnit.ENTRIES, false)));
+    ResourcePools toBeUpdated = new ResourcePoolsImpl(Collections.<ResourceType<?>, ResourcePool>singletonMap(
+        ResourceType.Core.DISK, new SizedResourcePoolImpl<SizedResourcePool>(ResourceType.Core.DISK, 10L, MemoryUnit.MB, false)));
     try {
       existing.validateAndMerge(toBeUpdated);
       fail();
@@ -191,8 +191,8 @@ public class ResourcePoolsImplTest {
     ResourcePools toBeUpdated = ResourcePoolsHelper.createHeapOnlyPools(2, MemoryUnit.GB);
 
     existing = existing.validateAndMerge(toBeUpdated);
-    assertThat(((SizedResourcePool)existing.getPoolForResource(ResourceType.Core.HEAP)).getSize(), Matchers.is(2L));
-    assertThat(((SizedResourcePool)existing.getPoolForResource(ResourceType.Core.HEAP)).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.GB));
+    assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getSize(), Matchers.is(2L));
+    assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.GB));
   }
 
   @Test
@@ -206,8 +206,8 @@ public class ResourcePoolsImplTest {
     } catch (IllegalArgumentException uoe) {
       assertThat(uoe.getMessage(), Matchers.is("ResourcePool for heap with ResourceUnit 'entries' can not replace 'MB'"));
     }
-    assertThat(((SizedResourcePool)existing.getPoolForResource(ResourceType.Core.HEAP)).getSize(), Matchers.is(20L));
-    assertThat(((SizedResourcePool)existing.getPoolForResource(ResourceType.Core.HEAP)).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
+    assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getSize(), Matchers.is(20L));
+    assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
   }
 
 }

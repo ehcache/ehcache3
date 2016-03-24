@@ -104,7 +104,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
           PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
           ResourcePools resourcePools = getDiskResourcePool(capacity);
-          SizedResourcePool diskPool = (SizedResourcePool)resourcePools.getPoolForResource(DISK);
+          SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
           Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),

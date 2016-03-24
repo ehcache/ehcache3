@@ -23,8 +23,11 @@ import org.ehcache.config.SizedResourcePool;
 
 /**
  * Implementation of the {@link SizedResourcePool} interface.
+ *
+ * @param <P> resource pool type
  */
-public class SizedResourcePoolImpl extends AbstractResourcePool implements SizedResourcePool {
+public class SizedResourcePoolImpl<P extends SizedResourcePool> extends AbstractResourcePool<P, ResourceType<P>>
+    implements SizedResourcePool {
 
   private final long size;
   private final ResourceUnit unit;
@@ -37,12 +40,11 @@ public class SizedResourcePoolImpl extends AbstractResourcePool implements Sized
    * @param unit the unit for the size
    * @param persistent whether the pool is to be persistent
    */
-  public SizedResourcePoolImpl(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
+  public SizedResourcePoolImpl(ResourceType<P> type, long size, ResourceUnit unit, boolean persistent) {
     super(type, persistent);
     if (unit == null) {
       throw new NullPointerException("ResourceUnit can not be null");
     }
-    // TODO: Ensure 'type' can be sized?
     if (!type.isPersistable() && persistent) {
       throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
     }

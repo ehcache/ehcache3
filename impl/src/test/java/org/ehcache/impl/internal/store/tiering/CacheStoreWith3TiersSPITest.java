@@ -127,7 +127,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
         final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
 
-        SizedResourcePool offheapPool = (SizedResourcePool)config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
+        SizedResourcePool offheapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
         long offheapSize = ((MemoryUnit) offheapPool.getUnit()).toBytes(offheapPool.getSize());
 
         final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, timeSource, noOpEventDispatcher, offheapSize);
@@ -137,7 +137,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
           LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
-          SizedResourcePool diskPool = (SizedResourcePool)config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+          SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           long diskSize = ((MemoryUnit) diskPool.getUnit()).toBytes(diskPool.getSize());
 
           OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(

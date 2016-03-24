@@ -128,7 +128,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
-          SizedResourcePool diskPool = (SizedResourcePool)config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+          SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
 
           long sizeInBytes = unit.toBytes(diskPool.getSize());

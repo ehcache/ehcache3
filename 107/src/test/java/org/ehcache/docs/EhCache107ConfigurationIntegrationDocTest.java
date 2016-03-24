@@ -17,7 +17,6 @@
 package org.ehcache.docs;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
@@ -159,7 +158,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
 
     CacheRuntimeConfiguration<Long, String> ehcacheConfig = (CacheRuntimeConfiguration<Long, String>)anyCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class); // <3>
-    ((SizedResourcePool)ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP)).getSize(); // <4>
+    ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(); // <4>
 
     Cache<Long, String> anotherCache = manager.createCache("byRefCache", mutableConfiguration);
     assertFalse(anotherCache.getConfiguration(Configuration.class).isStoreByValue()); // <5>
@@ -183,7 +182,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
       // Expected
     }
     // end::jsr107SupplementWithTemplatesExample[]
-    assertThat(((SizedResourcePool)ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP)).getSize(), is(20L));
+    assertThat(ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
     assertThat(foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!"),
         is(new org.ehcache.expiry.Duration(2, TimeUnit.MINUTES)));
   }

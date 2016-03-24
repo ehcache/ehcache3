@@ -21,25 +21,56 @@ import org.ehcache.config.ResourceType;
 /**
  * Defines the clustered {@link ResourceType}.
  */
-public interface ClusteredResourceType extends ResourceType {
+public interface ClusteredResourceType<P extends ClusteredResourcePool> extends ResourceType<P> {
 
-  enum Types implements ClusteredResourceType {
-    SHARED,
-    FIXED;
+  final class Types {
 
-    @Override
-    public boolean isPersistable() {
-      return true;
-    }
+    /**
+     * Identifies the {@code cluster-fixed} {@link ResourceType}.
+     */
+    public static final ClusteredResourceType<FixedClusteredResourcePool> FIXED =
+        new BaseClusteredResourceType<FixedClusteredResourcePool>("FIXED", FixedClusteredResourcePool.class);
 
-    @Override
-    public boolean requiresSerialization() {
-      return true;
-    }
+    /**
+     * Identifies the {@code cluster-shared} {@link ResourceType}.
+     */
+    public static final ClusteredResourceType<SharedClusteredResourcePool> SHARED =
+        new BaseClusteredResourceType<SharedClusteredResourcePool>("SHARED", SharedClusteredResourcePool.class);
 
-    @Override
-    public String toString() {
-      return "clustered-" + this.name().toLowerCase();
+
+    /**
+     * The base on which {@link ClusteredResourceType} identifiers are built.
+     *
+     * @param <P> the {@link ClusteredResourcePool} type associated with this resource type
+     */
+    private static final class BaseClusteredResourceType<P extends ClusteredResourcePool> implements ClusteredResourceType<P> {
+      private final String name;
+      private final Class<P> resourcePoolClass;
+
+      private BaseClusteredResourceType(final String name, final Class<P> resourcePoolClass) {
+        this.name = name;
+        this.resourcePoolClass = resourcePoolClass;
+      }
+
+      @Override
+      public Class<P> getResourcePoolClass() {
+        return resourcePoolClass;
+      }
+
+      @Override
+      public boolean isPersistable() {
+        return true;
+      }
+
+      @Override
+      public boolean requiresSerialization() {
+        return true;
+      }
+
+      @Override
+      public String toString() {
+        return "clustered-" + this.name.toLowerCase();
+      }
     }
   }
 }

@@ -24,6 +24,6 @@ import org.ehcache.config.ResourcePool;
 public interface ClusteredResourcePool extends ResourcePool {
 
   @Override
-  ClusteredResourceType getType();
+  ClusteredResourceType<? extends ClusteredResourcePool> getType();
 
 }

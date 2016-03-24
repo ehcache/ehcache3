@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -548,18 +549,18 @@ public class CacheStoreTest {
 
     ResourcePools resourcePools = mock(ResourcePools.class);
     when(resourcePools.getResourceTypeSet())
-        .thenReturn(new HashSet<ResourceType>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP)));
+        .thenReturn(new HashSet<ResourceType<?>>(Arrays.asList(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP)));
 
-    ResourcePool heapPool = mock(ResourcePool.class);
-    when(heapPool.getType()).thenReturn(ResourceType.Core.HEAP);
+    SizedResourcePool heapPool = mock(SizedResourcePool.class);
+    when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.HEAP);
     when(resourcePools.getPoolForResource(ResourceType.Core.HEAP)).thenReturn(heapPool);
     OnHeapStore.Provider onHeapStoreProvider = mock(OnHeapStore.Provider.class);
     when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
         org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
         .thenReturn(stringCachingTier);
 
-    ResourcePool offHeapPool = mock(ResourcePool.class);
-    when(heapPool.getType()).thenReturn(ResourceType.Core.OFFHEAP);
+    SizedResourcePool offHeapPool = mock(SizedResourcePool.class);
+    when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.OFFHEAP);
     when(resourcePools.getPoolForResource(ResourceType.Core.OFFHEAP)).thenReturn(offHeapPool);
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
     when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class),
@@ -592,12 +593,15 @@ public class CacheStoreTest {
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
     assertRank(provider, 3, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final ResourceType unmatchedResourceType = new ResourceType() {
+    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
+      @Override
+      public Class<ResourcePool> getResourcePoolClass() {
+        return ResourcePool.class;
+      }
       @Override
       public boolean isPersistable() {
         return true;
       }
-
       @Override
       public boolean requiresSerialization() {
         return true;
@@ -607,9 +611,9 @@ public class CacheStoreTest {
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP, unmatchedResourceType);
   }
 
-  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType... resources) {
+  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     Assert.assertThat(provider.rank(
-        new HashSet<ResourceType>(Arrays.asList(resources)),
+        new HashSet<ResourceType<?>>(Arrays.asList(resources)),
         Collections.<ServiceConfiguration<?>>emptyList()),
         Matchers.is(expectedRank));
   }

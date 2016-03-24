@@ -18,6 +18,7 @@ package org.ehcache.clustered.internal.store;
 
 import org.ehcache.clustered.config.ClusteredResourceType;
 import org.ehcache.clustered.service.ClusteringService;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
@@ -97,12 +98,15 @@ public class ClusteredStoreProviderTest {
     assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
     assertRank(provider, 105, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final ResourceType unmatchedResourceType = new ResourceType() {
+    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
+      @Override
+      public Class<ResourcePool> getResourcePoolClass() {
+        return ResourcePool.class;
+      }
       @Override
       public boolean isPersistable() {
         return true;
       }
-
       @Override
       public boolean requiresSerialization() {
         return true;
@@ -112,12 +116,12 @@ public class ClusteredStoreProviderTest {
     assertRank(provider, -1, ClusteredResourceType.Types.FIXED, unmatchedResourceType);
   }
 
-  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType... resources) {
+  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
 
     final List<ServiceConfiguration<?>> serviceConfigs = Collections.emptyList();
     if (expectedRank == -1) {
       try {
-        provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)),
+        provider.rank(new HashSet<ResourceType<?>>(Arrays.asList(resources)),
             serviceConfigs);
         fail();
       } catch (IllegalStateException e) {
@@ -125,7 +129,7 @@ public class ClusteredStoreProviderTest {
         assertThat(e.getMessage(), startsWith("No Store.Provider "));
       }
     } else {
-      assertThat(provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
+      assertThat(provider.rank(new HashSet<ResourceType<?>>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
     }
   }
 

@@ -78,7 +78,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
 
         ResourcePools resourcePools = getOffHeapResourcePool(capacity);
-        SizedResourcePool offheapPool = (SizedResourcePool)resourcePools.getPoolForResource(OFFHEAP);
+        SizedResourcePool offheapPool = resourcePools.getPoolForResource(OFFHEAP);
         MemoryUnit unit = (MemoryUnit)offheapPool.getUnit();
 
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),

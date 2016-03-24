@@ -17,7 +17,6 @@ package org.ehcache.integration;
 
 import org.ehcache.UserManagedCache;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.UserManagedCacheBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.junit.Test;
@@ -38,8 +37,7 @@ public class UserManagedCacheEvictionTest {
     UserManagedCache<Number, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Number.class, String.class)
         .withResourcePools(newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
         .build(true);
-    assertThat(((SizedResourcePool)cache.getRuntimeConfiguration()
-            .getResourcePools().getPoolForResource(ResourceType.Core.HEAP)).getSize(),
+    assertThat(cache.getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(),
         equalTo(1L));
 
     // we put 3 elements, but there's only capacity for 1
