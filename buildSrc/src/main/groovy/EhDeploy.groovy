@@ -27,7 +27,7 @@ class EhDeploy implements Plugin<Project> {
   @Override
   void apply(Project project) {
 
-    def utils = new Utils(version: project.baseVersion)
+    def utils = new Utils(project.baseVersion, project.logger)
 
     project.plugins.apply 'signing'
     project.plugins.apply 'maven'
