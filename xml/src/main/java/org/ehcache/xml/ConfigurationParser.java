@@ -85,7 +85,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
 
 /**
- * @author Alex Snaps
+ * Provides support for parsing a cache configuration expressed in XML.
  */
 class ConfigurationParser {
 
@@ -94,7 +94,7 @@ class ConfigurationParser {
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
   private static final String CORE_SCHEMA_NAMESPACE = "http://www.ehcache.org/v3";
   private static final String CORE_SCHEMA_ROOT_ELEMENT = "config";
-  private static final String CORE_SCHEMA_JAXB_MODEL_PACKAGE = "org.ehcache.xml.model";
+  private static final String CORE_SCHEMA_JAXB_MODEL_PACKAGE = ConfigType.class.getPackage().getName();
 
   private final Map<URI, CacheManagerServiceConfigurationParser<?>> xmlParsers = new HashMap<URI, CacheManagerServiceConfigurationParser<?>>();
   private final Map<URI, CacheServiceConfigurationParser<?>> cacheXmlParsers = new HashMap<URI, CacheServiceConfigurationParser<?>>();

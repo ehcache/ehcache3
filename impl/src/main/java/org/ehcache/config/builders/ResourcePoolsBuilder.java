@@ -99,7 +99,6 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param resourcePool the non-{@code null} resource pool to add/replace
    * @return a new builder with the added pool
    */
-  // TODO: Determine the use case for this method
   public ResourcePoolsBuilder withReplacing(ResourcePool resourcePool) {
     Map<ResourceType, ResourcePool> newPools = new HashMap<ResourceType, ResourcePool>(resourcePools);
     newPools.put(resourcePool.getType(), resourcePool);
@@ -128,7 +127,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param unit the pool size unit
    * @return a new builder with the added pool
    *
-   * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
+   * @throws IllegalArgumentException if the set of resource pools already contains a heap resource
    */
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
     return with(ResourceType.Core.HEAP, size, unit, false);
@@ -141,7 +140,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param unit the pool size unit
    * @return a new builder with the added pool
    *
-   * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
+   * @throws IllegalArgumentException if the set of resource pools already contains an offheap resource
    */
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
     return with(ResourceType.Core.OFFHEAP, size, unit, false);
@@ -154,7 +153,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param unit the pool size unit
    * @return a new builder with the added pool
    *
-   * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
+   * @throws IllegalArgumentException if the set of resource pools already contains a disk resource
    */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit) {
     return disk(size, unit, false);
@@ -168,7 +167,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param persistent if the pool is persistent or not
    * @return a new builder with the added pool
    *
-   * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
+   * @throws IllegalArgumentException if the set of resource pools already contains a disk resource
    */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit, boolean persistent) {
     return with(ResourceType.Core.DISK, size, unit, persistent);

@@ -149,10 +149,10 @@ public class ResourcePoolsImplTest {
 
   @Test
   public void testAddingNewTierWhileUpdating() {
-    ResourcePools existing = new ResourcePoolsImpl(Collections.singletonMap((ResourceType) ResourceType.Core.HEAP,
-        (ResourcePool) new SizedResourcePoolImpl(ResourceType.Core.HEAP, 10L, EntryUnit.ENTRIES, false)));
-    ResourcePools toBeUpdated = new ResourcePoolsImpl(Collections.singletonMap((ResourceType) ResourceType.Core.DISK,
-        (ResourcePool) new SizedResourcePoolImpl(ResourceType.Core.DISK, 10L, MemoryUnit.MB, false)));
+    ResourcePools existing = new ResourcePoolsImpl(Collections.<ResourceType, ResourcePool>singletonMap(
+        ResourceType.Core.HEAP, new SizedResourcePoolImpl(ResourceType.Core.HEAP, 10L, EntryUnit.ENTRIES, false)));
+    ResourcePools toBeUpdated = new ResourcePoolsImpl(Collections.<ResourceType, ResourcePool>singletonMap(
+        ResourceType.Core.DISK, new SizedResourcePoolImpl(ResourceType.Core.DISK, 10L, MemoryUnit.MB, false)));
     try {
       existing.validateAndMerge(toBeUpdated);
       fail();

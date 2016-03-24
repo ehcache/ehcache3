@@ -35,7 +35,6 @@ import static java.util.Collections.unmodifiableMap;
  * Specifies the configuration for a {@link ClusteringService}.
  */
 // TODO: Should this accept/hold a *list* of URIs?
-// TODO: Add validation for cluster URI(s)
 public final class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<PersistentCacheManager> {
