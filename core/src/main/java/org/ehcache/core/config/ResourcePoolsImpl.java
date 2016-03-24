@@ -67,12 +67,10 @@ public class ResourcePoolsImpl implements ResourcePools {
       throw new IllegalArgumentException("Pools to be updated cannot contain previously undefined resources pools");
     }
     // Can not update OFFHEAP
-    // TODO: Move to OFFHEAP ResourcePool
     if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.OFFHEAP)) {
       throw new UnsupportedOperationException("Updating OFFHEAP resource is not supported");
     }
     // Can not update DISK
-    // TODO: Move to DISK ResourcePool
     if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.DISK)) {
       throw new UnsupportedOperationException("Updating DISK resource is not supported");
     }
@@ -95,8 +93,6 @@ public class ResourcePoolsImpl implements ResourcePools {
    *
    * @param pools the resource pools to validate
    */
-  // TODO: Move to org.ehcache.impl.internal.store.tiering.CacheStore.Provider
-  // TODO: Generalize for all SizedResourcePool implementations (needs addition of defined ordering)
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
     EnumMap<ResourceType.Core, SizedResourcePool> coreResources = new EnumMap<ResourceType.Core, SizedResourcePool>(ResourceType.Core.class);
     for (ResourcePool pool : pools) {

@@ -34,7 +34,8 @@ public interface FixedClusteredResourcePool extends ClusteredResourcePool, Sized
 
   /**
    * Identifies the server-side clustered resource from which space for this pool is reserved.
-   * If no server resource is identified, TODO: Identify the space source ...
+   * If no server resource is identified, the resource identified in the server configuration as
+   * the default is used.
    *
    * @return the server-side clustered resource id; may be {@code null}
    */
