@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
-import org.ehcache.ValueSupplier;
 import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
@@ -82,7 +81,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -670,66 +668,28 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
-    final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
-      private Map.Entry<K, OnHeapValueHolder<V>> next = null;
-      private StoreAccessException prefetchFailure = null;
-
-      {
-        advance();
-      }
-
-      private void advance() {
-        next = null;
-        try {
-          while (next == null && it.hasNext()) {
-            Map.Entry<K, OnHeapValueHolder<V>> entry = it.next();
-            final long now = timeSource.getTimeMillis();
-            if (entry.getValue().isExpired(now, TimeUnit.MILLISECONDS)) {
-              internalGet(entry.getKey(), false);
-              continue;
-            }
-
-            next = entry;
-          }
-        } catch (RuntimeException re) {
-          prefetchFailure = new StoreAccessException(re);
-        } catch (StoreAccessException e) {
-          prefetchFailure = e;
-        }
-      }
+      private final java.util.Iterator<Map.Entry<K, OnHeapValueHolder<V>>> it = map.entrySetIterator();
 
       @Override
       public boolean hasNext() {
-        return next != null || prefetchFailure != null;
+        return it.hasNext();
       }
 
       @Override
       public Cache.Entry<K, ValueHolder<V>> next() throws StoreAccessException {
-        if(prefetchFailure != null) {
-          throw prefetchFailure;
-        }
-
-        if (next == null) {
-          throw new NoSuchElementException();
-        }
-
-        final Map.Entry<K, OnHeapValueHolder<V>> thisEntry = next;
-        advance();
-
-        setAccessTimeAndExpiryThenReturnMappingOutsideLock(thisEntry.getKey(), thisEntry.getValue(), timeSource.getTimeMillis());
-
+        Entry<K, OnHeapValueHolder<V>> next = it.next();
+        final K key = next.getKey();
+        final OnHeapValueHolder<V> value = next.getValue();
         return new Cache.Entry<K, ValueHolder<V>>() {
           @Override
           public K getKey() {
-            return thisEntry.getKey();
+            return key;
           }
-
           @Override
           public ValueHolder<V> getValue() {
-            return thisEntry.getValue();
+            return value;
           }
-
         };
       }
     };

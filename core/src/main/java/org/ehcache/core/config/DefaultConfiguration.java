@@ -59,11 +59,12 @@ public final class DefaultConfiguration implements Configuration, RuntimeConfigu
    * </P>
    *
    * @param classLoader the class loader to use
+   * @param services an array of service configurations
    *
    * @see #addCacheConfiguration(String, CacheConfiguration)
    */
-  public DefaultConfiguration(ClassLoader classLoader) {
-    this(emptyCacheMap(), classLoader);
+  public DefaultConfiguration(ClassLoader classLoader, ServiceCreationConfiguration<?>... services) {
+    this(emptyCacheMap(), classLoader, services);
   }
 
   /**

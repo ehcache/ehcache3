@@ -75,8 +75,28 @@ public class EhcacheCachingProvider implements CachingProvider {
       }
     }
 
+    Configuration config;
+    try {
+      if (URI_DEFAULT.equals(uri)) {
+        config = new DefaultConfiguration(classLoader);
+      } else {
+        config = new XmlConfiguration(uri.toURL(), classLoader);
+      }
+    } catch (Exception e) {
+      throw new javax.cache.CacheException(e);
+    }
+
+    return getCacheManager(uri, config, properties);
+  }
+
+  public Eh107CacheManager getCacheManager(URI uri, Configuration config) {
+    return getCacheManager(uri, config, new Properties());
+  }
+
+  public Eh107CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
     Eh107CacheManager cacheManager;
     ConcurrentMap<URI, Eh107CacheManager> byURI;
+    ClassLoader classLoader = config.getClassLoader();
 
     synchronized (cacheManagers) {
       byURI = cacheManagers.get(classLoader);
@@ -92,38 +112,32 @@ public class EhcacheCachingProvider implements CachingProvider {
           byURI.remove(uri, cacheManager);
         }
 
-        Configuration config;
-        try {
-          if (URI_DEFAULT.equals(uri)) {
-            config = new DefaultConfiguration(classLoader);
-          } else {
-            config = new XmlConfiguration(uri.toURL(), classLoader);
-          }
-        } catch (Exception e) {
-          throw new javax.cache.CacheException(e);
-        }
-
-        Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
-        Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
-        ManagementRegistryCollectorService managementRegistryCollectorService = new ManagementRegistryCollectorService();
-
-        Collection<Service> services = new ArrayList<Service>();
-        services.add(cacheLoaderWriterFactory);
-        services.add(jsr107Service);
-        if(ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
-          services.add(new DefaultJsr107SerializationProvider());
-        }
-        services.add(managementRegistryCollectorService);
-
-        EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
-        ehcacheManager.init();
-        cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri,
-            managementRegistryCollectorService.managementRegistry, new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
+        cacheManager = createCacheManager(uri, config, properties);
         byURI.put(uri, cacheManager);
       }
     }
 
     return cacheManager;
+  }
+
+  private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
+    Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
+    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
+    ManagementRegistryCollectorService managementRegistryCollectorService = new ManagementRegistryCollectorService();
+
+    Collection<Service> services = new ArrayList<Service>();
+    services.add(cacheLoaderWriterFactory);
+    services.add(jsr107Service);
+    if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
+      services.add(new DefaultJsr107SerializationProvider());
+    }
+    services.add(managementRegistryCollectorService);
+
+    EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
+    ehcacheManager.init();
+
+    return new Eh107CacheManager(this, ehcacheManager, properties, config.getClassLoader(), uri,
+        managementRegistryCollectorService.managementRegistry, new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
   }
 
   @ServiceDependencies(ManagementRegistryService.class)

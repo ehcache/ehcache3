@@ -164,7 +164,7 @@ public class XmlConfiguration implements Configuration {
     try {
       parseConfiguration();
     } catch (Exception e) {
-      throw new XmlConfigurationException("", e);
+      throw new XmlConfigurationException("Error parsing XML configuration at " + url, e);
     }
   }
 

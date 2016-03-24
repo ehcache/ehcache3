@@ -31,6 +31,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -524,8 +525,30 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public java.util.Iterator<Cache.Entry<K, V>> iterator() {
-    return new Iterator<K, V>(ehCache);
+  public Iterator<Entry<K, V>> iterator() {
+    checkClosed();
+
+    final Iterator<org.ehcache.Cache.Entry<K, V>> specIterator = jsr107Cache.specIterator();
+    return new Iterator<Entry<K, V>>() {
+      @Override
+      public boolean hasNext() {
+        checkClosed();
+        return specIterator.hasNext();
+      }
+
+      @Override
+      public Entry<K, V> next() {
+        checkClosed();
+        org.ehcache.Cache.Entry<K, V> next = specIterator.next();
+        return next == null ? null : new WrappedEhcacheEntry<K, V>(next);
+      }
+
+      @Override
+      public void remove() {
+        checkClosed();
+        specIterator.remove();
+      }
+    };
   }
 
   private void checkClosed() {
@@ -592,42 +615,6 @@ class Eh107Cache<K, V> implements Cache<K, V> {
         throw new EntryProcessorException(e);
       }
     };
-  }
-
-  private static class Iterator<K, V> implements java.util.Iterator<javax.cache.Cache.Entry<K, V>> {
-
-    private final java.util.Iterator<org.ehcache.Cache.Entry<K, V>> ehIterator;
-    private final org.ehcache.Cache<K, V> ehCache;
-    private org.ehcache.Cache.Entry<K, V> current = null;
-
-    Iterator(org.ehcache.Cache<K, V> ehCache) {
-      this.ehCache = ehCache;
-      this.ehIterator = ehCache.iterator();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return ehIterator.hasNext();
-    }
-
-    @Override
-    public javax.cache.Cache.Entry<K, V> next() {
-      current = ehIterator.next();
-      return new WrappedEhcacheEntry<K, V>(current);
-    }
-
-    @Override
-    public void remove() {
-      if (current == null) {
-        throw new IllegalStateException();
-      }
-
-      // XXX: Not using iter.remove() on the ehcache iterator since it
-      // does 2-arg remove and will add cache hits that 107 txk doesn't expect
-      ehCache.remove(current.getKey());
-
-      current = null;
-    }
   }
 
   private static class WrappedEhcacheEntry<K, V> implements javax.cache.Cache.Entry<K, V> {

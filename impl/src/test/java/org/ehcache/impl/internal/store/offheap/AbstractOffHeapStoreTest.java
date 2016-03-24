@@ -675,7 +675,7 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testIteratorSkipsExpiredEntries() throws Exception {
+  public void testIteratorDoesNotSkipOrExpiresEntries() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToLiveExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
 
@@ -705,25 +705,8 @@ public abstract class AbstractOffHeapStoreTest {
         iteratedKeys.add(iterator.next().getKey());
       }
 
-      assertThat(iteratedKeys, containsInAnyOrder("key3", "key4"));
-      assertThat(expiredKeys, containsInAnyOrder("key1", "key2"));
-    } finally {
-      destroyStore(offHeapStore);
-    }
-  }
-
-  @Test
-  public void testIteratorWithAllExpiredEntries() throws Exception {
-    TestTimeSource timeSource = new TestTimeSource();
-    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToLiveExpiration(new Duration(10L, TimeUnit.MILLISECONDS)));
-    try {
-      offHeapStore.put("key1", "value1");
-      offHeapStore.put("key2", "value2");
-
-      timeSource.advanceTime(11L);
-
-      Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
-      assertFalse(iterator.hasNext());
+      assertThat(iteratedKeys, containsInAnyOrder("key1", "key2", "key3", "key4"));
+      assertThat(expiredKeys.isEmpty(), is(true));
     } finally {
       destroyStore(offHeapStore);
     }
@@ -739,6 +722,8 @@ public abstract class AbstractOffHeapStoreTest {
       timeSource.advanceTime(11L);
 
       Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> iterator = offHeapStore.iterator();
+      assertTrue(iterator.hasNext());
+      assertThat(iterator.next().getKey(), equalTo("key1"));
       assertFalse(iterator.hasNext());
     } finally {
       destroyStore(offHeapStore);
