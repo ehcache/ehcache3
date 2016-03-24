@@ -163,10 +163,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       if(event.getProperty().equals(CacheConfigurationProperty.UPDATE_SIZE)) {
         ResourcePools updatedPools = (ResourcePools)event.getNewValue();
         ResourcePools configuredPools = (ResourcePools)event.getOldValue();
-        if(((SizedResourcePool)updatedPools.getPoolForResource(ResourceType.Core.HEAP)).getSize() !=
-            ((SizedResourcePool)configuredPools.getPoolForResource(ResourceType.Core.HEAP)).getSize()) {
-          LOG.info("Setting size: " + ((SizedResourcePool)updatedPools.getPoolForResource(ResourceType.Core.HEAP)).getSize());
-          SizedResourcePool pool = (SizedResourcePool)updatedPools.getPoolForResource(ResourceType.Core.HEAP);
+        if(updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize() !=
+            configuredPools.getPoolForResource(ResourceType.Core.HEAP).getSize()) {
+          LOG.info("Setting size: " + updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
+          SizedResourcePool pool = updatedPools.getPoolForResource(ResourceType.Core.HEAP);
           if (pool.getUnit() instanceof MemoryUnit) {
             capacity = ((MemoryUnit)pool.getUnit()).toBytes(pool.getSize());
           } else {
@@ -209,7 +209,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (valueCopier == null) {
       throw new NullPointerException("valueCopier must not be null");
     }
-    SizedResourcePool heapPool = (SizedResourcePool)config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
+    SizedResourcePool heapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.HEAP);
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
     }
@@ -1553,7 +1553,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
-    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
       return resourceTypes.equals(Collections.singleton(ResourceType.Core.HEAP)) ? 1 : 0;
     }
 
@@ -1571,7 +1571,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
       SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
       SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(
-          ((SizedResourcePool)storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP)).getUnit(), serviceConfigs);
+          storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit(), serviceConfigs);
       OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher);
       createdStores.add(onHeapStore);
       return onHeapStore;

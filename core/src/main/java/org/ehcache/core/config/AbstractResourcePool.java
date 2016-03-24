@@ -21,9 +21,12 @@ import org.ehcache.config.ResourceType;
 
 /**
  * Foundation implementation for {@link ResourcePool} implementations.
+ *
+ * @param <P> the type of {@link ResourcePool} implemented by the subclass
+ * @param <T> the type of {@link ResourceType} related to the resource pool
  */
-public abstract class AbstractResourcePool implements ResourcePool {
-  private final ResourceType type;
+public abstract class AbstractResourcePool<P extends ResourcePool, T extends ResourceType<P>> implements ResourcePool {
+  private final T type;
   private final boolean persistent;
 
   /**
@@ -32,7 +35,7 @@ public abstract class AbstractResourcePool implements ResourcePool {
    * @param type the non-{@code null} {@code ResourceType}
    * @param persistent whether or not this {@code ResourcePool} is persistent
    */
-  public AbstractResourcePool(ResourceType type, boolean persistent) {
+  protected AbstractResourcePool(T type, boolean persistent) {
     if (type == null) {
       throw new NullPointerException("ResourceType may not be null");
     }
@@ -44,7 +47,7 @@ public abstract class AbstractResourcePool implements ResourcePool {
    * {@inheritDoc}
    */
   @Override
-  public ResourceType getType() {
+  public T getType() {
     return type;
   }
 

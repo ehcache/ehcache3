@@ -329,12 +329,12 @@ public class XmlConfigurationTest {
     assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK), is(nullValue()));
   }
 
-  private <K, V> long getResourceSize(final CacheConfiguration<K, V> config, final ResourceType type) {
-    return ((SizedResourcePool)config.getResourcePools().getPoolForResource(type)).getSize();
+  private <K, V> long getResourceSize(final CacheConfiguration<K, V> config, final ResourceType<SizedResourcePool> type) {
+    return config.getResourcePools().getPoolForResource(type).getSize();
   }
 
-  private <K, V> ResourceUnit getResourceUnit(final CacheConfiguration<K, V> config, final ResourceType type) {
-    return ((SizedResourcePool)config.getResourcePools().getPoolForResource(type)).getUnit();
+  private <K, V> ResourceUnit getResourceUnit(final CacheConfiguration<K, V> config, final ResourceType<SizedResourcePool> type) {
+    return config.getResourcePools().getPoolForResource(type).getUnit();
   }
 
   @Test

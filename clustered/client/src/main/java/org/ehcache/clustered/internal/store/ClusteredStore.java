@@ -38,7 +38,6 @@ import org.ehcache.spi.service.ServiceDependencies;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -169,8 +168,13 @@ public class ClusteredStore<K, V> implements Store<K, V> {
   @ServiceDependencies({ClusteringService.class})
   public static class Provider implements Store.Provider {
 
-    private static final Set<ResourceType> CLUSTER_RESOURCES =
-        Collections.<ResourceType>unmodifiableSet(EnumSet.allOf(ClusteredResourceType.Types.class));
+    private static final Set<ResourceType<?>> CLUSTER_RESOURCES;
+    static {
+      Set<ResourceType<?>> resourceTypes = new HashSet<ResourceType<?>>();
+      resourceTypes.add(ClusteredResourceType.Types.FIXED);
+      resourceTypes.add(ClusteredResourceType.Types.SHARED);
+      CLUSTER_RESOURCES = Collections.unmodifiableSet(resourceTypes);
+    }
 
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile ClusteringService clusteringService;
@@ -218,7 +222,7 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
       if (clusteringService == null || Collections.disjoint(resourceTypes, CLUSTER_RESOURCES)) {
         // A ClusteredStore requires a ClusteringService *and* ClusteredResourcePool instances
         return 0;
@@ -226,7 +230,7 @@ public class ClusteredStore<K, V> implements Store<K, V> {
 
       // TODO: Add logic to ensure 'clusteringService' is configured for the desired resources
 
-      Set<ResourceType> nonClusterResourceTypes = new HashSet<ResourceType>(resourceTypes);
+      Set<ResourceType<?>> nonClusterResourceTypes = new HashSet<ResourceType<?>>(resourceTypes);
       int clusterResourceCount = nonClusterResourceTypes.size();
       nonClusterResourceTypes.removeAll(CLUSTER_RESOURCES);
       clusterResourceCount -= nonClusterResourceTypes.size();
@@ -248,10 +252,10 @@ public class ClusteredStore<K, V> implements Store<K, V> {
       this.serviceProvider = null;
     }
 
-    private Store.Provider selectProvider(final Set<ResourceType> resourceTypes,
+    private Store.Provider selectProvider(final Set<ResourceType<?>> resourceTypes,
                                           final Collection<ServiceConfiguration<?>> serviceConfigs) {
 
-      final Set<ResourceType> nonClusterResources = new HashSet<ResourceType>(resourceTypes);
+      final Set<ResourceType<?>> nonClusterResources = new HashSet<ResourceType<?>>(resourceTypes);
       nonClusterResources.removeAll(CLUSTER_RESOURCES);
       if (nonClusterResources.isEmpty()) {
         return new NonProvider();
@@ -281,7 +285,7 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
       return 0;
     }
 

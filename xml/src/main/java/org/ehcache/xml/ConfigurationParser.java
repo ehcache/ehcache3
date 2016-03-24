@@ -18,6 +18,7 @@ package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
@@ -526,7 +527,7 @@ class ConfigurationParser {
 
   private ResourcePool parseResource(Heap resource) {
     ResourceType heapResource = resource.getValue();
-    return new SizedResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP,
+    return new SizedResourcePoolImpl<SizedResourcePool>(org.ehcache.config.ResourceType.Core.HEAP,
             heapResource.getValue().longValue(), parseUnit(heapResource), false);
   }
 
@@ -538,15 +539,15 @@ class ConfigurationParser {
       Object resource = unmarshaller.unmarshal(element);
       if (resource instanceof Heap) {
         ResourceType heapResource = ((Heap) resource).getValue();
-        return new SizedResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP,
+        return new SizedResourcePoolImpl<SizedResourcePool>(org.ehcache.config.ResourceType.Core.HEAP,
                 heapResource.getValue().longValue(), parseUnit(heapResource), false);
       } else if (resource instanceof Offheap) {
         MemoryType offheapResource = ((Offheap) resource).getValue();
-        return new SizedResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP,
+        return new SizedResourcePoolImpl<SizedResourcePool>(org.ehcache.config.ResourceType.Core.OFFHEAP,
                 offheapResource.getValue().longValue(), parseMemory(offheapResource), false);
       } else if (resource instanceof Disk) {
         PersistableMemoryType diskResource = ((Disk) resource).getValue();
-        return new SizedResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK,
+        return new SizedResourcePoolImpl<SizedResourcePool>(org.ehcache.config.ResourceType.Core.DISK,
                 diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent());
       } else {
         // Someone updated the core resources without updating *this* code ...

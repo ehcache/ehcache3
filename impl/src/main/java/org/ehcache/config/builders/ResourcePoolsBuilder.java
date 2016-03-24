@@ -17,6 +17,7 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.config.SizedResourcePoolImpl;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.config.ResourcePoolsImpl;
@@ -40,13 +41,13 @@ import static org.ehcache.core.config.ResourcePoolsImpl.validateResourcePools;
  */
 public class ResourcePoolsBuilder implements Builder<ResourcePools> {
 
-  private final Map<ResourceType, ResourcePool> resourcePools;
+  private final Map<ResourceType<?>, ResourcePool> resourcePools;
 
   private ResourcePoolsBuilder() {
-    this(Collections.<ResourceType, ResourcePool>emptyMap());
+    this(Collections.<ResourceType<?>, ResourcePool>emptyMap());
   }
 
-  private ResourcePoolsBuilder(Map<ResourceType, ResourcePool> resourcePools) {
+  private ResourcePoolsBuilder(Map<ResourceType<?>, ResourcePool> resourcePools) {
     validateResourcePools(resourcePools.values());
     this.resourcePools = unmodifiableMap(resourcePools);
   }
@@ -68,7 +69,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    */
   public static ResourcePoolsBuilder newResourcePoolsBuilder(ResourcePools pools) {
     ResourcePoolsBuilder poolsBuilder = new ResourcePoolsBuilder();
-    for (ResourceType currentResourceType : pools.getResourceTypeSet()) {
+    for (ResourceType<?> currentResourceType : pools.getResourceTypeSet()) {
       poolsBuilder = poolsBuilder.with(pools.getPoolForResource(currentResourceType));
     }
     return poolsBuilder;
@@ -83,12 +84,12 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
    */
   public ResourcePoolsBuilder with(ResourcePool resourcePool) {
-    final ResourceType type = resourcePool.getType();
+    final ResourceType<?> type = resourcePool.getType();
     final ResourcePool existingPool = resourcePools.get(type);
     if (existingPool != null) {
       throw new IllegalArgumentException("Can not add '" + resourcePool + "'; configuration already contains '" + existingPool + "'");
     }
-    Map<ResourceType, ResourcePool> newPools = new HashMap<ResourceType, ResourcePool>(resourcePools);
+    Map<ResourceType<?>, ResourcePool> newPools = new HashMap<ResourceType<?>, ResourcePool>(resourcePools);
     newPools.put(type, resourcePool);
     return new ResourcePoolsBuilder(newPools);
   }
@@ -100,7 +101,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @return a new builder with the added pool
    */
   public ResourcePoolsBuilder withReplacing(ResourcePool resourcePool) {
-    Map<ResourceType, ResourcePool> newPools = new HashMap<ResourceType, ResourcePool>(resourcePools);
+    Map<ResourceType<?>, ResourcePool> newPools = new HashMap<ResourceType<?>, ResourcePool>(resourcePools);
     newPools.put(resourcePool.getType(), resourcePool);
     return new ResourcePoolsBuilder(newPools);
   }
@@ -116,8 +117,8 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    *
    * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
    */
-  public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
-    return with(new SizedResourcePoolImpl(type, size, unit, persistent));
+  public ResourcePoolsBuilder with(ResourceType<SizedResourcePool> type, long size, ResourceUnit unit, boolean persistent) {
+    return with(new SizedResourcePoolImpl<SizedResourcePool>(type, size, unit, persistent));
   }
 
   /**

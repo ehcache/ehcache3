@@ -35,7 +35,7 @@ public class ResourcePoolsBuilderTest {
     builder = builder.heap(8, MemoryUnit.MB);
 
     try {
-      builder.with(new SizedResourcePoolImpl(HEAP, 16, MemoryUnit.MB, false));
+      builder.with(new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 16, MemoryUnit.MB, false));
       fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       assertThat(e.getMessage(),
@@ -48,11 +48,11 @@ public class ResourcePoolsBuilderTest {
     ResourcePoolsBuilder builder = ResourcePoolsBuilder.newResourcePoolsBuilder();
     builder = builder.heap(8, MemoryUnit.MB);
 
-    SizedResourcePool newPool = new SizedResourcePoolImpl(HEAP, 16, MemoryUnit.MB, false);
+    SizedResourcePool newPool = new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 16, MemoryUnit.MB, false);
 
     builder = builder.withReplacing(newPool);
 
-    final SizedResourcePool heapPool = ((SizedResourcePool)builder.build().getPoolForResource(HEAP)) ;
+    final SizedResourcePool heapPool = builder.build().getPoolForResource(HEAP);
     assertThat(heapPool.isPersistent(), is(equalTo(newPool.isPersistent())));
     assertThat(heapPool.getSize(), is(equalTo(newPool.getSize())));
     assertThat(heapPool.getUnit(), is(equalTo(newPool.getUnit())));

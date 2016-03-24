@@ -16,9 +16,9 @@
 
 package org.ehcache.core.internal.store;
 
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
@@ -42,7 +42,11 @@ import static org.junit.Assert.*;
  */
 public class StoreSupportTest {
 
-  private final ResourceType anyResourceType = new ResourceType() {
+  private final ResourceType<ResourcePool> anyResourceType = new ResourceType<ResourcePool>() {
+    @Override
+    public Class<ResourcePool> getResourcePoolClass() {
+      return ResourcePool.class;
+    }
     @Override
     public boolean isPersistable() {
       return false;
@@ -70,7 +74,7 @@ public class StoreSupportTest {
     final ServiceLocator serviceLocator = new ServiceLocator(storeProviders);
 
     final Store.Provider selectedProvider = StoreSupport.selectStoreProvider(serviceLocator,
-        Collections.singleton(anyResourceType),
+        Collections.<ResourceType<?>>singleton(anyResourceType),
         Collections.<ServiceConfiguration<?>>emptyList());
 
     assertThat(selectedProvider, is(Matchers.<Store.Provider>sameInstance(expectedProvider)));
@@ -96,7 +100,7 @@ public class StoreSupportTest {
 
     try {
       StoreSupport.selectStoreProvider(serviceLocator,
-          Collections.singleton(anyResourceType),
+          Collections.<ResourceType<?>>singleton(anyResourceType),
           Collections.<ServiceConfiguration<?>>emptyList());
       fail();
     } catch (IllegalStateException e) {
@@ -115,7 +119,7 @@ public class StoreSupportTest {
     final ServiceLocator serviceLocator = new ServiceLocator();
     try {
       StoreSupport.selectStoreProvider(serviceLocator,
-          Collections.singleton(anyResourceType),
+          Collections.<ResourceType<?>>singleton(anyResourceType),
           Collections.<ServiceConfiguration<?>>emptyList());
       fail();
     } catch (IllegalStateException e) {
@@ -127,7 +131,11 @@ public class StoreSupportTest {
   @Test
   public void testSelectStoreProviderNoHits() throws Exception {
 
-    final ResourceType otherResourceType = new ResourceType() {
+    final ResourceType<ResourcePool> otherResourceType = new ResourceType<ResourcePool>() {
+      @Override
+      public Class<ResourcePool> getResourcePoolClass() {
+        return ResourcePool.class;
+      }
       @Override
       public boolean isPersistable() {
         return true;
@@ -147,7 +155,7 @@ public class StoreSupportTest {
     final ServiceLocator serviceLocator = new ServiceLocator(storeProviders);
     try {
       StoreSupport.selectStoreProvider(serviceLocator,
-          Collections.singleton(otherResourceType),
+          Collections.<ResourceType<?>>singleton(otherResourceType),
           Collections.<ServiceConfiguration<?>>emptyList());
       fail();
     } catch (IllegalStateException e) {
@@ -214,7 +222,7 @@ public class StoreSupportTest {
     }
 
     @Override
-    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
       assertThat(resourceTypes, is(not(nullValue())));
       assertThat(serviceConfigs, is(not(nullValue())));
       rankAccessCount.incrementAndGet();

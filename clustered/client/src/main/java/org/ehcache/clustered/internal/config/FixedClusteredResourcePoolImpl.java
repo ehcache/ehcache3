@@ -24,7 +24,8 @@ import org.ehcache.core.config.SizedResourcePoolImpl;
 /**
  * Concrete implementation of a {@link FixedClusteredResourcePool}.
  */
-public class FixedClusteredResourcePoolImpl extends SizedResourcePoolImpl implements FixedClusteredResourcePool {
+public class FixedClusteredResourcePoolImpl extends SizedResourcePoolImpl<FixedClusteredResourcePool>
+    implements FixedClusteredResourcePool {
 
   private final String fromResource;
 
@@ -42,8 +43,8 @@ public class FixedClusteredResourcePoolImpl extends SizedResourcePoolImpl implem
   }
 
   @Override
-  public ClusteredResourceType getType() {
-    return (ClusteredResourceType)super.getType();
+  public ClusteredResourceType<FixedClusteredResourcePool> getType() {
+    return (ClusteredResourceType<FixedClusteredResourcePool>)super.getType();
   }
 
   @Override

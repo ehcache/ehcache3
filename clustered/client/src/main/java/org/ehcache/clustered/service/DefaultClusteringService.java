@@ -153,7 +153,7 @@ public class DefaultClusteringService implements ClusteringService {
   }
 
   @Override
-  public boolean handlesResourceType(ResourceType resourceType) {
+  public boolean handlesResourceType(ResourceType<?> resourceType) {
     return (ClusteredResourceType.class.isAssignableFrom(resourceType.getClass()));
   }
 

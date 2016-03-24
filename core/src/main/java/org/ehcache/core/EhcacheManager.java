@@ -222,7 +222,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
    * @param ehcache the {@code InternalCache} instance for the cache to close
    */
   protected void closeEhcache(final String alias, final InternalCache<?, ?> ehcache) {
-    for (ResourceType resourceType : ehcache.getRuntimeConfiguration().getResourcePools().getResourceTypeSet()) {
+    for (ResourceType<?> resourceType : ehcache.getRuntimeConfiguration().getResourcePools().getResourceTypeSet()) {
       if (resourceType.isPersistable()) {
         ResourcePool resourcePool = ehcache.getRuntimeConfiguration()
             .getResourcePools()
@@ -422,8 +422,8 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
                                        final Collection<ServiceConfiguration<?>> serviceConfigs,
                                        final List<LifeCycled> lifeCycledList) {
 
-    final Set<ResourceType> resourceTypes = config.getResourcePools().getResourceTypeSet();
-    for (ResourceType resourceType : resourceTypes) {
+    final Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
+    for (ResourceType<?> resourceType : resourceTypes) {
       if (resourceType.isPersistable()) {
         PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
 
@@ -454,7 +454,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         });
         keySerializer = keySer;
       } catch (UnsupportedTypeException e) {
-        for (ResourceType resource : resourceTypes) {
+        for (ResourceType<?> resource : resourceTypes) {
           if (resource.requiresSerialization()) {
             throw new RuntimeException(e);
           }
@@ -471,7 +471,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         });
         valueSerializer = valueSer;
       } catch (UnsupportedTypeException e) {
-        for (ResourceType resource : resourceTypes) {
+        for (ResourceType<?> resource : resourceTypes) {
           if (resource.requiresSerialization()) {
             throw new RuntimeException(e);
           }
@@ -508,7 +508,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return store;
   }
 
-  private PersistableResourceService getPersistableResourceService(ResourceType resourceType) {
+  private PersistableResourceService getPersistableResourceService(ResourceType<?> resourceType) {
     Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
     for (PersistableResourceService service : services) {
       if (service.handlesResourceType(resourceType)) {
