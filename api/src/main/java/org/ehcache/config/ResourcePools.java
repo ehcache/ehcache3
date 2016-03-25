@@ -30,14 +30,14 @@ public interface ResourcePools {
    * @param resourceType the type of resource the pool is tracking.
    * @return the {@link ResourcePool}, or null if there is no pool tracking the requested type.
    */
-  ResourcePool getPoolForResource(ResourceType resourceType);
+  <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType);
 
   /**
    * Get the set of {@link ResourceType} of all the pools present in the ResourcePools
    *
    * @return the set of {@link ResourceType}
    */
-  Set<ResourceType> getResourceTypeSet();
+  Set<ResourceType<?>> getResourceTypeSet();
 
   /**
    * Get a copy of the current {@link ResourcePools} merged with another {@link ResourcePools} and validate that

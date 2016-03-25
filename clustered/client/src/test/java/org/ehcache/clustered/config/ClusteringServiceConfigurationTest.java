@@ -29,9 +29,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
-/**
- * @author Clifford W. Johnson
- */
 public class ClusteringServiceConfigurationTest {
 
   @Test(expected = NullPointerException.class)

@@ -16,7 +16,9 @@
 package org.ehcache.config;
 
 /**
- * @author Ludovic Orban
+ * Specifies a resource providing space for cache operations.
+ * <p>
+ * {@code ResourcePool} implementations must be <i>immutable</i>.
  */
 public interface ResourcePool {
 
@@ -25,26 +27,22 @@ public interface ResourcePool {
    *
    * @return the type.
    */
-  ResourceType getType();
+  ResourceType<?> getType();
 
   /**
-   * Get the value measuring the pool size.
+   * Whether the underlying resource is persistent.
    *
-   * @return the value.
-   */
-  long getSize();
-
-  /**
-   * Get the unit in which the resource is measured.
-   *
-   * @return the unit.
-   */
-  ResourceUnit getUnit();
-
-  /**
-   * Whether the underlying resource is persistent
    * @return <code>true</code>, if persistent
    */
   boolean isPersistent();
+
+  /**
+   * Validates whether or not a new {@code ResourcePool} can replace this {@code ResourcePool}.
+   *
+   * @param newPool the pool which is the candidate for replacing this {@code ResourcePool}
+   *
+   * @throws IllegalArgumentException if {@code newPool} is not a valid replacement for this {@code ResourcePool}
+   */
+  void validateUpdate(ResourcePool newPool);
 
 }

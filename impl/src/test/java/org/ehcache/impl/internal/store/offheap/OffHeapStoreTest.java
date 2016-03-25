@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
@@ -89,12 +90,15 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
     assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final ResourceType unmatchedResourceType = new ResourceType() {
+    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
+      @Override
+      public Class<ResourcePool> getResourcePoolClass() {
+        return ResourcePool.class;
+      }
       @Override
       public boolean isPersistable() {
         return true;
       }
-
       @Override
       public boolean requiresSerialization() {
         return true;
@@ -105,9 +109,9 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
     assertRank(provider, 0, ResourceType.Core.OFFHEAP, unmatchedResourceType);
   }
 
-  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType... resources) {
+  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
     assertThat(provider.rank(
-        new HashSet<ResourceType>(Arrays.asList(resources)),
+        new HashSet<ResourceType<?>>(Arrays.asList(resources)),
         Collections.<ServiceConfiguration<?>>emptyList()),
         is(expectedRank));
   }

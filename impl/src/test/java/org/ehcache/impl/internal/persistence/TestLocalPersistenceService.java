@@ -71,7 +71,7 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public boolean handlesResourceType(ResourceType resourceType) {
+  public boolean handlesResourceType(ResourceType<?> resourceType) {
     return persistenceService.handlesResourceType(resourceType);
   }
 

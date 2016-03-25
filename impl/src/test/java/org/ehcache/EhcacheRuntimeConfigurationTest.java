@@ -17,6 +17,7 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -53,12 +54,12 @@ public class EhcacheRuntimeConfigurationTest {
     poolsBuilder = poolsBuilder.heap(20L, EntryUnit.ENTRIES);
     ResourcePools pools = poolsBuilder.build();
     cache.getRuntimeConfiguration().updateResourcePools(pools);
-    assertThat(cache.getRuntimeConfiguration().getResourcePools()
-        .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
+    assertThat(((SizedResourcePool)cache.getRuntimeConfiguration().getResourcePools()
+        .getPoolForResource(ResourceType.Core.HEAP)).getSize(), is(20L));
     pools = poolsBuilder.build();
     cache.getRuntimeConfiguration().updateResourcePools(pools);
-    assertThat(cache.getRuntimeConfiguration().getResourcePools()
-        .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
+    assertThat(((SizedResourcePool)cache.getRuntimeConfiguration().getResourcePools()
+        .getPoolForResource(ResourceType.Core.HEAP)).getSize(), is(20L));
     cacheManager.close();
   }
 
@@ -82,8 +83,8 @@ public class EhcacheRuntimeConfigurationTest {
 //      expected
       assertThat(iae.getMessage(), is("Pools to be updated cannot contain previously undefined resources pools"));
     }
-    assertThat(cache.getRuntimeConfiguration().getResourcePools()
-        .getPoolForResource(ResourceType.Core.HEAP).getSize(), is(10L));
+    assertThat(((SizedResourcePool)cache.getRuntimeConfiguration().getResourcePools()
+        .getPoolForResource(ResourceType.Core.HEAP)).getSize(), is(10L));
     cacheManager.close();
   }
 }

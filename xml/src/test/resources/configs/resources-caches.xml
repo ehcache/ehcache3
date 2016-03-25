@@ -24,7 +24,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="entries">10</ehcache:heap>
-      <ehcache:disk unit="mb">100</ehcache:disk>
+      <ehcache:disk unit="MB">100</ehcache:disk>
     </ehcache:resources>
     <ehcache:disk-store-settings writer-threads="2" thread-pool="some-pool"/>
   </ehcache:cache>
@@ -34,7 +34,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="entries">10</ehcache:heap>
-      <ehcache:disk unit="mb" persistent="true">100</ehcache:disk>
+      <ehcache:disk unit="MB" persistent="true">100</ehcache:disk>
     </ehcache:resources>
   </ehcache:cache>
 
@@ -43,7 +43,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="entries">10</ehcache:heap>
-      <ehcache:offheap unit="mb">10</ehcache:offheap>
+      <ehcache:offheap unit="MB">10</ehcache:offheap>
     </ehcache:resources>
   </ehcache:cache>
 

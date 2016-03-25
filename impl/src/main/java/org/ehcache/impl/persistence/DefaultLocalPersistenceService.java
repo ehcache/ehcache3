@@ -171,7 +171,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    */
   @Override
-  public boolean handlesResourceType(ResourceType resourceType) {
+  public boolean handlesResourceType(ResourceType<?> resourceType) {
     return ResourceType.Core.DISK.equals(resourceType);
   }
 

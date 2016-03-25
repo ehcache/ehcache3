@@ -18,23 +18,21 @@ package org.ehcache.clustered.docs;
 
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.UnitTestConnectionService;
-import org.ehcache.clustered.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
 
 import java.net.URI;
 
 import org.junit.Before;
-import org.terracotta.offheapstore.util.MemoryUnit;
 
 /**
  * Samples demonstrating use of a clustered cache.
- *
- * @author Clifford W. Johnson
  *
  * @see org.ehcache.docs.GettingStarted
  */
@@ -65,13 +63,14 @@ public class GettingStarted {
     // tag::clusteredCacheManagerWithServerSideConfigExample
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-                .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
-                        .defaultServerResource("primary-server-resource")
-                        .resourcePool("resource-pool-a", 128, MemoryUnit.GIGABYTES)
-                        .resourcePool("resource-pool-b", 128, MemoryUnit.GIGABYTES, "secondary-server-resource"))
-                .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
+                .defaultServerResource("primary-server-resource")
+                .resourcePool("resource-pool-a", 128, MemoryUnit.GB)
+                .resourcePool("resource-pool-b", 128, MemoryUnit.GB, "secondary-server-resource"))
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
                 .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES)));
+                    .heap(10, EntryUnit.ENTRIES)
+                    .with(ClusteredResourcePoolBuilder.fixed("resource-pool-a", 32, MemoryUnit.GB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     cacheManager.close();

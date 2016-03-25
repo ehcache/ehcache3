@@ -154,7 +154,6 @@ public final class ServiceLocator implements ServiceProvider<Service> {
        */
       for (Class<? extends Service> serviceClazz : serviceClazzes) {
         if (serviceClazz.isAnnotationPresent(PluralService.class)) {
-          //  TODO: Determine if thread-safety is a concern here ...
           // Permit multiple registrations
           Set<Service> registeredServices = services.get(serviceClazz);
           if (registeredServices == null) {
@@ -433,7 +432,6 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       }
     }
 
-    // TODO: Since we examine ServiceDependencies on non-service concrete classes, why not interfaces?
     for (Class<?> interfaceClazz : clazz.getInterfaces()) {
       if (Service.class != interfaceClazz && Service.class.isAssignableFrom(interfaceClazz)) {
         identifyTransitiveDependenciesOf(interfaceClazz, dependencies);

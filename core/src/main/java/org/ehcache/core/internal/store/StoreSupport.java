@@ -56,7 +56,7 @@ public final class StoreSupport {
    *        multiple {@code Store.Provider} implementations return the same top ranking
    */
   public static Store.Provider selectStoreProvider(
-      final ServiceProvider<Service> serviceProvider, final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      final ServiceProvider<Service> serviceProvider, final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
 
     final Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
     int highRank = 0;

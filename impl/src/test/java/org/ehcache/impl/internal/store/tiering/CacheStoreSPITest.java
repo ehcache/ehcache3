@@ -17,10 +17,10 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -128,7 +128,7 @@ public class CacheStoreSPITest extends StoreSPITest<String, String> {
           LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
-          ResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+          SizedResourcePool diskPool = (SizedResourcePool)config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
 
           long sizeInBytes = unit.toBytes(diskPool.getSize());

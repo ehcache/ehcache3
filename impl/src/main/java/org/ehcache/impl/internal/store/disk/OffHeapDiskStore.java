@@ -16,11 +16,11 @@
 
 package org.ehcache.impl.internal.store.disk;
 
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.Status;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
@@ -251,7 +251,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
-    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
       return resourceTypes.equals(Collections.singleton(ResourceType.Core.DISK)) ? 1 : 0;
     }
 
@@ -267,7 +267,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
       ExecutionService executionService = serviceProvider.getService(ExecutionService.class);
 
-      ResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
+      SizedResourcePool diskPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
       if (!(diskPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapDiskStore only supports resources configuration expressed in \"memory\" unit");
       }
