@@ -95,7 +95,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
           }
         }
       }
-      // TODO: Validate connectionUri is valid URL with proper content
       return new ClusteringServiceConfiguration(connectionUri, Collections.<String, PoolDefinition>emptyMap());
     }
     throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",

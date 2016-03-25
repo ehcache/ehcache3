@@ -26,6 +26,7 @@ import java.util.Collection;
  * Specific interface for services that are dedicated to handling a {@link ResourceType} which is
  * {@link ResourceType#isPersistable() persistable}.
  */
+@PluralService
 public interface PersistableResourceService extends MaintainableService {
 
   /**
@@ -34,7 +35,7 @@ public interface PersistableResourceService extends MaintainableService {
    * @param resourceType the resource type to handle
    * @return {@code true} if this service handles this resource type, {@code false} otherwise
    */
-  boolean handlesResourceType(ResourceType resourceType);
+  boolean handlesResourceType(ResourceType<?> resourceType);
 
   /**
    * Enables this service to create additional configurations to enable support of the passed in resource pool in the

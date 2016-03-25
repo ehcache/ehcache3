@@ -18,9 +18,16 @@ package org.ehcache.config;
 /**
  * The resource pools type interface.
  *
- * @author Ludovic Orban
+ * @param <T> associated {@code ResourcePool} type
  */
-public interface ResourceType {
+public interface ResourceType<T extends ResourcePool> {
+
+  /**
+   * Gets the primary {@link ResourcePool} type associated with this {@code ResourceType}.
+   *
+   * @return the {@code ResourcePool} type associated with this type
+   */
+  Class<T> getResourcePoolClass();
 
   /**
    * Whether the resource supports persistence.
@@ -37,7 +44,7 @@ public interface ResourceType {
   /**
    * An enumeration of resource types handled by core ehcache.
    */
-  enum Core implements ResourceType {
+  enum Core implements ResourceType<SizedResourcePool> {
     /**
      * Heap resource.
      */
@@ -58,6 +65,11 @@ public interface ResourceType {
     Core(boolean persistable, final boolean requiresSerialization) {
       this.persistable = persistable;
       this.requiresSerialization = requiresSerialization;
+    }
+
+    @Override
+    public Class<SizedResourcePool> getResourcePoolClass() {
+      return SizedResourcePool.class;
     }
 
     @Override

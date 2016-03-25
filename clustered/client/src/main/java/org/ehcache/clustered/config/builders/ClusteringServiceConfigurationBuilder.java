@@ -21,7 +21,7 @@ import java.util.Map;
 import org.ehcache.clustered.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.config.builders.Builder;
-import org.terracotta.offheapstore.util.MemoryUnit;
+import org.ehcache.config.units.MemoryUnit;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;

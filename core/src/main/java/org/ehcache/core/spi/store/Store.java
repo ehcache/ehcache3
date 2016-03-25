@@ -587,7 +587,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      *      to handle the resource types specified by {@code resourceTypes}; a rank of 0 indicates the store
      *      can not handle all types specified in {@code resourceTypes}
      */
-    int rank(Set<ResourceType> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs);
+    int rank(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs);
   }
 
   /**

@@ -21,9 +21,8 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.service.ClusteringService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.CacheManagerConfiguration;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-
-import org.terracotta.offheapstore.util.MemoryUnit;
 
 import java.net.URI;
 import java.util.HashMap;
@@ -34,11 +33,8 @@ import static java.util.Collections.unmodifiableMap;
 
 /**
  * Specifies the configuration for a {@link ClusteringService}.
- *
- * @author Clifford W. Johnson
  */
 // TODO: Should this accept/hold a *list* of URIs?
-// TODO: Add validation for cluster URI(s)
 public final class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<PersistentCacheManager> {
@@ -109,9 +105,10 @@ public final class ClusteringServiceConfiguration
     return ClusteringService.class;
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
-    return (CacheManagerBuilder<PersistentCacheManager>) other.using(this);
+    return (CacheManagerBuilder<PersistentCacheManager>) other.using(this);   // unchecked
   }
 
   /**

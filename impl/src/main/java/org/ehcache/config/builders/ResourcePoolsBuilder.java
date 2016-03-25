@@ -17,7 +17,8 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.config.ResourcePool;
-import org.ehcache.core.config.ResourcePoolImpl;
+import org.ehcache.config.SizedResourcePool;
+import org.ehcache.core.config.SizedResourcePoolImpl;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.config.ResourcePoolsImpl;
 import org.ehcache.config.ResourceType;
@@ -40,13 +41,13 @@ import static org.ehcache.core.config.ResourcePoolsImpl.validateResourcePools;
  */
 public class ResourcePoolsBuilder implements Builder<ResourcePools> {
 
-  private final Map<ResourceType, ResourcePool> resourcePools;
+  private final Map<ResourceType<?>, ResourcePool> resourcePools;
 
   private ResourcePoolsBuilder() {
-    this(Collections.<ResourceType, ResourcePool>emptyMap());
+    this(Collections.<ResourceType<?>, ResourcePool>emptyMap());
   }
 
-  private ResourcePoolsBuilder(Map<ResourceType, ResourcePool> resourcePools) {
+  private ResourcePoolsBuilder(Map<ResourceType<?>, ResourcePool> resourcePools) {
     validateResourcePools(resourcePools.values());
     this.resourcePools = unmodifiableMap(resourcePools);
   }
@@ -68,26 +69,56 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    */
   public static ResourcePoolsBuilder newResourcePoolsBuilder(ResourcePools pools) {
     ResourcePoolsBuilder poolsBuilder = new ResourcePoolsBuilder();
-    for (ResourceType currentResourceType : pools.getResourceTypeSet()) {
-      poolsBuilder = poolsBuilder.with(currentResourceType, pools.getPoolForResource(currentResourceType).getSize(),
-          pools.getPoolForResource(currentResourceType).getUnit(), pools.getPoolForResource(currentResourceType).isPersistent());
+    for (ResourceType<?> currentResourceType : pools.getResourceTypeSet()) {
+      poolsBuilder = poolsBuilder.with(pools.getPoolForResource(currentResourceType));
     }
     return poolsBuilder;
   }
 
   /**
-   * Adds or replace the {@link ResourcePool} of {@link ResourceType} in the returned builder.
+   * Add the {@link ResourcePool} of {@link ResourceType} in the returned builder.
+   *
+   * @param resourcePool the non-{@code null} resource pool to add
+   * @return a new builder with the added pool
+   *
+   * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
+   */
+  public ResourcePoolsBuilder with(ResourcePool resourcePool) {
+    final ResourceType<?> type = resourcePool.getType();
+    final ResourcePool existingPool = resourcePools.get(type);
+    if (existingPool != null) {
+      throw new IllegalArgumentException("Can not add '" + resourcePool + "'; configuration already contains '" + existingPool + "'");
+    }
+    Map<ResourceType<?>, ResourcePool> newPools = new HashMap<ResourceType<?>, ResourcePool>(resourcePools);
+    newPools.put(type, resourcePool);
+    return new ResourcePoolsBuilder(newPools);
+  }
+
+  /**
+   * Add or replace the {@link ResourcePool} of {@link ResourceType} in the returned builder.
+   *
+   * @param resourcePool the non-{@code null} resource pool to add/replace
+   * @return a new builder with the added pool
+   */
+  public ResourcePoolsBuilder withReplacing(ResourcePool resourcePool) {
+    Map<ResourceType<?>, ResourcePool> newPools = new HashMap<ResourceType<?>, ResourcePool>(resourcePools);
+    newPools.put(resourcePool.getType(), resourcePool);
+    return new ResourcePoolsBuilder(newPools);
+  }
+
+  /**
+   * Add the {@link ResourcePool} of {@link ResourceType} in the returned builder.
    *
    * @param type the resource type
    * @param size the pool size
    * @param unit the pool size unit
    * @param persistent if the pool is to be persistent
    * @return a new builder with the added pool
+   *
+   * @throws IllegalArgumentException if the set of resource pools already contains a pool for {@code type}
    */
-  public ResourcePoolsBuilder with(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
-    Map<ResourceType, ResourcePool> newPools = new HashMap<ResourceType, ResourcePool>(resourcePools);
-    newPools.put(type, new ResourcePoolImpl(type, size, unit, persistent));
-    return new ResourcePoolsBuilder(newPools);
+  public ResourcePoolsBuilder with(ResourceType<SizedResourcePool> type, long size, ResourceUnit unit, boolean persistent) {
+    return with(new SizedResourcePoolImpl<SizedResourcePool>(type, size, unit, persistent));
   }
 
   /**
@@ -96,6 +127,8 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param size the pool size
    * @param unit the pool size unit
    * @return a new builder with the added pool
+   *
+   * @throws IllegalArgumentException if the set of resource pools already contains a heap resource
    */
   public ResourcePoolsBuilder heap(long size, ResourceUnit unit) {
     return with(ResourceType.Core.HEAP, size, unit, false);
@@ -107,6 +140,8 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param size the pool size
    * @param unit the pool size unit
    * @return a new builder with the added pool
+   *
+   * @throws IllegalArgumentException if the set of resource pools already contains an offheap resource
    */
   public ResourcePoolsBuilder offheap(long size, MemoryUnit unit) {
     return with(ResourceType.Core.OFFHEAP, size, unit, false);
@@ -118,6 +153,8 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param size the pool size
    * @param unit the pool size unit
    * @return a new builder with the added pool
+   *
+   * @throws IllegalArgumentException if the set of resource pools already contains a disk resource
    */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit) {
     return disk(size, unit, false);
@@ -130,6 +167,8 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    * @param unit the pool size unit
    * @param persistent if the pool is persistent or not
    * @return a new builder with the added pool
+   *
+   * @throws IllegalArgumentException if the set of resource pools already contains a disk resource
    */
   public ResourcePoolsBuilder disk(long size, MemoryUnit unit, boolean persistent) {
     return with(ResourceType.Core.DISK, size, unit, persistent);

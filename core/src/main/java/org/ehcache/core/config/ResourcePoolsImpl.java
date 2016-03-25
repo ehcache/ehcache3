@@ -19,6 +19,7 @@ package org.ehcache.core.config;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -33,9 +34,9 @@ import java.util.Set;
  */
 public class ResourcePoolsImpl implements ResourcePools {
 
-  private final Map<ResourceType, ResourcePool> pools;
+  private final Map<ResourceType<?>, ResourcePool> pools;
 
-  public ResourcePoolsImpl(Map<ResourceType, ResourcePool> pools) {
+  public ResourcePoolsImpl(Map<ResourceType<?>, ResourcePool> pools) {
     validateResourcePools(pools.values());
     this.pools = pools;
   }
@@ -44,15 +45,15 @@ public class ResourcePoolsImpl implements ResourcePools {
    * {@inheritDoc}
    */
   @Override
-  public ResourcePool getPoolForResource(ResourceType resourceType) {
-    return pools.get(resourceType);
+  public <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType) {
+    return resourceType.getResourcePoolClass().cast(pools.get(resourceType));
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public Set<ResourceType> getResourceTypeSet() {
+  public Set<ResourceType<?>> getResourceTypeSet() {
     return pools.keySet();
   }
 
@@ -61,34 +62,27 @@ public class ResourcePoolsImpl implements ResourcePools {
    */
   @Override
   public ResourcePools validateAndMerge(ResourcePools toBeUpdated) {
+    // Ensure update pool types already exist in existing pools
     if(!getResourceTypeSet().containsAll(toBeUpdated.getResourceTypeSet())) {
       throw new IllegalArgumentException("Pools to be updated cannot contain previously undefined resources pools");
     }
+    // Can not update OFFHEAP
     if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.OFFHEAP)) {
       throw new UnsupportedOperationException("Updating OFFHEAP resource is not supported");
     }
+    // Can not update DISK
     if(toBeUpdated.getResourceTypeSet().contains(ResourceType.Core.DISK)) {
       throw new UnsupportedOperationException("Updating DISK resource is not supported");
     }
-    for(ResourceType currentResourceType : toBeUpdated.getResourceTypeSet()) {
-      if (toBeUpdated.getPoolForResource(currentResourceType).getSize() <= 0) {
-        throw new IllegalArgumentException("Unacceptable zero or negative size for resource pools provided");
-      }
-      if (toBeUpdated.getPoolForResource(currentResourceType).isPersistent() !=
-          getPoolForResource(currentResourceType).isPersistent()) {
-        throw new IllegalArgumentException("Persistence configuration cannot be updated");
-      }
-      if(!toBeUpdated.getPoolForResource(currentResourceType).getUnit().getClass()
-          .equals(getPoolForResource(currentResourceType).getUnit().getClass())) {
-        throw new UnsupportedOperationException("Modifying ResourceUnit type is not supported");
-      }
+    for(ResourceType<?> currentResourceType : toBeUpdated.getResourceTypeSet()) {
+      getPoolForResource(currentResourceType).validateUpdate(toBeUpdated.getPoolForResource(currentResourceType));
     }
 
-    Map<ResourceType, ResourcePool> poolsMap = new HashMap<ResourceType, ResourcePool>();
+    Map<ResourceType<?>, ResourcePool> poolsMap = new HashMap<ResourceType<?>, ResourcePool>();
     poolsMap.putAll(pools);
-    for(ResourceType currentResourceType : toBeUpdated.getResourceTypeSet()) {
+    for(ResourceType<?> currentResourceType : toBeUpdated.getResourceTypeSet()) {
       ResourcePool poolForResource = toBeUpdated.getPoolForResource(currentResourceType);
-      poolsMap.put(currentResourceType, new ResourcePoolImpl(currentResourceType, poolForResource.getSize(), poolForResource.getUnit(), poolForResource.isPersistent()));
+      poolsMap.put(currentResourceType, poolForResource);
     }
 
     return new ResourcePoolsImpl(poolsMap);
@@ -100,18 +94,18 @@ public class ResourcePoolsImpl implements ResourcePools {
    * @param pools the resource pools to validate
    */
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
-    EnumMap<ResourceType.Core, ResourcePool> coreResources = new EnumMap<ResourceType.Core, ResourcePool>(ResourceType.Core.class);
+    EnumMap<ResourceType.Core, SizedResourcePool> coreResources = new EnumMap<ResourceType.Core, SizedResourcePool>(ResourceType.Core.class);
     for (ResourcePool pool : pools) {
       if (pool.getType() instanceof ResourceType.Core) {
-        coreResources.put((ResourceType.Core) pool.getType(), pool);
+        coreResources.put((ResourceType.Core)pool.getType(), (SizedResourcePool)pool);
       }
     }
 
-    List<ResourcePool> ordered = new ArrayList<ResourcePool>(coreResources.values());
+    List<SizedResourcePool> ordered = new ArrayList<SizedResourcePool>(coreResources.values());
     for (int i = 0; i < ordered.size(); i++) {
       for (int j = 0; j < i; j++) {
-        ResourcePool upper = ordered.get(j);
-        ResourcePool lower = ordered.get(i);
+        SizedResourcePool upper = ordered.get(j);
+        SizedResourcePool lower = ordered.get(i);
 
         boolean inversion;
         try {

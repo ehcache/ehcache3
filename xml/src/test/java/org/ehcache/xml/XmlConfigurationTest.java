@@ -646,8 +646,7 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
     } catch (XmlConfigurationException xce) {
-      IllegalArgumentException e = (IllegalArgumentException) xce.getCause();
-      assertThat(e.getMessage(), containsString("Can't find parser for resource: [fancy:fancy: null]"));
+      assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
     }
   }
 

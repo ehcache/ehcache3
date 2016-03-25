@@ -17,9 +17,9 @@
 package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.exceptions.CachePersistenceException;
@@ -104,7 +104,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
           PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
           ResourcePools resourcePools = getDiskResourcePool(capacity);
-          ResourcePool diskPool = resourcePools.getPoolForResource(DISK);
+          SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
           Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),

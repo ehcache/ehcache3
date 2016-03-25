@@ -17,9 +17,9 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
@@ -78,7 +78,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
 
         ResourcePools resourcePools = getOffHeapResourcePool(capacity);
-        ResourcePool offheapPool = resourcePools.getPoolForResource(OFFHEAP);
+        SizedResourcePool offheapPool = resourcePools.getPoolForResource(OFFHEAP);
         MemoryUnit unit = (MemoryUnit)offheapPool.getUnit();
 
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),

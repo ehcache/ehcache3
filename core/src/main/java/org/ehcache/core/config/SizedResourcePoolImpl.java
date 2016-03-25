@@ -19,16 +19,18 @@ package org.ehcache.core.config;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.SizedResourcePool;
 
 /**
- * Implementation of the {@link ResourcePool} interface.
+ * Implementation of the {@link SizedResourcePool} interface.
+ *
+ * @param <P> resource pool type
  */
-public class ResourcePoolImpl implements ResourcePool {
+public class SizedResourcePoolImpl<P extends SizedResourcePool> extends AbstractResourcePool<P, ResourceType<P>>
+    implements SizedResourcePool {
 
-  private final ResourceType type;
   private final long size;
   private final ResourceUnit unit;
-  private final boolean persistent;
 
   /**
    * Creates a new resource pool based on the provided parameters.
@@ -38,22 +40,16 @@ public class ResourcePoolImpl implements ResourcePool {
    * @param unit the unit for the size
    * @param persistent whether the pool is to be persistent
    */
-  public ResourcePoolImpl(ResourceType type, long size, ResourceUnit unit, boolean persistent) {
+  public SizedResourcePoolImpl(ResourceType<P> type, long size, ResourceUnit unit, boolean persistent) {
+    super(type, persistent);
+    if (unit == null) {
+      throw new NullPointerException("ResourceUnit can not be null");
+    }
     if (!type.isPersistable() && persistent) {
       throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
     }
-    this.type = type;
     this.size = size;
     this.unit = unit;
-    this.persistent = persistent;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public ResourceType getType() {
-    return type;
   }
 
   /**
@@ -74,10 +70,25 @@ public class ResourcePoolImpl implements ResourcePool {
 
   /**
    * {@inheritDoc}
+   *
+   * @throws IllegalArgumentException {@inheritDoc}
    */
   @Override
-  public boolean isPersistent() {
-    return persistent;
+  public void validateUpdate(final ResourcePool newPool) {
+    super.validateUpdate(newPool);
+
+    SizedResourcePool sizedPool = (SizedResourcePool)newPool;
+    // Ensure unit type has not changed
+    if (!this.getUnit().getClass().equals(sizedPool.getUnit().getClass())) {
+      throw new IllegalArgumentException("ResourcePool for " + sizedPool.getType() + " with ResourceUnit '"
+          + sizedPool.getUnit() + "' can not replace '" + this.getUnit() + "'");
+    }
+
+    // Ensure replacement has positive space
+    if (sizedPool.getSize() <= 0) {
+      throw new IllegalArgumentException("ResourcePool for " + sizedPool.getType()
+          + " must specify space greater than 0");
+    }
   }
 
   /**

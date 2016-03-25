@@ -506,7 +506,7 @@ public class EhcacheBulkMethodsITest {
    */
   private static class CustomStoreProvider implements Store.Provider {
     @Override
-    public int rank(final Set<ResourceType> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
       return Integer.MAX_VALUE;     // Ensure this Store.Provider is ranked highest
     }
 

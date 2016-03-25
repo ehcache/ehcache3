@@ -18,6 +18,7 @@ package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
@@ -1468,23 +1469,26 @@ public class XAStoreTest {
     provider.start(serviceLocator);
 
     final Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.<ServiceConfiguration<?>>singleton(configuration);
-    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.HEAP);
-    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 11, xaStoreConfigs, ResourceType.Core.DISK);
-    assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.HEAP);
+    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.DISK);
+    assertRank(provider, 1002, xaStoreConfigs, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
     assertRank(provider, -1, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 12, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 13, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 1002, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 1003, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     final Set<ServiceConfiguration<?>> emptyConfigs = Collections.emptySet();
     assertRank(provider, 0, emptyConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final ResourceType unmatchedResourceType = new ResourceType() {
+    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
+      @Override
+      public Class<ResourcePool> getResourcePoolClass() {
+        return ResourcePool.class;
+      }
       @Override
       public boolean isPersistable() {
         return true;
       }
-
       @Override
       public boolean requiresSerialization() {
         return true;
@@ -1496,17 +1500,17 @@ public class XAStoreTest {
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank,
-                          final Collection<ServiceConfiguration<?>> serviceConfigs, final ResourceType... resources) {
+                          final Collection<ServiceConfiguration<?>> serviceConfigs, final ResourceType<?>... resources) {
     if (expectedRank == -1) {
       try {
-        provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)), serviceConfigs);
+        provider.rank(new HashSet<ResourceType<?>>(Arrays.asList(resources)), serviceConfigs);
         fail();
       } catch (IllegalStateException e) {
         // Expected
         assertThat(e.getMessage(), startsWith("No Store.Provider "));
       }
     } else {
-      assertThat(provider.rank(new HashSet<ResourceType>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
+      assertThat(provider.rank(new HashSet<ResourceType<?>>(Arrays.asList(resources)), serviceConfigs), is(expectedRank));
     }
   }
 

@@ -21,6 +21,7 @@ import org.ehcache.spi.ServiceProvider;
 /**
  * Specific {@link Service} interface that indicates that the service participates in maintenance mode
  */
+@PluralService
 public interface MaintainableService extends Service {
   /**
    * Start this service for maintenance, based on its default configuration.
