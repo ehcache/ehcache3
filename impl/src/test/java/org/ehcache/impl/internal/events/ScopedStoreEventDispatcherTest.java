@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.core.spi.function.BiFunction;
@@ -32,7 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
-import static org.ehcache.core.util.ValueSuppliers.supplierOf;
+import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

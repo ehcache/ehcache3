@@ -23,6 +23,7 @@ import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
+import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
@@ -44,7 +45,7 @@ import javax.cache.configuration.OptionalFeature;
 import javax.cache.spi.CachingProvider;
 
 /**
- * @author teck
+ * {@link CachingProvider} implementation for Ehcache.
  */
 public class EhcacheCachingProvider implements CachingProvider {
 
@@ -62,6 +63,9 @@ public class EhcacheCachingProvider implements CachingProvider {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheManager getCacheManager(URI uri, ClassLoader classLoader, Properties properties) {
     uri = uri == null ? getDefaultURI() : uri;
@@ -89,10 +93,28 @@ public class EhcacheCachingProvider implements CachingProvider {
     return getCacheManager(uri, config, properties);
   }
 
+  /**
+   * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration}.
+   *
+   * @param uri the URI identifying this cache manager
+   * @param config the Ehcache configuration to use
+   *
+   * @return a cache manager
+   */
   public Eh107CacheManager getCacheManager(URI uri, Configuration config) {
     return getCacheManager(uri, config, new Properties());
   }
 
+  /**
+   * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration} with the
+   * provided {@Link Properties}.
+   *
+   * @param uri the URI identifying this cache manager
+   * @param config the Ehcache configuration to use
+   * @param properties extra properties
+   *
+   * @return a cache manager
+   */
   public Eh107CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
     Eh107CacheManager cacheManager;
     ConcurrentMap<URI, Eh107CacheManager> byURI;
@@ -157,31 +179,49 @@ public class EhcacheCachingProvider implements CachingProvider {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ClassLoader getDefaultClassLoader() {
     return ClassLoading.getDefaultClassLoader();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public URI getDefaultURI() {
     return URI_DEFAULT;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Properties getDefaultProperties() {
     return new Properties();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheManager getCacheManager(final URI uri, final ClassLoader classLoader) {
     return getCacheManager(uri, classLoader, null);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheManager getCacheManager() {
     return getCacheManager(getDefaultURI(), getDefaultClassLoader());
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close() {
     synchronized (cacheManagers) {
@@ -194,6 +234,9 @@ public class EhcacheCachingProvider implements CachingProvider {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close(final ClassLoader classLoader) {
     if (classLoader == null) {
@@ -213,6 +256,9 @@ public class EhcacheCachingProvider implements CachingProvider {
     closeException.throwIfNotEmpty();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close(final URI uri, final ClassLoader classLoader) {
     if (uri == null || classLoader == null) {
@@ -232,6 +278,9 @@ public class EhcacheCachingProvider implements CachingProvider {
     closeException.throwIfNotEmpty();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean isSupported(final OptionalFeature optionalFeature) {
     if (optionalFeature == null) {

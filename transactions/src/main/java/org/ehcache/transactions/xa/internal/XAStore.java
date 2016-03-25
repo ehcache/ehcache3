@@ -76,7 +76,7 @@ import javax.transaction.Transaction;
 
 import static org.ehcache.core.internal.service.ServiceLocator.findAmongst;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
-import static org.ehcache.core.util.ValueSuppliers.supplierOf;
+import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 
 /**
  * A {@link Store} implementation wrapping another {@link Store} driven by a JTA

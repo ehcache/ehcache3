@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.jsr107.tck;
+package org.ehcache.jsr107.internal.tck;
 
 import javax.management.ListenerNotFoundException;
 import javax.management.MBeanNotificationInfo;

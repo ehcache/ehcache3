@@ -27,7 +27,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.jsr107.DefaultJsr107Service;
+import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.service.Service;
 import org.junit.Test;

@@ -19,12 +19,26 @@ package org.ehcache.jsr107.config;
 import org.ehcache.spi.service.Service;
 
 /**
- * @author Alex Snaps
+ * {@link Service} interface for JSR-107 integration.
  */
 public interface Jsr107Service extends Service {
 
-  String getTemplateNameForCache(String name);
+  /**
+   * Returns a template name matching the provided cache alias, if any is configured.
+   *
+   * @param cacheAlias the cache alias
+   * @return the template name or {@code null} if none configured.
+   */
+  String getTemplateNameForCache(String cacheAlias);
 
+  /**
+   * Indicates the loader writer behavior in atomic methods.
+   * <P>
+   *   If {@code true} then loader writer will <EM>NOT</EM> be used in atomic methods, if {@code false} it will be.
+   * </P>
+   *
+   * @return {@code true} or {@code false} depending on configuration
+   */
   boolean jsr107CompliantAtomics();
 
 }

@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.jsr107;
+package org.ehcache.jsr107.internal;
 
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
 
-/**
- * @author Alex Snaps
- */
 public class DefaultJsr107Service implements Jsr107Service {
 
   private final Jsr107Configuration configuration;
@@ -38,12 +35,12 @@ public class DefaultJsr107Service implements Jsr107Service {
   }
 
   @Override
-  public String getTemplateNameForCache(String name) {
+  public String getTemplateNameForCache(String cacheAlias) {
     final Jsr107Configuration cfg = configuration;
     if (cfg == null) {
       return null;
     }
-    String template = cfg.getTemplates().get(name);
+    String template = cfg.getTemplates().get(cacheAlias);
     if (template != null) {
       return template;
     }

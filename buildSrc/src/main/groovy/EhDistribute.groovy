@@ -8,8 +8,9 @@ import org.gradle.api.artifacts.maven.MavenDeployment
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.api.plugins.MavenPlugin
 import org.gradle.api.plugins.osgi.OsgiPluginConvention
+import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.bundling.Zip
-import org.gradle.plugins.signing.Sign
+import org.gradle.api.tasks.javadoc.Javadoc
 import scripts.Utils
 
 /*
@@ -116,7 +117,22 @@ class EhDistribute implements Plugin<Project> {
       title "$project.archivesBaseName $project.version API"
       source hashsetOfProjects.javadoc.source
       classpath = project.files(hashsetOfProjects.javadoc.classpath)
-      exclude '**/internal/**', '**/tck/**'
+      project.ext.properties.javadocExclude.tokenize(',').each {
+        exclude it.trim()
+      }
+    }
+
+    project.task('spiJavadoc', type: Javadoc) {
+      title "$project.archivesBaseName $project.version API & SPI"
+      source hashsetOfProjects.javadoc.source
+      classpath = project.files(hashsetOfProjects.javadoc.classpath)
+      exclude '**/internal/**'
+      destinationDir = project.file("$project.docsDir/spi-javadoc")
+    }
+
+    project.task('spiJavadocJar', type: Jar, dependsOn: 'spiJavadoc') {
+      classifier = 'spi-javadoc'
+      from project.tasks.getByPath('spiJavadoc').destinationDir
     }
 
     project.task('asciidocZip', type: Zip, dependsOn: ':docs:asciidoctor') {
@@ -126,6 +142,7 @@ class EhDistribute implements Plugin<Project> {
 
     project.artifacts {
       archives project.asciidocZip
+      archives project.spiJavadocJar
     }
 
     project.signing {
