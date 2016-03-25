@@ -23,20 +23,20 @@ import java.util.List;
 
 import javax.cache.CacheException;
 
-public class MultiCacheException extends CacheException {
+class MultiCacheException extends CacheException {
   private static final long serialVersionUID = -6839700789356356261L;
 
   private final List<Throwable> throwables = new ArrayList<Throwable>();
 
-  public MultiCacheException() {
+  MultiCacheException() {
     super();
   }
 
-  public MultiCacheException(Throwable t) {
+  MultiCacheException(Throwable t) {
     addThrowable(t);
   }
 
-  public void addThrowable(Throwable t) {
+  void addThrowable(Throwable t) {
     if (t == null) {
       throw new NullPointerException();
     }
@@ -54,7 +54,7 @@ public class MultiCacheException extends CacheException {
     }
   }
 
-  public List<Throwable> getThrowables() {
+  private List<Throwable> getThrowables() {
     return Collections.unmodifiableList(throwables);
   }
 
@@ -109,7 +109,7 @@ public class MultiCacheException extends CacheException {
     }
   }
 
-  public void throwIfNotEmpty() {
+  void throwIfNotEmpty() {
     if (!throwables.isEmpty()) {
 
       // if the only thing we contain is a single CacheException, then throw that

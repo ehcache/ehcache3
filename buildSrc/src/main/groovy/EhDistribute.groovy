@@ -126,7 +126,7 @@ class EhDistribute implements Plugin<Project> {
       title "$project.archivesBaseName $project.version API & SPI"
       source hashsetOfProjects.javadoc.source
       classpath = project.files(hashsetOfProjects.javadoc.classpath)
-      exclude '**/internal/**', '**/tck/**'
+      exclude '**/internal/**'
       destinationDir = project.file("$project.docsDir/spi-javadoc")
     }
 

@@ -48,7 +48,7 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 /**
  * @author Ludovic Orban
  */
-public class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.management.CacheStatisticsMXBean {
+class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.management.CacheStatisticsMXBean {
 
   private final CompensatingCounters compensatingCounters = new CompensatingCounters();
   private final OperationStatistic<CacheOperationOutcomes.GetOutcome> get;

@@ -63,7 +63,7 @@ task tckTest(type: Test, dependsOn: unpackTckTests) {
   reports.html.destination = "$buildDir/reports/tck-tests"
 
   systemProperty 'java.net.preferIPv4Stack', 'true'
-  systemProperty 'javax.management.builder.initial', 'org.ehcache.jsr107.tck.Eh107MBeanServerBuilder'
+  systemProperty 'javax.management.builder.initial', 'org.ehcache.jsr107.internal.tck.Eh107MBeanServerBuilder'
   systemProperty 'org.jsr107.tck.management.agentId', 'Eh107MBeanServer'
   systemProperty 'javax.cache.CacheManager', 'org.ehcache.CacheManager'
   systemProperty 'javax.cache.Cache', 'org.ehcache.Cache'

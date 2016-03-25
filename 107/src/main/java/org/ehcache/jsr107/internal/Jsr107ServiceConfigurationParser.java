@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.jsr107;
+package org.ehcache.jsr107.internal;
 
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
