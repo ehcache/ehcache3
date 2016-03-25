@@ -74,7 +74,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.ehcache.core.internal.util.Functions.memoize;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheWritingException;
-import static org.ehcache.core.util.ValueSuppliers.supplierOf;
+import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**

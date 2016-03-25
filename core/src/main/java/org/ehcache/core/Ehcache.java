@@ -69,7 +69,7 @@ import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
-import static org.ehcache.core.util.ValueSuppliers.supplierOf;
+import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**

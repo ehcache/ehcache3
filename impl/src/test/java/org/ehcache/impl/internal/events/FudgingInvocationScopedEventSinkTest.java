@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
 import org.ehcache.core.spi.store.events.StoreEventFilter;
 import org.ehcache.core.spi.store.events.StoreEventListener;
@@ -28,7 +27,7 @@ import java.util.HashSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
-import static org.ehcache.core.util.ValueSuppliers.supplierOf;
+import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.store.offheap.AbstractOffHeapStoreTest.eventType;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Mockito.inOrder;

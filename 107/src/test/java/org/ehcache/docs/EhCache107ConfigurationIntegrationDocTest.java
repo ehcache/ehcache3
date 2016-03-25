@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.util.ValueSuppliers;
+import org.ehcache.core.internal.util.ValueSuppliers;
 import org.ehcache.jsr107.Eh107Configuration;
 import org.junit.After;
 import org.junit.Before;

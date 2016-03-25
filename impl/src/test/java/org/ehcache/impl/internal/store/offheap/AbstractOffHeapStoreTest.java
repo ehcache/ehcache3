@@ -55,7 +55,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.core.util.ValueSuppliers.supplierOf;
+import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.valueHeld;
 import static org.ehcache.impl.internal.util.StatisticsTestUtils.validateStats;
 import static org.hamcrest.CoreMatchers.equalTo;
