@@ -69,8 +69,8 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public int size() {
-    return keyCopyMap.size();
+  public long mappingCount() {
+    return keyCopyMap.mappingCount();
   }
 
   @Override
@@ -87,7 +87,7 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
     if (byteSized) {
       return byteSize.get();
     } else {
-      return keyCopyMap.size();
+      return mappingCount();
     }
   }
 

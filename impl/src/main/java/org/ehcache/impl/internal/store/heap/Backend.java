@@ -56,7 +56,7 @@ interface Backend<K, V> {
    *
    * @return the number of mappings
    */
-  int size();
+  long mappingCount();
 
   /**
    * Returns the computed size in bytes, if configured to do so

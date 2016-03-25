@@ -52,8 +52,8 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public int size() {
-    return realMap.size();
+  public long mappingCount() {
+    return realMap.mappingCount();
   }
 
   @Override
@@ -70,7 +70,7 @@ class SimpleBackend<K, V> implements Backend<K, V> {
     if (byteSized) {
       return byteSize.get();
     } else {
-      return realMap.size();
+      return mappingCount();
     }
   }
 

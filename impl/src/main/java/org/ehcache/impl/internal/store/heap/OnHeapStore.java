@@ -86,7 +86,6 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
@@ -251,7 +250,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     StatisticsManager.createPassThroughStatistic(this, "mappingsCount", Collections.singleton("onheap-store"), new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return map.size();
+        return map.mappingCount();
       }
     });
   }
