@@ -27,6 +27,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
@@ -164,6 +165,11 @@ public class DefaultClusteringService implements ClusteringService {
   @Override
   public Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException {
     return emptyList();
+  }
+
+  @Override
+  public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    //no caches yet - nothing to create
   }
 
   @Override
