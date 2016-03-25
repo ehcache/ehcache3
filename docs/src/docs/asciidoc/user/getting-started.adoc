@@ -16,8 +16,6 @@ endif::notBuildingForSite[]
 NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you should start by reading
       link:107{outfilesuffix}[the Ehcache 3.x JSR-107 Provider page]
 
-WARNING: *This is still a work in progress*. While it represents the API as it exists today, the final version will be represented in the Ehcache 3.0 OSS Beta.
-
 === Configuring it all in Java
 
 ==== Managed cache
@@ -67,6 +65,8 @@ NOTE: See link:usermanaged{outfilesuffix}[the user managed cache documentation] 
 
 === Tiering
 
+Ehcache 3, as in previous versions, offers a tiering model to allow storing increasing amounts of data on slower tiers.
+
 ==== Off-heap
 
 [source,java,indent=0]
@@ -76,7 +76,10 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 
 <1> If you wish to use off-heap, you'll have to define resource pool, giving the memory size you want to allocate.
 
-Do not forget to define in the java options the -XX:MaxDirectMemorySize option, according to the off-heap size you intend to use.
+The example above allocates a very small amount of off-heap.
+Remember that data stored off-heap will have to be serialized and deserialized.
+You should thus favor off-heap for large amounts of data where on heap would have too severe an impact on garbage collection.
+Do not forget to define in the java options the `-XX:MaxDirectMemorySize` option, according to the off-heap size you intend to use.
 
 ==== Disk persistence
 
@@ -102,7 +105,11 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <3> You define a resource pool for the off-heap.
 <4> You define a resource pool for the disk.
 
-==== Byte Sized Tiering
+==== Byte sized heap
+
+You can also size the heap tier using memory units instead of entry count.
+
+NOTE: Byte sizing has a runtime performance impact that depends on the size and graph complexity of the data cached.
 
 [source,java,indent=0]
 ----
@@ -120,6 +127,10 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 
 ==== Update ResourcePools
 
+Limited size adjustment can be performed on a live cache.
+
+NOTE: Presently, `updateResourcePools()` only supports updating the heap tier and without changing the resource type.
+
 [source,java,indent=0]
 ----
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
@@ -129,8 +140,6 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     then be passed to the said method so as to trigger the update.
 <2> To update capacity of `ResourcePools`, `updateResourcePools(ResourcePools)` method in `RuntimeConfiguration` can be of help.
     `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
-
-NOTE: Presently, `updateResourcePools()` only supports updating tiers that use `EntryUnit.ENTRIES` as the unit of measure.
 
 === Integration
 
@@ -207,6 +216,9 @@ In this particular example, the `OddKeysEvictionVeto` class will veto eviction o
 By the time the cache manager gets closed, only mappings with odd keys should be left in the cache as there isn't
 enough room for mapping with even keys.
 
+NOTE: Veto status is computed when a mapping is written to the cache.
+This means that proper veto implementations are expected to be constant for a key-value pair.
+
 NOTE: Please keep in mind that configuring an eviction veto can slow down eviction: the more often you veto, the
 harder the cache has to work to evict an element when room is required. After a certain time, if a cache determines
 that the configured eviction veto rejected too many eviction candidates, the cache can decide to completely bypass
@@ -220,7 +232,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 ----
 
 <1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
-    `CacheLoaderWriter` and register it.
+    a `CacheLoaderWriter` and configure it.
 
 ==== Write-Behind Cache
 
@@ -229,15 +241,13 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
 ----
 
-<1> A Cache can be used in write-behind pattern as well. You will have to implement `CacheLoaderWriter`
-    and register it.
-<2> Additionally, register a `WriteBehindConfiguration` service to Cache by using a
-    `WriteBehindConfigurationBuilder`.
-<3> Enable write-behind queue to batch the updates to underlying resource.
-<4> Configure maximum size of the writebehind queue.
+<1> A Cache can be used in write-behind pattern as well. You will have to implement a `CacheLoaderWriter` and configure it.
+<2> Additionally, register a `WriteBehindConfiguration` on the Cache by using the `WriteBehindConfigurationBuilder`.
+<3> Here we configure write behind with a batch size of 3 and a max wait time of 1 second.
+<4> We also set the maximum size of the writebehind queue.
 <5> Define the concurrency level of writebehind queue, at a time these many writer threads will update
     the  underlying resource asynchronously.
-<6> Enable the write coalescing behavior, which ensures that only latest update on a key hits the
+<6> Enable the write coalescing behavior, which ensures that only one update per key per batch hits the
     underlying resource.
 
 === Serializers
@@ -319,8 +329,8 @@ If no copiers are provided, the cache will be a store-by-reference cache.
 include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheCopiers]
 ----
 
-<1> Configure the copier to be used for keys. *DescriptionCopier* in this case  as the keys are *Description* objects.
-<2> Configure the copier to be used for values. *PersonCopier* in this case as the values are *Person* objects.
+<1> Configure the copier to be used for keys. `DescriptionCopier` in this case  as the keys are `Description` objects.
+<2> Configure the copier to be used for values. `PersonCopier` in this case as the values are `Person` objects.
 
 Now, if the user does not want to create his own custom copiers and still wants to have a store-by-value cache, ehcache
 provides a `SerializingCopier` that the user can directly use. `SerializingCopier` internally uses serialization to
@@ -370,7 +380,7 @@ WARNING: It is the responsibility of the user to ensure that the service instanc
 Sharing services can have disastrous effects in your application if the user is not careful enough.
 Configuring services using instances opens the door for sharing the same service instance across caches but that feature
 should be used with extra care.
-Configuring services using classes is the recommended way as Ehcache will create and inject the required instances itself.
+Configuring services using class references is the recommended way as Ehcache will then create and inject the required instances itself.
 
 NOTE: By now you are familiar with configuring different services using actual instances or using class types of
 loader-writers, serializers etc. It is desirable to have some cleanup performed on these instances once you are done
