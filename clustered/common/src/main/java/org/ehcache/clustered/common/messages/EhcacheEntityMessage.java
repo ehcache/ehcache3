@@ -26,8 +26,8 @@ import org.terracotta.entity.EntityMessage;
 public abstract class EhcacheEntityMessage implements EntityMessage, Serializable {
 
   public enum Type {
-    CONFIGURE,
-    VALIDATE;
+    CONFIGURE, VALIDATE,
+    CREATE_SERVER_STORE, DESTROY_SERVER_STORE;
   }
 
   public abstract Type getType();
@@ -73,6 +73,42 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
 
     public ServerSideConfiguration getConfiguration() {
       return configuration;
+    }
+  }
+
+  public static EhcacheEntityMessage createServerStore(String name) {
+    return new CreateServerStore(name);
+  }
+
+  public static class CreateServerStore extends EhcacheEntityMessage {
+
+    private final String name;
+
+    public CreateServerStore(String name) {
+      this.name = name;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.CREATE_SERVER_STORE;
+    }
+  }
+
+  public static EhcacheEntityMessage destroyServerStore(String name) {
+    return new DestroyServerStore(name);
+  }
+
+  public static class DestroyServerStore extends EhcacheEntityMessage {
+
+    private final String name;
+
+    public DestroyServerStore(String name) {
+      this.name = name;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.DESTROY_SERVER_STORE;
     }
   }
 }

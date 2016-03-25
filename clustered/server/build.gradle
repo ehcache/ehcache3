@@ -22,7 +22,8 @@ configurations {
 
 dependencies {
   compile project(':clustered:common')
-  compile "org.terracotta:offheap-store:$parent.offheapVersion"
+  compile group: 'org.terracotta', name: 'offheap-resource', version: parent.offheapResourceVersion
+  compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
 }
 

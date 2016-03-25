@@ -17,8 +17,13 @@ package org.ehcache.clustered;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -31,14 +36,23 @@ import org.terracotta.testing.rules.Cluster;
 
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
-import org.junit.AfterClass;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class EhcacheClientEntityFactoryIntegrationTest {
 
+  private static final Map<String, Pool> EMPTY_RESOURCE_MAP = Collections.emptyMap();
+
+  private static final String RESOURCE_CONFIG =
+      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+          + "<ohr:offheap-resources>"
+          + "<ohr:resource name=\"primary\" unit=\"MB\">64</ohr:resource>"
+          + "</ohr:offheap-resources>" +
+          "</service>\n";
+
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1);
+  public static Cluster CLUSTER =
+      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG);
   private static Connection CONNECTION;
 
   @BeforeClass
@@ -56,15 +70,16 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   public void testCreate() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
 
-    assertThat(factory.create("testCreate", new ServerSideConfiguration(0)), notNullValue());
+    assertThat(factory.create("testCreate", new ServerSideConfiguration(EMPTY_RESOURCE_MAP)), notNullValue());
   }
 
   @Test
   public void testCreateWhenExisting() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testCreateWhenExisting", new ServerSideConfiguration(0)).close();
+    factory.create("testCreateWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP)).close();
     try {
-      factory.create("testCreateWhenExisting", new ServerSideConfiguration(1));
+      factory.create("testCreateWhenExisting",
+          new ServerSideConfiguration(Collections.singletonMap("foo", new Pool("bar", 42L))));
       fail("Expected EntityAlreadyExistsException");
     } catch (EntityAlreadyExistsException e) {
       //expected
@@ -74,22 +89,23 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   @Test
   public void testCreateOrRetrieve() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    assertThat(factory.createOrRetrieve("testCreateOrRetrieve", new ServerSideConfiguration(0)), notNullValue());
+    assertThat(factory.createOrRetrieve("testCreateOrRetrieve", new ServerSideConfiguration(EMPTY_RESOURCE_MAP)), notNullValue());
   }
 
   @Test
   public void testCreateOrRetrieveWhenExisting() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testCreateOrRetrieveWhenExisting", new ServerSideConfiguration(0)).close();
-    assertThat(factory.createOrRetrieve("testCreateOrRetrieveWhenExisting", new ServerSideConfiguration(0)), notNullValue());
+    factory.create("testCreateOrRetrieveWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP)).close();
+    assertThat(factory.createOrRetrieve("testCreateOrRetrieveWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP)), notNullValue());
   }
 
   @Test
   public void testCreateOrRetrieveWhenExistingWithBadConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testCreateOrRetrieveWhenExistingWithBadConfig", new ServerSideConfiguration(0)).close();
+    factory.create("testCreateOrRetrieveWhenExistingWithBadConfig", new ServerSideConfiguration(EMPTY_RESOURCE_MAP)).close();
     try {
-      factory.createOrRetrieve("testCreateOrRetrieveWhenExistingWithBadConfig", new ServerSideConfiguration(1));
+      factory.createOrRetrieve("testCreateOrRetrieveWhenExistingWithBadConfig",
+          new ServerSideConfiguration(Collections.singletonMap("foo", new Pool("bar", 42L))));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -99,16 +115,22 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   @Test
   public void testRetrieveWithGoodConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testRetrieveWithGoodConfig", new ServerSideConfiguration(1)).close();
-    assertThat(factory.retrieve("testRetrieveWithGoodConfig", new ServerSideConfiguration(2)), notNullValue());
+    factory.create("testRetrieveWithGoodConfig",
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool("primary", 42L))))
+        .close();
+    assertThat(factory.retrieve("testRetrieveWithGoodConfig",
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool("primary", 43L)))), notNullValue());
   }
 
   @Test
   public void testRetrieveWithBadConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testRetrieveWithBadConfig", new ServerSideConfiguration(1)).close();
+    factory.create("testRetrieveWithBadConfig",
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool("primary", 42L))))
+        .close();
     try {
-      factory.retrieve("testRetrieveWithBadConfig", new ServerSideConfiguration(3));
+      factory.retrieve("testRetrieveWithBadConfig",
+          new ServerSideConfiguration(Collections.singletonMap("bar", new Pool("primary", 42L))));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected

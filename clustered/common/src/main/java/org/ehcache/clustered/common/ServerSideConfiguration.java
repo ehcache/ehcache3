@@ -17,6 +17,10 @@
 package org.ehcache.clustered.common;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+
+import static java.util.Collections.unmodifiableMap;
 
 /**
  *
@@ -24,13 +28,37 @@ import java.io.Serializable;
  */
 public class ServerSideConfiguration implements Serializable {
 
-  private final int magic;
+  private final Map<String, Pool> resourcePools;
 
-  public ServerSideConfiguration(int magic) {
-    this.magic = magic;
+  public ServerSideConfiguration(Map<String, Pool> resourcePools) {
+    this.resourcePools = new HashMap<String, Pool>(resourcePools);
   }
 
-  public int getMagic() {
-    return magic;
+  public Map<String, Pool> getResourcePools() {
+    return unmodifiableMap(resourcePools);
+  }
+
+  public static final class Pool implements Serializable {
+
+    private final String source;
+    private final long size;
+
+    public Pool(String source, long size) {
+      this.source = source;
+      this.size = size;
+    }
+
+    public long size() {
+      return size;
+    }
+
+    public String source() {
+      return source;
+    }
+
+    @Override
+    public String toString() {
+      return "[" + size() + " bytes from '" + source() + "']";
+    }
   }
 }

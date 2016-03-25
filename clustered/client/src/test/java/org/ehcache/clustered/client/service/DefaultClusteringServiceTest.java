@@ -30,7 +30,7 @@ import static org.junit.Assert.*;
 public class DefaultClusteringServiceTest {
 
   @Before
-  public void resetPassthroughServer() {
+  public void resetPassthroughServer() throws Exception {
     UnitTestConnectionService.reset();
   }
 

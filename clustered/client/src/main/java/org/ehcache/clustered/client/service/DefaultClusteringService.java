@@ -20,7 +20,12 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 
@@ -57,6 +62,7 @@ public class DefaultClusteringService implements ClusteringService {
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
   private final String entityIdentifier;
+  private final ServerSideConfiguration serverConfiguration;
   private final boolean autoCreate;
 
   private Connection clusterConnection;
@@ -70,6 +76,7 @@ public class DefaultClusteringService implements ClusteringService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
+    this.serverConfiguration = new ServerSideConfiguration(extractResourcePools(configuration));
     this.autoCreate = AUTO_CREATE_QUERY.equalsIgnoreCase(ehcacheUri.getQuery());
   }
 
@@ -142,7 +149,7 @@ public class DefaultClusteringService implements ClusteringService {
   @Override
   public void create() {
     try {
-      entityFactory.create(entityIdentifier, new ServerSideConfiguration(0));
+      entityFactory.create(entityIdentifier, serverConfiguration);
     } catch (EntityAlreadyExistsException e) {
       throw new IllegalStateException(e);
     }
@@ -151,7 +158,7 @@ public class DefaultClusteringService implements ClusteringService {
   @Override
   public void connect() {
     try {
-      entity = entityFactory.retrieve(entityIdentifier, new ServerSideConfiguration(0));
+      entity = entityFactory.retrieve(entityIdentifier, serverConfiguration);
     } catch (EntityNotFoundException ex) {
       throw new IllegalStateException(ex);
     }
@@ -169,11 +176,25 @@ public class DefaultClusteringService implements ClusteringService {
 
   @Override
   public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    //no caches yet - nothing to create
+    entity.createCache(name);
   }
 
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    //no caches yet - nothing to destroy
+    entity.destroyCache(name);
+  }
+
+  private Map<String, ServerSideConfiguration.Pool> extractResourcePools(ClusteringServiceConfiguration configuration) {
+    Map<String, ServerSideConfiguration.Pool> pools = new HashMap<String, ServerSideConfiguration.Pool>();
+    for (Map.Entry<String, PoolDefinition> e : configuration.getPools().entrySet()) {
+      PoolDefinition poolDef = e.getValue();
+      long size = poolDef.getUnit().toBytes(poolDef.getSize());
+      if (poolDef.getServerResource() == null) {
+        pools.put(e.getKey(), new ServerSideConfiguration.Pool(configuration.getDefaultServerResource(), size));
+      } else {
+        pools.put(e.getKey(), new ServerSideConfiguration.Pool(poolDef.getServerResource(), size));
+      }
+    }
+    return Collections.unmodifiableMap(pools);
   }
 }

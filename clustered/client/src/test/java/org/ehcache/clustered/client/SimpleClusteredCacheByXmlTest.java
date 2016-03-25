@@ -43,7 +43,7 @@ public class SimpleClusteredCacheByXmlTest {
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";
 
   @Before
-  public void resetPassthroughServer() {
+  public void resetPassthroughServer() throws Exception {
     UnitTestConnectionService.reset();
   }
 

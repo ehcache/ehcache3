@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
 public class BasicClusteredCacheTest {
 
   @Before
-  public void resetPassthroughServer() {
+  public void resetPassthroughServer() throws Exception {
     UnitTestConnectionService.reset();
   }
 

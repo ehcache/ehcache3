@@ -42,7 +42,7 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
 
   @Override
   public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcacheActiveEntity(configuration);
+    return new EhcacheActiveEntity(registry, configuration);
   }
 
   @Override

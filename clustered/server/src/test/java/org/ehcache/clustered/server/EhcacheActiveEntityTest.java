@@ -28,7 +28,7 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testConfigTooShort() {
     try {
-      new EhcacheActiveEntity(new byte[15]);
+      new EhcacheActiveEntity(null, new byte[15]);
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -38,7 +38,7 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testConfigTooLong() {
     try {
-      new EhcacheActiveEntity(new byte[17]);
+      new EhcacheActiveEntity(null, new byte[17]);
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -48,7 +48,7 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testConfigNull() {
     try {
-      new EhcacheActiveEntity(null);
+      new EhcacheActiveEntity(null, null);
       fail("Expected NullPointerException");
     } catch (NullPointerException e) {
       //expected

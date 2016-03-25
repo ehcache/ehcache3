@@ -15,10 +15,13 @@
  */
 package org.ehcache.clustered.server;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ConfigureCacheManager;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
@@ -27,6 +30,16 @@ import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+import org.terracotta.entity.ServiceRegistry;
+import org.terracotta.offheapresource.OffHeapResource;
+import org.terracotta.offheapresource.OffHeapResourceIdentifier;
+import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
+import org.terracotta.offheapstore.paging.PageSource;
+import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
+
+import static java.util.Collections.unmodifiableMap;
+import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
+import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.failure;
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.success;
@@ -34,12 +47,13 @@ import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.succes
 public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private final UUID identity;
+  private final ServiceRegistry services;
 
-  private ServerSideConfiguration configuration;
+  private Map<String, PageSource> resourcePools;
 
-
-  EhcacheActiveEntity(byte[] config) {
+  EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
+    this.services = services;
   }
 
   @Override
@@ -57,6 +71,8 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     switch (message.getType()) {
       case CONFIGURE: return configure((ConfigureCacheManager) message);
       case VALIDATE: return validate((ValidateCacheManager) message);
+      case CREATE_SERVER_STORE: return success();
+      case DESTROY_SERVER_STORE: return success();
       default: throw new IllegalArgumentException("Unknown message " + message);
     }
   }
@@ -87,8 +103,12 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   }
 
   private EhcacheEntityResponse configure(ConfigureCacheManager message) throws IllegalStateException {
-    if (configuration == null) {
-      this.configuration = message.getConfiguration();
+    if (resourcePools == null) {
+      try {
+        this.resourcePools = createPools(message.getConfiguration().getResourcePools());
+      } catch (RuntimeException e) {
+        return failure(e);
+      }
       return success();
     } else {
       return failure(new IllegalStateException("Clustered Cache Manager already configured"));
@@ -96,10 +116,31 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   }
 
   private EhcacheEntityResponse validate(ValidateCacheManager message)  throws IllegalArgumentException {
-    if (Integer.bitCount(configuration.getMagic()) != Integer.bitCount(message.getConfiguration().getMagic())) {
-      return failure(new IllegalArgumentException("Magic parameters not aligned"));
+    if (!this.resourcePools.keySet().equals(message.getConfiguration().getResourcePools().keySet())) {
+      return failure(new IllegalArgumentException("ResourcePools not aligned"));
     } else {
       return success();
     }
+  }
+
+  private Map<String, PageSource> createPools(Map<String, Pool> resourcePools) {
+    Map<String, PageSource> pools = new HashMap<String, PageSource>();
+    for (Entry<String, Pool> e : resourcePools.entrySet()) {
+      Pool pool = e.getValue();
+      OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.source()));
+      if (source == null) {
+        throw new IllegalArgumentException("Non-existent server side resource '" + pool.source() + "'");
+      } else if (source.reserve(pool.size())) {
+        try {
+          pools.put(e.getKey(), new UpfrontAllocatingPageSource(new OffHeapBufferSource(), pool.size(), GIGABYTES.toBytes(1), MEGABYTES.toBytes(128)));
+        } catch (Throwable t) {
+          source.release(pool.size());
+          throw new IllegalArgumentException("Failure allocating pool " + pool, t);
+        }
+      } else {
+        throw new IllegalArgumentException("Insufficient defined resources to allocate pool " + e);
+      }
+    }
+    return unmodifiableMap(pools);
   }
 }

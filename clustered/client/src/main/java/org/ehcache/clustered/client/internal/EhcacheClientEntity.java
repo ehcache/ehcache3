@@ -17,6 +17,8 @@
 package org.ehcache.clustered.client.internal;
 
 import java.util.UUID;
+
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
@@ -26,6 +28,8 @@ import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.InvokeFuture;
+
+import static org.ehcache.clustered.common.Util.unwrapException;
 
 /**
  *
@@ -68,7 +72,7 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Throwable {
+  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Exception {
     InvokeFuture<EhcacheEntityResponse> result = endpoint.beginInvoke().message(message).invoke();
     boolean interrupted = false;
     try {
@@ -88,6 +92,22 @@ public class EhcacheClientEntity implements Entity {
       if (interrupted) {
         Thread.currentThread().interrupt();
       }
+    }
+  }
+
+  public void createCache(String name) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.createServerStore(name));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
+  public void destroyCache(String name) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.destroyServerStore(name));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
     }
   }
 }
