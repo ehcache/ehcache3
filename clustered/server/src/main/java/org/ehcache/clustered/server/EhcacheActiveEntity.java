@@ -24,6 +24,8 @@ import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ConfigureCacheManager;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage.CreateServerStore;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage.DestroyServerStore;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
@@ -50,6 +52,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   private final ServiceRegistry services;
 
   private Map<String, PageSource> resourcePools;
+  private Map<String, ServerStore> stores;
 
   EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
@@ -71,8 +74,8 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     switch (message.getType()) {
       case CONFIGURE: return configure((ConfigureCacheManager) message);
       case VALIDATE: return validate((ValidateCacheManager) message);
-      case CREATE_SERVER_STORE: return success();
-      case DESTROY_SERVER_STORE: return success();
+      case CREATE_SERVER_STORE: return createServerStore((CreateServerStore) message);
+      case DESTROY_SERVER_STORE: return destroyServerStore((DestroyServerStore) message);
       default: throw new IllegalArgumentException("Unknown message " + message);
     }
   }
@@ -109,6 +112,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       } catch (RuntimeException e) {
         return failure(e);
       }
+      this.stores = new HashMap<String, ServerStore>();
       return success();
     } else {
       return failure(new IllegalStateException("Clustered Cache Manager already configured"));
@@ -142,5 +146,24 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       }
     }
     return unmodifiableMap(pools);
+  }
+
+  private EhcacheEntityResponse createServerStore(CreateServerStore createServerStore) {
+    String name = createServerStore.getName();
+    if (stores.containsKey(name)) {
+      return failure(new IllegalStateException("Store already exists"));
+    } else {
+      stores.put(name, new ServerStore());
+      return success();
+    }
+  }
+
+  private EhcacheEntityResponse destroyServerStore(DestroyServerStore destroyServerStore) {
+    String name = destroyServerStore.getName();
+    if (stores.remove(name) == null) {
+      return failure(new IllegalStateException("Store doesn't exist"));
+    } else {
+      return success();
+    }
   }
 }

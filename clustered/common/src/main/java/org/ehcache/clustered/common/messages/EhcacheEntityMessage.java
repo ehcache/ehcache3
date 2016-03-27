@@ -92,6 +92,10 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     public Type getType() {
       return Type.CREATE_SERVER_STORE;
     }
+
+    public String getName() {
+      return name;
+    }
   }
 
   public static EhcacheEntityMessage destroyServerStore(String name) {
@@ -109,6 +113,10 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     @Override
     public Type getType() {
       return Type.DESTROY_SERVER_STORE;
+    }
+
+    public String getName() {
+      return name;
     }
   }
 }
