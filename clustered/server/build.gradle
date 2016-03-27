@@ -24,6 +24,7 @@ dependencies {
   compile project(':clustered:common')
   compile group: 'org.terracotta', name: 'offheap-resource', version: parent.offheapResourceVersion
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
+  compile group: 'org.slf4j', name: 'slf4j-api', version: parent.slf4jVersion
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
 }
 

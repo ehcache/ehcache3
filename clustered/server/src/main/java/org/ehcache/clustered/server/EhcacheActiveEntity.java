@@ -29,6 +29,9 @@ import org.ehcache.clustered.common.messages.EhcacheEntityMessage.DestroyServerS
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.PassiveSynchronizationChannel;
@@ -47,6 +50,8 @@ import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.failur
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.success;
 
 public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
 
   private final UUID identity;
   private final ServiceRegistry services;
@@ -107,6 +112,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
   private EhcacheEntityResponse configure(ConfigureCacheManager message) throws IllegalStateException {
     if (resourcePools == null) {
+      LOGGER.info("Configuring server-side cache manager");
       try {
         this.resourcePools = createPools(message.getConfiguration().getResourcePools());
       } catch (RuntimeException e) {
@@ -150,6 +156,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
   private EhcacheEntityResponse createServerStore(CreateServerStore createServerStore) {
     String name = createServerStore.getName();
+    LOGGER.info("Creating new server-side store for '{}'", name);
     if (stores.containsKey(name)) {
       return failure(new IllegalStateException("Store already exists"));
     } else {
@@ -160,6 +167,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
   private EhcacheEntityResponse destroyServerStore(DestroyServerStore destroyServerStore) {
     String name = destroyServerStore.getName();
+    LOGGER.info("Destroying server-side store '{}'", name);
     if (stores.remove(name) == null) {
       return failure(new IllegalStateException("Store doesn't exist"));
     } else {
