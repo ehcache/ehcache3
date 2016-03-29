@@ -30,7 +30,9 @@ import org.ehcache.xml.XmlConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.cache.configuration.CacheEntryListenerConfiguration;
@@ -135,6 +137,7 @@ class ConfigurationMerger {
               xmlConfiguration.getServiceCreationConfigurations().toArray());
           if (defaultCopyProviderConfiguration != null) {
             Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults = defaultCopyProviderConfiguration.getDefaults();
+            handleCopierDefaultsforImmutableTypes(defaults);
             boolean matchingDefault = false;
             if (defaults.containsKey(jsr107Configuration.getKeyType())) {
               matchingDefault = true;
@@ -152,14 +155,50 @@ class ConfigurationMerger {
             return builder;
           }
         }
-        builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
-        LOG.debug("Using default SerializingCopier for JSR-107 store-by-value cache {}", cacheName);
+        builder = addDefaultCopiers(builder, jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
+        LOG.debug("Using default Copier for JSR-107 store-by-value cache {}", cacheName);
       }
     } else {
       LOG.info("Cache level copier configuration overwriting JSR-107 by-value semantics for cache {}", cacheName);
     }
     return builder;
+  }
+
+  private static <K, V> CacheConfigurationBuilder<K, V> addDefaultCopiers(CacheConfigurationBuilder<K, V> builder, Class keyType, Class valueType ) {
+    Set<Class> immutableTypes = new HashSet<Class>();
+    immutableTypes.add(String.class);
+    immutableTypes.add(Long.class);
+    immutableTypes.add(Float.class);
+    immutableTypes.add(Double.class);
+    immutableTypes.add(Character.class);
+    immutableTypes.add(Integer.class);
+    if (immutableTypes.contains(keyType)) {
+      builder = builder.add(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.KEY));
+    } else {
+      builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+    }
+
+    if (immutableTypes.contains(valueType)) {
+      builder = builder.add(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
+    } else {
+      builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+    }
+    return builder;
+  }
+
+  private static void handleCopierDefaultsforImmutableTypes(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults) {
+    addIdentityCopierIfNoneRegistered(defaults, Long.class);
+    addIdentityCopierIfNoneRegistered(defaults, Integer.class);
+    addIdentityCopierIfNoneRegistered(defaults, String.class);
+    addIdentityCopierIfNoneRegistered(defaults, Float.class);
+    addIdentityCopierIfNoneRegistered(defaults, Double.class);
+    addIdentityCopierIfNoneRegistered(defaults, Character.class);
+  }
+
+  private static void addIdentityCopierIfNoneRegistered(Map<Class<?>, ClassInstanceConfiguration<Copier<?>>> defaults, Class clazz) {
+    if (!defaults.containsKey(clazz)) {
+      defaults.put(clazz, new DefaultCopierConfiguration(Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
+    }
   }
 
   private <K, V> Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> initCacheEventListeners(CompleteConfiguration<K, V> config) {

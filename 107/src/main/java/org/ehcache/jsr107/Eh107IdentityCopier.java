@@ -14,33 +14,22 @@
  * limitations under the License.
  */
 
-package com.pany.domain;
+package org.ehcache.jsr107;
 
-import java.io.Serializable;
+import org.ehcache.impl.copy.ReadWriteCopier;
 
 /**
- * Client
+ * Default copier for JSR caches to be used for immutable types
+ * even for store by value cases.
  */
-public class Client implements Serializable {
+class Eh107IdentityCopier<T> extends ReadWriteCopier<T> {
 
-  private final String name;
-  private final long creditLine;
+  public Eh107IdentityCopier() {
 
-  public Client(String name, long creditLine) {
-    this.name = name;
-    this.creditLine = creditLine;
   }
 
-  public Client(Client toCopy) {
-    this.name = toCopy.getName();
-    this.creditLine = toCopy.getCreditLine();
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public long getCreditLine() {
-    return creditLine;
+  @Override
+  public T copy(T obj) {
+    return obj;
   }
 }
