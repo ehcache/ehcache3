@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.spi.serialization;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.impl.serialization.ByteArraySerializer;
 import org.ehcache.impl.serialization.CharSerializer;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
@@ -52,7 +53,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
@@ -168,6 +168,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
       addDefaultSerializerIfNoneRegistered(serializers, Double.class, DoubleSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Character.class, CharSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, String.class, StringSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, byte[].class, ByteArraySerializer.class);
     }
   }
 
@@ -204,6 +205,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
       addDefaultSerializerIfNoneRegistered(serializers, Double.class, DoubleSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Character.class, CharSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, String.class, StringSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, byte[].class, ByteArraySerializer.class);
     }
 
   }
