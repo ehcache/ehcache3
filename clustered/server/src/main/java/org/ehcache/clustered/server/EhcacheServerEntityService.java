@@ -25,6 +25,7 @@ import org.terracotta.entity.ServerEntityService;
 import org.terracotta.entity.ServiceRegistry;
 
 import static org.ehcache.clustered.server.ConcurrencyStrategies.noConcurrency;
+import org.terracotta.entity.SyncMessageCodec;
 
 public class EhcacheServerEntityService implements ServerEntityService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -56,6 +57,11 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
 
   @Override
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
-    return EhcacheCodec.serverMessageCodec();
+    return EhcacheCodec.messageCodec();
+  }
+
+  @Override
+  public SyncMessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getSyncMessageCodec() {
+    return null;
   }
 }

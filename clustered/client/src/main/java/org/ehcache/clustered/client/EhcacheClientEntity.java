@@ -18,7 +18,6 @@ package org.ehcache.clustered.client;
 import java.util.UUID;
 import org.ehcache.clustered.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.ServerSideConfiguration;
-import org.ehcache.clustered.messages.EhcacheCodec;
 import org.ehcache.clustered.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.messages.EhcacheEntityResponse;
 import org.terracotta.connection.entity.Entity;
@@ -27,6 +26,7 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.exception.EntityException;
 
 import static org.ehcache.clustered.Util.unwrapException;
+import org.terracotta.entity.MessageCodecException;
 
 /**
  *
@@ -34,9 +34,9 @@ import static org.ehcache.clustered.Util.unwrapException;
  */
 public class EhcacheClientEntity implements Entity {
 
-  private final EntityClientEndpoint endpoint;
+  private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
 
-  public EhcacheClientEntity(EntityClientEndpoint endpoint) {
+  public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
   }
 
@@ -54,6 +54,8 @@ public class EhcacheClientEntity implements Entity {
       invoke(EhcacheEntityMessage.validate(config));
     } catch (EntityException e) {
       throw unwrapException(e, IllegalArgumentException.class);
+    } catch (MessageCodecException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -62,16 +64,18 @@ public class EhcacheClientEntity implements Entity {
       invoke(EhcacheEntityMessage.configure(config));
     } catch (EntityException e) {
       throw unwrapException(e, IllegalStateException.class);
+    } catch (MessageCodecException e) {
+      throw new RuntimeException(e);
     }
   }
 
-  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws EntityException {
-    InvokeFuture<byte[]> result = endpoint.beginInvoke().payload(EhcacheCodec.serializeMessage(message)).invoke();
+  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws EntityException, MessageCodecException {
+    InvokeFuture<EhcacheEntityResponse> result = endpoint.beginInvoke().message(message).invoke();
     boolean interrupted = false;
     try {
       while (true) {
         try {
-          return EhcacheCodec.deserializeResponse(result.get());
+          return result.get();
         } catch (InterruptedException e) {
           interrupted = true;
         }

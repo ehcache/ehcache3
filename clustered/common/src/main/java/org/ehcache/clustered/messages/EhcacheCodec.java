@@ -21,52 +21,37 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import org.terracotta.entity.MessageCodec;
+import org.terracotta.entity.MessageCodecException;
 
 /**
  *
  * @author cdennis
  */
-public class EhcacheCodec {
+public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE = new MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse>() {
-    @Override
-    public EhcacheEntityMessage deserialize(byte[] payload) {
-      return deserializeMessage(payload);
-    }
+  private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE = new EhcacheCodec();
 
-    @Override
-    public EhcacheEntityMessage deserializeForSync(int concurrencyKey, byte[] payload) {
-      throw new UnsupportedOperationException("Passive replication not supported yet.");
-    }
-
-    @Override
-    public byte[] serialize(EhcacheEntityResponse response) {
-      return serializeResponse(response);
-    }
-
-    @Override
-    public byte[] serializeForSync(int concurrencyKey, EhcacheEntityResponse payload) {
-      throw new UnsupportedOperationException("Passive replication not supported yet.");
-    }
-  };
-
-  public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> serverMessageCodec() {
+  public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> messageCodec() {
     return SERVER_INSTANCE;
   }
 
-  public static byte[] serializeMessage(EhcacheEntityMessage message) {
+  @Override
+  public byte[] encodeMessage(EhcacheEntityMessage message) {
     return marshall(message);
   }
 
-  public static EhcacheEntityMessage deserializeMessage(byte[] payload) {
+  @Override
+  public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
     return (EhcacheEntityMessage) unmarshall(payload);
   }
 
-  public static byte[] serializeResponse(EhcacheEntityResponse response) {
+  @Override
+  public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
     return marshall(response);
   }
 
-  public static EhcacheEntityResponse deserializeResponse(byte[] payload) {
+  @Override
+  public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
     return (EhcacheEntityResponse) unmarshall(payload);
   }
 
