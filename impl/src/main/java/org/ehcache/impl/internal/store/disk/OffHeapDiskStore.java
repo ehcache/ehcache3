@@ -70,6 +70,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -83,9 +84,15 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapDiskStore.class);
 
+  private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
+  private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
+
   protected final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
 
   private final EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto;
+  private final Class<K> keyType;
+  private final Class<V> valueType;
+  private final ClassLoader classLoader;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
   private final long sizeInBytes;
@@ -111,6 +118,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     } else {
       evictionVeto = Eviction.none();
     }
+    this.keyType = config.getKeyType();
+    this.valueType = config.getValueType();
+    this.classLoader = config.getClassLoader();
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();
     this.sizeInBytes = sizeInBytes;
@@ -128,21 +138,51 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
+    File metadataFile = getMetadataFile();
 
-    if (dataFile.isFile() && indexFile.isFile()) {
+    if (dataFile.isFile() && indexFile.isFile() && metadataFile.isFile()) {
       try {
         return recoverBackingMap(size, keySerializer, valueSerializer, evictionVeto);
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
     } else {
-      return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+      try {
+        return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+      } catch (IOException ex) {
+        throw new RuntimeException(ex);
+      }
     }
   }
 
   private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) throws IOException {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
+    File metadataFile = getMetadataFile();
+
+    FileInputStream fis = new FileInputStream(metadataFile);
+    Properties properties = new Properties();
+    try {
+      properties.load(fis);
+    } finally {
+      fis.close();
+    }
+    try {
+      Class<?> persistedKeyType = classLoader.loadClass(properties.getProperty(KEY_TYPE_PROPERTY_NAME));
+      if (!keyType.equals(persistedKeyType)) {
+        throw new IllegalArgumentException("Persisted key type '" + persistedKeyType.getName() + "' is not the same as the configured key type '" + keyType.getName() + "'");
+      }
+    } catch (ClassNotFoundException cnfe) {
+      throw new IllegalStateException("Persisted key type class not found", cnfe);
+    }
+    try {
+      Class<?> persistedValueType = classLoader.loadClass(properties.getProperty(VALUE_TYPE_PROPERTY_NAME));
+      if (!valueType.equals(persistedValueType)) {
+        throw new IllegalArgumentException("Persisted value type '" + persistedValueType.getName() + "' is not the same as the configured value type '" + valueType.getName() + "'");
+      }
+    } catch (ClassNotFoundException cnfe) {
+      throw new IllegalStateException("Persisted value type class not found", cnfe);
+    }
 
     FileInputStream fin = new FileInputStream(indexFile);
     try {
@@ -197,14 +237,19 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
-    MappedPageSource source;
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) throws IOException {
+    File metadataFile = getMetadataFile();
+    FileOutputStream fos = new FileOutputStream(metadataFile);
     try {
-      source = new MappedPageSource(getDataFile(), size);
-    } catch (IOException e) {
-      // TODO proper exception
-      throw new RuntimeException(e);
+      Properties properties = new Properties();
+      properties.put(KEY_TYPE_PROPERTY_NAME, keyType.getName());
+      properties.put(VALUE_TYPE_PROPERTY_NAME, valueType.getName());
+      properties.store(fos, "Key and value types");
+    } finally {
+      fos.close();
     }
+
+    MappedPageSource source = new MappedPageSource(getDataFile(), size);
     PersistentPortability<K> keyPortability = persistent(new SerializerPortability<K>(keySerializer));
     PersistentPortability<OffHeapValueHolder<V>> elementPortability = persistent(new OffHeapValueHolderPortability<V>(valueSerializer));
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
@@ -233,6 +278,10 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   private File getIndexFile() {
     return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.index");
+  }
+
+  private File getMetadataFile() {
+    return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.meta");
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class})
