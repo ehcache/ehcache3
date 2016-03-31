@@ -57,7 +57,7 @@ public class PersistentCacheTest {
         PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
             .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass")))
             .withCache("persistentCache",
-                CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Long.class)
+                CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Serializable.class)
                     .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
                         .heap(1, MemoryUnit.MB)
                         .offheap(2, MemoryUnit.MB)
@@ -71,7 +71,7 @@ public class PersistentCacheTest {
       } catch (StateTransitionException ste) {
         Throwable rootCause = findRootCause(ste);
         assertThat(rootCause, instanceOf(IllegalArgumentException.class));
-        assertThat(rootCause.getMessage(), equalTo("Persisted value type 'java.lang.String' is not assignable from configured value type 'java.lang.Long'"));
+        assertThat(rootCause.getMessage(), equalTo("Persisted value type 'java.lang.String' is not the same as the configured value type 'java.io.Serializable'"));
       }
     }
   }
@@ -82,41 +82,6 @@ public class PersistentCacheTest {
       result = result.getCause();
     }
     return result;
-  }
-
-  @Test
-  public void testRecoverPersistentCacheSucceedsWhenConfiguringCompatibleClass() throws Exception {
-    {
-      PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheSucceedsWhenConfiguringCompatibleClass")))
-          .withCache("persistentCache",
-              CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                  .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                      .heap(1, MemoryUnit.MB)
-                      .offheap(2, MemoryUnit.MB)
-                      .disk(5, MemoryUnit.MB, true)
-                  )
-          ).build(true);
-
-
-      cacheManager.close();
-    }
-
-    {
-      PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheSucceedsWhenConfiguringCompatibleClass")))
-          .withCache("persistentCache",
-              CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Serializable.class)
-                  .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                      .heap(1, MemoryUnit.MB)
-                      .offheap(2, MemoryUnit.MB)
-                      .disk(5, MemoryUnit.MB, true)
-                  )
-          ).build(true);
-
-
-      cacheManager.close();
-    }
   }
 
   private String getStoragePath() throws URISyntaxException {
