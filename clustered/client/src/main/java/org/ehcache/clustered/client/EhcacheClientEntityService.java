@@ -16,11 +16,17 @@
 package org.ehcache.clustered.client;
 
 import java.util.UUID;
+
 import org.ehcache.clustered.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.messages.EhcacheCodec;
+import org.ehcache.clustered.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.messages.EhcacheEntityResponse;
+
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
+import org.terracotta.entity.MessageCodec;
 
-public class EhcacheClientEntityService implements EntityClientService<EhcacheClientEntity, UUID>{
+public class EhcacheClientEntityService implements EntityClientService<EhcacheClientEntity, UUID, EhcacheEntityMessage, EhcacheEntityResponse> {
 
   @Override
   public boolean handlesEntityType(Class<EhcacheClientEntity> cls) {
@@ -40,5 +46,10 @@ public class EhcacheClientEntityService implements EntityClientService<EhcacheCl
   @Override
   public EhcacheClientEntity create(EntityClientEndpoint endpoint) {
     return new EhcacheClientEntity(endpoint);
+  }
+
+  @Override
+  public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
+    return EhcacheCodec.messageCodec();
   }
 }
