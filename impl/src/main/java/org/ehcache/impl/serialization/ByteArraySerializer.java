@@ -21,11 +21,14 @@ import org.ehcache.exceptions.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 
 /**
  * Default {@link Serializer} for {@code byte[]} type. Simply writes the byte array
  * to a byte buffer.
+ * <p>
+ * Note that {@link #equals(byte[], ByteBuffer)} does not follow the {@code byte[].equals(Object)} contract but does
+ * byte-to-byte comparison of both byte arrays.
+ * </p>
  */
 public class ByteArraySerializer implements Serializer<byte[]> {
 
@@ -86,6 +89,8 @@ public class ByteArraySerializer implements Serializer<byte[]> {
    */
   @Override
   public boolean equals(byte[] object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
-    return Arrays.equals(read(binary), object);
+    boolean equals = binary.equals(serialize(object));
+    binary.position(binary.limit());
+    return equals;
   }
 }
