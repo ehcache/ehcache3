@@ -51,7 +51,6 @@ public class SerializerPortability<T> implements Portability<T> {
   @Override
   public boolean equals(Object o, ByteBuffer byteBuffer) {
     try {
-      // TODO can we get rid of blind cast?
       return serializer.equals((T)o, byteBuffer);
     } catch (ClassNotFoundException e) {
       throw new SerializerException(e);

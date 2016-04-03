@@ -51,7 +51,6 @@ public class DefaultTransactionManagerProvider implements TransactionManagerProv
       return config.getTransactionManagerWrapper();
     }
 
-    //TODO: lookup other TX managers and XAResourceRegistry impls
     if (!TransactionManagerServices.isTransactionManagerRunning()) {
       throw new IllegalStateException("BTM must be started beforehand");
     }

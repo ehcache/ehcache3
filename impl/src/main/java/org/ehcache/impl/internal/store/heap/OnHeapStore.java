@@ -758,7 +758,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
           return null;
         }
-        // TODO find a way to increment hit count on a fault
         setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now);
       }
 

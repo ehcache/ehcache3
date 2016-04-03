@@ -209,7 +209,7 @@ public class EhcacheWithLoaderWriterBasicPutIfAbsentTest extends EhcacheBasicCru
     ordered.verify(this.spiedResilienceStrategy)
         .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));
     assertThat(fakeLoaderWriter.getEntryMap().get("key"), equalTo("value"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));    // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
   /**
@@ -238,7 +238,7 @@ public class EhcacheWithLoaderWriterBasicPutIfAbsentTest extends EhcacheBasicCru
     ordered.verify(this.spiedResilienceStrategy)
         .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));
     // Broken initial state: CacheLoaderWriter check omitted
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));    // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
   /**
@@ -343,7 +343,7 @@ public class EhcacheWithLoaderWriterBasicPutIfAbsentTest extends EhcacheBasicCru
     ordered.verify(this.spiedResilienceStrategy)
         .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
     assertThat(fakeLoaderWriter.getEntryMap().get("key"), equalTo("oldValue"));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));    // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
 
   /**

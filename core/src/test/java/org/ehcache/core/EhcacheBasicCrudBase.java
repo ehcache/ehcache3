@@ -239,7 +239,6 @@ public abstract class EhcacheBasicCrudBase {
    * The contract implemented by this {@code Store} is not strictly conformant but
    * should be sufficient for {@code Ehcache} implementation testing.
    */
-  // TODO: Use a validated Store implementation.
   protected static class FakeStore implements Store<String, String> {
 
     private final CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {

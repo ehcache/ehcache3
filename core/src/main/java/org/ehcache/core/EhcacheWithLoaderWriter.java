@@ -1268,7 +1268,6 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
         store.compute(key, fn, replaceEqual);
       } catch (StoreAccessException e) {
-        // XXX:
         throw new RuntimeException(e);
       }
     }
@@ -1296,7 +1295,6 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       } catch (StoreAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
-        // XXX:
         throw new RuntimeException(e);
       }
 
@@ -1338,7 +1336,6 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       } catch (StoreAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
-        // XXX:
         throw new RuntimeException(e);
       }
 
@@ -1372,7 +1369,6 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     }
   }
 
-  //TODO: this is an exact copy of the same class in Ehcache
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;

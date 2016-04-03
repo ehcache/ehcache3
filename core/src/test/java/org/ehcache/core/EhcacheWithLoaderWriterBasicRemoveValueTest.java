@@ -478,7 +478,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
-    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));   // TODO: Confirm correctness
+    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -600,7 +600,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE)); // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**

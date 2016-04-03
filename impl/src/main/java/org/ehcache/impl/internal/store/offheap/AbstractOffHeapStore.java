@@ -692,7 +692,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     try {
       while (true) {
         try {
-          // TODO review as computeFunction can have side effects
           result = backingMap().compute(key, computeFunction, false);
           break;
         } catch (OversizeMappingException e) {
@@ -1116,7 +1115,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  //TODO wire that in if/when needed
   public void registerEmergencyValve(final Callable<Void> valve) {
     this.valve = valve;
   }
