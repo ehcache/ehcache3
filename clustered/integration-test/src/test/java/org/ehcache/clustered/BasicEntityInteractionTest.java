@@ -15,29 +15,32 @@
  */
 package org.ehcache.clustered;
 
+import java.io.File;
 import java.util.UUID;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.passthrough.PassthroughServer;
+import org.terracotta.testing.rules.BasicExternalCluster;
+import org.terracotta.testing.rules.Cluster;
 
-import static org.ehcache.clustered.TestUtils.createServer;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class BasicEntityInteractionTest {
 
+  @ClassRule
+  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1);
+
   @Test
   public void testAbsentEntityRetrievalFails() throws Throwable {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
-
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       try {
@@ -47,67 +50,67 @@ public class BasicEntityInteractionTest {
         //expected
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testAbsentEntityCreationSucceeds() throws Throwable {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
-
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
-
-      EhcacheClientEntity entity = ref.fetchEntity();
       try {
-        assertThat(entity.identity(), is(uuid));
+        EhcacheClientEntity entity = ref.fetchEntity();
+        try {
+          assertThat(entity.identity(), is(uuid));
+        } finally {
+          entity.close();
+        }
       } finally {
-        entity.close();
+        ref.destroy();
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testPresentEntityCreationFails() throws Throwable {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
-
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
-
       try {
-        ref.create(uuid);
-        fail("Expected EntityAlreadyExistsException");
-      } catch (EntityAlreadyExistsException e) {
-        //expected
-      }
+        try {
+          ref.create(uuid);
+          fail("Expected EntityAlreadyExistsException");
+        } catch (EntityAlreadyExistsException e) {
+          //expected
+        }
 
-      try {
-        ref.create(UUID.randomUUID());
-        fail("Expected EntityAlreadyExistsException");
-      } catch (EntityAlreadyExistsException e) {
-        //expected
+        try {
+          ref.create(UUID.randomUUID());
+          fail("Expected EntityAlreadyExistsException");
+        } catch (EntityAlreadyExistsException e) {
+          //expected
+        }
+      } finally {
+        ref.destroy();
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testAbsentEntityDestroyFails() throws Throwable {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
-
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       try {
@@ -117,16 +120,14 @@ public class BasicEntityInteractionTest {
         //expected
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testPresentEntityDestroySucceeds() throws Throwable {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
-
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
@@ -140,17 +141,15 @@ public class BasicEntityInteractionTest {
         //expected
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   @Ignore
   public void testPresentEntityDestroyBlockedByHeldReferenceSucceeds() throws Throwable {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
-
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
@@ -163,16 +162,14 @@ public class BasicEntityInteractionTest {
         entity.close();
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds() throws Throwable {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
-
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       UUID uuid = UUID.randomUUID();
@@ -180,16 +177,14 @@ public class BasicEntityInteractionTest {
       ref.fetchEntity().close();
       ref.destroy();
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testDestroyedEntityAllowsRecreation() throws Throwable {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
-
       EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
 
       ref.create(UUID.randomUUID());
@@ -197,14 +192,18 @@ public class BasicEntityInteractionTest {
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
-      EhcacheClientEntity entity = ref.fetchEntity();
       try {
-        assertThat(entity.identity(), is(uuid));
+        EhcacheClientEntity entity = ref.fetchEntity();
+        try {
+          assertThat(entity.identity(), is(uuid));
+        } finally {
+          entity.close();
+        }
       } finally {
-        entity.close();
+        ref.destroy();
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 }

@@ -15,16 +15,18 @@
  */
 package org.ehcache.clustered;
 
+import java.io.File;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.passthrough.PassthroughServer;
+import org.terracotta.testing.rules.BasicExternalCluster;
+import org.terracotta.testing.rules.Cluster;
 
-import static org.ehcache.clustered.TestUtils.createServer;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -32,214 +34,211 @@ import static org.junit.Assert.fail;
 
 public class EhcacheClientEntityFactoryIntegrationTest {
 
+  @ClassRule
+  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1);
+
   @Test
   public void testCreate() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
 
-      assertThat(factory.create("test", new ServerSideConfiguration(0)), notNullValue());
+      assertThat(factory.create("testCreate", new ServerSideConfiguration(0)), notNullValue());
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testCreateWhenExisting() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      factory.create("test", new ServerSideConfiguration(0)).close();
+      factory.create("testCreateWhenExisting", new ServerSideConfiguration(0)).close();
       try {
-        factory.create("test", new ServerSideConfiguration(1));
+        factory.create("testCreateWhenExisting", new ServerSideConfiguration(1));
         fail("Expected EntityAlreadyExistsException");
       } catch (EntityAlreadyExistsException e) {
         //expected
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testCreateOrRetrieve() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      assertThat(factory.createOrRetrieve("test", new ServerSideConfiguration(0)), notNullValue());
+      assertThat(factory.createOrRetrieve("testCreateOrRetrieve", new ServerSideConfiguration(0)), notNullValue());
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testCreateOrRetrieveWhenExisting() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      factory.create("test", new ServerSideConfiguration(0)).close();
-      assertThat(factory.createOrRetrieve("test", new ServerSideConfiguration(0)), notNullValue());
+      factory.create("testCreateOrRetrieveWhenExisting", new ServerSideConfiguration(0)).close();
+      assertThat(factory.createOrRetrieve("testCreateOrRetrieveWhenExisting", new ServerSideConfiguration(0)), notNullValue());
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testCreateOrRetrieveWhenExistingWithBadConfig() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      factory.create("test", new ServerSideConfiguration(0)).close();
+      factory.create("testCreateOrRetrieveWhenExistingWithBadConfig", new ServerSideConfiguration(0)).close();
       try {
-        factory.createOrRetrieve("test", new ServerSideConfiguration(1));
+        factory.createOrRetrieve("testCreateOrRetrieveWhenExistingWithBadConfig", new ServerSideConfiguration(1));
         fail("Expected IllegalArgumentException");
       } catch (IllegalArgumentException e) {
         //expected
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testRetrieveWithGoodConfig() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      factory.create("test", new ServerSideConfiguration(1)).close();
-      assertThat(factory.retrieve("test", new ServerSideConfiguration(2)), notNullValue());
+      factory.create("testRetrieveWithGoodConfig", new ServerSideConfiguration(1)).close();
+      assertThat(factory.retrieve("testRetrieveWithGoodConfig", new ServerSideConfiguration(2)), notNullValue());
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testRetrieveWithBadConfig() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      factory.create("test", new ServerSideConfiguration(1)).close();
+      factory.create("testRetrieveWithBadConfig", new ServerSideConfiguration(1)).close();
       try {
-        factory.retrieve("test", new ServerSideConfiguration(3));
+        factory.retrieve("testRetrieveWithBadConfig", new ServerSideConfiguration(3));
         fail("Expected IllegalArgumentException");
       } catch (IllegalArgumentException e) {
         //expected
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testRetrieveWhenNotExisting() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
       try {
-        factory.retrieve("test", null);
+        factory.retrieve("testRetrieveWhenNotExisting", null);
         fail("Expected EntityNotFoundException");
       } catch (EntityNotFoundException e) {
         //expected
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   @Ignore
   public void testDestroy() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      factory.create("test", null).close();
-      factory.destroy("test");
+      factory.create("testDestroy", null).close();
+      factory.destroy("testDestroy");
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   @Ignore
   public void testDestroyWhenNotExisting() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
       try {
-        factory.destroy("test");
+        factory.destroy("testDestroyWhenNotExisting");
         fail("Expected EntityNotFoundException");
       } catch (EntityNotFoundException e) {
         //expected
       }
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testAbandonLeadershipWhenNotOwning() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      factory.abandonLeadership("test");
+      factory.abandonLeadership("testAbandonLeadershipWhenNotOwning");
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testAcquireLeadershipWhenAlone() throws Exception {
-    PassthroughServer server = createServer();
+    Connection client = CLUSTER.newConnection();
     try {
-      Connection client = server.connectNewClient();
       EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(client);
-      assertThat(factory.acquireLeadership("test"), is(true));
+      assertThat(factory.acquireLeadership("testAcquireLeadershipWhenAlone"), is(true));
     } finally {
-      server.stop();
+      client.close();
     }
   }
 
   @Test
   public void testAcquireLeadershipWhenTaken() throws Exception {
-    PassthroughServer server = createServer();
+    Connection clientA = CLUSTER.newConnection();
     try {
-      Connection clientA = server.connectNewClient();
       EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(clientA);
-      assertThat(factoryA.acquireLeadership("test"), is(true));
+      assertThat(factoryA.acquireLeadership("testAcquireLeadershipWhenTaken"), is(true));
 
-      Connection clientB = server.connectNewClient();
-      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
-      assertThat(factoryB.acquireLeadership("test"), is(false));
+      Connection clientB = CLUSTER.newConnection();
+      try {
+        EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
+        assertThat(factoryB.acquireLeadership("testAcquireLeadershipWhenTaken"), is(false));
+      } finally {
+        clientB.close();
+      }
     } finally {
-      server.stop();
+      clientA.close();
     }
   }
 
   @Test
-  public void testAcqruieLeadershipAfterAbandoned() throws Exception {
-    PassthroughServer server = createServer();
+  public void testAcquireLeadershipAfterAbandoned() throws Exception {
+    Connection clientA = CLUSTER.newConnection();
     try {
-      Connection clientA = server.connectNewClient();
       EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(clientA);
-      factoryA.acquireLeadership("test");
-      factoryA.abandonLeadership("test");
+      factoryA.acquireLeadership("testAcqruieLeadershipAfterAbandoned");
+      factoryA.abandonLeadership("testAcqruieLeadershipAfterAbandoned");
 
-      Connection clientB = server.connectNewClient();
-      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
-      assertThat(factoryB.acquireLeadership("test"), is(true));
+      Connection clientB = CLUSTER.newConnection();
+      try {
+        EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
+        assertThat(factoryB.acquireLeadership("testAcqruieLeadershipAfterAbandoned"), is(true));
+      } finally {
+        clientB.close();
+      }
     } finally {
-      server.stop();
+      clientA.close();
     }
   }
 }

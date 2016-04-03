@@ -41,7 +41,7 @@ dependencies {
   }
   serverLibs "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion" changing true
 
-  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@tar.gz" changing true
+  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip" changing true
 }
 
 apply plugin: EhDistribute
@@ -56,7 +56,7 @@ distributions {
     baseName = archivesBaseName
     contents {
       into ('') {
-        from configurations.kit.files.collect { tarTree(it) }
+        from configurations.kit.files.collect { zipTree(it) }
       }
       into ("terracotta-$terracottaCoreVersion/plugins/lib") {
         from configurations.serverLibs

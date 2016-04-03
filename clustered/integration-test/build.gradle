@@ -15,8 +15,31 @@
  */
 
 dependencies {
-  testCompile project(':clustered:server')
-  testCompile project(':clustered:client')
-  testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+  testCompile project(':clustered:dist')
+
+  testCompile group:'org.terracotta', name:'coordinator-entity-server', version:parent.coordinatorVersion changing true
+  testCompile group:'org.terracotta', name:'galvan-support', version:'1.0.0-SNAPSHOT' changing true
 }
+
+task unzipKit(type: Copy) {
+  dependsOn project(':clustered:dist').distZip
+  from zipTree(project(':clustered:dist').distZip.archivePath)
+  into 'build/ehcache-kit'
+}
+
+def java8 = {
+  JavaVersion.current().isJava8Compatible()
+}
+
+compileTestJava {
+  options.fork = true;
+  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+}
+
+test {
+  dependsOn unzipKit
+  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
+  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/ehcache-clustered-$project.version-kit/terracotta-$parent.terracottaCoreVersion"
+}
+
