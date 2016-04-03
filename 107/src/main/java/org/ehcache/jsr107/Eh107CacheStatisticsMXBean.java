@@ -19,27 +19,25 @@ import org.ehcache.Cache;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.core.statistics.BulkOps;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.registry.StatisticQuery;
-import org.terracotta.management.stats.Sample;
-import org.terracotta.management.stats.StatisticHistory;
-import org.terracotta.management.stats.history.AverageHistory;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
+import org.terracotta.statistics.derived.LatencySampling;
+import org.terracotta.statistics.derived.MinMaxAverage;
 import org.terracotta.statistics.jsr166e.LongAdder;
+import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.EnumSet.allOf;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
@@ -59,11 +57,11 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
   private final OperationStatistic<CacheOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
   private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> authorityEviction;
   private final Map<BulkOps, LongAdder> bulkMethodEntries;
-  private final StatisticQuery averageGetTime;
-  private final StatisticQuery averagePutTime;
-  private final StatisticQuery averageRemoveTime;
+  private final LatencyMonitor<CacheOperationOutcomes.GetOutcome> averageGetTime;
+  private final LatencyMonitor<CacheOperationOutcomes.PutOutcome> averagePutTime;
+  private final LatencyMonitor<CacheOperationOutcomes.RemoveOutcome> averageRemoveTime;
 
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, InternalCache<?, ?> cache, ManagementRegistryService managementRegistry) {
+  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager, InternalCache<?, ?> cache) {
     super(cacheName, cacheManager, "CacheStatistics");
     this.bulkMethodEntries = cache.getBulkMethodEntries();
 
@@ -75,29 +73,20 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
     conditionalRemove = findCacheStatistic(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
     authorityEviction = findAuthoritativeTierStatistic(cache, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
 
-    Context context = managementRegistry.getConfiguration().getContext().with("cacheName", cacheName);
-
-    averageGetTime = managementRegistry
-        .withCapability("StatisticsCapability")
-        .queryStatistic("AllCacheGetLatencyAverage")
-        .on(context)
-        .build();
-    averagePutTime = managementRegistry
-        .withCapability("StatisticsCapability")
-        .queryStatistic("AllCachePutLatencyAverage")
-        .on(context)
-        .build();
-    averageRemoveTime= managementRegistry
-        .withCapability("StatisticsCapability")
-        .queryStatistic("AllCacheRemoveLatencyAverage")
-        .on(context)
-        .build();
-
+    averageGetTime = new LatencyMonitor<CacheOperationOutcomes.GetOutcome>(allOf(CacheOperationOutcomes.GetOutcome.class));
+    get.addDerivedStatistic(averageGetTime);
+    averagePutTime = new LatencyMonitor<CacheOperationOutcomes.PutOutcome>(allOf(CacheOperationOutcomes.PutOutcome.class));
+    put.addDerivedStatistic(averagePutTime);
+    averageRemoveTime= new LatencyMonitor<CacheOperationOutcomes.RemoveOutcome>(allOf(CacheOperationOutcomes.RemoveOutcome.class));
+    remove.addDerivedStatistic(averageRemoveTime);
   }
 
   @Override
   public void clear() {
     compensatingCounters.snapshot();
+    averageGetTime.clear();
+    averagePutTime.clear();
+    averageRemoveTime.clear();
   }
 
   @Override
@@ -155,28 +144,17 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
 
   @Override
   public float getAverageGetTime() {
-    return getMostRecentNotClearedValue(averageGetTime.execute().getSingleResult().getStatistic(AverageHistory.class));
+    return (float) averageGetTime.value();
   }
 
   @Override
   public float getAveragePutTime() {
-    return getMostRecentNotClearedValue(averagePutTime.execute().getSingleResult().getStatistic(AverageHistory.class));
+    return (float) averagePutTime.value();
   }
 
   @Override
   public float getAverageRemoveTime() {
-    return getMostRecentNotClearedValue(averageRemoveTime.execute().getSingleResult().getStatistic(AverageHistory.class));
-  }
-
-  private float getMostRecentNotClearedValue(StatisticHistory<Double, ?> ratio) {
-    Sample<Double>[] samples = ratio.getValue();
-    for (int i=samples.length - 1 ; i>=0 ; i--) {
-      Sample<Double> doubleSample = samples[i];
-      if (doubleSample.getTimestamp() >= compensatingCounters.timestamp) {
-        return (float) (doubleSample.getValue() / 1000.0);
-      }
-    }
-    return 0.0f;
+    return (float) averageRemoveTime.value();
   }
 
   private long getMisses() {
@@ -275,7 +253,6 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
     volatile long cacheRemovals;
     volatile long bulkRemovals;
     volatile long cacheEvictions;
-    volatile long timestamp;
 
     void snapshot() {
       cacheHits += Eh107CacheStatisticsMXBean.this.getCacheHits();
@@ -288,8 +265,50 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
       cacheRemovals += Eh107CacheStatisticsMXBean.this.getCacheRemovals();
       bulkRemovals += Eh107CacheStatisticsMXBean.this.getBulkCount(BulkOps.REMOVE_ALL);
       cacheEvictions += Eh107CacheStatisticsMXBean.this.getCacheEvictions();
-      timestamp = System.currentTimeMillis();
     }
   }
 
+  private static class LatencyMonitor<T extends Enum<T>> implements ChainedOperationObserver<T> {
+
+    private final LatencySampling<T> sampling;
+    private volatile MinMaxAverage average;
+
+    public LatencyMonitor(Set<T> targets) {
+      this.sampling = new LatencySampling<T>(targets, 1.0);
+      this.average = new MinMaxAverage();
+      sampling.addDerivedStatistic(average);
+    }
+
+    @Override
+    public void begin(long time) {
+      sampling.begin(time);
+    }
+
+    @Override
+    public void end(long time, T result) {
+      sampling.end(time, result);
+    }
+
+    @Override
+    public void end(long time, T result, long... parameters) {
+      sampling.end(time, result, parameters);
+    }
+
+    public double value() {
+      Double value = average.mean();
+      if (value == null) {
+        //Someone involved with 107 can't do math
+        return 0;
+      } else {
+        //We use nanoseconds, 107 uses microseconds
+        return value / 1000f;
+      }
+    }
+
+    public synchronized void clear() {
+      sampling.removeDerivedStatistic(average);
+      average = new MinMaxAverage();
+      sampling.addDerivedStatistic(average);
+    }
+  }
 }
