@@ -111,7 +111,6 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   @Override
   public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, CompletionListener completionListener) {
-    // TODO: this method is allowed to be async. Hand it off to some thread(s)?
     checkClosed();
 
     if (keys == null) {
@@ -400,7 +399,6 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       }
     }
 
-    // TODO: maybe hand off to threads for parallel execution?
     Map<K, EntryProcessorResult<T>> results = new HashMap<K, EntryProcessorResult<T>>(keys.size());
     for (K key : keys) {
       EntryProcessorResult<T> result = null;

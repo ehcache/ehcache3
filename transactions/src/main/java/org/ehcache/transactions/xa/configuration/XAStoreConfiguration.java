@@ -25,7 +25,6 @@ public class XAStoreConfiguration implements ServiceConfiguration<XAStore.Provid
 
   private final String uniqueXAResourceId;
 
-  //TODO: ideally, the uniqueXAResourceId should be the cache alias, injected by the CM
   public XAStoreConfiguration(String uniqueXAResourceId) {
     this.uniqueXAResourceId = uniqueXAResourceId;
   }

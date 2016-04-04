@@ -762,8 +762,6 @@ public class XAStore<K, V> implements Store<K, V> {
       List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
       underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
-      // TODO: do we want to support pluggable veto?
-
       // eviction veto
       EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
         @Override
