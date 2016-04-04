@@ -100,4 +100,9 @@ class FireableStoreEventHolder<K, V> {
   StoreEvent<K, V> getEvent() {
     return event;
   }
+
+  @Override
+  public String toString() {
+    return "FireableStoreEventHolder in state " + status.get() + " of " + event + (failed ? " (failed)":" (not failed)");
+  }
 }

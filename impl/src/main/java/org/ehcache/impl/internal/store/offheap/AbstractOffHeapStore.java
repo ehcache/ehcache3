@@ -297,7 +297,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }, false);
           break;
         } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex);
+          handleOversizeMappingException(key, ex, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -362,7 +362,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return resultHolder;
           }
         } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex);
+          handleOversizeMappingException(key, ex, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -501,7 +501,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           backingMap().compute(key, mappingFunction, false);
           break;
         } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex);
+          handleOversizeMappingException(key, ex, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -560,7 +560,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           backingMap().compute(key, mappingFunction, false);
           break;
         } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex);
+          handleOversizeMappingException(key, ex, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -695,7 +695,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           result = backingMap().compute(key, computeFunction, false);
           break;
         } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e);
+          handleOversizeMappingException(key, e, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -780,7 +780,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           computeResult = backingMap().compute(key, computeFunction, fault);
           break;
         } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e);
+          handleOversizeMappingException(key, e, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -1100,7 +1100,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           computeResult = backingMap().compute(key, computeFunction, false);
           break;
         } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e);
+          handleOversizeMappingException(key, e, null);
         }
       }
       if (computeResult != null) {
@@ -1200,11 +1200,14 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause) throws StoreAccessException {
-    handleOversizeMappingException(key, cause, null);
+  public void handleOversizeMappingException(K key, OversizeMappingException cause, StoreEventSink<K, V> eventSink) throws StoreAccessException {
+    handleOversizeMappingException(key, cause, null, eventSink);
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve) throws StoreAccessException {
+  public void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve, StoreEventSink<K, V> eventSink) throws StoreAccessException {
+    if (eventSink != null) {
+      eventDispatcher.reset(eventSink);
+    }
     if (!backingMap().shrinkOthers(key.hashCode())) {
       if(!invokeValve(invokeValve)) {
         for (Segment<K, OffHeapValueHolder<V>> segment : backingMap().getSegments()) {

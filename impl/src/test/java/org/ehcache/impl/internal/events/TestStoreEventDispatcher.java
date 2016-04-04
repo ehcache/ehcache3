@@ -61,6 +61,11 @@ public class TestStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
   }
 
   @Override
+  public void reset(StoreEventSink<K, V> eventSink) {
+    // No-op
+  }
+
+  @Override
   public void addEventListener(StoreEventListener<K, V> eventListener) {
     listeners.add(eventListener);
   }
