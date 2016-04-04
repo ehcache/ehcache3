@@ -26,7 +26,6 @@ import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
-import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.EnumSet;
@@ -65,7 +64,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
-      InternalCache<K, V> ehCache, Eh107CacheManager cacheManager, ManagementRegistryService managementRegistry) {
+      InternalCache<K, V> ehCache, Eh107CacheManager cacheManager) {
     this.cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;
@@ -73,7 +72,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     this.name = name;
     this.cacheResources = cacheResources;
     this.managementBean = new Eh107CacheMXBean(name, cacheManager, config);
-    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager, ehCache, managementRegistry);
+    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager, ehCache);
 
     for (Map.Entry<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> entry : cacheResources
         .getListenerResources().entrySet()) {

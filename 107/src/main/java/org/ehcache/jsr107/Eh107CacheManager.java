@@ -21,7 +21,6 @@ import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.InternalCache;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
@@ -61,18 +60,15 @@ class Eh107CacheManager implements CacheManager {
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
-  private final ManagementRegistryService managementRegistry;
   private final ConfigurationMerger configurationMerger;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, EhcacheManager ehCacheManager, Properties props,
-                    ClassLoader classLoader, URI uri,
-                    ManagementRegistryService managementRegistry, final ConfigurationMerger configurationMerger) {
+                    ClassLoader classLoader, URI uri, ConfigurationMerger configurationMerger) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
     this.classLoader = classLoader;
     this.uri = uri;
-    this.managementRegistry = managementRegistry;
     this.configurationMerger = configurationMerger;
 
     refreshAllCaches();
@@ -113,7 +109,7 @@ class Eh107CacheManager implements CacheManager {
     Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoaderWriter != null, cacheLoaderWriter != null, storeByValueOnHeap);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<K, V>(cache.getRuntimeConfiguration().getExpiry());
     CacheResources<K, V> resources = new CacheResources<K, V>(alias, cacheLoaderWriter, expiry);
-    return new Eh107Cache<K, V>(alias, config, resources, cache, this, managementRegistry);
+    return new Eh107Cache<K, V>(alias, config, resources, cache, this);
   }
 
   @Override
@@ -189,7 +185,7 @@ class Eh107CacheManager implements CacheManager {
               cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
         }
         cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(configHolder.jsr107Configuration, ehCache
-            .getRuntimeConfiguration()), cacheResources, ehCache, this, managementRegistry);
+            .getRuntimeConfiguration()), cacheResources, ehCache, this);
 
         caches.put(cacheName, cache);
 
