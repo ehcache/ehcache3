@@ -650,7 +650,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         LOG.warn("Failed to invalidate mapping for key {}", key, cae);
       }
     }
-    map.clear();
+    clear();
   }
 
   @Override
