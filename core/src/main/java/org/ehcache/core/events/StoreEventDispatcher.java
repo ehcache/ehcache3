@@ -52,4 +52,11 @@ public interface StoreEventDispatcher<K, V> extends StoreEventSource<K, V> {
    * @param throwable the exception
    */
   void releaseEventSinkAfterFailure(StoreEventSink<K, V> eventSink, Throwable throwable);
+
+  /**
+   * Reset an event sink by dropping all queued events.
+   *
+   * @param eventSink the event sink to reset
+   */
+  void reset(StoreEventSink<K, V> eventSink);
 }

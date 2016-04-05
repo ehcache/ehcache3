@@ -74,6 +74,11 @@ public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
   }
 
   @Override
+  public void reset(StoreEventSink<K, V> eventSink) {
+    // Do nothing
+  }
+
+  @Override
   public void addEventListener(StoreEventListener<K, V> eventListener) {
     // Do nothing
   }

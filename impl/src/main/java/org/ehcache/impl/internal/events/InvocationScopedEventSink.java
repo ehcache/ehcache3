@@ -23,6 +23,7 @@ import org.ehcache.core.spi.store.events.StoreEventListener;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 
@@ -122,6 +123,20 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
     close();
   }
 
+  @Override
+  public void reset() {
+    Iterator<FireableStoreEventHolder<K, V>> iterator = events.iterator();
+    while (iterator.hasNext()) {
+      FireableStoreEventHolder<K, V> next = iterator.next();
+      if (ordered) {
+        BlockingQueue<FireableStoreEventHolder<K, V>> orderedQueue = getOrderedQueue(next);
+        orderedQueue.remove(next);
+        fireWaiters(listeners, orderedQueue);
+      }
+      iterator.remove();
+    }
+  }
+
   protected Deque<FireableStoreEventHolder<K, V>> getEvents() {
     return events;
   }
@@ -139,7 +154,8 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
   }
 
   private BlockingQueue<FireableStoreEventHolder<K, V>> getOrderedQueue(FireableStoreEventHolder<K, V> event) {
-    return orderedQueues[event.eventKeyHash() % orderedQueues.length];
+    int i = Math.abs(event.eventKeyHash() % orderedQueues.length);
+    return orderedQueues[i];
   }
 
   private void fireOrdered(Set<StoreEventListener<K, V>> listeners, Deque<FireableStoreEventHolder<K, V>> events) {
@@ -150,26 +166,39 @@ class InvocationScopedEventSink<K, V> implements CloseableStoreEventSink<K, V> {
       FireableStoreEventHolder<K, V> head = orderedQueue.peek();
       if (head == fireableEvent) {
         // Need to fire my event, plus any it was blocking
-        do {
-          if (head.markFired()) {
-            // Only proceed if I am the one marking fired
-            // Do not notify failed events
-            for (StoreEventListener<K, V> listener : listeners) {
-              head.fireOn(listener);
-            }
-            orderedQueue.poll(); // Remove the event I just handled
-          } else {
-            // Someone else fired it - stopping there
-            if (head == fireableEvent) {
-              // Lost the fire race - may need to wait for full processing
-              fireableEvent.waitTillFired();
-            }
-            break;
+        if (head.markFired()) {
+          // Only proceed if I am the one marking fired
+          // Do not notify failed events
+          for (StoreEventListener<K, V> listener : listeners) {
+            head.fireOn(listener);
           }
-        } while ((head = orderedQueue.peek()) != null && head.isFireable());
+          orderedQueue.poll(); // Remove the event I just handled
+        } else {
+          // Someone else fired it - stopping there
+          // Lost the fire race - may need to wait for full processing
+          fireableEvent.waitTillFired();
+        }
+        fireWaiters(listeners, orderedQueue);
       } else {
         // Waiting for another thread to fire - once that happens, done for this event
         fireableEvent.waitTillFired();
+      }
+    }
+  }
+
+  private void fireWaiters(Set<StoreEventListener<K, V>> listeners, BlockingQueue<FireableStoreEventHolder<K, V>> orderedQueue) {
+    FireableStoreEventHolder<K, V> head;
+    while ((head = orderedQueue.peek()) != null && head.isFireable()) {
+      if (head.markFired()) {
+        // Only proceed if I am the one marking fired
+        // Do not notify failed events
+        for (StoreEventListener<K, V> listener : listeners) {
+          head.fireOn(listener);
+        }
+        orderedQueue.poll(); // Remove the event I just handled
+      } else {
+        // Someone else fired it - stopping there
+        break;
       }
     }
   }

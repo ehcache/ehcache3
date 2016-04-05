@@ -44,6 +44,11 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
+    public void reset() {
+      // Do nothing
+    }
+
+    @Override
     public void removed(Object key, ValueSupplier value) {
       // Do nothing
     }
@@ -129,5 +134,10 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
   @Override
   public void releaseEventSinkAfterFailure(StoreEventSink<K, V> eventSink, Throwable throwable) {
     ((CloseableStoreEventSink) eventSink).closeOnFailure();
+  }
+
+  @Override
+  public void reset(StoreEventSink<K, V> eventSink) {
+    ((CloseableStoreEventSink) eventSink).reset();
   }
 }
