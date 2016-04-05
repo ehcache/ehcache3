@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal;
 import java.util.UUID;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
@@ -95,9 +96,9 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  public void createCache(String name) throws CachePersistenceException {
+  public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
     try {
-      invoke(EhcacheEntityMessage.createServerStore(name));
+      invoke(EhcacheEntityMessage.createServerStore(name, serverStoreConfiguration));
     } catch (Exception e) {
       throw unwrapException(e, CachePersistenceException.class);
     }

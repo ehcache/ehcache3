@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
+import org.ehcache.clustered.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
@@ -154,13 +155,22 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     return unmodifiableMap(pools);
   }
 
+  // QUESTION: Should this be getOrCreateServerStore?
   private EhcacheEntityResponse createServerStore(CreateServerStore createServerStore) {
     String name = createServerStore.getName();
+    ServerStoreConfiguration storeConfiguration = new ServerStoreConfiguration(
+        createServerStore.getStoredKeyType(),
+        createServerStore.getStoredValueType(),
+        createServerStore.getActualKeyType(),
+        createServerStore.getActualValueType(),
+        createServerStore.getKeySerializerType(),
+        createServerStore.getValueSerializerType()
+    );
     LOGGER.info("Creating new server-side store for '{}'", name);
     if (stores.containsKey(name)) {
       return failure(new IllegalStateException("Store already exists"));
     } else {
-      stores.put(name, new ServerStore());
+      stores.put(name, new ServerStore(storeConfiguration));
       return success();
     }
   }

@@ -16,6 +16,43 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.ServerStoreConfiguration;
+import org.ehcache.clustered.common.ClusteredStoreValidationException;
+
 class ServerStore {
 
+  private final ServerStoreConfiguration storeConfiguration;
+
+  public ServerStore(ServerStoreConfiguration storeConfiguration) {
+    this.storeConfiguration = storeConfiguration;
+  }
+
+  public void compatible(ServerStoreConfiguration desiredStoreConfiguration) {
+    StringBuilder sb = new StringBuilder("Existing ServerStore configuration is not compatible with the desired configuration: ");
+
+    boolean isCompatible;
+    isCompatible = compareField(sb, "storedKeyType", storeConfiguration.getStoredKeyType(), desiredStoreConfiguration.getStoredKeyType());
+    isCompatible &= compareField(sb, "storedValueType", storeConfiguration.getStoredValueType(), desiredStoreConfiguration.getStoredValueType());
+    isCompatible &= compareField(sb, "actualKeyType", storeConfiguration.getActualKeyType(), desiredStoreConfiguration.getActualKeyType());
+    isCompatible &= compareField(sb, "actualValueType", storeConfiguration.getActualValueType(), desiredStoreConfiguration.getActualValueType());
+    isCompatible &= compareField(sb, "keySerializerType", storeConfiguration.getKeySerializerType(), desiredStoreConfiguration.getKeySerializerType());
+    isCompatible &= compareField(sb, "valueSerializerType", storeConfiguration.getValueSerializerType(), desiredStoreConfiguration.getValueSerializerType());
+
+    if (!isCompatible) {
+      throw new ClusteredStoreValidationException(sb.toString());
+    }
+  }
+
+  private boolean compareField(StringBuilder sb, String fieldName, String existingStoredKeyType, String desiredStoreKeyType) {
+    if ((existingStoredKeyType == null && desiredStoreKeyType == null)
+        || (existingStoredKeyType != null && existingStoredKeyType.equals(desiredStoreKeyType))) {
+      return true;
+    }
+
+    sb.append("\n\t").append(fieldName)
+        .append(" existing: ").append(existingStoredKeyType)
+        .append(" desired: ").append(desiredStoreKeyType);
+
+    return false;
+  }
 }

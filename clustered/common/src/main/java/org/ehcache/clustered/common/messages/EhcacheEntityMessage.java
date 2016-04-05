@@ -16,6 +16,8 @@
 package org.ehcache.clustered.common.messages;
 
 import java.io.Serializable;
+
+import org.ehcache.clustered.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.terracotta.entity.EntityMessage;
 
@@ -76,16 +78,28 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     }
   }
 
-  public static EhcacheEntityMessage createServerStore(String name) {
-    return new CreateServerStore(name);
+  public static EhcacheEntityMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+    return new CreateServerStore(name, serverStoreConfiguration);
   }
 
   public static class CreateServerStore extends EhcacheEntityMessage {
 
     private final String name;
+    private final String storedKeyType;
+    private final String storedValueType;
+    private final String actualKeyType;
+    private final String actualValueType;
+    private final String keySerializerType;
+    private final String valueSerializerType;
 
-    public CreateServerStore(String name) {
+    public CreateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
       this.name = name;
+      this.storedKeyType = storeConfiguration.getStoredKeyType();
+      this.storedValueType = storeConfiguration.getStoredValueType();
+      this.actualKeyType = storeConfiguration.getActualKeyType();
+      this.actualValueType = storeConfiguration.getActualValueType();
+      this.keySerializerType = storeConfiguration.getKeySerializerType();
+      this.valueSerializerType = storeConfiguration.getValueSerializerType();
     }
 
     @Override
@@ -95,6 +109,30 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
 
     public String getName() {
       return name;
+    }
+
+    public String getStoredKeyType() {
+      return storedKeyType;
+    }
+
+    public String getStoredValueType() {
+      return storedValueType;
+    }
+
+    public String getActualKeyType() {
+      return actualKeyType;
+    }
+
+    public String getActualValueType() {
+      return actualValueType;
+    }
+
+    public String getKeySerializerType() {
+      return keySerializerType;
+    }
+
+    public String getValueSerializerType() {
+      return valueSerializerType;
     }
   }
 
@@ -119,4 +157,5 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
       return name;
     }
   }
+
 }

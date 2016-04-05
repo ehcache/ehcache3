@@ -18,8 +18,9 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
+import org.ehcache.clustered.internal.store.ServerStoreProxy;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.internal.store.StoreSupport;
@@ -43,6 +44,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+
 /**
  * Supports a {@link Store} in a clustered environment.
  */
@@ -57,107 +60,128 @@ import java.util.Set;
 // *                                                                                           *
 // *********************************************************************************************
 // *********************************************************************************************
+// TODO: Remove underlyingStore when ServerStore/ServerStoreProxy is complete
 public class ClusteredStore<K, V> implements Store<K, V> {
 
+  private final ServerStoreProxy<K, V> storeProxy;
   private final Store<K, V> underlyingStore;
 
-  ClusteredStore(final Configuration<K, V> storeConfig, final ClusteringServiceConfiguration clusteringConfig, final Store<K, V> underlyingStore) {
+  ClusteredStore(final ClusteringService clusteringService, ClusteredCacheIdentifier cacheIdentifier, Configuration<K, V> storeConfig, Store<K, V> underlyingStore) {
+    this.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig);
     this.underlyingStore = underlyingStore;
   }
 
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.get(key);
   }
 
   @Override
   public boolean containsKey(final K key) throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.containsKey(key);
   }
 
   @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.put(key, value);
   }
 
   @Override
   public ValueHolder<V> putIfAbsent(final K key, final V value) throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.putIfAbsent(key, value);
   }
 
   @Override
   public boolean remove(final K key) throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.remove(key);
   }
 
   @Override
   public RemoveStatus remove(final K key, final V value) throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.remove(key, value);
   }
 
   @Override
   public ValueHolder<V> replace(final K key, final V value) throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.replace(key, value);
   }
 
   @Override
   public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.replace(key, oldValue, newValue);
   }
 
   @Override
   public void clear() throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     underlyingStore.clear();
   }
 
   @Override
   public StoreEventSource<K, V> getStoreEventSource() {
+    // TODO: Is there a StoreEventSource for a ServerStore?
     return underlyingStore.getStoreEventSource();
   }
 
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.iterator();
   }
 
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction)
       throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.compute(key, mappingFunction);
   }
 
   @Override
   public ValueHolder<V> compute(final K key, final BiFunction<? super K, ? super V, ? extends V> mappingFunction, final NullaryFunction<Boolean> replaceEqual)
       throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.compute(key, mappingFunction, replaceEqual);
   }
 
   @Override
   public ValueHolder<V> computeIfAbsent(final K key, final Function<? super K, ? extends V> mappingFunction)
       throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.computeIfAbsent(key, mappingFunction);
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction)
       throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.bulkCompute(keys, remappingFunction);
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction, final NullaryFunction<Boolean> replaceEqual)
       throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.bulkCompute(keys, remappingFunction, replaceEqual);
   }
 
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(final Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction)
       throws StoreAccessException {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.bulkComputeIfAbsent(keys, mappingFunction);
   }
 
   @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
+    // TODO: Make appropriate ServerStoreProxy call
     return underlyingStore.getConfigurationChangeListeners();
   }
 
@@ -189,13 +213,14 @@ public class ClusteredStore<K, V> implements Store<K, V> {
         throw new IllegalStateException("ClusteredStoreProvider.createStore called without ClusteredResourcePools");
       }
 
-      // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.TieredStore.Provider
-      final ClusteringServiceConfiguration clusterConfiguration = clusteringService.getConfiguration();
+      // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.CacheStore.Provider>>>>>>> Issue #763 Introduce ServerStoreProxy
       final Store.Provider underlyingStoreProvider =
           selectProvider(storeConfig.getResourcePools().getResourceTypeSet(), Arrays.asList(serviceConfigs));
 
       final Store<K, V> underlyingStore = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
-      Store<K, V> store = new ClusteredStore<K, V>(storeConfig, clusterConfiguration, underlyingStore);
+
+      ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
+      Store<K, V> store = new ClusteredStore<K, V>(this.clusteringService, cacheId, storeConfig, underlyingStore);
 
       createdStores.put(store, underlyingStoreProvider);
       return store;

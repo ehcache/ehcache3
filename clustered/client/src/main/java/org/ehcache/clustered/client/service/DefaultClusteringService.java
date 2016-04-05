@@ -16,6 +16,8 @@
 
 package org.ehcache.clustered.client.service;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -25,6 +27,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+import org.ehcache.clustered.ServerStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
@@ -32,10 +35,13 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.common.ClusteredStoreValidationException;
+import org.ehcache.clustered.internal.store.ServerStoreProxy;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
@@ -48,8 +54,6 @@ import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
-
-import static java.util.Collections.emptyList;
 
 /**
  * Provides support for accessing server-based cluster services.
@@ -64,6 +68,8 @@ public class DefaultClusteringService implements ClusteringService {
   private final String entityIdentifier;
   private final ServerSideConfiguration serverConfiguration;
   private final boolean autoCreate;
+
+  private final Map<String, ServerStoreProxy<?, ?>> storeProxies = new HashMap<String, ServerStoreProxy<?, ?>>();
 
   private Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
@@ -128,6 +134,7 @@ public class DefaultClusteringService implements ClusteringService {
 
   @Override
   public void stop() {
+    // TODO: Add logic for storeProxies
     entityFactory.abandonLeadership(entityIdentifier);
     entityFactory = null;
     try {
@@ -139,6 +146,7 @@ public class DefaultClusteringService implements ClusteringService {
 
   @Override
   public void destroyAll() {
+    // TODO: Add logic for storeProxies
     try {
       entityFactory.destroy(entityIdentifier);
     } catch (EntityNotFoundException e) {
@@ -149,6 +157,7 @@ public class DefaultClusteringService implements ClusteringService {
   @Override
   public void create() {
     try {
+      // QUESTION: What happens to the created EhcacheClientEntity?
       entityFactory.create(entityIdentifier, serverConfiguration);
     } catch (EntityAlreadyExistsException e) {
       throw new IllegalStateException(e);
@@ -171,16 +180,19 @@ public class DefaultClusteringService implements ClusteringService {
 
   @Override
   public Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException {
-    return emptyList();
+    return Collections.<ServiceConfiguration<?>>singleton(new DefaultClusterCacheIdentifier(alias));
   }
 
   @Override
   public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    entity.createCache(name);
+    // TODO: Any logic needed here?
+    // TODO: Fixup
+    entity.createCache(name, new ServerStoreConfiguration(null, null, null, null, null, null));
   }
 
   @Override
   public void destroy(String name) throws CachePersistenceException {
+    // TODO: Any logic needed here?
     entity.destroyCache(name);
   }
 
@@ -196,5 +208,100 @@ public class DefaultClusteringService implements ClusteringService {
       }
     }
     return Collections.unmodifiableMap(pools);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public <K, V> ServerStoreProxy<K, V> getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier, final Store.Configuration<K, V> storeConfig) {
+    final String cacheId = cacheIdentifier.getId();
+    ServerStoreProxy<?, ?> storeProxy = this.storeProxies.get(cacheId);
+    if (storeProxy == null) {
+      storeProxy = new ServerStoreProxyImpl<K, V>(cacheId, storeConfig.getKeyType(), storeConfig.getValueType());
+
+      // TODO: Create/Obtain ServerStore
+      try {
+        this.entity.createCache(cacheId, new ServerStoreConfiguration(
+            storeConfig.getKeyType().getName(),
+            storeConfig.getValueType().getName(),
+            null, // TODO: Need actual key type -- cache wrappers can wrap key/value types
+            null, // TODO: Need actual value type -- cache wrappers can wrap key/value types
+            (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
+            (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName())
+        ));
+      } catch (CachePersistenceException e) {
+        e.printStackTrace();
+      }
+
+      this.storeProxies.put(cacheId, storeProxy);
+
+    } else {
+      // The ServerStoreProxy exists -- ensure consistency with config
+      // TODO: Add other necessary validations
+      if (!storeProxy.getKeyType().equals(storeConfig.getKeyType())
+          || !storeProxy.getValueType().equals(storeConfig.getValueType())) {
+        throw new ClusteredStoreValidationException("key/value type for existing ServerStore does not match '" + cacheId + "' configuration");
+      }
+    }
+
+    return (ServerStoreProxy<K, V>)storeProxy;    // unchecked
+  }
+
+  /**
+   * Supplies the identifier to use for identifying a client-side cache to its server counterparts.
+   */
+  private static class DefaultClusterCacheIdentifier implements ClusteredCacheIdentifier {
+
+    private final String id;
+
+    private DefaultClusterCacheIdentifier(final String id) {
+      this.id = id;
+    }
+
+    @Override
+    public String getId() {
+      return this.id;
+    }
+
+    @Override
+    public Class<ClusteringService> getServiceType() {
+      return ClusteringService.class;
+    }
+  }
+
+  /**
+   * Provides a {@link ServerStoreProxy} that uses this {@link DefaultClusteringService} instance
+   * for communication with the cluster server.
+   *
+   * @param <K> the cache-exposed key type
+   * @param <V> the cache-exposed value type
+   */
+  // This class is intentionally an inner (non-static) class
+  @SuppressFBWarnings("SIC_INNER_SHOULD_BE_STATIC")
+  private final class ServerStoreProxyImpl<K, V> implements ServerStoreProxy<K, V> {
+
+    private final String cacheId;
+    private final Class<K> keyType;
+    private final Class<V> valueType;
+
+    public ServerStoreProxyImpl(final String cacheId, final Class<K> keyType, final Class<V> valueType) {
+      this.cacheId = cacheId;
+      this.keyType = keyType;
+      this.valueType = valueType;
+    }
+
+    @Override
+    public String getCacheId() {
+      return cacheId;
+    }
+
+    @Override
+    public Class<K> getKeyType() {
+      return keyType;
+    }
+
+    @Override
+    public Class<V> getValueType() {
+      return valueType;
+    }
   }
 }
