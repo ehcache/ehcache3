@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xml;
+
+package org.ehcache.transactions.xa.internal.xml;
 
 import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.spi.service.ServiceConfiguration;

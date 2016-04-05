@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.transactions.xml;
 
-import org.ehcache.xml.CacheManagerServiceConfigurationParser;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
+package org.ehcache.transactions.xa.internal.xml;
+
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
+import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
-import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProviderConfiguration;
+import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Element;
@@ -34,7 +34,7 @@ import java.net.URL;
 /**
  * @author Ludovic Orban
  */
-public class TxCacheManagerServiceConfigurationParser implements CacheManagerServiceConfigurationParser<Service> {
+public class TxCacheManagerServiceConfigurationParser implements CacheManagerServiceConfigurationParser<TransactionManagerProvider> {
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/tx");
   private static final URL XML_SCHEMA = TxCacheManagerServiceConfigurationParser.class.getResource("/ehcache-tx-ext.xsd");
@@ -50,16 +50,14 @@ public class TxCacheManagerServiceConfigurationParser implements CacheManagerSer
   }
 
   @Override
-  public ServiceCreationConfiguration<Service> parseServiceCreationConfiguration(Element fragment) {
+  public ServiceCreationConfiguration<TransactionManagerProvider> parseServiceCreationConfiguration(Element fragment) {
     String localName = fragment.getLocalName();
     if ("jta-tm".equals(localName)) {
-      String transactionManagerProviderClassName = fragment.getAttribute("transaction-manager-provider-class");
+      String transactionManagerProviderConfigurationClassName = fragment.getAttribute("transaction-manager-lookup-class");
       try {
         ClassLoader defaultClassLoader = ClassLoading.getDefaultClassLoader();
-        Class<?> aClass = Class.forName(transactionManagerProviderClassName, true, defaultClassLoader);
-        TransactionManagerProvider transactionManagerProvider = (TransactionManagerProvider) aClass.newInstance();
-        TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
-        return (ServiceCreationConfiguration) new TransactionManagerProviderConfiguration(transactionManagerWrapper);
+        Class<?> aClass = Class.forName(transactionManagerProviderConfigurationClassName, true, defaultClassLoader);
+        return new LookupTransactionManagerProviderConfiguration((Class<? extends TransactionManagerLookup>) aClass);
       } catch (Exception e) {
         throw new XmlConfigurationException("Error configuring XA transaction manager", e);
       }

@@ -13,37 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.pany;
+
+package org.ehcache.transactions.xa.txmgr.btm;
 
 import bitronix.tm.TransactionManagerServices;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.service.Service;
-import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
+
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
-import org.ehcache.transactions.xa.txmgr.btm.BitronixXAResourceRegistry;
+import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerLookup;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @author Ludovic Orban
  */
-// tag::BitronixProvider[]
-public class BitronixProvider implements TransactionManagerProvider { // <1>
+// tag::BitronixLookup[]
+public class BitronixTransactionManagerLookup implements TransactionManagerLookup { // <1>
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(BitronixTransactionManagerLookup.class);
+
   @Override
-  public TransactionManagerWrapper getTransactionManagerWrapper() { // <2>
+  public TransactionManagerWrapper lookupTransactionManagerWrapper() { // <2>
     if (!TransactionManagerServices.isTransactionManagerRunning()) { // <3>
-      throw new RuntimeException("You must start the Bitronix TM before ehcache can use it");
+      throw new IllegalStateException("BTM must be started beforehand");
     }
-    return new TransactionManagerWrapper(TransactionManagerServices.getTransactionManager(),
+    TransactionManagerWrapper tmWrapper = new TransactionManagerWrapper(TransactionManagerServices.getTransactionManager(),
         new BitronixXAResourceRegistry()); // <4>
-  }
-
-  @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
-    // no-op
-  }
-
-  @Override
-  public void stop() {
-    // no-op
+    LOGGER.info("Using looked up transaction manager : {}", tmWrapper);
+    return tmWrapper;
   }
 }
-// end::BitronixProvider[]
+// end::BitronixLookup[]
