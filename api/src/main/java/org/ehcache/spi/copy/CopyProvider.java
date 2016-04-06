@@ -49,6 +49,8 @@ public interface CopyProvider extends Service {
 
   /**
    * Releases the provided {@link Copier} instance
+   * If the copier instance is provided by the user, {@link java.io.Closeable#close()}
+   * will not be invoked.
    *
    * @param copier the copier instance to be released
    * @throws Exception when the release fails

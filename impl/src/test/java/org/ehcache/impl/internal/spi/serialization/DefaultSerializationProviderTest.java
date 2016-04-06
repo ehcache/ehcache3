@@ -159,8 +159,6 @@ public class DefaultSerializationProviderTest {
   public void testReleaseSerializerWithInstantiatedCloseableSerializerDoesClose() throws Exception {
     DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(CloseableSerializer.class, DefaultSerializerConfiguration.Type.KEY);
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-//    CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
-//    provider.providedVsCount.put(serializer, new AtomicInteger(1));
     Serializer serializer = provider.createKeySerializer(String.class, getSystemClassLoader(), config);
 
     provider.releaseSerializer(serializer);

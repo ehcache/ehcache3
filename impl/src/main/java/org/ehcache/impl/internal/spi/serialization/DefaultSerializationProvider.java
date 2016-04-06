@@ -49,7 +49,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -68,7 +67,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   private final PersistentProvider persistentProvider;
 
   protected final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger>();
-  protected final Set<Serializer<?>> instantiated = new HashSet<Serializer<?>>();
+  protected final Set<Serializer<?>> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Serializer<?>, Boolean>());
 
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
@@ -129,7 +128,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
       throw new IllegalArgumentException("Given serializer:" + serializer.getClass().getName() + " is not managed by this provider");
     }
 
-    if(instantiated.contains(serializer) && serializer instanceof Closeable) {
+    if(instantiated.remove(serializer) && serializer instanceof Closeable) {
       ((Closeable)serializer).close();
     }
   }
@@ -288,7 +287,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     }
   }
 
-  static <T> Serializer<T> getUserProvidedSerializer(DefaultSerializerConfiguration<T> conf) {
+  private static <T> Serializer<T> getUserProvidedSerializer(DefaultSerializerConfiguration<T> conf) {
     if(conf != null) {
       Serializer<T> instance = conf.getInstance();
       if(instance != null) {
@@ -299,7 +298,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   }
 
   @SuppressWarnings("unchecked")
-  static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
+  private static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultSerializerConfiguration<T> result = null;
 
     Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);

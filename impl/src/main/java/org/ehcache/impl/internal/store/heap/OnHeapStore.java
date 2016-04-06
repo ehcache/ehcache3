@@ -1581,10 +1581,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      if (!createdStores.containsKey(resource)) {
+      List<Copier> copiers = createdStores.remove(resource);
+      if (copiers == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      List<Copier> copiers = createdStores.remove(resource);
       final OnHeapStore onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
       CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);

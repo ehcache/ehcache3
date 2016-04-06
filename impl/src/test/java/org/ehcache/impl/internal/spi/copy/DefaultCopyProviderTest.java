@@ -100,7 +100,7 @@ public class DefaultCopyProviderTest {
 
     copyProvider.releaseCopier(testCloseableCopier);
 
-    assertFalse(testCloseableCopier.getInvoked());
+    assertFalse(testCloseableCopier.isInvoked());
 
   }
 
@@ -118,7 +118,7 @@ public class DefaultCopyProviderTest {
       invoked = true;
     }
 
-    boolean getInvoked() {
+    boolean isInvoked() {
       return invoked;
     }
   }
