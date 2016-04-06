@@ -16,7 +16,7 @@
 package org.ehcache.clustered;
 
 import java.util.UUID;
-import org.ehcache.clustered.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.connection.Connection;

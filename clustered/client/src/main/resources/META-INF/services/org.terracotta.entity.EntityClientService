@@ -1,2 +1,2 @@
-org.ehcache.clustered.internal.EhcacheClientEntityService
+org.ehcache.clustered.client.internal.EhcacheClientEntityService
 

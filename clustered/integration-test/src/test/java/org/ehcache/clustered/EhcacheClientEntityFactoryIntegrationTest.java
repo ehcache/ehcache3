@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered;
 
-import org.ehcache.clustered.internal.EhcacheClientEntityFactory;
+import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.connection.Connection;

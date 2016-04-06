@@ -37,7 +37,7 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return "org.ehcache.clustered.internal.EhcacheClientEntity".equals(typeName);
+    return "org.ehcache.clustered.client.internal.EhcacheClientEntity".equals(typeName);
   }
 
   @Override
