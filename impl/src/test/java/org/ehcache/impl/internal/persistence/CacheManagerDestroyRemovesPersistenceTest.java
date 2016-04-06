@@ -16,7 +16,6 @@
 package org.ehcache.impl.internal.persistence;
 
 import org.ehcache.Cache;
-import org.ehcache.Maintainable;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -48,9 +47,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
 
     initCacheManager(file);
     persistentCacheManager.close();
-    Maintainable maintainable = persistentCacheManager.toMaintenance();
-    maintainable.destroy();
-    maintainable.close();
+    persistentCacheManager.destroy();
 
     assertThat(file.list().length, is(0));
   }

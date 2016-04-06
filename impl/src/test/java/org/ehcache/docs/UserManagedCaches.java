@@ -80,7 +80,7 @@ public class UserManagedCaches {
     assertThat(cache.get(42L), is("The Answer!"));
 
     cache.close(); // <4>
-    cache.toMaintenance().destroy(); // <5>
+    cache.destroy(); // <5>
     // end::persistentUserManagedCache[]
   }
 

@@ -81,6 +81,22 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * {@inheritDoc}
    */
   @Override
+  public void destroy() {
+    StatusTransitioner.Transition st = statusTransitioner.maintenance();
+    try {
+      st.succeeded();
+    } catch (Throwable t) {
+      throw st.failed(t);
+    }
+    destroyInternal();
+    // Exit maintenance mode once #934 is solved
+//    statusTransitioner.exitMaintenance().succeeded();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
@@ -92,7 +108,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
 
         @Override
         public void destroy() {
-          PersistentUserManagedEhcache.this.destroy();
+          PersistentUserManagedEhcache.this.destroyInternal();
         }
 
         @Override
@@ -119,7 +135,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     }
   }
 
-  void destroy() {
+  void destroyInternal() {
     statusTransitioner.checkMaintenance();
     try {
       localPersistenceService.destroy(id);

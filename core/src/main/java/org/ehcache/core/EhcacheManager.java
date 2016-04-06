@@ -670,6 +670,25 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   @Override
+  public void destroy() {
+    StatusTransitioner.Transition st = statusTransitioner.maintenance();
+    try {
+      startMaintenableServices();
+      st.succeeded();
+    } catch (Throwable t) {
+      throw st.failed(t);
+    }
+    destroyInternal();
+    st = statusTransitioner.exitMaintenance();
+    try {
+      stopPersistenceServices();
+      st.succeeded();
+    } catch (Throwable t) {
+      throw st.failed(t);
+    }
+  }
+
+  @Override
   public Maintainable toMaintenance() {
     final StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
@@ -682,7 +701,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
         @Override
         public void destroy() {
-          EhcacheManager.this.destroy();
+          EhcacheManager.this.destroyInternal();
         }
 
         @Override
@@ -744,7 +763,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
   }
 
-  void destroy() {
+  void destroyInternal() {
     statusTransitioner.checkMaintenance();
     Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
     for (PersistableResourceService service : services) {

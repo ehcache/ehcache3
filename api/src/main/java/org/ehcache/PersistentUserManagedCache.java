@@ -33,4 +33,11 @@ public interface PersistentUserManagedCache<K, V> extends UserManagedCache<K, V>
    * @throws java.lang.IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE} couldn't be reached
    */
   Maintainable toMaintenance();
+
+  /**
+   * Destroy all persistent data structures for this {@code PersistentUserManagedCache}.
+   *
+   * @throws java.lang.IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE} couldn't be reached
+   */
+  void destroy();
 }

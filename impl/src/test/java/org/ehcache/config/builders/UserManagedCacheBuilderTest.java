@@ -92,6 +92,11 @@ public class UserManagedCacheBuilderTest {
     }
 
     @Override
+    public void destroy() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
     public void init() {
       throw new UnsupportedOperationException("Implement me!");
     }
