@@ -811,8 +811,9 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       }
     } catch (StoreAccessException e) {
       try {
+        V loaded = null;
         try {
-          mappingFunction.apply(key);
+          loaded = mappingFunction.apply(key);
         } catch (StorePassThroughException f) {
           Throwable cause = f.getCause();
           if(cause instanceof CacheLoadingException) {
@@ -823,7 +824,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
             throw new AssertionError();
           }
         }
-        return resilienceStrategy.putIfAbsentFailure(key, value, e, installed.get());
+        return resilienceStrategy.putIfAbsentFailure(key, value, loaded, e, installed.get());
       } finally {
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       }

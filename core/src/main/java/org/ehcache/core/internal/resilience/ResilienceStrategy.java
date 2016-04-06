@@ -163,7 +163,7 @@ public interface ResilienceStrategy<K, V> {
    * @param knownToBeAbsent {@code true} if the value is known to be absent
    * @return the value to return from the operation
    */
-  V putIfAbsentFailure(K key, V value, StoreAccessException e, boolean knownToBeAbsent);
+  V putIfAbsentFailure(K key, V value, V loaderWriterFunctionResult, StoreAccessException e, boolean knownToBeAbsent);
 
   /**
    * Called when a {@link Cache#putIfAbsent(java.lang.Object, java.lang.Object)}
