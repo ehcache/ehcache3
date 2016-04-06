@@ -57,4 +57,4 @@ Commands are simply dropped from the transaction context.
 
 By default the `XAStore` uses the veto mechanism to protect all _in doubt_ `SoftLock`.
 
-Integration with user provided veto is limited to `SoftLock` that are not in doubt and which by definition only contain an _old_ value.
+Integration with user provided veto is limited to `SoftLock` that are not in doubt and which by definition only contain an _old_ value, which will be the value passed to the `vetoes(K key, V value)` method.
