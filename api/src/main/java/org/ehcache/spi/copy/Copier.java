@@ -18,10 +18,14 @@ package org.ehcache.spi.copy;
 
 /**
  * Interface defining the contract used to make a copy of types.
- *
+ * <p>
+ *   The copied object's class must be preserved in such a way that copying for read that object will return
+ *   an object of the exact same class as before copy for write, i.e.: the following contract must always be true:
+ *   <p>
+ *   <code>object.getClass().equals( myCopier.copyForRead(myCopier.copyForWrite(object)).getClass() )</code>
+ *   </p>
+ * </p>
  * @param <T> the type of the instance to copy
- *
- * @author Albin Suresh
  */
 public interface Copier<T> {
 
