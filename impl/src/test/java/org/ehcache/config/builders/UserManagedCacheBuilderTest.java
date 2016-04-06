@@ -16,7 +16,6 @@
 
 package org.ehcache.config.builders;
 
-import org.ehcache.Maintainable;
 import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
@@ -86,10 +85,6 @@ public class UserManagedCacheBuilderTest {
   }
 
   private class TestUserManagedCache<K, V> implements PersistentUserManagedCache<K, V> {
-    @Override
-    public Maintainable toMaintenance() {
-      throw new UnsupportedOperationException("Implement me!");
-    }
 
     @Override
     public void destroy() {

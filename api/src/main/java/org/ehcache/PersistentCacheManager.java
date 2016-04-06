@@ -26,14 +26,6 @@ import org.ehcache.exceptions.CachePersistenceException;
 public interface PersistentCacheManager extends CacheManager {
 
   /**
-   * Lets you manipulate the persistent data structures for this {@link org.ehcache.PersistentCacheManager}
-   *
-   * @return a {@link org.ehcache.Maintainable} for this {@link org.ehcache.PersistentCacheManager}
-   * @throws java.lang.IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE} couldn't be reached
-   */
-  Maintainable toMaintenance();
-
-  /**
    * Destroys all persistent data associated with this {@code CacheManager}.
    * <P>
    *   This is achieved by putting the {@code CacheManager} in maintenance mode, executing the destroy and then exiting
