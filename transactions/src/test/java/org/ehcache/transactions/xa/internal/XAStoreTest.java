@@ -18,6 +18,7 @@ package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
+import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -75,6 +76,7 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -1485,6 +1487,52 @@ public class XAStoreTest {
     assertMapping(xaStore, 3L, "stuff#3");
 
     OffHeapStoreLifecycleHelper.close(offHeapStore);
+  }
+
+  @Test
+  public void testCustomEvictionVeto() throws Exception {
+    String uniqueXAResourceId = "testCustomEvictionVeto";
+    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
+    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
+    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
+
+    final AtomicBoolean invoked = new AtomicBoolean();
+
+    EvictionVeto<Long, SoftLock> evictionVeto = new EvictionVeto<Long, SoftLock>() {
+      @Override
+      public boolean vetoes(Long key, SoftLock value) {
+        invoked.set(true);
+        return false;
+      }
+    };
+    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
+        evictionVeto, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .heap(10, EntryUnit.ENTRIES)
+        .build(),
+        0, keySerializer, valueSerializer);
+    TestTimeSource testTimeSource = new TestTimeSource();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
+    Journal<Long> journal = new TransientJournal<Long>();
+
+    final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "1");
+    }
+    testTransactionManager.rollback();
+    assertThat(invoked.get(), is(false));
+
+    testTransactionManager.begin();
+    {
+      xaStore.put(1L, "1");
+    }
+    testTransactionManager.commit();
+    assertThat(invoked.get(), is(true));
   }
 
   @Test
