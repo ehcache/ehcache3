@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.spi.serialization;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.exceptions.SerializerException;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.serialization.ByteArraySerializer;
@@ -37,6 +38,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -50,10 +52,12 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -142,13 +146,25 @@ public class DefaultSerializationProviderTest {
   }
 
   @Test
-  public void testReleaseSerializerWithCloseableSerializer() throws Exception {
+  public void testReleaseSerializerWithProvidedCloseableSerializerDoesNotClose() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
     provider.providedVsCount.put(serializer, new AtomicInteger(1));
 
     provider.releaseSerializer(serializer);
-    verify(serializer).close();
+    verify(serializer, times(0)).close();
+  }
+
+  @Test
+  public void testReleaseSerializerWithInstantiatedCloseableSerializerDoesClose() throws Exception {
+    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(CloseableSerializer.class, DefaultSerializerConfiguration.Type.KEY);
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
+//    CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
+//    provider.providedVsCount.put(serializer, new AtomicInteger(1));
+    Serializer serializer = provider.createKeySerializer(String.class, getSystemClassLoader(), config);
+
+    provider.releaseSerializer(serializer);
+    assertTrue(((CloseableSerializer)serializer).closed);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -311,4 +327,36 @@ public class DefaultSerializationProviderTest {
     }
   }
 
+  public static class CloseableSerializer<T> implements Serializer, Closeable {
+
+    boolean closed = false;
+
+    public CloseableSerializer() {
+
+    }
+
+    public CloseableSerializer(ClassLoader classLoader) {
+
+    }
+
+    @Override
+    public void close() throws IOException {
+      closed = true;
+    }
+
+    @Override
+    public ByteBuffer serialize(Object object) throws SerializerException {
+      return null;
+    }
+
+    @Override
+    public Object read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+      return null;
+    }
+
+    @Override
+    public boolean equals(Object object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+      return false;
+    }
+  }
 }

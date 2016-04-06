@@ -49,8 +49,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
@@ -66,6 +68,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
   private final PersistentProvider persistentProvider;
 
   protected final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger>();
+  protected final Set<Serializer<?>> instantiated = new HashSet<Serializer<?>>();
 
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
@@ -79,11 +82,14 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   @Override
   public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
-    Serializer<T> serializer;
-    if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
-      serializer = transientProvider.createKeySerializer(clazz, classLoader, configs);
-    } else {
-      serializer = persistentProvider.createKeySerializer(clazz, classLoader, configs);
+    Serializer<T> serializer = (Serializer<T>)getUserProvidedSerializer(find(DefaultSerializerConfiguration.Type.KEY, configs));
+    if (serializer == null) {
+      if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[])configs) == null) {
+        serializer = transientProvider.createKeySerializer(clazz, classLoader, configs);
+      } else {
+        serializer = persistentProvider.createKeySerializer(clazz, classLoader, configs);
+      }
+      instantiated.add(serializer);
     }
     updateProvidedInstanceCounts(serializer);
     return serializer;
@@ -91,11 +97,14 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   @Override
   public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
-    Serializer<T> serializer;
-    if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs) == null) {
-      serializer = transientProvider.createValueSerializer(clazz, classLoader, configs);
-    } else {
-      serializer = persistentProvider.createValueSerializer(clazz, classLoader, configs);
+    Serializer<T> serializer = (Serializer<T>)getUserProvidedSerializer(find(DefaultSerializerConfiguration.Type.VALUE, configs));
+    if (serializer == null) {
+      if (findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[])configs) == null) {
+        serializer = transientProvider.createValueSerializer(clazz, classLoader, configs);
+      } else {
+        serializer = persistentProvider.createValueSerializer(clazz, classLoader, configs);
+      }
+      instantiated.add(serializer);
     }
     updateProvidedInstanceCounts(serializer);
     return serializer;
@@ -120,7 +129,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
       throw new IllegalArgumentException("Given serializer:" + serializer.getClass().getName() + " is not managed by this provider");
     }
 
-    if(serializer instanceof Closeable) {
+    if(instantiated.contains(serializer) && serializer instanceof Closeable) {
       ((Closeable)serializer).close();
     }
   }
@@ -221,31 +230,13 @@ public class DefaultSerializationProvider implements SerializationProvider {
     @Override
     public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       DefaultSerializerConfiguration<T> conf = find(DefaultSerializerConfiguration.Type.KEY, configs);
-      Serializer<T> instance = getUserProvidedSerializer(conf);
-      if(instance != null) {
-        return instance;
-      }
       return createSerializer("-Key", clazz, classLoader, conf, configs);
     }
 
     @Override
     public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       DefaultSerializerConfiguration<T> conf = find(DefaultSerializerConfiguration.Type.VALUE, configs);
-      Serializer<T> instance = getUserProvidedSerializer(conf);
-      if(instance != null) {
-        return instance;
-      }
       return createSerializer("-Value", clazz, classLoader, conf, configs);
-    }
-
-    private static <T> Serializer<T> getUserProvidedSerializer(DefaultSerializerConfiguration<T> conf) {
-      if(conf != null) {
-        Serializer<T> instance = conf.getInstance();
-        if(instance != null) {
-          return instance;
-        }
-      }
-      return null;
     }
 
     protected abstract <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException;
@@ -297,8 +288,18 @@ public class DefaultSerializationProvider implements SerializationProvider {
     }
   }
 
+  static <T> Serializer<T> getUserProvidedSerializer(DefaultSerializerConfiguration<T> conf) {
+    if(conf != null) {
+      Serializer<T> instance = conf.getInstance();
+      if(instance != null) {
+        return instance;
+      }
+    }
+    return null;
+  }
+
   @SuppressWarnings("unchecked")
-  private static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
+  static <T> DefaultSerializerConfiguration<T> find(DefaultSerializerConfiguration.Type type, ServiceConfiguration<?>... serviceConfigurations) {
     DefaultSerializerConfiguration<T> result = null;
 
     Collection<DefaultSerializerConfiguration> serializationProviderConfigurations = ServiceLocator.findAmongst(DefaultSerializerConfiguration.class, (Object[]) serviceConfigurations);
