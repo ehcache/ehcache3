@@ -742,6 +742,10 @@ public class XAStore<K, V> implements Store<K, V> {
       if (xaServiceConfiguration == null) {
         // An XAStore must be configured for use
         return 0;
+      } else {
+        if (this.transactionManagerProvider == null) {
+          throw new IllegalStateException("A TransactionManagerProvider is mandatory to use XA caches");
+        }
       }
 
       final Store.Provider candidateUnderlyingProvider = selectProvider(resourceTypes, serviceConfigs, xaServiceConfiguration);

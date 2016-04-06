@@ -44,9 +44,11 @@ import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStoreLifecycleHelper;
 import org.ehcache.impl.internal.store.tiering.CacheStore;
 import org.ehcache.internal.TestTimeSource;
+import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
@@ -54,6 +56,9 @@ import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.transactions.xa.internal.journal.TransientJournal;
 import org.ehcache.transactions.xa.internal.txmgr.NullXAResourceRegistry;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
+import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvider;
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.ehcache.transactions.xa.utils.JavaSerializer;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.junit.Test;
@@ -86,12 +91,15 @@ import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 
+import static java.util.Collections.emptySet;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 /**
  * Tests for {@link XAStore} and {@link org.ehcache.transactions.xa.internal.XAStore.Provider XAStore.Provider}.
@@ -99,6 +107,29 @@ import static org.junit.Assert.fail;
 public class XAStoreTest {
 
   private final TestTransactionManager testTransactionManager = new TestTransactionManager();
+
+  @Test
+  public void testXAStoreProviderFailsToRankWhenNoTMProviderConfigured() throws Exception {
+    XAStore.Provider provider = new XAStore.Provider();
+      provider.start(new ServiceProvider<Service>() {
+        @Override
+        public <U extends Service> U getService(Class<U> serviceType) {
+          return null;
+        }
+
+        @Override
+        public <U extends Service> Collection<U> getServicesOfType(Class<U> serviceType) {
+          return emptySet();
+        }
+      });
+    try {
+      Set<ResourceType<?>> resources = emptySet();
+      provider.rank(resources, Collections.<ServiceConfiguration<?>>singleton(mock(XAStoreConfiguration.class)));
+      fail("Expected exception");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("TransactionManagerProvider"));
+    }
+  }
 
   @Test
   public void testSimpleGetPutRemove() throws Exception {
@@ -1464,7 +1495,8 @@ public class XAStoreTest {
         new CacheStore.Provider(),
         new OnHeapStore.Provider(),
         new OffHeapStore.Provider(),
-        new OffHeapDiskStore.Provider());
+        new OffHeapDiskStore.Provider(),
+        new LookupTransactionManagerProvider(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)));
 
     provider.start(serviceLocator);
 
@@ -1477,7 +1509,7 @@ public class XAStoreTest {
     assertRank(provider, 1002, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.HEAP);
     assertRank(provider, 1003, xaStoreConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final Set<ServiceConfiguration<?>> emptyConfigs = Collections.emptySet();
+    final Set<ServiceConfiguration<?>> emptyConfigs = emptySet();
     assertRank(provider, 0, emptyConfigs, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
