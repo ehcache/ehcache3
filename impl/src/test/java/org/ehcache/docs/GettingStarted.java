@@ -27,11 +27,10 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.docs.plugs.CharSequenceSerializer;
 import org.ehcache.docs.plugs.ListenerObject;
+import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionVeto;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
@@ -40,7 +39,6 @@ import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.copy.ReadWriteCopier;
-import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
 import java.io.File;
@@ -203,20 +201,20 @@ public class GettingStarted {
   @Test
   public void cacheSerializers() throws Exception {
     // tag::cacheSerializers[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+    CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class)
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
         .withKeySerializer(new LongSerializer()) // <1>
-        .withValueSerializer((Serializer) new CharSequenceSerializer()) // <2>
+        .withValueSerializer(new PersonSerializer()) // <2>
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("cache", cacheConfiguration)
         .build(true);
 
-    Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
+    Cache<Long, Person> cache = cacheManager.getCache("cache", Long.class, Person.class);
 
-    cache.put(1L, "one");
-    assertThat(cache.get(1L), equalTo("one"));
+    cache.put(1L, new Person("person one", 32));
+    assertThat(cache.get(1L), equalTo(new Person("person one", 32)));
 
     cacheManager.close();
     // end::cacheSerializers[]
@@ -583,6 +581,12 @@ public class GettingStarted {
     @Override
     public Person copy(final Person obj) {
       return new Person(obj);
+    }
+  }
+
+  static class PersonSerializer extends JavaSerializer<Person> {
+    public PersonSerializer() {
+      super(ClassLoader.getSystemClassLoader());
     }
   }
 
