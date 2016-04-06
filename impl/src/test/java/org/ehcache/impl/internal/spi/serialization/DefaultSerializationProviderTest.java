@@ -20,6 +20,7 @@ import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.serialization.ByteArraySerializer;
 import org.ehcache.impl.serialization.CharSerializer;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
@@ -260,6 +261,16 @@ public class DefaultSerializationProviderTest {
 
     keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
     assertThat(keySerializer, instanceOf(FloatSerializer.class));
+  }
+
+  @Test
+  public void testDefaultByteArraySerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<byte[]> keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
+
+    keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
   }
 
   private DefaultSerializationProvider getStartedProvider() throws CachePersistenceException {
