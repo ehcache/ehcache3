@@ -54,6 +54,13 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
     return createCopier(DefaultCopierConfiguration.Type.VALUE, clazz, serializer, configs);
   }
 
+  @Override
+  public void releaseCopier(Copier<?> copier) throws Exception {
+    if (!(copier instanceof IdentityCopier) & !(copier instanceof SerializingCopier)) {
+      releaseInstance(copier);
+    }
+  }
+
   private <T> Copier<T> createCopier(DefaultCopierConfiguration.Type type, Class<T> clazz,
                                      Serializer<T> serializer, ServiceConfiguration<?>... configs) {
     DefaultCopierConfiguration<T> conf = find(type, configs);

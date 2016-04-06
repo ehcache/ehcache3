@@ -1548,7 +1548,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+    private final Map<Store<?, ?>, List<Copier>> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, List<Copier>>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -1567,21 +1567,34 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
       Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
 
+      List<Copier> copiers = new ArrayList<Copier>();
+      copiers.add(keyCopier);
+      copiers.add(valueCopier);
+
       SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
       SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(
           storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit(), serviceConfigs);
       OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher);
-      createdStores.add(onHeapStore);
+      createdStores.put(onHeapStore, copiers);
       return onHeapStore;
     }
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      if (!createdStores.remove(resource)) {
+      if (!createdStores.containsKey(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
+      List<Copier> copiers = createdStores.remove(resource);
       final OnHeapStore onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
+      CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+      for (Copier copier: copiers) {
+        try {
+          copyProvider.releaseCopier(copier);
+        } catch (Exception e) {
+          throw new IllegalStateException("Exception while releasing Copier instance.", e);
+        }
+      }
     }
 
     static void close(final OnHeapStore onHeapStore) {
@@ -1594,7 +1607,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
 
     private void checkResource(Object resource) {
-      if (!createdStores.contains(resource)) {
+      if (!createdStores.containsKey(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
     }

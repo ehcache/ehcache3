@@ -46,4 +46,12 @@ public interface CopyProvider extends Service {
    * @return a {@link Copier} instance
    */
   <T> Copier<T> createValueCopier(Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs);
+
+  /**
+   * Releases the provided {@link Copier} instance
+   *
+   * @param copier the copier instance to be released
+   * @throws Exception when the release fails
+   */
+  void releaseCopier(Copier<?> copier) throws Exception;
 }
