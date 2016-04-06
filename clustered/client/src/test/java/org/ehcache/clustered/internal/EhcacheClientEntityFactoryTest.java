@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.client;
+
+package org.ehcache.clustered.internal;
 
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import static org.hamcrest.core.Is.is;
+
+import org.ehcache.clustered.internal.EhcacheClientEntity;
+import org.ehcache.clustered.internal.EhcacheClientEntityFactory;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.consensus.CoordinationService;

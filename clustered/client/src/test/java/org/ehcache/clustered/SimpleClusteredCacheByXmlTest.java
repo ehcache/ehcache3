@@ -20,7 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
-import org.ehcache.clustered.client.UnitTestConnectionService;
+import org.ehcache.clustered.internal.UnitTestConnectionService;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.xml.XmlConfiguration;

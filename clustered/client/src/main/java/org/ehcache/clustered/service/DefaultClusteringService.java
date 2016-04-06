@@ -22,9 +22,9 @@ import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Properties;
 import org.ehcache.clustered.ServerSideConfiguration;
-import org.ehcache.clustered.client.EhcacheClientEntity;
+import org.ehcache.clustered.internal.EhcacheClientEntity;
 
-import org.ehcache.clustered.client.EhcacheClientEntityFactory;
+import org.ehcache.clustered.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.config.ClusteredResourceType;
 import org.ehcache.clustered.config.ClusteringServiceConfiguration;
 import org.ehcache.config.ResourcePool;

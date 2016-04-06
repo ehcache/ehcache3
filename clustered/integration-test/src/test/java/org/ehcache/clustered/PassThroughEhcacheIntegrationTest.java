@@ -20,7 +20,7 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.client.EhcacheClientEntity;
+import org.ehcache.clustered.internal.EhcacheClientEntity;
 import org.ehcache.clustered.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.exceptions.StateTransitionException;
 import org.ehcache.xml.XmlConfiguration;

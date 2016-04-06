@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered;
 
-import org.ehcache.clustered.client.EhcacheClientEntityFactory;
+import org.ehcache.clustered.internal.EhcacheClientEntityFactory;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
@@ -24,7 +24,6 @@ import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.passthrough.PassthroughServer;
 
 import static org.ehcache.clustered.TestUtils.createServer;
-import org.hamcrest.core.Is;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;

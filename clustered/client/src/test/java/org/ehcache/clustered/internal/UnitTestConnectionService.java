@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client;
+package org.ehcache.clustered.internal;
 
 
 import java.net.URI;
 import java.util.Properties;
 
+import org.ehcache.clustered.internal.EhcacheClientEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
