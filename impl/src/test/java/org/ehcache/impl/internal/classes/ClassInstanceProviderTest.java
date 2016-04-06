@@ -31,6 +31,7 @@ import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -102,6 +103,7 @@ public class ClassInstanceProviderTest {
     ClassInstanceProvider<String, Closeable> classInstanceProvider = new ClassInstanceProvider<String, Closeable>(null, null);
     Closeable closeable = mock(Closeable.class);
     classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
+    classInstanceProvider.instantiated.add(closeable);
 
     classInstanceProvider.releaseInstance(closeable);
     verify(closeable).close();
@@ -113,6 +115,7 @@ public class ClassInstanceProviderTest {
     Closeable closeable = mock(Closeable.class);
     doThrow(IOException.class).when(closeable).close();
     classInstanceProvider.providedVsCount.put(closeable, new AtomicInteger(1));
+    classInstanceProvider.instantiated.add(closeable);
 
     classInstanceProvider.releaseInstance(closeable);
   }
@@ -142,6 +145,41 @@ public class ClassInstanceProviderTest {
     newService = classInstanceProvider.newInstance("test stuff", config);
     assertThat(newService, sameInstance(service));
     assertThat(classInstanceProvider.providedVsCount.get(service).get(), is(2));
+  }
+
+  @Test
+  public void testInstancesNotCreatedByProviderDoesNotClose() throws IOException {
+    ClassInstanceProvider<String, TestCloaseableService> classInstanceProvider = new ClassInstanceProvider<String, TestCloaseableService>(null, (Class)ClassInstanceConfiguration.class);
+
+    TestCloaseableService service = mock(TestCloaseableService.class);
+    TestCloaseableServiceConfig config = new TestCloaseableServiceConfig(service);
+
+    TestCloaseableService newService = classInstanceProvider.newInstance("testClose", config);
+    assertThat(newService, sameInstance(service));
+    classInstanceProvider.releaseInstance(newService);
+    verify(service, times(0)).close();
+
+  }
+
+
+  public static abstract class TestCloaseableService implements Service, Closeable {
+
+  }
+
+  public static class TestCloaseableServiceConfig extends ClassInstanceConfiguration<TestCloaseableService> implements ServiceConfiguration<TestCloaseableService> {
+
+    public TestCloaseableServiceConfig() {
+      super(TestCloaseableService.class);
+    }
+
+    public TestCloaseableServiceConfig(TestCloaseableService testCloaseableService) {
+      super(testCloaseableService);
+    }
+
+    @Override
+    public Class<TestCloaseableService> getServiceType() {
+      return TestCloaseableService.class;
+    }
   }
 
   public static class TestService implements Service {

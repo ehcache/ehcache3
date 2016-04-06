@@ -26,9 +26,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.impl.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
@@ -49,6 +51,7 @@ public class ClassInstanceProvider<K, T> {
    * Instances provided by this provider vs their counts.
    */
   protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<T, AtomicInteger>();
+  protected final Set<T> instantiated = new HashSet<T>();
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
   private final boolean uniqueClassLevelConfig;
@@ -109,6 +112,7 @@ public class ClassInstanceProvider<K, T> {
     } else {
       try {
         instance = invokeConstructor(config.getClazz(), config.getArguments());
+        instantiated.add(instance);
       } catch (InstantiationException e) {
         throw new RuntimeException(e);
       } catch (IllegalAccessException e) {
@@ -138,9 +142,10 @@ public class ClassInstanceProvider<K, T> {
       throw new IllegalArgumentException("Given instance of " + instance.getClass().getName() + " is not managed by this provider");
     }
 
-    if(instance instanceof Closeable) {
+    if(instantiated.contains(instance) && instance instanceof Closeable) {
       ((Closeable)instance).close();
     }
+    instantiated.remove(instance);
   }
 
   public void start(ServiceProvider<Service> serviceProvider) {
