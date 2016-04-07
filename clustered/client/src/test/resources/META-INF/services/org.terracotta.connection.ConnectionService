@@ -1,1 +1,1 @@
-org.ehcache.clustered.client.UnitTestConnectionService
+org.ehcache.clustered.client.internal.UnitTestConnectionService
