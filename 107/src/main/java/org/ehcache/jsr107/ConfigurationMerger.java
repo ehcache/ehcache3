@@ -43,6 +43,7 @@ import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
@@ -72,11 +73,18 @@ class ConfigurationMerger {
     Eh107Expiry<K, V> expiryPolicy = null;
     CacheLoaderWriter<? super K, V> loaderWriter = null;
     try {
-      CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType());
+      CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType(), heap(Long.MAX_VALUE));
+
       String templateName = jsr107Service.getTemplateNameForCache(cacheName);
       if (xmlConfiguration != null && templateName != null) {
-        CacheConfigurationBuilder<K, V> templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
-            jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
+        CacheConfigurationBuilder<K, V> templateBuilder = null;
+        try {
+          templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
+              jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
+        } catch (IllegalStateException e) {
+          templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
+                        jsr107Configuration.getKeyType(), jsr107Configuration.getValueType(), heap(Long.MAX_VALUE));
+        }
         if (templateBuilder != null) {
           builder = templateBuilder;
           LOG.info("Configuration of cache {} will be supplemented by template {}", cacheName, templateName);

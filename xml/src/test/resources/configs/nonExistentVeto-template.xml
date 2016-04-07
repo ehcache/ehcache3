@@ -24,5 +24,6 @@
   </ehcache:cache-template>
 
   <ehcache:cache alias="foo" uses-template="example">
+    <ehcache:heap>10</ehcache:heap>
   </ehcache:cache>
 </ehcache:config>

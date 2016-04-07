@@ -80,7 +80,7 @@ public interface CacheConfiguration<K, V> {
   /**
    * Get the {@link ResourcePools resource pools} the {@link Cache} can make use of.
    *
-   * @return the {@link ResourcePools}
+   * @return non {@code null} and non empty {@link ResourcePools}
    */
   ResourcePools getResourcePools();
 

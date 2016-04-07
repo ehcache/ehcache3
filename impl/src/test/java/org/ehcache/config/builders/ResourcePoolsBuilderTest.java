@@ -16,6 +16,7 @@
 
 package org.ehcache.config.builders;
 
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
@@ -23,6 +24,7 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static org.ehcache.config.ResourceType.Core.HEAP;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
@@ -56,5 +58,11 @@ public class ResourcePoolsBuilderTest {
     assertThat(heapPool.isPersistent(), is(equalTo(newPool.isPersistent())));
     assertThat(heapPool.getSize(), is(equalTo(newPool.getSize())));
     assertThat(heapPool.getUnit(), is(equalTo(newPool.getUnit())));
+  }
+
+  @Test
+  public void testHeap() throws Exception {
+    ResourcePools pools = heap(10).build();
+    assertThat(pools.getPoolForResource(HEAP).getSize(), is(10L));
   }
 }

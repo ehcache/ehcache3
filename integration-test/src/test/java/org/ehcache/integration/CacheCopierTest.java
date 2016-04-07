@@ -21,10 +21,8 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.impl.copy.ReadWriteCopier;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -38,6 +36,8 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -49,8 +49,7 @@ import static org.junit.Assert.assertThat;
 public class CacheCopierTest {
 
   CacheManager cacheManager;
-  CacheConfigurationBuilder<Long, Person> baseConfig = CacheConfigurationBuilder.<Long, Person>newCacheConfigurationBuilder(Long.class, Person.class)
-      .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).build());
+  CacheConfigurationBuilder<Long, Person> baseConfig = newCacheConfigurationBuilder(Long.class, Person.class, heap(5));
 
 
   @Before

@@ -21,5 +21,6 @@
 
   <ehcache:cache alias="foo">
     <ehcache:eviction-veto>com.foo.NonExistentVetoInCache</ehcache:eviction-veto>
+    <ehcache:heap>10</ehcache:heap>
   </ehcache:cache>
 </ehcache:config>

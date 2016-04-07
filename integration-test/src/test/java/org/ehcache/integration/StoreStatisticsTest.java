@@ -20,7 +20,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
@@ -41,6 +40,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -61,10 +62,7 @@ public class StoreStatisticsTest {
   public void test1TierStoreStatsAvailableInContextManager() throws Exception {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("threeTieredCache",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(1, MemoryUnit.MB)
-                )
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
         ).build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("threeTieredCache", Long.class, String.class);
@@ -81,8 +79,8 @@ public class StoreStatisticsTest {
   public void test2TiersStoreStatsAvailableInContextManager() throws Exception {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("threeTieredCache",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                newResourcePoolsBuilder()
                     .heap(1, MemoryUnit.MB)
                     .offheap(2, MemoryUnit.MB)
                 )
@@ -105,8 +103,8 @@ public class StoreStatisticsTest {
     PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "StoreStatisticsTest")))
         .withCache("threeTieredCache",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                newResourcePoolsBuilder()
                     .heap(1, MemoryUnit.MB)
                     .offheap(2, MemoryUnit.MB)
                     .disk(5, MemoryUnit.MB)

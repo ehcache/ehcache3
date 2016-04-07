@@ -27,7 +27,6 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.CharSequenceSerializer;
@@ -72,7 +71,7 @@ public class GettingStarted {
     CacheManager cacheManager
         = CacheManagerBuilder.newCacheManagerBuilder() // <1>
         .withCache("preConfigured",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)) // <2>
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))) // <2>
         .build(); // <3>
     cacheManager.init(); // <4>
 
@@ -80,7 +79,7 @@ public class GettingStarted {
         cacheManager.getCache("preConfigured", Long.class, String.class); // <5>
 
     Cache<Long, String> myCache = cacheManager.createCache("myCache", // <6>
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class).build());
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10)).build());
 
     myCache.put(1L, "da one!"); // <7>
     String value = myCache.get(1L); // <8>
@@ -96,8 +95,8 @@ public class GettingStarted {
     // tag::persistentCacheManager[]
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(CacheManagerBuilder.persistence(getStoragePath() + File.separator + "myData")) // <1>
-        .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .disk(10L, MemoryUnit.MB, true)) // <2>
             )
@@ -111,8 +110,8 @@ public class GettingStarted {
   public void offheapCacheManager() {
     // tag::offheapCacheManager[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(10, MemoryUnit.MB)) // <1>
             )
@@ -128,8 +127,8 @@ public class GettingStarted {
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(CacheManagerBuilder.persistence(getStoragePath() + File.separator + "myData")) // <1>
         .withCache("threeTieredCache",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES) // <2>
                     .offheap(1, MemoryUnit.MB) // <3>
                     .disk(20, MemoryUnit.MB) // <4>
@@ -143,9 +142,9 @@ public class GettingStarted {
   @Test
   public void defaultSerializers() throws Exception {
     // tag::defaultSerializers[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder
-            .newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB))
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+          ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
+              .offheap(1, MemoryUnit.MB))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -165,18 +164,18 @@ public class GettingStarted {
   @Test
   public void byteSizedTieredCache() {
     // tag::byteSizedTieredCache[]
-    CacheConfiguration<Long, String> usesConfiguredInCacheConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10, MemoryUnit.KB) // <1>
-            .offheap(10, MemoryUnit.MB))
+    CacheConfiguration<Long, String> usesConfiguredInCacheConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10, MemoryUnit.KB) // <1>
+                .offheap(10, MemoryUnit.MB))
         .withSizeOfMaxObjectGraph(1000)
         .withSizeOfMaxObjectSize(1000, MemoryUnit.B) // <2>
         .build();
 
-    CacheConfiguration<Long, String> usesDefaultSizeOfEngineConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10, MemoryUnit.KB)
-            .offheap(10, MemoryUnit.MB))
+    CacheConfiguration<Long, String> usesDefaultSizeOfEngineConfig = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.newResourcePoolsBuilder()
+                .heap(10, MemoryUnit.KB)
+                .offheap(10, MemoryUnit.MB))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -203,8 +202,8 @@ public class GettingStarted {
   @Test
   public void cacheSerializers() throws Exception {
     // tag::cacheSerializers[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
         .withKeySerializer(new LongSerializer()) // <1>
         .withValueSerializer((Serializer) new CharSequenceSerializer()) // <2>
         .build();
@@ -231,7 +230,7 @@ public class GettingStarted {
 
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class)
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, ResourcePoolsBuilder.heap(10))
                 .add(cacheEventListenerConfiguration) // <3>
         ).build(true);
 
@@ -250,7 +249,7 @@ public class GettingStarted {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
     final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
             .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .build());
 
@@ -268,7 +267,7 @@ public class GettingStarted {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
     final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
             .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .add(WriteBehindConfigurationBuilder // <2>
                 .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)// <3>
@@ -293,10 +292,10 @@ public class GettingStarted {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(listener, EventType.EVICTED).unordered().synchronous();
 
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                                                                ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES))
         .add(cacheEventListenerConfiguration)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10L, EntryUnit.ENTRIES)).build();
+        .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);
@@ -328,9 +327,8 @@ public class GettingStarted {
   @Test
   public void registerListenerAtRuntime() throws InterruptedException {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10L, EntryUnit.ENTRIES)).build())
+        .withCache("cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.heap(10L)))
         .build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("cache", Long.class, String.class);
@@ -359,8 +357,8 @@ public class GettingStarted {
     CacheEventListenerConfigurationBuilder cacheEventListenerConfiguration = CacheEventListenerConfigurationBuilder
         .newEventListenerConfiguration(ListenerObject.class, EventType.EVICTED).ordered().synchronous();
     // tag::configuringEventProcessingQueues[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5L, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                                                                                          ResourcePoolsBuilder.heap(5L))
         .withOrderedEventParallelism(10) // <1>
         .withEventListenersThreadPool("listeners-pool")
         .build();
@@ -373,8 +371,8 @@ public class GettingStarted {
   @Test
   public void cacheCopiers() throws Exception {
     // tag::cacheCopiers[]
-    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class,
+                                                                                          ResourcePoolsBuilder.heap(10))
         .withKeyCopier(new DescriptionCopier()) // <1>
         .withValueCopier(new PersonCopier()) // <2>
         .build();
@@ -397,8 +395,8 @@ public class GettingStarted {
   @Test
   public void cacheSerializingCopiers() throws Exception {
     // tag::cacheSerializingCopiers[]
-    CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+    CacheConfiguration<Long, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class,
+                                                                                          ResourcePoolsBuilder.heap(10))
         .withValueSerializingCopier() // <1>
         .build();
     // end::cacheSerializingCopiers[]
@@ -421,13 +419,11 @@ public class GettingStarted {
   @Test
   public void defaultCopiers() throws Exception {
     // tag::defaultCopiers[]
-    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-        .build();
+    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class,
+        ResourcePoolsBuilder.heap(10)).build();
 
-    CacheConfiguration<Long, Person> anotherCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
-        .build();
+    CacheConfiguration<Long, Person> anotherCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Person.class,
+        ResourcePoolsBuilder.heap(10)).build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCopier(Description.class, DescriptionCopier.class) // <1>
@@ -455,8 +451,8 @@ public class GettingStarted {
   @Test
   public void cacheServiceConfiguration() throws Exception {
     // tag::cacheServiceConfigurations[]
-    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+    CacheConfiguration<Description, Person> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Description.class, Person.class,
+                                                                                              ResourcePoolsBuilder.heap(10))
         .withKeyCopier(DescriptionCopier.class) // <1>
         .withValueCopier(new PersonCopier()) // <2>
         .build();
@@ -479,10 +475,9 @@ public class GettingStarted {
   @Test
   public void cacheEvictionVeto() throws Exception {
     // tag::cacheEvictionVeto[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withEvictionVeto(new OddKeysEvictionVeto<Long, String>()) // <1>
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(2L, EntryUnit.ENTRIES)) // <2>
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                                                                                        ResourcePoolsBuilder.heap(2L)) // <1>
+        .withEvictionVeto(new OddKeysEvictionVeto<Long, String>()) // <2>
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

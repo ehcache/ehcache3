@@ -43,6 +43,7 @@ import org.junit.Test;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.notNullValue;
@@ -60,7 +61,7 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withEvictionVeto(veto)
         .build();
 
@@ -101,7 +102,7 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withLoaderWriter(loaderWriter)
         .build();
 
@@ -129,7 +130,7 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withKeySerializer(keySerializer)
         .build();
 
@@ -159,7 +160,7 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withValueSerializer(valueSerializer)
         .build();
 
@@ -184,7 +185,7 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withKeyCopier(keyCopier)
         .build();
 
@@ -209,7 +210,7 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withValueCopier(valueCopier)
         .build();
 
@@ -222,7 +223,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testNothing() {
-    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class);
+    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class, heap(10));
 
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
@@ -239,12 +240,12 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testOffheapGetsAddedToCacheConfiguration() {
-    CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class);
+    CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
+            .offheap(10, MemoryUnit.MB));
 
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
-    builder = builder.withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
-        .offheap(10, MemoryUnit.MB));
     CacheConfiguration config = builder
         .withEvictionVeto(new EvictionVeto<Long, CharSequence>() {
           @Override
@@ -260,7 +261,7 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testSizeOf() {
-    CacheConfigurationBuilder<String, String> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder<String, String> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, heap(10));
 
     builder = builder.withSizeOfMaxObjectSize(10, MemoryUnit.B).withSizeOfMaxObjectGraph(100);
     CacheConfiguration<String, String> configuration = builder.build();

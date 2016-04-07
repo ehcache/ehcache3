@@ -18,6 +18,7 @@ package org.ehcache.config.builders;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.SizedResourcePool;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.config.ResourcePoolsImpl;
@@ -76,6 +77,18 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   }
 
   /**
+   * Creates a new {@code ResourcePoolsBuilder} with a {@link ResourceType.Core#HEAP heap} pool sized
+   * in {@link EntryUnit#ENTRIES entries}
+   *
+   * @param entries the maximum number of mappings to cache
+   *
+   * @return a new builder with a heap configuration
+   */
+  public static ResourcePoolsBuilder heap(long entries) {
+    return newResourcePoolsBuilder().heap(entries, EntryUnit.ENTRIES);
+  }
+
+  /**
    * Add the {@link ResourcePool} of {@link ResourceType} in the returned builder.
    *
    * @param resourcePool the non-{@code null} resource pool to add
@@ -122,7 +135,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   }
 
   /**
-   * Convenience method to add a {@link org.ehcache.config.ResourceType.Core#HEAP} pool.
+   * Convenience method to add a {@link org.ehcache.config.ResourceType.Core#HEAP heap} pool.
    *
    * @param size the pool size
    * @param unit the pool size unit
@@ -135,7 +148,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   }
 
   /**
-   * Convenience method to add a {@link org.ehcache.config.ResourceType.Core#OFFHEAP} pool.
+   * Convenience method to add an {@link org.ehcache.config.ResourceType.Core#OFFHEAP offheap} pool.
    *
    * @param size the pool size
    * @param unit the pool size unit
@@ -148,7 +161,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   }
 
   /**
-   * Convenience method to add a non persistent {@link org.ehcache.config.ResourceType.Core#DISK} pool.
+   * Convenience method to add a non persistent {@link org.ehcache.config.ResourceType.Core#DISK disk} pool.
    *
    * @param size the pool size
    * @param unit the pool size unit
@@ -161,7 +174,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   }
 
   /**
-   * Convenience method to add a {@link org.ehcache.config.ResourceType.Core#DISK} pool specifying persistence.
+   * Convenience method to add a {@link org.ehcache.config.ResourceType.Core#DISK disk} pool specifying persistence.
    *
    * @param size the pool size
    * @param unit the pool size unit
@@ -181,9 +194,6 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    */
   @Override
   public ResourcePools build() {
-    if (resourcePools.isEmpty()) {
-      throw new IllegalStateException("No resource pools defined");
-    }
     return new ResourcePoolsImpl(resourcePools);
   }
 

@@ -49,6 +49,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
@@ -71,7 +72,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_without_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
@@ -95,7 +97,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_with_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .build();
 
@@ -134,7 +137,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_with_cache_writer_that_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .build();
 
@@ -169,7 +173,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testPutAll_store_throws_cache_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .build();
 
@@ -210,7 +215,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_without_cache_loader() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
@@ -239,7 +245,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_with_cache_loader() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
@@ -271,7 +278,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_cache_loader_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
@@ -306,7 +314,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testGetAll_store_throws_cache_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
@@ -338,7 +347,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_without_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder.build();
 
     CacheManagerBuilder<CacheManager> managerBuilder = CacheManagerBuilder.newCacheManagerBuilder();
@@ -371,7 +381,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_with_cache_writer() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .build();
 
@@ -416,7 +427,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_cache_writer_throws_exception() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .build();
 
@@ -458,7 +470,8 @@ public class EhcacheBulkMethodsITest {
 
   @Test
   public void testRemoveAll_with_store_that_throws() throws Exception {
-    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        heap(100));
     CacheConfiguration<String, String> cacheConfiguration = cacheConfigurationBuilder
         .build();
 
