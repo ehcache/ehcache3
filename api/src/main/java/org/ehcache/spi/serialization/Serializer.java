@@ -15,7 +15,6 @@
  */
 package org.ehcache.spi.serialization;
 
-import java.io.Closeable;
 import java.nio.ByteBuffer;
 import org.ehcache.exceptions.SerializerException;
 
@@ -35,10 +34,15 @@ import org.ehcache.exceptions.SerializerException;
  *     initialize the serializer for persistent caches
  *   </li>
  * </ul> .
+ * <p>
+ *   The serialized object's class must be preserved in such a way that deserializing that object will return
+ *   an object of the exact same class as before serialization, i.e.: the following contract must always be true:
+ *   <p>
+ *   <code>object.getClass().equals( mySerializer.read(mySerializer.serialize(object)).getClass() )</code>
+ *   </p>
+ * </p>
  *
  * @param <T> the type of the instances to serialize
- *
- * @author cdennis
  */
 public interface Serializer<T> {
 
