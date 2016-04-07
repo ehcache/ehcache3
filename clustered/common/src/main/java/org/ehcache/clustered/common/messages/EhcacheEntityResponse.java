@@ -16,12 +16,61 @@
 package org.ehcache.clustered.common.messages;
 
 import java.io.Serializable;
+
 import org.terracotta.entity.EntityResponse;
 
 /**
  *
  * @author cdennis
  */
-public interface EhcacheEntityResponse extends EntityResponse, Serializable {
+public abstract class EhcacheEntityResponse implements EntityResponse, Serializable {
+
+  public enum Type {
+    SUCCESS,
+    FAILURE;
+  }
+
+  public abstract Type getType();
+
+  public static Success success() {
+    return Success.INSTANCE;
+  }
+
+  public static class Success extends EhcacheEntityResponse {
+
+    public static final Success INSTANCE = new Success();
+
+    private Success() {
+      //singleton
+    }
+
+    @Override
+    public Type getType() {
+      return Type.SUCCESS;
+    }
+  }
+
+  public static Failure failure(Throwable cause) {
+    return new Failure(cause);
+  }
+
+  public static class Failure extends EhcacheEntityResponse {
+
+    private final Throwable cause;
+
+    public Failure(Throwable cause) {
+      this.cause = cause;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.FAILURE;
+    }
+
+    public Throwable getCause() {
+      return cause;
+    }
+  }
+
 
 }

@@ -57,7 +57,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
 
   private static Object unmarshall(byte[] payload) {
     try {
-      return (EhcacheEntityMessage) new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
+      return new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
     } catch (IOException ex) {
       throw new IllegalArgumentException(ex);
     } catch (ClassNotFoundException ex) {

@@ -21,13 +21,11 @@ import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.InvokeFuture;
-import org.terracotta.exception.EntityException;
-
-import static org.ehcache.clustered.common.Util.unwrapException;
-import org.terracotta.entity.MessageCodecException;
 
 /**
  *
@@ -53,9 +51,9 @@ public class EhcacheClientEntity implements Entity {
   public void validate(ServerSideConfiguration config) throws IllegalArgumentException {
     try {
       invoke(EhcacheEntityMessage.validate(config));
-    } catch (EntityException e) {
-      throw unwrapException(e, IllegalArgumentException.class);
-    } catch (MessageCodecException e) {
+    } catch (IllegalArgumentException e) {
+      throw e;
+    } catch (Throwable e) {
       throw new RuntimeException(e);
     }
   }
@@ -63,20 +61,25 @@ public class EhcacheClientEntity implements Entity {
   public void configure(ServerSideConfiguration config) throws IllegalStateException {
     try {
       invoke(EhcacheEntityMessage.configure(config));
-    } catch (EntityException e) {
-      throw unwrapException(e, IllegalStateException.class);
-    } catch (MessageCodecException e) {
+    } catch (IllegalStateException e) {
+      throw e;
+    } catch (Throwable e) {
       throw new RuntimeException(e);
     }
   }
 
-  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws EntityException, MessageCodecException {
+  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Throwable {
     InvokeFuture<EhcacheEntityResponse> result = endpoint.beginInvoke().message(message).invoke();
     boolean interrupted = false;
     try {
       while (true) {
         try {
-          return result.get();
+          EhcacheEntityResponse response = result.get();
+          if (Type.FAILURE.equals(response.getType())) {
+            throw ((Failure) response).getCause();
+          } else {
+            return response;
+          }
         } catch (InterruptedException e) {
           interrupted = true;
         }
