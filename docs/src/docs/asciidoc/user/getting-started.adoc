@@ -283,16 +283,14 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 ----
 
 <1> Configure the key's serializer.
-<2> Configure the value's serializer. Note that the casting is required as the serializer's type does not exactly match
-    the configured value type. This is okay as long as the serializer guarantees that the deserialized class will be
-    exactly the serialized class.
+<2> Configure the value's serializer.
 
 Serializer instances are created per cache for keys and values separately.
 By default, serializers are automatically used by tiers that require them (off-heap and disk) but the on-heap tier, while it can
 use them or not, will not by default.
 
 NOTE: By default, there are serializers already configured for types `java.io.Serializable`, `java.lang.String`, `java.lang.Long`,
-`java.lang.Integer`, `java.lang.Double`, `java.lang.Float` and `java.lang.Character`.
+`java.lang.Integer`, `java.lang.Double`, `java.lang.Float`, `java.lang.Character` and `byte[]`.
 
 ===== Implementation of a `Serializer`
 
