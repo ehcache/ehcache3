@@ -29,19 +29,7 @@ cannot store by reference is going to use a pair of Serializers: one for the key
 Serializers are scoped at the cache level: a cache can have a serializer for its keys and another one for its values.
 All stores of a cache will be using and sharing the same key and value serializer pair.
 
-=== Copiers
-
-As the on-heap store is capable of storing plain java objects as such,
-it is not necessary to use a costly serialization and deserialization mechanism to copy keys and values when a
-on-heap store is configured to store by value. For instance, some form of "copy constructor" mechanism is a lot
-more performant but requires custom code to be able to copy objects.
-
-Copiers are specific to the on-heap store: no other store makes use of copiers.
-
-By default, the on-heap mappings are stored by reference. The way to store them by value is to configure some copier(s)
-on it, either key, value or both.
-
-=== How is a serializer configured?
+==== How is a serializer configured?
 
 There are two places where serializers can be configured:
 
@@ -63,29 +51,7 @@ then configuring a `Cache<Long, Employee>` would make it use the `EmployeeSerial
 
 Each cache for which Ehcache instantiated a serializer (i.e.: the serializer was configured by its class name) will have its own instance.
 
-=== How is a copier configured?
-
-There are two places where copiers can be configured:
-
-- at the cache level where one can use `CacheConfigurationBuilder.withKeyCopier()` and `CacheConfigurationBuilder.withValueCopier()`.
-Both instances and class names can be configured.
-- at the cache manager level where one can use `CacheManagerBuilder.withCopier(Class clazz, Class copier)`
-
-If a copier is configured directly at the cache level, it will be used, ignoring any cache manager level configuration and that cache will work in store-by-value mode.
-
-If a copier is configured at the cache manager level, upon initialization, a cache with no specifically configured copier will
-search through its cache manager's registered list of copiers and try to find one that directly matches the cache's key or value type. If such
-search fails, all the registered copiers will be tried in the added order to find one that handles compatible types.
-
-For instance, let's say you have a `Person` interface and two subclasses: `Employee` and `Customer`. If you configure your cache manager as follows:
-```
-CacheManagerBuilder.newCacheManagerBuilder().withCopier(Employee.class, EmployeeCopier.class).withCopier(Person.class, PersonCopier.class)
-```
-then configuring a `Cache<Long, Employee>` would make it use the `EmployeeCopier` while a `Cache<Long, Customer>` would make it use the `PersonCopier`.
-
-Each cache for which Ehcache instantiated a copier (i.e.: the copier was configured by its class name) will have its own instance.
-
-=== Bundled implementations
+==== Bundled implementations
 
 By default, cache managers are pre-configured with specially optimized serializers that can handle the following types, in the following order:
 
@@ -100,9 +66,7 @@ By default, cache managers are pre-configured with specially optimized serialize
 
 All bundled serializer implementations support both persistent and transient caches.
 
-A `SerializingCopier` class exists in case you want to configure store-by-value on-heap using the configured (or default) serializer.
-
-=== Persistent vs transient caches
+==== Persistent vs transient caches
 
 When configured on a persistent cache, serializers may need to persist and restore their state across restarts, so you have to implement a
 constructor that accepts `ClassLoader classLoader, FileBasedPersistenceContext persistenceContext` otherwise persistent caches won't be able to
@@ -118,28 +82,23 @@ will work, but the responsibility of persisting and restoring the serializer's s
 
 Registering a serializer that lacks such constructor at the cache manager level will prevent it from being chosen for persistent caches.
 
-Since copiers only relate to the on-heap store and the latter cannot be made persistent, the above doesn't apply to them.
-
-=== Lifecycle: instances vs class names
+==== Lifecycle: instances vs class names
 
 When a serializer instance is configured using either of
 `CacheConfigurationBuilder.withKeySerializer(Serializer keySerializer)` or `CacheConfigurationBuilder.withValueSerializer(Serializer valueSerializer)`,
 it is up to you to manage the lifecycle of the Serializer instance, ie: dispose of any resource the serializer might hold upon and/or persisting and reloading
 the serializer's state.
 
-Since copiers only relate to the on-heap store and the latter cannot be made persistent, the above doesn't apply to them.
-
-When a serializer or copier class is configured (either at the cache or cache manager level), since Ehcache is responsible for creating the
-instance, it also is responsible for disposing of it. If a serializer or copier class name is configured and that class implements `java.io.Closeable` then
+When a serializer class is configured (either at the cache or cache manager level), since Ehcache is responsible for creating the
+instance, it also is responsible for disposing of it. If a serializer class name is configured and that class implements `java.io.Closeable` then
 `close()` will be called when the cache gets disposed of.
 
-=== ClassLoaders
+==== ClassLoaders
 
-todo.
+When Ehcache instantiates a serializer itself, it will pass it a `ClassLoader` via the constructor. Such class loader must be used to access the classes
+of the serialized types as they might not be available in the current class loader
 
-== Writing your own
-
-=== Writing a serializer
+==== Writing your own serializer
 
 Serializers must act as such, so if you're planning to write your own implementation you have to keep in mind that
 the class of the serialized object MUST be retained after deserialization, ie:
@@ -166,7 +125,51 @@ if you plan to use it for a transient cache, you have to add a constructor that 
 You can optionally implement `java.io.Closeable`. If you do, Ehcache will call `close()` when a cache using such serializer gets disposed of, but *only if*
 Ehcache instantiated the serializer itself.
 
-=== Writing a Copier
+=== Copiers
+
+As the on-heap store is capable of storing plain java objects as such,
+it is not necessary to use a costly serialization and deserialization mechanism to copy keys and values when a
+on-heap store is configured to store by value. For instance, some form of "copy constructor" mechanism is a lot
+more performant but requires custom code to be able to copy objects.
+
+Copiers are specific to the on-heap store: no other store makes use of copiers.
+
+By default, the on-heap mappings are stored by reference. The way to store them by value is to configure some copier(s)
+on it, either key, value or both.
+
+==== How is a copier configured?
+
+There are two places where copiers can be configured:
+
+- at the cache level where one can use `CacheConfigurationBuilder.withKeyCopier()` and `CacheConfigurationBuilder.withValueCopier()`.
+Both instances and class names can be configured.
+- at the cache manager level where one can use `CacheManagerBuilder.withCopier(Class clazz, Class copier)`
+
+If a copier is configured directly at the cache level, it will be used, ignoring any cache manager level configuration and that cache will work in store-by-value mode.
+
+If a copier is configured at the cache manager level, upon initialization, a cache with no specifically configured copier will
+search through its cache manager's registered list of copiers and try to find one that directly matches the cache's key or value type. If such
+search fails, all the registered copiers will be tried in the added order to find one that handles compatible types.
+
+For instance, let's say you have a `Person` interface and two subclasses: `Employee` and `Customer`. If you configure your cache manager as follows:
+```
+CacheManagerBuilder.newCacheManagerBuilder().withCopier(Employee.class, EmployeeCopier.class).withCopier(Person.class, PersonCopier.class)
+```
+then configuring a `Cache<Long, Employee>` would make it use the `EmployeeCopier` while a `Cache<Long, Customer>` would make it use the `PersonCopier`.
+
+Each cache for which Ehcache instantiated a copier (i.e.: the copier was configured by its class name) will have its own instance.
+
+==== Bundled implementations
+
+A `SerializingCopier` class exists in case you want to configure store-by-value on-heap using the configured (or default) serializer.
+
+==== Lifecycle: instances vs class names
+
+When a copier class is configured (either at the cache or cache manager level), since Ehcache is responsible for creating the
+instance, it also is responsible for disposing of it. If a copier class name is configured and that class implements `java.io.Closeable` then
+`close()` will be called when the cache gets disposed of.
+
+==== Writing your own Copier
 
 Implement the following class:
 
