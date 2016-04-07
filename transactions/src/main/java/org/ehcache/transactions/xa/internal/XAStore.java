@@ -111,7 +111,7 @@ public class XAStore<K, V> implements Store<K, V> {
     this.eventSourceWrapper = new StoreEventSourceWrapper<K, V>(underlyingStore.getStoreEventSource());
   }
 
-  private boolean isInDoubt(SoftLock<V> softLock) {
+  private static boolean isInDoubt(SoftLock<?> softLock) {
     return softLock.getTransactionId() != null;
   }
 
@@ -767,12 +767,7 @@ public class XAStore<K, V> implements Store<K, V> {
       underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
       // eviction veto
-      EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
-        @Override
-        public boolean vetoes(K key, SoftLock lock) {
-          return lock.getTransactionId() != null;
-        }
-      };
+      EvictionVeto<? super K, ? super SoftLock<V>> evictionVeto = new XAEvictionVeto<K, V>(storeConfig.getEvictionVeto());
 
       // expiry
       final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
@@ -976,6 +971,20 @@ public class XAStore<K, V> implements Store<K, V> {
       List<ServiceConfiguration<?>> configsWithoutXA = new ArrayList<ServiceConfiguration<?>>(serviceConfigs);
       configsWithoutXA.remove(xaConfig);
       return StoreSupport.selectStoreProvider(serviceProvider, resourceTypes, configsWithoutXA);
+    }
+  }
+
+  private static class XAEvictionVeto<K, V> implements EvictionVeto<K, SoftLock<V>> {
+
+    private final EvictionVeto<? super K, ? super V> wrappedVeto;
+
+    private XAEvictionVeto(EvictionVeto<? super K, ? super V> wrappedVeto) {
+      this.wrappedVeto = wrappedVeto;
+    }
+
+    @Override
+    public boolean vetoes(K key, SoftLock<V> softLock) {
+      return isInDoubt(softLock) || wrappedVeto.vetoes(key, softLock.getOldValue());
     }
   }
 
