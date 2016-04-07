@@ -339,7 +339,7 @@ class ConfigurationParser {
           }
 
           @Override
-          public Iterable<ResourcePool> resourcePools() {
+          public Collection<ResourcePool> resourcePools() {
             for (BaseCacheType source : sources) {
               Heap heapResource = source.getHeap();
               if (heapResource != null) {
@@ -479,7 +479,7 @@ class ConfigurationParser {
           }
 
           @Override
-          public Iterable<ResourcePool> resourcePools() {
+          public Collection<ResourcePool> resourcePools() {
             Heap heapResource = cacheTemplate.getHeap();
             if (heapResource != null) {
               return singleton(parseResource(heapResource));
@@ -517,7 +517,7 @@ class ConfigurationParser {
     return Collections.unmodifiableMap(templates);
   }
 
-  private Iterable<ResourcePool> parseResources(ResourcesType resources) {
+  private Collection<ResourcePool> parseResources(ResourcesType resources) {
     Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
     for (Element resource : resources.getResource()) {
       resourcePools.add(parseResource(resource));
@@ -639,7 +639,7 @@ class ConfigurationParser {
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 
-    Iterable<ResourcePool> resourcePools();
+    Collection<ResourcePool> resourcePools();
 
     WriteBehind writeBehind();
 

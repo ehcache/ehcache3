@@ -284,11 +284,13 @@ public class XmlConfiguration implements Configuration {
       if (parsedExpiry != null) {
         builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
       }
-      ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
-      for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
-        resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
+      if (!cacheDefinition.resourcePools().isEmpty()) {
+        ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
+        for (ResourcePool resourcePool : cacheDefinition.resourcePools()) {
+          resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
+        }
+        builder = builder.withResourcePools(resourcePoolsBuilder);
       }
-      builder = builder.withResourcePools(resourcePoolsBuilder);
       final ConfigurationParser.DiskStoreSettings parsedDiskStoreSettings = cacheDefinition.diskStoreSettings();
       if (parsedDiskStoreSettings != null) {
         builder = builder.add(new OffHeapDiskStoreConfiguration(parsedDiskStoreSettings.threadPool(), parsedDiskStoreSettings.writerConcurrency()));
@@ -469,11 +471,13 @@ public class XmlConfiguration implements Configuration {
       }
     }
     builder = handleListenersConfig(cacheTemplate.listenersConfig(), defaultClassLoader, builder);
-    ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
-    for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
-      resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
+    if (!cacheTemplate.resourcePools().isEmpty()) {
+      ResourcePoolsBuilder resourcePoolsBuilder = newResourcePoolsBuilder();
+      for (ResourcePool resourcePool : cacheTemplate.resourcePools()) {
+        resourcePoolsBuilder = resourcePoolsBuilder.with(resourcePool);
+      }
+      builder = builder.withResourcePools(resourcePoolsBuilder);
     }
-    builder = builder.withResourcePools(resourcePoolsBuilder);
     for (ServiceConfiguration<?> serviceConfiguration : cacheTemplate.serviceConfigs()) {
       builder = builder.add(serviceConfiguration);
     }

@@ -181,6 +181,9 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
    */
   @Override
   public ResourcePools build() {
+    if (resourcePools.isEmpty()) {
+      throw new IllegalStateException("No resource pools defined");
+    }
     return new ResourcePoolsImpl(resourcePools);
   }
 
