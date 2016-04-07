@@ -19,7 +19,6 @@ package org.ehcache.clustered;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
-import org.ehcache.Maintainable;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.EhcacheClientEntity;
 import org.ehcache.clustered.config.builders.ClusteringServiceConfigurationBuilder;
@@ -80,29 +79,6 @@ public class PassThroughEhcacheIntegrationTest {
       fail("Expected StateTransitionException");
     } catch (StateTransitionException e) {
       //expected
-    }
-  }
-
-  @Test
-  public void testCacheManagerCreatedUsingMaintenance() throws Exception {
-    UnitTestConnectionService.reset();
-    PersistentCacheManager manager = newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/myCacheManager")).build())
-            .build(false);
-    Maintainable m = manager.toMaintenance();
-    try {
-      assertEntityNotExists(EhcacheClientEntity.class, "myCacheManager");
-      m.create();
-      assertEntityExists(EhcacheClientEntity.class, "myCacheManager");
-    } finally {
-      m.close();
-    }
-
-    manager.init();
-    try {
-      assertEntityExists(EhcacheClientEntity.class, "myCacheManager");
-    } finally {
-      manager.close();
     }
   }
 

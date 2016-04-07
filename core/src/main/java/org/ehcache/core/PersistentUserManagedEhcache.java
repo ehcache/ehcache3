@@ -16,7 +16,6 @@
 
 package org.ehcache.core;
 
-import org.ehcache.Maintainable;
 import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
@@ -81,30 +80,16 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * {@inheritDoc}
    */
   @Override
-  public Maintainable toMaintenance() {
-    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
+  public void destroy() {
+    StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
-      final Maintainable maintainable = new Maintainable() {
-        @Override
-        public void create() {
-          PersistentUserManagedEhcache.this.create();
-        }
-
-        @Override
-        public void destroy() {
-          PersistentUserManagedEhcache.this.destroy();
-        }
-
-        @Override
-        public void close() {
-          statusTransitioner.exitMaintenance().succeeded();
-        }
-      };
       st.succeeded();
-      return maintainable;
-    } catch (RuntimeException e) {
-      throw st.failed(e);
+    } catch (Throwable t) {
+      throw st.failed(t);
     }
+    destroyInternal();
+    // Exit maintenance mode once #934 is solved
+//    statusTransitioner.exitMaintenance().succeeded();
   }
 
   void create() {
@@ -119,7 +104,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     }
   }
 
-  void destroy() {
+  void destroyInternal() {
     statusTransitioner.checkMaintenance();
     try {
       localPersistenceService.destroy(id);

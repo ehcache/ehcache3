@@ -18,7 +18,6 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.Maintainable;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
@@ -87,7 +86,7 @@ import static org.mockito.Mockito.when;
 public class EhcacheManagerTest {
 
   @Test
-  public void testCanGoInMaintenanceAndClose() {
+  public void testCanDestroyAndClose() {
     CacheConfiguration<Long, String> cacheConfiguration = new BaseCacheConfiguration<Long, String>(Long.class, String.class, null,
         null, null, ResourcePoolsHelper.createHeapOnlyPools(10));
 
@@ -103,7 +102,7 @@ public class EhcacheManagerTest {
     Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     caches.put("aCache", cacheConfiguration);
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
-    CacheManager cacheManager = new EhcacheManager(config, Arrays.asList(
+    PersistentCacheManager cacheManager = new EhcacheManager(config, Arrays.asList(
         storeProvider,
         mock(CacheLoaderWriterProvider.class),
         mock(WriteBehindProvider.class),
@@ -115,8 +114,7 @@ public class EhcacheManagerTest {
     cacheManager.close();
     cacheManager.init();
     cacheManager.close();
-    Maintainable maintainable = ((PersistentCacheManager) cacheManager).toMaintenance();
-    maintainable.close();
+    cacheManager.destroy();
     cacheManager.init();
     cacheManager.close();
   }

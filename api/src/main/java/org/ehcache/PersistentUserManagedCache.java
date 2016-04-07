@@ -27,10 +27,9 @@ package org.ehcache;
 public interface PersistentUserManagedCache<K, V> extends UserManagedCache<K, V> {
 
   /**
-   * Lets you manipulate the persistent data structures for this {@link PersistentUserManagedCache}
+   * Destroy all persistent data structures for this {@code PersistentUserManagedCache}.
    *
-   * @return a {@link org.ehcache.Maintainable} for this {@link PersistentUserManagedCache}
    * @throws java.lang.IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE} couldn't be reached
    */
-  Maintainable toMaintenance();
+  void destroy();
 }
