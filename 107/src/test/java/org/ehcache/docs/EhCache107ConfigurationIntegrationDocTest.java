@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.internal.util.ValueSuppliers;
 import org.ehcache.jsr107.Eh107Configuration;
 import org.junit.After;
@@ -113,8 +114,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
   @Test
   public void testUsingEhcacheConfiguration() throws Exception {
     // tag::ehcacheBasedConfigurationExample[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .build(); // <1>
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.heap(10)).build(); // <1>
 
     Cache<Long, String> cache = cacheManager.createCache("myCache",
         Eh107Configuration.fromEhcacheCacheConfiguration(cacheConfiguration)); // <2>

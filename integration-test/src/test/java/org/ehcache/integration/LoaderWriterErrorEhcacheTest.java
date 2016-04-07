@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -71,7 +72,7 @@ public class LoaderWriterErrorEhcacheTest {
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
     when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>) anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
     cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
-    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class).build());
+    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)).build());
   }
 
   @After

@@ -21,9 +21,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.exceptions.SerializerException;
 import org.ehcache.expiry.Expirations;
@@ -45,6 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -165,18 +164,18 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration(
         SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
             .build());
     performAssertions(cache1, true);
 
     final Cache<Long, String> cache2 = cacheManager.createCache("cache2",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
             .add(copierConfiguration)
             .build());
     performAssertions(cache2, false);
 
     final Cache<Long, String> cache3 = cacheManager.createCache("cache3",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
             .build());
     performAssertions(cache3, true);
 

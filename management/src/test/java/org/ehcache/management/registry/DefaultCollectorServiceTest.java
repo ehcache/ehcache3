@@ -20,7 +20,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.CollectorService;
@@ -45,6 +44,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -59,11 +59,10 @@ public class DefaultCollectorServiceTest {
     final List<String> notifs = new ArrayList<String>(6);
     final CountDownLatch num = new CountDownLatch(5);
 
-    CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        newResourcePoolsBuilder()
             .heap(10, EntryUnit.ENTRIES)
-            .offheap(1, MemoryUnit.MB)
-            .build())
+            .offheap(1, MemoryUnit.MB))
         .build();
 
     StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(

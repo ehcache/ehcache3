@@ -23,10 +23,10 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Test;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -45,9 +45,8 @@ public class OverSizeMappingTest {
         .build(true);
 
     CacheConfiguration<String, String> objectSize = CacheConfigurationBuilder
-        .newCacheConfigurationBuilder(String.class, String.class)
-        .withResourcePools(
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .newCacheConfigurationBuilder(String.class, String.class,
+            newResourcePoolsBuilder()
                 .heap(100, MemoryUnit.KB).offheap(10, MemoryUnit.MB).build())
         .build();
 
@@ -58,9 +57,8 @@ public class OverSizeMappingTest {
     assertThat(objectSizeCache.get("key1"), equalTo(getOverSizedObject()));
 
     CacheConfiguration<String, ObjectSizeGreaterThanN> objectGraphSize = CacheConfigurationBuilder
-        .newCacheConfigurationBuilder(String.class, ObjectSizeGreaterThanN.class)
-        .withResourcePools(
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .newCacheConfigurationBuilder(String.class, ObjectSizeGreaterThanN.class,
+            newResourcePoolsBuilder()
                 .heap(100, MemoryUnit.KB).offheap(100, MemoryUnit.MB).build())
         .build();
 
@@ -78,9 +76,8 @@ public class OverSizeMappingTest {
         .withDefaultSizeOfMaxObjectSize(500, MemoryUnit.B).build(true);
 
     CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder
-        .newCacheConfigurationBuilder(String.class, String.class)
-        .withResourcePools(
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .newCacheConfigurationBuilder(String.class, String.class,
+            newResourcePoolsBuilder()
                 .heap(100, MemoryUnit.KB).build())
         .build();
 

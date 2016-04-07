@@ -36,7 +36,7 @@ public class TieringTest {
   @Test
   public void testDiskTierWithoutPersistenceServiceFailsWithClearException() {
     try {
-      newCacheManagerBuilder().withCache("failing", newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(newResourcePoolsBuilder()
+      newCacheManagerBuilder().withCache("failing", newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder()
           .heap(5, EntryUnit.ENTRIES)
           .disk(5, MemoryUnit.MB)).build()).build(true);
       fail("Should not initialize");

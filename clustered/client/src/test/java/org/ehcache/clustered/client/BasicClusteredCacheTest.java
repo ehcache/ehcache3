@@ -54,8 +54,8 @@ public class BasicClusteredCacheTest {
                 .defaultServerResource("primary-server-resource")
                 .resourcePool("resource-pool-a", 128, MemoryUnit.GB)
                 .resourcePool("resource-pool-b", 128, MemoryUnit.GB, "secondary-server-resource"))
-            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.fixed("resource-pool-a", 32, MemoryUnit.GB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);

@@ -22,8 +22,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterProviderConfiguration;
 import org.ehcache.spi.ServiceProvider;
@@ -37,6 +35,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
@@ -48,7 +47,7 @@ public class DefaultCacheLoaderWriterProviderTest {
   public void testCacheConfigUsage() {
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
                 .add(new DefaultCacheLoaderWriterConfiguration(MyLoader.class))
                 .build()).build(true);
     final Object foo = manager.getCache("foo", Object.class, Object.class).get(new Object());
@@ -58,7 +57,7 @@ public class DefaultCacheLoaderWriterProviderTest {
   @Test
   public void testCacheManagerConfigUsage() {
 
-    final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .build();
 
     final Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
@@ -73,7 +72,7 @@ public class DefaultCacheLoaderWriterProviderTest {
 
   @Test
   public void testCacheConfigOverridesCacheManagerConfig() {
-    final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    final CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .add(new DefaultCacheLoaderWriterConfiguration(MyOtherLoader.class))
         .build();
 
@@ -94,10 +93,8 @@ public class DefaultCacheLoaderWriterProviderTest {
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (MyLoader.class);
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(100))
             .add(new DefaultCacheLoaderWriterConfiguration(klazz))
-            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(100, EntryUnit.ENTRIES).build())
             .build());
     Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();

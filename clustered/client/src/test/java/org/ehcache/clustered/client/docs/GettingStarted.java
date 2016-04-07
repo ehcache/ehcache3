@@ -31,6 +31,8 @@ import java.net.URI;
 
 import org.junit.Before;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+
 /**
  * Samples demonstrating use of a clustered cache.
  *
@@ -49,9 +51,7 @@ public class GettingStarted {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create")))
-            .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES)));
+            .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10)));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     cacheManager.close();
@@ -67,8 +67,8 @@ public class GettingStarted {
                 .defaultServerResource("primary-server-resource")
                 .resourcePool("resource-pool-a", 128, MemoryUnit.GB)
                 .resourcePool("resource-pool-b", 128, MemoryUnit.GB, "secondary-server-resource"))
-            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.fixed("resource-pool-a", 32, MemoryUnit.GB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
