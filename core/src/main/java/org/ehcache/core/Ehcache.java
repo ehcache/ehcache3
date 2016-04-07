@@ -521,7 +521,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       }
     } catch (StoreAccessException e) {
       try {
-        return resilienceStrategy.putIfAbsentFailure(key, value, e, absent);
+        return resilienceStrategy.putIfAbsentFailure(key, value, null, e, absent);
       } finally {
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       }

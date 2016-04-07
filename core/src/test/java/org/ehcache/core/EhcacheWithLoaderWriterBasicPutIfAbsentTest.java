@@ -203,11 +203,11 @@ public class EhcacheWithLoaderWriterBasicPutIfAbsentTest extends EhcacheBasicCru
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
-    ehcache.putIfAbsent("key", "value");
+    assertThat(ehcache.putIfAbsent("key", "value"), nullValue());
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));
+        .putIfAbsentFailure(eq("key"), eq("value"), eq("value"), any(StoreAccessException.class), eq(true));
     assertThat(fakeLoaderWriter.getEntryMap().get("key"), equalTo("value"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
@@ -232,11 +232,11 @@ public class EhcacheWithLoaderWriterBasicPutIfAbsentTest extends EhcacheBasicCru
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
-    ehcache.putIfAbsent("key", "value");
+    assertThat(ehcache.putIfAbsent("key", "value"), nullValue());
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     ordered.verify(this.cacheLoaderWriter).write(eq("key"), eq("value"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));
+        .putIfAbsentFailure(eq("key"), eq("value"), eq("value"), any(StoreAccessException.class), eq(true));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }
@@ -311,7 +311,7 @@ public class EhcacheWithLoaderWriterBasicPutIfAbsentTest extends EhcacheBasicCru
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     ordered.verify(this.cacheLoaderWriter).load(eq("key"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
+        .putIfAbsentFailure(eq("key"), eq("value"), eq("oldValue"), any(StoreAccessException.class), eq(false));
     assertThat(fakeLoaderWriter.getEntryMap().get("key"), equalTo("oldValue"));
     // Broken initial state: CacheLoaderWriter check omitted
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
@@ -337,11 +337,11 @@ public class EhcacheWithLoaderWriterBasicPutIfAbsentTest extends EhcacheBasicCru
 
     final InOrder ordered = inOrder(this.cacheLoaderWriter, this.spiedResilienceStrategy);
 
-    ehcache.putIfAbsent("key", "value");
+    assertThat(ehcache.putIfAbsent("key", "value"), is("oldValue"));
     verify(this.store).computeIfAbsent(eq("key"), getAnyFunction());
     ordered.verify(this.cacheLoaderWriter).load(eq("key"));
     ordered.verify(this.spiedResilienceStrategy)
-        .putIfAbsentFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
+        .putIfAbsentFailure(eq("key"), eq("value"), eq("oldValue"), any(StoreAccessException.class), eq(false));
     assertThat(fakeLoaderWriter.getEntryMap().get("key"), equalTo("oldValue"));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.FAILURE));
   }

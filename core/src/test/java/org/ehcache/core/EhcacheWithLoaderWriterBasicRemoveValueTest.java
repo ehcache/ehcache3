@@ -474,7 +474,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     this.cacheLoaderWriter = spy(fakeWriter);
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.remove("key", "value");
+    assertThat(ehcache.remove("key", "value"), is(false));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
@@ -621,7 +621,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     this.cacheLoaderWriter = spy(fakeWriter);
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.remove("key", "value");
+    assertThat(ehcache.remove("key", "value"), is(true));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));
@@ -647,7 +647,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     this.cacheLoaderWriter = spy(fakeWriter);
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.remove("key", "value");
+    assertThat(ehcache.remove("key", "value"), is(true));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));

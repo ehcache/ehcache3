@@ -91,9 +91,13 @@ public abstract class RobustResilienceStrategy<K, V> implements ResilienceStrate
   }
 
   @Override
-  public V putIfAbsentFailure(K key, V value, StoreAccessException e, boolean knownToBeAbsent) {
+  public V putIfAbsentFailure(K key, V value, V loaderWriterFunctionResult, StoreAccessException e, boolean knownToBeAbsent) {
     cleanup(key, e);
-    return null;
+    if (loaderWriterFunctionResult != null && !loaderWriterFunctionResult.equals(value)) {
+      return loaderWriterFunctionResult;
+    } else {
+      return null;
+    }
   }
 
   @Override
