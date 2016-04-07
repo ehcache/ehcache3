@@ -18,7 +18,7 @@ package org.ehcache.clustered.client.internal;
 
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
-import org.ehcache.clustered.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.consensus.CoordinationService;
@@ -28,7 +28,7 @@ import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
 
-import static org.ehcache.clustered.Util.unwrapException;
+import static org.ehcache.clustered.common.Util.unwrapException;
 
 public class EhcacheClientEntityFactory {
 

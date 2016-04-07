@@ -17,16 +17,16 @@
 package org.ehcache.clustered.client.internal;
 
 import java.util.UUID;
-import org.ehcache.clustered.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.ServerSideConfiguration;
-import org.ehcache.clustered.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.InvokeFuture;
 import org.terracotta.exception.EntityException;
 
-import static org.ehcache.clustered.Util.unwrapException;
+import static org.ehcache.clustered.common.Util.unwrapException;
 import org.terracotta.entity.MessageCodecException;
 
 /**

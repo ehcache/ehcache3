@@ -13,13 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered;
+
+package org.ehcache.clustered.common;
 
 import java.util.Random;
 import java.util.UUID;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+
 import org.junit.Test;
 
 public class ClusteredEhcacheIdentityTest {

@@ -21,7 +21,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Collection;
 import java.util.Properties;
-import org.ehcache.clustered.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;

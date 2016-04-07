@@ -17,12 +17,12 @@ package org.ehcache.clustered.server;
 
 import java.util.UUID;
 
-import org.ehcache.clustered.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.ServerSideConfiguration;
-import org.ehcache.clustered.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.messages.EhcacheEntityMessage.ConfigureCacheManager;
-import org.ehcache.clustered.messages.EhcacheEntityMessage.ValidateCacheManager;
-import org.ehcache.clustered.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ConfigureCacheManager;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;

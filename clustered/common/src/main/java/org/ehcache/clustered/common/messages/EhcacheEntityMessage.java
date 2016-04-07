@@ -13,10 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.messages;
+package org.ehcache.clustered.common.messages;
 
 import java.io.Serializable;
-import org.ehcache.clustered.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.terracotta.entity.EntityMessage;
 
 /**
