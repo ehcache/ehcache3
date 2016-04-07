@@ -51,6 +51,8 @@ public interface SerializationProvider extends Service {
 
   /**
    * Releases the given {@link Serializer} instance
+   * If the serializer instance is provided by the user, {@link java.io.Closeable#close()}
+   * will not be invoked.
    *
    * @param serializer the serializer to be released
    * @throws Exception when the release fails
