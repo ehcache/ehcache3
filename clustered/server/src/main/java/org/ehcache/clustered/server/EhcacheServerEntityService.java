@@ -61,7 +61,7 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
   }
 
   @Override
-  public SyncMessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getSyncMessageCodec() {
+  public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
     return null;
   }
 }
