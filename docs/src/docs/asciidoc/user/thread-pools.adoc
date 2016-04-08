@@ -11,7 +11,7 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
-== Intro
+== Introduction
 
 Some services work asynchronously, hence they require thread pools to perform their tasks. All thread pooling
 facilities are centralized behind the `ExecutionService` interface.
