@@ -6,4 +6,7 @@ ifdef::basebackend-html[:outfilesuffix: .html]
 :linkcss:
 :icons: font
 :sourcedir: ../../../../../
+:sectanchors:
+:idprefix:
+:idseparator: -
 endif::sourcedir[]
