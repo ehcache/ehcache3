@@ -29,13 +29,12 @@ import java.util.Set;
  *
  * @param <K> the type of the keys used to access data within the cache
  * @param <V> the type of the values held within the cache
- *
- * @author Alex Snaps
  */
 public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V> {
 
   /**
-   * Allows for registering {@link org.ehcache.event.CacheEventListener} on the cache
+   * Allows for registering a {@link CacheEventListener} on the cache configured according to the provided
+   * {@link EventOrdering}, {@link EventFiring} and {@link EventType} set.
    *
    * @param listener the listener instance to register
    * @param ordering the {@link org.ehcache.event.EventOrdering ordering} required by this listener
@@ -48,7 +47,8 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
                                   EventOrdering ordering, EventFiring firing, Set<EventType> forEventTypes);
 
   /**
-   * Allows for registering {@link org.ehcache.event.CacheEventListener} on the cache
+   * Allows for registering a {@link CacheEventListener} on the cache configured according to the provided
+   * {@link EventOrdering}, {@link EventFiring} and {@link EventType}s.
    *
    * @param listener the listener instance to register
    * @param ordering the {@link org.ehcache.event.EventOrdering ordering} required by this listener

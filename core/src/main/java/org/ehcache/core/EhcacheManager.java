@@ -19,6 +19,7 @@ package org.ehcache.core;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePool;
@@ -236,6 +237,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         }
       }
     }
+  }
+
+  @Override
+  public <K, V> Cache<K, V> createCache(String alias, Builder<? extends CacheConfiguration<K, V>> configBuilder) {
+    return createCache(alias, configBuilder.build());
   }
 
   @Override

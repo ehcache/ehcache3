@@ -17,6 +17,7 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.Cache;
+import org.ehcache.config.Builder;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.InternalCache;
