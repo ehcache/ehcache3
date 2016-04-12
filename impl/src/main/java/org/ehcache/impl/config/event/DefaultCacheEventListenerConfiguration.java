@@ -17,7 +17,7 @@
 package org.ehcache.impl.config.event;
 
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;

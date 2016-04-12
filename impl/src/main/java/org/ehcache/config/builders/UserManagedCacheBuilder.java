@@ -33,7 +33,7 @@ import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;

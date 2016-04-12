@@ -16,14 +16,12 @@
 
 package org.ehcache.core;
 
-import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.internal.events.EventListenerWrapper;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;

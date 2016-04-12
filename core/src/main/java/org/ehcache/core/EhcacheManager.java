@@ -40,7 +40,7 @@ import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.LifeCycled;

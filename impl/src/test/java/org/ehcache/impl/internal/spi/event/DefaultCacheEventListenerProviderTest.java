@@ -24,7 +24,7 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.IsCollectionContaining;
