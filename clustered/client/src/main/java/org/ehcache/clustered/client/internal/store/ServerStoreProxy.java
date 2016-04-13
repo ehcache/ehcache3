@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.internal.store;
+package org.ehcache.clustered.client.internal.store;
 
 /**
  * Provides client-side access to the services of a {@code ServerStore}.

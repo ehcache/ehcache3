@@ -16,8 +16,8 @@
 
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
 
 class ServerStore {
 

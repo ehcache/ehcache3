@@ -19,7 +19,7 @@ package org.ehcache.clustered.client.internal;
 import java.util.UUID;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.clustered.ServerStoreConfiguration;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;

@@ -17,7 +17,7 @@ package org.ehcache.clustered.common.messages;
 
 import java.io.Serializable;
 
-import org.ehcache.clustered.ServerStoreConfiguration;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.terracotta.entity.EntityMessage;
 

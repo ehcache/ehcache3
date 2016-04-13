@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered;
+package org.ehcache.clustered.common;
 
 /**
  * Configuration properties for {@code ServerStore}.

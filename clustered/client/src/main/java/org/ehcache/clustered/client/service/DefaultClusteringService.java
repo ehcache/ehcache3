@@ -27,16 +27,16 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import org.ehcache.clustered.ServerStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.common.ClusteredStoreValidationException;
-import org.ehcache.clustered.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -58,6 +58,7 @@ import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 /**
  * Provides support for accessing server-based cluster services.
  */
+// TODO: The server-resident EhcacheResources (PageSources) need to be created as part of the connect-related actions
 public class DefaultClusteringService implements ClusteringService {
 
   private static final String AUTO_CREATE_QUERY = "auto-create";

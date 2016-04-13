@@ -20,7 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
-import org.ehcache.clustered.internal.store.ServerStoreProxy;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.internal.store.StoreSupport;
