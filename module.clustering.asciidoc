@@ -62,37 +62,8 @@ _HA_?
 
 == Ehcache's clustering model
 
-Clusters an actual `CacheManager`? i.e. no `UserManagedCache` version for `ClusteredCache`?
-Only provides `ClusteredAuthoritativeTier` instances?
-What about "associated data-structures", i.e. write-behind queues?
-How's configuration handled? What's static? What's dynamic?
+=== Operations sequence diagrams
 
-=== The `ServerSideCacheManagerEntity`
+==== putIfAbsent
 
-What is it? What are its responsibilities?
-
-==== Lifecycle
-
-How is it created? Destroyed?
-
-==== State
-
-What state does it require?
-
-==== State persistence
-
-How's that state _persisted_? _replicated_?
-
-=== The `ClientSideCacheManagerEntity` _[tbd]_
-
-==== `TerracottaClientService`
-
-==== Lifecycle
-
-===== `ClusteredCache` registery & lifecycling
-
-==== `ClusteredStore` instances
-
-==== `ClusteredWriteBehindManager` instance(s)?
-
-==== Configuration validation
+image::https://github.com/ehcache/ehcache3/blob/master/docs/images/design/clustered/putIfAbsentUml.png[putIfAbsent sequence]
