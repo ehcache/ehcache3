@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-package org.ehcache.event;
+package org.ehcache.core.events;
 
+import org.ehcache.event.CacheEventListenerProvider;
+import org.ehcache.event.EventFiring;
+import org.ehcache.event.EventOrdering;
+import org.ehcache.event.EventType;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 import java.util.EnumSet;
 
 /**
  * Configuration contract for setting up {@link org.ehcache.event.CacheEvent} system in a cache.
- *
- * @author Alex Snaps
  */
 public interface CacheEventListenerConfiguration extends ServiceConfiguration<CacheEventListenerProvider> {
 

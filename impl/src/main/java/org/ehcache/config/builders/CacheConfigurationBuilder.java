@@ -16,6 +16,7 @@
 
 package org.ehcache.config.builders;
 
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePools;

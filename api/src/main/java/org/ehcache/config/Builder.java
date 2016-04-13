@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.config.builders;
+package org.ehcache.config;
 
 /**
  * Abstraction of something that can build a {@code T}

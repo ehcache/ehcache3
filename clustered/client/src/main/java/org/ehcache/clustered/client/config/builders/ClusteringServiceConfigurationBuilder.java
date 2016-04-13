@@ -20,7 +20,7 @@ import java.util.HashMap;
 import java.util.Map;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
-import org.ehcache.config.builders.Builder;
+import org.ehcache.config.Builder;
 import org.ehcache.config.units.MemoryUnit;
 
 import static java.util.Collections.emptyMap;

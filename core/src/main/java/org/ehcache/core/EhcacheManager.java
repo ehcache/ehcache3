@@ -19,6 +19,7 @@ package org.ehcache.core;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePool;
@@ -39,7 +40,7 @@ import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.event.CacheEventListenerProvider;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.spi.LifeCycled;
@@ -236,6 +237,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         }
       }
     }
+  }
+
+  @Override
+  public <K, V> Cache<K, V> createCache(String alias, Builder<? extends CacheConfiguration<K, V>> configBuilder) {
+    return createCache(alias, configBuilder.build());
   }
 
   @Override

@@ -308,7 +308,7 @@ public class EhcacheManagerTest {
       assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));
     }
     try {
-      cacheManager.createCache("foo", null);
+      cacheManager.createCache("foo", (CacheConfiguration) null);
       fail();
     } catch (IllegalStateException e) {
       assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));

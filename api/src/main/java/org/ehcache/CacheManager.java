@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.RuntimeConfiguration;
 
@@ -39,6 +40,21 @@ public interface CacheManager {
    * @throws java.lang.IllegalStateException If the cache creation fails
    */
   <K, V> Cache<K, V> createCache(String alias, CacheConfiguration<K, V> config);
+
+  /**
+   * Creates a {@link Cache} in this {@code CacheManager} according to the specified {@link CacheConfiguration} provided
+   * through a {@link Builder}.
+   *
+   * @param alias the alias under which the cache will be created
+   * @param configBuilder the builder for the configuration of the cache to create
+   * @param <K> the type of the keys used to access data within this cache
+   * @param <V> the type of the values held within this cache
+   * @return the created and initialized {@link Cache}
+   *
+   * @throws java.lang.IllegalArgumentException If there is already a cache registered with the given alias.
+   * @throws java.lang.IllegalStateException If the cache creation fails
+   */
+  <K, V> Cache<K, V> createCache(String alias, Builder<? extends CacheConfiguration<K, V>> configBuilder);
 
   /**
    * Retrieves the {@link Cache} associated with the given alias, if one is known.

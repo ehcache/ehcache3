@@ -21,7 +21,7 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.EvictionVeto;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.builders.Builder;
+import org.ehcache.config.Builder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;

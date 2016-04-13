@@ -18,6 +18,7 @@ package org.ehcache.config.builders;
 
 import java.util.concurrent.TimeUnit;
 
+import org.ehcache.config.Builder;
 import org.ehcache.impl.config.loaderwriter.writebehind.DefaultBatchingConfiguration;
 import org.ehcache.impl.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -30,7 +31,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
  */
-public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration>  {
+public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBehindConfiguration> {
 
   protected int concurrency = 1;
   protected int queueSize = Integer.MAX_VALUE;
