@@ -1,0 +1,110 @@
+---
+---
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+
+= Terms and Concepts Related to Caching
+
+== Basic Terms
+
+=== Cache
+Wiktionary defines a cache as "a store of things that will be required in the future, and can be retrieved rapidly."
+A cache is a collection of temporary data that either duplicates data located elsewhere or is the result of a
+computation. Data that is already in the cache can be repeatedly accessed with minimal costs in terms of time and
+resources.
+
+=== Cache Entry
+A cache entry is a key and its mapped data value within the cache.
+
+=== Cache Hit
+When a data entry is requested from cache and the entry exists for the given key, it is referred to as a cache hit
+(or simply, "a hit").
+
+=== Cache Miss
+When a data entry is requested from cache and the entry does not exist for the given key, it is referred to as a cache
+miss (or simply, "a miss").
+
+== System-of-Record (SoR)
+The authoritative source of truth for the data. The cache acts as a local copy of data retrieved from or stored to the
+system-of-record (SOR). The SOR is often a traditional database, although it might be a specialized file system or some
+other reliable long-term storage. For the purposes of using Ehcache, the SOR is assumed to be a database.
+
+== Eviction
+The removal of entries from the cache in order to make room for newer entries.
+
+== Expiration
+The removal of entries from the cache after the passing of some amount of time, typically as a strategy to avoid stale
+data in the cache.
+
+== Store By Reference
+
+== Store By Value
+
+
+
+
+= Data Freshness and Expiration
+This recipe addresses how to maintain cache "freshness" by configuring TTL and data expiration properly.
+Problem
+Data in the cache is out of sync with the SOR (the database).
+Solution
+Databases (and other SORs) weren't built with caching outside of the database in mind, and therefore don't normally come with any default mechanism for notifying external processes when data has been updated or modified.
+Use one of the following strategies to keep the data in the cache in sync:
+*Data expiration: Use the eviction algorithms included with Ehcache along with the timeToIdleSeconds and timetoLiveSeconds setting to enforce a maximum time for elements to live in the cache (forcing a re-load from the database or SOR).
+*Message bus: Use an application to make all updates to the database. When updates are made, post a message onto a message queue with a key to the item that was updated. All application instances can subscribe to the message bus and receive messages about data that is updated, and can synchronize their local copy of the data accordingly (for example by invalidating the cache entry for updated data)
+*Triggers: Using a database trigger can accomplish a similar task as the message bus approach. Use the database trigger to execute code that can publish a message to a message bus. The advantage to this approach is that updates to the database do not have to be made only through a special application. The downside is that not all database triggers support full execution environments and it is often unadvisable to execute heavy-weight processing such as publishing messages on a queue during a database trigger.
+Discussion
+The data expiration method is the simplest and most straightforward.
+It gives you the programmer the most control over the data synchronization, and doesn't require cooperation from any external systems, you simply set a data expiration policy and let Ehcache expire data from the cache, thus allowing fresh reads to re-populate and re-synchronize the cache.
+If you choose the data expiration method, you can read more about the cache configuration settings at cache eviction algorithms and timeToIdle and timeToLive configuration settings. The most important concern to consider when using the expiration method is balancing data-freshness with database load. The shorter you make the expiration settings - meaning the more "fresh" you try to make the data - the more load you will incur on the database.
+Try out some numbers and see what kind of load your application generates. Even modestly short values such as 5 or 10 minutes will afford significant load reductions.
+
+
+
+
+= Storage Tiers
+You can divide a cache or in-memory data set across the following storage areas, referred to as tiers:
+*MemoryStore – On-heap memory used to hold cache elements. This tier is subject to Java garbage collection.
+*OffHeapStore – Provides overflow capacity to the MemoryStore. Limited in size only by available RAM. Not subject to Java garbage collection (GC). Available only with Terracotta BigMemory products.
+*DiskStore – Backs up in-memory cache elements and provides overflow capacity to the other tiers.
+== MemoryStore
+The memory store is always enabled and exists in heap memory. It has the following characteristics:
+*It accepts all data, whether serializable or not.
+*It is the fastest storage option.
+*Is thread safe for use by multiple concurrent threads.
+If you use OffHeapStore (available with the BigMemory products only), MemoryStore holds a copy of the hottest subset of data from the OffHeapStore.
+All caches specify their maximum in-memory size, in terms of the number of elements, at configuration time.
+When an element is added to a cache and it goes beyond its maximum memory size, an existing element is either deleted, if overflow is not enabled, or evaluated for spooling to another tier, if overflow is enabled.
+If overflow is enabled, a check for expiry is carried out. If it is expired it is deleted; if not it is spooled.
+For information about sizing and configuring the MemoryStore, see "Configuring Memory Store" in the Ehcache Configuration Guide.
+== OffHeapStore
+The OffHeapStore extends a cache to memory outside the of the Java heap. This store, which is not subject to Java garbage collection (GC), is limited only by the amount of RAM available. Using OffHeapStore, you can create extremely large local caches. OffHeapStore is only available with the Terracotta BigMemory products.
+Because off-heap data is stored in bytes, only data that is Serializable is suitable for the OffHeapStore. Any non serializable data overflowing to the OffHeapMemoryStore is simply removed, and a WARNING level log message is emitted.
+Since serialization and deserialization take place on putting and getting from the off-heap store, it is theoretically slower than the MemoryStore. This difference, however, is mitigated when garbage collection associated with larger heaps is taken into account.
+For the best performance, you should allocate to a cache as much heap memory as possible without triggering GC pauses. Then, use the OffHeapStore to hold the data that cannot fit in heap (without causing GC pauses).
+For information about sizing and configuring OffHeapStore, see "Configuring OffHeapStore" in the Configuration Guide for your BigMemory product.
+DiskStore
+The DiskStore provides a thread-safe disk-spooling facility that can be used for either additional storage or persisting data through system restarts.
+Note:
+
+The DiskStore tier is available only for local (standalone) instances of cache. When you use a distributed cache (available only in BigMemory Max), a Terracotta Server Array is used instead of a disk tier.
+Only data that is Serializable can be placed in the DiskStore. Writes to and from the disk use ObjectInputStream and the Java serialization mechanism. Any non-serializable data overflowing to the disk store is removed and a NotSerializableException is thrown. Be aware that serialization speed is affected by the size of the objects being serialized and their type. For example, it has been shown that:
+*The serialization time for a Java object consisting of a large Map of String arrays was 126ms, where the serialized size was 349,225 bytes.
+*The serialization time for a byte[] was 7ms, where the serialized size was 310,232 bytes.
+Byte arrays are 20 times faster to serialize, making them a better choice for increasing disk-store performance.
+Configuring a disk store is optional. If all caches use only memory and off-heap stores, then there is no need to configure a disk store. This simplifies configuration, and uses fewer threads.
+For more information about configuring and sizing the DiskStore, see the "Persistence and Restartability" section in the Ehcache Configuration Guide.
+
+
+
+
+= Topology Types
+* Standalone – The data set is held in the application node. Any other application nodes are independent with no communication between them. If a standalone topology is used where there are multiple application nodes running the same application, then there is Weak Consistency between them. They contain consistent values for immutable data or after the time-to-live on an element has completed and the element needs to be reloaded.
+*Distributed – The data is held in a remote server (or array of servers) with a subset of recently used data held in each application node. This topology offers a rich set of consistency options.
+A distributed topology is the recommended approach in a clustered or scaled-out application environment. It provides the highest level of performance, availability, and scalability. The distributed topology is available only with BigMemory Max.
+*Replicated – The cached data set is held in each application node and data is copied or invalidated across the nodes without locking. Replication can be either asynchronous or synchronous, where the writing thread blocks while propagation occurs. The only consistency mode supported in this topology is Weak Consistency.
+Many production applications are deployed in clusters of multiple instances for availability and scalability. However, without a distributed or replicated cache, application clusters exhibit a number of undesirable behaviors, such as:
+*Cache Drift - If each application instance maintains its own cache, updates made to one cache will not appear in the other instances. This also happens to web session data. A distributed or replicated cache ensures that all of the cache instances are kept in sync with each other.
+*Database Bottlenecks - In a single-instance application, a cache effectively shields a database from the overhead of redundant queries. However, in a distributed application environment, each instance must load and keep its own cache fresh. The overhead of loading and refreshing multiple caches leads to database bottlenecks as more application instances are added. A distributed or replicated cache eliminates the per-instance overhead of loading and refreshing multiple caches from a database.
