@@ -16,7 +16,7 @@
 
 package org.ehcache.transactions.xa.txmgr.provider;
 
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.transactions.xa.internal.XAStore;

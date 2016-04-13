@@ -17,7 +17,7 @@
 package org.ehcache.config;
 
 /**
- * Utility class for getting predefined {@link EvictionAdvisor} instance.
+ * Utility class for getting predefined {@link EvictionAdvisor} instances.
  */
 public final class Eviction {
 
@@ -31,11 +31,11 @@ public final class Eviction {
   /**
    * Returns an {@link EvictionAdvisor} where no mappings are advised against eviction.
    *
-   * @param <K> the key type on which this advisor applies
-   * @param <V> the value type on whivh this advisor applies
+   * @param <K> the key type for the advisor
+   * @param <V> the value type for the advisor
    * @return an advisor where no mappings are advised against eviction
    */
-  public static <K, V> EvictionAdvisor<K, V> none() {
+  public static <K, V> EvictionAdvisor<K, V> noAdvice() {
     return (EvictionAdvisor<K, V>) NO_ADVICE;
   }
 

@@ -19,22 +19,37 @@ package org.ehcache.expiry;
 import org.ehcache.ValueSupplier;
 
 /**
- * A policy object that governs expiration for a {@link org.ehcache.Cache}.
+ * A policy object that governs expiration for mappings in a {@link org.ehcache.Cache Cache}.
  * <P>
  *   Previous values are not accessible directly but are rather available through a {@link ValueSupplier value supplier}
- *   to indicate that access can be require computation such as deserialization.
+ *   to indicate that access can require computation (such as deserialization).
  * </P>
  * <P>
- * See {@link Expirations} for common instances.
+ * NOTE: Some cache configurations (eg. caches with eventual consistency) may use local (ie. non-consistent) state
+ * to decide whether to call {@link #getExpiryForUpdate(Object, ValueSupplier, Object)}  vs.
+ * {@link #getExpiryForCreation(Object, Object)}. For these cache configurations it is advised to return the same
+ * value for both of these methods
+ * </P>
+ * <P>
+ * See {@link Expirations} for helper methods to create common {@code Expiry} instances.
  * </P>
  *
- * @param <K> the type of the keys used to access data within the cache
- * @param <V> the type of the values held within the cache
+ * @param <K> the key type for the cache
+ * @param <V> the value type for the cache
+ *
+ * @see Expirations
  */
 public interface Expiry<K, V> {
 
   /**
-   * Get the expiration period (relative to the current time) when a entry is initially added to a {@link org.ehcache.Cache}
+   * Returns the lifetime of an entry when it is initially added to a {@link org.ehcache.Cache Cache}.
+   * <P>
+   *   This method must not return {@code null}.
+   * </P>
+   * <P>
+   *   Exceptions thrown from this method will be swallowed and result in the expiry duration being
+   *   {@link Duration#ZERO ZERO}.
+   * </P>
    *
    * @param key the key of the newly added entry
    * @param value the value of the newly added entry
@@ -43,25 +58,38 @@ public interface Expiry<K, V> {
   Duration getExpiryForCreation(K key, V value);
 
   /**
-   * Get the expiration period (relative to the current time) when an existing entry is accessed from a {@link org.ehcache.Cache}
+   * Returns the expiration {@link Duration} (relative to the current time) when an existing entry is accessed from a
+   * {@link org.ehcache.Cache Cache}.
+   * <P>
+   *   Returning {@code null} indicates that the expiration time remains unchanged.
+   * </P>
+   * <P>
+   *   Exceptions thrown from this method will be swallowed and result in the expiry duration being
+   *   {@link Duration#ZERO ZERO}.
+   * </P>
    *
    * @param key the key of the accessed entry
    * @param value a value supplier for the accessed entry
-   * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time
+   * @return an expiration {@code Duration}, {@code null} means unchanged
    */
   Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value);
 
 
   /**
-   * Get the expiration period (relative to the current time) when an existing entry is updated in a {@link org.ehcache.Cache}
-   * NOTE: Some cache configurations (eg. caches with eventual consistency) may use local (ie. non-consistent) state
-   * to decide whether to call getExpiryForUpdate() vs. getExpiryForCreation(). For these cache configurations it is advised
-   * to return the same value from both of these methods
+   * Returns the expiration {@link Duration} (relative to the current time) when an existing entry is updated in a
+   * {@link org.ehcache.Cache Cache}.
+   * <P>
+   *   Returning {@code null} indicates that the expiration time remains unchanged.
+   * </P>
+   * <P>
+   *   Exceptions thrown from this method will be swallowed and result in the expiry duration being
+   *   {@link Duration#ZERO ZERO}.
+   * </P>
    *
    * @param key the key of the updated entry
    * @param oldValue a value supplier for the previous value of the entry
    * @param newValue the new value of the entry
-   * @return the updated expiration value for the given entry. A {@code null} return value indicates "no change" to the expiration time
+   * @return an expiration {@code Duration}, {@code null} means unchanged
    */
   Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue);
 

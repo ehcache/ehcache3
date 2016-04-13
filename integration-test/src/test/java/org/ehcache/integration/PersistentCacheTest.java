@@ -19,7 +19,7 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.StateTransitionException;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Test;
 

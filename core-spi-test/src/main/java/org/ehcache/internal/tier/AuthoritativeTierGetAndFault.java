@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.TestTimeSource;

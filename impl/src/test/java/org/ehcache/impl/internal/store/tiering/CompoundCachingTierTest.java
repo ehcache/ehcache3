@@ -16,7 +16,7 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.core.spi.function.Function;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;

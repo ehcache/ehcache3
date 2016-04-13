@@ -89,7 +89,7 @@ public class ConfigurationMergerTest {
     MutableConfiguration<Object, Object> configuration = new MutableConfiguration<Object, Object>();
     ConfigurationMerger.ConfigHolder<Object, Object> configHolder = merger.mergeConfigurations("cache", configuration);
 
-    assertThat(configHolder.cacheResources.getExpiryPolicy().getExpiryForCreation(42L, "Yay!"), is(Duration.FOREVER));
+    assertThat(configHolder.cacheResources.getExpiryPolicy().getExpiryForCreation(42L, "Yay!"), is(Duration.INFINITE));
     assertThat(configHolder.cacheResources.getCacheLoaderWriter(), nullValue());
     assertThat(configHolder.useEhcacheLoaderWriter, is(false));
 

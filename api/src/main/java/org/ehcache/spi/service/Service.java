@@ -16,22 +16,29 @@
 
 package org.ehcache.spi.service;
 
-import org.ehcache.spi.ServiceProvider;
-
 /**
  * Contract for a {@link org.ehcache.CacheManager} managed service.
- * Implementation of this interface have be thread-safe
- *
- * @author Alex Snaps
+ * <P>
+ *   Implementation of this interface have be thread-safe.
+ * </P>
+ * <P>
+ *   Since {@code CacheManager}s can be closed and initialized again, {@code Service} implementations should support
+ *   multiple start/stop cycles. Failure to do so will limit the init/close cycles at the {@code CacheManager} level.
+ * </P>
  */
 public interface Service {
 
   /**
    * Start this service using the provided configuration and {@link ServiceProvider}.
-   * <p>
+   * <P>
    * The goal of the service provider is to allow a service to use other services.
+   * </P>
+   * <P>
+   *   A {@code Service} retrieved at this stage may not yet be started. So the recommended usage pattern is to keep a
+   *   reference to the dependent {@code Service} but use it only when specific methods are invoked on subtypes.
+   * </P>
    *
-   * @param serviceProvider the service provider.
+   * @param serviceProvider the service provider
    */
   void start(ServiceProvider<Service> serviceProvider);
 

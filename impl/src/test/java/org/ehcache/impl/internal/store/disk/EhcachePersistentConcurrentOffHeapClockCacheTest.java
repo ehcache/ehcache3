@@ -48,7 +48,7 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
 
   @Override
   protected EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment() throws IOException {
-    return createTestSegment(Eviction.<String, String>none(), mock(EvictionListener.class));
+    return createTestSegment(Eviction.<String, String>noAdvice(), mock(EvictionListener.class));
   }
 
   @Override

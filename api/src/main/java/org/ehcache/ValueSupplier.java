@@ -17,9 +17,9 @@
 package org.ehcache;
 
 /**
- * {@code ValueSupplier} creates an indirection to access a value.
+ * A {@code ValueSupplier} represents an indirect way to access a value.
  * <P>
- *   This can indicate that the value needs computation before it can be retrieved, such as deserialization.
+ *   This indicates that the value needs to be computed before it can be retrieved, such as deserialization.
  * </P>
  *
  * @param <V> the value type
@@ -27,7 +27,7 @@ package org.ehcache;
 public interface ValueSupplier<V> {
 
   /**
-   * Returns the value behind this instance, possibly executing some logic.
+   * Computes the value behind this instance.
    *
    * @return the value
    */

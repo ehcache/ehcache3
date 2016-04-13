@@ -42,7 +42,7 @@ import static org.mockito.Mockito.verify;
 public class EhcacheSegmentTest {
 
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment() {
-    return createTestSegment(Eviction.none(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
+    return createTestSegment(Eviction.noAdvice(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) {
@@ -50,7 +50,7 @@ public class EhcacheSegmentTest {
   }
 
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
-    return createTestSegment(Eviction.none(), evictionListener);
+    return createTestSegment(Eviction.noAdvice(), evictionListener);
   }
 
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {

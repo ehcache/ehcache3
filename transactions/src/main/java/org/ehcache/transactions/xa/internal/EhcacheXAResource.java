@@ -16,7 +16,7 @@
 
 package org.ehcache.transactions.xa.internal;
 
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.transactions.xa.EhcacheXAException;
 import org.ehcache.transactions.xa.internal.journal.Journal;

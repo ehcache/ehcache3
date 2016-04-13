@@ -17,21 +17,21 @@
 package org.ehcache.config;
 
 /**
- * Extends a {@link ResourcePool} to include resource size information.
+ * A {@link ResourcePool} that is explicitly sized.
  */
 public interface SizedResourcePool extends ResourcePool {
 
   /**
-   * Get the value measuring the pool size.
+   * Gets the size of this pool.
    *
-   * @return the value.
+   * @return the size
    */
   long getSize();
 
   /**
-   * Get the unit in which the resource is measured.
+   * Gets the unit in which the resource is sized.
    *
-   * @return the unit.
+   * @return the size unit
    */
   ResourceUnit getUnit();
 }

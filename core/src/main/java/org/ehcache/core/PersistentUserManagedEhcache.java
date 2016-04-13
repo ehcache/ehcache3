@@ -24,12 +24,12 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheLoadingException;
-import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.CachePersistenceException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
+import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +80,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * {@inheritDoc}
    */
   @Override
-  public void destroy() {
+  public void destroy() throws CachePersistenceException {
     StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
       st.succeeded();
@@ -104,13 +104,9 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     }
   }
 
-  void destroyInternal() {
+  void destroyInternal() throws CachePersistenceException {
     statusTransitioner.checkMaintenance();
-    try {
-      localPersistenceService.destroy(id);
-    } catch (CachePersistenceException e) {
-      throw new RuntimeException("Could not destroy persistence space for user managed cache " + id, e);
-    }
+    localPersistenceService.destroy(id);
   }
 
   /**

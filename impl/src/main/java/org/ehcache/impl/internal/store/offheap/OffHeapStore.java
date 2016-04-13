@@ -23,7 +23,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -31,7 +31,7 @@ import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPor
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
@@ -76,7 +76,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      this.evictionAdvisor = Eviction.none();
+      this.evictionAdvisor = Eviction.noAdvice();
     }
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();

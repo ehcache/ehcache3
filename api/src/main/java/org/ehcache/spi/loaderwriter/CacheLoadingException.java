@@ -14,29 +14,25 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
-
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+package org.ehcache.spi.loaderwriter;
 
 /**
- * Exception thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
+ * Thrown by a {@link org.ehcache.Cache Cache} when the {@link CacheLoaderWriter} it uses threw an
  * {@link java.lang.Exception} while loading a value for a given key.
- *
- * @author Alex Snaps
  */
 public class CacheLoadingException extends RuntimeException {
 
   private static final long serialVersionUID = 4794738044299044587L;
 
   /**
-   * Constructs a CacheLoadingException
+   * Constructs a {@code CacheLoadingException}.
    */
   public CacheLoadingException() {
     super();
   }
 
   /**
-   * Constructs a CacheLoadingException with the provided message.
+   * Constructs a {@code CacheLoadingException} with the provided message.
    *
    * @param message the detail message
    */
@@ -45,7 +41,7 @@ public class CacheLoadingException extends RuntimeException {
   }
 
   /**
-   * Constructs a CacheLoadingException wrapping the {@link Throwable cause} passed in
+   * Constructs a {@code CacheLoadingException} wrapping the {@link Throwable cause} passed in
    * and with the provided message.
    *
    * @param message the detail message
@@ -56,7 +52,7 @@ public class CacheLoadingException extends RuntimeException {
   }
 
   /**
-   * Constructs a CacheLoadingException wrapping the {@link Throwable cause} passed in.
+   * Constructs a {@code CacheLoadingException} wrapping the {@link Throwable cause} passed in.
    *
    * @param cause the root cause
    */

@@ -22,8 +22,8 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -225,7 +225,7 @@ public class CacheConfigurationBuilderTest {
   public void testNothing() {
     final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class, heap(10));
 
-    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
+    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.INFINITE);
 
     builder
         .withEvictionAdvisor(new EvictionAdvisor<Long, CharSequence>() {
@@ -244,7 +244,7 @@ public class CacheConfigurationBuilderTest {
         ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
             .offheap(10, MemoryUnit.MB));
 
-    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
+    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.INFINITE);
 
     CacheConfiguration config = builder
         .withEvictionAdvisor(new EvictionAdvisor<Long, CharSequence>() {

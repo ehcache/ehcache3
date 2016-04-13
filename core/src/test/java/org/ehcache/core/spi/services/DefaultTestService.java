@@ -16,7 +16,7 @@
 
 package org.ehcache.core.spi.services;
 
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 
 /**

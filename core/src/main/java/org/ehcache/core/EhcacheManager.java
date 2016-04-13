@@ -24,7 +24,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.RuntimeConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
@@ -41,10 +40,10 @@ import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
-import org.ehcache.event.CacheEventListenerProvider;
-import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.spi.LifeCycled;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.core.events.CacheEventListenerProvider;
+import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -636,7 +635,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   @Override
-  public RuntimeConfiguration getRuntimeConfiguration() {
+  public Configuration getRuntimeConfiguration() {
     return configuration;
   }
 
@@ -675,7 +674,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   @Override
-  public void destroy() {
+  public void destroy() throws CachePersistenceException {
     StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
       startMaintainableServices();
@@ -726,7 +725,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return cacheManagerClassLoader;
   }
 
-  void destroyInternal() {
+  void destroyInternal() throws CachePersistenceException {
     statusTransitioner.checkMaintenance();
     Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
     for (PersistableResourceService service : services) {

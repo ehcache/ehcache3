@@ -21,7 +21,15 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Albin Suresh
+ * A {@link Service} providing {@link Copier} instances.
+ * <P>
+ * The {@code CacheManager} {@link org.ehcache.spi.service.ServiceProvider obtains} an instance of this
+ * {@code Service} prior to creating any {@code Cache} instances.  Before creating each {@code Cache}
+ * instance, the {@code CacheManager} calls the
+ * {@link #createKeyCopier(Class, Serializer, ServiceConfiguration[])} and
+ * {@link #createValueCopier(Class, Serializer, ServiceConfiguration[])} methods to obtain
+ * {@code Copier} instances supplied to the {@code Cache}.
+ * </P>
  */
 public interface CopyProvider extends Service {
 
@@ -29,10 +37,12 @@ public interface CopyProvider extends Service {
    * Creates a key {@link Copier} with the given parameters.
    *
    * @param clazz the class of the type to copy to/from
-   * @param serializer the serializer that can be used to perform the copying. The usage is optional though.
+   * @param serializer the key serializer configured for the {@code Cache} for which the {@code Copier} is
+   *                   being created; may be {@code null}.  If provided, this serializer may be used
+   *                   during the copy operation.
    * @param configs specific configurations
    * @param <T> the type to copy to/from
-   * @return a {@link Copier} instance
+   * @return a non {@code null} {@link Copier} instance
    */
   <T> Copier<T> createKeyCopier(Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs);
 
@@ -40,15 +50,17 @@ public interface CopyProvider extends Service {
    * Creates a value {@link Copier} with the given parameters.
    *
    * @param clazz the class of the type to copy to/from
-   * @param serializer the serializer that can be used to perform the copying.  The usage is optional though.
+   * @param serializer the value serializer configured for the {@code Cache} for which the {@code Copier} is
+   *                   being created; may be {@code null}.  If provided, this serializer may be used
+   *                   during the copy operation.
    * @param configs specific configurations
    * @param <T> the type to copy to/from
-   * @return a {@link Copier} instance
+   * @return a non {@code null} {@link Copier} instance
    */
   <T> Copier<T> createValueCopier(Class<T> clazz, Serializer<T> serializer, ServiceConfiguration<?>... configs);
 
   /**
-   * Releases the provided {@link Copier} instance
+   * Releases the provided {@link Copier} instance.
    * If the copier instance is provided by the user, {@link java.io.Closeable#close()}
    * will not be invoked.
    *

@@ -104,7 +104,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     LOGGER.info("Seeding random with {}", nanoTime);
     Random random = new Random(nanoTime);
     assertThat(runtimeConfiguration.getExpiry().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
-                equalTo(org.ehcache.expiry.Duration.FOREVER));
+                equalTo(org.ehcache.expiry.Duration.INFINITE));
     assertThat(runtimeConfiguration.getExpiry().getExpiryForAccess(random.nextLong(),
                   ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong()))), nullValue());
     assertThat(runtimeConfiguration.getExpiry().getExpiryForUpdate(random.nextLong(),
@@ -173,7 +173,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     CacheRuntimeConfiguration<Long, Client> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, Client>)foosCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class);
     Client client1 = new Client("client1", 1);
-    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1).getAmount(); // <8>
+    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1).getLength(); // <8>
 
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 

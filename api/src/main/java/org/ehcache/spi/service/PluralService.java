@@ -23,7 +23,7 @@ import java.lang.annotation.Target;
 
 /**
  * Used to indicate that a {@link Service} subtype is permitted to have more than
- * one concrete implementation registered with a {@link org.ehcache.spi.ServiceProvider}.
+ * one concrete implementation registered with a {@link ServiceProvider}.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)

@@ -19,17 +19,20 @@ package org.ehcache.config;
 /**
  * A specialized predicate used to advise on eviction of cache entries.
  *
- * @param <K> the type of the keys used to access data within the cache
- * @param <V> the type of the values held within the cache
+ * @param <K> the key type for the cache
+ * @param <V> the value type for the cache
  */
 public interface EvictionAdvisor<K, V> {
 
   /**
    * Returns {@code true} if the given key value pair should not be evicted if possible.
+   * <P>
+   *   Any exception thrown from this method will be logged and the result considered {@code false}.
+   * </P>
    *
-   * @param key the entry key
-   * @param value the entry value
-   * @return {@code true} if eviction should be avoided
+   * @param key the cache key
+   * @param value the cache value
+   * @return {@code true} if eviction should be avoided, {@code false} otherwise
    */
   boolean adviseAgainstEviction(K key, V value);
 }

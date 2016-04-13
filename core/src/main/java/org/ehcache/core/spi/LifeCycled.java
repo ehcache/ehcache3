@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi;
+package org.ehcache.core.spi;
 
 /**
  * Internal interface to register hooks with the life cycle of {@link org.ehcache.Cache} or
  * {@link org.ehcache.CacheManager} instances.
- *
- * @author Alex Snaps
  */
 public interface LifeCycled {
 

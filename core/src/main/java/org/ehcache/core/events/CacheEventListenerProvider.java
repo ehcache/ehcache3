@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.event;
+package org.ehcache.core.events;
 
+import org.ehcache.event.CacheEventListener;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 

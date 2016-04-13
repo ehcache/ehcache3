@@ -20,9 +20,11 @@ import java.util.concurrent.TimeUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * WriteBehindConfiguration
+ * {@link ServiceConfiguration} for the {@link WriteBehindProvider} used to configure write-behind in a
+ * {@link org.ehcache.Cache Cache}.
  */
 public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindProvider> {
+
   /**
    * A number of bucket/thread pairs configured for this cache's write behind.
    *
@@ -54,7 +56,7 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   String getThreadPoolAlias();
 
   /**
-   * BatchingConfiguration
+   * The batching specific part of {@link WriteBehindConfiguration}.
    */
   interface BatchingConfiguration {
     /**

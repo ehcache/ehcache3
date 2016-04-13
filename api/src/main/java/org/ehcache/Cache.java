@@ -16,43 +16,56 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheLoadingException;
-import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.Map;
 import java.util.Set;
 
 /**
- * Basic interface to a cache, defines all operational methods to create, access,
- * update or delete mappings of key to value
+ * Defines all operational methods to create, access, update and delete mappings of key to value.
+ * <P>
+ *   In order to function, cache keys must respect the {@link Object#hashCode() hash code} and
+ *   {@link Object#equals(Object) equals} contracts. This contract is what will be used to lookup values based on key.
+ * </P>
+ * <P>
+ *   A {@code Cache} is not a map, mostly because it has the following two concepts linked to mappings:
+ *   <UL>
+ *     <LI>Eviction: A {@code Cache} has a capacity constraint and in order to honor it, a {@code Cache} can
+ *     evict (remove) a mapping at any point in time. Note that eviction may occur before maximum capacity is
+ *     reached.</LI>
+ *     <LI>Expiry: Data in a {@code Cache} can be configured to expire after some time. There is no way for a
+ *     {@code Cache} user to differentiate from the API between a mapping being absent or expired.</LI>
+ *   </UL>
+ * </P>
  *
- * @param <K> the type of the keys used to access data within this cache
- * @param <V> the type of the values held within this cache
+ * @param <K> the key type for the cache
+ * @param <V> the value type for the cache
  */
 public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
-   * Retrieve the value currently mapped to the provided key
+   * Retrieve the value currently mapped to the provided key.
    *
-   * @param key the key to query the value for
-   * @return the value mapped to the key, null if none
+   * @param key the key, may not be null
+   * @return the value mapped to the key, {@code null} if none
    *
-   * @throws java.lang.NullPointerException if the provided key is null
+   * @throws NullPointerException if the provided key is {@code null}
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@link Exception}
+   * associated with this cache was invoked and threw an {@code Exception}
    */
   V get(K key) throws CacheLoadingException;
 
   /**
-   * Associates the provided value to the given key
+   * Associates the given value to the given key in this {@code Cache}.
    *
    * @param key the key, may not be null
    * @param value the value, may not be null
    *
-   * @throws java.lang.NullPointerException if either key or value is null
+   * @throws NullPointerException if either key or value is null
    * @throws CacheWritingException if the {@link CacheLoaderWriter}
    * associated with this cache threw an {@link Exception}
    * while writing the value for the given key to underlying system of record.
@@ -117,9 +130,12 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   void removeAll(Set<? extends K> keys) throws BulkCacheWritingException;
 
   /**
-   * Removes all mapping currently present in the Cache without invoking the {@link CacheLoaderWriter} or any
-   * registered {@link org.ehcache.event.CacheEventListener} instances
-   * This is not an atomic operation and can potentially be very expensive
+   * Removes all mappings currently present in the {@code Cache}.
+   * <P>
+   * It does so without invoking the {@link CacheLoaderWriter} or any registered
+   * {@link org.ehcache.event.CacheEventListener} instances.
+   * <em>This is not an atomic operation and can potentially be very expensive.</em>
+   * </P>
    */
   void clear();
 
@@ -197,7 +213,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
 
   /**
-   * Represent a mapping of key to value held in a Cache
+   * A mapping of key to value held in a {@link Cache}.
    *
    * @param <K> the key type
    * @param <V> the value type
@@ -205,16 +221,16 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   interface Entry<K, V> {
 
     /**
-     * Accessor to the key of this mapping
+     * Returns the key of this mapping
      *
-     * @return the key, not null
+     * @return the key, not {@code null}
      */
     K getKey();
 
     /**
-     * Accessor to the value of this mapping
+     * Returns the value of this mapping
      *
-     * @return the value, not null
+     * @return the value, not {@code null}
      */
     V getValue();
   }

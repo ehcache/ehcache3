@@ -14,33 +14,46 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
-
-import java.lang.Exception;
+package org.ehcache;
 
 /**
- * Exception that can occur from operations on {@link org.ehcache.PersistentCacheManager}.
- *
- * @see org.ehcache.PersistentCacheManager#destroyCache(String)
+ * Indicates an unrecoverable failure occurred during iteration.
  */
-public class CachePersistenceException extends Exception {
+public class CacheIterationException extends RuntimeException {
+
+  private static final long serialVersionUID = -2008756317259206440L;
 
   /**
-   * Creates an exception with the provided message.
+   * Creates a {@code CacheIterationException}.
+   */
+  public CacheIterationException() {
+  }
+
+  /**
+   * Creates a {@code CacheIterationException} with the provided message.
    *
    * @param message information about the exception
    */
-  public CachePersistenceException(String message) {
+  public CacheIterationException(final String message) {
     super(message);
   }
 
   /**
-   * Creates an exception with the provided message and cause.
+   * Creates a {@code CacheIterationException} with the provided message and cause.
    *
    * @param message information about the exception
    * @param cause the cause of this exception
    */
-  public CachePersistenceException(String message, Throwable cause) {
+  public CacheIterationException(final String message, final Throwable cause) {
     super(message, cause);
+  }
+
+  /**
+   * Creates a {@code CacheIterationException} with the provided cause.
+   *
+   * @param cause the cause of this exception
+   */
+  public CacheIterationException(final Throwable cause) {
+    super(cause);
   }
 }
