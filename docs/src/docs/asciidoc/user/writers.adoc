@@ -1,0 +1,34 @@
+---
+---
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+
+
+
+== Write-Through Cache
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
+----
+
+<1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
+    a `CacheLoaderWriter` and configure it.
+
+== Write-Behind Cache
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
+----
+
+<1> A Cache can be used in write-behind pattern as well. You will have to implement a `CacheLoaderWriter` and configure it.
+<2> Additionally, register a `WriteBehindConfiguration` on the Cache by using the `WriteBehindConfigurationBuilder`.
+<3> Here we configure write behind with a batch size of 3 and a max wait time of 1 second.
+<4> We also set the maximum size of the writebehind queue.
+<5> Define the concurrency level of writebehind queue, at a time these many writer threads will update
+    the  underlying resource asynchronously.
+<6> Enable the write coalescing behavior, which ensures that only one update per key per batch hits the
+    underlying resource.

@@ -1,0 +1,41 @@
+---
+---
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+
+= Eviction Vetoing
+
+NOTE: This is an advanced topic/feature that will not be of interest to most users.
+
+You can affect which elements are selected for eviction from the cache by providing a class that implements the
+`org.ehcache.config.EvictionVeto` interface.
+
+`EvictionVeto` implementations are invoked when Ehcacge is attempting to evict entries from the cache
+(in order to make room for new entries) in order to determine whether the given entry should not be considered
+a good candidate for eviction.  If the eviciton is vetoed, Ehcache will try to honor the preference of
+preserving that entry in the cache, though there is no full guarantee of such.
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEvictionVeto]
+----
+
+<1> Configure a constrained heap, as the eviction veto is only relevant when mappings get evicted from the cache.
+<2> If you want to hint the eviction algorithm to veto the eviction of some mappings, you have to
+    configure an instance of `EvictionVeto`.
+
+In this particular example, the `OddKeysEvictionVeto` class will veto eviction of any key that is an odd number.
+The cache is constrained to only be allowed to contain two entries, however the code has put three entries
+into the cache - which will trigger capacity eviction.
+By the time the cache manager gets closed, only mappings with odd keys should be left in the cache as their
+prime candidacy for eviction would have been vetoed.
+
+NOTE: Veto status is computed when a mapping is written to the cache.
+This means that proper veto implementations are expected to be constant for a key-value pair.
+
+NOTE: Please keep in mind that configuring an eviction veto can slow down eviction: the more often you veto, the
+harder the cache has to work to evict an element when room is required. After a certain time, if a cache determines
+that the configured eviction veto rejected too many eviction candidates, the cache can decide to completely bypass
+the eviction veto and evict anything it sees fit.

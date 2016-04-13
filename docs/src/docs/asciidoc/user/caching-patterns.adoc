@@ -1,0 +1,39 @@
+---
+---
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+
+= Cache Usage Patterns
+There are several common access patterns when using a cache. Ehcache supports the following patterns:
+
+== cache-aside
+With the cache-aside pattern, application code uses the cache directly.
+This means that application code which accesses the system-of-record (SOR) should consult the cache first, and if the cache contains the data, then return the data directly from the cache, bypassing the SOR.
+Otherwise, the application code must fetch the data from the system-of-record, store the data in the cache, and then return it.
+When data is written, the cache must be updated with the system-of-record.
+
+== cache-as-sor
+The cache-as-sor pattern implies using the cache as though it were the primary system-of-record (SOR). The pattern delegates SOR reading and writing activities to the cache, so that application code is absolved of this responsibility.
+To implement the cache-as-sor pattern, use a combination of the following read and write patterns:
+*read-through
+*write-through or write-behind
+Advantages of using the cache-as-sor pattern are:
+*Less cluttered application code (improved maintainability)
+*Choice of write-through or write-behind strategies on a per-cache basis (use only configuration)
+*Allows the cache to solve the "thundering-herd" problem
+A disadvantage of using the cache-as-sor pattern is:
+*Less directly visible code-path
+
+== read-through
+The read-through pattern mimics the structure of the cache-aside pattern when reading data. The difference is that you must implement the CacheEntryFactory interface to instruct the cache how to read objects on a cache miss, and you must wrap the Cache instance with an instance of SelfPopulatingCache.
+
+== write-through
+The write-through pattern mimics the structure of the cache-aside pattern when writing data. The difference is that you must implement the CacheWriter interface and configure the cache for write-through mode.
+A write-through cache writes data to the system-of-record in the same thread of execution. Therefore, in the common scenario of using a database transaction in context of the thread, the write to the database is covered by the transaction in scope.
+
+== write-behind
+The write-behind pattern changes the timing of the write to the system-of-record. Rather than writing to the system-of-record in the same thread of execution, write-behind queues the data for write at a later time.
+The consequences of the change from write-through to write-behind are that the data write using write-behind will occur outside of the scope of the transaction.
+This often-times means that a new transaction must be created to commit the data to the system-of-record. That transaction is separate from the main transaction.
