@@ -22,15 +22,15 @@ import org.ehcache.core.spi.service.ServiceFactory;
 /**
  * @author Ludovic Orban
  */
-public class CacheStoreProviderFactory implements ServiceFactory<CacheStore.Provider> {
+public class TieredStoreProviderFactory implements ServiceFactory<TieredStore.Provider> {
 
   @Override
-  public CacheStore.Provider create(ServiceCreationConfiguration<CacheStore.Provider> configuration) {
-    return new CacheStore.Provider();
+  public TieredStore.Provider create(ServiceCreationConfiguration<TieredStore.Provider> configuration) {
+    return new TieredStore.Provider();
   }
 
   @Override
-  public Class<CacheStore.Provider> getServiceType() {
-    return CacheStore.Provider.class;
+  public Class<TieredStore.Provider> getServiceType() {
+    return TieredStore.Provider.class;
   }
 }

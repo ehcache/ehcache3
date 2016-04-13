@@ -44,14 +44,14 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
-public class CacheStoreFlushWhileShutdownTest {
+public class TieredStoreFlushWhileShutdownTest {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
 
   @Test
-  public void testCacheStoreReleaseFlushesEntries() throws Exception {
-    File persistenceLocation = folder.newFolder("testCacheStoreReleaseFlushesEntries");
+  public void testTieredStoreReleaseFlushesEntries() throws Exception {
+    File persistenceLocation = folder.newFolder("testTieredStoreReleaseFlushesEntries");
 
     Store.Configuration<Number, String> configuration = new Store.Configuration<Number, String>() {
 
@@ -103,40 +103,40 @@ public class CacheStoreFlushWhileShutdownTest {
 
     ServiceLocator serviceLocator = getServiceLocator(persistenceLocation);
     serviceLocator.startAllServices();
-    CacheStore.Provider cacheStoreProvider = new CacheStore.Provider();
+    TieredStore.Provider tieredStoreProvider = new TieredStore.Provider();
 
-    cacheStoreProvider.start(serviceLocator);
+    tieredStoreProvider.start(serviceLocator);
 
     LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
-    PersistenceSpaceIdentifier persistenceSpace = persistenceService.getOrCreatePersistenceSpace("testCacheStoreReleaseFlushesEntries");
-    Store<Number, String> cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace});
-    cacheStoreProvider.initStore(cacheStore);
+    PersistenceSpaceIdentifier persistenceSpace = persistenceService.getOrCreatePersistenceSpace("testTieredStoreReleaseFlushesEntries");
+    Store<Number, String> tieredStore = tieredStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace});
+    tieredStoreProvider.initStore(tieredStore);
     for (int i = 0; i < 100; i++) {
-      cacheStore.put(i, "hello");
+      tieredStore.put(i, "hello");
     }
 
     for(int j = 0; j < 20; j++){
       for (int i = 0; i < 20; i++) {
-        cacheStore.get(i);
+        tieredStore.get(i);
       }
     }
 
-    cacheStoreProvider.releaseStore(cacheStore);
-    cacheStoreProvider.stop();
+    tieredStoreProvider.releaseStore(tieredStore);
+    tieredStoreProvider.stop();
 
     serviceLocator.stopAllServices();
 
     ServiceLocator serviceLocator1 = getServiceLocator(persistenceLocation);
     serviceLocator1.startAllServices();
-    cacheStoreProvider.start(serviceLocator1);
+    tieredStoreProvider.start(serviceLocator1);
 
     LocalPersistenceService persistenceService1 = serviceLocator1.getService(LocalPersistenceService.class);
-    PersistenceSpaceIdentifier persistenceSpace1 = persistenceService1.getOrCreatePersistenceSpace("testCacheStoreReleaseFlushesEntries");
-    cacheStore = cacheStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace1});
-    cacheStoreProvider.initStore(cacheStore);
+    PersistenceSpaceIdentifier persistenceSpace1 = persistenceService1.getOrCreatePersistenceSpace("testTieredStoreReleaseFlushesEntries");
+    tieredStore = tieredStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace1});
+    tieredStoreProvider.initStore(tieredStore);
 
     for(int i = 0; i < 20; i++) {
-      assertThat(cacheStore.get(i).hits(), is(21l));
+      assertThat(tieredStore.get(i).hits(), is(21l));
     }
   }
 

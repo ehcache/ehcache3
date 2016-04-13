@@ -24,7 +24,6 @@ import org.ehcache.config.SizedResourcePool;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.exceptions.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -39,8 +38,6 @@ import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStoreSPITest;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStoreByValueSPITest;
-import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.impl.internal.store.offheap.OffHeapStoreSPITest;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
@@ -72,13 +69,14 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.mockito.Mockito.mock;
 
 /**
- * Test the {@link CacheStore} compliance to the
- * {@link Store} contract when using 3 tiers.
+ * Test the {@link TieredStore} compliance to the
+ * {@link Store} contract.
  */
-public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
+
+public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
   private StoreFactory<String, String> storeFactory;
-  private final CacheStore.Provider provider = new CacheStore.Provider();
+  private final TieredStore.Provider provider = new TieredStore.Provider();
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
   private LocalPersistenceService persistenceService;
 
@@ -122,37 +120,26 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
             evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
+
         final Copier defaultCopier = new IdentityCopier();
-
-        StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
-        final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
-
-        SizedResourcePool offheapPool = config.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
-        long offheapSize = ((MemoryUnit) offheapPool.getUnit()).toBytes(offheapPool.getSize());
-
-        final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, timeSource, noOpEventDispatcher, offheapSize);
-
+        OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
         try {
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
           LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
-          long diskSize = ((MemoryUnit) diskPool.getUnit()).toBytes(diskPool.getSize());
+          MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
 
+          long sizeInBytes = unit.toBytes(diskPool.getSize());
           OffHeapDiskStore<String, String> diskStore = new OffHeapDiskStore<String, String>(
                   persistenceContext,
                   new OnDemandExecutionService(), null, 1,
                   config, timeSource,
                   new TestStoreEventDispatcher<String, String>(),
-                  diskSize);
-
-          CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(onHeapStore, offHeapStore);
-
-
-          CacheStore<String, String> cacheStore = new CacheStore<String, String>(compoundCachingTier, diskStore);
-
-          provider.registerStore(cacheStore, new CachingTier.Provider() {
+                  sizeInBytes);
+          TieredStore<String, String> tieredStore = new TieredStore<String, String>(onHeapStore, diskStore);
+          provider.registerStore(tieredStore, new CachingTier.Provider() {
             @Override
             public <K, V> CachingTier<K, V> createCachingTier(final Store.Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
               throw new UnsupportedOperationException("Implement me!");
@@ -160,14 +147,12 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
             @Override
             public void releaseCachingTier(final CachingTier<?, ?> resource) {
-              OnHeapStoreByValueSPITest.closeStore(onHeapStore);
-              OffHeapStoreSPITest.closeStore(offHeapStore);
+              OnHeapStoreByValueSPITest.closeStore((OnHeapStore)resource);
             }
 
             @Override
             public void initCachingTier(final CachingTier<?, ?> resource) {
-              // nothing to do for on-heap
-              OffHeapStoreSPITest.initStore(offHeapStore);
+              // no op
             }
 
             @Override
@@ -205,9 +190,9 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
               throw new UnsupportedOperationException("Implement me!");
             }
           });
-          provider.initStore(cacheStore);
-          createdStores.put(cacheStore, spaceName);
-          return cacheStore;
+          provider.initStore(tieredStore);
+          createdStores.put(tieredStore, spaceName);
+          return tieredStore;
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Error creation persistence context", e);
         }
@@ -282,7 +267,7 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
       @Override
       public String createValue(long seed) {
-        char[] chars = new char[800 * 1024];
+        char[] chars = new char[400 * 1024];
         Arrays.fill(chars, (char) (0x1 + (seed & 0x7e)));
         return new String(chars);
       }
@@ -322,19 +307,11 @@ public class CacheStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     }
   }
 
-  private ResourcePools buildResourcePools(Long capacityConstraint) {
+  private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
     if (capacityConstraint == null) {
       capacityConstraint = 16L;
-    } else {
-      capacityConstraint = capacityConstraint * 2;
     }
-    long offheapSize;
-    if (capacityConstraint <= 2L) {
-      offheapSize = MemoryUnit.KB.convert(1L, MemoryUnit.MB);
-    } else {
-      offheapSize = MemoryUnit.KB.convert(capacityConstraint, MemoryUnit.MB) / 2;
-    }
-    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).offheap(offheapSize, MemoryUnit.KB).disk((Long) capacityConstraint, MemoryUnit.MB).build();
+    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).disk((Long)capacityConstraint, MemoryUnit.MB).build();
   }
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {
