@@ -1,3 +1,0 @@
-org.ehcache.transactions.xa.internal.configuration.XAStoreProviderFactory
-org.ehcache.transactions.xa.internal.txmgr.provider.DefaultTransactionManagerProviderFactory
-org.ehcache.transactions.xa.internal.journal.DefaultJournalProviderFactory
