@@ -5,7 +5,7 @@
 The `Store` in Ehcache is designed to hold data in a tiered model. 
 A cache will always have at least one tier, possible multiple.
 As soon as there are multiple tiers, they are immediately divided between a single `AuthoritativeTier` and one or more `CachingTier`.
-It is the `CacheStore` that wires the authority and caching tiers and provides a unified view of the `Store` for the Cache.
+It is the `TieredStore` that wires the authority and caching tiers and provides a unified view of the `Store` for the Cache.
 
 . What is `CachingTier` ?
 
@@ -22,7 +22,7 @@ always a subset of the authority.
 
 . How are they wired ?
 
-- All multi-tiered `Cache` have only one store i.e. `CacheStore` which wires the
+- All multi-tiered `Cache` have only one store i.e. `TieredStore` which wires the
  logic between the `CachingTier` and the `AuthoritativeTier`. All the mutative operations
  are written in a way that the mutating thread uninstalls the entry from `CachingTier`
  after the mutation is complete in the authority. The `Store` has an invalidation listener
