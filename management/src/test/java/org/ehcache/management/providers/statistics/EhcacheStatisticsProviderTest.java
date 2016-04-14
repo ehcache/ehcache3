@@ -21,12 +21,12 @@ import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.hamcrest.Matcher;
 import org.junit.Test;
-import org.terracotta.management.capabilities.context.CapabilityContext;
-import org.terracotta.management.capabilities.descriptors.Descriptor;
-import org.terracotta.management.capabilities.descriptors.StatisticDescriptor;
-import org.terracotta.management.context.Context;
+import org.terracotta.management.model.capabilities.context.CapabilityContext;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.stats.StatisticType;
+import org.terracotta.management.model.stats.StatisticType;
 
 import java.util.HashSet;
 import java.util.Iterator;

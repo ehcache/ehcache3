@@ -27,11 +27,10 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.junit.Test;
-import org.terracotta.management.call.Parameter;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.message.Message;
-import org.terracotta.management.message.MessageType;
-import org.terracotta.management.notification.ContextualNotification;
+import org.terracotta.management.model.call.Parameter;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.message.Message;
+import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.registry.MessageConsumer;
 
 import java.util.ArrayList;
@@ -79,7 +78,7 @@ public class DefaultCollectorServiceTest {
       public void accept(Message message) {
         System.out.println(message);
         messages.offer(message);
-        if (message.getType().equals(MessageType.NOTIFICATION.name())) {
+        if (message.getType().equals("NOTIFICATION")) {
           notifs.add(message.unwrap(ContextualNotification.class).getType());
         }
         num.countDown();
