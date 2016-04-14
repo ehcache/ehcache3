@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.Cache.Entry;
 import org.ehcache.ValueSupplier;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.exceptions.StoreAccessException;
@@ -133,7 +133,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testEvictWithNoVetoDoesEvict() throws Exception {
+  public void testEvictWithNoEvictionAdvisorDoesEvict() throws Exception {
     OnHeapStore<String, String> store = newStore();
     for (int i = 0; i < 100; i++) {
       store.put(Integer.toString(i), Integer.toString(i));
@@ -145,10 +145,10 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testEvictWithFullVetoDoesEvict() throws Exception {
-    OnHeapStore<String, String> store = newStore(new EvictionVeto<String, String>() {
+  public void testEvictWithFullyAdvisedAgainstEvictionDoesEvict() throws Exception {
+    OnHeapStore<String, String> store = newStore(new EvictionAdvisor<String, String>() {
       @Override
-      public boolean vetoes(String key, String value) {
+      public boolean adviseAgainstEviction(String key, String value) {
         return true;
       }
     });
@@ -162,11 +162,11 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   @Test
-  public void testEvictWithBrokenVetoDoesEvict() throws Exception {
-    OnHeapStore<String, String> store = newStore(new EvictionVeto<String, String>() {
+  public void testEvictWithBrokenEvictionAdvisorDoesEvict() throws Exception {
+    OnHeapStore<String, String> store = newStore(new EvictionAdvisor<String, String>() {
       @Override
-      public boolean vetoes(String key, String value) {
-        throw new UnsupportedOperationException("Broken veto!");
+      public boolean adviseAgainstEviction(String key, String value) {
+        throw new UnsupportedOperationException("Broken advisor!");
       }
     });
     for (int i = 0; i < 100; i++) {
@@ -1456,8 +1456,8 @@ public abstract class BaseOnHeapStoreTest {
     return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none());
   }
 
-  protected <K, V> OnHeapStore<K, V> newStore(EvictionVeto<? super K, ? super V> veto) {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), veto);
+  protected <K, V> OnHeapStore<K, V> newStore(EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), evictionAdvisor);
   }
 
   protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
@@ -1467,5 +1467,5 @@ public abstract class BaseOnHeapStoreTest {
   protected abstract void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity);
 
   protected abstract <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
-      final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto);
+      final Expiry<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor);
 }

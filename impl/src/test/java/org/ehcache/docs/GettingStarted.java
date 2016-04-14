@@ -32,7 +32,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.ehcache.docs.plugs.OddKeysEvictionVeto;
+import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.event.EventFiring;
@@ -472,11 +472,11 @@ public class GettingStarted {
   }
 
   @Test
-  public void cacheEvictionVeto() throws Exception {
-    // tag::cacheEvictionVeto[]
+  public void cacheEvictionAdvisor() throws Exception {
+    // tag::cacheEvictionAdvisor[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                                                                         ResourcePoolsBuilder.heap(2L)) // <1>
-        .withEvictionVeto(new OddKeysEvictionVeto<Long, String>()) // <2>
+        .withEvictionAdvisor(new OddKeysEvictionAdvisor<Long, String>()) // <2>
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -491,7 +491,7 @@ public class GettingStarted {
     cache.put(39L, "The other wrong Answer!");
 
     cacheManager.close();
-    // end::cacheEvictionVeto[]
+    // end::cacheEvictionAdvisor[]
   }
 
 

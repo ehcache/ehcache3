@@ -13,7 +13,7 @@ User documentation::
 - link:./xa{outfilesuffix}[Transactions support]
 - link:./writers{outfilesuffix}[Cache Writers]
 - link:./cache-event-listeners{outfilesuffix}[Cache Event Listeners]
-- link:./eviction-veto{outfilesuffix}[Eviction Vetoing]
+- link:./eviction-advisor{outfilesuffix}[Eviction Advisor]
 Resources::
 - link:./examples{outfilesuffix}[Java examples]
 - link:./xsds{outfilesuffix}[Configuration XSD]

@@ -245,11 +245,11 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="eviction-veto" type="ehcache:fqcn-type" minOccurs="0" maxOccurs="1">
+      <xs:element name="eviction-advisor" type="ehcache:fqcn-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             A fully qualified class name to a concrete type that implements
-            org.ehcache.config.EvictionVeto and has a public default no argument constructor.
+            org.ehcache.config.EvictionAdvisor and has a public default no argument constructor.
           </xs:documentation>
         </xs:annotation>
       </xs:element>

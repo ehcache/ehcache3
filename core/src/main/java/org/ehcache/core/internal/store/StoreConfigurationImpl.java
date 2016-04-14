@@ -17,7 +17,7 @@
 package org.ehcache.core.internal.store;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.store.Store;
@@ -31,7 +31,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
 
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private final ResourcePools resourcePools;
@@ -49,7 +49,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    */
   public StoreConfigurationImpl(CacheConfiguration<K, V> cacheConfig, int orderedEventParallelism,
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-    this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getEvictionVeto(),
+    this(cacheConfig.getKeyType(), cacheConfig.getValueType(), cacheConfig.getEvictionAdvisor(),
         cacheConfig.getClassLoader(), cacheConfig.getExpiry(), cacheConfig.getResourcePools(),
         orderedEventParallelism, keySerializer, valueSerializer);
   }
@@ -59,7 +59,7 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    *
    * @param keyType the key type
    * @param valueType the value type
-   * @param evictionVeto the eviction veto
+   * @param evictionAdvisor the eviction advisor
    * @param classLoader the class loader
    * @param expiry the expiry policy
    * @param resourcePools the resource pools
@@ -68,13 +68,13 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    * @param valueSerializer the value serializer
    */
   public StoreConfigurationImpl(Class<K> keyType, Class<V> valueType,
-                                EvictionVeto<? super K, ? super V> evictionVeto,
+                                EvictionAdvisor<? super K, ? super V> evictionAdvisor,
                                 ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
                                 ResourcePools resourcePools, int orderedEventParallelism,
                                 Serializer<K> keySerializer, Serializer<V> valueSerializer) {
     this.keyType = keyType;
     this.valueType = valueType;
-    this.evictionVeto = evictionVeto;
+    this.evictionAdvisor = evictionAdvisor;
     this.classLoader = classLoader;
     this.expiry = expiry;
     this.resourcePools = resourcePools;
@@ -103,8 +103,8 @@ public class StoreConfigurationImpl<K, V> implements Store.Configuration<K, V> {
    * {@inheritDoc}
    */
   @Override
-  public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-    return evictionVeto;
+  public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+    return evictionAdvisor;
   }
 
   /**

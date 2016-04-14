@@ -19,11 +19,8 @@
     xmlns:ehcache='http://www.ehcache.org/v3'
     xsi:schemaLocation="http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
 
-  <ehcache:cache-template name="example">
-    <ehcache:eviction-veto>com.foo.NonExistentVetoInTemplate</ehcache:eviction-veto>
-  </ehcache:cache-template>
-
-  <ehcache:cache alias="foo" uses-template="example">
+  <ehcache:cache alias="foo">
+    <ehcache:eviction-advisor>com.foo.NonExistentAdvisorInCache</ehcache:eviction-advisor>
     <ehcache:heap>10</ehcache:heap>
   </ehcache:cache>
 </ehcache:config>

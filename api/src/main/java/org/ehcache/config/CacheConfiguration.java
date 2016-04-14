@@ -54,13 +54,13 @@ public interface CacheConfiguration<K, V> {
   Class<V> getValueType();
 
   /**
-   * The {@link EvictionVeto} predicate function.
+   * The {@link EvictionAdvisor} predicate function.
    * <p>
    * Entries which pass this predicate must be ignored by the eviction process.
    *
-   * @return the eviction veto predicate
+   * @return the eviction advisor predicate
    */
-  EvictionVeto<? super K, ? super V> getEvictionVeto();
+  EvictionAdvisor<? super K, ? super V> getEvictionAdvisor();
 
   /**
    * The {@link ClassLoader} for this cache. This {@code ClassLoader} will be used to instantiate cache level services

@@ -15,7 +15,7 @@
  */
 package org.ehcache.impl.internal.store.heap.bytesized;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
@@ -32,7 +32,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.heap.OnHeapStoreEvictionTest {
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
-      final EvictionVeto<? super K, ? super V> veto) {
+      final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
@@ -47,8 +47,8 @@ public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.hea
       }
 
       @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
+      public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+        return evictionAdvisor;
       }
 
       @Override

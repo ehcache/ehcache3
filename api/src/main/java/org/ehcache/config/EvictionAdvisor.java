@@ -17,21 +17,19 @@
 package org.ehcache.config;
 
 /**
- * A specialized predicate used to veto eviction of cache entries.
+ * A specialized predicate used to advise on eviction of cache entries.
  *
  * @param <K> the type of the keys used to access data within the cache
  * @param <V> the type of the values held within the cache
- *
- * @author Alex Snaps
  */
-public interface EvictionVeto<K, V> {
+public interface EvictionAdvisor<K, V> {
 
   /**
-   * Returns {@code true} if the given key value pair should be vetoed from eviction.
+   * Returns {@code true} if the given key value pair should not be evicted if possible.
    *
    * @param key the entry key
    * @param value the entry value
    * @return {@code true} if eviction should be avoided
    */
-  boolean vetoes(K key, V value);
+  boolean adviseAgainstEviction(K key, V value);
 }

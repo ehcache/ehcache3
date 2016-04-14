@@ -15,19 +15,19 @@
  */
 package org.ehcache.docs.plugs;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
  * @author Ludovic Orban
  */
-public class OddKeysEvictionVeto<K extends Number, V> implements EvictionVeto<K, V> {
-  private static final Logger LOG = LoggerFactory.getLogger(OddKeysEvictionVeto.class);
+public class OddKeysEvictionAdvisor<K extends Number, V> implements EvictionAdvisor<K, V> {
+  private static final Logger LOG = LoggerFactory.getLogger(OddKeysEvictionAdvisor.class);
   @Override
-  public boolean vetoes(K key, V value) {
-    boolean veto = (key.longValue() & 0x1) == 1;
-    LOG.info("veto'ing {}? {}", key, veto);
-    return veto;
+  public boolean adviseAgainstEviction(K key, V value) {
+    boolean advice = (key.longValue() & 0x1) == 1;
+    LOG.info("advising against eviction of {}? {}", key, advice);
+    return advice;
   }
 }

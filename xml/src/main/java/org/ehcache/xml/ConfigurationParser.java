@@ -274,10 +274,10 @@ class ConfigurationParser {
           }
 
           @Override
-          public String evictionVeto() {
+          public String evictionAdvisor() {
             String value = null;
             for (BaseCacheType source : sources) {
-              value = source.getEvictionVeto();
+              value = source.getEvictionAdvisor();
               if (value != null) break;
             }
             return value;
@@ -443,8 +443,8 @@ class ConfigurationParser {
           }
 
           @Override
-          public String evictionVeto() {
-            return cacheTemplate.getEvictionVeto();
+          public String evictionAdvisor() {
+            return cacheTemplate.getEvictionAdvisor();
           }
 
           @Override
@@ -629,7 +629,7 @@ class ConfigurationParser {
 
     String valueCopier();
 
-    String evictionVeto();
+    String evictionAdvisor();
 
     Expiry expiry();
 

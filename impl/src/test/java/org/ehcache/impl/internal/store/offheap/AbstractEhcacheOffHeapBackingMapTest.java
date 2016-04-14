@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -35,7 +35,7 @@ import static org.junit.Assert.fail;
 public abstract class AbstractEhcacheOffHeapBackingMapTest {
   protected abstract EhcacheOffHeapBackingMap<String, String> createTestSegment() throws IOException;
 
-  protected abstract EhcacheOffHeapBackingMap<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate) throws IOException;
+  protected abstract EhcacheOffHeapBackingMap<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) throws IOException;
 
   protected abstract void destroySegment(EhcacheOffHeapBackingMap<String, String> segment);
 
@@ -503,32 +503,32 @@ public abstract class AbstractEhcacheOffHeapBackingMapTest {
   }
 
   @Test
-  public void testPutVetoedComputesMetadata() throws Exception {
-    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
+  public void testPutAdvicedAgainstEvictionComputesMetadata() throws Exception {
+    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
       @Override
-      public boolean vetoes(String key, String value) {
-        return "vetoed".equals(key);
+      public boolean adviseAgainstEviction(String key, String value) {
+        return "please-do-not-evict-me".equals(key);
       }
     });
     try {
-      segment.put("vetoed", "value");
-      assertThat(getMetadata("vetoed", EhcacheSegmentFactory.EhcacheSegment.VETOED, segment), is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
+      segment.put("please-do-not-evict-me", "value");
+      assertThat(getMetadata("please-do-not-evict-me", EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION, segment), is(EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION));
     } finally {
       destroySegment(segment);
     }
   }
 
   @Test
-  public void testPutPinnedVetoedComputesMetadata() throws Exception {
-    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
+  public void testPutPinnedAdvicedAgainstEvictionComputesMetadata() throws Exception {
+    EhcacheOffHeapBackingMap<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
       @Override
-      public boolean vetoes(String key, String value) {
-        return "vetoed".equals(key);
+      public boolean adviseAgainstEviction(String key, String value) {
+        return "please-do-not-evict-me".equals(key);
       }
     });
     try {
-      putPinned("vetoed", "value", segment);
-      assertThat(getMetadata("vetoed", EhcacheSegmentFactory.EhcacheSegment.VETOED, segment), is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
+      putPinned("please-do-not-evict-me", "value", segment);
+      assertThat(getMetadata("please-do-not-evict-me", EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION, segment), is(EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION));
     } finally {
       destroySegment(segment);
     }

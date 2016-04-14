@@ -135,9 +135,9 @@ public class XmlConfigurationTest {
   }
 
   @Test
-  public void testNonExistentVetoClassInCacheThrowsException() throws Exception {
+  public void testNonExistentAdvisorClassInCacheThrowsException() throws Exception {
     try {
-      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentVeto-cache.xml"));
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentAdvisor-cache.xml"));
       fail();
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getCause(), instanceOf(ClassNotFoundException.class));
@@ -145,9 +145,9 @@ public class XmlConfigurationTest {
   }
 
   @Test
-  public void testNonExistentVetoClassInTemplateThrowsException() throws Exception {
+  public void testNonExistentAdvisorClassInTemplateThrowsException() throws Exception {
     try {
-      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentVeto-template.xml"));
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentAdvisor-template.xml"));
       fail();
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getCause(), instanceOf(ClassNotFoundException.class));

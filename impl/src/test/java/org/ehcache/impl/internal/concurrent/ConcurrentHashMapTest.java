@@ -18,22 +18,15 @@ package org.ehcache.impl.internal.concurrent;
 
 import org.junit.Test;
 
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.Map.Entry;
 import java.util.Random;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.hamcrest.collection.IsEmptyCollection.empty;
-import org.hamcrest.core.IsNull;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
-import org.hamcrest.number.OrderingComparison;
-import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -79,14 +72,14 @@ public class ConcurrentHashMapTest {
     }
 
     @Test
-    public void testFullyVetoedRandomSample() {
+    public void testFullyAdvisedAgainstEvictionRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
         }
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, new EvictionVeto<String, String>() {
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, new EvictionAdvisor<String, String>() {
             @Override
-            public boolean vetoes(String key, String value) {
+            public boolean adviseAgainstEviction(String key, String value) {
                 return true;
             }
         });
@@ -94,7 +87,7 @@ public class ConcurrentHashMapTest {
     }
 
     @Test
-    public void testSelectivelyVetoedRandomSample() {
+    public void testSelectivelyAdvisedAgainstEvictionRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         for (int i = 0; i < 1000; i++) {
           map.put(Integer.toString(i), Integer.toString(i));
@@ -104,10 +97,10 @@ public class ConcurrentHashMapTest {
           public int compare(String t, String t1) {
             return 0;
           }
-        }, new EvictionVeto<String, String>() {
+        }, new EvictionAdvisor<String, String>() {
 
           @Override
-          public boolean vetoes(String key, String value) {
+          public boolean adviseAgainstEviction(String key, String value) {
             return key.length() > 1;
           }
         });

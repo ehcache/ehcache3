@@ -19,7 +19,7 @@ package org.ehcache.impl.internal.store.offheap;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
@@ -63,7 +63,7 @@ import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBuffe
  */
 public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
-  private final EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto;
+  private final EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
   private final long sizeInBytes;
@@ -72,11 +72,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
   public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
     super("local-offheap", config, timeSource, eventDispatcher);
-    EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
-    if (veto != null) {
-      evictionVeto = wrap(veto);
+    EvictionAdvisor<? super K, ? super V> evictionAdvisor = config.getEvictionAdvisor();
+    if (evictionAdvisor != null) {
+      this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      evictionVeto = Eviction.none();
+      this.evictionAdvisor = Eviction.none();
     }
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();
@@ -88,7 +88,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     return Collections.emptyList();
   }
 
-  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
+  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
     HeuristicConfiguration config = new HeuristicConfiguration(size);
     PageSource source = new UpfrontAllocatingPageSource(getBufferSource(), config.getMaximumSize(), config.getMaximumChunkSize(), config.getMinimumChunkSize());
     Portability<K> keyPortability = new SerializerPortability<K>(keySerializer);
@@ -100,9 +100,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
                                                                                                          source,
                                                                                                          storageEngineFactory,
                                                                                                          config.getInitialSegmentTableSize(),
-                                                                                                         evictionVeto,
+                                                                                                         evictionAdvisor,
                                                                                                          mapEvictionListener);
-    return new EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionVeto, segmentFactory, config.getConcurrency());
+    return new EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, segmentFactory, config.getConcurrency());
 
   }
 
@@ -171,7 +171,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     static <K, V> void init(final OffHeapStore<K, V> resource) {
-      resource.map = resource.createBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionVeto);
+      resource.map = resource.createBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionAdvisor);
     }
 
     @Override

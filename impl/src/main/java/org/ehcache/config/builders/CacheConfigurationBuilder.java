@@ -18,7 +18,7 @@ package org.ehcache.config.builders;
 
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
@@ -61,7 +61,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry;
   private ClassLoader classLoader = null;
-  private EvictionVeto<? super K, ? super V> evictionVeto;
+  private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private ResourcePools resourcePools;
   private Class<? super K> keyType;
   private Class<? super V> valueType;
@@ -107,7 +107,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     this.valueType = other.valueType;
     this.expiry = other.expiry;
     this.classLoader = other.classLoader;
-    this.evictionVeto = other.evictionVeto;
+    this.evictionAdvisor = other.evictionAdvisor;
     this.resourcePools = other.resourcePools;
     this.serviceConfigurations.addAll(other.serviceConfigurations);
   }
@@ -149,14 +149,14 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   /**
-   * Adds an {@link EvictionVeto} to the returned builder.
+   * Adds an {@link EvictionAdvisor} to the returned builder.
    *
-   * @param veto the eviction veto to be used
-   * @return a new builder with the added eviction veto
+   * @param evictionAdvisor the eviction advisor to be used
+   * @return a new builder with the added eviction advisor
    */
-  public CacheConfigurationBuilder<K, V> withEvictionVeto(final EvictionVeto<? super K, ? super V> veto) {
+  public CacheConfigurationBuilder<K, V> withEvictionAdvisor(final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    otherBuilder.evictionVeto = veto;
+    otherBuilder.evictionAdvisor = evictionAdvisor;
     return otherBuilder;
   }
 
@@ -622,7 +622,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   @Override
   public CacheConfiguration<K, V> build() {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
         classLoader, expiry, resourcePools,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
 

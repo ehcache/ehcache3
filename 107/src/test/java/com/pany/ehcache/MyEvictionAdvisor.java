@@ -16,16 +16,16 @@
 
 package com.pany.ehcache;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 
 import com.pany.domain.Product;
 
 /**
  * @author Alex Snaps
  */
-public class MyEvictionVeto implements EvictionVeto<Long, Product> {
+public class MyEvictionAdvisor implements EvictionAdvisor<Long, Product> {
   @Override
-  public boolean vetoes(Long key, Product value) {
+  public boolean adviseAgainstEviction(Long key, Product value) {
     return value.getMutable() != null;
   }
 }
