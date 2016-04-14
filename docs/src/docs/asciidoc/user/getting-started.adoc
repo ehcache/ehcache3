@@ -130,7 +130,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     of objects to traverse while walking the object graph, the second defines the maximum size of a
     single object. If the sizing goes above any of these two limits, the mutative operation on the
     cache will be ignored.
-<3> A default configuration can be provided at CacheManager level to be used the caches unless defined
+<3> A default configuration can be provided at CacheManager level to be used by the caches unless defined
     explicitly.
 
 == Update ResourcePools
