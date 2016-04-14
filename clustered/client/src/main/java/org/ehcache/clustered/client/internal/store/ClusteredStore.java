@@ -189,7 +189,7 @@ public class ClusteredStore<K, V> implements Store<K, V> {
         throw new IllegalStateException("ClusteredStoreProvider.createStore called without ClusteredResourcePools");
       }
 
-      // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.CacheStore.Provider
+      // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.TieredStore.Provider
       final ClusteringServiceConfiguration clusterConfiguration = clusteringService.getConfiguration();
       final Store.Provider underlyingStoreProvider =
           selectProvider(storeConfig.getResourcePools().getResourceTypeSet(), Arrays.asList(serviceConfigs));

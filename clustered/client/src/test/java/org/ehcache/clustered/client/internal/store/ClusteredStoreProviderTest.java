@@ -25,7 +25,7 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.impl.internal.store.tiering.CacheStore;
+import org.ehcache.impl.internal.store.tiering.TieredStore;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,7 +59,7 @@ public class ClusteredStoreProviderTest {
   public void testRank() throws Exception {
     ClusteredStore.Provider provider = new ClusteredStore.Provider();
     ServiceLocator serviceLocator = new ServiceLocator(
-        new CacheStore.Provider(),
+        new TieredStore.Provider(),
         new OnHeapStore.Provider(),
         new OffHeapStore.Provider(),
         new OffHeapDiskStore.Provider(),
