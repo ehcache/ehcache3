@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 
 import org.ehcache.Cache;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
 import org.ehcache.exceptions.StoreAccessException;
@@ -1215,7 +1215,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           lock.lock();
           try {
             for (K keyToEvict : segment.keySet()) {
-              if (backingMap().getAndSetMetadata(keyToEvict, EhcacheSegmentFactory.EhcacheSegment.VETOED, 0) == EhcacheSegmentFactory.EhcacheSegment.VETOED) {
+              if (backingMap().getAndSetMetadata(keyToEvict, EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION, 0) == EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION) {
                 return;
               }
             }
@@ -1292,25 +1292,25 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
 
-  protected static <K, V> EvictionVeto<K, OffHeapValueHolder<V>> wrap(EvictionVeto<? super K, ? super V> delegate) {
-    return new OffHeapEvictionVetoWrapper<K, V>(delegate);
+  protected static <K, V> EvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
+    return new OffHeapEvictionAdvisorWrapper<K, V>(delegate);
   }
 
-  private static class OffHeapEvictionVetoWrapper<K, V> implements EvictionVeto<K, OffHeapValueHolder<V>> {
+  private static class OffHeapEvictionAdvisorWrapper<K, V> implements EvictionAdvisor<K, OffHeapValueHolder<V>> {
 
-    private final EvictionVeto<? super K, ? super V> delegate;
+    private final EvictionAdvisor<? super K, ? super V> delegate;
 
-    private OffHeapEvictionVetoWrapper(EvictionVeto<? super K, ? super V> delegate) {
+    private OffHeapEvictionAdvisorWrapper(EvictionAdvisor<? super K, ? super V> delegate) {
       this.delegate = delegate;
     }
 
     @Override
-    public boolean vetoes(K key, OffHeapValueHolder<V> value) {
+    public boolean adviseAgainstEviction(K key, OffHeapValueHolder<V> value) {
       try {
-        return delegate.vetoes(key, value.value());
+        return delegate.adviseAgainstEviction(key, value.value());
       } catch (Exception e) {
-        LOG.error("Exception raised while running eviction veto " +
-                  "- Eviction will assume entry is NOT vetoed", e);
+        LOG.error("Exception raised while running eviction advisor " +
+                  "- Eviction will assume entry is NOT advised against eviction", e);
         return false;
       }
     }

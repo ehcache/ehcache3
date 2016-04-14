@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.AbstractEhcacheOffHeapBackingMapTest;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
@@ -52,11 +52,11 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
   }
 
   @Override
-  protected EhcacheOffHeapBackingMap<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate) throws IOException {
+  protected EhcacheOffHeapBackingMap<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) throws IOException {
     return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);

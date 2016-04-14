@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
@@ -53,7 +53,7 @@ public class OversizeMappingTest {
     return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none(), 100);
   }
 
-  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
+  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
       final int capacity) {
 
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
@@ -70,8 +70,8 @@ public class OversizeMappingTest {
       }
 
       @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
+      public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+        return evictionAdvisor;
       }
 
       @Override

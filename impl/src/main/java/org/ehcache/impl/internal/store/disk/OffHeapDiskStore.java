@@ -20,7 +20,7 @@ import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.Status;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
@@ -89,7 +89,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   protected final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
 
-  private final EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto;
+  private final EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final ClassLoader classLoader;
@@ -112,11 +112,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     this.threadPoolAlias = threadPoolAlias;
     this.writerConcurrency = writerConcurrency;
 
-    EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
-    if (veto != null) {
-      evictionVeto = wrap(veto);
+    EvictionAdvisor<? super K, ? super V> evictionAdvisor = config.getEvictionAdvisor();
+    if (evictionAdvisor != null) {
+      this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      evictionVeto = Eviction.none();
+      this.evictionAdvisor = Eviction.none();
     }
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
@@ -135,27 +135,27 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return Collections.emptyList();
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
     File metadataFile = getMetadataFile();
 
     if (dataFile.isFile() && indexFile.isFile() && metadataFile.isFile()) {
       try {
-        return recoverBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+        return recoverBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
     } else {
       try {
-        return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+        return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
       } catch (IOException ex) {
         throw new RuntimeException(ex);
       }
     }
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
     File metadataFile = getMetadataFile();
@@ -196,7 +196,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       } else if (delta > TimeUnit.SECONDS.toMillis(1)) {
         LOGGER.warn("The index for data file {} is out of date by {}ms, probably due to an unclean shutdown. Creating a new empty store.",
                     dataFile.getName(), delta);
-        return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+        return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
       } else if (delta > 0) {
         LOGGER.info("The index for data file {} is out of date by {}ms, assuming this small delta is a result of the OS/filesystem.",
                     dataFile.getName(), delta);
@@ -215,9 +215,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
             source,
             storageEngineFactory,
             64,
-            evictionVeto,
+            evictionAdvisor,
             mapEvictionListener, false);
-            EhcachePersistentConcurrentOffHeapClockCache m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, evictionVeto, factory);
+            EhcachePersistentConcurrentOffHeapClockCache m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, evictionAdvisor, factory);
 
 
 
@@ -231,13 +231,13 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     } catch (Exception e) {
       LOGGER.info("Index file was corrupt. Deleting data file " + dataFile.getAbsolutePath() +". " + e.getMessage());
       LOGGER.debug("Exception during recovery", e);
-      return createBackingMap(size, keySerializer, valueSerializer, evictionVeto);
+      return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
     } finally {
       fin.close();
     }
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
     File metadataFile = getMetadataFile();
     FileOutputStream fos = new FileOutputStream(metadataFile);
     try {
@@ -261,9 +261,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         source,
         storageEngineFactory,
         64,
-        evictionVeto,
+        evictionAdvisor,
         mapEvictionListener, true);
-    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionVeto, factory, 16);
+    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, factory, 16);
 
   }
 
@@ -388,7 +388,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     static <K, V> void init(final OffHeapDiskStore<K, V> resource) {
-      resource.map = resource.getBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionVeto);
+      resource.map = resource.getBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionAdvisor);
     }
 
     @Override

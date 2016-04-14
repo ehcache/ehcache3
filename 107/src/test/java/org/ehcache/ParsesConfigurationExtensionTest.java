@@ -87,7 +87,7 @@ public class ParsesConfigurationExtensionTest {
         assertThat(expiry.getClass().getName(), equalTo("org.ehcache.expiry.Expirations$TimeToIdleExpiry"));
         assertThat(expiry.getExpiryForAccess(42L, null), equalTo(new Duration(2, TimeUnit.MINUTES)));
 
-        assertThat(runtimeConfiguration.getEvictionVeto(), instanceOf(com.pany.ehcache.MyEvictionVeto.class));
+        assertThat(runtimeConfiguration.getEvictionAdvisor(), instanceOf(com.pany.ehcache.MyEvictionAdvisor.class));
       }
 
       // test copies

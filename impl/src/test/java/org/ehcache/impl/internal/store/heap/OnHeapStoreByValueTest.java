@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
@@ -184,14 +184,14 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
 
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry,
-      EvictionVeto<? super K, ? super V> veto) {
+      EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
     Copier<K> keyCopier = new SerializingCopier<K>(new JavaSerializer<K>(getClass().getClassLoader()));
     Copier<V> valueCopier = new SerializingCopier<V>(new JavaSerializer<V>(getClass().getClassLoader()));
-    return newStore(timeSource, expiry, veto, keyCopier, valueCopier, 100);
+    return newStore(timeSource, expiry, evictionAdvisor, keyCopier, valueCopier, 100);
   }
 
   protected abstract <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource,
-      Expiry<? super K, ? super V> expiry, EvictionVeto<? super K, ? super V> veto,
+      Expiry<? super K, ? super V> expiry, EvictionAdvisor<? super K, ? super V> evictionAdvisor,
       Copier<K> keyCopier, Copier<V> valueCopier, int capacity);
 
   private void performAssertions(Cache<Long, String> cache, boolean same) {

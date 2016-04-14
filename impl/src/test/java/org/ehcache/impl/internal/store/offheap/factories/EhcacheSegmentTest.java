@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.offheap.factories;
 
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
@@ -45,7 +45,7 @@ public class EhcacheSegmentTest {
     return createTestSegment(Eviction.none(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate) {
+  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) {
     return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
@@ -53,7 +53,7 @@ public class EhcacheSegmentTest {
     return createTestSegment(Eviction.none(), evictionListener);
   }
 
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -71,43 +71,43 @@ public class EhcacheSegmentTest {
   }
 
   @Test
-  public void testPutVetoedComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
+  public void testPutAdvisedAgainstEvictionComputesMetadata() {
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
       @Override
-      public boolean vetoes(String key, String value) {
-        return "vetoed".equals(key);
+      public boolean adviseAgainstEviction(String key, String value) {
+        return "please-do-not-evict-me".equals(key);
       }
     });
     try {
-      segment.put("vetoed", "value");
-      assertThat(segment.getMetadata("vetoed", EhcacheSegmentFactory.EhcacheSegment.VETOED), is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
+      segment.put("please-do-not-evict-me", "value");
+      assertThat(segment.getMetadata("please-do-not-evict-me", EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION), is(EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION));
     } finally {
       segment.destroy();
     }
   }
 
   @Test
-  public void testPutPinnedVetoedComputesMetadata() {
-    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new EvictionVeto<String, String>() {
+  public void testPutPinnedAdvisedAgainstComputesMetadata() {
+    EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(new EvictionAdvisor<String, String>() {
       @Override
-      public boolean vetoes(String key, String value) {
-        return "vetoed".equals(key);
+      public boolean adviseAgainstEviction(String key, String value) {
+        return "please-do-not-evict-me".equals(key);
       }
     });
     try {
-      segment.putPinned("vetoed", "value");
-      assertThat(segment.getMetadata("vetoed", EhcacheSegmentFactory.EhcacheSegment.VETOED), is(EhcacheSegmentFactory.EhcacheSegment.VETOED));
+      segment.putPinned("please-do-not-evict-me", "value");
+      assertThat(segment.getMetadata("please-do-not-evict-me", EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION), is(EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION));
     } finally {
       segment.destroy();
     }
   }
 
   @Test
-  public void testVetoedPreventsEviction() {
+  public void testAdviceAgainstEvictionPreventsEviction() {
     EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment();
     try {
       assertThat(segment.evictable(1), is(true));
-      assertThat(segment.evictable(EhcacheSegmentFactory.EhcacheSegment.VETOED | 1), is(false));
+      assertThat(segment.evictable(EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION | 1), is(false));
     } finally {
       segment.destroy();
     }

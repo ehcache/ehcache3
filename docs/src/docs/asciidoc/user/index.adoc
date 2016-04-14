@@ -49,5 +49,5 @@ The Table of Contents provides an overview of the Ehcache 3.0 documentation on t
 |link:xa.html[Transactions Support]|Using Ehcache with a JTA transaction manager
 |link:writers.html[Cache Writers]|Using cache writers (write-through and write-behind)
 |link:cache-event-listeners.html[Cache Event Listeners]|Getting notified about events within the cache
-|link:eviction-veto.html[Eviction Vetoing]|Affecting the way entries are chosen for eviction
+|link:eviction-advisor.html[Eviction Advisor]|Affecting the way entries are chosen for eviction
 |===

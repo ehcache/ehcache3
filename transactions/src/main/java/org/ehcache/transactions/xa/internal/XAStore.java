@@ -20,7 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.exceptions.StoreAccessException;
@@ -766,8 +766,8 @@ public class XAStore<K, V> implements Store<K, V> {
       List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
       underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
-      // eviction veto
-      EvictionVeto<? super K, ? super SoftLock<V>> evictionVeto = new XAEvictionVeto<K, V>(storeConfig.getEvictionVeto());
+      // eviction advisor
+      EvictionAdvisor<? super K, ? super SoftLock<V>> evictionAdvisor = new XAEvictionAdvisor<K, V>(storeConfig.getEvictionAdvisor());
 
       // expiry
       final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
@@ -885,7 +885,7 @@ public class XAStore<K, V> implements Store<K, V> {
       SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
       // create the underlying store
-      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), (Class) SoftLock.class, evictionVeto,
+      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), (Class) SoftLock.class, evictionAdvisor,
           storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getOrderedEventParallelism(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
       Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 
@@ -974,17 +974,17 @@ public class XAStore<K, V> implements Store<K, V> {
     }
   }
 
-  private static class XAEvictionVeto<K, V> implements EvictionVeto<K, SoftLock<V>> {
+  private static class XAEvictionAdvisor<K, V> implements EvictionAdvisor<K, SoftLock<V>> {
 
-    private final EvictionVeto<? super K, ? super V> wrappedVeto;
+    private final EvictionAdvisor<? super K, ? super V> wrappedEvictionAdvisor;
 
-    private XAEvictionVeto(EvictionVeto<? super K, ? super V> wrappedVeto) {
-      this.wrappedVeto = wrappedVeto;
+    private XAEvictionAdvisor(EvictionAdvisor<? super K, ? super V> wrappedEvictionAdvisor) {
+      this.wrappedEvictionAdvisor = wrappedEvictionAdvisor;
     }
 
     @Override
-    public boolean vetoes(K key, SoftLock<V> softLock) {
-      return isInDoubt(softLock) || wrappedVeto.vetoes(key, softLock.getOldValue());
+    public boolean adviseAgainstEviction(K key, SoftLock<V> softLock) {
+      return isInDoubt(softLock) || wrappedEvictionAdvisor.adviseAgainstEviction(key, softLock.getOldValue());
     }
   }
 

@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.internal.store.StoreFactory;
@@ -37,6 +37,6 @@ public interface AuthoritativeTierFactory<K, V> extends StoreFactory<K,V> {
   AuthoritativeTier<K, V> newStoreWithExpiry(Expiry<K, V> expiry, TimeSource timeSource);
 
   @Override
-  AuthoritativeTier<K, V> newStoreWithEvictionVeto(EvictionVeto<K, V> evictionVeto);
+  AuthoritativeTier<K, V> newStoreWithEvictionAdvisor(EvictionAdvisor<K, V> evictionAdvisor);
 
 }

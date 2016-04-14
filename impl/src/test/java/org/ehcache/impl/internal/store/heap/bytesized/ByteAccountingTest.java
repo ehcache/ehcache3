@@ -17,7 +17,7 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.ValueSupplier;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.function.NullaryFunction;
@@ -91,11 +91,11 @@ public class ByteAccountingTest {
     return newStore(timeSource, expiry, Eviction.none());
   }
 
-  <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry, EvictionVeto<? super K, ? super V> veto) {
-    return newStore(timeSource, expiry, veto, 100);
+  <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
+    return newStore(timeSource, expiry, evictionAdvisor, 100);
   }
 
-  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
+  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
       final int capacity) {
 
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
@@ -112,8 +112,8 @@ public class ByteAccountingTest {
       }
 
       @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
+      public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+        return evictionAdvisor;
       }
 
       @Override

@@ -22,7 +22,7 @@ import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
@@ -113,10 +113,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
 
-  private static final EvictionVeto<Object, OnHeapValueHolder<?>> EVICTION_VETO = new EvictionVeto<Object, OnHeapValueHolder<?>>() {
+  private static final EvictionAdvisor<Object, OnHeapValueHolder<?>> EVICTION_ADVISOR = new EvictionAdvisor<Object, OnHeapValueHolder<?>>() {
     @Override
-    public boolean vetoes(Object key, OnHeapValueHolder<?> value) {
-      return value.veto();
+    public boolean adviseAgainstEviction(Object key, OnHeapValueHolder<?> value) {
+      return value.evictionAdvice();
     }
   };
 
@@ -150,7 +150,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final SizeOfEngine sizeOfEngine;
 
   private volatile long capacity;
-  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> storeEventDispatcher;
@@ -216,10 +216,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     boolean byteSized = this.sizeOfEngine instanceof NoopSizeOfEngine ? false : true;
     this.capacity = byteSized ? ((MemoryUnit) heapPool.getUnit()).toBytes(heapPool.getSize()) : heapPool.getSize();
     this.timeSource = timeSource;
-    if (config.getEvictionVeto() == null) {
-      this.evictionVeto = Eviction.none();
+    if (config.getEvictionAdvisor() == null) {
+      this.evictionAdvisor = Eviction.none();
     } else {
-      this.evictionVeto = config.getEvictionVeto();
+      this.evictionAdvisor = config.getEvictionAdvisor();
     }
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
@@ -1382,18 +1382,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private OnHeapValueHolder<V> cloneValueHolder(K key, ValueHolder<V> valueHolder, long now, Duration expiration, boolean sizingEnabled) throws LimitExceededException {
     V realValue = valueHolder.value();
-    boolean veto = checkVeto(key, realValue);
+    boolean evictionAdvice = checkEvictionAdvice(key, realValue);
     OnHeapValueHolder<V> clonedValueHolder = null;
     if(valueCopier instanceof SerializingCopier) {
       if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
         clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, ((BinaryValueHolder) valueHolder).getBinaryValue(),
-            veto, ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
+            evictionAdvice, ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
       } else {
-        clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, realValue, veto,
+        clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, realValue, evictionAdvice,
             ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
       }
     } else {
-      clonedValueHolder = new CopiedOnHeapValueHolder<V>(valueHolder, realValue, veto, valueCopier, now, expiration);
+      clonedValueHolder = new CopiedOnHeapValueHolder<V>(valueHolder, realValue, evictionAdvice, valueCopier, now, expiration);
     }
     if (sizingEnabled) {
       clonedValueHolder.setSize(getSizeOfKeyValuePairs(key, clonedValueHolder));
@@ -1406,12 +1406,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> makeValue(K key, V value, long creationTime, long expirationTime, Copier<V> valueCopier, boolean size) throws LimitExceededException {
-    boolean veto = checkVeto(key, value);
+    boolean evictionAdvice = checkEvictionAdvice(key, value);
     OnHeapValueHolder<V> valueHolder;
     if (valueCopier instanceof SerializingCopier) {
-      valueHolder = new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, ((SerializingCopier<V>) valueCopier).getSerializer());
+      valueHolder = new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, evictionAdvice, ((SerializingCopier<V>) valueCopier).getSerializer());
     } else {
-      valueHolder = new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, valueCopier);
+      valueHolder = new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, evictionAdvice, valueCopier);
     }
     if (size) {
       valueHolder.setSize(getSizeOfKeyValuePairs(key, valueHolder));
@@ -1419,12 +1419,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return valueHolder;
   }
 
-  private boolean checkVeto(K key, V value) {
+  private boolean checkEvictionAdvice(K key, V value) {
     try {
-      return evictionVeto.vetoes(key, value);
+      return evictionAdvisor.adviseAgainstEviction(key, value);
     } catch (Exception e) {
-      LOG.error("Exception raised while running eviction veto " +
-          "- Eviction will assume entry is NOT vetoed", e);
+      LOG.error("Exception raised while running eviction advisor " +
+          "- Eviction will assume entry is NOT advised against eviction", e);
       return false;
     }
   }
@@ -1478,10 +1478,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final Random random = new Random();
 
     @SuppressWarnings("unchecked")
-    Map.Entry<K, OnHeapValueHolder<V>> candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, EVICTION_VETO);
+    Map.Entry<K, OnHeapValueHolder<V>> candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, EVICTION_ADVISOR);
 
     if (candidate == null) {
-      // 2nd attempt without any veto
+      // 2nd attempt without any advisor
       candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, Eviction.<Object, OnHeapValueHolder<?>>none());
     }
 

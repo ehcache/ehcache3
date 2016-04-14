@@ -18,7 +18,7 @@ package org.ehcache.xml;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.Builder;
@@ -285,8 +285,8 @@ public class XmlConfiguration implements Configuration {
         builder = builder.add(new DefaultSizeOfEngineConfiguration(cacheDefinition.heapStoreSettings().getMaxObjectSize(), cacheDefinition.heapStoreSettings().getUnit(),
             cacheDefinition.heapStoreSettings().getMaxObjectGraphSize()));
       }
-      EvictionVeto evictionVeto = getInstanceOfName(cacheDefinition.evictionVeto(), cacheClassLoader, EvictionVeto.class);
-      builder = builder.withEvictionVeto(evictionVeto);
+      EvictionAdvisor evictionAdvisor = getInstanceOfName(cacheDefinition.evictionAdvisor(), cacheClassLoader, EvictionAdvisor.class);
+      builder = builder.withEvictionAdvisor(evictionAdvisor);
       final ConfigurationParser.Expiry parsedExpiry = cacheDefinition.expiry();
       if (parsedExpiry != null) {
         builder = builder.withExpiry(getExpiry(cacheClassLoader, parsedExpiry));
@@ -496,7 +496,7 @@ public class XmlConfiguration implements Configuration {
       builder = newCacheConfigurationBuilder(keyType, valueType, resourcePoolsBuilder);
     }
     builder = builder
-        .withEvictionVeto(getInstanceOfName(cacheTemplate.evictionVeto(), defaultClassLoader, EvictionVeto.class));
+        .withEvictionAdvisor(getInstanceOfName(cacheTemplate.evictionAdvisor(), defaultClassLoader, EvictionAdvisor.class));
     final ConfigurationParser.Expiry parsedExpiry = cacheTemplate.expiry();
     if (parsedExpiry != null) {
       builder = builder.withExpiry(getExpiry(defaultClassLoader, parsedExpiry));

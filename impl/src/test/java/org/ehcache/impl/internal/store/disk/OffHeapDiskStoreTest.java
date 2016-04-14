@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
@@ -153,7 +153,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Override
-  protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto) {
+  protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
       serializationProvider.start(providerContaining(persistenceService));
@@ -161,7 +161,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
-          evictionVeto, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
+          evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
       OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
               getPersistenceContext(),
               new OnDemandExecutionService(), null, 1,

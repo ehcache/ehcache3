@@ -25,7 +25,7 @@ import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
@@ -118,7 +118,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<ServiceCreationConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
-  private EvictionVeto<? super K, ? super V> evictionVeto;
+  private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private CacheEventDispatcher<K, V> eventDispatcher = new DisabledCacheEventNotificationService<K, V>();
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
@@ -150,7 +150,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.serviceCreationConfigurations.addAll(toCopy.serviceCreationConfigurations);
     this.expiry = toCopy.expiry;
     this.classLoader = toCopy.classLoader;
-    this.evictionVeto = toCopy.evictionVeto;
+    this.evictionAdvisor = toCopy.evictionAdvisor;
     this.cacheLoaderWriter = toCopy.cacheLoaderWriter;
     this.eventDispatcher = toCopy.eventDispatcher;
     this.resourcePools = toCopy.resourcePools;
@@ -271,11 +271,11 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
 
     final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
 
-    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, classLoader,
+    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionAdvisor, classLoader,
             expiry, resourcePools, orderedEventParallelism, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
 
-    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
+    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
         classLoader, expiry, resourcePools);
 
     lifeCycledList.add(new LifeCycled() {
@@ -575,17 +575,17 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds an {@link EvictionVeto} to the returned builder.
+   * Adds an {@link EvictionAdvisor} to the returned builder.
    *
-   * @param evictionVeto the eviction veto to use
-   * @return a new builder with the added eviction veto
+   * @param evictionAdvisor the eviction advisor to use
+   * @return a new builder with the added eviction advisor
    */
-  public UserManagedCacheBuilder<K, V, T> withEvictionVeto(EvictionVeto<K, V> evictionVeto) {
-    if (evictionVeto == null) {
-      throw new NullPointerException("Null eviction veto");
+  public UserManagedCacheBuilder<K, V, T> withEvictionAdvisor(EvictionAdvisor<K, V> evictionAdvisor) {
+    if (evictionAdvisor == null) {
+      throw new NullPointerException("Null eviction advisor");
     }
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
-    otherBuilder.evictionVeto = evictionVeto;
+    otherBuilder.evictionAdvisor = evictionAdvisor;
     return otherBuilder;
   }
 

@@ -19,7 +19,7 @@ package org.ehcache.impl.internal.store.heap.bytesized;
 import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expiry;
@@ -50,7 +50,7 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry,
-      final EvictionVeto<? super K, ? super V> veto, final int capacity) {
+      final EvictionAdvisor<? super K, ? super V> evictionAdvisor, final int capacity) {
 
     return new OnHeapStore<K, V>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
@@ -66,8 +66,8 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       }
 
       @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
+      public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+        return evictionAdvisor;
       }
 
       @Override

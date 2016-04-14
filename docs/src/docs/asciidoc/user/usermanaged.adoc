@@ -130,14 +130,14 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[
 <1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
     `CacheLoaderWriter` and register it.
 
-=== Cache with Eviction veto example
+=== Cache with Eviction Advisor example
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedEvictionVetoCache]
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedEvictionAdvisorCache]
 ----
-<1> If you want to hint the eviction algorithm to veto the eviction of some mappings, you have to
-    configure an instance of `EvictionVeto`.
+<1> If you want to hint the eviction algorithm to advise against the eviction of some mappings, you have to
+    configure an instance of `EvictionAdvisor`.
 
 === Cache with Listeners example
 

@@ -17,7 +17,7 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.EntryUnit;
@@ -53,19 +53,19 @@ import static org.junit.Assert.assertEquals;
 public class CacheConfigurationBuilderTest {
 
   @Test
-  public void testEvictionVeto() throws Exception {
-    EvictionVeto<Object, Object> veto = new EvictionVeto<Object, Object>() {
+  public void testEvictionAdvisor() throws Exception {
+    EvictionAdvisor<Object, Object> evictionAdvisor = new EvictionAdvisor<Object, Object>() {
       @Override
-      public boolean vetoes(Object key, Object value) {
+      public boolean adviseAgainstEviction(Object key, Object value) {
         return false;
       }
     };
 
     CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
-        .withEvictionVeto(veto)
+        .withEvictionAdvisor(evictionAdvisor)
         .build();
 
-    assertThat(veto, (Matcher)sameInstance(cacheConfiguration.getEvictionVeto()));
+    assertThat(evictionAdvisor, (Matcher)sameInstance(cacheConfiguration.getEvictionAdvisor()));
   }
 
   @Test
@@ -228,9 +228,9 @@ public class CacheConfigurationBuilderTest {
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
     builder
-        .withEvictionVeto(new EvictionVeto<Long, CharSequence>() {
+        .withEvictionAdvisor(new EvictionAdvisor<Long, CharSequence>() {
           @Override
-          public boolean vetoes(Long key, CharSequence value) {
+          public boolean adviseAgainstEviction(Long key, CharSequence value) {
             return value.charAt(0) == 'A';
           }
         })
@@ -247,9 +247,9 @@ public class CacheConfigurationBuilderTest {
     final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
 
     CacheConfiguration config = builder
-        .withEvictionVeto(new EvictionVeto<Long, CharSequence>() {
+        .withEvictionAdvisor(new EvictionAdvisor<Long, CharSequence>() {
           @Override
-          public boolean vetoes(Long key, CharSequence value) {
+          public boolean adviseAgainstEviction(Long key, CharSequence value) {
             return value.charAt(0) == 'A';
           }
         })

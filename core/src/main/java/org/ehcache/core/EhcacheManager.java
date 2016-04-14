@@ -533,7 +533,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
     if (cacheClassLoader != config.getClassLoader() ) {
       config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(),
-          config.getEvictionVeto(), cacheClassLoader, config.getExpiry(),
+          config.getEvictionAdvisor(), cacheClassLoader, config.getExpiry(),
           config.getResourcePools(), config.getServiceConfigurations().toArray(
           new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }

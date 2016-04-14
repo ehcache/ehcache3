@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -66,7 +66,7 @@ public class CacheStoreFlushWhileShutdownTest {
       }
 
       @Override
-      public EvictionVeto getEvictionVeto() {
+      public EvictionAdvisor getEvictionAdvisor() {
         return null;
       }
 

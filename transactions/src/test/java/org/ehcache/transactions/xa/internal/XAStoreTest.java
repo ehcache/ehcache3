@@ -18,7 +18,7 @@ package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -1490,8 +1490,8 @@ public class XAStoreTest {
   }
 
   @Test
-  public void testCustomEvictionVeto() throws Exception {
-    String uniqueXAResourceId = "testCustomEvictionVeto";
+  public void testCustomEvictionAdvisor() throws Exception {
+    String uniqueXAResourceId = "testCustomEvictionAdvisor";
     TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
     ClassLoader classLoader = ClassLoader.getSystemClassLoader();
     Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
@@ -1502,15 +1502,15 @@ public class XAStoreTest {
 
     final AtomicBoolean invoked = new AtomicBoolean();
 
-    EvictionVeto<Long, SoftLock> evictionVeto = new EvictionVeto<Long, SoftLock>() {
+    EvictionAdvisor<Long, SoftLock> evictionAdvisor = new EvictionAdvisor<Long, SoftLock>() {
       @Override
-      public boolean vetoes(Long key, SoftLock value) {
+      public boolean adviseAgainstEviction(Long key, SoftLock value) {
         invoked.set(true);
         return false;
       }
     };
     Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
-        evictionVeto, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
+        evictionAdvisor, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
         .heap(10, EntryUnit.ENTRIES)
         .build(),
         0, keySerializer, valueSerializer);

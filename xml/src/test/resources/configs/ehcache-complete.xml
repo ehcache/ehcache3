@@ -46,7 +46,7 @@
     <ehcache:expiry>
       <ehcache:ttl unit="minutes">1</ehcache:ttl>
     </ehcache:expiry>
-    <ehcache:eviction-veto>some.class.Veto</ehcache:eviction-veto>
+    <ehcache:eviction-advisor>some.class.Advisor</ehcache:eviction-advisor>
     <ehcache:loader-writer>
       <ehcache:class>some.class.LoaderWriter</ehcache:class>
       <ehcache:write-behind concurrency="10" size="10" thread-pool="toto">
