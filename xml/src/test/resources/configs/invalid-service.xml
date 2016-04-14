@@ -1,8 +1,0 @@
-<ehcache:config
-  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
-  xmlns:foo='http://www.example.com/foo'
-  xmlns:ehcache='http://www.ehcache.org/v3'>
-  <ehcache:service>
-    <foo:bar/>
-  </ehcache:service>
-</ehcache:config>
