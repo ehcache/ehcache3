@@ -33,7 +33,8 @@ The Table of Contents provides an overview of the Ehcache 3.0 documentation on t
 |===
 | Topic | Description
 
-|link:caching-terms.html[Caching Terms]|Learn terms and concepts that relate to caching
+|link:caching-terms.html[Caching Terms]|Learn terms that relate to caching
+|link:caching-concepts.html[Caching Concepts]|Learn concepts that relate to caching
 |link:caching-patterns.html[Caching Patterns]|Learn common patterns of cache usage
 
 |===
