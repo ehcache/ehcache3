@@ -106,7 +106,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public Store<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+      public Store<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 

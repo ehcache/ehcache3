@@ -63,7 +63,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       }
 
       @Override
-      public AuthoritativeTier<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+      public AuthoritativeTier<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 
