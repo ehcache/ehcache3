@@ -37,21 +37,21 @@ public class ConcurrentHashMapTest {
     @Test
     public void testRandomSampleOnEmptyMap() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
-        assertThat(map.getEvictionCandidate(new Random(), 1, null, Eviction.<String, String>none()), nullValue());
+        assertThat(map.getEvictionCandidate(new Random(), 1, null, Eviction.<String, String>noAdvice()), nullValue());
     }
 
     @Test
     public void testEmptyRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        assertThat(map.getEvictionCandidate(new Random(), 0, null, Eviction.<String, String>none()), nullValue());
+        assertThat(map.getEvictionCandidate(new Random(), 0, null, Eviction.<String, String>noAdvice()), nullValue());
     }
 
     @Test
     public void testOversizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, Eviction.<String, String>none());
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, Eviction.<String, String>noAdvice());
         assertThat(candidate.getKey(), is("foo"));
         assertThat(candidate.getValue(), is("bar"));
     }
@@ -67,7 +67,7 @@ public class ConcurrentHashMapTest {
           public int compare(String t, String t1) {
             return 0;
           }
-        }, Eviction.<String, String>none());
+        }, Eviction.<String, String>noAdvice());
         assertThat(candidate, notNullValue());
     }
 

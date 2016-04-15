@@ -82,10 +82,10 @@ public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
   public void accessed(long now, Duration expiration) {
     final TimeUnit timeUnit = nativeTimeUnit();
     if (expiration != null) {
-      if (expiration.isForever()) {
+      if (expiration.isInfinite()) {
         setExpirationTime(Store.ValueHolder.NO_EXPIRE, null);
       } else {
-        long millis = timeUnit.convert(expiration.getAmount(), expiration.getTimeUnit());
+        long millis = timeUnit.convert(expiration.getLength(), expiration.getTimeUnit());
         long newExpirationTime ;
         if (millis == Long.MAX_VALUE) {
           newExpirationTime = Long.MAX_VALUE;

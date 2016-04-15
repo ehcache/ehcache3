@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
+package org.ehcache.core.spi.store;
 
 /**
  * Generic exception used when an internal operation fails on a {@link org.ehcache.Cache}.

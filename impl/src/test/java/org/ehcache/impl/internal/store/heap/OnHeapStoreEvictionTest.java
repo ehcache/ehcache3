@@ -19,7 +19,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
@@ -88,7 +88,7 @@ public class OnHeapStoreEvictionTest {
   public void testFaultsDoNotGetToEvictionAdvisor() throws StoreAccessException {
     final Semaphore semaphore = new Semaphore(0);
 
-    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, Eviction.none());
+    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, Eviction.noAdvice());
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {

@@ -23,7 +23,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -80,15 +80,15 @@ public class ByteAccountingTest {
 
 
   <K, V> OnHeapStoreForTests<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none());
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice());
   }
 
   <K, V> OnHeapStoreForTests<K, V> newStore(int capacity) {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none(), capacity);
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice(), capacity);
   }
 
   <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
-    return newStore(timeSource, expiry, Eviction.none());
+    return newStore(timeSource, expiry, Eviction.noAdvice());
   }
 
   <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
@@ -181,12 +181,12 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -201,12 +201,12 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -244,12 +244,12 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -282,12 +282,12 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -303,7 +303,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -313,7 +313,7 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -354,12 +354,12 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -375,12 +375,12 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -426,12 +426,12 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -447,12 +447,12 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -489,12 +489,12 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -510,7 +510,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -520,7 +520,7 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -615,7 +615,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -625,7 +625,7 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -651,12 +651,12 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -712,12 +712,12 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -737,7 +737,7 @@ public class ByteAccountingTest {
     OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -747,7 +747,7 @@ public class ByteAccountingTest {
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 

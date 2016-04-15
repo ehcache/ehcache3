@@ -23,37 +23,36 @@ import org.ehcache.ValueSupplier;
 public final class Expirations {
 
   /**
-   * Get an {@link Expiry} instance for a non expiring (ie. "eternal") cache
+   * Get an {@link Expiry} instance for a non expiring (ie. "eternal") cache.
    *
-   * @return no expiry instance
+   * @return the no expiry instance
    */
   public static Expiry<Object, Object> noExpiration() {
     return NoExpiry.INSTANCE;
   }
 
   /**
-   * Get a time-to-live (TTL) {@link Expiry} instance for the given duration
+   * Get a time-to-live (TTL) {@link Expiry} instance for the given {@link Duration}.
    *
-   * @param timeToLive the duration of TTL
+   * @param timeToLive the TTL duration
    * @return a TTL expiry
-   *
    */
   public static Expiry<Object, Object> timeToLiveExpiration(Duration timeToLive) {
     if (timeToLive == null) {
-      throw new NullPointerException("null duration");
+      throw new NullPointerException("Duration cannot be null");
     }
     return new TimeToLiveExpiry(timeToLive);
   }
 
   /**
-   * Get a time-to-idle (TTI) {@link Expiry} instance for the given duration
+   * Get a time-to-idle (TTI) {@link Expiry} instance for the given {@link Duration}.
    *
-   * @param timeToIdle the duration of TTI
+   * @param timeToIdle the TTI duration
    * @return a TTI expiry
    */
   public static Expiry<Object, Object> timeToIdleExpiration(Duration timeToIdle) {
     if (timeToIdle == null) {
-      throw new NullPointerException("null duration");
+      throw new NullPointerException("Duration cannot be null");
     }
     return new TimeToIdleExpiry(timeToIdle);
   }
@@ -138,7 +137,7 @@ public final class Expirations {
     private static final Expiry<Object, Object> INSTANCE = new NoExpiry();
 
     private NoExpiry() {
-      super(Duration.FOREVER, null, null);
+      super(Duration.INFINITE, null, null);
     }
   }
 }

@@ -15,6 +15,6 @@
  */
 
 /**
- * Package for {@link org.ehcache.config.ResourceUnit} implementations
+ * {@link org.ehcache.config.ResourceUnit ResourceUnit} implementations
  */
 package org.ehcache.config.units;

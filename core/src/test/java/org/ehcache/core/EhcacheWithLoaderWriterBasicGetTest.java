@@ -17,8 +17,8 @@
 package org.ehcache.core;
 
 import org.ehcache.Status;
-import org.ehcache.exceptions.StoreAccessException;
-import org.ehcache.exceptions.CacheLoadingException;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.core.exceptions.ExceptionFactory;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.hamcrest.CoreMatchers;

@@ -17,14 +17,14 @@
 package org.ehcache.config;
 
 /**
- * Abstraction of something that can build a {@code T}
+ * A builder of {@code T}s.
  *
- * @param <T> the type this builder can build
+ * @param <T> the type this builder builds
  */
 public interface Builder<T> {
 
   /**
-   * Builds the instance
+   * Builds an instance.
    *
    * @return the newly built instance
    */

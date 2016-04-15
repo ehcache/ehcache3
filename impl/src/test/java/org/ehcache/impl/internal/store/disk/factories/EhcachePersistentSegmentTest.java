@@ -50,7 +50,7 @@ public class EhcachePersistentSegmentTest {
   public final TemporaryFolder folder = new TemporaryFolder();
 
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment() throws IOException {
-    return createTestSegment(Eviction.<String, String>none(), mock(EvictionListener.class));
+    return createTestSegment(Eviction.<String, String>noAdvice(), mock(EvictionListener.class));
   }
 
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionAdvisor<String, String> evictionPredicate) throws IOException {
@@ -58,7 +58,7 @@ public class EhcachePersistentSegmentTest {
   }
 
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionListener<String, String> evictionListener) throws IOException {
-    return createTestSegment(Eviction.<String, String>none(), evictionListener);
+    return createTestSegment(Eviction.<String, String>noAdvice(), evictionListener);
   }
 
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionAdvisor<String, String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {

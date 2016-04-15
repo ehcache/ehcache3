@@ -14,46 +14,48 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
+package org.ehcache.spi.serialization;
 
 /**
- * Created by alsu on 09/10/15.
+ * Thrown by a {@link Serializer} when it cannot serialize or deserialize an instance.
  */
-public class CacheIterationException extends RuntimeException {
+public class SerializerException extends RuntimeException {
 
-  private static final long serialVersionUID = -2008756317259206440L;
+  private static final long serialVersionUID = -4008956327217206643L;
 
   /**
-   * Creates an exception.
+   * Creates a {@code SerializerException}.
    */
-  public CacheIterationException() {
+  public SerializerException() {
+    super();
   }
 
   /**
-   * Creates an exception with the provided message.
+   * Creates a {@code SerializerException} with the provided message.
    *
    * @param message information about the exception
    */
-  public CacheIterationException(final String message) {
+  public SerializerException(final String message) {
     super(message);
   }
 
   /**
-   * Creates an exception with the provided message and cause.
+   * Creates a {@code SerializerException} with the provided message and cause.
    *
    * @param message information about the exception
    * @param cause the cause of this exception
    */
-  public CacheIterationException(final String message, final Throwable cause) {
+  public SerializerException(final String message, final Throwable cause) {
     super(message, cause);
   }
 
   /**
-   * Creates an exception with the provided cause.
+   * Creates a {@code SerializerException} with the provided cause.
    *
    * @param cause the cause of this exception
    */
-  public CacheIterationException(final Throwable cause) {
+  public SerializerException(final Throwable cause) {
     super(cause);
   }
+
 }

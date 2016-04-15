@@ -18,34 +18,32 @@ package org.ehcache.config.units;
 import org.ehcache.config.ResourceUnit;
 
 /**
- * An enumeration implementing {@link ResourceUnit} to represent memory consumption.
- *
- * @author Ludovic Orban
+ * A {@link ResourceUnit} that designates memory quantity.
  */
 public enum MemoryUnit implements ResourceUnit {
 
   /**
-   * Bytes unit.
+   * Bytes.
    */
   B("B", 0),
   /**
-   * Kilobytes unit.
+   * Kilobytes.
    */
   KB("kB", 10),
   /**
-   * Megabytes unit.
+   * Megabytes.
    */
   MB("MB", 20),
   /**
-   * Gigabytes unit.
+   * Gigabytes.
    */
   GB("GB", 30),
   /**
-   * Terabytes unit.
+   * Terabytes.
    */
   TB("TB", 40),
   /**
-   * Petabytes unit.
+   * Petabytes.
    */
   PB("PB", 50);
 
@@ -85,33 +83,39 @@ public enum MemoryUnit implements ResourceUnit {
   }
 
   /**
-   * Returns the size in bytes according to the unit this is invoked on.
+   * Converts {@code quantity} in this unit to bytes.
    *
-   * @param size the size, relative to the unit
-   * @return the size in bytes
+   * @param quantity the quantity
+   * @return the quantity in bytes
    */
-  public long toBytes(long size) {
-    return doConvert(index - B.index, size);
+  public long toBytes(long quantity) {
+    return doConvert(index - B.index, quantity);
   }
 
   /**
-   * Returns {@code amount} in {@code unit} in to this unit.
+   * Converts {@code quantity} in {@code unit} into this unit.
    *
-   * @param amount size to convert
-   * @param unit {@code amount}'s unit
-   * @return the amount in this unit
+   * @param quantity quantity to convert
+   * @param unit {@code quantity}'s unit
+   * @return the quantity in this unit
    */
-  public long convert(long amount, MemoryUnit unit) {
-    return doConvert(unit.index - index, amount);
+  public long convert(long quantity, MemoryUnit unit) {
+    return doConvert(unit.index - index, quantity);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String toString() {
     return stringForm;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
-  public int compareTo(long thisSize, long thatSize, ResourceUnit thatUnit) {
+  public int compareTo(long thisSize, long thatSize, ResourceUnit thatUnit) throws IllegalArgumentException {
     if (thatUnit instanceof MemoryUnit) {
       MemoryUnit mThatUnit = (MemoryUnit) thatUnit;
       if (index < mThatUnit.index) {

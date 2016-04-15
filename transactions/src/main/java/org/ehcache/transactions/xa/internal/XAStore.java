@@ -23,7 +23,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -34,7 +34,7 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.copy.Copier;
@@ -776,7 +776,7 @@ public class XAStore<K, V> implements Store<K, V> {
         public Duration getExpiryForCreation(K key, SoftLock<V> softLock) {
           if (softLock.getTransactionId() != null) {
             // phase 1 prepare, create -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, create -> some time
             Duration duration;
@@ -794,7 +794,7 @@ public class XAStore<K, V> implements Store<K, V> {
         public Duration getExpiryForAccess(K key, final ValueSupplier<? extends SoftLock<V>> softLock) {
           if (softLock.value().getTransactionId() != null) {
             // phase 1 prepare, access -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, access -> some time
             Duration duration;
@@ -813,7 +813,7 @@ public class XAStore<K, V> implements Store<K, V> {
           SoftLock<V> oldSoftLock = oldSoftLockSupplier.value();
           if (oldSoftLock.getTransactionId() == null) {
             // phase 1 prepare, update -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime
             if (oldSoftLock.getOldValue() == null) {

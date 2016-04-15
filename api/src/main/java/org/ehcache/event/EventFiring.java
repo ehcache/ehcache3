@@ -17,17 +17,23 @@
 package org.ehcache.event;
 
 /**
- * @author Alex Snaps
+ * The supported event firing modes.
  */
 public enum EventFiring {
 
   /**
-   * Event will fire asynchronously, on a different thread than the thread that cause the mutation
+   * Events will fire asynchronously.
+   * <P>
+   *   The mutating thread does not have to wait for firing to complete.
+   * </P>
    */
   ASYNCHRONOUS,
 
   /**
-   * Event will fire synchronously, on the same thread that cause the mutation, blocking its execution
+   * Events will fire synchronously.
+   * <P>
+   *   The mutating thread will wait for firing to complete.
+   * </P>
    */
   SYNCHRONOUS
 }

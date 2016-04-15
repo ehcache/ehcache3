@@ -19,10 +19,11 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -322,8 +323,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @param contentUpdates the {@code Set} provided to the {@link EhcacheWithLoaderWriter#removeAll(java.util.Set)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
-   * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWritingException#getSuccesses()}
-   * @param bcweFailures the {@code Map} from {@link org.ehcache.exceptions.BulkCacheWritingException#getFailures()}
+   * @param bcweSuccesses the {@code Set} from {@link BulkCacheWritingException#getSuccesses()}
+   * @param bcweFailures the {@code Map} from {@link BulkCacheWritingException#getFailures()}
    */
   private void dumpResults(
       final FakeStore fakeStore,

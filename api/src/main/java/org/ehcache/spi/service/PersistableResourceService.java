@@ -18,12 +18,12 @@ package org.ehcache.spi.service;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 
 import java.util.Collection;
 
 /**
- * Specific interface for services that are dedicated to handling a {@link ResourceType} which is
+ * {@link Service} interface that are dedicated to handling a {@link ResourceType} which is
  * {@link ResourceType#isPersistable() persistable}.
  */
 @PluralService
@@ -51,9 +51,12 @@ public interface PersistableResourceService extends MaintainableService {
 
   /**
    * Destroys the persistence space with the given name.
-   *
-   * Note that this method can be called without creating the persistence space beforehand in the same JVM.
-   * It will nonetheless try to delete any persistent data that could have been associated with the name.
+   * <P>
+   *   Note that this method can be called without creating the persistence space beforehand in the same JVM.
+   * </P>
+   * <P>
+   *   It will nonetheless try to delete any persistent data that could have been associated with the name.
+   * </P>
    *
    * @param name the name of the persistence context
    *
@@ -63,8 +66,10 @@ public interface PersistableResourceService extends MaintainableService {
 
   /**
    * Creates the persistent storage.
+   *
+   * @throws CachePersistenceException if the persistence storage cannot be created
    */
-  void create();
+  void create() throws CachePersistenceException;
 
   /**
    * Destroys all persistence spaces
@@ -72,6 +77,8 @@ public interface PersistableResourceService extends MaintainableService {
    * Note that this method can be called without creating the persistence space beforehand in the same JVM.
    * It will nonetheless try to delete any persistent data associated with the base configuration provided
    * in the service.
+   *
+   * @throws CachePersistenceException if the persistence storage cannot be destroyed
    */
-  void destroyAll();
+  void destroyAll() throws CachePersistenceException;
 }

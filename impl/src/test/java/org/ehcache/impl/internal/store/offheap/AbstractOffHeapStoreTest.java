@@ -21,7 +21,7 @@ import org.ehcache.ValueSupplier;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -428,7 +428,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -438,7 +438,7 @@ public abstract class AbstractOffHeapStoreTest {
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
     store.put("key", "value");
@@ -484,7 +484,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -509,12 +509,12 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -522,7 +522,7 @@ public abstract class AbstractOffHeapStoreTest {
         if (timeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -556,7 +556,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -597,7 +597,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override

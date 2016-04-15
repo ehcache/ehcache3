@@ -14,23 +14,22 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi;
-
-import org.ehcache.spi.service.Service;
+package org.ehcache.spi.service;
 
 import java.util.Collection;
 
 /**
- * This acts as a repository for {@link Service} instances, that can be used to
- * look them up by type.
+ * Repository for {@link Service} instances, that can be used to look them up by type.
  *
  * @param <T> A bound on service types this provider can return
  */
 public interface ServiceProvider<T extends Service> {
 
   /**
-   * Will look up the {@link Service} of the {@code serviceType}.
-   * The returned service will be started or not depending on the started state of the {@code ServiceProvider}.
+   * Will look up the {@link Service} of the given {@code serviceType}.
+   * <P>
+   *   There is no guarantee that services returned here will be started.
+   * </P>
    *
    * @param serviceType the {@code class} of the service being looked up
    * @param <U> The actual {@link Service} type
@@ -38,13 +37,17 @@ public interface ServiceProvider<T extends Service> {
    *
    * @throws IllegalArgumentException if {@code serviceType} is marked with the
    *        {@link org.ehcache.spi.service.PluralService PluralService} annotation
+   *
+   * @see Service#start(ServiceProvider)
    */
   <U extends T> U getService(Class<U> serviceType);
 
   /**
    * Looks up all {@link Service} instances registered to support the {@code serviceType} supplied.
+   * <P>
    * This method must be used for any service type marked with the
    * {@link org.ehcache.spi.service.PluralService PluralService} annotation.
+   * </P>
    *
    * @param serviceType the {@code class} of the service being looked up
    * @param <U> the actual {@link Service} type

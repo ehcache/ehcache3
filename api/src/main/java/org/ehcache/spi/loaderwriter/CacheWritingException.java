@@ -14,30 +14,25 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
-
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+package org.ehcache.spi.loaderwriter;
 
 /**
- * Exception thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
- * {@link java.lang.Exception} while writing a value for a given key
- *
- * @author Alex Snaps
+ * Thrown by a {@link org.ehcache.Cache Cache} when the {@link CacheLoaderWriter} it uses threw an
+ * {@link java.lang.Exception} while writing a value for a given key.
  */
 public class CacheWritingException extends RuntimeException {
 
   private static final long serialVersionUID = -3547750364991417531L;
 
   /**
-   * Constructs a CacheWritingException
-   *
+   * Constructs a {@code CacheWritingException}.
    */
   public CacheWritingException() {
     super();
   }
 
   /**
-   * Constructs a CacheWritingException with the provided message.
+   * Constructs a {@code CacheWritingException} with the provided message.
    *
    * @param message the detail message
    */
@@ -46,7 +41,7 @@ public class CacheWritingException extends RuntimeException {
   }
 
   /**
-   * Constructs a CacheWritingException wrapping the {@link Throwable cause} passed in
+   * Constructs a {@code CacheWritingException} wrapping the {@link Throwable cause} passed in
    * and with the provided message.
    *
    * @param message the detail message
@@ -57,7 +52,7 @@ public class CacheWritingException extends RuntimeException {
   }
 
   /**
-   * Constructs a CacheWritingException wrapping the {@link Throwable cause} passed in.
+   * Constructs a {@code CacheWritingException} wrapping the {@link Throwable cause} passed in.
    *
    * @param cause the root cause
    */

@@ -18,26 +18,34 @@ package org.ehcache.spi.loaderwriter;
 import org.ehcache.spi.service.Service;
 
 /**
- * @author Abhilash
- *
+ * A factory {@link Service} interface for providing write-behind to {@link org.ehcache.Cache Cache}s.
+ * <P>
+ * The {@code CacheManager} will {@link org.ehcache.spi.service.ServiceProvider lookup} an instance of this
+ * {@code Service} prior to creating any {@code Cache} instances.
+ * It will then use it to create write-behind {@link CacheLoaderWriter} instances for each {@code Cache} that uses a
+ * {@code CacheLoaderWriter} and a {@link WriteBehindConfiguration} by invoking
+ * {@link #createWriteBehindLoaderWriter(CacheLoaderWriter, WriteBehindConfiguration)}.
+ * </P>
  */
 public interface WriteBehindProvider extends Service {
 
   /**
-   * Provider Interface for decorator loaderwriter
+   * Returns a write-behind decorated {@link CacheLoaderWriter} according to the given configuration.
    *
-   * @param cacheLoaderWriter loaderwriter
-   * @param configuration     configuration
-   * @param <K> the key type for the associated {@link org.ehcache.Cache}
-   * @param <V> the value type for the associated {@link org.ehcache.Cache}
-   * @return loaderwriter
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to decorate
+   * @param configuration     the write-behind configuration
+   * @param <K> the key type for the cache
+   * @param <V> the value type for the cache
+   *
+   * @return the write-behind decorated loader writer
    */
   <K, V> CacheLoaderWriter<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration);
 
   /**
-   * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
-   * @param cacheLoaderWriter the {@link CacheLoaderWriter} that was initially associated with
-   *                    the {@link org.ehcache.Cache} being removed
+   * Invoked by the {@link org.ehcache.CacheManager CacheManager} when a {@link org.ehcache.Cache Cache} is being
+   * closed.
+   *
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to release
    */
   void releaseWriteBehindLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter);
 

@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap.portability;
 
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
 import org.terracotta.offheapstore.storage.portability.Portability;

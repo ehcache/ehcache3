@@ -43,7 +43,7 @@ public class EhcacheConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHe
 
   @Override
   protected EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment() {
-    return createTestSegment(Eviction.none(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
+    return createTestSegment(Eviction.noAdvice(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
   @Override

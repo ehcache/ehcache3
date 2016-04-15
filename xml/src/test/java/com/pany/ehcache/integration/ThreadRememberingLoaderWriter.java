@@ -18,7 +18,7 @@ package com.pany.ehcache.integration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.Semaphore;
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 public class ThreadRememberingLoaderWriter implements CacheLoaderWriter<String, String> {

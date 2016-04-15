@@ -16,8 +16,8 @@
 
 package org.ehcache.transactions.xa.internal.journal;
 
-import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.CachePersistenceException;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;

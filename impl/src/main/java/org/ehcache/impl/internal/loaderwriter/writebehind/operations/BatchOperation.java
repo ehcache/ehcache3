@@ -15,7 +15,7 @@
  */
 package org.ehcache.impl.internal.loaderwriter.writebehind.operations;
 
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**

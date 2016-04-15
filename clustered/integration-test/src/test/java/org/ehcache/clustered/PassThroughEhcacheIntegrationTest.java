@@ -22,7 +22,7 @@ import java.net.URL;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.StateTransitionException;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Test;
 import org.terracotta.connection.Connection;

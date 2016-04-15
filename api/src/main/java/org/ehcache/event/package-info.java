@@ -15,6 +15,6 @@
  */
 
 /**
- * Package for all {@link org.ehcache.Cache} related events
+ * {@link org.ehcache.event.CacheEvent CacheEvent} and related types.
  */
 package org.ehcache.event;

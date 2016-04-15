@@ -31,9 +31,9 @@ public class DurationTest {
   @Test
   public void testBasic() {
     Duration duration = new Duration(1, TimeUnit.SECONDS);
-    assertThat(duration.getAmount(), equalTo(1L));
+    assertThat(duration.getLength(), equalTo(1L));
     assertThat(duration.getTimeUnit(), equalTo(TimeUnit.SECONDS));
-    assertThat(duration.isForever(), equalTo(false));
+    assertThat(duration.isInfinite(), equalTo(false));
   }
 
   @Test
@@ -48,7 +48,7 @@ public class DurationTest {
   @Test
   public void testEqualsHashcode() {
     Set<Duration> set = new HashSet<Duration>();
-    assertAdd(Duration.FOREVER, set);
+    assertAdd(Duration.INFINITE, set);
     assertAdd(Duration.ZERO, set);
     assertThat(set.add(new Duration(0L, TimeUnit.SECONDS)), equalTo(false));
     assertAdd(new Duration(1L, TimeUnit.SECONDS), set);
@@ -64,18 +64,18 @@ public class DurationTest {
 
   @Test
   public void testForever() {
-    assertThat(Duration.FOREVER.isForever(), equalTo(true));
-    assertThat(Duration.FOREVER.equals(Duration.ZERO), is(false));
+    assertThat(Duration.INFINITE.isInfinite(), equalTo(true));
+    assertThat(Duration.INFINITE.equals(Duration.ZERO), is(false));
 
     try {
-      Duration.FOREVER.getAmount();
+      Duration.INFINITE.getLength();
       throw new AssertionError();
     } catch (IllegalStateException ise) {
       // expected
     }
 
     try {
-      Duration.FOREVER.getTimeUnit();
+      Duration.INFINITE.getTimeUnit();
       throw new AssertionError();
     } catch (IllegalStateException ise) {
       // expected
@@ -84,10 +84,10 @@ public class DurationTest {
 
   @Test
   public void testZero() {
-    assertThat(Duration.ZERO.isForever(), equalTo(false));
-    assertThat(Duration.ZERO.getAmount(), equalTo(0L));
+    assertThat(Duration.ZERO.isInfinite(), equalTo(false));
+    assertThat(Duration.ZERO.getLength(), equalTo(0L));
     assertThat(Duration.ZERO.getTimeUnit(), any(TimeUnit.class));
-    assertThat(Duration.ZERO.equals(Duration.FOREVER), is(false));
+    assertThat(Duration.ZERO.equals(Duration.INFINITE), is(false));
   }
 
 }

@@ -14,18 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.exceptions;
+package org.ehcache.spi.loaderwriter;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
- * Exception thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
- * exception while bulk writing / removing values for a given set of keys
- *
- * @author Anthony Dahanne
+ * Thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
+ * {@link Exception} while bulk writing / removing values for a given set of keys.
  */
 public class BulkCacheWritingException extends CacheWritingException {
 
@@ -35,12 +32,17 @@ public class BulkCacheWritingException extends CacheWritingException {
   private final Set<?> successes;
 
   /**
-   * Constructs a new BulkCacheWritingException providing the key set that failed, including the exception loading these
-   * threw, as well as all keys we managed to write a value for. This latter set of keys was
-   * written successfully into the {@link org.ehcache.Cache}.
+   * Constructs a {@code BulkCacheWritingException} instance with the given map and set.
+   * <P>
+   *   The given arguments are:
+   *   <UL>
+   *     <LI>a map from keys to exception thrown while writing,</LI>
+   *     <LI>a set of keys for which writing succeeded</LI>
+   *   </UL>
+   * </P>
    *
-   * @param failures the map of keys to failure encountered while loading the values
-   * @param successes the set of keys successfully written / removed
+   * @param failures the map of keys to failure encountered while loading
+   * @param successes the map of keys successfully loaded and their associated value
    */
   public BulkCacheWritingException(final Map<?, Exception> failures, final Set<?> successes) {
     this.failures = Collections.unmodifiableMap(failures);
@@ -48,17 +50,18 @@ public class BulkCacheWritingException extends CacheWritingException {
   }
 
   /**
-   * Accessor to all keys that failed loading during a bulk load operation, with the associated
-   * {@link java.lang.Exception} encountered
-   * @return a map of keys to exception encountered during bulk load
+   * Returns the map of keys to exception this exception was constructed with.
+   *
+   * @return a map of keys to exception encountered while writing
    */
   public Map<?, Exception> getFailures() {
     return failures;
   }
 
   /**
-   * Accessor to all keys that were successfully loaded during a bulk load operation
-   * @return a set of keys loaded and installed in the {@link org.ehcache.Cache}
+   * Returns the set of keys that were successfully written.
+   *
+   * @return a set of keys successfully written
    */
   public Set<?> getSuccesses() {
     return successes;

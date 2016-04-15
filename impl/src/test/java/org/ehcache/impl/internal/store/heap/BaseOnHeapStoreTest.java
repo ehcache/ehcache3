@@ -21,7 +21,7 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -730,12 +730,12 @@ public abstract class BaseOnHeapStoreTest {
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -760,12 +760,12 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -796,7 +796,7 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -806,7 +806,7 @@ public abstract class BaseOnHeapStoreTest {
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -957,7 +957,7 @@ public abstract class BaseOnHeapStoreTest {
 
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -982,12 +982,12 @@ public abstract class BaseOnHeapStoreTest {
     OnHeapStore<String, String> store = newStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -995,7 +995,7 @@ public abstract class BaseOnHeapStoreTest {
         if (timeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -1453,7 +1453,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   protected <K, V> OnHeapStore<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none());
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice());
   }
 
   protected <K, V> OnHeapStore<K, V> newStore(EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
@@ -1461,7 +1461,7 @@ public abstract class BaseOnHeapStoreTest {
   }
 
   protected <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
-    return newStore(timeSource, expiry, Eviction.none());
+    return newStore(timeSource, expiry, Eviction.noAdvice());
   }
 
   protected abstract void updateStoreCapacity(OnHeapStore<?, ?> store, int newCapacity);
