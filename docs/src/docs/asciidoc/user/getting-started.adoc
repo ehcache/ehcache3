@@ -17,11 +17,16 @@ millions of developers.   We hope you enjoy this new generation of Ehcache!
 NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you should start by reading
       link:107{outfilesuffix}[the Ehcache 3.x JSR-107 Provider page]
 
+In order to start using Ehcache, you will need to configure your first `CacheManager` and `Cache`.
+This can be achieved through <<configuring-with-java,programmatic configuration>> or <<configuring-with-xml,XML>>.
+
 == Configuring with Java
 
-You can perform all configuration programmatically.  (See further below for configuring with XML).
+Java configuration is most easily achieved through the use of builders that offer a fluent API.
 
 === Managed cache
+
+As with the previous versions of Ehcache, the canonical way of dealing with `Cache` is through a `CacheManager`:
 
 [source,java,indent=0]
 ----
@@ -45,13 +50,15 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     accessed through the `CacheManager.getCache` API.
 <7> We can now use the newly added `Cache` to store and ...
 <8> ... retrieve data.
-<9> We can also `CacheManager.remove()` a given `Cache`. The `CacheManager` will not only remove it's reference to the
+<9> We can also `CacheManager.removeCache(String)` a given `Cache`. The `CacheManager` will not only remove it's reference to the
     `Cache`, but will also close it. The `Cache` releases all locally held transient resources (such as memory).
     References to this `Cache` become unusable.
 <10> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 
 === User managed cache
+
+Ehcache 3 introduces the concept of `UserManagedCache`:
 
 [source,java,indent=0]
 ----
@@ -66,7 +73,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[
 
 NOTE: See link:usermanaged{outfilesuffix}[the user managed cache documentation] for more information on this feature.
 
-= Storage Tiers
+== Storage Tiers
 
 Ehcache 3, as in previous versions, offers a tiering model to allow storing increasing amounts of data on slower tiers
 (which are generally more abundant).
@@ -75,7 +82,7 @@ The idea is that resources related to faster storage are more rare, but are wher
 Thus less-hot (less frequently used) data is moved to the more abundant but slower tiers. Hotter data is faulted onto
 the faster tiers.
 
-== Off-heap
+=== Off-heap
 
 [source,java,indent=0]
 ----
@@ -87,9 +94,10 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 The example above allocates a very small amount of off-heap.
 Remember that data stored off-heap will have to be serialized and deserialized - and is thus slower than heap.
 You should thus favor off-heap for large amounts of data where on-heap would have too severe an impact on garbage collection.
+
 Do not forget to define in the java options the `-XX:MaxDirectMemorySize` option, according to the off-heap size you intend to use.
 
-== Disk persistence
+=== Disk persistence
 
 [source,java,indent=0]
 ----
@@ -100,7 +108,15 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     location where data should be stored on disk to the `CacheManagerBuilder.persistence(String)` static method.
 <2> You define a resource pool for the disk.
 
-== Three tiers
+The example above allocates a very small amount of disk storage.
+Remember that data stored on disk will have to be serialized / deserialized and written / read from disk -
+and is thus slower than heap and offheap.
+You should thus favor disk for large amounts of data.
+
+Another reason to use disk storage is persistence across application restarts.
+Note that Ehcache 3 only offers persistence in case of clean shutdowns.
+
+=== Three tiers
 
 [source,java,indent=0]
 ----
@@ -113,7 +129,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <3> You define a resource pool for the off-heap.
 <4> You define a resource pool for the disk.
 
-== Byte-sized heap
+=== Byte-sized heap
 
 You can also size the heap tier using memory units instead of entry count.
 
@@ -133,7 +149,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <3> A default configuration can be provided at CacheManager level to be used by the caches unless defined
     explicitly.
 
-== Update ResourcePools
+=== Update ResourcePools
 
 Limited size adjustment can be performed on a live cache.
 
@@ -150,7 +166,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
     `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
 
 
-= Configuring With XML
+== Configuring With XML
 
 ...It wouldn't be Java without _some_ XML
 
@@ -185,6 +201,8 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 <3> Using the static `org.ehcache.config.builders.CacheManagerBuilder.newCacheManager(org.ehcache.config.Configuration)` lets you
     create your `CacheManager` instance using the `Configuration` from the `XmlConfiguration`
 
-= Current development
+== Current development
 
 For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3.0 project wiki on GitHub].
+
+The next version, 3.1, will bring back the http://terracotta.org[Terracotta clustering] option that existed in Ehcache 2.x.

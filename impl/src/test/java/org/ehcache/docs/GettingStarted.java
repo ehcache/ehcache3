@@ -97,7 +97,7 @@ public class GettingStarted {
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .disk(10L, MemoryUnit.MB, true)) // <2>
+                .disk(10, MemoryUnit.MB, true)) // <2>
             )
         .build(true);
 
