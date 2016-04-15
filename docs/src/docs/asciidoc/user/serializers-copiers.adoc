@@ -1,17 +1,13 @@
 ---
 ---
+= Serializers and Copiers
 ifndef::sourcedir[]
 include::common.adoc[]
 endif::sourcedir[]
 
-= Serializers and Copiers
-
-
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
-
-== Introduction
 
 While Ehcache is a Java cache, it cannot always store its mapping as Java objects.
 
@@ -21,7 +17,7 @@ All other stores are only capable of storing a byte representation of the key/va
 
 `Serializer` and `Copier` are the abstractions to enable these different storage options.
 
-=== Serializers
+== Serializers
 
 All stores but the on-heap one need some form of serialization/deserialization of objects to be able to store and retrieve mappings.
 This is because they cannot internally store plain java objects but only binary representations of them.
@@ -31,7 +27,7 @@ cannot store by reference is going to use a pair of `Serializer` instances, one 
 
 A `Serializer` is scoped at the cache level and all stores of a cache will be using and sharing the same pair of serializers.
 
-==== How is a serializer configured?
+=== How is a serializer configured?
 
 There are two places where serializers can be configured:
 
@@ -61,7 +57,7 @@ A `Serializer` configured at the cache level by class name will not be shared to
 
 NOTE: Given the above, it is recommended to limit `Serializer` registration to concrete classes and not aim for generality.
 
-==== Bundled implementations
+=== Bundled implementations
 
 By default, cache managers are pre-configured with specially optimized `Serializer` that can handle the following types, in the following order:
 
@@ -76,7 +72,7 @@ By default, cache managers are pre-configured with specially optimized `Serializ
 
 All bundled `Serializer` implementations support both persistent and transient caches.
 
-==== Lifecycle: instances vs. class names
+=== Lifecycle: instances vs. class names
 
 When a `Serializer` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
 It will need to dispose of any resource the serializer might hold upon and/or persisting and reloading the serializer's state.
@@ -85,7 +81,7 @@ When a `Serializer` is configured by providing a _class name_ either at the cach
 instance, it also is responsible for disposing of it.
 If the `Serializer` implements `java.io.Closeable` then `close()` will be called when the cache is closed and the `Serializer` no longer needed.
 
-==== Writing your own serializer
+=== Writing your own serializer
 
 `Serializer` defines a very strict contract.
 So if you're planning to write your own implementation you have to keep in mind that the class of the serialized object MUST be retained after deserialization, that is:
@@ -112,7 +108,7 @@ As the javadoc states, there are some constructor rules, see the <<persistent-vs
 You can optionally implement `java.io.Closeable`. If you do, Ehcache will call `close()` when a cache using such serializer gets disposed of, but *only if*
 Ehcache instantiated the serializer itself.
 
-==== ClassLoaders
+=== ClassLoaders
 
 When Ehcache instantiates a serializer itself, it will pass it a `ClassLoader` via the constructor. Such class loader must be used to access the classes
 of the serialized types as they might not be available in the current class loader
@@ -149,7 +145,7 @@ will be sanctioned with an exception upon cache initialization.
 
 Registering a serializer that lacks such constructor at the cache manager level will prevent it from being chosen for persistent caches.
 
-=== Copiers
+== Copiers
 
 As the <<caching-concepts.adoc#storage-tiers,on-heap store>> is capable of storing plain java objects as such,
 it is not necessary to rely on a serialization mechanism to copy keys and values in order to provide _by value_ semantics.
@@ -162,7 +158,7 @@ on the cache for the key, value or both.
 
 Of course, the exact semantic of _by value_ in this context depends heavily on the `Copier` implementation.
 
-==== How is a copier configured?
+=== How is a copier configured?
 
 There are two places where copiers can be configured:
 
@@ -192,12 +188,12 @@ A `Copier` configured at the cache level by class name will not be shared to oth
 
 NOTE: Given the above, it is recommended to limit `Copier` registration to concrete classes and not aim for generality.
 
-==== Bundled implementations
+=== Bundled implementations
 
 A `SerializingCopier` class exists in case you want to configure store _by value_ on-heap using the configured (or default) serializer.
 Note that this implementation performs a serialization / deserialization on each read or write operation.
 
-==== Lifecycle: instances vs class names
+=== Lifecycle: instances vs class names
 
 When a `Copier` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
 It will have dispose of any resource the copier might hold upon.
@@ -206,7 +202,7 @@ When a `Copier` is configured by providing a _class name_ either at the cache or
 instance, it also is responsible for disposing of it.
 If the `Copier` implements `java.io.Closeable` then `close()` will be called when the cache is closed and the `Copier` no longer needed.
 
-==== Writing your own Copier
+=== Writing your own Copier
 
 Implement the following interface:
 
@@ -222,4 +218,5 @@ The separation between copying for read and for write can be useful when you wan
 
 Alternatively, you can extend from `org.ehcache.impl.copy.ReadWriteCopier` if copying for read and copying for write implementations
 are identical and only have to implement
+
 * `public abstract T copy(T obj)`

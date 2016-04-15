@@ -1,11 +1,15 @@
 ---
 ---
+= Eviction Advisor
 ifndef::sourcedir[]
 include::common.adoc[]
 endif::sourcedir[]
 
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
 
-= Eviction Advisor
+== Introduction
 
 NOTE: This is an advanced topic/feature that will not be of interest to most users.
 

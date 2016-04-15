@@ -42,6 +42,7 @@ asciidoctor.dependsOn copyResources
 
 asciidoctor {
   separateOutputDirs = false;
+  attributes 'skip-front-matter': 'true'
 
   resources {
     from('fonts') {

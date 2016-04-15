@@ -1,5 +1,9 @@
+---
+---
 = XA transactional caches
+ifndef::sourcedir[]
 include::common.adoc[]
+endif::sourcedir[]
 Ehcache 3.0 supports caches that work within a XA transaction's context controlled by a JTA transaction manager, fully
 supporting the whole two-phase commit protocol, including crash recovery.
 

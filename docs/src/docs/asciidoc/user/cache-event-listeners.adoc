@@ -1,12 +1,15 @@
 ---
 ---
+= Cache Event Listeners
 ifndef::sourcedir[]
 include::common.adoc[]
 endif::sourcedir[]
 
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
 
-
-= Cache Event Listeners
+== Introduction
 
 Cache listeners allow implementers to register callback methods that will be executed when a cache event occurs.
 
