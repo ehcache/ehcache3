@@ -347,8 +347,8 @@
         </xs:complexType>
       </xs:element>
     </xs:sequence>
-    <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="parallelism-level" type="xs:positiveInteger" use="optional" default="8"/>
+    <xs:attribute name="dispatcher-thread-pool" type="xs:string" use="optional"/>
+    <xs:attribute name="dispatcher-concurrency" type="xs:positiveInteger" use="optional" default="8"/>
   </xs:complexType>
 
   <xs:complexType name="cache-loader-writer-type">
@@ -530,7 +530,7 @@
 
   <xs:complexType name="disk-store-settings-type">
     <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="writer-threads" type="xs:positiveInteger" use="optional" default="1"/>
+    <xs:attribute name="writer-concurrency" type="xs:positiveInteger" use="optional" default="1"/>
   </xs:complexType>
 
   <xs:simpleType name="time-unit">

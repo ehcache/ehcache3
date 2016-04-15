@@ -646,9 +646,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     Serializer<V> getValueSerializer();
 
     /**
-     * The number of parallel queues used when doing ordered events
+     * The concurrency level of the dispatcher that processes events
      */
-    int getOrderedEventParallelism();
+    int getDispatcherConcurrency();
   }
 
   /**

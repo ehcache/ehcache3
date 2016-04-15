@@ -96,7 +96,7 @@ public class ByteSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 0;
       }
     }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), eventDispatcher);

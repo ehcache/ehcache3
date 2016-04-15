@@ -92,7 +92,7 @@ public class CountSizedOnHeapStoreByRefTest extends OnHeapStoreByRefTest {
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 0;
       }
     }, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), eventDispatcher);

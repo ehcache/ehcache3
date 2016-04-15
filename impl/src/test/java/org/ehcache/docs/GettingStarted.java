@@ -358,7 +358,7 @@ public class GettingStarted {
     // tag::configuringEventProcessingQueues[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                                                                                           ResourcePoolsBuilder.heap(5L))
-        .withOrderedEventParallelism(10) // <1>
+        .withDispatcherConcurrency(10) // <1>
         .withEventListenersThreadPool("listeners-pool")
         .build();
     // end::configuringEventProcessingQueues[]

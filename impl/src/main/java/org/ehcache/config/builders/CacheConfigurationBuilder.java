@@ -523,14 +523,14 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   /**
-   * Adds {@link StoreEventSourceConfiguration} with the specified ordered event parallelism
+   * Adds {@link StoreEventSourceConfiguration} with the specified dispatcher concurrency
    * to the configured builder.
    *
-   * @param eventParallelism the amount of parallelism for handling events when ordering is required
+   * @param dispatcherConcurrency the level of concurrency in the dispatcher for ordered events
    * @return a new builder with the added configuration
    */
-  public CacheConfigurationBuilder<K, V> withOrderedEventParallelism(int eventParallelism) {
-    DefaultEventSourceConfiguration configuration = new DefaultEventSourceConfiguration(eventParallelism);
+  public CacheConfigurationBuilder<K, V> withDispatcherConcurrency(int dispatcherConcurrency) {
+    DefaultEventSourceConfiguration configuration = new DefaultEventSourceConfiguration(dispatcherConcurrency);
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     DefaultEventSourceConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultEventSourceConfiguration.class);
     if (existingServiceConfiguration != null) {

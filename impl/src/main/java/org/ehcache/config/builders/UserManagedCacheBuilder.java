@@ -128,7 +128,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private boolean useValueSerializingCopier;
   private Serializer<K> keySerializer;
   private Serializer<V> valueSerializer;
-  private int orderedEventParallelism = 4;
+  private int dispatcherConcurrency = 4;
   private List<CacheEventListenerConfiguration> eventListenerConfigurations = new ArrayList<CacheEventListenerConfiguration>();
   private ExecutorService unOrderedExecutor;
   private ExecutorService orderedExecutor;
@@ -272,7 +272,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
 
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionAdvisor, classLoader,
-            expiry, resourcePools, orderedEventParallelism, keySerializer, valueSerializer);
+            expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
@@ -564,13 +564,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds a configuration for the amount of ordered parallelism desired in event processing.
+   * Adds a configuration for dispatcher concurrency in event processing.
    *
-   * @param parallelism the parallelism level
+   * @param dispatcherConcurrency the dispatcher concurrency level
    * @return a new builder with the added configuration
    */
-  public final UserManagedCacheBuilder<K, V, T> withOrderedEventParallelism(int parallelism) {
-    this.orderedEventParallelism = parallelism;
+  public final UserManagedCacheBuilder<K, V, T> withDispatcherConcurrency(int dispatcherConcurrency) {
+    this.dispatcherConcurrency = dispatcherConcurrency;
     return this;
   }
 

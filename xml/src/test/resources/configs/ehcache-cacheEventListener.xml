@@ -42,7 +42,7 @@
     <ehcache:cache-template name="example">
       <ehcache:key-type>java.lang.Number</ehcache:key-type>
       <ehcache:value-type>java.lang.String</ehcache:value-type>
-      <ehcache:listeners thread-pool="listeners-pool">
+      <ehcache:listeners dispatcher-thread-pool="listeners-pool">
         <ehcache:listener>
           <ehcache:class>com.pany.ehcache.integration.TestCacheEventListener</ehcache:class>
           <ehcache:event-firing-mode>SYNCHRONOUS</ehcache:event-firing-mode>
