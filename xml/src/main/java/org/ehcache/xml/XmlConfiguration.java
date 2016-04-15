@@ -86,7 +86,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 
 /**
  * Exposes {@link org.ehcache.config.Configuration} and {@link CacheConfigurationBuilder} expressed
- * in a XML file that obeys the ehcache-core.xsd.
+ * in a XML file that obeys the <a href="http://www.ehcache.org/v3" target="_blank">core Ehcache schema</a>.
  * <p>
  * Instances of this class are not thread-safe.
  */
