@@ -161,7 +161,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    *
    * @param key key with which the specified value is to be associated
    * @param value value to be associated with the specified key
-   * @return the value to which the specified key was previously mapped, 
+   * @return the value to which the specified key was previously mapped,
    * or {@code null} if no such mapping existed or the mapping was expired
    *
    * @throws NullPointerException if any of the arguments is {@code null}
@@ -219,7 +219,7 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    *
    * @param key of the value to be replaced
    * @param value the new value
-   * @return the existing value that was associated with the key, or {@code null} if 
+   * @return the existing value that was associated with the key, or {@code null} if
    * no such mapping existed or the mapping was expired
    *
    * @throws NullPointerException if any of the arguments is {@code null}
