@@ -17,8 +17,8 @@
 package org.ehcache.spi.loaderwriter;
 
 /**
- * Thrown by a {@link org.ehcache.Cache Cache} when the {@link CacheLoaderWriter} it uses threw an
- * {@link java.lang.Exception} while loading a value for a given key.
+ * Thrown by a {@link org.ehcache.Cache Cache} when the {@link CacheLoaderWriter}
+ * fails when loading a value.
  */
 public class CacheLoadingException extends RuntimeException {
 

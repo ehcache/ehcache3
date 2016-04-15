@@ -26,10 +26,10 @@ import java.nio.ByteBuffer;
  * When used within the default serialization provider, there are additional requirements.
  * The implementations must define either or both of the two constructors:
  * <dl>
- *   <dt><code><i>Serializer</i>(ClassLoader loader)</code></dt>
- *   <dd>This constructor is used to initialize the serializer for transient caches.</dd>
- *   <dt><code><i>Serializer</i>(ClassLoader loader, org.ehcache.core.spi.service.FileBasedPersistenceContext context)</code></dt>
- *   <dd>This constructor is used to initialize the serializer for persistent caches.</dd>
+ *   <dt><code><i>Serializer</i>(ClassLoader loader)</code>
+ *   <dd>This constructor is used to initialize the serializer for transient caches.
+ *   <dt><code><i>Serializer</i>(ClassLoader loader, org.ehcache.core.spi.service.FileBasedPersistenceContext context)</code>
+ *   <dd>This constructor is used to initialize the serializer for persistent caches.
  * </dl>
  * The {@code ClassLoader} value may be {@code null}.  If not {@code null}, the class loader
  * instance provided should be used during deserialization to load classes needed by the deserialized objects.

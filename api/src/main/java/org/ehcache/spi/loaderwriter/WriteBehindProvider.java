@@ -18,32 +18,31 @@ package org.ehcache.spi.loaderwriter;
 import org.ehcache.spi.service.Service;
 
 /**
- * A factory {@link Service} interface for providing write-behind to {@link org.ehcache.Cache Cache}s.
+ * A {@link Service} that provides write-behind functionality.
  * <P>
- * The {@code CacheManager} will {@link org.ehcache.spi.service.ServiceProvider lookup} an instance of this
- * {@code Service} prior to creating any {@code Cache} instances.
- * It will then use it to create write-behind {@link CacheLoaderWriter} instances for each {@code Cache} that uses a
- * {@code CacheLoaderWriter} and a {@link WriteBehindConfiguration} by invoking
- * {@link #createWriteBehindLoaderWriter(CacheLoaderWriter, WriteBehindConfiguration)}.
+ *   A {@code CacheManager} will use the {@link #createWriteBehindLoaderWriter(org.ehcache.spi.loaderwriter.CacheLoaderWriter, org.ehcache.spi.loaderwriter.WriteBehindConfiguration)}
+ *   method to create write-behind instances for each {@code Cache} it manages
+ *   that carries a write-behind configuration.
  * </P>
  */
 public interface WriteBehindProvider extends Service {
 
   /**
-   * Returns a write-behind decorated {@link CacheLoaderWriter} according to the given configuration.
+   * Creates write-behind decorated {@link CacheLoaderWriter} according to the
+   * given configuration.
    *
    * @param cacheLoaderWriter the {@code CacheLoaderWriter} to decorate
    * @param configuration     the write-behind configuration
-   * @param <K> the key type for the cache
-   * @param <V> the value type for the cache
+   * @param <K> the key type for the loader writer
+   * @param <V> the value type for the loader writer
    *
    * @return the write-behind decorated loader writer
    */
   <K, V> CacheLoaderWriter<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration);
 
   /**
-   * Invoked by the {@link org.ehcache.CacheManager CacheManager} when a {@link org.ehcache.Cache Cache} is being
-   * closed.
+   * Releases a write-behind decorator when the associated {@link org.ehcache.Cache Cache}
+   * is finished with it.
    *
    * @param cacheLoaderWriter the {@code CacheLoaderWriter} to release
    */

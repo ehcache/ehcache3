@@ -21,8 +21,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Thrown by a {@link org.ehcache.Cache} when the {@link CacheLoaderWriter} it uses threw an
- * {@link Exception} while bulk writing / removing values for a given set of keys.
+ * Thrown by a {@link org.ehcache.Cache} when its {@link CacheLoaderWriter}
+ * fails while bulk mutating values.
  */
 public class BulkCacheWritingException extends CacheWritingException {
 
@@ -50,7 +50,7 @@ public class BulkCacheWritingException extends CacheWritingException {
   }
 
   /**
-   * Returns the map of keys to exception this exception was constructed with.
+   * Returns the map of keys to exception.
    *
    * @return a map of keys to exception encountered while writing
    */

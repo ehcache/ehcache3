@@ -21,14 +21,14 @@ package org.ehcache;
  * <P>
  *   Instances are allowed the following {@code Status} transitions:
  *   <DL>
- *     <DT>{@link #UNINITIALIZED} to {@link #AVAILABLE}</DT>
- *     <DD>In case of transition failure, it will remain {@code UNINITIALIZED}</DD>
- *     <DT>{@link #AVAILABLE} to {@link #UNINITIALIZED}</DT>
- *     <DD>In case of transition failure, it still ends up {@code UNINITIALIZED}</DD>
- *     <DT>{@link #UNINITIALIZED} to {@link #MAINTENANCE}</DT>
- *     <DD>In case of transition failure, it will remain {@code UNINITIALIZED}</DD>
- *     <DT>{@link #MAINTENANCE} to {@link #UNINITIALIZED}</DT>
- *     <DD>In case of transition failure, it still ends up {@code UNINITIALIZED}</DD>
+ *     <DT>{@link #UNINITIALIZED} to {@link #AVAILABLE}
+ *     <DD>In case of transition failure, it will remain {@code UNINITIALIZED}
+ *     <DT>{@link #AVAILABLE} to {@link #UNINITIALIZED}
+ *     <DD>In case of transition failure, it still ends up {@code UNINITIALIZED}
+ *     <DT>{@link #UNINITIALIZED} to {@link #MAINTENANCE}
+ *     <DD>In case of transition failure, it will remain {@code UNINITIALIZED}
+ *     <DT>{@link #MAINTENANCE} to {@link #UNINITIALIZED}
+ *     <DD>In case of transition failure, it still ends up {@code UNINITIALIZED}
  *   </DL>
  *   As such the {@code UNINITIALIZED} state is the fallback state.
  * </P>
