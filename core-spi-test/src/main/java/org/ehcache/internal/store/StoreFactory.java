@@ -35,7 +35,7 @@ public interface StoreFactory<K, V> {
 
   Store<K, V> newStoreWithEvictionAdvisor(EvictionAdvisor<K, V> evictionAdvisor);
 
-  Store<K, V> newStoreWithExpiry(Expiry<K, V> expiry, TimeSource timeSource);
+  Store<K, V> newStoreWithExpiry(Expiry<? super K, ? super V> expiry, TimeSource timeSource);
 
   Store.ValueHolder<V> newValueHolder(V value);
 

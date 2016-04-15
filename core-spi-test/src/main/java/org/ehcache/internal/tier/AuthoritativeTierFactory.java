@@ -34,7 +34,7 @@ public interface AuthoritativeTierFactory<K, V> extends StoreFactory<K,V> {
   AuthoritativeTier<K, V> newStoreWithCapacity(long capacity);
 
   @Override
-  AuthoritativeTier<K, V> newStoreWithExpiry(Expiry<K, V> expiry, TimeSource timeSource);
+  AuthoritativeTier<K, V> newStoreWithExpiry(Expiry<? super K, ? super V> expiry, TimeSource timeSource);
 
   @Override
   AuthoritativeTier<K, V> newStoreWithEvictionAdvisor(EvictionAdvisor<K, V> evictionAdvisor);

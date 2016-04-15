@@ -109,7 +109,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
   @Ignore
   public void marksTheMappingAsNotExpirable() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource();
-    tier = factory.newStoreWithExpiry(Expirations.<K, V>timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
+    tier = factory.newStoreWithExpiry(Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);

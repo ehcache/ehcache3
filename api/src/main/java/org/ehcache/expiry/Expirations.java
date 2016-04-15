@@ -35,38 +35,34 @@ public final class Expirations {
    * Get a time-to-live (TTL) {@link Expiry} instance for the given duration
    *
    * @param timeToLive the duration of TTL
-   * @param <K> the type of the keys used to access data within the cache
-   * @param <V> the type of the values held within the cache
    * @return a TTL expiry
    *
    */
-  public static <K, V> Expiry<K, V> timeToLiveExpiration(Duration timeToLive) {
+  public static Expiry<Object, Object> timeToLiveExpiration(Duration timeToLive) {
     if (timeToLive == null) {
       throw new NullPointerException("null duration");
     }
-    return new TimeToLiveExpiry<K, V>(timeToLive);
+    return new TimeToLiveExpiry(timeToLive);
   }
 
   /**
    * Get a time-to-idle (TTI) {@link Expiry} instance for the given duration
    *
    * @param timeToIdle the duration of TTI
-   * @param <K> the type of the keys used to access data within the cache
-   * @param <V> the type of the values held within the cache
    * @return a TTI expiry
    */
-  public static <K, V> Expiry<K, V> timeToIdleExpiration(Duration timeToIdle) {
+  public static Expiry<Object, Object> timeToIdleExpiration(Duration timeToIdle) {
     if (timeToIdle == null) {
       throw new NullPointerException("null duration");
     }
-    return new TimeToIdleExpiry<K, V>(timeToIdle);
+    return new TimeToIdleExpiry(timeToIdle);
   }
 
   private Expirations() {
     //
   }
 
-  private static abstract class BaseExpiry<K, V> implements Expiry<K, V> {
+  private static abstract class BaseExpiry implements Expiry<Object, Object> {
 
     private final Duration create;
     private final Duration access;
@@ -79,12 +75,12 @@ public final class Expirations {
     }
 
     @Override
-    public Duration getExpiryForCreation(K key, V value) {
+    public Duration getExpiryForCreation(Object key, Object value) {
       return create;
     }
 
     @Override
-    public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+    public Duration getExpiryForAccess(Object key, ValueSupplier<?> value) {
       return access;
     }
 
@@ -93,7 +89,7 @@ public final class Expirations {
       if (this == o) return true;
       if (o == null || getClass() != o.getClass()) return false;
 
-      final BaseExpiry<?, ?> that = (BaseExpiry<?, ?>)o;
+      final BaseExpiry that = (BaseExpiry)o;
 
       if (access != null ? !access.equals(that.access) : that.access != null) return false;
       if (create != null ? !create.equals(that.create) : that.create != null) return false;
@@ -120,26 +116,26 @@ public final class Expirations {
     }
 
     @Override
-    public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+    public Duration getExpiryForUpdate(Object key, ValueSupplier<?> oldValue, Object newValue) {
       return update;
     }
   }
 
-  private static class TimeToLiveExpiry<K, V> extends BaseExpiry<K, V> {
+  private static class TimeToLiveExpiry extends BaseExpiry {
     TimeToLiveExpiry(Duration ttl) {
       super(ttl, null, ttl);
     }
   }
 
-  private static class TimeToIdleExpiry<K, V> extends BaseExpiry<K, V> {
+  private static class TimeToIdleExpiry extends BaseExpiry {
     TimeToIdleExpiry(Duration tti) {
       super(tti, tti, tti);
     }
   }
 
-  private static class NoExpiry<K, V> extends BaseExpiry<K, V> {
+  private static class NoExpiry extends BaseExpiry {
 
-    private static final Expiry<Object, Object> INSTANCE = new NoExpiry<Object, Object>();
+    private static final Expiry<Object, Object> INSTANCE = new NoExpiry();
 
     private NoExpiry() {
       super(Duration.FOREVER, null, null);
