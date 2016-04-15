@@ -140,68 +140,125 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   void clear();
 
   /**
-   * If the provided key is not associated with a value, then associate it with the provided value.
+   * Maps the specified key to the specified value in this cache, unless a non-expired mapping
+   * already exists.
+   * <P>
+   * This is equivalent to
+   * <pre>
+   *   if (!cache.containsKey(key))
+   *       cache.put(key, value);
+   *       return null;
+   *   else
+   *       return cache.get(key);
+   * </pre>
+   * except that the action is performed atomically.
+   * </P>
+   * <P>
+   * The value can be retrieved by calling the {@code get} method
+   * with a key that is equal to the original key.
+   * </P>
+   * Neither the key nor the value can be {@code null}.
    *
-   * @param key the key to be associated with
-   * @param value the value to associate
-   * @return the value that was associated with the key, or {@code null} if none
+   * @param key key with which the specified value is to be associated
+   * @param value value to be associated with the specified key
+   * @return the value to which the specified key was previously mapped, 
+   * or {@code null} if no such mapping existed or the mapping was expired
    *
-   * @throws NullPointerException if either key or value is null
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while writing the value for the
+   * given key to the underlying system of record.
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@link Exception} while loading
-   * the value for the key
-   * @throws CacheWritingException if the {@link CacheLoaderWriter}
-   * associated with this cache threw an {@link Exception}
-   * while writing the value for the given key to underlying system of record.
+   * associated with this cache was invoked and threw an {@link Exception}
    */
   V putIfAbsent(K key, V value) throws CacheLoadingException, CacheWritingException;
 
   /**
-   * If the provided key is associated with the provided value then remove the entry.
+   * Removes the entry for a key only if currently mapped to the given value
+   * and the entry is not expired.
+   * <P>
+   * This is equivalent to
+   * <pre>
+   *   if (cache.containsKey(key) &amp;&amp; cache.get(key).equals(value)) {
+   *       cache.remove(key);
+   *       return true;
+   *   } else return false;
+   * </pre>
+   * except that the action is performed atomically.
+   * </P>
+   * <P>
+   * The key cannot be {@code null}.
+   * </P>
    *
-   * @param key the key to remove
-   * @param value the value to check against
-   * @return {@code true} if the entry was removed
+   * @param key key with which the specified value is associated
+   * @param value value expected to be removed
+   * @return true if the value was successfully removed
    *
-   * @throws NullPointerException if either key or value is null
-   * @throws CacheWritingException if the {@link CacheLoaderWriter}
-   * associated with this cache threw an {@link Exception} while removing the given key:value mapping
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while removing the value for the
+   * given key from the underlying system of record.
    */
   boolean remove(K key, V value) throws CacheWritingException;
 
   /**
-   * If the provided key is associated with a value, then replace that value with the provided value.
+   * Replaces the entry for a key only if currently mapped to some value and the entry is not expired.
+   * <P>
+   * This is equivalent to
+   * <pre>
+   *   V oldValue = cache.get(key);
+   *   if (oldValue != null) {
+   *     cache.put(key, value);
+   *   }
+   *   return oldValue; </pre>
+   * except that the action is performed atomically.
+   * </P>
+   * <P>
+   * Neither the key nor the value can be {@code null}.
+   * </P>
    *
-   * @param key the key to be associated with
-   * @param value the value to associate
-   * @return the value that was associated with the key, or {@code null} if none
+   * @param key of the value to be replaced
+   * @param value the new value
+   * @return the existing value that was associated with the key, or {@code null} if 
+   * no such mapping existed or the mapping was expired
    *
-   * @throws NullPointerException if either key or value is null
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while writing the value for the
+   * given key to the underlying system of record.
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@link Exception} while loading
-   * the value for the key
-   * @throws CacheWritingException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception}
-   * while replacing value for given key on underlying system of record.
    */
   V replace(K key, V value) throws CacheLoadingException, CacheWritingException;
 
-  /**
-   * If the provided key is associated with {@code oldValue}, then replace that value with {@code newValue}.
+    /**
+   * Replaces the entry for a key only if currently mapped to the given value
+   * and the entry is not expired.
+   * <P>
+   * This is equivalent to
+   * <pre>
+   *   if (cache.containsKey(key) &amp;&amp; cache.get(key).equals(oldValue)) {
+   *       cache.put(key, newValue);
+   *       return true;
+   *   } else return false;</pre>
+   * except that the action is performed atomically.
+   * </P>
+   * <P>
+   * Neither the key nor the value can be {@code null}.
+   * </P>
    *
-   * @param key the key to be associated with
-   * @param oldValue the value to check against
-   * @param newValue the value to associate
-   * @return {@code true} if the value was replaced
+   * @param key key with which the specified value is associated
+   * @param oldValue value expected to be associated with the specified key
+   * @param newValue value to be associated with the specified key
+   * @return true if the oldValue was successfully replaced by the newValue
    *
-   * @throws NullPointerException if any of the values, or the key is null
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while writing the value for the
+   * given key to the underlying system of record.
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@link Exception} while loading
-   * the value for the key
-   * @throws CacheWritingException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception}
-   * while replacing value for given key on underlying system of record.
-  */
+   */
   boolean replace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException;
 
   /**
