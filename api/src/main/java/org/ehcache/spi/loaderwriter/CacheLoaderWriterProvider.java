@@ -20,41 +20,40 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.service.Service;
 
 /**
- * A factory {@link Service} that will create {@link CacheLoaderWriter} instances for a given
- * {@link org.ehcache.Cache Cache} managed by a {@link org.ehcache.CacheManager CacheManager}.
+ * A {@link Service} that creates {@link CacheLoaderWriter} instances.
  * <P>
- * The {@code CacheManager} will {@link org.ehcache.spi.service.ServiceProvider lookup} an instance of this
- * {@code Service} prior to creating any {@code Cache} instances.
- * It will then use it to create {@code CacheLoaderWriter} instances for each {@code Cache} it manages by invoking the
- * {@link #createCacheLoaderWriter(java.lang.String, org.ehcache.config.CacheConfiguration)} method.
- * For any non {@code null} value returned, the {@code Cache} will be configured to use the
- * {@code CacheLoaderWriter} instance returned.
+ *   A {@code CacheManager} will use the {@link #createCacheLoaderWriter(java.lang.String, org.ehcache.config.CacheConfiguration)}
+ *   method to create {@code CacheLoaderWriter} instances for each {@code Cache} it
+ *   manages.
+ * </P>
+ * <P>
+ *   For any non {@code null} value returned, the {@code Cache} will be configured to use the
+ *   {@code CacheLoaderWriter} instance returned.
  * </P>
  */
 public interface CacheLoaderWriterProvider extends Service {
 
   /**
-   * Invoked by the {@link org.ehcache.CacheManager CacheManager} when a {@link org.ehcache.Cache Cache} is being added
-   * to it.
+   * Creates a {@code CacheLoaderWriter} for use with the {@link org.ehcache.Cache Cache}
+   * of the given alias and configuration.
    *
    * @param alias the {@code Cache} alias in the {@code CacheManager}
-   * @param cacheConfiguration the configuration instance that will be used to create the {@code Cache}
-   * @param <K> the key type for the cache
-   * @param <V> the value type for the cache
+   * @param cacheConfiguration the configuration for the associated cache
+   * @param <K> the loader-writer key type
+   * @param <V> the loader-writer value type
    *
    * @return the {@code CacheLoaderWriter} to be used by the {@code Cache} or {@code null} if none
    */
   <K, V> CacheLoaderWriter<? super K, V> createCacheLoaderWriter(String alias, CacheConfiguration<K, V> cacheConfiguration);
 
   /**
-   * Invoked by the {@link org.ehcache.CacheManager CacheManager} when a {@link org.ehcache.Cache Cache} is being
-   * removed from it.
+   * Releases a {@code CacheLoaderWriter} when the associated {@link org.ehcache.Cache Cache}
+   * is finished with it.
    * <P>
-   *   If the {@code CacheLoaderWriter} instance was user provided, {@link java.io.Closeable#close() close}
+   *   If the {@code CacheLoaderWriter} instance was user provided {@link java.io.Closeable#close() close}
    *   will not be invoked.
    * </P>
-   * @param cacheLoaderWriter the {@code CacheLoaderWriter} that was initially associated with
-   *                    the {@code Cache} being removed
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} being released
    * @throws Exception when the release fails
    */
   void releaseCacheLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter) throws Exception;
