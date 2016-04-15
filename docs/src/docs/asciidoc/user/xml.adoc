@@ -1,10 +1,9 @@
 ---
 ---
+= XML Configuration
 ifndef::sourcedir[]
 include::common.adoc[]
 endif::sourcedir[]
-
-= XML Configuration
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]

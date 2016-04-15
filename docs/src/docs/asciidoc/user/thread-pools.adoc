@@ -1,11 +1,9 @@
 ---
 ---
+= Thread Pools
 ifndef::sourcedir[]
 include::common.adoc[]
 endif::sourcedir[]
-
-= Thread Pools
-
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]

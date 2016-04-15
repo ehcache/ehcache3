@@ -1,10 +1,9 @@
 ---
 ---
+= Examples
 ifndef::sourcedir[]
 include::common.adoc[]
 endif::sourcedir[]
-
-= Examples
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
