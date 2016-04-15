@@ -15,7 +15,7 @@ endif::notBuildingForSite[]
 
 While Ehcache is a Java cache, it cannot always store its mapping as Java objects.
 
-The on-heap store is capable of storing cached objects either by reference (where the given key and value references
+The <<caching-concepts.adoc#storage-tiers,on-heap store>> is capable of storing cached objects either by reference (where the given key and value references
 are stored) or by value (where a copy of the given key and value are made and those copies are then stored).
 All other stores are only capable of storing a byte representation of the key/value pair.
 
@@ -24,12 +24,12 @@ All other stores are only capable of storing a byte representation of the key/va
 === Serializers
 
 All stores but the on-heap one need some form of serialization/deserialization of objects to be able to store and retrieve mappings.
-This is because they cannot internally store plain java objects but only bunch-of-bytes representations of them.
+This is because they cannot internally store plain java objects but only binary representations of them.
 
 `Serializer` is the Ehcache abstraction solving this: every cache that has at least one store that
-cannot store by reference is going to use a pair of `Serializer`, one for the key and another one for the value.
+cannot store by reference is going to use a pair of `Serializer` instances, one for the key and another one for the value.
 
-A `Serializer` is scoped at the cache level and all stores of a cache will be using and sharing the same serializer pair.
+A `Serializer` is scoped at the cache level and all stores of a cache will be using and sharing the same pair of serializers.
 
 ==== How is a serializer configured?
 
@@ -57,7 +57,7 @@ CacheManagerBuilder.newCacheManagerBuilder().withSerializer(Employee.class, Empl
 ```
 then configuring a `Cache<Long, Employee>` would make it use the `EmployeeSerializer` while a `Cache<Long, Customer>` would make it use the `PersonSerializer`.
 
-Each cache for which Ehcache instantiates a serializer, it was configured by class name, will have its own `Serializer` instance.
+A `Serializer` configured at the cache level by class name will not be shared to other caches when instantiated.
 
 NOTE: Given the above, it is recommended to limit `Serializer` registration to concrete classes and not aim for generality.
 
@@ -79,7 +79,7 @@ All bundled `Serializer` implementations support both persistent and transient c
 ==== Lifecycle: instances vs. class names
 
 When a `Serializer` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
-It will have dispose of any resource the serializer might hold upon and/or persisting and reloading the serializer's state.
+It will need to dispose of any resource the serializer might hold upon and/or persisting and reloading the serializer's state.
 
 When a `Serializer` is configured by providing a _class name_ either at the cache or cache manager level, since Ehcache is responsible for creating the
 instance, it also is responsible for disposing of it.
@@ -94,9 +94,12 @@ So if you're planning to write your own implementation you have to keep in mind 
 object.getClass().equals( mySerializer.read(mySerializer.serialize(object)).getClass() )
 ```
 
-This is especially important when you are planning to write a serializer for an abstract type, like a serializer of type
-`com.pany.MyInterface` would need to deserialize a `com.pany.MyClassImplementingMyInterface` when the serialized object was of class `com.pany.MyClassImplementingMyInterface`
-and at the same time return an object of type `com.pany.AnotherClassImplementingMyInterface` when the serialized object was of class `com.pany.AnotherClassImplementingMyInterface`.
+This is especially important when you are planning to write a serializer for an abstract type,
+
+e.g. a serializer of type `com.pany.MyInterface` should
+
+- deserialize a `com.pany.MyClassImplementingMyInterface` when the serialized object is of class `com.pany.MyClassImplementingMyInterface`
+- return a `com.pany.AnotherClassImplementingMyInterface` object when the serialized object is of class `com.pany.AnotherClassImplementingMyInterface`
 
 Implement the following interface, from package `org.ehcache.spi.serialization`:
 
@@ -134,7 +137,7 @@ Configuring a serializer that lacks such constructor by instance on a persistent
 `CacheConfigurationBuilder.withKeySerializer(Serializer keySerializer)` or `CacheConfigurationBuilder.withValueSerializer(Serializer valueSerializer)`
 will work, but the responsibility of persisting and restoring the serializer's state across restarts lies on you.
 
-On caches that have no persistent capable store, serializers have to have a constructor:
+On caches that have no persistent capable store, serializers must have a constructor:
 ```java
 public MySerializer(ClassLoader classLoader) {
 }
@@ -148,7 +151,7 @@ Registering a serializer that lacks such constructor at the cache manager level 
 
 === Copiers
 
-As the on-heap store is capable of storing plain java objects as such,
+As the <<caching-concepts.adoc#storage-tiers,on-heap store>> is capable of storing plain java objects as such,
 it is not necessary to rely on a serialization mechanism to copy keys and values in order to provide _by value_ semantics.
 Other forms of _copy_ mechanism can be a lot more performant, such as using a _copy constructor_ but it requires custom code to be able to copy user classes.
 
@@ -185,7 +188,7 @@ CacheManagerBuilder.newCacheManagerBuilder().withCopier(Employee.class, Employee
 ```
 then configuring a `Cache<Long, Employee>` would make it use the `EmployeeCopier` while a `Cache<Long, Customer>` would make it use the `PersonCopier`.
 
-Each cache for which Ehcache instantiates a copier, it was configured by class name, will have its own `Copier` instance.
+A `Copier` configured at the cache level by class name will not be shared to other caches when instantiated.
 
 NOTE: Given the above, it is recommended to limit `Copier` registration to concrete classes and not aim for generality.
 
