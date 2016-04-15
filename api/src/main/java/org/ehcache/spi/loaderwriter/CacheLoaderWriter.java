@@ -19,10 +19,9 @@ package org.ehcache.spi.loaderwriter;
 import java.util.Map;
 
 /**
- * A CacheLoaderWriter is associated with a {@link org.ehcache.Cache Cache} instance and will be used to keep it
- * in sync with another system.
+ * A CacheLoaderWriter is used to keep a {@link org.ehcache.Cache Cache} in sync with another system.
  * <P>
- * Instances of this class must to be thread safe.
+ * Instances of this class should be thread safe.
  * </P>
  * <P>
  * Any {@link Exception} thrown by the loading methods of this interface will be wrapped into a
@@ -30,14 +29,15 @@ import java.util.Map;
  * the user. Any {@code java.lang.Exception} thrown by the writing methods will
  * be wrapped into a {@link CacheWritingException}.
  * </P>
- * <P>
+ * <P>  WTF?
  *   A similar thing will happen for the bulk version of the loading and writing methods and create the bulk version of
  *   the related exceptions.
  * </P>
  *
- * @param <K> the key type for the cache
- * @param <V> the value type for the cache
+ * @param <K> the key type processed by this loader-writer
+ * @param <V> the value type processed by this loader-writer
  *
+ * //These are already linked
  * @see CacheLoadingException
  * @see CacheWritingException
  * @see BulkCacheLoadingException
@@ -46,11 +46,10 @@ import java.util.Map;
 public interface CacheLoaderWriter<K, V> {
 
   /**
-   * Loads the value to be associated with the given key in the {@link org.ehcache.Cache Cache} using this
-   * {@code CacheLoaderWriter} instance.
+   * Loads a single value.
    * <P>
-   *   Any exception thrown by this method will be thrown back to the {@code Cache} user through a
-   *   {@link CacheLoadingException}.
+   *   When used with a cache any exception thrown by this method will be thrown
+   *   back to the user as a {@link CacheLoadingException}.
    * </P>
    *
    * @param key the key for which to load the value
@@ -62,66 +61,66 @@ public interface CacheLoaderWriter<K, V> {
   V load(K key) throws Exception;
 
   /**
-   * Loads the values to be associated with the given keys in the {@link org.ehcache.Cache Cache} using this
-   * {@code CacheLoaderWriter} instance.
+   * Loads multiple values.
    * <P>
-   * The returned {@link Map} should contain {@code null} mapped keys for values
+   * The returned {@link Map} should contain {@code null} values for the keys
    * that could not be found.
    * </P>
    * <P>
-   * The mapping that will be installed in the cache is the {@code key} as found in the input parameter {@code keys}
-   * mapped to the result of {@code loadAllResult.get(key)}. Any other mapping will be ignored.
+   * When used with a cache the mappings that will be installed are the keys as found in {@code keys}
+   * mapped to the results of {@code loadAllResult.get(key)}. Any other mappings will be ignored.
    * </P>
    * <P>
-   *   By using a {@link BulkCacheLoadingException}, implementors can report partial success. Any other exception will
-   *   be thrown back to the {@code Cache} user through a {@link BulkCacheLoadingException} indicating all loading failed.
+   *   By using a {@link BulkCacheLoadingException} implementors can report partial success. Any other exceptions will
+   *   be thrown back to the {@code Cache} user through a {@link BulkCacheLoadingException} indicating a complete failure.
    * </P>
    *
-   * @param keys the keys for which to load values
+   * @param keys the keys to load
    *
-   * @return the {@link java.util.Map} of values for each key passed in, where no mapping means no value to map.
+   * //Which null or not present?
+   * @return the {@link java.util.Map Map} of values for each key passed in, where no mapping means no value to map.
    *
    * @throws BulkCacheLoadingException in case of partial success
-   * @throws Exception in case no values can be loaded
+   * @throws Exception in case no values could be loaded
    */
   Map<K, V> loadAll(Iterable<? extends K> keys) throws BulkCacheLoadingException, Exception;
 
   /**
-   * Writes a single mapping from the {@link org.ehcache.Cache Cache} using this {@code CacheLoaderWriter} instance.
+   * Writes a single mapping.
    * <P>
    *   The write may represent a brand new value or an update to an existing value.
    * </P>
    * <P>
-   *   Any exception thrown by this method will be thrown back to the {@code Cache} user through a
-   *   {@link CacheWritingException}.
+   *   When used with a {@code Cache} any exception thrown by this method will
+   *   be thrown back to the user through a {@link CacheWritingException}.
    * </P>
    *
-   * @param key the key of the mapping to write
-   * @param value the actual value to write
+   * @param key the key to write
+   * @param value the value to write
    *
    * @throws Exception if the write operation failed
    */
   void write(K key, V value) throws Exception;
 
   /**
-   * Writes multiple mappings from the {@link org.ehcache.Cache Cache} using this {@code CacheLoaderWriter} instance.
+   * Writes multiple mappings.
    * <P>
-   *   The writes may represent brand new values or updates to existing values.
+   *   The writes may represent a mix of brand new values and updates to existing values.
    * </P>
    * <P>
-   *   By using a {@link BulkCacheWritingException}, implementors can report partial success. Any other exception will
-   *   be thrown back to the {@code Cache} user through a {@link BulkCacheWritingException} indicating all writing failed.
+   *   By using a {@link BulkCacheWritingException} implementors can report partial success. Any other exception will
+   *   be thrown back to the {@code Cache} user through a {@link BulkCacheWritingException} indicating a complete failure.
    * </P>
    *
-   * @param entries an iterable of key/value mappings
+   * @param entries the mappings to write
    *
    * @throws BulkCacheWritingException in case of partial success
-   * @throws Exception in case no values can be loaded
+   * @throws Exception in case no values could be written
    */
   void writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) throws BulkCacheWritingException, Exception;
 
   /**
-   * Deletes a single mapping from the {@link org.ehcache.Cache Cache} using this {@code CacheLoaderWriter} instance.
+   * Deletes a single mapping.
    *
    * @param key the key to delete
    *
@@ -130,9 +129,9 @@ public interface CacheLoaderWriter<K, V> {
   void delete(K key) throws Exception;
 
   /**
-   * Deletes a set of mappings from the {@link org.ehcache.Cache Cache} using this {@code CacheLoaderWriter} instance.
+   * Deletes multiple mappings.
    * <P>
-   *   By using a {@link BulkCacheWritingException}, implementors can report partial success. Any other exception will
+   *   By using a {@link BulkCacheWritingException} implementors can report partial success. Any other exception will
    *   be thrown back to the {@code Cache} user through a {@link BulkCacheWritingException} indicating all deletes failed.
    * </P>
    *

@@ -20,8 +20,8 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * Thrown by a {@link org.ehcache.Cache Cache} when the {@link CacheLoaderWriter} it uses threw an
- * {@link Exception} while bulk loading values for a given set of keys.
+ * Thrown by a {@link org.ehcache.Cache Cache} when its {@link CacheLoaderWriter}
+ * fails while bulk loading values.
  */
 public class BulkCacheLoadingException extends CacheLoadingException {
 
@@ -33,7 +33,7 @@ public class BulkCacheLoadingException extends CacheLoadingException {
   /**
    * Constructs a {@code BulkCacheLoadingException} instance with the given maps.
    * <P>
-   *   The given two maps are:
+   *   The two maps are:
    *   <UL>
    *     <LI>a map from keys to exception thrown while loading,</LI>
    *     <LI>a map from keys to value where loading succeeded</LI>
@@ -69,18 +69,18 @@ public class BulkCacheLoadingException extends CacheLoadingException {
   }
 
   /**
-   * Returns the map of keys to exception this exception was constructed with.
+   * Returns the map of keys to exception.
    *
-   * @return a map of keys to exception encountered while loading
+   * @return a map of keys to the exception encountered while loading
    */
   public Map<?, Exception> getFailures() {
     return failures;
   }
 
   /**
-   * Returns the map of keys to value this exception was constructed with.
+   * Returns the map of keys to value.
    *
-   * @return a map of keys to value loaded
+   * @return a map of keys to the value loaded
    */
   public Map<?, ?> getSuccesses() {
     return successes;
