@@ -17,9 +17,9 @@
 package org.ehcache.spi.service;
 
 /**
- * Contract for a {@link org.ehcache.CacheManager} managed service.
+ * A life-cycled service that supports cache functionality.
  * <P>
- *   Implementation of this interface have be thread-safe.
+ *   Implementation of this interface must be thread-safe.
  * </P>
  * <P>
  *   Since {@code CacheManager}s can be closed and initialized again, {@code Service} implementations should support
@@ -31,10 +31,10 @@ public interface Service {
   /**
    * Start this service using the provided configuration and {@link ServiceProvider}.
    * <P>
-   * The goal of the service provider is to allow a service to use other services.
+   *   The service provider allows a service to retrieve and use other services.
    * </P>
    * <P>
-   *   A {@code Service} retrieved at this stage may not yet be started. So the recommended usage pattern is to keep a
+   *   A {@code Service} retrieved at this stage may not yet be started. The recommended usage pattern therefore, is to keep a
    *   reference to the dependent {@code Service} but use it only when specific methods are invoked on subtypes.
    * </P>
    *

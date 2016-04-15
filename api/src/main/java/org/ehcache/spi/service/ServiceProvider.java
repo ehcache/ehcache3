@@ -19,21 +19,21 @@ package org.ehcache.spi.service;
 import java.util.Collection;
 
 /**
- * Repository for {@link Service} instances, that can be used to look them up by type.
+ * A repository of {@link Service} instances that can be used to look them up by type.
  *
- * @param <T> A bound on service types this provider can return
+ * @param <T> The type of services this provider returns
  */
 public interface ServiceProvider<T extends Service> {
 
   /**
-   * Will look up the {@link Service} of the given {@code serviceType}.
+   * Looks up the {@link Service} of the given {@code serviceType}.
    * <P>
    *   There is no guarantee that services returned here will be started.
    * </P>
    *
    * @param serviceType the {@code class} of the service being looked up
-   * @param <U> The actual {@link Service} type
-   * @return the service instance for {@code T} type, or {@code null} if it couldn't be located
+   * @param <U> the {@link Service} type
+   * @return a service instance of type {@code T}, or {@code null} if it couldn't be located
    *
    * @throws IllegalArgumentException if {@code serviceType} is marked with the
    *        {@link org.ehcache.spi.service.PluralService PluralService} annotation
@@ -43,16 +43,15 @@ public interface ServiceProvider<T extends Service> {
   <U extends T> U getService(Class<U> serviceType);
 
   /**
-   * Looks up all {@link Service} instances registered to support the {@code serviceType} supplied.
+   * Looks up all {@link Service} instances that are subtypes of the given {@code serviceType} supplied.
    * <P>
-   * This method must be used for any service type marked with the
+   * This method must be used to retrieves service types marked with the
    * {@link org.ehcache.spi.service.PluralService PluralService} annotation.
    * </P>
    *
    * @param serviceType the {@code class} of the service being looked up
-   * @param <U> the actual {@link Service} type
-   * @return a collection of the registered services implementing {@code serviceType}; the
-   *     collection is empty if no services are registered for {@code serviceType}
+   * @param <U> the {@link Service} type
+   * @return all the service instances assignable to {@code serviceType}
    */
   <U extends T> Collection<U> getServicesOfType(Class<U> serviceType);
 }
