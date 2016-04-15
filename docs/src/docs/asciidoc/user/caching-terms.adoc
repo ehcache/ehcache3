@@ -34,7 +34,7 @@ miss (or simply, "a miss").
 ==== System-of-Record (SoR)
 The authoritative source of truth for the data. The cache acts as a local copy of data retrieved from or stored to the
 system-of-record (SOR). The SOR is often a traditional database, although it might be a specialized file system or some
-other reliable long-term storage. For the purposes of using Ehcache, the SOR is assumed to be a database.
+other reliable long-term storage. It can also be a conceptual component such as an expensive computation.
 
 ==== Eviction
 The removal of entries from the cache in order to make room for newer entries (typically when the cache has ran out of

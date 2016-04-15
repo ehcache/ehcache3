@@ -23,7 +23,7 @@ sync) with the SoR.
 
 Databases (and other SORs) weren't built with caching outside of the database in mind, and therefore don't normally
 come with any default mechanism for notifying external processes when data has been updated or modified.  Thus external
-components that have loaded data from the SoR have a no magic way of ensuring that data is not stale.
+components that have loaded data from the SoR have no direct way of ensuring that data is not stale.
 
 ==== Cache Entry Expiration
 
@@ -35,13 +35,13 @@ time-to-live "TTL" setting.  Or to expire entries 17 seconds after the last time
 cache - which is a time-to-idle "TTI" setting.
 
 The expiration configuration that would be most appropriate for your cache (if any) would be a mixture of a business
-and technical decision based upon the requirement assumptions of your application.
+and technical decision based upon the requirements and assumptions of your application.
 
 
 
 === Storage Tiers
-You can configure a cache to use various data storage areas.  When a cache is configured to use more than one data
-store, they become referred to as tiers.
+You can configure Ehcache to use various data storage areas.  When a cache is configured to use more than one data
+store, they are referred to as tiers.
 
 Data stores supported by Ehcache include:
 
@@ -54,24 +54,28 @@ to Java garbage collection (GC). Is quite fast, yet slower than the On-Heap Stor
 on the JVM's heap as it is stored and re-accessed.
 * Disk Store – Utilizes a disk (filesystem) to store cache entries.  This type of storage resource is typically very
 abundant but much slower than the RAM-based stores.
-* Cluster Store - Utilizes out-of-process storage (across network) to store data.  This also enables the sharing of
-cached data between all processes utilizing the clustered storage.
 
 When a cache is configured to use more than one storage area, those areas are arranged and managed as tiers - where
-the "hotest" (most recently accessed) data is kept in the faster (and typically less abundant) tiers, and data that
+the "hottest" (most recently accessed) data is kept in the faster (and typically less abundant) tiers, and data that
 is less hot is moved to the slower (and more abundant) tiers.
 
 
 === Topology Types
 
-* Standalone – The data set is held in the application node. Any other application nodes are independent with no
+==== Standalone
+
+The data set is held in the application node. Any other application nodes are independent with no
 communication between them. If a standalone topology is used where there are multiple application nodes running the
 same application, then their caches are completely independent.
 
-* Distributed / Clustered – The data is held in a remote server (or array of servers) with a subset of hot
-data held in each application node. This topology offers offers a selection of consistency options.
+==== Distributed / Clustered
+
+The data is held in a remote server (or array of servers) with a subset of hot data held in each application node.
+This topology offers offers a selection of consistency options.
 A distributed topology is the recommended approach in a clustered or scaled-out application environment.
 It provides the highest level of performance, availability, and scalability.
+
+NOTE: Support of this topology type will come soon to Ehcache 3
 
 Many production applications are deployed in clusters of multiple instances for availability and scalability.
 However, without a distributed cache, application clusters exhibit a number of undesirable behaviors, such as:
