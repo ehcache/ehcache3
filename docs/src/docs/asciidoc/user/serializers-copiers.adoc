@@ -95,7 +95,6 @@ object.getClass().equals( mySerializer.read(mySerializer.serialize(object)).getC
 ```
 
 This is especially important when you are planning to write a serializer for an abstract type,
-
 e.g. a serializer of type `com.pany.MyInterface` should
 
 - deserialize a `com.pany.MyClassImplementingMyInterface` when the serialized object is of class `com.pany.MyClassImplementingMyInterface`

@@ -38,9 +38,9 @@ The expiration configuration that would be most appropriate for your cache (if a
 and technical decision based upon the requirements and assumptions of your application.
 
 
-
+[[storage-tiers]]
 === Storage Tiers
-[[storage-tiers]]You can configure Ehcache to use various data storage areas.  When a cache is configured to use more than one data
+You can configure Ehcache to use various data storage areas.  When a cache is configured to use more than one data
 store, they are referred to as tiers.
 
 Data stores supported by Ehcache include:
