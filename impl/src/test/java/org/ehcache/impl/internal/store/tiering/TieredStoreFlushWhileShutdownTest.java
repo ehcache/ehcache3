@@ -96,7 +96,7 @@ public class TieredStoreFlushWhileShutdownTest {
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 1;
       }
     };

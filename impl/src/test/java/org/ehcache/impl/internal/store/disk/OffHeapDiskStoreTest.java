@@ -98,7 +98,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
           .disk(10, MemoryUnit.MB)
           .build());
-      when(storeConfig1.getOrderedEventParallelism()).thenReturn(1);
+      when(storeConfig1.getDispatcherConcurrency()).thenReturn(1);
 
       OffHeapDiskStore<Long, String> offHeapDiskStore1 = provider.createStore(storeConfig1, space);
       provider.initStore(offHeapDiskStore1);
@@ -113,7 +113,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       when(storeConfig2.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
           .disk(10, MemoryUnit.MB)
           .build());
-      when(storeConfig2.getOrderedEventParallelism()).thenReturn(1);
+      when(storeConfig2.getDispatcherConcurrency()).thenReturn(1);
       when(storeConfig2.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
 
 
@@ -196,7 +196,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     when(storeConfig.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
         .disk(10, MemoryUnit.MB)
         .build());
-    when(storeConfig.getOrderedEventParallelism()).thenReturn(1);
+    when(storeConfig.getDispatcherConcurrency()).thenReturn(1);
     try {
       provider.createStore(storeConfig);
       fail("IllegalStateException expected");

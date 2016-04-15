@@ -164,7 +164,7 @@ public class OnHeapStoreEvictionTest {
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 1;
       }
     }, timeSource);

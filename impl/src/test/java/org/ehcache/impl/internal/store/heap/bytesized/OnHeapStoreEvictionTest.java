@@ -77,7 +77,7 @@ public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.hea
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 0;
       }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));

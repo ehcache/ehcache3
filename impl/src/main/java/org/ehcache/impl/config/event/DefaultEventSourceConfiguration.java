@@ -25,26 +25,25 @@ import org.ehcache.core.spi.store.Store;
  */
 public class DefaultEventSourceConfiguration implements StoreEventSourceConfiguration {
 
-  private final int orderedEventParallelism;
+  private final int dispatcherConcurrency;
 
   /**
-   * Creates a new configuration with the provided level of parallelism for ordered events.
+   * Creates a new configuration with the provided dispatcher concurrency for ordered events.
    *
-   * @param orderedEventParallelism  the parallelism level for ordered events
+   * @param dispatcherConcurrency  the dispatcher concurrency for ordered events
    */
-  public DefaultEventSourceConfiguration(int orderedEventParallelism) {
-    if (orderedEventParallelism <= 0) {
-      throw new IllegalArgumentException("Event parallelism must be a value bigger than 0");
+  public DefaultEventSourceConfiguration(int dispatcherConcurrency) {
+    if (dispatcherConcurrency <= 0) {
+      throw new IllegalArgumentException("Dispatcher concurrency must be a value bigger than 0");
     }
-    this.orderedEventParallelism = orderedEventParallelism;
+    this.dispatcherConcurrency = dispatcherConcurrency;
   }
 
   /**
    * {@inheritDoc}
    */
-  @Override
-  public int getOrderedEventParallelism() {
-    return orderedEventParallelism;
+  public int getDispatcherConcurrency() {
+    return dispatcherConcurrency;
   }
 
   /**

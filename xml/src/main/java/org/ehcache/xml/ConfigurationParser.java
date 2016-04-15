@@ -657,7 +657,7 @@ class ConfigurationParser {
 
   interface ListenersConfig {
 
-    int parallelismLevel();
+    int dispatcherConcurrency();
 
     String threadPool();
 
@@ -733,20 +733,20 @@ class ConfigurationParser {
 
   private static class XmlListenersConfig implements ListenersConfig {
 
-    final int parallelismLevel;
+    final int dispatcherConcurrency;
     final String threadPool;
     final Iterable<Listener> listeners;
 
     private XmlListenersConfig(final ListenersType type, final ListenersType... others) {
-      this.parallelismLevel = type.getParallelismLevel().intValue();
-      String threadPool = type.getThreadPool();
+      this.dispatcherConcurrency = type.getDispatcherConcurrency().intValue();
+      String threadPool = type.getDispatcherThreadPool();
       Set<Listener> listenerSet = new HashSet<Listener>();
       final List<ListenersType.Listener> xmlListeners = type.getListener();
       extractListeners(listenerSet, xmlListeners);
 
       for (ListenersType other : others) {
-        if (threadPool == null && other.getThreadPool() != null) {
-          threadPool = other.getThreadPool();
+        if (threadPool == null && other.getDispatcherThreadPool() != null) {
+          threadPool = other.getDispatcherThreadPool();
         }
         extractListeners(listenerSet, other.getListener());
       }
@@ -784,8 +784,8 @@ class ConfigurationParser {
     }
 
     @Override
-    public int parallelismLevel() {
-      return parallelismLevel;
+    public int dispatcherConcurrency() {
+      return dispatcherConcurrency;
     }
 
     @Override
@@ -954,7 +954,7 @@ class ConfigurationParser {
 
     @Override
     public int writerConcurrency() {
-      return this.diskStoreSettings.getWriterThreads().intValue();
+      return this.diskStoreSettings.getWriterConcurrency().intValue();
     }
 
     @Override

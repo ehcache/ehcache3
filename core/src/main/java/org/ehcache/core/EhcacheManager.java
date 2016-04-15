@@ -485,17 +485,17 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
     }
 
-    int eventParallelism;
+    int dispatcherConcurrency;
     StoreEventSourceConfiguration eventSourceConfiguration = ServiceLocator.findSingletonAmongst(StoreEventSourceConfiguration.class, config
         .getServiceConfigurations()
         .toArray());
     if (eventSourceConfiguration != null) {
-      eventParallelism = eventSourceConfiguration.getOrderedEventParallelism();
+      dispatcherConcurrency = eventSourceConfiguration.getDispatcherConcurrency();
     } else {
-      eventParallelism = StoreEventSourceConfiguration.DEFAULT_EVENT_PARALLELISM;
+      dispatcherConcurrency = StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
     }
 
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, eventParallelism, keySerializer, valueSerializer);
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, dispatcherConcurrency, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     lifeCycledList.add(new LifeCycled() {
