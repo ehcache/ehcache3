@@ -48,56 +48,54 @@ import java.util.Set;
 public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
-   * Retrieve the value currently mapped to the provided key.
+   * Retrieves the value currently mapped to the provided key.
    *
-   * @param key the key, may not be null
+   * @param key the key, may not be {@code null}
    * @return the value mapped to the key, {@code null} if none
    *
    * @throws NullPointerException if the provided key is {@code null}
-   * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@code Exception}
+   * @throws CacheLoadingException if the {@link CacheLoaderWriter} associated with this cache was
+   * invoked and threw an {@code Exception}
    */
   V get(K key) throws CacheLoadingException;
 
   /**
    * Associates the given value to the given key in this {@code Cache}.
    *
-   * @param key the key, may not be null
-   * @param value the value, may not be null
+   * @param key the key, may not be {@code null}
+   * @param value the value, may not be {@code null}
    *
-   * @throws NullPointerException if either key or value is null
-   * @throws CacheWritingException if the {@link CacheLoaderWriter}
-   * associated with this cache threw an {@link Exception}
-   * while writing the value for the given key to underlying system of record.
+   * @throws NullPointerException if either key or value is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated with this cache threw an
+   * {@link Exception} while writing the value for the given key to the underlying system of record.
    */
   void put(K key, V value) throws CacheWritingException;
 
   /**
-   * Checks whether a mapping for the given key is present, without retrieving the associated value
+   * Checks whether a mapping for the given key is present, without retrieving the associated value.
    *
-   * @param key the key
-   * @return true if a mapping is present, false otherwise
+   * @param key the key, may not be {@code null}
+   * @return {@code true} if a mapping is present, {@code false} otherwise
    *
-   * @throws java.lang.NullPointerException if the provided key is null
+   * @throws NullPointerException if the provided key is {@code null}
    */
   boolean containsKey(K key);
 
   /**
-   * Removes the value, if any, associated with the provided key
+   * Removes the value, if any, associated with the provided key.
    *
-   * @param key the key to remove the value for
+   * @param key the key to remove the value for, may not be {@code null}
    *
-   * @throws java.lang.NullPointerException if the provided key is null
-   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
-   * with this cache threw an {@link Exception} while removing the value for the
-   * given key from the underlying system of record.
+   * @throws NullPointerException if the provided key is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated with this cache threw an
+   * {@link Exception} while removing the value for the given key from the underlying system of record.
    */
   void remove(K key) throws CacheWritingException;
 
   /**
-   * Retrieves all values associated with the given keys.
+   * Retrieves all values associated with the given key set.
    *
-   * @param keys keys to query for
+   * @param keys keys to query for, may not contain {@code null}
    * @return a map from keys to values or {@code null} if the key was not mapped
    *
    * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
@@ -108,24 +106,22 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   /**
    * Associates all the provided key:value pairs.
    *
-   * @param entries key:value pairs to associate
+   * @param entries key:value pairs to associate, keys or values may not be {@code null}
    *
    * @throws NullPointerException if the {@code Map} or any of the contained keys or values are {@code null}.
-   * @throws BulkCacheWritingException if the {@link CacheLoaderWriter}
-   * associated with this cache threw an {@link Exception}
-   * while writing given key:value pairs to underlying system of record.
+   * @throws BulkCacheWritingException if the {@link CacheLoaderWriter} associated with this cache threw an
+   * {@link Exception} while writing given key:value pairs to the underlying system of record.
    */
   void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException;
 
   /**
-   * Removes any associates for the given keys.
+   * Removes any associated value for the given key set.
    *
-   * @param keys keys to remove values for
+   * @param keys keys to remove values for, may not be {@code null}
    *
    * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
-   * @throws BulkCacheWritingException if the {@link CacheLoaderWriter}
-   * associated with this cache threw an {@link Exception}
-   * while removing mappings for given keys from underlying system of record.
+   * @throws BulkCacheWritingException if the {@link CacheLoaderWriter} associated with this cache threw an
+   * {@link Exception} while removing mappings for given keys from the underlying system of record.
    */
   void removeAll(Set<? extends K> keys) throws BulkCacheWritingException;
 
