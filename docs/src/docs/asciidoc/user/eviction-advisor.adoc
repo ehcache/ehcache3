@@ -7,9 +7,10 @@ endif::sourcedir[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
-endif::notBuildingForSite[]
 
 == Introduction
+
+endif::notBuildingForSite[]
 
 NOTE: This is an advanced topic/feature that will not be of interest to most users.
 
