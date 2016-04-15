@@ -15,11 +15,12 @@ We feel that the Ehcache 3.0 API is a great improvement over the Ehcache 2.x API
 millions of developers.   We hope you enjoy this new generation of Ehcache!
 
 NOTE: If you are looking to use the JSR-107, aka `javax.cache` API, you should start by reading
-      link:107{outfilesuffix}[the Ehcache 3.x JSR-107 Provider page]
+      <<107.adoc#,the Ehcache 3.x JSR-107 Provider page>>.
 
 In order to start using Ehcache, you will need to configure your first `CacheManager` and `Cache`.
 This can be achieved through <<configuring-with-java,programmatic configuration>> or <<configuring-with-xml,XML>>.
 
+[[configuring-with-java]]
 == Configuring with Java
 
 Java configuration is most easily achieved through the use of builders that offer a fluent API.
@@ -71,7 +72,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[
 <4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
     managed caches simultaneously, the `CacheManager.close()` operation would not impact the user managed cache(s).
 
-NOTE: See link:usermanaged{outfilesuffix}[the user managed cache documentation] for more information on this feature.
+NOTE: See <<usermanaged.adoc#,the user managed cache documentation>> for more information on this feature.
 
 == Storage Tiers
 
@@ -165,7 +166,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <2> To update capacity of `ResourcePools`, `updateResourcePools(ResourcePools)` method in `RuntimeConfiguration` can be of help.
     `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
 
-
+[[configuring-with-xml]]
 == Configuring With XML
 
 ...It wouldn't be Java without _some_ XML
@@ -185,7 +186,7 @@ include::{sourcedir}/xml/src/test/resources/configs/docs/getting-started.xml[tag
 <6> `bar` is such a `Cache`.   `bar` uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
 <7> `simpleCache` is another such a `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
 
-Refer to the link:xml{outfilesuffix}[XML documentation] for more details on the XML format.
+Refer to the <<xml.adoc#,XML documentation>> for more details on the XML format.
 
 In order to parse an XML configuration, you can use the `XmlConfiguration` type:
 

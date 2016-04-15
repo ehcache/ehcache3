@@ -117,6 +117,7 @@ Ehcache instantiated the serializer itself.
 When Ehcache instantiates a serializer itself, it will pass it a `ClassLoader` via the constructor. Such class loader must be used to access the classes
 of the serialized types as they might not be available in the current class loader
 
+[[persistent-vs-transient-caches]]
 ==== Persistent vs. transient caches
 
 When configured on a persistent cache, serializers may need to persist and restore their state across restarts, so you have to implement a

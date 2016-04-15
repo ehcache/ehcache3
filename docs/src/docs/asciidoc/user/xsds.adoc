@@ -10,6 +10,7 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
+[[core]]
 == Core
 
 [source,xsd,indent=0]
@@ -17,6 +18,7 @@ endif::notBuildingForSite[]
 include::{sourcedir}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
 ----
 
+[[jsr-107-extension]]
 == JSR-107 extension
 
 [source,xsd,indent=0]

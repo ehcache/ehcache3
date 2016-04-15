@@ -100,7 +100,7 @@ While running, lines like the following are displayed to the console:
 ----
 Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and +Getting peeps from cache+ lines indicating cache interactions.
 
-
+[[xml-with-107-extension]]
 == XML with 107 extension
 
 [source,xml,indent=0]
