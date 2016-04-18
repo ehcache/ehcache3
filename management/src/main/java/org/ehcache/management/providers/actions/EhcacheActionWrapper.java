@@ -16,7 +16,7 @@
 package org.ehcache.management.providers.actions;
 
 import org.ehcache.management.providers.CacheBinding;
-import org.terracotta.management.context.Context;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.Exposed;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;

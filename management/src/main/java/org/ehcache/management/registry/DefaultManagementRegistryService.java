@@ -31,7 +31,7 @@ import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.AbstractManagementRegistry;
 import org.terracotta.management.registry.ManagementProvider;
 import org.terracotta.statistics.StatisticsManager;

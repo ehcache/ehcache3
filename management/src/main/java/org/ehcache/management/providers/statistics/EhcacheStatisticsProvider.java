@@ -17,15 +17,15 @@ package org.ehcache.management.providers.statistics;
 
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
-import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.capabilities.StatisticsCapability;
-import org.terracotta.management.capabilities.descriptors.Descriptor;
-import org.terracotta.management.context.Context;
+import org.terracotta.management.model.capabilities.Capability;
+import org.terracotta.management.model.capabilities.StatisticsCapability;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.AbstractManagementProvider;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.stats.Statistic;
+import org.terracotta.management.model.stats.Statistic;
 
 import java.util.Collection;
 import java.util.HashMap;
