@@ -40,6 +40,7 @@ test {
   dependsOn unzipKit
   executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
   environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
+  environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/ehcache-clustered-$project.version-kit/terracotta-$parent.terracottaCoreVersion"
 }
 

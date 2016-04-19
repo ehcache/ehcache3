@@ -18,6 +18,7 @@ package org.ehcache.clustered;
 import java.io.File;
 import java.util.UUID;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -37,11 +38,16 @@ public class BasicEntityInteractionTest {
   @ClassRule
   public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1);
 
+  @BeforeClass
+  public static void waitForActive() throws Exception {
+    CLUSTER.getClusterControl().waitForActive();
+  }
+
   @Test
   public void testAbsentEntityRetrievalFails() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testAbsentEntityRetrievalFails");
 
       try {
         ref.fetchEntity();
@@ -58,7 +64,7 @@ public class BasicEntityInteractionTest {
   public void testAbsentEntityCreationSucceeds() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testAbsentEntityCreationSucceeds");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -81,7 +87,7 @@ public class BasicEntityInteractionTest {
   public void testPresentEntityCreationFails() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testPresentEntityCreationFails");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -111,7 +117,7 @@ public class BasicEntityInteractionTest {
   public void testAbsentEntityDestroyFails() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testAbsentEntityDestroyFails");
 
       try {
         ref.destroy();
@@ -128,7 +134,7 @@ public class BasicEntityInteractionTest {
   public void testPresentEntityDestroySucceeds() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testPresentEntityDestroySucceeds");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -150,7 +156,7 @@ public class BasicEntityInteractionTest {
   public void testPresentEntityDestroyBlockedByHeldReferenceSucceeds() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testPresentEntityDestroyBlockedByHeldReferenceSucceeds");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -170,7 +176,7 @@ public class BasicEntityInteractionTest {
   public void testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds");
 
       UUID uuid = UUID.randomUUID();
       ref.create(uuid);
@@ -185,7 +191,7 @@ public class BasicEntityInteractionTest {
   public void testDestroyedEntityAllowsRecreation() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testEntity");
+      EntityRef<EhcacheClientEntity, UUID> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testDestroyedEntityAllowsRecreation");
 
       ref.create(UUID.randomUUID());
       ref.destroy();
