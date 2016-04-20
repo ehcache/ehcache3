@@ -1,0 +1,3 @@
+= Conclusion
+
+Wow wasn't that easy!  I hope you enjoyed my quick start tutorial on how to use Ehcache 3 with Spring 4.1+ and JSR-107.  If you have any questions please feel free to send them to me at geoff.gibson@softwareag.com and I will be happy to help out.

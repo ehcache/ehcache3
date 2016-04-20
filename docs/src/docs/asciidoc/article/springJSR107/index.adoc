@@ -1,0 +1,14 @@
+= Ehcache 3, JSR-107 and Spring 4.2
+Written By <geoff.gibson@softwareag.com>
+v1.0, 2016-04-06
+:toc:
+
+include::intro.adoc[]
+
+include::background.adoc[]
+
+include::annotations.adoc[]
+
+include::steps.adoc[]
+
+include::conclusion.adoc[]

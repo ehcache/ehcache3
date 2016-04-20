@@ -1,0 +1,11 @@
+= Background reading
+
+* Ehcache 3.0 Documentation
+** http://www.ehcache.org/documentation/3.0/
+* Spring Cache Abstraction
+** http://docs.spring.io/spring/docs/current/spring-framework-reference/html/cache.html
+* Spring Cache Abstraction, JCache (JSR-107) annotations
+** http://docs.spring.io/spring/docs/current/spring-framework-reference/html/cache.html#cache-jsr-107
+** https://spring.io/blog/2014/04/14/cache-abstraction-jcache-jsr-107-annotations-support
+* The following is the GitHub example associated with this post:
+** https://github.com/gibsong/ehcache3_jsr107_spring
