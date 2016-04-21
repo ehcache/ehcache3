@@ -22,6 +22,8 @@
            elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3/jsr107">
   <xs:import namespace="http://www.ehcache.org/v3"/>
 
+  <xs:element name="mbeans" type="jsr107:mbeans-type" substitutionGroup="eh:service-configuration"/>
+
   <xs:element name="defaults" type="jsr107:defaults-type" substitutionGroup="eh:service-creation-configuration">
     <xs:key name="default-template-ref">
       <xs:selector xpath="cache-template"/>
@@ -45,5 +47,10 @@
   <xs:complexType name="cache-type">
     <xs:attribute name="name" type="xs:ID" use="required" />
     <xs:attribute name="template" type="xs:IDREF" use="required" />
+  </xs:complexType>
+
+  <xs:complexType name="mbeans-type">
+    <xs:attribute name="enable-management" type="xs:boolean" use="optional"/>
+    <xs:attribute name="enable-statistics" type="xs:boolean" use="optional"/>
   </xs:complexType>
 </xs:schema>
