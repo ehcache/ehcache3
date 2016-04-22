@@ -42,6 +42,8 @@
     </xs:sequence>
     <xs:attribute name="default-template" type="xs:IDREF" use="optional"/>
     <xs:attribute name="jsr-107-compliant-atomics" type="xs:boolean" use="optional"/>
+    <xs:attribute name="enable-management" type="xs:boolean" use="optional"/>
+    <xs:attribute name="enable-statistics" type="xs:boolean" use="optional"/>
   </xs:complexType>
 
   <xs:complexType name="cache-type">

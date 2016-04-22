@@ -54,8 +54,8 @@ public class Jsr107CacheConfigurationParser implements CacheServiceConfiguration
   public ServiceConfiguration<Jsr107Service> parseServiceConfiguration(Element fragment) {
     String localName = fragment.getLocalName();
     if ("mbeans".equals(localName)) {
-      boolean managementEnabled = false;
-      boolean statisticsEnabled = false;
+      Boolean managementEnabled = null;
+      Boolean statisticsEnabled = null;
       if (fragment.hasAttribute(MANAGEMENT_ENABLED_ATTRIBUTE)) {
         managementEnabled = Boolean.parseBoolean(fragment.getAttribute(MANAGEMENT_ENABLED_ATTRIBUTE));
       }

@@ -23,11 +23,10 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public class Jsr107CacheConfiguration implements ServiceConfiguration<Jsr107Service> {
 
-  private final boolean statisticsEnabled;
-  private final boolean managementEnabled;
+  private final Boolean statisticsEnabled;
+  private final Boolean managementEnabled;
 
-  public Jsr107CacheConfiguration(boolean statisticsEnabled, boolean managementEnabled) {
-
+  public Jsr107CacheConfiguration(Boolean statisticsEnabled, Boolean managementEnabled) {
     this.statisticsEnabled = statisticsEnabled;
     this.managementEnabled = managementEnabled;
   }
@@ -37,11 +36,27 @@ public class Jsr107CacheConfiguration implements ServiceConfiguration<Jsr107Serv
     return Jsr107Service.class;
   }
 
-  public boolean isManagementEnabled() {
+  /**
+   * Indicates if management is to be enabled.
+   * <P>
+   *   A {@code null} return value indicates that cache manager level config is to be taken.
+   * </P>
+   *
+   * @return {@code true} if management is enabled, {@code false} if disabled, {@code null} to keep cache manager level
+   */
+  public Boolean isManagementEnabled() {
     return managementEnabled;
   }
 
-  public boolean isStatisticsEnabled() {
+  /**
+   * Indicates if statistics are to be enabled.
+   * <P>
+   *   A {@code null} return value indicates that cache manager level config is to be taken.
+   * </P>
+   *
+   * @return {@code true} if statistics are enabled, {@code false} if disabled, {@code null} to keep cache manager level
+   */
+  public Boolean isStatisticsEnabled() {
     return statisticsEnabled;
   }
 }

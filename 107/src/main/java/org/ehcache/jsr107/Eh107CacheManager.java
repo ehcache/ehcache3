@@ -119,13 +119,7 @@ class Eh107CacheManager implements CacheManager {
       }
     }
     Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoaderWriter != null, cacheLoaderWriter != null, storeByValueOnHeap);
-    Jsr107CacheConfiguration cacheConfiguration = ServiceLocator.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
-        .getRuntimeConfiguration()
-        .getServiceConfigurations());
-    if (cacheConfiguration != null) {
-      config.setManagementEnabled(cacheConfiguration.isManagementEnabled());
-      config.setStatisticsEnabled(cacheConfiguration.isStatisticsEnabled());
-    }
+    configurationMerger.setUpManagementAndStats(cache, config);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<K, V>(cache.getRuntimeConfiguration().getExpiry());
     CacheResources<K, V> resources = new CacheResources<K, V>(alias, cacheLoaderWriter, expiry);
     return new Eh107Cache<K, V>(alias, config, resources, cache, this);

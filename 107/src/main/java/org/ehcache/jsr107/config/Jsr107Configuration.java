@@ -28,18 +28,24 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
 
   private final String defaultTemplate;
   private final boolean jsr107CompliantAtomics;
+  private final boolean enableManagementAll;
+  private final boolean enableStatisticsAll;
   private final Map<String, String> templates;
 
   /**
    * Creates a new configuration with the provided parameters.
-   *
-   * @param defaultTemplate the default template
+   *  @param defaultTemplate the default template
    * @param templates cache alias to template name map
    * @param jsr107CompliantAtomics behaviour of loader writer in atomic operations
+   * @param enableManagementAll
+   * @param enableStatisticsAll
    */
-  public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates, boolean jsr107CompliantAtomics) {
+  public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates,
+                             boolean jsr107CompliantAtomics, boolean enableManagementAll, boolean enableStatisticsAll) {
     this.defaultTemplate = defaultTemplate;
     this.jsr107CompliantAtomics = jsr107CompliantAtomics;
+    this.enableManagementAll = enableManagementAll;
+    this.enableStatisticsAll = enableStatisticsAll;
     this.templates = new ConcurrentHashMap<String, String>(templates);
   }
 
@@ -81,4 +87,21 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
     return Jsr107Service.class;
   }
 
+  /**
+   * Indicates if all created caches should have management enabled.
+   *
+   * @return {@code true} to enable management on all caches, {@code false} otherwise
+   */
+  public boolean isEnableManagementAll() {
+    return enableManagementAll;
+  }
+
+  /**
+   * Indicates if all created caches should have statistics enabled.
+   *
+   * @return {@code true} to enable management on all caches, {@code false} otherwise
+   */
+  public boolean isEnableStatisticsAll() {
+    return enableStatisticsAll;
+  }
 }

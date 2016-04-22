@@ -18,11 +18,14 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.core.InternalCache;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -251,6 +254,25 @@ class ConfigurationMerger {
     // should be parameterized with (K, V) and it's methods take <? extend K>, etc
     Object factory = config.getCacheWriterFactory();
     return (Factory<javax.cache.integration.CacheWriter<K, V>>) factory;
+  }
+
+  void setUpManagementAndStats(InternalCache<?, ?> cache, Eh107Configuration<?, ?> configuration) {
+    boolean enableManagement = jsr107Service.isManagementEnabledOnAllCaches();
+    boolean enableStatistics = jsr107Service.isStatisticsEnabledOnAllCaches();
+    Jsr107CacheConfiguration cacheConfiguration = ServiceLocator.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
+        .getRuntimeConfiguration().getServiceConfigurations());
+    if (cacheConfiguration != null) {
+      Boolean managementEnabled = cacheConfiguration.isManagementEnabled();
+      if (managementEnabled != null) {
+        enableManagement = managementEnabled;
+      }
+      Boolean statisticsEnabled = cacheConfiguration.isStatisticsEnabled();
+      if (statisticsEnabled != null) {
+        enableStatistics = statisticsEnabled;
+      }
+    }
+    configuration.setManagementEnabled(enableManagement);
+    configuration.setStatisticsEnabled(enableStatistics);
   }
 
   static class ConfigHolder<K, V> {
