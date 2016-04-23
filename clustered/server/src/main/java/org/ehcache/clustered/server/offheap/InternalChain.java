@@ -13,25 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.server.offheap;
 
-apply plugin: EhDeploy
+import java.nio.ByteBuffer;
 
-configurations {
-    provided
-}
+import org.ehcache.clustered.common.store.Chain;
 
-dependencies {
-  compile project(':clustered:common')
-  compile "org.terracotta:offheap-store:$parent.offheapVersion"
-  provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
-}
+interface InternalChain {
 
-sourceSets {
-    main { 
-      compileClasspath += configurations.provided
-    }
-    test {
-      compileClasspath += configurations.provided
-      runtimeClasspath += configurations.provided
-    }
+  Chain detach();
+
+  void append(ByteBuffer element);
+
+  boolean replace(Chain expected, Chain replacement);
+
 }
