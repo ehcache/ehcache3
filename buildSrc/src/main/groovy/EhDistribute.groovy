@@ -70,7 +70,7 @@ class EhDistribute implements Plugin<Project> {
 
     project.jar.doFirst {
       manifest = new DefaultInheritManifest(getServices().get(FileResolver.class))
-      manifest.inheritFrom project.shadowJar.manifest
+      manifest.inheritFrom "$project.buildDir/tmp/shadowJar/MANIFEST.MF"
       utils.fillManifest(manifest, project.archivesBaseName)
 
       def osgiConvention = new OsgiPluginConvention(project)
