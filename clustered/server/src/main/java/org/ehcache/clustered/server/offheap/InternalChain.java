@@ -23,7 +23,7 @@ interface InternalChain {
 
   Chain detach();
 
-  void append(ByteBuffer element);
+  boolean append(ByteBuffer element);
 
   boolean replace(Chain expected, Chain replacement);
 

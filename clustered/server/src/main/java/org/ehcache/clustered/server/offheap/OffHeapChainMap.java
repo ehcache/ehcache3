@@ -16,23 +16,28 @@
 package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.locks.Lock;
 
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.store.Util;
+import org.terracotta.offheapstore.MapInternals;
 
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.paging.PageSource;
+import org.terracotta.offheapstore.storage.portability.Portability;
 
-public class ChainMap<K> {
+class OffHeapChainMap<K> implements MapInternals {
 
   private final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
-  private final OffHeapChainStorage chainStorage;
+  private final OffHeapChainStorageEngine chainStorage;
 
-  public ChainMap(PageSource source) {
-    this.chainStorage = new OffHeapChainStorage();
+  public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability) {
+    this.chainStorage = new OffHeapChainStorageEngine(source, keyPortability);
     this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, chainStorage);
   }
 
@@ -42,7 +47,7 @@ public class ChainMap<K> {
     try {
       InternalChain chain = heads.get(key);
       if (chain == null) {
-        return empty();
+        return EMPTY_CHAIN;
       } else {
         return chain.detach();
       }
@@ -58,10 +63,12 @@ public class ChainMap<K> {
       InternalChain chain = heads.get(key);
       if (chain == null) {
         heads.put(key, chainStorage.newChain(element));
-        return empty();
+        return EMPTY_CHAIN;
       } else {
         Chain current = chain.detach();
-        chain.append(element);
+        if (!chain.append(element)) {
+          heads.remove(key);
+        }
         return current;
       }
     } finally {
@@ -76,8 +83,8 @@ public class ChainMap<K> {
       InternalChain chain = heads.get(key);
       if (chain == null) {
         heads.put(key, chainStorage.newChain(element));
-      } else {
-        chain.append(element);
+      } else if (!chain.append(element)) {
+        heads.remove(key);
       }
     } finally {
       lock.unlock();
@@ -91,7 +98,14 @@ public class ChainMap<K> {
     try {
       InternalChain chain = heads.get(key);
       if (chain == null) {
-        return false;
+        if (expected.iterator().hasNext()) {
+          return false;
+        } else {
+          for (Element element : replacement) {
+            append(key, element.getPayload());
+          }
+          return true;
+        }
       } else {
         return chain.replace(expected, replacement);
       }
@@ -117,7 +131,99 @@ public class ChainMap<K> {
     }
   };
 
-  private static Chain empty() {
-    return EMPTY_CHAIN;
+  public static Chain chain(ByteBuffer... buffers) {
+    final List<Element> list = new ArrayList<Element>();
+    for (ByteBuffer b : buffers) {
+      list.add(element(b));
+    }
+
+    return new Chain() {
+
+      final List<Element> elements = Collections.unmodifiableList(list);
+
+      @Override
+      public Iterator<Element> iterator() {
+        return elements.iterator();
+      }
+
+      @Override
+      public Iterator<Element> reverseIterator() {
+        return Util.reverseIterator(elements);
+      }
+
+      @Override
+      public boolean isEmpty() {
+        return elements.isEmpty();
+      }
+    };
+  }
+
+  private static Element element(final ByteBuffer b) {
+    return new Element() {
+      @Override
+      public ByteBuffer getPayload() {
+        return b.asReadOnlyBuffer();
+      }
+    };
+  }
+
+  @Override
+  public long getSize() {
+    return heads.getSize();
+  }
+
+  @Override
+  public long getTableCapacity() {
+    return heads.getTableCapacity();
+  }
+
+  @Override
+  public long getUsedSlotCount() {
+    return heads.getUsedSlotCount();
+  }
+
+  @Override
+  public long getRemovedSlotCount() {
+    return heads.getRemovedSlotCount();
+  }
+
+  @Override
+  public int getReprobeLength() {
+    return heads.getReprobeLength();
+  }
+
+  @Override
+  public long getAllocatedMemory() {
+    return heads.getAllocatedMemory();
+  }
+
+  @Override
+  public long getOccupiedMemory() {
+    return heads.getOccupiedMemory();
+  }
+
+  @Override
+  public long getVitalMemory() {
+    return heads.getVitalMemory();
+  }
+
+  @Override
+  public long getDataAllocatedMemory() {
+    return heads.getDataAllocatedMemory();
+  }
+
+  @Override
+  public long getDataOccupiedMemory() {
+    return heads.getDataOccupiedMemory();
+  }
+
+  @Override
+  public long getDataVitalMemory() {
+    return heads.getDataVitalMemory();
+  }
+
+  @Override
+  public long getDataSize() {
+    return heads.getDataSize();
   }
 }
