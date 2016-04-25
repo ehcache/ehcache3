@@ -28,6 +28,9 @@ import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.failure;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.success;
+
 public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private final UUID identity;
@@ -86,16 +89,17 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   private EhcacheEntityResponse configure(ConfigureCacheManager message) throws IllegalStateException {
     if (configuration == null) {
       this.configuration = message.getConfiguration();
-      return null;
+      return success();
     } else {
-      throw new IllegalStateException("Clustered Cache Manager already configured");
+      return failure(new IllegalStateException("Clustered Cache Manager already configured"));
     }
   }
 
   private EhcacheEntityResponse validate(ValidateCacheManager message)  throws IllegalArgumentException {
     if (Integer.bitCount(configuration.getMagic()) != Integer.bitCount(message.getConfiguration().getMagic())) {
-      throw new IllegalArgumentException("Magic parameters not aligned");
+      return failure(new IllegalArgumentException("Magic parameters not aligned"));
+    } else {
+      return success();
     }
-    return null;
   }
 }
