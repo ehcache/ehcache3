@@ -1,4 +1,6 @@
 @startuml
+
+title Passive Replication Proposal One ('The Chris')
 participant "Client" as C
 participant "Active Server" as AS
 participant "Passive Server" as PS
