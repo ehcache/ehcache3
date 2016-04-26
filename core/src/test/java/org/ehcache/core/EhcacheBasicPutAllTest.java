@@ -24,6 +24,7 @@ import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -31,13 +32,18 @@ import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -60,14 +66,18 @@ import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides testing of basic PUT_ALL operations on an {@code Ehcache}.
@@ -273,6 +283,50 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.getBulkMethodEntries().get(BulkOps.PUT_ALL).intValue(), is(0));
   }
 
+  @Test
+  public void putAllStoreCallsMethodTwice() throws Exception {
+    this.store = mock(Store.class);
+    CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
+    final List<Map.Entry> written = new ArrayList<Map.Entry>();
+    doAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        Iterable<Map.Entry> i = (Iterable) invocation.getArguments()[0];
+        for (Map.Entry entry : i) {
+          if (entry.getKey() == null) fail("null key is forbidden in CacheLoaderWriter.writeAll()");
+          if (entry.getValue() == null) fail("null value is forbidden in CacheLoaderWriter.writeAll()");
+          written.add(entry);
+        }
+        return null;
+      }
+    }).when(cacheLoaderWriter).writeAll(any(Iterable.class));
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
+
+    final ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
+
+    when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        Function function = functionArgumentCaptor.getValue();
+        Iterable arg = new HashMap((Map) function.getClass().getDeclaredField("val$entriesToRemap").get(function)).entrySet();
+        function.apply(arg);
+        function.apply(arg);
+        return null;
+      }
+    });
+
+    Map<String, String> map = new HashMap<String, String>() {{
+      put("1", "one");
+      put("2", "two");
+    }};
+
+    ehcache.putAll(map);
+
+    assertThat(written.size(), is(2));
+    assertThat(written.contains(new AbstractMap.SimpleEntry<String, String>("1", "one")), is(true));
+    assertThat(written.contains(new AbstractMap.SimpleEntry<String, String>("2", "two")), is(true));
+  }
+
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance
    *
@@ -280,6 +334,14 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
    */
   private Ehcache<String, String> getEhcache() {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
+    ehcache.init();
+    assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
+    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
+    return ehcache;
+  }
+
+  private EhcacheWithLoaderWriter<String, String> getEhcacheWithLoaderWriter(CacheLoaderWriter<? super String, String> cacheLoaderWriter) {
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
