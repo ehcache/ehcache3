@@ -66,4 +66,15 @@ public class BulkCacheWritingException extends CacheWritingException {
   public Set<?> getSuccesses() {
     return successes;
   }
+
+  @Override
+  public String getMessage() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Failed keys :");
+    for (Map.Entry<?, Exception> entry : failures.entrySet()) {
+      sb.append("\n ").append(entry.getKey()).append(" : ").append(entry.getValue());
+    }
+    return sb.toString();
+  }
+
 }
