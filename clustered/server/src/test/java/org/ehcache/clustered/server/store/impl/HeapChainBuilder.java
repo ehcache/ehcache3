@@ -16,7 +16,7 @@
 package org.ehcache.clustered.server.store.impl;
 
 import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.ChainBuilder;
+import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.common.store.Element;
 
 /**
@@ -26,10 +26,5 @@ public class HeapChainBuilder implements ChainBuilder {
   @Override
   public Chain build(Element... elements) {
     return new HeapChainImpl(elements);
-  }
-
-  @Override
-  public Chain emptyChain() {
-    return new HeapChainImpl();
   }
 }

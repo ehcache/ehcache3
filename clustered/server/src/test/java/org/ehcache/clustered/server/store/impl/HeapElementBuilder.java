@@ -16,7 +16,7 @@
 package org.ehcache.clustered.server.store.impl;
 
 import org.ehcache.clustered.common.store.Element;
-import org.ehcache.clustered.common.store.ElementBuilder;
+import org.ehcache.clustered.server.store.ElementBuilder;
 
 import java.nio.ByteBuffer;
 
@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
  */
 public class HeapElementBuilder implements ElementBuilder {
   @Override
-  public Element getElement(Element element, ByteBuffer payLoad) {
-    return new HeapElementImpl(((HeapElementImpl)element).getSequenceNumber(), payLoad);
+  public Element build(ByteBuffer payLoad) {
+    return new HeapElementImpl(-1L, payLoad);
   }
 }

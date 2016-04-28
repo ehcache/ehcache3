@@ -49,14 +49,14 @@ public class ReferenceStoreImpl implements ServerStore  {
   }
 
   private ReadWriteLock getLock(long key) {
-    return locks.get((int)key%LOCK_COUNT);
+    return locks.get((int)Math.abs(key)%LOCK_COUNT);
   }
 
   @Override
   public Chain get(long key) {
     Lock lock = getLock(key).readLock();
+    lock.lock();
     try {
-      lock.lock();
       Chain chain = map.get(key);
       if (chain != null) {
         return chain;
@@ -71,8 +71,8 @@ public class ReferenceStoreImpl implements ServerStore  {
   @Override
   public void append(long key, ByteBuffer payLoad) {
     Lock lock =  getLock(key).writeLock();
+    lock.lock();
     try {
-      lock.lock();
       Chain mapping = map.get(key);
       if (mapping == null) {
         map.put(key, new HeapChainImpl(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad)));
@@ -88,8 +88,8 @@ public class ReferenceStoreImpl implements ServerStore  {
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     Lock lock =  getLock(key).writeLock();
+    lock.lock();
     try {
-      lock.lock();
       Chain mapping = map.get(key);
       if (mapping != null) {
         Chain newMapping = cast(mapping).append(new HeapElementImpl(sequenceGenerator.incrementAndGet(), payLoad));
@@ -107,8 +107,8 @@ public class ReferenceStoreImpl implements ServerStore  {
   @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     Lock lock =  getLock(key).writeLock();
+    lock.lock();
     try {
-      lock.lock();
       Chain mapping = map.get(key);
       if (mapping == null) {
         return;

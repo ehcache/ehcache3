@@ -39,8 +39,8 @@ public class HeapChainImpl implements Chain {
   }
 
   @Override
-  public Iterator<Element> descendingIterator() {
-    return new DescendingChainIterator();
+  public Iterator<Element> reverseIterator() {
+    return new ReverseChainIterator();
   }
 
   @Override
@@ -135,11 +135,11 @@ public class HeapChainImpl implements Chain {
     }
   }
 
-  private class DescendingChainIterator implements Iterator<Element> {
+  private class ReverseChainIterator implements Iterator<Element> {
 
     private Node current;
 
-    DescendingChainIterator() {
+    ReverseChainIterator() {
       this.current = last;
     }
 

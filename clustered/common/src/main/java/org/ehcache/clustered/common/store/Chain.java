@@ -26,6 +26,8 @@ import java.util.Iterator;
  * This is server side data structure to store binary representation
  * of Cache data.
  *
+ * This interface just allows iteration over elements at client side.
+ *
  * This structure follows the insertion order, like an ordered list.
  * The {@link Iterator} returned by this class allows to traverse the chain
  * starting from first element.
@@ -39,7 +41,7 @@ public interface Chain extends Iterable<Element> {
    *
    * @return an Iterator.
    */
-  Iterator<Element> descendingIterator();
+  Iterator<Element> reverseIterator();
 
   /**
    * Returns true if Chain is empty else false.

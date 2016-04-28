@@ -17,9 +17,7 @@ package org.ehcache.clustered.server.store;
 
 
 import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.ChainBuilder;
 import org.ehcache.clustered.common.store.Element;
-import org.ehcache.clustered.common.store.ElementBuilder;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -42,28 +40,35 @@ public abstract class ServerStoreTest {
   private final ChainBuilder chainBuilder = newChainBuilder();
   private final ElementBuilder elementBuilder = newElementBuilder();
 
-  private Element compactChain(Chain chain, ByteBuffer payLoad) {
-
-  Iterator<Element> elements = chain.descendingIterator();
-  Element toUpdate = elements.next();
-
-  return elementBuilder.getElement(toUpdate, payLoad);
-  }
-
   private static void populateStore(ServerStore store) {
     for(int i = 1 ; i <= 16; i++) {
-      store.append(i, getPayload(i));
+      store.append(i, createPayload(i));
     }
   }
 
   private static long readPayLoad(ByteBuffer byteBuffer) {
-    byteBuffer.flip();
     return byteBuffer.getLong();
   }
 
-  private static ByteBuffer getPayload(long key) {
+  private static ByteBuffer createPayload(long key) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(8).putLong(key);
+    byteBuffer.flip();
     return byteBuffer;
+  }
+
+  private static void assertChainAndReverseChainOnlyHave(Chain chain, long... payLoads) {
+    Iterator<Element> elements = chain.iterator();
+    for (long payLoad : payLoads) {
+      assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(payLoad)));
+    }
+    assertThat(elements.hasNext(), is(false));
+
+    Iterator<Element> reverseElements = chain.reverseIterator();
+
+    for (int i = payLoads.length -1; i >= 0; i--) {
+      assertThat(readPayLoad(reverseElements.next().getPayload()), is(Long.valueOf(payLoads[i])));
+    }
+    assertThat(reverseElements.hasNext(), is(false));
   }
 
   @Test
@@ -71,6 +76,7 @@ public abstract class ServerStoreTest {
     ServerStore store = newStore();
     Chain chain = store.get(1);
     assertThat(chain.isEmpty(), is(true));
+    assertThat(chain.iterator().hasNext(), is(false));
   }
 
   @Test
@@ -79,63 +85,47 @@ public abstract class ServerStoreTest {
     populateStore(store);
     Chain chain = store.get(1);
     assertThat(chain.isEmpty(), is(false));
-    for (Element element : chain) {
-      assertThat(readPayLoad(element.getPayload()), is(Long.valueOf(1)));
-    }
+    assertChainAndReverseChainOnlyHave(chain, 1);
   }
 
   @Test
   public void testAppendNoMappingExists() {
     ServerStore store = newStore();
-    store.append(1, getPayload(1));
+    store.append(1, createPayload(1));
     Chain chain = store.get(1);
     assertThat(chain.isEmpty(), is(false));
-    for (Element element : chain) {
-      assertThat(readPayLoad(element.getPayload()), is(Long.valueOf(1)));
-    }
+    assertChainAndReverseChainOnlyHave(chain, 1);
   }
 
   @Test
   public void testAppendMappingExists() {
     ServerStore store = newStore();
     populateStore(store);
-    store.append(2, getPayload(22));
+    store.append(2, createPayload(22));
     Chain chain = store.get(2);
     assertThat(chain.isEmpty(), is(false));
-    Iterator<Element> linkIterator = chain.iterator();
-    Element element1 = linkIterator.next();
-    assertThat(readPayLoad(element1.getPayload()), is(Long.valueOf(2)));
-    Element element2 = linkIterator.next();
-    assertThat(readPayLoad(element2.getPayload()), is(Long.valueOf(22)));
-
+    assertChainAndReverseChainOnlyHave(chain, 2, 22);
   }
 
   @Test
   public void testGetAndAppendNoMappingExists() {
     ServerStore store = newStore();
-    Chain chain = store.getAndAppend(1, getPayload(1));
+    Chain chain = store.getAndAppend(1, createPayload(1));
     assertThat(chain.isEmpty(), is(true));
     chain = store.get(1);
-    for (Element element : chain) {
-      assertThat(readPayLoad(element.getPayload()), is(Long.valueOf(1)));
-    }
+    assertChainAndReverseChainOnlyHave(chain, 1);
   }
 
   @Test
   public void testGetAndAppendMappingExists() {
     ServerStore store = newStore();
     populateStore(store);
-    Chain chain = store.getAndAppend(1, getPayload(22));
+    Chain chain = store.getAndAppend(1, createPayload(22));
     for (Element element : chain) {
       assertThat(readPayLoad(element.getPayload()), is(Long.valueOf(1)));
     }
     chain = store.get(1);
-    Iterator<Element> linkIterator = chain.iterator();
-    Element element1 = linkIterator.next();
-    assertThat(readPayLoad(element1.getPayload()), is(Long.valueOf(1)));
-    Element element2 = linkIterator.next();
-    assertThat(readPayLoad(element2.getPayload()), is(Long.valueOf(22)));
-
+    assertChainAndReverseChainOnlyHave(chain, 1, 22);
   }
 
   @Test
@@ -144,24 +134,20 @@ public abstract class ServerStoreTest {
     populateStore(store);
     Chain existingMapping = store.get(1);
 
-    store.replaceAtHead(1, existingMapping, chainBuilder.build(compactChain(existingMapping, getPayload(11))));
+    store.replaceAtHead(1, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(11))));
     Chain chain = store.get(1);
-    for (Element element : chain) {
-      assertThat(readPayLoad(element.getPayload()), is(Long.valueOf(11)));
-    }
+    assertChainAndReverseChainOnlyHave(chain, 11);
 
-    store.append(2, getPayload(22));
-    store.append(2, getPayload(222));
+    store.append(2, createPayload(22));
+    store.append(2, createPayload(222));
 
     existingMapping = store.get(2);
 
-    store.replaceAtHead(2, existingMapping, chainBuilder.build(compactChain(existingMapping, getPayload(2222))));
+    store.replaceAtHead(2, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(2222))));
 
     chain = store.get(2);
 
-    for (Element element : chain) {
-      assertThat(readPayLoad(element.getPayload()), is(Long.valueOf(2222)));
-    }
+    assertChainAndReverseChainOnlyHave(chain, 2222);
   }
 
   @Test
@@ -171,28 +157,22 @@ public abstract class ServerStoreTest {
 
     Chain existingMapping = store.get(1);
 
-    store.append(1, getPayload(11));
+    store.append(1, createPayload(11));
 
-    store.replaceAtHead(1, existingMapping, chainBuilder.build(compactChain(existingMapping, getPayload(111))));
+    store.replaceAtHead(1, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(111))));
     Chain chain = store.get(1);
-    Iterator<Element> elements = chain.iterator();
 
-    assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(111)));
-    assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(11)));
+    assertChainAndReverseChainOnlyHave(chain, 111, 11);
 
-    store.append(2, getPayload(22));
+    store.append(2, createPayload(22));
     existingMapping = store.get(2);
 
-    store.append(2, getPayload(222));
+    store.append(2, createPayload(222));
 
-    store.replaceAtHead(2, existingMapping, chainBuilder.build(compactChain(existingMapping, getPayload(2222))));
+    store.replaceAtHead(2, existingMapping, chainBuilder.build(elementBuilder.build(createPayload(2222))));
 
     chain = store.get(2);
-    elements = chain.iterator();
-
-    assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(2222)));
-    assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(222)));
-
+    assertChainAndReverseChainOnlyHave(chain, 2222, 222);
   }
 
   @Test
@@ -200,28 +180,21 @@ public abstract class ServerStoreTest {
     ServerStore store = newStore();
     populateStore(store);
 
-    store.append(1, getPayload(11));
-    store.append(1, getPayload(111));
+    store.append(1, createPayload(11));
+    store.append(1, createPayload(111));
 
     Chain mappingReadFirst = store.get(1);
-    store.replaceAtHead(1, mappingReadFirst, chainBuilder.build(compactChain(mappingReadFirst, getPayload(111))));
+    store.replaceAtHead(1, mappingReadFirst, chainBuilder.build(elementBuilder.build(createPayload(111))));
 
     Chain current = store.get(1);
-    for(Element element : current) {
-      assertThat(readPayLoad(element.getPayload()), is(Long.valueOf(111)));
-    }
+    assertChainAndReverseChainOnlyHave(current, 111);
 
-    store.append(1, getPayload(1111));
-    store.replaceAtHead(1, mappingReadFirst, chainBuilder.build(compactChain(mappingReadFirst, getPayload(11111))));
+    store.append(1, createPayload(1111));
+    store.replaceAtHead(1, mappingReadFirst, chainBuilder.build(elementBuilder.build(createPayload(11111))));
 
     Chain toVerify = store.get(1);
 
-    Iterator<Element> elements = toVerify.iterator();
-
-    assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(111)));
-    assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(1111)));
-    assertThat(elements.hasNext(), is(false));
-
+    assertChainAndReverseChainOnlyHave(toVerify, 111, 1111);
   }
 
 }

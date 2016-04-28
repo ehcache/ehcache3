@@ -13,25 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.store;
+package org.ehcache.clustered.server.store;
+
+import org.ehcache.clustered.common.store.Element;
+
+import java.nio.ByteBuffer;
 
 /**
- * Builds {@link Chain}s
+ * Builds {@link Element}s
  */
-public interface ChainBuilder {
+public interface ElementBuilder {
 
   /**
-   * Builds chain using elements provided
+   * Builds an {@link Element} from payLoad
    *
-   * @param elements to be part of the new Chain
-   * @return the new {@link Chain}
+   * @param payLoad the new payLoad
+   * @return the Element with payLoad
    */
-  Chain build(Element... elements);
-
-  /**
-   * Returns an empty {@link Chain} with zero {@link Element}s.
-   *
-   * @return empty Chain
-   */
-  Chain emptyChain();
+  Element build(ByteBuffer payLoad);
 }
