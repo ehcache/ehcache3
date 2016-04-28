@@ -50,15 +50,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse, Serializa
     }
   }
 
-  public static Failure failure(Throwable cause) {
+  public static Failure failure(Exception cause) {
     return new Failure(cause);
   }
 
   public static class Failure extends EhcacheEntityResponse {
 
-    private final Throwable cause;
+    private final Exception cause;
 
-    public Failure(Throwable cause) {
+    public Failure(Exception cause) {
       this.cause = cause;
     }
 
@@ -67,10 +67,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse, Serializa
       return Type.FAILURE;
     }
 
-    public Throwable getCause() {
+    public Exception getCause() {
       return cause;
     }
   }
-
 
 }
