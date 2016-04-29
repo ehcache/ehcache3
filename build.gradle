@@ -147,7 +147,6 @@ subprojects {
   repositories {
     mavenCentral()
     maven { url "http://repo.terracotta.org/maven2" }
-    mavenLocal()
   }
 
   sourceSets {
