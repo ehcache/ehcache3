@@ -33,7 +33,7 @@
 
   <xs:complexType name="defaults-type">
     <xs:sequence>
-      <xs:element name="cache" type="jsr107:cache-type" minOccurs="1" maxOccurs="unbounded">
+      <xs:element name="cache" type="jsr107:cache-type" minOccurs="0" maxOccurs="unbounded">
         <xs:key name="template-ref">
           <xs:selector xpath="cache-template"/>
           <xs:field xpath="@name"/>

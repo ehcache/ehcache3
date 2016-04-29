@@ -22,9 +22,7 @@
                         http://www.ehcache.org/v3/jsr107 ../../main/resources/ehcache-107ext.xsd">
 
   <service>
-    <jsr107:defaults enable-management="true" enable-statistics="true">
-      <jsr107:cache name="toto" template="damn"/>
-    </jsr107:defaults>
+    <jsr107:defaults enable-management="true" enable-statistics="true"/>
   </service>
 
   <cache alias="stringCache">
@@ -46,8 +44,4 @@
     <heap unit="entries">2000</heap>
     <jsr107:mbeans enable-statistics="false"/>
   </cache>
-
-  <cache-template name="damn">
-  </cache-template>
-
 </config>
