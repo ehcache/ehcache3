@@ -18,12 +18,14 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
 import javax.cache.Caching;
+import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -41,6 +43,11 @@ public class ConfigStatsManagementActivationTest {
   @Before
   public void setUp() {
     provider = Caching.getCachingProvider();
+  }
+
+  @After
+  public void tearDown() {
+    provider.close();
   }
 
   @Test
@@ -102,5 +109,57 @@ public class ConfigStatsManagementActivationTest {
     Eh107Configuration<Long, String> configuration = cache.getConfiguration(Eh107Configuration.class);
     assertThat(configuration.isManagementEnabled(), is(true));
     assertThat(configuration.isStatisticsEnabled(), is(true));
+  }
+
+  @Test
+  public void testManagementDisabledOverriddenFromTemplate() throws Exception {
+    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-mbeans-template-config.xml")
+            .toURI(),
+        provider.getDefaultClassLoader());
+
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    configuration.setTypes(Long.class, String.class);
+    configuration.setManagementEnabled(false);
+    configuration.setStatisticsEnabled(false);
+
+    Cache<Long, String> cache = cacheManager.createCache("enables-mbeans", configuration);
+
+    Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
+    assertThat(eh107Configuration.isManagementEnabled(), is(true));
+    assertThat(eh107Configuration.isStatisticsEnabled(), is(true));
+  }
+
+  @Test
+  public void testManagementEnabledOverriddenFromTemplate() throws Exception {
+    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-mbeans-template-config.xml")
+            .toURI(),
+        provider.getDefaultClassLoader());
+
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    configuration.setTypes(Long.class, String.class);
+    configuration.setManagementEnabled(true);
+    configuration.setStatisticsEnabled(true);
+
+    Cache<Long, String> cache = cacheManager.createCache("disables-mbeans", configuration);
+
+    Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
+    assertThat(eh107Configuration.isManagementEnabled(), is(false));
+    assertThat(eh107Configuration.isStatisticsEnabled(), is(false));
+  }
+
+  @Test
+  public void basicJsr107StillWorks() throws Exception {
+    CacheManager cacheManager = provider.getCacheManager();
+
+    MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
+    configuration.setTypes(Long.class, String.class);
+    configuration.setManagementEnabled(true);
+    configuration.setStatisticsEnabled(true);
+
+    Cache<Long, String> cache = cacheManager.createCache("cache", configuration);
+    Eh107Configuration eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
+
+    assertThat(eh107Configuration.isManagementEnabled(), is(true));
+    assertThat(eh107Configuration.isStatisticsEnabled(), is(true));
   }
 }

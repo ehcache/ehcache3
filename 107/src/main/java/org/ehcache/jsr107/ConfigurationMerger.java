@@ -123,6 +123,8 @@ class ConfigurationMerger {
 
       CacheConfiguration<K, V> cacheConfiguration = builder.build();
 
+      setupManagementAndStatsInternal(jsr107Configuration, findSingletonAmongst(Jsr107CacheConfiguration.class, cacheConfiguration.getServiceConfigurations()));
+
       if (hasConfiguredExpiry) {
         expiryPolicy = new EhcacheExpiryWrapper<K, V>(cacheConfiguration.getExpiry());
       }
@@ -257,10 +259,14 @@ class ConfigurationMerger {
   }
 
   void setUpManagementAndStats(InternalCache<?, ?> cache, Eh107Configuration<?, ?> configuration) {
-    boolean enableManagement = jsr107Service.isManagementEnabledOnAllCaches();
-    boolean enableStatistics = jsr107Service.isStatisticsEnabledOnAllCaches();
     Jsr107CacheConfiguration cacheConfiguration = ServiceLocator.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
         .getRuntimeConfiguration().getServiceConfigurations());
+    setupManagementAndStatsInternal(configuration, cacheConfiguration);
+  }
+
+  private void setupManagementAndStatsInternal(Eh107Configuration<?, ?> configuration, Jsr107CacheConfiguration cacheConfiguration) {
+    Boolean enableManagement = jsr107Service.isManagementEnabledOnAllCaches();
+    Boolean enableStatistics = jsr107Service.isStatisticsEnabledOnAllCaches();
     if (cacheConfiguration != null) {
       Boolean managementEnabled = cacheConfiguration.isManagementEnabled();
       if (managementEnabled != null) {
@@ -271,8 +277,12 @@ class ConfigurationMerger {
         enableStatistics = statisticsEnabled;
       }
     }
-    configuration.setManagementEnabled(enableManagement);
-    configuration.setStatisticsEnabled(enableStatistics);
+    if (enableManagement != null) {
+      configuration.setManagementEnabled(enableManagement);
+    }
+    if (enableStatistics != null) {
+      configuration.setStatisticsEnabled(enableStatistics);
+    }
   }
 
   static class ConfigHolder<K, V> {

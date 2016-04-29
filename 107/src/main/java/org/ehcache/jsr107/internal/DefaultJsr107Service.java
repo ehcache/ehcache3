@@ -62,12 +62,20 @@ public class DefaultJsr107Service implements Jsr107Service {
   }
 
   @Override
-  public boolean isManagementEnabledOnAllCaches() {
-    return configuration != null && configuration.isEnableManagementAll();
+  public Boolean isManagementEnabledOnAllCaches() {
+    if (configuration == null) {
+      return null;
+    } else {
+      return configuration.isEnableManagementAll();
+    }
   }
 
   @Override
-  public boolean isStatisticsEnabledOnAllCaches() {
-    return configuration != null && configuration.isEnableStatisticsAll();
+  public Boolean isStatisticsEnabledOnAllCaches() {
+    if (configuration == null) {
+      return null;
+    } else {
+      return configuration.isEnableStatisticsAll();
+    }
   }
 }

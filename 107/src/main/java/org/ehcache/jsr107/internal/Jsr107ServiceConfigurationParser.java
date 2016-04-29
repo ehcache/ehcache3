@@ -61,8 +61,8 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
   @Override
   public ServiceCreationConfiguration<Jsr107Service> parseServiceCreationConfiguration(final Element fragment) {
     boolean jsr107CompliantAtomics = true;
-    boolean enableManagementAll = false;
-    boolean enableStatisticsAll = false;
+    Boolean enableManagementAll = null;
+    Boolean enableStatisticsAll = null;
     if (fragment.hasAttribute(JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE)) {
       jsr107CompliantAtomics = parseBoolean(fragment.getAttribute(JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE));
     }

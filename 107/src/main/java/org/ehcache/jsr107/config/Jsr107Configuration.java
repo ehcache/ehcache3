@@ -28,8 +28,8 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
 
   private final String defaultTemplate;
   private final boolean jsr107CompliantAtomics;
-  private final boolean enableManagementAll;
-  private final boolean enableStatisticsAll;
+  private final Boolean enableManagementAll;
+  private final Boolean enableStatisticsAll;
   private final Map<String, String> templates;
 
   /**
@@ -41,7 +41,7 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
    * @param enableStatisticsAll
    */
   public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates,
-                             boolean jsr107CompliantAtomics, boolean enableManagementAll, boolean enableStatisticsAll) {
+                             boolean jsr107CompliantAtomics, Boolean enableManagementAll, Boolean enableStatisticsAll) {
     this.defaultTemplate = defaultTemplate;
     this.jsr107CompliantAtomics = jsr107CompliantAtomics;
     this.enableManagementAll = enableManagementAll;
@@ -92,7 +92,7 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
    *
    * @return {@code true} to enable management on all caches, {@code false} otherwise
    */
-  public boolean isEnableManagementAll() {
+  public Boolean isEnableManagementAll() {
     return enableManagementAll;
   }
 
@@ -101,7 +101,7 @@ public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107S
    *
    * @return {@code true} to enable management on all caches, {@code false} otherwise
    */
-  public boolean isEnableStatisticsAll() {
+  public Boolean isEnableStatisticsAll() {
     return enableStatisticsAll;
   }
 }
