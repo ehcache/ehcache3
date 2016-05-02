@@ -16,6 +16,7 @@
 
 package org.ehcache.jsr107.internal;
 
+import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.jsr107.config.Jsr107Service;
@@ -61,16 +62,16 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
   @Override
   public ServiceCreationConfiguration<Jsr107Service> parseServiceCreationConfiguration(final Element fragment) {
     boolean jsr107CompliantAtomics = true;
-    Boolean enableManagementAll = null;
-    Boolean enableStatisticsAll = null;
+    ConfigurationElementState enableManagementAll = ConfigurationElementState.UNSPECIFIED;
+    ConfigurationElementState enableStatisticsAll = ConfigurationElementState.UNSPECIFIED;
     if (fragment.hasAttribute(JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE)) {
       jsr107CompliantAtomics = parseBoolean(fragment.getAttribute(JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE));
     }
     if (fragment.hasAttribute(ENABLE_MANAGEMENT_ALL_ATTRIBUTE)) {
-      enableManagementAll = parseBoolean(fragment.getAttribute(ENABLE_MANAGEMENT_ALL_ATTRIBUTE));
+      enableManagementAll = parseBoolean(fragment.getAttribute(ENABLE_MANAGEMENT_ALL_ATTRIBUTE)) ? ConfigurationElementState.ENABLED : ConfigurationElementState.DISABLED;
     }
     if (fragment.hasAttribute(ENABLE_STATISTICS_ALL_ATTRIBUTE)) {
-      enableStatisticsAll = parseBoolean(fragment.getAttribute(ENABLE_STATISTICS_ALL_ATTRIBUTE));
+      enableStatisticsAll = parseBoolean(fragment.getAttribute(ENABLE_STATISTICS_ALL_ATTRIBUTE)) ? ConfigurationElementState.ENABLED : ConfigurationElementState.DISABLED;
     }
     final String defaultTemplate = fragment.getAttribute(DEFAULT_TEMPLATE_ATTRIBUTE);
     final HashMap<String, String> templates = new HashMap<String, String>();
