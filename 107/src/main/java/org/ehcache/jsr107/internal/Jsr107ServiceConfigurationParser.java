@@ -32,6 +32,8 @@ import java.util.HashMap;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
+import static java.lang.Boolean.parseBoolean;
+
 /**
  * @author Alex Snaps
  */
@@ -39,6 +41,12 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
 
   private static final URI NAMESPACE = URI.create("http://www.ehcache.org/v3/jsr107");
   private static final URL XML_SCHEMA = Jsr107ServiceConfigurationParser.class.getResource("/ehcache-107ext.xsd");
+  private static final String ENABLE_MANAGEMENT_ALL_ATTRIBUTE = "enable-management";
+  private static final String JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE = "jsr-107-compliant-atomics";
+  private static final String ENABLE_STATISTICS_ALL_ATTRIBUTE = "enable-statistics";
+  private static final String DEFAULT_TEMPLATE_ATTRIBUTE = "default-template";
+  private static final String CACHE_NAME_ATTRIBUTE = "name";
+  private static final String TEMPLATE_NAME_ATTRIBUTE = "template";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -53,20 +61,28 @@ public class Jsr107ServiceConfigurationParser implements CacheManagerServiceConf
   @Override
   public ServiceCreationConfiguration<Jsr107Service> parseServiceCreationConfiguration(final Element fragment) {
     boolean jsr107CompliantAtomics = true;
-    if (fragment.hasAttribute("jsr-107-compliant-atomics")) {
-      jsr107CompliantAtomics = Boolean.parseBoolean(fragment.getAttribute("jsr-107-compliant-atomics"));
+    Boolean enableManagementAll = null;
+    Boolean enableStatisticsAll = null;
+    if (fragment.hasAttribute(JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE)) {
+      jsr107CompliantAtomics = parseBoolean(fragment.getAttribute(JSR_107_COMPLIANT_ATOMICS_ATTRIBUTE));
     }
-    final String defaultTemplate = fragment.getAttribute("default-template");
+    if (fragment.hasAttribute(ENABLE_MANAGEMENT_ALL_ATTRIBUTE)) {
+      enableManagementAll = parseBoolean(fragment.getAttribute(ENABLE_MANAGEMENT_ALL_ATTRIBUTE));
+    }
+    if (fragment.hasAttribute(ENABLE_STATISTICS_ALL_ATTRIBUTE)) {
+      enableStatisticsAll = parseBoolean(fragment.getAttribute(ENABLE_STATISTICS_ALL_ATTRIBUTE));
+    }
+    final String defaultTemplate = fragment.getAttribute(DEFAULT_TEMPLATE_ATTRIBUTE);
     final HashMap<String, String> templates = new HashMap<String, String>();
     final NodeList childNodes = fragment.getChildNodes();
     for (int i = 0; i < childNodes.getLength(); i++) {
       final Node node = childNodes.item(i);
       if (node.getNodeType() == Node.ELEMENT_NODE) {
         final Element item = (Element)node;
-        templates.put(item.getAttribute("name"), item.getAttribute("template"));
+        templates.put(item.getAttribute(CACHE_NAME_ATTRIBUTE), item.getAttribute(TEMPLATE_NAME_ATTRIBUTE));
       }
     }
 
-    return new Jsr107Configuration(defaultTemplate, templates, jsr107CompliantAtomics);
+    return new Jsr107Configuration(defaultTemplate, templates, jsr107CompliantAtomics, enableManagementAll, enableStatisticsAll);
   }
 }
