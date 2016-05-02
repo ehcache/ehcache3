@@ -60,4 +60,22 @@ public class DefaultJsr107Service implements Jsr107Service {
     }
     return cfg.isJsr107CompliantAtomics();
   }
+
+  @Override
+  public Boolean isManagementEnabledOnAllCaches() {
+    if (configuration == null) {
+      return null;
+    } else {
+      return configuration.isEnableManagementAll();
+    }
+  }
+
+  @Override
+  public Boolean isStatisticsEnabledOnAllCaches() {
+    if (configuration == null) {
+      return null;
+    } else {
+      return configuration.isEnableStatisticsAll();
+    }
+  }
 }

@@ -41,4 +41,18 @@ public interface Jsr107Service extends Service {
    */
   boolean jsr107CompliantAtomics();
 
+  /**
+   * Indicates if all created caches should have management enabled.
+   *
+   * @return {@code true} to enable management on all caches, {@code false} otherwise
+   */
+  Boolean isManagementEnabledOnAllCaches();
+
+  /**
+   * Indicates if all created caches should have statistics enabled.
+   *
+   * @return {@code true} to enable management on all caches, {@code false} otherwise
+   */
+  Boolean isStatisticsEnabledOnAllCaches();
+
 }
