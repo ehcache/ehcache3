@@ -16,6 +16,7 @@
 
 package org.ehcache.jsr107.internal;
 
+import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -54,13 +55,13 @@ public class Jsr107CacheConfigurationParser implements CacheServiceConfiguration
   public ServiceConfiguration<Jsr107Service> parseServiceConfiguration(Element fragment) {
     String localName = fragment.getLocalName();
     if ("mbeans".equals(localName)) {
-      Boolean managementEnabled = null;
-      Boolean statisticsEnabled = null;
+      ConfigurationElementState managementEnabled = ConfigurationElementState.UNSPECIFIED;
+      ConfigurationElementState statisticsEnabled = ConfigurationElementState.UNSPECIFIED;
       if (fragment.hasAttribute(MANAGEMENT_ENABLED_ATTRIBUTE)) {
-        managementEnabled = Boolean.parseBoolean(fragment.getAttribute(MANAGEMENT_ENABLED_ATTRIBUTE));
+        managementEnabled = Boolean.parseBoolean(fragment.getAttribute(MANAGEMENT_ENABLED_ATTRIBUTE)) ? ConfigurationElementState.ENABLED : ConfigurationElementState.DISABLED;
       }
       if (fragment.hasAttribute(STATISTICS_ENABLED_ATTRIBUTE)) {
-        statisticsEnabled = Boolean.parseBoolean(fragment.getAttribute(STATISTICS_ENABLED_ATTRIBUTE));
+        statisticsEnabled = Boolean.parseBoolean(fragment.getAttribute(STATISTICS_ENABLED_ATTRIBUTE)) ? ConfigurationElementState.ENABLED : ConfigurationElementState.DISABLED;
       }
       return new Jsr107CacheConfiguration(statisticsEnabled, managementEnabled);
     } else {

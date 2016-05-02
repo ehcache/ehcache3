@@ -17,6 +17,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.junit.After;
 import org.junit.Before;
@@ -103,7 +104,7 @@ public class ConfigStatsManagementActivationTest {
     CacheManager cacheManager = provider.getCacheManager();
 
     CacheConfigurationBuilder<Long, String> configurationBuilder = newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .add(new Jsr107CacheConfiguration(true, true));
+        .add(new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.ENABLED));
     Cache<Long, String> cache = cacheManager.createCache("test", Eh107Configuration.fromEhcacheCacheConfiguration(configurationBuilder));
 
     Eh107Configuration<Long, String> configuration = cache.getConfiguration(Eh107Configuration.class);
