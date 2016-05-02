@@ -177,7 +177,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <1> Expiry is configured at the cache level, so start by defining a cache configuration,
 <2> then add to it an `Expiry`, here using the predefined _time-to-live_ one, configured with the required `Duration`.
 
-See `org.ehcache.expiry.Expirations` for other built-in expirations, or implement the `Expiry` interface yourself for even more control.
+See the section on <<expiry.adoc#,expiry>> for more information about the options available.
 
 [[configuring-with-xml]]
 === Configuring With XML
