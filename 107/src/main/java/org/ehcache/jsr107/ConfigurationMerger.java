@@ -25,6 +25,7 @@ import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.copy.Copier;
@@ -265,23 +266,23 @@ class ConfigurationMerger {
   }
 
   private void setupManagementAndStatsInternal(Eh107Configuration<?, ?> configuration, Jsr107CacheConfiguration cacheConfiguration) {
-    Boolean enableManagement = jsr107Service.isManagementEnabledOnAllCaches();
-    Boolean enableStatistics = jsr107Service.isStatisticsEnabledOnAllCaches();
+    ConfigurationElementState enableManagement = jsr107Service.isManagementEnabledOnAllCaches();
+    ConfigurationElementState enableStatistics = jsr107Service.isStatisticsEnabledOnAllCaches();
     if (cacheConfiguration != null) {
-      Boolean managementEnabled = cacheConfiguration.isManagementEnabled();
-      if (managementEnabled != null) {
+      ConfigurationElementState managementEnabled = cacheConfiguration.isManagementEnabled();
+      if (managementEnabled != null && managementEnabled != ConfigurationElementState.UNSPECIFIED) {
         enableManagement = managementEnabled;
       }
-      Boolean statisticsEnabled = cacheConfiguration.isStatisticsEnabled();
-      if (statisticsEnabled != null) {
+      ConfigurationElementState statisticsEnabled = cacheConfiguration.isStatisticsEnabled();
+      if (statisticsEnabled != null && statisticsEnabled != ConfigurationElementState.UNSPECIFIED) {
         enableStatistics = statisticsEnabled;
       }
     }
-    if (enableManagement != null) {
-      configuration.setManagementEnabled(enableManagement);
+    if (enableManagement != null && enableManagement != ConfigurationElementState.UNSPECIFIED) {
+      configuration.setManagementEnabled(enableManagement.asBoolean());
     }
-    if (enableStatistics != null) {
-      configuration.setStatisticsEnabled(enableStatistics);
+    if (enableStatistics != null && enableStatistics != ConfigurationElementState.UNSPECIFIED) {
+      configuration.setStatisticsEnabled(enableStatistics.asBoolean());
     }
   }
 

@@ -16,6 +16,7 @@
 
 package org.ehcache.jsr107.internal;
 
+import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.service.ServiceProvider;
@@ -62,7 +63,7 @@ public class DefaultJsr107Service implements Jsr107Service {
   }
 
   @Override
-  public Boolean isManagementEnabledOnAllCaches() {
+  public ConfigurationElementState isManagementEnabledOnAllCaches() {
     if (configuration == null) {
       return null;
     } else {
@@ -71,7 +72,7 @@ public class DefaultJsr107Service implements Jsr107Service {
   }
 
   @Override
-  public Boolean isStatisticsEnabledOnAllCaches() {
+  public ConfigurationElementState isStatisticsEnabledOnAllCaches() {
     if (configuration == null) {
       return null;
     } else {
