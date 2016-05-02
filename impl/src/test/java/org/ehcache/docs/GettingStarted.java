@@ -30,6 +30,8 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
@@ -492,6 +494,16 @@ public class GettingStarted {
 
     cacheManager.close();
     // end::cacheEvictionAdvisor[]
+  }
+
+  @Test
+  public void expiry() throws Exception {
+    // tag::expiry[]
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.heap(100)) // <1>
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(20, TimeUnit.SECONDS))) // <2>
+        .build();
+    // end::expiry[]
   }
 
 
