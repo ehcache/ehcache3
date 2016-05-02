@@ -96,7 +96,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private final OperationObserver<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome> getAndRemoveObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.InstallMappingOutcome> installMappingObserver;
 
-  private volatile Callable<Void> valve;
+  private volatile InvalidationValve valve;
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
   private volatile CachingTier.InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
 
@@ -969,6 +969,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
+  public void setInvalidationValve(InvalidationValve valve) {
+    this.valve = valve;
+  }
+
+  @Override
   public void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
     this.invalidationListener = invalidationListener;
     mapEvictionListener.setInvalidationListener(invalidationListener);
@@ -1115,10 +1120,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  public void registerEmergencyValve(final Callable<Void> valve) {
-    this.valve = valve;
-  }
-
   private boolean safeEquals(V existingValue, V computedValue) {
     return existingValue == computedValue || (existingValue != null && existingValue.equals(computedValue));
   }
@@ -1200,11 +1201,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause, StoreEventSink<K, V> eventSink) throws StoreAccessException {
+  void handleOversizeMappingException(K key, OversizeMappingException cause, StoreEventSink<K, V> eventSink) throws StoreAccessException {
     handleOversizeMappingException(key, cause, null, eventSink);
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve, StoreEventSink<K, V> eventSink) throws StoreAccessException {
+  void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve, StoreEventSink<K, V> eventSink) throws StoreAccessException {
     if (eventSink != null) {
       eventDispatcher.reset(eventSink);
     }
@@ -1234,10 +1235,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       return false;
     }
     invokeValve.set(false);
-    Callable<Void> valve = this.valve;
+    InvalidationValve valve = this.valve;
     if (valve != null) {
       try {
-        valve.call();
+        valve.invalidateAll();
       } catch (Exception exception) {
         throw new StoreAccessException("Failed invoking valve", exception);
       }
