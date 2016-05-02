@@ -503,7 +503,7 @@ public class GettingStarted {
     // tag::expiry[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.heap(100)) // <1>
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(20, TimeUnit.SECONDS))) // <2>
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(20, TimeUnit.SECONDS))) // <2>
         .build();
     // end::expiry[]
   }
