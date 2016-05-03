@@ -112,7 +112,6 @@ class ConfigurationParser {
     factory.setNamespaceAware(true);
     factory.setIgnoringComments(true);
     factory.setIgnoringElementContentWhitespace(true);
-    factory.setXIncludeAware(true);
     factory.setSchema(XSD_SCHEMA_FACTORY.newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
 
     final DocumentBuilder domBuilder;
