@@ -49,7 +49,11 @@ class OffHeapChainMap<K> implements MapInternals {
       if (chain == null) {
         return EMPTY_CHAIN;
       } else {
-        return chain.detach();
+        try {
+          return chain.detach();
+        } finally {
+          chain.close();
+        }
       }
     } finally {
       lock.unlock();
@@ -65,11 +69,15 @@ class OffHeapChainMap<K> implements MapInternals {
         heads.put(key, chainStorage.newChain(element));
         return EMPTY_CHAIN;
       } else {
-        Chain current = chain.detach();
-        if (!chain.append(element)) {
-          heads.remove(key);
+        try {
+          Chain current = chain.detach();
+          if (!chain.append(element)) {
+            heads.remove(key).close();
+          }
+          return current;
+        } finally {
+          chain.close();
         }
-        return current;
       }
     } finally {
       lock.unlock();
@@ -83,8 +91,14 @@ class OffHeapChainMap<K> implements MapInternals {
       InternalChain chain = heads.get(key);
       if (chain == null) {
         heads.put(key, chainStorage.newChain(element));
-      } else if (!chain.append(element)) {
-        heads.remove(key);
+      } else {
+        try {
+          if (!chain.append(element)) {
+            heads.remove(key).close();
+          }
+        } finally {
+          chain.close();
+        }
       }
     } finally {
       lock.unlock();
@@ -107,7 +121,11 @@ class OffHeapChainMap<K> implements MapInternals {
           return true;
         }
       } else {
-        return chain.replace(expected, replacement);
+        try {
+          return chain.replace(expected, replacement);
+        } finally {
+          chain.close();
+        }
       }
     } finally {
       lock.unlock();

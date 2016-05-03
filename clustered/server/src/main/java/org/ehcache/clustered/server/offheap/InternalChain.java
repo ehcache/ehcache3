@@ -15,11 +15,12 @@
  */
 package org.ehcache.clustered.server.offheap;
 
+import java.io.Closeable;
 import java.nio.ByteBuffer;
 
 import org.ehcache.clustered.common.store.Chain;
 
-interface InternalChain {
+interface InternalChain extends Closeable {
 
   Chain detach();
 
@@ -27,4 +28,6 @@ interface InternalChain {
 
   boolean replace(Chain expected, Chain replacement);
 
+  @Override
+  void close();
 }
