@@ -35,9 +35,10 @@ import static java.util.Collections.unmodifiableList;
 
 class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
-  private static final int ELEMENT_HEADER_LENGTH_OFFSET = 0;
-  private static final int ELEMENT_HEADER_NEXT_OFFSET = 4;
-  private static final int ELEMENT_HEADER_SIZE = 12;
+  private static final int ELEMENT_HEADER_SEQUENCE_OFFSET = 0;
+  private static final int ELEMENT_HEADER_LENGTH_OFFSET = 8;
+  private static final int ELEMENT_HEADER_NEXT_OFFSET = 12;
+  private static final int ELEMENT_HEADER_SIZE = 20;
 
   private static final int CHAIN_HEADER_KEY_LENGTH_OFFSET = 0;
   private static final int CHAIN_HEADER_KEY_HASH_OFFSET = 4;
@@ -49,6 +50,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   private final Set<AttachedInternalChain> activeChains = new HashSet<AttachedInternalChain>();
 
   private StorageEngine.Owner owner;
+  private long nextSequenceNumber = 0;
 
   public OffHeapChainStorageEngine(PageSource source, Portability<? super K> keyPortability) {
     this.storage = new OffHeapStorageArea(PointerSize.LONG, new StorageOwner(), source, 4096, true, true);
@@ -239,7 +241,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
       long element = chain + CHAIN_HEADER_SIZE;
       do {
-        buffers.add(element(readElementBuffer(element)));
+        buffers.add(element(readElementBuffer(element), readElementSequenceNumber(element)));
         element = storage.readLong(element + ELEMENT_HEADER_NEXT_OFFSET);
       } while (element != chain);
 
@@ -425,7 +427,11 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     }
 
     private boolean compare(Element element, long address) {
-      return readElementBuffer(address).equals(element.getPayload());
+      if (element instanceof SequencedElement) {
+        return readElementSequenceNumber(address) == ((SequencedElement) element).getSequenceNumber();
+      } else {
+        return readElementBuffer(address).equals(element.getPayload());
+      }
     }
 
     private void append(long head, long tail) {
@@ -436,13 +442,19 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       storage.writeLong(chain + CHAIN_HEADER_TAIL_OFFSET, tail);
     }
 
-    private Element element(ByteBuffer attachedBuffer) {
+    private Element element(ByteBuffer attachedBuffer, final long sequence) {
       final ByteBuffer detachedBuffer = (ByteBuffer) ByteBuffer.allocate(attachedBuffer.remaining()).put(attachedBuffer).flip();
-      return new Element() {
+
+      return new SequencedElement() {
 
         @Override
         public ByteBuffer getPayload() {
           return detachedBuffer.asReadOnlyBuffer();
+        }
+
+        @Override
+        public long getSequenceNumber() {
+          return sequence;
         }
       };
     }
@@ -450,6 +462,10 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     private ByteBuffer readElementBuffer(long address) {
       int elemLength = storage.readInt(address + ELEMENT_HEADER_LENGTH_OFFSET);
       return storage.readBuffer(address + ELEMENT_HEADER_SIZE, elemLength);
+    }
+
+    private long readElementSequenceNumber(long address) {
+      return storage.readLong(address + ELEMENT_HEADER_SEQUENCE_OFFSET);
     }
 
     private void evict() {
@@ -472,6 +488,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   }
 
   private long writeElement(long address, ByteBuffer element) {
+    storage.writeLong(address + ELEMENT_HEADER_SEQUENCE_OFFSET, nextSequenceNumber++);
     storage.writeInt(address + ELEMENT_HEADER_LENGTH_OFFSET, element.remaining());
     storage.writeBuffer(address + ELEMENT_HEADER_SIZE, element);
     return address;

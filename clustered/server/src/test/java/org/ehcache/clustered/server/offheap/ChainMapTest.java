@@ -245,6 +245,17 @@ public class ChainMapTest {
   }
 
   @Test
+  public void testSequenceBasedChainComparison() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    map.append("foo", buffer(1));
+    map.append("foo", buffer(2));
+    map.append("foo", buffer(3));
+
+    assertThat(map.replaceAtHead("foo", map.get("foo"), chain()), is(true));
+    assertThat(map.get("foo"), emptyIterable());
+  }
+
+  @Test
   public void testReplaceFullPluralChainAtHeadWithEmpty() {
     OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
     map.append("foo", buffer(1));
