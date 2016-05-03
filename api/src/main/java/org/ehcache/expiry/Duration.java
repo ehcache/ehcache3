@@ -35,6 +35,20 @@ public final class Duration {
    */
   public static final Duration ZERO = new Duration(0, TimeUnit.NANOSECONDS, false);
 
+  /**
+   * Convenience method to create a {@code Duration} with the specified values.
+   *
+   * @param length the duration length
+   * @param timeUnit the time unit
+
+   * @return a new {@code Duration}
+   *
+   * @see #Duration(long, TimeUnit)
+   */
+  public static Duration of(long length, TimeUnit timeUnit) {
+    return new Duration(length, timeUnit);
+  }
+
   private final TimeUnit timeUnit;
   private final long length;
 
