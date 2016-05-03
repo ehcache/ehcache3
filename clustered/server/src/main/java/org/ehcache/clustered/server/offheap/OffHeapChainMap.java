@@ -244,4 +244,12 @@ class OffHeapChainMap<K> implements MapInternals {
   public long getDataSize() {
     return heads.getDataSize();
   }
+
+  boolean shrink() {
+    return heads.shrink();
+  }
+
+  Lock writeLock() {
+    return heads.writeLock();
+  }
 }

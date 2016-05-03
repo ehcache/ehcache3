@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server.offheap;
+package org.ehcache.clustered.common.store;
 
 import org.ehcache.clustered.common.store.Element;
 

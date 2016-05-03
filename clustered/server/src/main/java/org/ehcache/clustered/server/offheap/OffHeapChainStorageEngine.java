@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.locks.Lock;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.store.SequencedElement;
 import org.ehcache.clustered.common.store.Util;
 import org.terracotta.offheapstore.paging.OffHeapStorageArea;
 import org.terracotta.offheapstore.paging.PageSource;
