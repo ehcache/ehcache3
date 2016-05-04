@@ -18,10 +18,10 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -320,33 +320,33 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testEvictionVeto() throws StoreAccessException {
+  public void testEvictionAdvisor() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
-    EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {
+    EvictionAdvisor<String, byte[]> evictionAdvisor = new EvictionAdvisor<String, byte[]>() {
 
       @Override
-      public boolean vetoes(String key, byte[] value) {
+      public boolean adviseAgainstEviction(String key, byte[] value) {
         return true;
       }
     };
 
-    performEvictionTest(timeSource, expiry, evictionVeto);
+    performEvictionTest(timeSource, expiry, evictionAdvisor);
   }
 
   @Test
-  public void testBrokenEvictionVeto() throws StoreAccessException {
+  public void testBrokenEvictionAdvisor() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS));
-    EvictionVeto<String, byte[]> evictionVeto = new EvictionVeto<String, byte[]>() {
+    EvictionAdvisor<String, byte[]> evictionAdvisor = new EvictionAdvisor<String, byte[]>() {
 
       @Override
-      public boolean vetoes(String key, byte[] value) {
-        throw new UnsupportedOperationException("Broken veto!");
+      public boolean adviseAgainstEviction(String key, byte[] value) {
+        throw new UnsupportedOperationException("Broken advisor!");
       }
     };
 
-    performEvictionTest(timeSource, expiry, evictionVeto);
+    performEvictionTest(timeSource, expiry, evictionAdvisor);
   }
 
   @Test
@@ -428,7 +428,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -438,7 +438,7 @@ public abstract class AbstractOffHeapStoreTest {
 
       @Override
       public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
     store.put("key", "value");
@@ -484,7 +484,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -509,12 +509,12 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -522,7 +522,7 @@ public abstract class AbstractOffHeapStoreTest {
         if (timeSource.getTimeMillis() > 0) {
           throw new RuntimeException();
         }
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     });
 
@@ -556,7 +556,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -597,7 +597,7 @@ public abstract class AbstractOffHeapStoreTest {
     AbstractOffHeapStore<String, String> store = createAndInitStore(timeSource, new Expiry<String, String>() {
       @Override
       public Duration getExpiryForCreation(String key, String value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -761,11 +761,11 @@ public abstract class AbstractOffHeapStoreTest {
 
   protected abstract AbstractOffHeapStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry);
 
-  protected abstract AbstractOffHeapStore<String, byte[]> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto);
+  protected abstract AbstractOffHeapStore<String, byte[]> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor);
 
   protected abstract void destroyStore(AbstractOffHeapStore<?, ?> store);
 
-  private void performEvictionTest(TestTimeSource timeSource, Expiry<Object, Object> expiry, EvictionVeto<String, byte[]> evictionVeto) throws StoreAccessException {AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionVeto);
+  private void performEvictionTest(TestTimeSource timeSource, Expiry<Object, Object> expiry, EvictionAdvisor<String, byte[]> evictionAdvisor) throws StoreAccessException {AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionAdvisor);
     try {
       StoreEventListener<String, byte[]> listener = mock(StoreEventListener.class);
       offHeapStore.getStoreEventSource().addEventListener(listener);

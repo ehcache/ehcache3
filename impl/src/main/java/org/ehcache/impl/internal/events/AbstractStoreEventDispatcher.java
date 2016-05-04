@@ -79,11 +79,11 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
   private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
   private volatile boolean ordered = false;
 
-  protected AbstractStoreEventDispatcher(int orderedEventParallelism) {
-    if (orderedEventParallelism <= 0) {
-      throw new IllegalArgumentException("Ordered event parallelism must be an integer greater than 0");
+  protected AbstractStoreEventDispatcher(int dispatcherConcurrency) {
+    if (dispatcherConcurrency <= 0) {
+      throw new IllegalArgumentException("Dispatcher concurrency must be an integer greater than 0");
     }
-    orderedQueues = new LinkedBlockingQueue[orderedEventParallelism];
+    orderedQueues = new LinkedBlockingQueue[dispatcherConcurrency];
     for (int i = 0; i < orderedQueues.length; i++) {
       orderedQueues[i] = new LinkedBlockingQueue<FireableStoreEventHolder<K, V>>(10000);
     }

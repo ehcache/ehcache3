@@ -19,11 +19,11 @@ package org.ehcache.core;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
-import org.ehcache.config.RuntimeConfiguration;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
@@ -39,11 +39,11 @@ import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
-import org.ehcache.event.CacheEventListenerProvider;
-import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.spi.LifeCycled;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerProvider;
+import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -236,6 +236,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         }
       }
     }
+  }
+
+  @Override
+  public <K, V> Cache<K, V> createCache(String alias, Builder<? extends CacheConfiguration<K, V>> configBuilder) {
+    return createCache(alias, configBuilder.build());
   }
 
   @Override
@@ -479,17 +484,17 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       }
     }
 
-    int eventParallelism;
+    int dispatcherConcurrency;
     StoreEventSourceConfiguration eventSourceConfiguration = ServiceLocator.findSingletonAmongst(StoreEventSourceConfiguration.class, config
         .getServiceConfigurations()
         .toArray());
     if (eventSourceConfiguration != null) {
-      eventParallelism = eventSourceConfiguration.getOrderedEventParallelism();
+      dispatcherConcurrency = eventSourceConfiguration.getDispatcherConcurrency();
     } else {
-      eventParallelism = StoreEventSourceConfiguration.DEFAULT_EVENT_PARALLELISM;
+      dispatcherConcurrency = StoreEventSourceConfiguration.DEFAULT_DISPATCHER_CONCURRENCY;
     }
 
-    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, eventParallelism, keySerializer, valueSerializer);
+    Store.Configuration<K, V> storeConfiguration = new StoreConfigurationImpl<K, V>(config, dispatcherConcurrency, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfiguration, serviceConfigArray);
 
     lifeCycledList.add(new LifeCycled() {
@@ -527,7 +532,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
     if (cacheClassLoader != config.getClassLoader() ) {
       config = new BaseCacheConfiguration<K, V>(config.getKeyType(), config.getValueType(),
-          config.getEvictionVeto(), cacheClassLoader, config.getExpiry(),
+          config.getEvictionAdvisor(), cacheClassLoader, config.getExpiry(),
           config.getResourcePools(), config.getServiceConfigurations().toArray(
           new ServiceConfiguration<?>[config.getServiceConfigurations().size()]));
     }
@@ -630,7 +635,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   @Override
-  public RuntimeConfiguration getRuntimeConfiguration() {
+  public Configuration getRuntimeConfiguration() {
     return configuration;
   }
 
@@ -669,7 +674,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   @Override
-  public void destroy() {
+  public void destroy() throws CachePersistenceException {
     StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
       startMaintainableServices();
@@ -720,7 +725,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     return cacheManagerClassLoader;
   }
 
-  void destroyInternal() {
+  void destroyInternal() throws CachePersistenceException {
     statusTransitioner.checkMaintenance();
     Collection<PersistableResourceService> services = serviceLocator.getServicesOfType(PersistableResourceService.class);
     for (PersistableResourceService service : services) {

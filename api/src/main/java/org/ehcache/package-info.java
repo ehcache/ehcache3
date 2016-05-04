@@ -15,6 +15,7 @@
  */
 
 /**
- * Main Ehcache API package
+ * Main Ehcache API, including {@link org.ehcache.CacheManager cache managers} and
+ * {@link org.ehcache.Cache caches}.
  */
 package org.ehcache;

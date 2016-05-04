@@ -28,7 +28,7 @@ import javax.cache.Cache;
 
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 

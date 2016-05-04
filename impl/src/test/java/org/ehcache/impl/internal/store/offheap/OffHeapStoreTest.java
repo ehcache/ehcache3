@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
@@ -61,7 +61,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Override
-  protected OffHeapStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto) {
+  protected OffHeapStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
       serializationProvider.start(providerContaining());
@@ -69,7 +69,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
-          evictionVeto, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
+          evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
       OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, new TestStoreEventDispatcher<String, byte[]>(),MemoryUnit.MB.toBytes(1));
       OffHeapStore.Provider.init(offHeapStore);
       return offHeapStore;

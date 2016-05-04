@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
@@ -43,15 +43,15 @@ public class EhcacheConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHe
 
   @Override
   protected EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment() {
-    return createTestSegment(Eviction.none(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
+    return createTestSegment(Eviction.noAdvice(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
   @Override
-  protected EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate) {
+  protected EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) {
     return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
-  private EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+  private EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);

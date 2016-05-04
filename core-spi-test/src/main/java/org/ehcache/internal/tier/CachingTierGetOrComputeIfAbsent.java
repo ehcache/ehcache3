@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;

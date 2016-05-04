@@ -19,10 +19,13 @@ package org.ehcache.core;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,13 +33,18 @@ import org.junit.rules.TestName;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.InOrder;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Formatter;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +56,8 @@ import static org.ehcache.core.EhcacheBasicBulkUtil.KEY_SET_C;
 import static org.ehcache.core.EhcacheBasicBulkUtil.copyWithout;
 import static org.ehcache.core.EhcacheBasicBulkUtil.fanIn;
 import static org.ehcache.core.EhcacheBasicBulkUtil.getEntryMap;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.is;
@@ -55,14 +65,18 @@ import static org.hamcrest.Matchers.isIn;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anySet;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * Provides testing of basic REMOVE_ALL operations on an {@code Ehcache}.
@@ -244,6 +258,48 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     assertThat(ehcache.getBulkMethodEntries().get(BulkOps.REMOVE_ALL).intValue(), is(0));
   }
 
+  @Test
+  public void removeAllStoreCallsMethodTwice() throws Exception {
+    this.store = mock(Store.class);
+    CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
+    final List<String> removed = new ArrayList<String>();
+    doAnswer(new Answer() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        Iterable<String> i = (Iterable) invocation.getArguments()[0];
+        for (String key : i) {
+          removed.add(key);
+        }
+        return null;
+      }
+    }).when(cacheLoaderWriter).deleteAll(any(Iterable.class));
+    final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
+
+    final ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
+
+    when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        Function function = functionArgumentCaptor.getValue();
+        Iterable arg = new HashMap((Map) function.getClass().getDeclaredField("val$entriesToRemove").get(function)).entrySet();
+        function.apply(arg);
+        function.apply(arg);
+        return null;
+      }
+    });
+
+    Set<String> keys = new HashSet<String>() {{
+      add("1");
+      add("2");
+    }};
+
+    ehcache.removeAll(keys);
+
+    assertThat(removed.size(), is(2));
+    assertThat(removed.contains("1"), is(true));
+    assertThat(removed.contains("2"), is(true));
+  }
+
   /**
    * Gets an initialized {@link Ehcache Ehcache} instance
    *
@@ -251,6 +307,14 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    */
   private Ehcache<String, String> getEhcache() {
     final Ehcache<String, String> ehcache = new Ehcache<String, String>(CACHE_CONFIGURATION, this.store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicRemoveAllTest"));
+    ehcache.init();
+    assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
+    this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
+    return ehcache;
+  }
+
+  private EhcacheWithLoaderWriter<String, String> getEhcacheWithLoaderWriter(CacheLoaderWriter<? super String, String> cacheLoaderWriter) {
+    final EhcacheWithLoaderWriter<String, String> ehcache = new EhcacheWithLoaderWriter<String, String>(CACHE_CONFIGURATION, this.store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBasicPutAllTest"));
     ehcache.init();
     assertThat("cache not initialized", ehcache.getStatus(), Matchers.is(Status.AVAILABLE));
     this.spiedResilienceStrategy = this.setResilienceStrategySpy(ehcache);
@@ -322,8 +386,8 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
    * @param contentUpdates the {@code Set} provided to the {@link EhcacheWithLoaderWriter#removeAll(java.util.Set)} call in the test
    * @param expectedFailures the {@code Set} of failing keys expected for the test
    * @param expectedSuccesses the {@code Set} of successful keys expected for the test
-   * @param bcweSuccesses the {@code Set} from {@link org.ehcache.exceptions.BulkCacheWritingException#getSuccesses()}
-   * @param bcweFailures the {@code Map} from {@link org.ehcache.exceptions.BulkCacheWritingException#getFailures()}
+   * @param bcweSuccesses the {@code Set} from {@link BulkCacheWritingException#getSuccesses()}
+   * @param bcweFailures the {@code Map} from {@link BulkCacheWritingException#getFailures()}
    */
   private void dumpResults(
       final FakeStore fakeStore,

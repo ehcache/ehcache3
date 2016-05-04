@@ -37,6 +37,9 @@ public class ResourcePoolsImpl implements ResourcePools {
   private final Map<ResourceType<?>, ResourcePool> pools;
 
   public ResourcePoolsImpl(Map<ResourceType<?>, ResourcePool> pools) {
+    if (pools.isEmpty()) {
+      throw new IllegalArgumentException("No resource pools defined");
+    }
     validateResourcePools(pools.values());
     this.pools = pools;
   }

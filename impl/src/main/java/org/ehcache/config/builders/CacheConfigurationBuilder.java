@@ -16,10 +16,10 @@
 
 package org.ehcache.config.builders;
 
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
@@ -44,7 +44,6 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
@@ -62,28 +61,45 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   private final Collection<ServiceConfiguration<?>> serviceConfigurations = new HashSet<ServiceConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry;
   private ClassLoader classLoader = null;
-  private EvictionVeto<? super K, ? super V> evictionVeto;
-  private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
+  private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
+  private ResourcePools resourcePools;
   private Class<? super K> keyType;
   private Class<? super V> valueType;
 
   /**
    * Creates a new instance ready to produce a {@link CacheConfiguration} with key type {@code <K>} and with value type
-   * {@code <V>}.
+   * {@code <V>} and which will use the {@link ResourcePools configured resources}.
    *
    * @param keyType the key type
    * @param valueType the value type
+   * @param resourcePools the resources to use
    * @param <K> the key type
    * @param <V> the value type
    * @return a {@code CacheConfigurationBuilder}
    */
-  public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder(Class<K> keyType, Class<V> valueType) {
-    return new CacheConfigurationBuilder<K, V>(keyType, valueType);
+  public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder(Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) {
+    return new CacheConfigurationBuilder<K, V>(keyType, valueType, resourcePools);
   }
 
-  private CacheConfigurationBuilder(Class<K> keyType, Class<V> valueType) {
+  /**
+   * Creates a new instance ready to produce a {@link CacheConfiguration} with key type {@code <K>} and with value type
+   * {@code <V>} and which will use the {@link ResourcePools configured resources}, passed as a {@link ResourcePoolsBuilder}.
+   *
+   * @param keyType the key type
+   * @param valueType the value type
+   * @param resourcePoolsBuilder the resources to use, as a builder
+   * @param <K> the key type
+   * @param <V> the value type
+   * @return a {@code CacheConfigurationBuilder}
+   */
+  public static <K, V> CacheConfigurationBuilder<K, V> newCacheConfigurationBuilder(Class<K> keyType, Class<V> valueType, Builder<? extends ResourcePools> resourcePoolsBuilder) {
+    return new CacheConfigurationBuilder<K, V>(keyType, valueType, resourcePoolsBuilder.build());
+  }
+
+  private CacheConfigurationBuilder(Class<K> keyType, Class<V> valueType, ResourcePools resourcePools) {
     this.keyType = keyType;
     this.valueType = valueType;
+    this.resourcePools = resourcePools;
   }
 
   private CacheConfigurationBuilder(CacheConfigurationBuilder<? super K, ? super V> other) {
@@ -91,7 +107,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     this.valueType = other.valueType;
     this.expiry = other.expiry;
     this.classLoader = other.classLoader;
-    this.evictionVeto = other.evictionVeto;
+    this.evictionAdvisor = other.evictionAdvisor;
     this.resourcePools = other.resourcePools;
     this.serviceConfigurations.addAll(other.serviceConfigurations);
   }
@@ -133,14 +149,14 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   /**
-   * Adds an {@link EvictionVeto} to the returned builder.
+   * Adds an {@link EvictionAdvisor} to the returned builder.
    *
-   * @param veto the eviction veto to be used
-   * @return a new builder with the added eviction veto
+   * @param evictionAdvisor the eviction advisor to be used
+   * @return a new builder with the added eviction advisor
    */
-  public CacheConfigurationBuilder<K, V> withEvictionVeto(final EvictionVeto<? super K, ? super V> veto) {
+  public CacheConfigurationBuilder<K, V> withEvictionAdvisor(final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
-    otherBuilder.evictionVeto = veto;
+    otherBuilder.evictionAdvisor = evictionAdvisor;
     return otherBuilder;
   }
 
@@ -507,14 +523,14 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   }
 
   /**
-   * Adds {@link StoreEventSourceConfiguration} with the specified ordered event parallelism
+   * Adds {@link StoreEventSourceConfiguration} with the specified dispatcher concurrency
    * to the configured builder.
    *
-   * @param eventParallelism the amount of parallelism for handling events when ordering is required
+   * @param dispatcherConcurrency the level of concurrency in the dispatcher for ordered events
    * @return a new builder with the added configuration
    */
-  public CacheConfigurationBuilder<K, V> withOrderedEventParallelism(int eventParallelism) {
-    DefaultEventSourceConfiguration configuration = new DefaultEventSourceConfiguration(eventParallelism);
+  public CacheConfigurationBuilder<K, V> withDispatcherConcurrency(int dispatcherConcurrency) {
+    DefaultEventSourceConfiguration configuration = new DefaultEventSourceConfiguration(dispatcherConcurrency);
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     DefaultEventSourceConfiguration existingServiceConfiguration = otherBuilder.getExistingServiceConfiguration(DefaultEventSourceConfiguration.class);
     if (existingServiceConfiguration != null) {
@@ -606,7 +622,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
 
   @Override
   public CacheConfiguration<K, V> build() {
-    return new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
+    return new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
         classLoader, expiry, resourcePools,
         serviceConfigurations.toArray(new ServiceConfiguration<?>[serviceConfigurations.size()]));
 

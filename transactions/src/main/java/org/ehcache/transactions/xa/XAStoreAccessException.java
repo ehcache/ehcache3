@@ -17,7 +17,7 @@ package org.ehcache.transactions.xa;
 
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
 import org.ehcache.core.internal.resilience.RethrowingStoreAccessException;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.transactions.xa.internal.XAStore;
 
 /**

@@ -245,11 +245,11 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="eviction-veto" type="ehcache:fqcn-type" minOccurs="0" maxOccurs="1">
+      <xs:element name="eviction-advisor" type="ehcache:fqcn-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             A fully qualified class name to a concrete type that implements
-            org.ehcache.config.EvictionVeto and has a public default no argument constructor.
+            org.ehcache.config.EvictionAdvisor and has a public default no argument constructor.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -347,8 +347,8 @@
         </xs:complexType>
       </xs:element>
     </xs:sequence>
-    <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="parallelism-level" type="xs:positiveInteger" use="optional" default="8"/>
+    <xs:attribute name="dispatcher-thread-pool" type="xs:string" use="optional"/>
+    <xs:attribute name="dispatcher-concurrency" type="xs:positiveInteger" use="optional" default="8"/>
   </xs:complexType>
 
   <xs:complexType name="cache-loader-writer-type">
@@ -530,7 +530,7 @@
 
   <xs:complexType name="disk-store-settings-type">
     <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="writer-threads" type="xs:positiveInteger" use="optional" default="1"/>
+    <xs:attribute name="writer-concurrency" type="xs:positiveInteger" use="optional" default="1"/>
   </xs:complexType>
 
   <xs:simpleType name="time-unit">

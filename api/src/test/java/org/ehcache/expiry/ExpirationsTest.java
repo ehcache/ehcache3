@@ -29,7 +29,7 @@ public class ExpirationsTest {
   @Test
   public void testNoExpiration() {
     Expiry<Object, Object> expiry = Expirations.noExpiration();
-    assertThat(expiry.getExpiryForCreation(this, holderOf(this)), equalTo(Duration.FOREVER));
+    assertThat(expiry.getExpiryForCreation(this, holderOf(this)), equalTo(Duration.INFINITE));
     assertThat(expiry.getExpiryForAccess(this, holderOf(this)), nullValue());
     assertThat(expiry.getExpiryForUpdate(this, holderOf(this), holderOf(this)), nullValue());
   }

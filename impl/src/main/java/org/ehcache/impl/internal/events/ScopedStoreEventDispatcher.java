@@ -24,8 +24,8 @@ import org.ehcache.core.events.StoreEventSink;
 public class ScopedStoreEventDispatcher<K, V> extends AbstractStoreEventDispatcher<K, V> {
 
 
-  public ScopedStoreEventDispatcher(int orderedEventParallelism) {
-    super(orderedEventParallelism);
+  public ScopedStoreEventDispatcher(int dispatcherConcurrency) {
+    super(dispatcherConcurrency);
   }
 
   @Override

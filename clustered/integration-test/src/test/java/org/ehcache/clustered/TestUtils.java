@@ -19,7 +19,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import org.ehcache.clustered.client.EhcacheClientEntityService;
+import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
 import org.terracotta.consensus.entity.CoordinationServerEntityService;
 import org.terracotta.consensus.entity.client.ClientCoordinationEntityService;

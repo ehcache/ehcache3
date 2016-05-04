@@ -17,19 +17,18 @@
 package org.ehcache;
 
 /**
- * A {@link UserManagedCache} that holds data that outlives the JVM's process
+ * A {@link UserManagedCache} that holds data that can outlive the JVM.
  *
- * @param <K> the type of the keys used to access data within this cache
- * @param <V> the type of the values held within this cache
- *
- * @author Alex Snaps
+ * @param <K> the key type for the cache
+ * @param <V> the value type for the cache
  */
 public interface PersistentUserManagedCache<K, V> extends UserManagedCache<K, V> {
 
   /**
-   * Destroy all persistent data structures for this {@code PersistentUserManagedCache}.
+   * Destroys all persistent data structures for this {@code PersistentUserManagedCache}.
    *
-   * @throws java.lang.IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE} couldn't be reached
+   * @throws java.lang.IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE MAINTENANCE} couldn't be reached
+   * @throws CachePersistenceException if the persistent data cannot be destroyed
    */
-  void destroy();
+  void destroy() throws CachePersistenceException;
 }

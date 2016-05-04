@@ -17,7 +17,7 @@
 package org.ehcache.core.spi.services;
 
 import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.CacheProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;

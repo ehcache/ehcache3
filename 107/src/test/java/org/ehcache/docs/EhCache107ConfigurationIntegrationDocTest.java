@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.internal.util.ValueSuppliers;
 import org.ehcache.jsr107.Eh107Configuration;
 import org.junit.After;
@@ -103,7 +104,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     LOGGER.info("Seeding random with {}", nanoTime);
     Random random = new Random(nanoTime);
     assertThat(runtimeConfiguration.getExpiry().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
-                equalTo(org.ehcache.expiry.Duration.FOREVER));
+                equalTo(org.ehcache.expiry.Duration.INFINITE));
     assertThat(runtimeConfiguration.getExpiry().getExpiryForAccess(random.nextLong(),
                   ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong()))), nullValue());
     assertThat(runtimeConfiguration.getExpiry().getExpiryForUpdate(random.nextLong(),
@@ -113,8 +114,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
   @Test
   public void testUsingEhcacheConfiguration() throws Exception {
     // tag::ehcacheBasedConfigurationExample[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .build(); // <1>
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.heap(10)).build(); // <1>
 
     Cache<Long, String> cache = cacheManager.createCache("myCache",
         Eh107Configuration.fromEhcacheCacheConfiguration(cacheConfiguration)); // <2>
@@ -172,7 +173,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     CacheRuntimeConfiguration<Long, Client> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, Client>)foosCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class);
     Client client1 = new Client("client1", 1);
-    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1).getAmount(); // <8>
+    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1).getLength(); // <8>
 
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 

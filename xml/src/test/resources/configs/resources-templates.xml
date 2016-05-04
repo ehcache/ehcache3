@@ -66,12 +66,4 @@
   <ehcache:cache alias="templatedExplicitHeapResource" uses-template="explicitHeapResourceTemplate">
   </ehcache:cache>
 
-  <ehcache:cache-template name="implicitHeapResourceTemplate">
-    <ehcache:key-type>java.lang.String</ehcache:key-type>
-    <ehcache:value-type>java.lang.String</ehcache:value-type>
-  </ehcache:cache-template>
-
-  <ehcache:cache alias="templatedImplicitHeapResource" uses-template="implicitHeapResourceTemplate">
-  </ehcache:cache>
-
 </ehcache:config>

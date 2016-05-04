@@ -18,10 +18,9 @@ package org.ehcache.core.spi.store;
 
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -616,9 +615,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
      * A predicate function that, if it passes an entry, must prevent that entry
      * from being evicted by the store.
      *
-     * @return the eviction veto predicate
+     * @return the eviction advisor predicate
      */
-    EvictionVeto<? super K, ? super V> getEvictionVeto();
+    EvictionAdvisor<? super K, ? super V> getEvictionAdvisor();
 
     /**
      * The Classloader for this store. This classloader will be used to deserialize cache entries when required
@@ -646,9 +645,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     Serializer<V> getValueSerializer();
 
     /**
-     * The number of parallel queues used when doing ordered events
+     * The concurrency level of the dispatcher that processes events
      */
-    int getOrderedEventParallelism();
+    int getDispatcherConcurrency();
   }
 
   /**

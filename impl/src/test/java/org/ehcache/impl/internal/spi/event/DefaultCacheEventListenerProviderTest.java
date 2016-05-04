@@ -19,14 +19,12 @@ package org.ehcache.impl.internal.spi.event;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.core.IsCollectionContaining;
@@ -36,6 +34,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
@@ -55,7 +54,7 @@ public class DefaultCacheEventListenerProviderTest {
         .newEventListenerConfiguration(ListenerObject.class, eventTypeSet).unordered().asynchronous();
     final CacheManager manager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("foo",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
                 .add(listenerBuilder)
                 .build()).build(true);
     final Collection<?> bar = manager.getCache("foo", Object.class, Object.class).getRuntimeConfiguration().getServiceConfigurations();
@@ -69,10 +68,8 @@ public class DefaultCacheEventListenerProviderTest {
         .newEventListenerConfiguration(ListenerObject.class, EventType.CREATED).unordered().asynchronous().build();
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(100))
             .add(cacheEventListenerConfiguration)
-            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(100, EntryUnit.ENTRIES).build())
             .build());
     Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();

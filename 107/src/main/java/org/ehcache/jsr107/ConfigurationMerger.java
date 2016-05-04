@@ -18,11 +18,15 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.core.InternalCache;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.jsr107.config.ConfigurationElementState;
+import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -43,6 +47,7 @@ import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
@@ -72,11 +77,18 @@ class ConfigurationMerger {
     Eh107Expiry<K, V> expiryPolicy = null;
     CacheLoaderWriter<? super K, V> loaderWriter = null;
     try {
-      CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType());
+      CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType(), heap(Long.MAX_VALUE));
+
       String templateName = jsr107Service.getTemplateNameForCache(cacheName);
       if (xmlConfiguration != null && templateName != null) {
-        CacheConfigurationBuilder<K, V> templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
-            jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
+        CacheConfigurationBuilder<K, V> templateBuilder = null;
+        try {
+          templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
+              jsr107Configuration.getKeyType(), jsr107Configuration.getValueType());
+        } catch (IllegalStateException e) {
+          templateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate(templateName,
+                        jsr107Configuration.getKeyType(), jsr107Configuration.getValueType(), heap(Long.MAX_VALUE));
+        }
         if (templateBuilder != null) {
           builder = templateBuilder;
           LOG.info("Configuration of cache {} will be supplemented by template {}", cacheName, templateName);
@@ -111,6 +123,8 @@ class ConfigurationMerger {
       }
 
       CacheConfiguration<K, V> cacheConfiguration = builder.build();
+
+      setupManagementAndStatsInternal(jsr107Configuration, findSingletonAmongst(Jsr107CacheConfiguration.class, cacheConfiguration.getServiceConfigurations()));
 
       if (hasConfiguredExpiry) {
         expiryPolicy = new EhcacheExpiryWrapper<K, V>(cacheConfiguration.getExpiry());
@@ -243,6 +257,33 @@ class ConfigurationMerger {
     // should be parameterized with (K, V) and it's methods take <? extend K>, etc
     Object factory = config.getCacheWriterFactory();
     return (Factory<javax.cache.integration.CacheWriter<K, V>>) factory;
+  }
+
+  void setUpManagementAndStats(InternalCache<?, ?> cache, Eh107Configuration<?, ?> configuration) {
+    Jsr107CacheConfiguration cacheConfiguration = ServiceLocator.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
+        .getRuntimeConfiguration().getServiceConfigurations());
+    setupManagementAndStatsInternal(configuration, cacheConfiguration);
+  }
+
+  private void setupManagementAndStatsInternal(Eh107Configuration<?, ?> configuration, Jsr107CacheConfiguration cacheConfiguration) {
+    ConfigurationElementState enableManagement = jsr107Service.isManagementEnabledOnAllCaches();
+    ConfigurationElementState enableStatistics = jsr107Service.isStatisticsEnabledOnAllCaches();
+    if (cacheConfiguration != null) {
+      ConfigurationElementState managementEnabled = cacheConfiguration.isManagementEnabled();
+      if (managementEnabled != null && managementEnabled != ConfigurationElementState.UNSPECIFIED) {
+        enableManagement = managementEnabled;
+      }
+      ConfigurationElementState statisticsEnabled = cacheConfiguration.isStatisticsEnabled();
+      if (statisticsEnabled != null && statisticsEnabled != ConfigurationElementState.UNSPECIFIED) {
+        enableStatistics = statisticsEnabled;
+      }
+    }
+    if (enableManagement != null && enableManagement != ConfigurationElementState.UNSPECIFIED) {
+      configuration.setManagementEnabled(enableManagement.asBoolean());
+    }
+    if (enableStatistics != null && enableStatistics != ConfigurationElementState.UNSPECIFIED) {
+      configuration.setStatisticsEnabled(enableStatistics.asBoolean());
+    }
   }
 
   static class ConfigHolder<K, V> {

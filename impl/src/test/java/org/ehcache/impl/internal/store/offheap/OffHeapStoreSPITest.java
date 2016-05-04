@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
@@ -63,17 +63,17 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
       }
 
       @Override
-      public AuthoritativeTier<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+      public AuthoritativeTier<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 
       @Override
-      public AuthoritativeTier<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
-        return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      public AuthoritativeTier<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
+        return newStore(null, evictionAdvisor, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
 
-      private AuthoritativeTier<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      private AuthoritativeTier<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
 
@@ -82,7 +82,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
         MemoryUnit unit = (MemoryUnit)offheapPool.getUnit();
 
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-            evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
+            evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
         OffHeapStore<String, String> store = new OffHeapStore<String, String>(config, timeSource, new TestStoreEventDispatcher<String, String>(), unit.toBytes(offheapPool.getSize()));
         OffHeapStore.Provider.init(store);
         return store;

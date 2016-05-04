@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 

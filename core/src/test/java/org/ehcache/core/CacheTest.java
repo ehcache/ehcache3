@@ -18,10 +18,10 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.StoreAccessException;
-import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.StateTransitionException;
 import org.ehcache.core.spi.function.Function;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.core.spi.LifeCycled;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;

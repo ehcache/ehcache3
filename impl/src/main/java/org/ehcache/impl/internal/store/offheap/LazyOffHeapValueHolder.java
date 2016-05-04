@@ -18,11 +18,10 @@ package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.spi.serialization.Serializer;
 import org.terracotta.offheapstore.storage.portability.WriteContext;
-import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;

@@ -43,7 +43,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 import java.util.concurrent.locks.ReentrantLock;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -6303,7 +6303,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
     }
 
-    public Entry<K, V> getEvictionCandidate(Random rndm, int size, Comparator<? super V> prioritizer, EvictionVeto<? super K, ? super V> veto) {
+    public Entry<K, V> getEvictionCandidate(Random rndm, int size, Comparator<? super V> prioritizer, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
         Node<K,V>[] tab = table;
         if (tab == null || size == 0) {
           return null;
@@ -6319,7 +6319,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         for (Node<K, V> p; (p = t.advance()) != null;) {
             K key = p.key;
             V val = p.val;
-            if (!veto.vetoes(key, val)) {
+            if (!evictionAdvisor.adviseAgainstEviction(key, val)) {
                 if (maxKey == null || prioritizer.compare(val, maxValue) > 0) {
                     maxKey = key;
                     maxValue = val;
@@ -6328,7 +6328,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     for (int terminalIndex = t.index; (p = t.advance()) != null && t.index == terminalIndex; ) {
                         key = p.key;
                         val = p.val;
-                        if (!veto.vetoes(key, val) && prioritizer.compare(val, maxValue) > 0) {
+                        if (!evictionAdvisor.adviseAgainstEviction(key, val) && prioritizer.compare(val, maxValue) > 0) {
                             maxKey = key;
                             maxValue = val;
                         }
@@ -6338,15 +6338,15 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             }
         }
 
-        return getEvictionCandidateWrap(tab, start, size, maxKey, maxValue, prioritizer, veto);
+        return getEvictionCandidateWrap(tab, start, size, maxKey, maxValue, prioritizer, evictionAdvisor);
     }
 
-    private Entry<K, V> getEvictionCandidateWrap(Node<K,V>[] tab, int start, int size, K maxKey, V maxVal, Comparator<? super V> prioritizer, EvictionVeto<? super K, ? super V> veto) {
+    private Entry<K, V> getEvictionCandidateWrap(Node<K,V>[] tab, int start, int size, K maxKey, V maxVal, Comparator<? super V> prioritizer, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
         Traverser<K, V> t = new Traverser<K, V>(tab, tab.length, 0, start);
         for (Node<K, V> p; (p = t.advance()) != null;) {
             K key = p.key;
             V val = p.val;
-            if (!veto.vetoes(key, val)) {
+            if (!evictionAdvisor.adviseAgainstEviction(key, val)) {
                 if (maxKey == null || prioritizer.compare(val, maxVal) > 0) {
                     maxKey = key;
                     maxVal = val;
@@ -6355,7 +6355,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     for (int terminalIndex = t.index; (p = t.advance()) != null && t.index == terminalIndex; ) {
                         key = p.key;
                         val = p.val;
-                        if (!veto.vetoes(key, val) && prioritizer.compare(val, maxVal) > 0) {
+                        if (!evictionAdvisor.adviseAgainstEviction(key, val) && prioritizer.compare(val, maxVal) > 0) {
                             maxKey = key;
                             maxVal = val;
                         }

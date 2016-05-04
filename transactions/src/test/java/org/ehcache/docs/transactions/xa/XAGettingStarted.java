@@ -31,7 +31,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.ehcache.xml.XmlConfiguration;
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
@@ -78,10 +78,8 @@ public class XAGettingStarted {
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <3>
-            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <4>
-                    .heap(10, EntryUnit.ENTRIES)
-            )
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
+                                                            ResourcePoolsBuilder.heap(10)) // <4>
             .add(new XAStoreConfiguration("xaCache")) // <5>
             .build()
         )
@@ -108,10 +106,8 @@ public class XAGettingStarted {
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <3>
-            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <4>
-                    .heap(10, EntryUnit.ENTRIES)
-            )
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
+                                                            ResourcePoolsBuilder.heap(10)) // <4>
             .add(new XAStoreConfiguration("xaCache")) // <5>
             .build()
         )
@@ -141,10 +137,8 @@ public class XAGettingStarted {
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <3>
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <4>
-                        .heap(10, EntryUnit.ENTRIES)
-                )
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <3>
+                                                            ResourcePoolsBuilder.heap(10)) // <4>
                 .add(new XAStoreConfiguration("xaCache")) // <5>
                 .add(new DefaultCacheLoaderWriterConfiguration(klazz, singletonMap(1L, "eins"))) // <6>
                 .build()
@@ -174,8 +168,8 @@ public class XAGettingStarted {
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)) // <2>
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testXACacheWithThreeTiers"))) // <3>
-        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class) // <4>
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder() // <5>
+        .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <4>
+                ResourcePoolsBuilder.newResourcePoolsBuilder() // <5>
                         .heap(10, EntryUnit.ENTRIES)
                         .offheap(10, MemoryUnit.MB)
                         .disk(20, MemoryUnit.MB, true)

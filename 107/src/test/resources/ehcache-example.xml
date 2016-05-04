@@ -50,11 +50,11 @@
     </ehcache:expiry>
 
     <!--
-      OPTIONAL, defaults to no vetoing
-        An eviction veto, which lets you control what entries should only get evicted as last resort
-        FQCN of a org.ehcache.config.EvictionVeto implementation
+      OPTIONAL, defaults to no advice
+        An eviction advisor, which lets you control what entries should only get evicted as last resort
+        FQCN of a org.ehcache.config.EvictionAdvisor implementation
     -->
-    <ehcache:eviction-veto>com.pany.ehcache.MyEvictionVeto</ehcache:eviction-veto>
+    <ehcache:eviction-advisor>com.pany.ehcache.MyEvictionAdvisor</ehcache:eviction-advisor>
 
     <!--
       OPTIONAL,
