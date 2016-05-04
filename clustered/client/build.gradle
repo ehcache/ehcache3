@@ -23,7 +23,9 @@ dependencies {
   compile "org.terracotta:coordinator-entity-client:$parent.coordinatorVersion"
   compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
 
-  testCompile project(':clustered:server')
+  testCompile(project(':clustered:server')) {
+    exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
+  }
   testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
   testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
 }
