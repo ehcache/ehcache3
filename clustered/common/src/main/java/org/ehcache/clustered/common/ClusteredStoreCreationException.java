@@ -14,19 +14,23 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.server;
+package org.ehcache.clustered.common;
 
-import org.ehcache.clustered.common.ServerStoreConfiguration;
+/**
+ * Thrown to indicate a failure when creating a {@code ClusteredStore}.
+ */
+public class ClusteredStoreCreationException extends RuntimeException {
+  private static final long serialVersionUID = 8161642579437544726L;
 
-class ServerStore {
-
-  private final ServerStoreConfiguration storeConfiguration;
-
-  public ServerStore(ServerStoreConfiguration storeConfiguration) {
-    this.storeConfiguration = storeConfiguration;
+  public ClusteredStoreCreationException(String message) {
+    super(message);
   }
 
-  public ServerStoreConfiguration getStoreConfiguration() {
-    return storeConfiguration;
+  public ClusteredStoreCreationException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public ClusteredStoreCreationException(Throwable cause) {
+    super(cause);
   }
 }

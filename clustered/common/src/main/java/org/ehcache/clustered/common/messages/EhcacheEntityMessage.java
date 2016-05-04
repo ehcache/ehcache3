@@ -22,14 +22,18 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.terracotta.entity.EntityMessage;
 
 /**
- *
- * @author cdennis
+ * Defines messages for interactions with an {@code EhcacheActiveEntity}.
  */
 public abstract class EhcacheEntityMessage implements EntityMessage, Serializable {
+  private static final long serialVersionUID = 223330390040183148L;
 
   public enum Type {
-    CONFIGURE, VALIDATE,
-    CREATE_SERVER_STORE, DESTROY_SERVER_STORE;
+    CONFIGURE,
+    VALIDATE,
+    CREATE_SERVER_STORE,
+    VALIDATE_SERVER_STORE,
+    DESTROY_SERVER_STORE,
+    DESTROY_ALL_SERVER_STORES
   }
 
   public abstract Type getType();
@@ -39,6 +43,7 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
   }
 
   public static class ValidateCacheManager extends EhcacheEntityMessage {
+    private static final long serialVersionUID = 5742152283115139745L;
 
     private final ServerSideConfiguration configuration;
 
@@ -61,6 +66,7 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
   }
 
   public static class ConfigureCacheManager extends EhcacheEntityMessage {
+    private static final long serialVersionUID = 730771302294202898L;
 
     private final ServerSideConfiguration configuration;
 
@@ -78,61 +84,64 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     }
   }
 
-  public static EhcacheEntityMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
-    return new CreateServerStore(name, serverStoreConfiguration);
-  }
-
-  public static class CreateServerStore extends EhcacheEntityMessage {
+  public abstract static class BaseServerStore extends EhcacheEntityMessage {
+    private static final long serialVersionUID = 4879477027919589726L;
 
     private final String name;
-    private final String storedKeyType;
-    private final String storedValueType;
-    private final String actualKeyType;
-    private final String actualValueType;
-    private final String keySerializerType;
-    private final String valueSerializerType;
+    private final ServerStoreConfiguration storeConfiguration;
 
-    public CreateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
+    protected BaseServerStore(String name, ServerStoreConfiguration storeConfiguration) {
       this.name = name;
-      this.storedKeyType = storeConfiguration.getStoredKeyType();
-      this.storedValueType = storeConfiguration.getStoredValueType();
-      this.actualKeyType = storeConfiguration.getActualKeyType();
-      this.actualValueType = storeConfiguration.getActualValueType();
-      this.keySerializerType = storeConfiguration.getKeySerializerType();
-      this.valueSerializerType = storeConfiguration.getValueSerializerType();
-    }
-
-    @Override
-    public Type getType() {
-      return Type.CREATE_SERVER_STORE;
+      this.storeConfiguration = storeConfiguration;
     }
 
     public String getName() {
       return name;
     }
 
-    public String getStoredKeyType() {
-      return storedKeyType;
+    public ServerStoreConfiguration getStoreConfiguration() {
+      return storeConfiguration;
     }
 
-    public String getStoredValueType() {
-      return storedValueType;
+  }
+
+  public static EhcacheEntityMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+    return new CreateServerStore(name, serverStoreConfiguration);
+  }
+
+  /**
+   * Message directing the <i>creation</i> of a new {@code ServerStore}.
+   */
+  public static class CreateServerStore extends BaseServerStore {
+    private static final long serialVersionUID = -5832725455629624613L;
+
+    private CreateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
+      super(name, storeConfiguration);
     }
 
-    public String getActualKeyType() {
-      return actualKeyType;
+    @Override
+    public Type getType() {
+      return Type.CREATE_SERVER_STORE;
+    }
+  }
+
+  public static EhcacheEntityMessage validateServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+    return new ValidateServerStore(name, serverStoreConfiguration);
+  }
+
+  /**
+   * Message directing the <i>lookup</i> of a previously created {@code ServerStore}.
+   */
+  public static class ValidateServerStore extends BaseServerStore {
+    private static final long serialVersionUID = 8762670006846832185L;
+
+    private ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration) {
+      super(name, storeConfiguration);
     }
 
-    public String getActualValueType() {
-      return actualValueType;
-    }
-
-    public String getKeySerializerType() {
-      return keySerializerType;
-    }
-
-    public String getValueSerializerType() {
-      return valueSerializerType;
+    @Override
+    public Type getType() {
+      return Type.VALIDATE_SERVER_STORE;
     }
   }
 
@@ -140,11 +149,15 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     return new DestroyServerStore(name);
   }
 
+  /**
+   * Message directing the <i>destruction</i> of a {@code ServerStore}.
+   */
   public static class DestroyServerStore extends EhcacheEntityMessage {
+    private static final long serialVersionUID = -1772028546913171535L;
 
     private final String name;
 
-    public DestroyServerStore(String name) {
+    private DestroyServerStore(String name) {
       this.name = name;
     }
 
@@ -158,4 +171,19 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     }
   }
 
+  public static EhcacheEntityMessage destroyAllServerStores() {
+    return new DestroyAllServerStores();
+  }
+
+  public static class DestroyAllServerStores extends EhcacheEntityMessage {
+    private static final long serialVersionUID = 3050986754986404874L;
+
+    private DestroyAllServerStores() {
+    }
+
+    @Override
+    public Type getType() {
+      return Type.DESTROY_ALL_SERVER_STORES;
+    }
+  }
 }

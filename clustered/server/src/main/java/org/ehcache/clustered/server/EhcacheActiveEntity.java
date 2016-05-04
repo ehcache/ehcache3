@@ -15,11 +15,17 @@
  */
 package org.ehcache.clustered.server;
 
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
+import org.ehcache.clustered.common.ClusteredStoreValidationException;
+import org.ehcache.clustered.common.ServerStoreCompatibility;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
@@ -27,6 +33,7 @@ import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ConfigureCacheManager;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.CreateServerStore;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.DestroyServerStore;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateServerStore;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
@@ -60,19 +67,91 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   private Map<String, PageSource> resourcePools;
   private Map<String, ServerStore> stores;
 
+  private final Map<ClientDescriptor, Set<String>> clientStoreMap = new HashMap<ClientDescriptor, Set<String>>();
+  private final ConcurrentHashMap<String, Set<ClientDescriptor>> storeClientMap =
+      new ConcurrentHashMap<String, Set<ClientDescriptor>>();
+
+  private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
+
   EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
     this.services = services;
   }
 
+  /**
+   * Gets the map of connected clients along with the server stores each is using.
+   * If the client is using no stores, the set of stores will be empty for that client.
+   *
+   * @return an unmodifiable copy of the connected client map
+   */
+  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
+  Map<ClientDescriptor, Set<String>> getConnectedClients() {
+    final HashMap<ClientDescriptor, Set<String>> clientMap = new HashMap<ClientDescriptor, Set<String>>();
+    for (Map.Entry<ClientDescriptor, Set<String>> entry : clientStoreMap.entrySet()) {
+      clientMap.put(entry.getKey(), Collections.unmodifiableSet(new HashSet<String>(entry.getValue())));
+    }
+    return Collections.unmodifiableMap(clientMap);
+  }
+
+  /**
+   * Gets the map of in-use stores along with the clients using each.
+   * This map is not expected to hold a store with no active client.
+   *
+   * @return an unmodifiable copy of the in-use store map
+   */
+  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
+  Map<String, Set<ClientDescriptor>> getInUseStores() {
+    final HashMap<String, Set<ClientDescriptor>> storeMap = new HashMap<String, Set<ClientDescriptor>>();
+    for (Map.Entry<String, Set<ClientDescriptor>> entry : storeClientMap.entrySet()) {
+      storeMap.put(entry.getKey(), Collections.unmodifiableSet(new HashSet<ClientDescriptor>(entry.getValue())));
+    }
+    return Collections.unmodifiableMap(storeMap);
+  }
+
+  /**
+   * Gets the set of defined resource pools.
+   *
+   * @return an unmodifiable set of resource pool identifiers
+   */
+  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
+  // TODO: Provide some mechanism to report on storage utilization -- PageSource provides little visibility
+  Set<String> getResourcePoolIds() {
+    return Collections.unmodifiableSet(new HashSet<String>(resourcePools.keySet()));
+  }
+
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
-    //nothing to do
+    LOGGER.info("Connecting {}", clientDescriptor);
+    if (!clientStoreMap.containsKey(clientDescriptor)) {
+      clientStoreMap.put(clientDescriptor, new HashSet<String>());
+    } else {
+      // This is logically an AssertionError
+      LOGGER.error("Client {} already registered as connected", clientDescriptor);
+    }
   }
 
   @Override
   public void disconnected(ClientDescriptor clientDescriptor) {
-    //nothing to do
+    LOGGER.info("Disconnecting {}", clientDescriptor);
+    Set<String> storeIds = clientStoreMap.remove(clientDescriptor);
+    if (storeIds == null) {
+      // This is logically an AssertionError
+      LOGGER.error("Client {} not registered as connected", clientDescriptor);
+    } else {
+      for (String storeId : storeIds) {
+        boolean updated = false;
+        while (!updated) {
+          Set<ClientDescriptor> clients = storeClientMap.get(storeId);
+          if (clients != null && clients.contains(clientDescriptor)) {
+            Set<ClientDescriptor> newClients = new HashSet<ClientDescriptor>(clients);
+            newClients.remove(clientDescriptor);
+            updated = storeClientMap.replace(storeId, clients, newClients);
+          } else {
+            updated = true;
+          }
+        }
+      }
+    }
   }
 
   @Override
@@ -80,8 +159,9 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     switch (message.getType()) {
       case CONFIGURE: return configure((ConfigureCacheManager) message);
       case VALIDATE: return validate((ValidateCacheManager) message);
-      case CREATE_SERVER_STORE: return createServerStore((CreateServerStore) message);
-      case DESTROY_SERVER_STORE: return destroyServerStore((DestroyServerStore) message);
+      case CREATE_SERVER_STORE: return createServerStore(clientDescriptor, (CreateServerStore) message);
+      case VALIDATE_SERVER_STORE: return validateServerStore(clientDescriptor, (ValidateServerStore) message);
+      case DESTROY_SERVER_STORE: return destroyServerStore(clientDescriptor, (DestroyServerStore) message);
       default: throw new IllegalArgumentException("Unknown message " + message);
     }
   }
@@ -155,31 +235,88 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     return unmodifiableMap(pools);
   }
 
-  // QUESTION: Should this be getOrCreateServerStore?
-  private EhcacheEntityResponse createServerStore(CreateServerStore createServerStore) {
+  private EhcacheEntityResponse createServerStore(ClientDescriptor clientDescriptor, CreateServerStore createServerStore) {
     String name = createServerStore.getName();
-    ServerStoreConfiguration storeConfiguration = new ServerStoreConfiguration(
-        createServerStore.getStoredKeyType(),
-        createServerStore.getStoredValueType(),
-        createServerStore.getActualKeyType(),
-        createServerStore.getActualValueType(),
-        createServerStore.getKeySerializerType(),
-        createServerStore.getValueSerializerType()
-    );
+    ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
+
+    // TODO: Connect ServerStore to local resourcePool!
+
     LOGGER.info("Creating new server-side store for '{}'", name);
     if (stores.containsKey(name)) {
-      return failure(new IllegalStateException("Store already exists"));
+      return failure(new IllegalStateException("Store '" + name + "' already exists"));
     } else {
       stores.put(name, new ServerStore(storeConfiguration));
+      attachStore(clientDescriptor, name);
       return success();
     }
   }
 
-  private EhcacheEntityResponse destroyServerStore(DestroyServerStore destroyServerStore) {
+  private EhcacheEntityResponse validateServerStore(ClientDescriptor clientDescriptor, ValidateServerStore validateServerStore) {
+    String name = validateServerStore.getName();
+    ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
+
+    LOGGER.info("Validating server-side store for '{}'", name);
+    ServerStore store = stores.get(name);
+    if (store != null) {
+      try {
+        storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
+      } catch (ClusteredStoreValidationException e) {
+        return failure(e);
+      }
+      attachStore(clientDescriptor, name);
+      return success();
+    } else {
+      return failure(new IllegalStateException("Store '" + name + "' does not exist"));
+    }
+  }
+
+  /**
+   * Establishes a registration of a client against a store.
+   * <p>
+   *   Once registered, a client is associated with a store until the client disconnects.
+   * </p>
+   *
+   * @param clientDescriptor the client to connect
+   * @param storeId the store id to which the client is connecting
+   */
+  private void attachStore(ClientDescriptor clientDescriptor, String storeId) {
+    boolean updated = false;
+    while (!updated) {
+      Set<ClientDescriptor> clients = storeClientMap.get(storeId);
+      Set<ClientDescriptor> newClients;
+      if (clients == null) {
+        newClients = new HashSet<ClientDescriptor>();
+        newClients.add(clientDescriptor);
+        updated = (storeClientMap.putIfAbsent(storeId, newClients) == null);
+
+      } else if (!clients.contains(clientDescriptor)) {
+        newClients = new HashSet<ClientDescriptor>(clients);
+        updated = storeClientMap.replace(storeId, clients, newClients);
+
+      } else {
+        // Already registered
+        updated = true;
+      }
+    }
+
+    final Set<String> storeIds = clientStoreMap.get(clientDescriptor);
+    storeIds.add(storeId);
+
+    LOGGER.info("Client {} attached to store '{}'", clientDescriptor, storeId);
+  }
+
+  private EhcacheEntityResponse destroyServerStore(ClientDescriptor clientDescriptor, DestroyServerStore destroyServerStore) {
     String name = destroyServerStore.getName();
-    LOGGER.info("Destroying server-side store '{}'", name);
+
+    final Set<ClientDescriptor> clients = storeClientMap.get(name);
+    if (clients != null && !(clients.isEmpty() || clients.equals(Collections.singleton(clientDescriptor)))) {
+      return failure(new IllegalStateException(
+          "Can not destroy server-side store '" + name + "': in use by " + clients.size() + " clients"));
+    }
+
+    LOGGER.info("Destroying server-side store '{}' by client {}", name, clientDescriptor);
     if (stores.remove(name) == null) {
-      return failure(new IllegalStateException("Store doesn't exist"));
+      return failure(new IllegalStateException("Store '" + name + "' does not exist"));
     } else {
       return success();
     }

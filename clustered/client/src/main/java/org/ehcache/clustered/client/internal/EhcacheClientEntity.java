@@ -73,6 +73,38 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
+  public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.createServerStore(name, serverStoreConfiguration));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
+  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.validateServerStore(name , serverStoreConfiguration));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
+  public void destroyCache(String name) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.destroyServerStore(name));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
+  public void destroyAllCaches() throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.destroyAllServerStores());
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
   private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Exception {
     InvokeFuture<EhcacheEntityResponse> result = endpoint.beginInvoke().message(message).invoke();
     boolean interrupted = false;
@@ -93,22 +125,6 @@ public class EhcacheClientEntity implements Entity {
       if (interrupted) {
         Thread.currentThread().interrupt();
       }
-    }
-  }
-
-  public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
-    try {
-      invoke(EhcacheEntityMessage.createServerStore(name, serverStoreConfiguration));
-    } catch (Exception e) {
-      throw unwrapException(e, CachePersistenceException.class);
-    }
-  }
-
-  public void destroyCache(String name) throws CachePersistenceException {
-    try {
-      invoke(EhcacheEntityMessage.destroyServerStore(name));
-    } catch (Exception e) {
-      throw unwrapException(e, CachePersistenceException.class);
     }
   }
 }

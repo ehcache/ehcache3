@@ -16,16 +16,22 @@
 
 package org.ehcache.clustered.common;
 
+import java.io.Serializable;
+
 /**
  * Configuration properties for {@code ServerStore}.
  */
-public class ServerStoreConfiguration {
+public class ServerStoreConfiguration implements Serializable {
+  private static final long serialVersionUID = 5452646838836730816L;
+
+
   private final String storedKeyType;
   private final String storedValueType;
   private final String actualKeyType;
   private final String actualValueType;
   private final String keySerializerType;
   private final String valueSerializerType;
+  // TODO: Loader/Writer configuration ...
 
   public ServerStoreConfiguration(String storedKeyType, String storedValueType, String actualKeyType, String actualValueType, String keySerializerType, String valueSerializerType) {
     this.storedKeyType = storedKeyType;

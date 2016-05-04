@@ -37,6 +37,15 @@ public interface ClusteredResourceType<P extends ClusteredResourcePool> extends 
     public static final ClusteredResourceType<SharedClusteredResourcePool> SHARED =
         new BaseClusteredResourceType<SharedClusteredResourcePool>("SHARED", SharedClusteredResourcePool.class);
 
+    /**
+     * Returns an array containing the constants of the {@link ClusteredResourceType}.
+     *
+     * @return an array containing the constants of {@code ClusteredResourceType} in the order declared
+     */
+    @SuppressWarnings("unchecked")
+    public static ClusteredResourceType<? extends ClusteredResourcePool>[] values() {
+      return new ClusteredResourceType[] {FIXED, SHARED};   // unchecked
+    }
 
     /**
      * The base on which {@link ClusteredResourceType} identifiers are built.

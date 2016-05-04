@@ -34,6 +34,8 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -191,11 +193,12 @@ public class ClusteredStore<K, V> implements Store<K, V> {
   @ServiceDependencies({ClusteringService.class})
   public static class Provider implements Store.Provider {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
+
     private static final Set<ResourceType<?>> CLUSTER_RESOURCES;
     static {
       Set<ResourceType<?>> resourceTypes = new HashSet<ResourceType<?>>();
-      resourceTypes.add(ClusteredResourceType.Types.FIXED);
-      resourceTypes.add(ClusteredResourceType.Types.SHARED);
+      Collections.addAll(resourceTypes, ClusteredResourceType.Types.values());
       CLUSTER_RESOURCES = Collections.unmodifiableSet(resourceTypes);
     }
 
@@ -206,13 +209,21 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     @Override
     public <K, V> Store<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       if (clusteringService == null) {
-        throw new IllegalStateException("ClusteredStore.Provider.createStore called without ClusteringServiceConfiguration");
-      }
-      if (Collections.disjoint(storeConfig.getResourcePools().getResourceTypeSet(), CLUSTER_RESOURCES)) {
-        throw new IllegalStateException("ClusteredStoreProvider.createStore called without ClusteredResourcePools");
+        throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore called without ClusteringServiceConfiguration");
       }
 
-      // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.CacheStore.Provider>>>>>>> Issue #763 Introduce ServerStoreProxy
+      final HashSet<ResourceType<?>> clusteredResourceTypes =
+          new HashSet<ResourceType<?>>(storeConfig.getResourcePools().getResourceTypeSet());
+      clusteredResourceTypes.retainAll(CLUSTER_RESOURCES);
+
+      if (clusteredResourceTypes.isEmpty()) {
+        throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore called without ClusteredResourcePools");
+      }
+      if (clusteredResourceTypes.size() != 1) {
+        throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore can not create store with multiple clustered resources");
+      }
+
+      // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.CacheStore.Provider
       final Store.Provider underlyingStoreProvider =
           selectProvider(storeConfig.getResourcePools().getResourceTypeSet(), Arrays.asList(serviceConfigs));
 
@@ -231,6 +242,8 @@ public class ClusteredStore<K, V> implements Store<K, V> {
       if (underlyingStoreProvider == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider: " + resource);
       }
+
+      // TODO: Need to propagate closure to EhcacheActiveEntity to disconnect client from store
 
       underlyingStoreProvider.releaseStore(((ClusteredStore)resource).underlyingStore);
     }
@@ -252,12 +265,16 @@ public class ClusteredStore<K, V> implements Store<K, V> {
         return 0;
       }
 
-      // TODO: Add logic to ensure 'clusteringService' is configured for the desired resources
-
       Set<ResourceType<?>> nonClusterResourceTypes = new HashSet<ResourceType<?>>(resourceTypes);
       int clusterResourceCount = nonClusterResourceTypes.size();
       nonClusterResourceTypes.removeAll(CLUSTER_RESOURCES);
       clusterResourceCount -= nonClusterResourceTypes.size();
+
+      if (clusterResourceCount > 1) {
+        // Only a single clustered resource is handled by this provider
+        LOGGER.warn(Provider.class.getName() + " can not provide a store supporting multiple clustered resource types");
+        return 0;
+      }
 
       final Store.Provider candidateUnderlyingStoreProvider = selectProvider(nonClusterResourceTypes, serviceConfigs);
       final int underlyingRank = candidateUnderlyingStoreProvider.rank(nonClusterResourceTypes, serviceConfigs);
@@ -267,7 +284,6 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     @Override
     public void start(final ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
-      // TODO: Should this fail soft?
       this.clusteringService = this.serviceProvider.getService(ClusteringService.class);
     }
 

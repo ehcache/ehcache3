@@ -16,6 +16,8 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.common.ServerStoreConfiguration;
+
 /**
  * Provides client-side access to the services of a {@code ServerStore}.
  */
@@ -41,4 +43,11 @@ public interface ServerStoreProxy<K, V> {
    * @return the value type
    */
   Class<V> getValueType();
+
+  /**
+   * Gets the {@link ServerStoreConfiguration} used to create this {@code ServerStoreProxy}.
+   *
+   * @return the {@code ServerStoreConfiguration}
+   */
+  ServerStoreConfiguration getServerStoreConfiguration();
 }
