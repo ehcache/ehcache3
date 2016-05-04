@@ -87,6 +87,13 @@ public class TieredStore<K, V> implements Store<K, V> {
       }
     });
 
+    this.authoritativeTier.setInvalidationValve(new AuthoritativeTier.InvalidationValve() {
+      @Override
+      public void invalidateAll() throws StoreAccessException {
+        invalidateAllInternal();
+      }
+    });
+
     StatisticsManager.associate(cachingTier).withParent(this);
     StatisticsManager.associate(authoritativeTier).withParent(this);
     tieringStoreStatsSettings = new TieringStoreStatsSettings(cachingTier, authoritativeTier);
@@ -234,6 +241,34 @@ public class TieredStore<K, V> implements Store<K, V> {
         synchronized (noopCachingTier) {
           noopCachingTier.notify();
         }
+      }
+    }
+  }
+
+  private void invalidateAllInternal() throws StoreAccessException {
+    boolean interrupted = false;
+    while(!cachingTierRef.compareAndSet(realCachingTier, noopCachingTier)) {
+      synchronized (noopCachingTier) {
+        if(cachingTierRef.get() == noopCachingTier) {
+          try {
+            noopCachingTier.wait();
+          } catch (InterruptedException e) {
+            interrupted = true;
+          }
+        }
+      }
+    }
+    if(interrupted) {
+      Thread.currentThread().interrupt();
+    }
+    try {
+      realCachingTier.invalidateAll();
+    } finally {
+      if(!cachingTierRef.compareAndSet(noopCachingTier, realCachingTier)) {
+        throw new AssertionError("Something bad happened");
+      }
+      synchronized (noopCachingTier) {
+        noopCachingTier.notify();
       }
     }
   }
@@ -534,6 +569,11 @@ public class TieredStore<K, V> implements Store<K, V> {
 
     @Override
     public void invalidate(final K key) throws StoreAccessException {
+      // noop
+    }
+
+    @Override
+    public void invalidateAll() {
       // noop
     }
 

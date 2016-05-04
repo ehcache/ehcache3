@@ -642,17 +642,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.map = map.clear();
   }
 
-  private void invalidate() {
-    for(K key : map.keySet()) {
-      try {
-        invalidate(key);
-      } catch (StoreAccessException cae) {
-        LOG.warn("Failed to invalidate mapping for key {}", key, cae);
-      }
-    }
-    clear();
-  }
-
   @Override
   public Iterator<Cache.Entry<K, ValueHolder<V>>> iterator() {
     return new Iterator<Cache.Entry<K, ValueHolder<V>>>() {
@@ -838,6 +827,53 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       silentInvalidateObserver.end(outcome.get());
     } catch (RuntimeException re) {
       handleRuntimeException(re);
+    }
+  }
+
+  @Override
+  public void invalidateAll() throws StoreAccessException {
+    long errorCount = 0;
+    StoreAccessException firstException = null;
+    for(K key : map.keySet()) {
+      try {
+        invalidate(key);
+      } catch (StoreAccessException cae) {
+        errorCount++;
+        if (firstException == null) {
+          firstException = cae;
+        }
+      }
+    }
+    if (firstException != null) {
+      throw new StoreAccessException("Error(s) during invalidation - count is " + errorCount, firstException);
+    }
+    clear();
+  }
+
+  @Override
+  public void silentInvalidateAll(final BiFunction<K, ValueHolder<V>, Void> biFunction) throws StoreAccessException {
+    StoreAccessException exception = null;
+    long errorCount = 0;
+
+    for (final K k : map.keySet()) {
+      try {
+        silentInvalidate(k, new Function<ValueHolder<V>, Void>() {
+          @Override
+          public Void apply(ValueHolder<V> mappedValue) {
+            biFunction.apply(k, mappedValue);
+            return null;
+          }
+        });
+      } catch (StoreAccessException e) {
+        errorCount++;
+        if (exception == null) {
+          exception = e;
+        }
+      }
+    }
+
+    if (exception != null) {
+      throw new StoreAccessException("silentInvalidateAll failed - error count: " + errorCount, exception);
     }
   }
 
@@ -1631,7 +1667,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public void releaseCachingTier(CachingTier<?, ?> resource) {
       checkResource(resource);
-      ((OnHeapStore)resource).invalidate();
+      try {
+        resource.invalidateAll();
+      } catch (StoreAccessException e) {
+        LOG.warn("Invalidation failure while releasing caching tier", e);
+      }
       releaseStore((Store<?, ?>) resource);
     }
 

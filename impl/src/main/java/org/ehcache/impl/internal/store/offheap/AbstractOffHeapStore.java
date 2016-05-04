@@ -1029,6 +1029,25 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
+  @Override
+  public void invalidateAll() throws StoreAccessException {
+    StoreAccessException exception = null;
+    long errorCount = 0;
+    for (K k : backingMap().keySet()) {
+      try {
+        invalidate(k);
+      } catch (StoreAccessException e) {
+        errorCount++;
+        if (exception == null) {
+          exception = e;
+        }
+      }
+    }
+    if (exception != null) {
+      throw new StoreAccessException("invalidateAll failed - error count: " + errorCount, exception);
+    }
+  }
+
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
     final CachingTier.InvalidationListener<K, V> invalidationListener = this.invalidationListener;
     if (invalidationListener != null) {

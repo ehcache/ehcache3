@@ -79,6 +79,14 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   void invalidate(K key, NullaryFunction<K> function) throws StoreAccessException;
 
   /**
+   * Invalidates all mapping, invoking the {@link org.ehcache.core.spi.store.tiering.CachingTier.InvalidationListener} if
+   * registered.
+   *
+   * @throws StoreAccessException if mappings cannot be removed
+   */
+  void invalidateAll() throws StoreAccessException;
+
+  /**
    * Empty out this tier
    *
    * @throws StoreAccessException if mappings cannot be removed

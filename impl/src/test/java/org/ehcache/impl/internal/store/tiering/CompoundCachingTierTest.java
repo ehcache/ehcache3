@@ -15,6 +15,7 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
@@ -327,6 +328,19 @@ public class CompoundCachingTierTest {
     assertThat(invalidated.get(), is(valueHolder));
     assertThat(higherTierValueHolder.get(), is(nullValue()));
     assertThat(lowerTierValueHolder.get(), is(nullValue()));
+  }
+
+  @Test
+  public void testInvalidateAllCoversBothTiers() throws Exception {
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
+    LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
+
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+
+    compoundCachingTier.invalidateAll();
+
+    verify(higherTier).silentInvalidateAll(any(BiFunction.class));
+    verify(lowerTier).invalidateAll();
   }
 
   @Test
