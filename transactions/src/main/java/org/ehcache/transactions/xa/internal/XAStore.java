@@ -20,10 +20,10 @@ import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -34,7 +34,7 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.copy.Copier;
@@ -766,13 +766,13 @@ public class XAStore<K, V> implements Store<K, V> {
       List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
       underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
-      // eviction veto
-      EvictionVeto<? super K, ? super V> realEvictionVeto = storeConfig.getEvictionVeto();
-      EvictionVeto<? super K, ? super SoftLock<V>> evictionVeto;
-      if (realEvictionVeto == null) {
-        evictionVeto = null;
+      // eviction advisor
+      EvictionAdvisor<? super K, ? super V> realEvictionAdvisor = storeConfig.getEvictionAdvisor();
+      EvictionAdvisor<? super K, ? super SoftLock<V>> evictionAdvisor;
+      if (realEvictionAdvisor == null) {
+        evictionAdvisor = null;
       } else {
-        evictionVeto = new XAEvictionVeto<K, V>(realEvictionVeto);
+        evictionAdvisor = new XAEvictionAdvisor<K, V>(realEvictionAdvisor);
       }
 
       // expiry
@@ -782,7 +782,7 @@ public class XAStore<K, V> implements Store<K, V> {
         public Duration getExpiryForCreation(K key, SoftLock<V> softLock) {
           if (softLock.getTransactionId() != null) {
             // phase 1 prepare, create -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, create -> some time
             Duration duration;
@@ -800,7 +800,7 @@ public class XAStore<K, V> implements Store<K, V> {
         public Duration getExpiryForAccess(K key, final ValueSupplier<? extends SoftLock<V>> softLock) {
           if (softLock.value().getTransactionId() != null) {
             // phase 1 prepare, access -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, access -> some time
             Duration duration;
@@ -819,7 +819,7 @@ public class XAStore<K, V> implements Store<K, V> {
           SoftLock<V> oldSoftLock = oldSoftLockSupplier.value();
           if (oldSoftLock.getTransactionId() == null) {
             // phase 1 prepare, update -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime
             if (oldSoftLock.getOldValue() == null) {
@@ -891,8 +891,8 @@ public class XAStore<K, V> implements Store<K, V> {
       SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
       // create the underlying store
-      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), (Class) SoftLock.class, evictionVeto,
-          storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getOrderedEventParallelism(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
+      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), (Class) SoftLock.class, evictionAdvisor,
+          storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getDispatcherConcurrency(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
       Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 
       // create the XA store
@@ -980,17 +980,17 @@ public class XAStore<K, V> implements Store<K, V> {
     }
   }
 
-  private static class XAEvictionVeto<K, V> implements EvictionVeto<K, SoftLock<V>> {
+  private static class XAEvictionAdvisor<K, V> implements EvictionAdvisor<K, SoftLock<V>> {
 
-    private final EvictionVeto<? super K, ? super V> wrappedVeto;
+    private final EvictionAdvisor<? super K, ? super V> wrappedEvictionAdvisor;
 
-    private XAEvictionVeto(EvictionVeto<? super K, ? super V> wrappedVeto) {
-      this.wrappedVeto = wrappedVeto;
+    private XAEvictionAdvisor(EvictionAdvisor<? super K, ? super V> wrappedEvictionAdvisor) {
+      this.wrappedEvictionAdvisor = wrappedEvictionAdvisor;
     }
 
     @Override
-    public boolean vetoes(K key, SoftLock<V> softLock) {
-      return isInDoubt(softLock) || wrappedVeto.vetoes(key, softLock.getOldValue());
+    public boolean adviseAgainstEviction(K key, SoftLock<V> softLock) {
+      return isInDoubt(softLock) || wrappedEvictionAdvisor.adviseAgainstEviction(key, softLock.getOldValue());
     }
   }
 

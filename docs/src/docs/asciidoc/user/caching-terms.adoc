@@ -1,0 +1,47 @@
+---
+---
+= Terms Related to Caching
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Basic Terms
+
+=== Cache
+Wiktionary defines a cache as _a store of things that will be required in the future, and can be retrieved rapidly_.
+A cache is a collection of temporary data that either duplicates data located elsewhere or is the result of a
+computation. Data that is already in the cache can be repeatedly accessed with minimal costs in terms of time and
+resources.
+
+=== Cache Entry
+A cache entry is a key and its mapped data value within the cache.
+
+=== Cache Hit
+When a data entry is requested from cache and the entry exists for the given key, it is referred to as a cache hit
+(or simply, a _hit_).
+
+=== Cache Miss
+When a data entry is requested from cache and the entry does not exist for the given key, it is referred to as a cache
+miss (or simply, a _miss_).
+
+=== System-of-Record (SoR)
+The authoritative source of truth for the data. The cache acts as a local copy of data retrieved from or stored to the
+system-of-record (SOR). The SOR is often a traditional database, although it might be a specialized file system or some
+other reliable long-term storage. It can also be a conceptual component such as an expensive computation.
+
+=== Eviction
+The removal of entries from the cache in order to make room for newer entries (typically when the cache has ran out of
+data storage capacity).
+
+=== Expiration
+The removal of entries from the cache after the passing of some amount of time, typically as a strategy to avoid stale
+data in the cache.
+
+=== Hot Data
+Data that has recently been used by an application is very likely to be accessed again soon.  Such data is considered
+_hot_.  A cache may attempt to keep the _most hot_ data most quickly available, while attemping to choose the
+_least hot_ data for eviction.

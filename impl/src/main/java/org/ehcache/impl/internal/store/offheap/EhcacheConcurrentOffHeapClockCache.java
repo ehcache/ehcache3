@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import java.util.concurrent.atomic.AtomicBoolean;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 
@@ -29,7 +29,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.VETOED;
+import static org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION;
 import org.terracotta.offheapstore.Metadata;
 import static org.terracotta.offheapstore.MetadataTuple.metadataTuple;
 import static org.terracotta.offheapstore.Metadata.PINNED;
@@ -39,12 +39,12 @@ import static org.terracotta.offheapstore.Metadata.PINNED;
  */
 public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrentOffHeapCache<K, V> implements EhcacheOffHeapBackingMap<K, V> {
 
-  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final AtomicLong[] counters;
 
-  protected EhcacheConcurrentOffHeapClockCache(EvictionVeto<? super K, ? super V> evictionVeto, Factory<? extends PinnableSegment<K, V>> segmentFactory, int ssize) {
+  protected EhcacheConcurrentOffHeapClockCache(EvictionAdvisor<? super K, ? super V> evictionAdvisor, Factory<? extends PinnableSegment<K, V>> segmentFactory, int ssize) {
     super(segmentFactory, ssize);
-    this.evictionVeto = evictionVeto;
+    this.evictionAdvisor = evictionAdvisor;
     this.counters = new AtomicLong[segments.length];
     for(int i = 0; i < segments.length; i++) {
       counters[i] = new AtomicLong();
@@ -160,7 +160,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
         } else if (oldValue == newValue) {
           return metadataTuple(newValue, (pin ? PINNED : 0) | current.metadata());
         } else {
-          return metadataTuple(newValue, (pin ? PINNED : 0) | (evictionVeto.vetoes(k, newValue) ? VETOED : 0));
+          return metadataTuple(newValue, (pin ? PINNED : 0) | (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
         }
       }
     });
@@ -180,7 +180,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
         } else if (oldValue == newValue) {
           return current;
         } else {
-          return metadataTuple(newValue, (evictionVeto.vetoes(k, newValue) ? VETOED : 0));
+          return metadataTuple(newValue, (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
         }
       }
     });
@@ -200,7 +200,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
         } else if (oldValue == newValue) {
           return metadataTuple(newValue, PINNED | current.metadata());
         } else {
-          return metadataTuple(newValue, PINNED | (evictionVeto.vetoes(k, newValue) ? VETOED : 0));
+          return metadataTuple(newValue, PINNED | (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
         }
       }
     });
@@ -226,7 +226,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
             return metadataTuple(oldValue, current.metadata() & (unpinLocal ? ~Metadata.PINNED : -1));
           } else {
             unpin.set(false);
-            return metadataTuple(newValue, (evictionVeto.vetoes(k, newValue) ? VETOED : 0));
+            return metadataTuple(newValue, (evictionAdvisor.adviseAgainstEviction(k, newValue) ? ADVISED_AGAINST_EVICTION : 0));
           }
         } else {
           return current;

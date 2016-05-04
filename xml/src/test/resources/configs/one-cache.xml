@@ -23,6 +23,7 @@
   <ehcache:cache alias="bar">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:heap>5</ehcache:heap>
     <foo:foo/>
   </ehcache:cache>
 </ehcache:config>

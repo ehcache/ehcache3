@@ -18,9 +18,8 @@ package org.ehcache.integration;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.StateTransitionException;
+import org.ehcache.StateTransitionException;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Test;
 
@@ -29,6 +28,7 @@ import java.io.Serializable;
 import java.net.URISyntaxException;
 
 import static junit.framework.TestCase.fail;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -41,8 +41,8 @@ public class PersistentCacheTest {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
           .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass")))
           .withCache("persistentCache",
-              CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                  .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+              CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                  newResourcePoolsBuilder()
                       .heap(1, MemoryUnit.MB)
                       .offheap(2, MemoryUnit.MB)
                       .disk(5, MemoryUnit.MB, true)
@@ -57,8 +57,8 @@ public class PersistentCacheTest {
         PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
             .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass")))
             .withCache("persistentCache",
-                CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Serializable.class)
-                    .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+                CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Serializable.class,
+                    newResourcePoolsBuilder()
                         .heap(1, MemoryUnit.MB)
                         .offheap(2, MemoryUnit.MB)
                         .disk(5, MemoryUnit.MB, true)

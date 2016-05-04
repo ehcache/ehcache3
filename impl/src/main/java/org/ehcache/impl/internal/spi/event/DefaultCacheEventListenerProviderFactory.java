@@ -16,8 +16,7 @@
 
 package org.ehcache.impl.internal.spi.event;
 
-import org.ehcache.event.CacheEventListenerProvider;
-import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
+import org.ehcache.core.events.CacheEventListenerProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
 

@@ -15,6 +15,6 @@
  */
 
 /**
- * Package for builders designed to help out with programmatic configuration of Ehcache
+ * Builders designed to help with programmatic configuration of Ehcache using a fluent API
  */
 package org.ehcache.config.builders;

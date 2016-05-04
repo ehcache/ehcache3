@@ -16,10 +16,10 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -33,9 +33,9 @@ public interface StoreFactory<K, V> {
 
   Store<K, V> newStoreWithCapacity(long capacity);
 
-  Store<K, V> newStoreWithEvictionVeto(EvictionVeto<K, V> evictionVeto);
+  Store<K, V> newStoreWithEvictionAdvisor(EvictionAdvisor<K, V> evictionAdvisor);
 
-  Store<K, V> newStoreWithExpiry(Expiry<K, V> expiry, TimeSource timeSource);
+  Store<K, V> newStoreWithExpiry(Expiry<? super K, ? super V> expiry, TimeSource timeSource);
 
   Store.ValueHolder<V> newValueHolder(V value);
 

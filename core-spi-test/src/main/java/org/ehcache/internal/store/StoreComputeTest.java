@@ -17,7 +17,7 @@ package org.ehcache.internal.store;
 
 import org.ehcache.ValueSupplier;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
@@ -218,7 +218,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
       @Override
       public Duration getExpiryForCreation(K key, V value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
@@ -228,7 +228,7 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
 
       @Override
       public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
     }, timeSource);
 
@@ -261,12 +261,12 @@ public class StoreComputeTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
       @Override
       public Duration getExpiryForCreation(K key, V value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override
       public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
-        return Duration.FOREVER;
+        return Duration.INFINITE;
       }
 
       @Override

@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
@@ -65,19 +65,19 @@ public class ByteSizedOnHeapStoreByRefSPITest extends StoreSPITest<String, Strin
       }
 
       @Override
-      public Store<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+      public Store<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 
       @Override
-      public Store<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
-        return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      public Store<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
+        return newStore(null, evictionAdvisor, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
-      private Store<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-            evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
+            evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, null, null);
         return new OnHeapStore<String, String>(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER,
             new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<String, String>());
       }

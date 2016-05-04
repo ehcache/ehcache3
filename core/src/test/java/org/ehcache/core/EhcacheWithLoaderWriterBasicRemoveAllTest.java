@@ -24,8 +24,8 @@ import java.util.Set;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -86,7 +86,7 @@ public class EhcacheWithLoaderWriterBasicRemoveAllTest extends EhcacheBasicCrudB
 
   /**
    * A Mockito {@code ArgumentCaptor} for the
-   * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}
+   * {@link BulkCacheWritingException BulkCacheWritingException}
    * provided to the
    * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#removeAllFailure(Iterable, StoreAccessException, BulkCacheWritingException)}
    *    ResilienceStrategy.putAllFailure(Iterable, StoreAccessException, BulkCacheWritingException)} method.

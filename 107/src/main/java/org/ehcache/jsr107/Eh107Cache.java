@@ -27,6 +27,8 @@ import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -87,7 +89,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return ehCache.get(key);
-    } catch (org.ehcache.exceptions.CacheLoadingException e) {
+    } catch (CacheLoadingException e) {
       throw jsr107CacheLoaderException(e);
     }
   }
@@ -97,7 +99,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return jsr107Cache.getAll(keys);
-    } catch (org.ehcache.exceptions.CacheLoadingException e) {
+    } catch (CacheLoadingException e) {
       throw jsr107CacheLoaderException(e);
     }
   }
@@ -176,7 +178,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       ehCache.put(key, value);
-    } catch (org.ehcache.exceptions.CacheWritingException cwe) {
+    } catch (CacheWritingException cwe) {
       throw jsr107CacheWriterException(cwe);
     }
   }
@@ -191,7 +193,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     try {
       return jsr107Cache.getAndPut(key, value);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -201,7 +203,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       ehCache.putAll(map);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -212,7 +214,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     try {
       cacheResources.getExpiryPolicy().enableShortCircuitAccessCalls();
       return ehCache.putIfAbsent(key, value) == null;
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     } finally {
       cacheResources.getExpiryPolicy().disableShortCircuitAccessCalls();
@@ -229,7 +231,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     try {
       return jsr107Cache.remove(key);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -239,7 +241,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return ehCache.remove(key, oldValue);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -254,7 +256,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     try {
       return jsr107Cache.getAndRemove(key);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -264,7 +266,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return ehCache.replace(key, oldValue, newValue);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -274,7 +276,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return ehCache.replace(key, value) != null;
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -284,7 +286,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     try {
       checkClosed();
       return ehCache.replace(key, value);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -294,7 +296,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       ehCache.removeAll(keys);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -304,7 +306,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       jsr107Cache.removeAll();
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -575,14 +577,14 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     config.setManagementEnabled(enabled);
   }
 
-  private static CacheLoaderException jsr107CacheLoaderException(org.ehcache.exceptions.CacheLoadingException e) {
+  private static CacheLoaderException jsr107CacheLoaderException(CacheLoadingException e) {
     if (e.getCause() instanceof CacheLoaderException) {
       return (CacheLoaderException) e.getCause();
     }
     return new CacheLoaderException(e);
   }
 
-  private static CacheWriterException jsr107CacheWriterException(org.ehcache.exceptions.CacheWritingException e) {
+  private static CacheWriterException jsr107CacheWriterException(CacheWritingException e) {
     if (e.getCause() instanceof CacheWriterException) {
       return (CacheWriterException) e.getCause();
     }

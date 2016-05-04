@@ -17,16 +17,19 @@ package org.ehcache.clustered.server;
 
 import java.util.UUID;
 
-import org.ehcache.clustered.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.ServerSideConfiguration;
-import org.ehcache.clustered.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.messages.EhcacheEntityMessage.ConfigureCacheManager;
-import org.ehcache.clustered.messages.EhcacheEntityMessage.ValidateCacheManager;
-import org.ehcache.clustered.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ConfigureCacheManager;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.PassiveSynchronizationChannel;
+
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.failure;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.success;
 
 public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -86,16 +89,17 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   private EhcacheEntityResponse configure(ConfigureCacheManager message) throws IllegalStateException {
     if (configuration == null) {
       this.configuration = message.getConfiguration();
-      return null;
+      return success();
     } else {
-      throw new IllegalStateException("Clustered Cache Manager already configured");
+      return failure(new IllegalStateException("Clustered Cache Manager already configured"));
     }
   }
 
   private EhcacheEntityResponse validate(ValidateCacheManager message)  throws IllegalArgumentException {
     if (Integer.bitCount(configuration.getMagic()) != Integer.bitCount(message.getConfiguration().getMagic())) {
-      throw new IllegalArgumentException("Magic parameters not aligned");
+      return failure(new IllegalArgumentException("Magic parameters not aligned"));
+    } else {
+      return success();
     }
-    return null;
   }
 }

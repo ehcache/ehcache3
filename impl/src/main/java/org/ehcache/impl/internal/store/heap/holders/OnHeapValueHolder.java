@@ -27,21 +27,21 @@ public abstract class OnHeapValueHolder<V> extends AbstractValueHolder<V> {
 
   public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
-  private final boolean veto;
+  private final boolean evictionAdvice;
   private long size;
 
-  protected OnHeapValueHolder(long id, long creationTime, boolean veto) {
+  protected OnHeapValueHolder(long id, long creationTime, boolean evictionAdvice) {
     super(id, creationTime);
-    this.veto = veto;
+    this.evictionAdvice = evictionAdvice;
   }
 
-  protected OnHeapValueHolder(long id, long creationTime, long expirationTime, boolean veto) {
+  protected OnHeapValueHolder(long id, long creationTime, long expirationTime, boolean evictionAdvice) {
     super(id, creationTime, expirationTime);
-    this.veto = veto;
+    this.evictionAdvice = evictionAdvice;
   }
 
-  public boolean veto() {
-    return veto;
+  public boolean evictionAdvice() {
+    return evictionAdvice;
   }
 
   public long size() {

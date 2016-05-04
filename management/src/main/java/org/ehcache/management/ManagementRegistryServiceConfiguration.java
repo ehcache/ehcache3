@@ -17,7 +17,7 @@ package org.ehcache.management;
 
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.terracotta.management.context.Context;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.ManagementProvider;
 
 /**

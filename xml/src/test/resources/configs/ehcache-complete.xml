@@ -46,7 +46,7 @@
     <ehcache:expiry>
       <ehcache:ttl unit="minutes">1</ehcache:ttl>
     </ehcache:expiry>
-    <ehcache:eviction-veto>some.class.Veto</ehcache:eviction-veto>
+    <ehcache:eviction-advisor>some.class.Advisor</ehcache:eviction-advisor>
     <ehcache:loader-writer>
       <ehcache:class>some.class.LoaderWriter</ehcache:class>
       <ehcache:write-behind concurrency="10" size="10" thread-pool="toto">
@@ -55,7 +55,7 @@
         </ehcache:batching>
       </ehcache:write-behind>
     </ehcache:loader-writer>
-    <ehcache:listeners parallelism-level="128" thread-pool="pool-listeners">
+    <ehcache:listeners dispatcher-concurrency="128" dispatcher-thread-pool="pool-listeners">
       <ehcache:listener>
         <ehcache:class>some.class.Listener</ehcache:class>
         <ehcache:event-firing-mode>ASYNCHRONOUS</ehcache:event-firing-mode>
@@ -72,7 +72,7 @@
       <ehcache:max-object-graph-size>10</ehcache:max-object-graph-size>
       <ehcache:max-object-size unit="MB">100</ehcache:max-object-size>
     </ehcache:heap-store-settings>
-    <ehcache:disk-store-settings thread-pool="pool-disk" writer-threads="10"/>
+    <ehcache:disk-store-settings thread-pool="pool-disk" writer-concurrency="10"/>
     <foo:foo/>
   </ehcache:cache>
 </ehcache:config>

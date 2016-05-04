@@ -17,10 +17,9 @@
 package org.ehcache.core;
 
 import org.ehcache.Status;
-import org.ehcache.core.StatusTransitioner;
 import org.ehcache.core.events.StateChangeListener;
-import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.StateTransitionException;
+import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;

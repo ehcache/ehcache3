@@ -36,7 +36,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
     try {
       Duration duration = expiryPolicy.getExpiryForCreation();
       if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
+        return org.ehcache.expiry.Duration.INFINITE;
       }
       return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
     } catch (Throwable t) {
@@ -56,7 +56,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
         return null;
       }
       if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
+        return org.ehcache.expiry.Duration.INFINITE;
       }
       return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
     } catch (Throwable t) {
@@ -72,7 +72,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
         return null;
       }
       if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
+        return org.ehcache.expiry.Duration.INFINITE;
       }
       return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
     } catch (Throwable t) {

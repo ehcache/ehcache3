@@ -16,7 +16,7 @@
 package org.ehcache.impl.internal.loaderwriter.writebehind;
 
 import org.ehcache.impl.config.loaderwriter.writebehind.WriteBehindProviderConfiguration;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;

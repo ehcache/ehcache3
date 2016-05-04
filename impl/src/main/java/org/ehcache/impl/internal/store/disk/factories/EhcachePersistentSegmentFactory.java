@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.disk.factories;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
 import org.terracotta.offheapstore.Metadata;
@@ -28,7 +28,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.util.concurrent.locks.Lock;
 
-import static org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.VETOED;
+import static org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION;
 
 /**
  *
@@ -40,16 +40,16 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
   private final MappedPageSource tableSource;
   private final int tableSize;
 
-  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final EhcacheSegment.EvictionListener<K, V> evictionListener;
 
   private final boolean bootstrap;
 
-  public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, EvictionVeto<? super K, ? super V> evictionVeto, EhcacheSegment.EvictionListener<K, V> evictionListener, boolean bootstrap) {
+  public EhcachePersistentSegmentFactory(MappedPageSource source, Factory<? extends PersistentStorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, EvictionAdvisor<? super K, ? super V> evictionAdvisor, EhcacheSegment.EvictionListener<K, V> evictionListener, boolean bootstrap) {
     this.storageEngineFactory = storageEngineFactory;
     this.tableSource = source;
     this.tableSize = initialTableSize;
-    this.evictionVeto = evictionVeto;
+    this.evictionAdvisor = evictionAdvisor;
     this.evictionListener = evictionListener;
     this.bootstrap = bootstrap;
   }
@@ -57,7 +57,7 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
   public EhcachePersistentSegment<K, V> newInstance() {
     PersistentStorageEngine<? super K, ? super V> storageEngine = storageEngineFactory.newInstance();
     try {
-      return new EhcachePersistentSegment<K, V>(tableSource, storageEngine, tableSize, bootstrap, evictionVeto, evictionListener);
+      return new EhcachePersistentSegment<K, V>(tableSource, storageEngine, tableSize, bootstrap, evictionAdvisor, evictionListener);
     } catch (RuntimeException e) {
       storageEngine.destroy();
       throw e;
@@ -66,34 +66,34 @@ public class EhcachePersistentSegmentFactory<K, V> implements Factory<PinnableSe
 
   public static class EhcachePersistentSegment<K, V> extends PersistentReadWriteLockedOffHeapClockCache<K, V> {
 
-    private final EvictionVeto<? super K, ? super V> evictionVeto;
+    private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
     private final EvictionListener<K, V> evictionListener;
 
-    EhcachePersistentSegment(MappedPageSource source, PersistentStorageEngine<? super K, ? super V> storageEngine, int tableSize, boolean bootstrap, EvictionVeto<? super K, ? super V> evictionVeto, EvictionListener<K, V> evictionListener) {
+    EhcachePersistentSegment(MappedPageSource source, PersistentStorageEngine<? super K, ? super V> storageEngine, int tableSize, boolean bootstrap, EvictionAdvisor<? super K, ? super V> evictionAdvisor, EvictionListener<K, V> evictionListener) {
       super(source, storageEngine, tableSize, bootstrap);
-      this.evictionVeto = evictionVeto;
+      this.evictionAdvisor = evictionAdvisor;
       this.evictionListener = evictionListener;
     }
 
     @Override
     public V put(K key, V value) {
-      int metadata = getVetoedStatus(key, value);
+      int metadata = getEvictionAdviceStatus(key, value);
       return put(key, value, metadata);
     }
 
-    private int getVetoedStatus(final K key, final V value) {
-      return evictionVeto.vetoes(key, value) ? VETOED : 0;
+    private int getEvictionAdviceStatus(final K key, final V value) {
+      return evictionAdvisor.adviseAgainstEviction(key, value) ? ADVISED_AGAINST_EVICTION : 0;
     }
 
     @Override
     public V putPinned(K key, V value) {
-      int metadata = getVetoedStatus(key, value) | Metadata.PINNED;
+      int metadata = getEvictionAdviceStatus(key, value) | Metadata.PINNED;
       return put(key, value, metadata);
     }
 
     @Override
     protected boolean evictable(int status) {
-      return super.evictable(status) && ((status & VETOED) == 0);
+      return super.evictable(status) && ((status & ADVISED_AGAINST_EVICTION) == 0);
     }
 
     @Override

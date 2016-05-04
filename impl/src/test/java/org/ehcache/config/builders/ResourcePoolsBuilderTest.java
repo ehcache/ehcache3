@@ -16,6 +16,8 @@
 
 package org.ehcache.config.builders;
 
+import org.ehcache.config.ResourcePools;
+import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
@@ -23,6 +25,8 @@ import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static org.ehcache.config.ResourceType.Core.HEAP;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
@@ -45,16 +49,44 @@ public class ResourcePoolsBuilderTest {
 
   @Test
   public void testWithReplacing() throws Exception {
-    ResourcePoolsBuilder builder = ResourcePoolsBuilder.newResourcePoolsBuilder();
-    builder = builder.heap(8, MemoryUnit.MB);
+    long initialSize = 8;
+    long newSize = 16;
+    ResourceUnit mb = MemoryUnit.MB;
 
-    SizedResourcePool newPool = new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 16, MemoryUnit.MB, false);
+    ResourcePoolsBuilder builder = ResourcePoolsBuilder.newResourcePoolsBuilder();
+    builder = builder.heap(initialSize, mb);
+    ResourcePools initialPools = builder.build();
+
+    SizedResourcePool newPool = new SizedResourcePoolImpl<SizedResourcePool>(HEAP, newSize, mb, false);
 
     builder = builder.withReplacing(newPool);
 
-    final SizedResourcePool heapPool = builder.build().getPoolForResource(HEAP);
+    ResourcePools replacedPools = builder.build();
+    final SizedResourcePool heapPool = replacedPools.getPoolForResource(HEAP);
+
     assertThat(heapPool.isPersistent(), is(equalTo(newPool.isPersistent())));
-    assertThat(heapPool.getSize(), is(equalTo(newPool.getSize())));
-    assertThat(heapPool.getUnit(), is(equalTo(newPool.getUnit())));
+    assertThat(initialPools.getPoolForResource(HEAP).getSize(), is(initialSize));
+    assertThat(heapPool.getSize(), is(newSize));
+    assertThat(heapPool.getUnit(), is(mb));
+  }
+
+  @Test
+  public void testWithReplacingNoInitial() throws Exception {
+    long newSize = 16;
+    ResourceUnit mb = MemoryUnit.MB;
+    SizedResourcePool newPool = new SizedResourcePoolImpl<SizedResourcePool>(HEAP, newSize, mb, false);
+
+    ResourcePoolsBuilder builder = newResourcePoolsBuilder();
+    ResourcePools resourcePools = builder.withReplacing(newPool).build();
+    SizedResourcePool pool = resourcePools.getPoolForResource(HEAP);
+
+    assertThat(pool.getSize(), is(newSize));
+    assertThat(pool.getUnit(), is(mb));
+  }
+
+  @Test
+  public void testHeap() throws Exception {
+    ResourcePools pools = heap(10).build();
+    assertThat(pools.getPoolForResource(HEAP).getSize(), is(10L));
   }
 }

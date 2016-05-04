@@ -30,7 +30,7 @@ import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
 import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;

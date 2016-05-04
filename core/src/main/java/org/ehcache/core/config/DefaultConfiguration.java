@@ -26,7 +26,6 @@ import java.util.concurrent.ConcurrentMap;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.RuntimeConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import static java.util.Collections.unmodifiableCollection;
@@ -35,7 +34,7 @@ import static java.util.Collections.unmodifiableMap;
 /**
  * Base implementation of {@link Configuration}.
  */
-public final class DefaultConfiguration implements Configuration, RuntimeConfiguration {
+public final class DefaultConfiguration implements Configuration {
 
   private final ConcurrentMap<String,CacheConfiguration<?, ?>> caches;
   private final Collection<ServiceCreationConfiguration<?>> services;

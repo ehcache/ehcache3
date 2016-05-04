@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
@@ -58,7 +59,7 @@ public class ExpiryEventsTest {
       ResourcePoolsBuilder.newResourcePoolsBuilder().heap(3, EntryUnit.ENTRIES);
 
   private static final CacheConfigurationBuilder<Long, String> byRefCacheConfigBuilder =
-      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
           .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));;
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =

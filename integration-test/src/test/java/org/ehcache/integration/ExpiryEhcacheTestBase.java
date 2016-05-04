@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -51,7 +52,7 @@ public abstract class ExpiryEhcacheTestBase {
     manualTimeSource.setTimeMillis(0L);
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder().using(new TimeSourceConfiguration(manualTimeSource));
     cacheManager = builder.build(true);
-    CacheConfigurationBuilder<Number, CharSequence> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class)
+    CacheConfigurationBuilder<Number, CharSequence> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10))
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
     testCache = cacheManager.createCache("testCache", objectObjectCacheConfigurationBuilder.build());
   }

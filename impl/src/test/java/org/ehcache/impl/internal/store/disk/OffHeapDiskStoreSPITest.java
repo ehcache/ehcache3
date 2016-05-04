@@ -16,13 +16,13 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
@@ -86,17 +86,17 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       }
 
       @Override
-      public AuthoritativeTier<String, String> newStoreWithExpiry(Expiry<String, String> expiry, TimeSource timeSource) {
+      public AuthoritativeTier<String, String> newStoreWithExpiry(Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         return newStore(null, null, expiry, timeSource);
       }
 
       @Override
-      public AuthoritativeTier<String, String> newStoreWithEvictionVeto(EvictionVeto<String, String> evictionVeto) {
-        return newStore(null, evictionVeto, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
+      public AuthoritativeTier<String, String> newStoreWithEvictionAdvisor(EvictionAdvisor<String, String> evictionAdvisor) {
+        return newStore(null, evictionAdvisor, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
 
-      private AuthoritativeTier<String, String> newStore(Long capacity, EvictionVeto<String, String> evictionVeto, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
+      private AuthoritativeTier<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         Serializer<String> keySerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
 
@@ -108,7 +108,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
           Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
-              evictionVeto, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
+              evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
           OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(
                   persistenceService.createPersistenceContextWithin(space, "store"),
                   new OnDemandExecutionService(), null, 1,

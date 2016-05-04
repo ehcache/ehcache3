@@ -16,25 +16,22 @@
 
 package org.ehcache;
 
-import org.ehcache.exceptions.CachePersistenceException;
-
 /**
- * A CacheManager that knows how to lifecycle {@link org.ehcache.Cache} data that outlive the JVM's process existence.
- *
- * @author Alex Snaps
+ * A {@link CacheManager} that knows how to lifecycle caches that can outlive the JVM.
  */
 public interface PersistentCacheManager extends CacheManager {
 
   /**
-   * Destroys all persistent data associated with this {@code CacheManager}.
+   * Destroys all persistent data associated with this {@code PersistentCacheManager}.
    * <P>
-   *   This is achieved by putting the {@code CacheManager} in maintenance mode, executing the destroy and then exiting
-   *   the maintenance mode.
+   *   This is achieved by putting the {@code CacheManager} in {@link org.ehcache.Status#MAINTENANCE MAINTENANCE} mode,
+   *   executing the destroy and then exiting the {@code MAINTENANCE} mode.
    * </P>
    *
-   * @throws IllegalStateException if state {@link org.ehcache.Status#MAINTENANCE} couldn't be reached
+   * @throws IllegalStateException if state maintenance couldn't be reached
+   * @throws CachePersistenceException when something goes wrong destroying the persistent data
    */
-  void destroy();
+  void destroy() throws CachePersistenceException;
 
   /**
    * Destroys all data persistent data associated with the aliased {@link Cache} instance managed
@@ -42,7 +39,7 @@ public interface PersistentCacheManager extends CacheManager {
    *
    * @param alias the {@link org.ehcache.Cache}'s alias to destroy all persistent data from
    *
-   * @throws CachePersistenceException When something goes wrong destroying the persistent data
+   * @throws CachePersistenceException when something goes wrong destroying the persistent data
    */
   void destroyCache(String alias) throws CachePersistenceException;
 

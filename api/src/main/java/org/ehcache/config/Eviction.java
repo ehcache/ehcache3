@@ -17,28 +17,26 @@
 package org.ehcache.config;
 
 /**
- * Utility class for getting predefined {@link EvictionVeto} instance.
- *
- * @author Alex Snaps
+ * Utility class for getting predefined {@link EvictionAdvisor} instances.
  */
 public final class Eviction {
 
-  private static final EvictionVeto<?, ?> VETO_NONE = new EvictionVeto<Object, Object>() {
+  private static final EvictionAdvisor<?, ?> NO_ADVICE = new EvictionAdvisor<Object, Object>() {
     @Override
-    public boolean vetoes(Object key, Object value) {
+    public boolean adviseAgainstEviction(Object key, Object value) {
       return false;
     }
   };
 
   /**
-   * Returns an {@link EvictionVeto} where no mappings are vetoed from eviction.
+   * Returns an {@link EvictionAdvisor} where no mappings are advised against eviction.
    *
-   * @param <K> the key type on which this veto applies
-   * @param <V> the value type on whivh this veto applies
-   * @return a veto for no mappings
+   * @param <K> the key type for the advisor
+   * @param <V> the value type for the advisor
+   * @return an advisor where no mappings are advised against eviction
    */
-  public static <K, V> EvictionVeto<K, V> none() {
-    return (EvictionVeto<K, V>) VETO_NONE;
+  public static <K, V> EvictionAdvisor<K, V> noAdvice() {
+    return (EvictionAdvisor<K, V>) NO_ADVICE;
   }
 
 }

@@ -15,9 +15,9 @@
  */
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.messages.EhcacheCodec;
-import org.ehcache.clustered.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.messages.EhcacheCodec;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
@@ -37,7 +37,7 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return "org.ehcache.clustered.client.EhcacheClientEntity".equals(typeName);
+    return "org.ehcache.clustered.client.internal.EhcacheClientEntity".equals(typeName);
   }
 
   @Override
@@ -61,7 +61,7 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
   }
 
   @Override
-  public SyncMessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getSyncMessageCodec() {
+  public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
     return null;
   }
 }

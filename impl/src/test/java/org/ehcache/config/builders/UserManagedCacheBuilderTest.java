@@ -21,7 +21,7 @@ import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProviderTest;
 import org.junit.Test;

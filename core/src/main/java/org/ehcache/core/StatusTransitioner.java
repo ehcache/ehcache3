@@ -18,8 +18,8 @@ package org.ehcache.core;
 
 import org.ehcache.Status;
 import org.ehcache.core.events.StateChangeListener;
-import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.StateTransitionException;
+import org.ehcache.core.spi.LifeCycled;
 import org.slf4j.Logger;
 
 import java.util.ArrayDeque;

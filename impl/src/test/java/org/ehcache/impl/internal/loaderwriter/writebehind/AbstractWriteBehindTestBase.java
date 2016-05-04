@@ -33,7 +33,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
@@ -43,6 +43,7 @@ import org.mockito.stubbing.Answer;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newBatchedWriteBehindConfiguration;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
 import static org.hamcrest.Matchers.is;
@@ -108,7 +109,7 @@ public abstract class AbstractWriteBehindTestBase {
 
     CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
     try {
-      Cache<String, String> testCache = cacheManager.createCache("testWrites", CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class)
+      Cache<String, String> testCache = cacheManager.createCache("testWrites", CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, heap(10))
           .add(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
           .build());
 
@@ -137,7 +138,7 @@ public abstract class AbstractWriteBehindTestBase {
 
     CacheManager cacheManager = managerBuilder().using(cacheLoaderWriterProvider).build(true);
     try {
-      Cache<String, String> testCache = cacheManager.createCache("testBulkWrites", CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class)
+      Cache<String, String> testCache = cacheManager.createCache("testBulkWrites", CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, heap(100))
           .add(newUnBatchedWriteBehindConfiguration().concurrencyLevel(3).queueSize(10).build())
           .build());
 

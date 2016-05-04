@@ -61,7 +61,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @Before
   public void setUp() {
     timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
   }
 
   @SPITest

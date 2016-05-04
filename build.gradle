@@ -16,9 +16,9 @@
 import scripts.*
 
 ext {
-  baseVersion = '3.0.0-SNAPSHOT'
+  baseVersion = '3.1.0-SNAPSHOT'
   offheapVersion = '2.2.1'
-  managementVersion = '2.3.0'
+  managementVersion = '2.4.0'
   statisticVersion = '1.1.0'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
@@ -26,13 +26,6 @@ ext {
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
-}
-
-buildscript {
-  repositories { jcenter() }
-  dependencies {
-    classpath 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
-  }
 }
 
 subprojects {
@@ -53,7 +46,6 @@ subprojects {
   repositories {
     mavenCentral()
     maven { url "http://repo.terracotta.org/maven2" }
-    mavenLocal()
   }
 
   sourceSets {

@@ -16,14 +16,14 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.StoreAccessException;
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
@@ -98,7 +98,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
           .disk(10, MemoryUnit.MB)
           .build());
-      when(storeConfig1.getOrderedEventParallelism()).thenReturn(1);
+      when(storeConfig1.getDispatcherConcurrency()).thenReturn(1);
 
       OffHeapDiskStore<Long, String> offHeapDiskStore1 = provider.createStore(storeConfig1, space);
       provider.initStore(offHeapDiskStore1);
@@ -113,7 +113,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       when(storeConfig2.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
           .disk(10, MemoryUnit.MB)
           .build());
-      when(storeConfig2.getOrderedEventParallelism()).thenReturn(1);
+      when(storeConfig2.getDispatcherConcurrency()).thenReturn(1);
       when(storeConfig2.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
 
 
@@ -153,7 +153,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Override
-  protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto) {
+  protected OffHeapDiskStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
       serializationProvider.start(providerContaining(persistenceService));
@@ -161,7 +161,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createKeySerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
-          evictionVeto, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
+          evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
       OffHeapDiskStore<String, byte[]> offHeapStore = new OffHeapDiskStore<String, byte[]>(
               getPersistenceContext(),
               new OnDemandExecutionService(), null, 1,
@@ -196,7 +196,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     when(storeConfig.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
         .disk(10, MemoryUnit.MB)
         .build());
-    when(storeConfig.getOrderedEventParallelism()).thenReturn(1);
+    when(storeConfig.getDispatcherConcurrency()).thenReturn(1);
     try {
       provider.createStore(storeConfig);
       fail("IllegalStateException expected");

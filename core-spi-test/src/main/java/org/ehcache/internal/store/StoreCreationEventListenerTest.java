@@ -17,7 +17,7 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;

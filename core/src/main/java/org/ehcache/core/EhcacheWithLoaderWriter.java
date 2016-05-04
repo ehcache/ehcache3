@@ -22,11 +22,11 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.StoreAccessException;
-import org.ehcache.exceptions.CacheLoadingException;
-import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -34,7 +34,7 @@ import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.internal.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.internal.resilience.RecoveryCache;
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -628,10 +628,15 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     }
   }
 
-  private void cacheLoaderWriterWriteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) {
+  private void cacheLoaderWriterWriteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) throws IllegalStateException {
     Map<K, V> toWrite = new HashMap<K, V>();
     for (Map.Entry<? extends K, ? extends V> entry: entries) {
-      toWrite.put(entry.getKey(), entriesToRemap.get(entry.getKey()));
+      V value = entriesToRemap.get(entry.getKey());
+      if (value == null) {
+        continue;
+      }
+
+      toWrite.put(entry.getKey(), value);
     }
     try {
       if (! toWrite.isEmpty()) {
@@ -688,7 +693,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          Set<K> unknowns = cacheLoaderWriterDeleteAllCall(entries, successes, failures);
+          Set<K> unknowns = cacheLoaderWriterDeleteAllCall(entries, entriesToRemove, successes, failures);
 
           Map<K, V> results = new LinkedHashMap<K, V>();
 
@@ -728,7 +733,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       try {
         // just in case not all writes happened:
         if (!entriesToRemove.isEmpty()) {
-          cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
+          cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), entriesToRemove, successes, failures);
         }
         if (failures.isEmpty()) {
           resilienceStrategy.removeAllFailure(keys, e);
@@ -741,11 +746,14 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     }
   }
 
-  private Set<K> cacheLoaderWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> successes, Map<K, Exception> failures) {
+  private Set<K> cacheLoaderWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, ? extends V> entriesToRemove, Set<K> successes, Map<K, Exception> failures) {
     final Set<K> unknowns = new HashSet<K>();
     Set<K> toDelete = new HashSet<K>();
     for (Map.Entry<? extends K, ? extends V> entry : entries) {
-      toDelete.add(entry.getKey());
+      K key = entry.getKey();
+      if (entriesToRemove.containsKey(key)) {
+        toDelete.add(key);
+      }
     }
 
     try {

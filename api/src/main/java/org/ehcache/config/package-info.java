@@ -15,6 +15,7 @@
  */
 
 /**
- * Package for {@link org.ehcache.Cache} configuration classes
+ * {@link org.ehcache.config.Configuration CacheManager configuration},
+ * {@link org.ehcache.config.CacheConfiguration Cache configuration} and other configuration classes.
  */
 package org.ehcache.config;
