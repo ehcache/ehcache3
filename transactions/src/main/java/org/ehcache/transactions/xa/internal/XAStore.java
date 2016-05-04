@@ -767,7 +767,13 @@ public class XAStore<K, V> implements Store<K, V> {
       underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
       // eviction veto
-      EvictionVeto<? super K, ? super SoftLock<V>> evictionVeto = new XAEvictionVeto<K, V>(storeConfig.getEvictionVeto());
+      EvictionVeto<? super K, ? super V> realEvictionVeto = storeConfig.getEvictionVeto();
+      EvictionVeto<? super K, ? super SoftLock<V>> evictionVeto;
+      if (realEvictionVeto == null) {
+        evictionVeto = null;
+      } else {
+        evictionVeto = new XAEvictionVeto<K, V>(realEvictionVeto);
+      }
 
       // expiry
       final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
