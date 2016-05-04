@@ -16,21 +16,18 @@
 
 package org.ehcache.impl.serialization;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.util.ClassLoading;
 import org.ehcache.spi.serialization.Serializer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 /**
- * Default {@link Serializer} for {@code String} type. Simply writes the string bytes in UTF-8
+ * Default {@link Serializer} for {@code String} type. Simply writes the string bytes in modified UTF-8
  * to a byte buffer.
  */
 public class StringSerializer implements Serializer<String> {
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
   public StringSerializer() {
   }
@@ -43,21 +40,104 @@ public class StringSerializer implements Serializer<String> {
 
   @Override
   public ByteBuffer serialize(String object) {
-    byte[] bytes = object.getBytes(UTF_8);
-    ByteBuffer byteBuffer = ByteBuffer.allocate(bytes.length);
-    byteBuffer.put(bytes).flip();
-    return byteBuffer;
+    ByteArrayOutputStream bout = new ByteArrayOutputStream(object.length());
+    try {
+      int length = object.length();
+      int i = 0;
+
+      for (; i < length; i++) {
+        char c = object.charAt(i);
+        if ((c == 0x0000) || (c > 0x007f)) break;
+        bout.write(c);
+      }
+
+      for (; i < length; i++) {
+        char c = object.charAt(i);
+        if (c == 0x0000) {
+          bout.write(0xc0);
+          bout.write(0x80);
+        } else if (c < 0x0080) {
+          bout.write(c);
+        } else if (c < 0x800) {
+          bout.write(0xc0 | ((c >>> 6) & 0x1f));
+          bout.write(0x80 | (c & 0x3f));
+        } else {
+          bout.write(0xe0 | ((c >>> 12) & 0x1f));
+          bout.write(0x80 | ((c >>> 6) & 0x3f));
+          bout.write(0x80 | (c & 0x3f));
+        }
+      }
+    } finally {
+      try {
+        bout.close();
+      } catch (IOException ex) {
+        throw new AssertionError(ex);
+      }
+    }
+    return ByteBuffer.wrap(bout.toByteArray());
   }
 
   @Override
   public String read(ByteBuffer binary) throws ClassNotFoundException {
-    byte[] bytes = new byte[binary.remaining()];
-    binary.get(bytes);
-    return new String(bytes, UTF_8);
+    StringBuilder sb = new StringBuilder(binary.remaining());
+    int i = binary.position();
+    int end = binary.limit();
+    for (; i < end; i++) {
+      byte a = binary.get(i);
+      if (((a & 0x80) != 0)) break;
+      sb.append((char) a);
+    }
+
+    for (; i < end; i++) {
+      byte a = binary.get(i);
+      if ((a & 0x80) == 0) {
+        sb.append((char) a);
+      } else if ((a & 0xe0) == 0xc0) {
+        sb.append((char) (((a & 0x1f) << 6) | ((binary.get(++i) & 0x3f))));
+      } else if ((a & 0xf0) == 0xe0) {
+        sb.append((char) (((a & 0x0f) << 12) | ((binary.get(++i) & 0x3f) << 6) | (binary.get(++i) & 0x3f)));
+      }
+    }
+
+    return sb.toString();
   }
 
   @Override
   public boolean equals(String object, ByteBuffer binary) throws ClassNotFoundException {
-    return object.equals(read(binary));
+    if (binary.remaining() < object.length()) {
+      return false;
+    } else {
+      int bEnd = binary.limit();
+      int bi = binary.position();
+      int sLength = object.length();
+      int si = 0;
+
+      for (; bi < bEnd && si < sLength; bi++, si++) {
+        byte a = binary.get(bi);
+        if (((a & 0x80) != 0)) break;
+        if (object.charAt(si) != (char) a) {
+          return false;
+        }
+      }
+
+      for (; bi < bEnd && si < sLength; bi++, si++) {
+        byte a = binary.get(bi);
+        if ((a & 0x80) == 0) {
+          if (object.charAt(si) != (char) a) {
+            return false;
+          }
+        } else if ((a & 0xe0) == 0xc0) {
+          if (object.charAt(si) != (char) (((a & 0x1f) << 6) | ((binary.get(++bi) & 0x3f)))) {
+            return false;
+          }
+        } else if ((a & 0xf0) == 0xe0) {
+          if (object.charAt(si) != (char) (((a & 0x0f) << 12) | ((binary.get(++bi) & 0x3f) << 6) | (binary.get(++bi) & 0x3f))) {
+            return false;
+          }
+        }
+      }
+
+      return bi == bEnd && si == sLength;
+    }
   }
 }
