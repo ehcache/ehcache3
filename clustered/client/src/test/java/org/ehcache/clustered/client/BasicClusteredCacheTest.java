@@ -57,7 +57,7 @@ public class BasicClusteredCacheTest {
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
-                    .with(ClusteredResourcePoolBuilder.fixed("resource-pool-a", 32, MemoryUnit.KB))));
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);

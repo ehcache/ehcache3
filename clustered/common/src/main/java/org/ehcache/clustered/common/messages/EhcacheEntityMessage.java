@@ -32,8 +32,8 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     VALIDATE,
     CREATE_SERVER_STORE,
     VALIDATE_SERVER_STORE,
-    DESTROY_SERVER_STORE,
-    DESTROY_ALL_SERVER_STORES
+    RELEASE_SERVER_STORE,
+    DESTROY_SERVER_STORE
   }
 
   public abstract Type getType();
@@ -145,6 +145,32 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     }
   }
 
+  public static EhcacheEntityMessage releaseServerStore(String name) {
+    return new ReleaseServerStore(name);
+  }
+
+  /**
+   * Message disconnecting a client from a {@code ServerStore}.
+   */
+  public static class ReleaseServerStore extends EhcacheEntityMessage {
+    private static final long serialVersionUID = 6486779694089287953L;
+
+    private final String name;
+
+    private ReleaseServerStore(String name) {
+      this.name = name;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.RELEASE_SERVER_STORE;
+    }
+
+    public String getName() {
+      return name;
+    }
+  }
+
   public static EhcacheEntityMessage destroyServerStore(String name) {
     return new DestroyServerStore(name);
   }
@@ -171,19 +197,4 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     }
   }
 
-  public static EhcacheEntityMessage destroyAllServerStores() {
-    return new DestroyAllServerStores();
-  }
-
-  public static class DestroyAllServerStores extends EhcacheEntityMessage {
-    private static final long serialVersionUID = 3050986754986404874L;
-
-    private DestroyAllServerStores() {
-    }
-
-    @Override
-    public Type getType() {
-      return Type.DESTROY_ALL_SERVER_STORES;
-    }
-  }
 }

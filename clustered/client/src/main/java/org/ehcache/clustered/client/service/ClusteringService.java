@@ -43,6 +43,15 @@ public interface ClusteringService extends PersistableResourceService {
    */
   <K, V> ServerStoreProxy<K, V> getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier, final Store.Configuration<K, V> storeConfig);
 
+  /**
+   * Releases access to a {@link ServerStoreProxy} and the server-resident {@code ServerStore} it represents.
+   *
+   * @param storeProxy a {@code ServerStoreProxy} obtained through {@link #getServerStoreProxy}
+   * @param <K> the cache-expose key type
+   * @param <V> the cache-expose value type
+   */
+  <K, V> void releaseServerStoreProxy(ServerStoreProxy<K, V> storeProxy);
+
   void connect();
 
   /**

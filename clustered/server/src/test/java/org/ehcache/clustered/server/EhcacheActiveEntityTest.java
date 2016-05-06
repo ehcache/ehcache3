@@ -43,7 +43,6 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  *
@@ -138,7 +137,7 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     assertSuccess(activeEntity.invoke(client, configureMessage));
 
-    final Set<String> poolIds = activeEntity.getResourcePoolIds();
+    final Set<String> poolIds = activeEntity.getSharedResourcePoolIds();
     assertThat(poolIds, containsInAnyOrder("primary", "secondary"));
   }
 

@@ -67,8 +67,8 @@ public class ClusteredStore<K, V> implements Store<K, V> {
   private final ServerStoreProxy<K, V> storeProxy;
   private final Store<K, V> underlyingStore;
 
-  ClusteredStore(final ClusteringService clusteringService, ClusteredCacheIdentifier cacheIdentifier, Configuration<K, V> storeConfig, Store<K, V> underlyingStore) {
-    this.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig);
+  ClusteredStore(ServerStoreProxy<K, V> serverStoreProxy, Store<K, V> underlyingStore) {
+    this.storeProxy = serverStoreProxy;
     this.underlyingStore = underlyingStore;
   }
 
@@ -230,7 +230,8 @@ public class ClusteredStore<K, V> implements Store<K, V> {
       final Store<K, V> underlyingStore = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
 
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
-      Store<K, V> store = new ClusteredStore<K, V>(this.clusteringService, cacheId, storeConfig, underlyingStore);
+      ServerStoreProxy<K, V> serverStoreProxy = clusteringService.getServerStoreProxy(cacheId, storeConfig);
+      Store<K, V> store = new ClusteredStore<K, V>(serverStoreProxy, underlyingStore);
 
       createdStores.put(store, underlyingStoreProvider);
       return store;
@@ -243,9 +244,9 @@ public class ClusteredStore<K, V> implements Store<K, V> {
         throw new IllegalArgumentException("Given store is not managed by this provider: " + resource);
       }
 
-      // TODO: Need to propagate closure to EhcacheActiveEntity to disconnect client from store
-
-      underlyingStoreProvider.releaseStore(((ClusteredStore)resource).underlyingStore);
+      ClusteredStore clusteredStore = (ClusteredStore)resource;
+      underlyingStoreProvider.releaseStore(clusteredStore.underlyingStore);
+      this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy);
     }
 
     @Override

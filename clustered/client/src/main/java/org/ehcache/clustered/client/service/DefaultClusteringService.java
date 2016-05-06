@@ -16,18 +16,12 @@
 
 package org.ehcache.clustered.client.service;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
@@ -85,8 +79,6 @@ public class DefaultClusteringService implements ClusteringService {
 
   private Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
-
-//  TODO: @FindbugsSuppressWarnings("URF_UNREAD_FIELD")
   private EhcacheClientEntity entity;
 
   private volatile boolean inMaintenance = false;
@@ -235,19 +227,31 @@ public class DefaultClusteringService implements ClusteringService {
     return Collections.unmodifiableMap(pools);
   }
 
-  @SuppressFBWarnings("UC_USELESS_OBJECT")    // clusteredResourcePools
   @SuppressWarnings("unchecked")
   @Override
   public <K, V> ServerStoreProxy<K, V> getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                            final Store.Configuration<K, V> storeConfig) {
     final String cacheId = cacheIdentifier.getId();
 
-    final List<ClusteredResourcePool> clusteredResourcePools = new ArrayList<ClusteredResourcePool>();
+    /*
+     * This method is expected to be called with exactly ONE ClusteredResourcePool specified.
+     */
+    ClusteredResourcePool clusteredResourcePool = null;
     for (ClusteredResourceType<?> type : ClusteredResourceType.Types.values()) {
-      clusteredResourcePools.add(storeConfig.getResourcePools().getPoolForResource(type));
+      ClusteredResourcePool pool = storeConfig.getResourcePools().getPoolForResource(type);
+      if (pool != null) {
+        if (clusteredResourcePool != null) {
+          throw new IllegalStateException("At most one clustered resource supported for a cache");
+        }
+        clusteredResourcePool = pool;
+      }
+    }
+    if (clusteredResourcePool == null) {
+      throw new IllegalStateException("A clustered resource is required for a clustered cache");
     }
 
     final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
+        clusteredResourcePool.getPoolAllocation(),
         storeConfig.getKeyType().getName(),
         storeConfig.getValueType().getName(),
         null, // TODO: Need actual key type -- cache wrappers can wrap key/value types
@@ -282,6 +286,26 @@ public class DefaultClusteringService implements ClusteringService {
     }
 
     return (ServerStoreProxy<K, V>)storeProxy;    // unchecked
+  }
+
+  @Override
+  public <K, V> void releaseServerStoreProxy(ServerStoreProxy<K, V> storeProxy) {
+    final String cacheId = storeProxy.getCacheId();
+
+    final ServerStoreProxy<?, ?> registeredProxy = this.storeProxies.get(cacheId);
+    if (registeredProxy == null) {
+      throw new IllegalStateException("ServerStoreProxy for '" + cacheId + "' is not registered");
+    } else if (storeProxy != registeredProxy) {
+      throw new IllegalStateException("ServerStoreProxy is not the registered proxy for '" + cacheId + "'");
+    }
+
+    try {
+      this.entity.releaseCache(cacheId);
+    } catch (CachePersistenceException e) {
+      throw new IllegalStateException(e);
+    }
+
+    this.storeProxies.remove(cacheId);
   }
 
   /**

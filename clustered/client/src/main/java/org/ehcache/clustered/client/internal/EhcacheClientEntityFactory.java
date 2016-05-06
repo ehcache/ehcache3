@@ -131,6 +131,7 @@ public class EhcacheClientEntityFactory {
   }
 
   public void destroy(final String identifier) throws EntityNotFoundException {
+    // TODO: Send com.tc.objectserver.api.ServerEntityRequest with com.tc.objectserver.api.ServerEntityAction#DESTROY_ENTITY
     throw new UnsupportedOperationException("Destroy implementation waiting on fix for Terracotta-OSS/terracotta-apis#27");
   }
 

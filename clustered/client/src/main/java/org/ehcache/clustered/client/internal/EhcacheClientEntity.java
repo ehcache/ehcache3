@@ -89,17 +89,17 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  public void destroyCache(String name) throws CachePersistenceException {
+  public void releaseCache(String name) throws CachePersistenceException {
     try {
-      invoke(EhcacheEntityMessage.destroyServerStore(name));
+      invoke(EhcacheEntityMessage.releaseServerStore(name));
     } catch (Exception e) {
       throw unwrapException(e, CachePersistenceException.class);
     }
   }
 
-  public void destroyAllCaches() throws CachePersistenceException {
+  public void destroyCache(String name) throws CachePersistenceException {
     try {
-      invoke(EhcacheEntityMessage.destroyAllServerStores());
+      invoke(EhcacheEntityMessage.destroyServerStore(name));
     } catch (Exception e) {
       throw unwrapException(e, CachePersistenceException.class);
     }

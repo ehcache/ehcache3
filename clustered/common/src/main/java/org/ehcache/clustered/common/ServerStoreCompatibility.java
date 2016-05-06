@@ -37,7 +37,11 @@ public class ServerStoreCompatibility {
     StringBuilder sb = new StringBuilder("Existing ServerStore configuration is not compatible with the desired configuration: ");
 
     boolean isCompatible;
-    isCompatible = compareField(sb, "storedKeyType", serverConfiguration.getStoredKeyType(), clientConfiguration.getStoredKeyType());
+    isCompatible = compareField(sb, "resourcePoolType",
+        serverConfiguration.getPoolAllocation().getClass().getName(),
+        clientConfiguration.getPoolAllocation().getClass().getName());
+
+    isCompatible &= compareField(sb, "storedKeyType", serverConfiguration.getStoredKeyType(), clientConfiguration.getStoredKeyType());
     isCompatible &= compareField(sb, "storedValueType", serverConfiguration.getStoredValueType(), clientConfiguration.getStoredValueType());
     isCompatible &= compareField(sb, "actualKeyType", serverConfiguration.getActualKeyType(), clientConfiguration.getActualKeyType());
     isCompatible &= compareField(sb, "actualValueType", serverConfiguration.getActualValueType(), clientConfiguration.getActualValueType());

@@ -17,13 +17,25 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.terracotta.offheapstore.paging.PageSource;
 
 class ServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
+  private final PageSource pageSource;
 
-  public ServerStore(ServerStoreConfiguration storeConfiguration) {
+  public ServerStore(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
     this.storeConfiguration = storeConfiguration;
+    this.pageSource = pageSource;
+  }
+
+  /**
+   * Gets the {@link PageSource} providing storage for this {@code ServerStore}.
+   *
+   * @return the {@code PageSource} used by this {@code ServerStore}
+   */
+  PageSource getPageSource() {
+    return pageSource;
   }
 
   public ServerStoreConfiguration getStoreConfiguration() {

@@ -21,6 +21,8 @@ import org.ehcache.clustered.client.config.FixedClusteredResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
 
+import static org.ehcache.clustered.common.ServerStoreConfiguration.*;
+
 /**
  * Concrete implementation of a {@link FixedClusteredResourcePool}.
  */
@@ -55,6 +57,11 @@ public class FixedClusteredResourcePoolImpl extends SizedResourcePoolImpl<FixedC
   @Override
   public String getFromResource() {
     return this.fromResource;
+  }
+
+  @Override
+  public PoolAllocation getPoolAllocation() {
+    return new PoolAllocation.Fixed(this.getFromResource(), this.getUnit().toBytes(this.getSize()));
   }
 
   @Override
