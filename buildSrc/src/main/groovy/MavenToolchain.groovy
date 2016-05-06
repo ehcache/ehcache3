@@ -5,12 +5,12 @@ class MavenToolchain {
 
   static def mavenToolchainDefinitions = {
     String userHome = System.getProperty("user.home");
-    File toolchain = new File(userHome, ".m2/toolchains.xml")
+    File toolchain = new File(userHome, ".m2" + File.separator + "toolchains.xml")
     if (toolchain.isFile()) {
       def xmlSlurper = new XmlSlurper()
       return new XmlSlurper().parse(toolchain)
     } else {
-      return null;
+      throw new Exception("toolchain file not found!!! " + toolchain);
     }
   }
 
@@ -26,11 +26,11 @@ class MavenToolchain {
 
   private static def exe = OperatingSystem.current().isWindows() ? '.exe' : ''
 
-  static def javaHome = { v -> 
+  static def javaHome = { v ->
     def jdk = toolchains.get(v);
     if (jdk == null) {
 
-      throw new RuntimeException("JDK $v not available - check your toolchains.xml")
+            throw new RuntimeException("JDK $v not available - check your toolchains.xml")
     } else {
       return jdk;
     }
