@@ -36,9 +36,9 @@ class OffHeapChainMap<K> implements MapInternals {
   private final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
   private final OffHeapChainStorageEngine chainStorage;
 
-  public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability) {
-    this.chainStorage = new OffHeapChainStorageEngine(source, keyPortability);
-    this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, chainStorage);
+  public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, boolean shareByThieving) {
+    this.chainStorage = new OffHeapChainStorageEngine(source, keyPortability, shareByThieving, shareByThieving);
+    this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, shareByThieving, chainStorage);
   }
 
   public Chain get(K key) {

@@ -22,6 +22,11 @@ import org.ehcache.clustered.common.store.Element;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
+
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.junit.Test;
 
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
@@ -29,27 +34,37 @@ import org.terracotta.offheapstore.paging.UnlimitedPageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 import org.terracotta.offheapstore.storage.portability.StringPortability;
 
+import static java.util.Arrays.asList;
 import static org.ehcache.clustered.server.offheap.OffHeapChainMap.chain;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.collection.IsEmptyIterable.emptyIterable;
-import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 
+@RunWith(Parameterized.class)
 public class ChainMapTest {
+
+  @Parameters(name = "stealing={0}")
+  public static Iterable<Object[]> data() {
+    return asList(new Object[][] {{false}, {true}});
+  }
+
+  @Parameter
+  public boolean steal;
 
   @Test
   public void testInitiallyEmptyChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
 
     assertThat(map.get("foo"), emptyIterable());
   }
 
   @Test
   public void testAppendToEmptyChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
 
     map.append("foo", buffer(1));
     assertThat(map.get("foo"), contains(element(1)));
@@ -57,7 +72,7 @@ public class ChainMapTest {
 
   @Test
   public void testGetAndAppendToEmptyChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
 
     assertThat(map.getAndAppend("foo", buffer(1)), emptyIterable());
     assertThat(map.get("foo"), contains(element(1)));
@@ -65,7 +80,7 @@ public class ChainMapTest {
 
   @Test
   public void testAppendToSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
 
     map.append("foo", buffer(2));
@@ -74,7 +89,7 @@ public class ChainMapTest {
 
   @Test
   public void testGetAndAppendToSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
 
     assertThat(map.getAndAppend("foo", buffer(2)), contains(element(1)));
@@ -83,7 +98,7 @@ public class ChainMapTest {
 
   @Test
   public void testAppendToDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
@@ -93,7 +108,7 @@ public class ChainMapTest {
 
   @Test
   public void testGetAndAppendToDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
@@ -103,7 +118,7 @@ public class ChainMapTest {
 
   @Test
   public void testAppendToTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -114,7 +129,7 @@ public class ChainMapTest {
 
   @Test
   public void testGetAndAppendToTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -125,7 +140,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceEmptyChainAtHeadOnEmptyChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
 
     assertThat(map.replaceAtHead("foo", chain(), chain(buffer(1))), is(true));
     assertThat(map.get("foo"), contains(element(1)));
@@ -133,7 +148,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceEmptyChainAtHeadOnSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
 
     assertThat(map.replaceAtHead("foo", chain(), chain(buffer(2))), is(true));
@@ -142,7 +157,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceEmptyChainAtHeadOnDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
@@ -152,7 +167,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceEmptyChainAtHeadOnTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -163,7 +178,7 @@ public class ChainMapTest {
 
   @Test
   public void testMismatchingReplaceSingletonChainAtHeadOnSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
 
     assertThat(map.replaceAtHead("foo", chain(buffer(2)), chain(buffer(42))), is(false));
@@ -172,7 +187,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceSingletonChainAtHeadOnSingletonChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
 
     assertThat(map.replaceAtHead("foo", chain(buffer(1)), chain(buffer(42))), is(true));
@@ -181,7 +196,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceSingletonChainAtHeadOnDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
@@ -191,7 +206,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceSingletonChainAtHeadOnTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -202,7 +217,7 @@ public class ChainMapTest {
 
   @Test
   public void testMismatchingReplacePluralChainAtHead() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
@@ -212,7 +227,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplacePluralChainAtHeadOnDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
 
@@ -222,7 +237,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplacePluralChainAtHeadOnTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -233,7 +248,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplacePluralChainAtHeadWithEmpty() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -246,7 +261,7 @@ public class ChainMapTest {
 
   @Test
   public void testSequenceBasedChainComparison() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -257,7 +272,7 @@ public class ChainMapTest {
 
   @Test
   public void testReplaceFullPluralChainAtHeadWithEmpty() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE);
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
     map.append("foo", buffer(2));
     map.append("foo", buffer(3));
@@ -270,15 +285,43 @@ public class ChainMapTest {
 
   @Test
   public void testContinualAppendCausingEvictionIsStable() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), KILOBYTES.toBytes(1024L), KILOBYTES.toBytes(1024)), StringPortability.INSTANCE);
+    UpfrontAllocatingPageSource pageSource = new UpfrontAllocatingPageSource(new OffHeapBufferSource(), KILOBYTES.toBytes(1024L), KILOBYTES.toBytes(1024));
+    if (steal) {
+      OffHeapChainMap<String> mapA = new OffHeapChainMap<String>(pageSource, StringPortability.INSTANCE, true);
+      OffHeapChainMap<String> mapB = new OffHeapChainMap<String>(pageSource, StringPortability.INSTANCE, true);
 
-    for (int c = 0; ; c++) {
-      long before = map.getOccupiedMemory();
-      for (int i = 0; i < 100; i++) {
-          map.append(Integer.toString(i), buffer(2));
+      for (int c = 0; ; c++) {
+        long before = mapA.getOccupiedMemory();
+        for (int i = 0; i < 100; i++) {
+            mapA.append(Integer.toString(i), buffer(2));
+            mapB.append(Integer.toString(i), buffer(2));
+        }
+        if (mapA.getOccupiedMemory() <= before) {
+          while (c-- > 0) {
+            for (int i = 0; i < 100; i++) {
+                mapA.append(Integer.toString(i), buffer(2));
+                mapB.append(Integer.toString(i), buffer(2));
+            }
+          }
+          break;
+        }
       }
-      if (map.getOccupiedMemory() <= before) {
-        break;
+    } else {
+      OffHeapChainMap<String> map = new OffHeapChainMap<String>(pageSource, StringPortability.INSTANCE, false);
+
+      for (int c = 0; ; c++) {
+        long before = map.getOccupiedMemory();
+        for (int i = 0; i < 100; i++) {
+            map.append(Integer.toString(i), buffer(2));
+        }
+        if (map.getOccupiedMemory() <= before) {
+          while (c-- > 0) {
+            for (int i = 0; i < 100; i++) {
+                map.append(Integer.toString(i), buffer(2));
+            }
+          }
+          break;
+        }
       }
     }
   }

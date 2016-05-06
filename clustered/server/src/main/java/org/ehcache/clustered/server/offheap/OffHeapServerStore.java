@@ -27,10 +27,10 @@ public class OffHeapServerStore implements ServerStore {
 
   private final List<OffHeapChainMap<Long>> segments;
 
-  public OffHeapServerStore(PageSource source, int concurrency) {
+  public OffHeapServerStore(PageSource source, int concurrency, boolean shareByThieving) {
     segments = new ArrayList<OffHeapChainMap<Long>>(concurrency);
     for (int i = 0; i < concurrency; i++) {
-      segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE));
+      segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, shareByThieving));
     }
   }
 

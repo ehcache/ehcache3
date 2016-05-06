@@ -53,8 +53,8 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   private StorageEngine.Owner owner;
   private long nextSequenceNumber = 0;
 
-  public OffHeapChainStorageEngine(PageSource source, Portability<? super K> keyPortability) {
-    this.storage = new OffHeapStorageArea(PointerSize.LONG, new StorageOwner(), source, 4096, true, true);
+  public OffHeapChainStorageEngine(PageSource source, Portability<? super K> keyPortability, boolean thief, boolean victim) {
+    this.storage = new OffHeapStorageArea(PointerSize.LONG, new StorageOwner(), source, 4096, thief, victim);
     this.keyPortability = keyPortability;
   }
 
