@@ -84,6 +84,26 @@ NOTE: You can also use the `CachingProvider.getCacheManager()` method that takes
       vendor specific values returned by `CachingProvider.getDefaultURI` and `.getDefaultClassLoader` respectively.
       Be aware that these are not entirely specified for Ehcache 3.0 and may change in future releases!
 
+==== Control JSR-107 MBeans from XML
+
+When using Ehcache XML, you may want to enable management and / or statistics MBeans for JSR-107 caches.
+This is giving you control over the following:
+
+* `javax.cache.configuration.CompleteConfiguration.isStatisticsEnabled`
+* `javax.cache.configuration.CompleteConfiguration.isManagementEnabled`
+
+You can do this at two different levels:
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-107-mbeans-cache-manager-config.xml[lines=17..-1]
+----
+
+<1> Using the JSR-107 service extension, you can enable MBeans by default
+<2> The cache _stringCache_ will have both MBeans enabled, according to the service configuration
+<3> The cache _overrideCache_ will have both MBeans disabled, overriding the service configuration
+<4> The cache _overrideOneCache_ will have the statistics MBean disabled, while the management one remains enabled according to the service configuration
+
 [[supplement-jsr-107-configurations]]
 === Supplement JSR-107's configurations
 
