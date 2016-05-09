@@ -26,6 +26,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreCompatibility;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
@@ -70,6 +71,12 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
   private final UUID identity;
   private final ServiceRegistry services;
+
+  /**
+   * The name of the resource to use for fixed resource pools not identifying a resource from which
+   * space for the pool is obtained.  This value may be {@code null};
+   */
+  private String defaultServerResource;
 
   /**
    * The clustered shared resource pools specified by the CacheManager creating this {@code EhcacheActiveEntity}.
@@ -128,6 +135,16 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       storeMap.put(entry.getKey(), Collections.unmodifiableSet(new HashSet<ClientDescriptor>(entry.getValue())));
     }
     return Collections.unmodifiableMap(storeMap);
+  }
+
+  /**
+   * Gets the name of the default server resource.
+   *
+   * @return the name of the default server resource; may be {@code null} is none is defined
+   */
+  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
+  String getDefaultServerResource() {
+    return defaultServerResource;
   }
 
   /**
@@ -254,8 +271,19 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   private EhcacheEntityResponse configure(ConfigureCacheManager message) {
     if (sharedResourcePools == null) {
       LOGGER.info("Configuring server-side cache manager");
+      ServerSideConfiguration configuration = message.getConfiguration();
+
+      this.defaultServerResource = configuration.getDefaultServerResource();
+      if (this.defaultServerResource != null) {
+        OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(this.defaultServerResource));
+        if (source == null) {
+          return failure(new IllegalArgumentException("Default server resource '" + this.defaultServerResource
+              + "' is not defined"));
+        }
+      }
+
       try {
-        this.sharedResourcePools = createPools(message.getConfiguration().getResourcePools());
+        this.sharedResourcePools = createPools(configuration.getResourcePools());
       } catch (RuntimeException e) {
         return failure(e);
       }
@@ -326,7 +354,16 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       } else {
         PoolAllocation.Fixed fixedAllocation = (PoolAllocation.Fixed)allocation;
         try {
-          resourcePageSource = createPageSource(name, new Pool(fixedAllocation.getResourceName(), fixedAllocation.getSize()));
+          String resourceName = fixedAllocation.getResourceName();
+          if (resourceName == null) {
+            if (defaultServerResource == null) {
+              return failure(new IllegalStateException("Fixed pool for store '" + name
+                  + "' not defined; default server resource not configured"));
+            } else {
+              resourceName = defaultServerResource;
+            }
+          }
+          resourcePageSource = createPageSource(name, new Pool(resourceName, fixedAllocation.getSize()));
         } catch (RuntimeException e) {
           return failure(e);
         }

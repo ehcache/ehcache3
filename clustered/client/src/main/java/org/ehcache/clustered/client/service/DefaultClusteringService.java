@@ -60,7 +60,6 @@ import org.terracotta.exception.EntityNotFoundException;
 /**
  * Provides support for accessing server-based cluster services.
  */
-// TODO: The server-resident EhcacheResources (PageSources) need to be created as part of the connect-related actions
 public class DefaultClusteringService implements ClusteringService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
@@ -88,7 +87,8 @@ public class DefaultClusteringService implements ClusteringService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
-    this.serverConfiguration = new ServerSideConfiguration(extractResourcePools(configuration));
+    this.serverConfiguration =
+        new ServerSideConfiguration(configuration.getDefaultServerResource(), extractResourcePools(configuration));
     this.autoCreate = AUTO_CREATE_QUERY.equalsIgnoreCase(ehcacheUri.getQuery());
   }
 

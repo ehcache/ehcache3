@@ -27,11 +27,23 @@ import static java.util.Collections.unmodifiableMap;
  * @author cdennis
  */
 public class ServerSideConfiguration implements Serializable {
+  private static final long serialVersionUID = -6203570000622687613L;
 
+  private final String defaultServerResource;
   private final Map<String, Pool> resourcePools;
 
-  public ServerSideConfiguration(Map<String, Pool> resourcePools) {
+  public ServerSideConfiguration(String defaultServerResource, Map<String, Pool> resourcePools) {
+    this.defaultServerResource = defaultServerResource;
     this.resourcePools = new HashMap<String, Pool>(resourcePools);
+  }
+
+  /**
+   * Gets the name of the default server resource.
+   *
+   * @return the default server resource name; may be {@code null}
+   */
+  public String getDefaultServerResource() {
+    return defaultServerResource;
   }
 
   public Map<String, Pool> getResourcePools() {
@@ -39,6 +51,7 @@ public class ServerSideConfiguration implements Serializable {
   }
 
   public static final class Pool implements Serializable {
+    private static final long serialVersionUID = 3920576607695314256L;
 
     private final String source;
     private final long size;

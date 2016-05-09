@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.config.xml;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
@@ -30,7 +31,9 @@ import org.w3c.dom.NodeList;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collections;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
@@ -39,8 +42,6 @@ import static org.ehcache.clustered.client.config.xml.ClusteredCacheConstants.*;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteringService ClusteringService}.
- *
- * @author Clifford W. Johnson
  *
  * @see ClusteredCacheConstants#XSD
  */
@@ -75,12 +76,17 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
      */
     if ("cluster".equals(fragment.getLocalName())) {
 
+      Map<String, PoolDefinition> sharedPools = null;
+      String defaultServerResource = null;
       URI connectionUri = null;
       final NodeList childNodes = fragment.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
         final Node item = childNodes.item(i);
         if (Node.ELEMENT_NODE == item.getNodeType()) {
           if ("connection".equals(item.getLocalName())) {
+            /*
+             * <connection> is a required element in the XSD
+             */
             final Attr urlAttribute = ((Element)item).getAttributeNode("url");
             final String urlValue = urlAttribute.getValue();
             try {
@@ -92,12 +98,77 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
                       (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName()),
                       connectionUri), e);
             }
+
+          } else if ("server-side-config".equals(item.getLocalName())) {
+            /*
+             * <server-side-config> is an optional element
+             */
+            ServerSideConfig config = processServerSideConfig(item);
+            defaultServerResource = config.defaultServerResource;
+            sharedPools = config.pools;
           }
         }
       }
-      return new ClusteringServiceConfiguration(connectionUri, Collections.<String, PoolDefinition>emptyMap());
+      try {
+        return new ClusteringServiceConfiguration(connectionUri, defaultServerResource, sharedPools);
+      } catch (IllegalArgumentException e) {
+        throw new XmlConfigurationException(e);
+      }
     }
     throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
         fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
+  }
+
+  private ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {
+    ServerSideConfig serverSideConfig = new ServerSideConfig();
+    final NodeList serverSideNodes = serverSideConfigElement.getChildNodes();
+    for (int i = 0; i < serverSideNodes.getLength(); i++) {
+      final Node item = serverSideNodes.item(i);
+      if (Node.ELEMENT_NODE == item.getNodeType()) {
+        String nodeLocalName = item.getLocalName();
+        if ("default-resource".equals(nodeLocalName)) {
+          serverSideConfig.defaultServerResource = ((Element)item).getAttribute("from");
+
+        } else if ("shared-pool".equals(nodeLocalName)) {
+          Element sharedPoolElement = (Element)item;
+          String poolName = sharedPoolElement.getAttribute("name");     // required
+          Attr fromAttr = sharedPoolElement.getAttributeNode("from");   // optional
+          String fromResource = (fromAttr == null ? null : fromAttr.getValue());
+          Attr unitAttr = sharedPoolElement.getAttributeNode("unit");   // optional - default 'B'
+          String unit = (unitAttr == null ? "B" : unitAttr.getValue());
+          MemoryUnit memoryUnit = MemoryUnit.valueOf(unit.toUpperCase(Locale.ENGLISH));
+
+          String quantityValue = sharedPoolElement.getFirstChild().getNodeValue();
+          long quantity;
+          try {
+            quantity = Long.parseLong(quantityValue);
+          } catch (NumberFormatException e) {
+            throw new XmlConfigurationException("Magnitude of value specified for <shared-pool name=\""
+                + poolName + "\"> is too large");
+          }
+
+          if (serverSideConfig.pools == null) {
+            serverSideConfig.pools = new HashMap<String, PoolDefinition>();
+          }
+
+          PoolDefinition poolDefinition;
+          if (fromResource == null) {
+            poolDefinition = new PoolDefinition(quantity, memoryUnit);
+          } else {
+            poolDefinition = new PoolDefinition(quantity, memoryUnit, fromResource);
+          }
+
+          if (serverSideConfig.pools.put(poolName, poolDefinition) != null) {
+            throw new XmlConfigurationException("Duplicate definition for <shared-pool name=\"" + poolName + "\">");
+          }
+        }
+      }
+    }
+    return serverSideConfig;
+  }
+
+  private static final class ServerSideConfig {
+    private String defaultServerResource;
+    private Map<String, PoolDefinition> pools;
   }
 }

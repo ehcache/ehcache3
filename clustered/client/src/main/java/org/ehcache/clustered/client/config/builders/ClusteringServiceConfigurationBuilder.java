@@ -120,10 +120,6 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   @Override
   public ClusteringServiceConfiguration build() {
-    if (defaultServerResource == null) {
-      return new ClusteringServiceConfiguration(clusterUri, pools);
-    } else {
-      return new ClusteringServiceConfiguration(clusterUri, defaultServerResource, pools);
-    }
+    return new ClusteringServiceConfiguration(clusterUri, defaultServerResource, pools);
   }
 }

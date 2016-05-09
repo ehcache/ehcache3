@@ -49,6 +49,7 @@ public class UnitTestConnectionService implements ConnectionService {
      */
     OffheapResourcesType resources = new OffheapResourcesType();
     List<ResourceType> resourcesList = resources.getResource();
+    resourcesList.add(defineResource("defaultResource", MemoryUnit.MB, 128L));
     resourcesList.add(defineResource("primary-server-resource", MemoryUnit.MB, 64L));
     resourcesList.add(defineResource("secondary-server-resource", MemoryUnit.MB, 64L));
     OffHeapResourcesConfiguration ohrpConfig = new OffHeapResourcesConfiguration(resources);

@@ -13,7 +13,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap unit="entries">10</ehcache:heap>
-      <tc:cluster-fixed unit="GB">1</tc:cluster-fixed>
+      <tc:cluster-fixed from="primary-server-resource" unit="MB">16</tc:cluster-fixed>
     </ehcache:resources>
   </ehcache:cache>
 

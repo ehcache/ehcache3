@@ -40,6 +40,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(
             URI.create("http://example.com:9540/" + entityIdentifier + "?auto-create"),
+            null,
             Collections.<String, ClusteringServiceConfiguration.PoolDefinition>emptyMap());
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);

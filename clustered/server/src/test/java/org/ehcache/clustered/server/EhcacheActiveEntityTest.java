@@ -132,7 +132,7 @@ public class EhcacheActiveEntityTest {
     resourcePools.put("secondary", new Pool("serverResource2", MemoryUnit.MEGABYTES.toBytes(8L)));
 
     final EhcacheEntityMessage.ConfigureCacheManager configureMessage =
-        EhcacheEntityMessage.configure(new ServerSideConfiguration(resourcePools));
+        EhcacheEntityMessage.configure(new ServerSideConfiguration("defaultServerResource", resourcePools));
 
     ClientDescriptor client = new TestClientDescriptor();
     assertSuccess(activeEntity.invoke(client, configureMessage));
