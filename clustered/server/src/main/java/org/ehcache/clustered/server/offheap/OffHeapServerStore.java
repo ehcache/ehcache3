@@ -23,14 +23,17 @@ import org.ehcache.clustered.server.store.ServerStore;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 
+import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
+import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
+
 public class OffHeapServerStore implements ServerStore {
 
   private final List<OffHeapChainMap<Long>> segments;
 
-  public OffHeapServerStore(PageSource source, int concurrency, boolean shareByThieving) {
+  public OffHeapServerStore(PageSource source, int concurrency) {
     segments = new ArrayList<OffHeapChainMap<Long>>(concurrency);
     for (int i = 0; i < concurrency; i++) {
-      segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, shareByThieving));
+      segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
     }
   }
 

@@ -22,29 +22,14 @@ import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.server.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.junit.runners.Parameterized.Parameter;
-import org.junit.runners.Parameterized.Parameters;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
 
-import static java.util.Arrays.asList;
-
-@RunWith(Parameterized.class)
 public class OffHeapServerStoreTest extends ServerStoreTest {
-
-  @Parameters(name = "stealing={0}")
-  public static Iterable<Object[]> data() {
-    return asList(new Object[][] {{false}, {true}});
-  }
-
-  @Parameter
-  public boolean steal;
 
   @Override
   public ServerStore newStore() {
-    return new OffHeapServerStore(new UnlimitedPageSource(new OffHeapBufferSource()), 16, steal);
+    return new OffHeapServerStore(new UnlimitedPageSource(new OffHeapBufferSource()), 16);
   }
 
   @Override
