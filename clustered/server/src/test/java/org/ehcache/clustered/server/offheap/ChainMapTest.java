@@ -42,6 +42,7 @@ import static org.hamcrest.collection.IsEmptyIterable.emptyIterable;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 
 @RunWith(Parameterized.class)
@@ -139,41 +140,28 @@ public class ChainMapTest {
   }
 
   @Test
-  public void testReplaceEmptyChainAtHeadOnEmptyChain() {
+  public void testReplaceEmptyChainAtHeadOnEmptyChainFails() {
     OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
 
-    assertThat(map.replaceAtHead("foo", chain(), chain(buffer(1))), is(true));
-    assertThat(map.get("foo"), contains(element(1)));
+    try {
+      map.replaceAtHead("foo", chain(), chain(buffer(1)));
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      //expected
+    }
   }
 
   @Test
-  public void testReplaceEmptyChainAtHeadOnSingletonChain() {
+  public void testReplaceEmptyChainAtHeadOnNonEmptyChain() {
     OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
     map.append("foo", buffer(1));
 
-    assertThat(map.replaceAtHead("foo", chain(), chain(buffer(2))), is(true));
-    assertThat(map.get("foo"), contains(element(2), element(1)));
-  }
-
-  @Test
-  public void testReplaceEmptyChainAtHeadOnDoubleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
-    map.append("foo", buffer(1));
-    map.append("foo", buffer(2));
-
-    assertThat(map.replaceAtHead("foo", chain(), chain(buffer(3))), is(true));
-    assertThat(map.get("foo"), contains(element(3), element(1), element(2)));
-  }
-
-  @Test
-  public void testReplaceEmptyChainAtHeadOnTripleChain() {
-    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, steal);
-    map.append("foo", buffer(1));
-    map.append("foo", buffer(2));
-    map.append("foo", buffer(3));
-
-    assertThat(map.replaceAtHead("foo", chain(), chain(buffer(4))), is(true));
-    assertThat(map.get("foo"), contains(element(4), element(1), element(2), element(3)));
+    try {
+      map.replaceAtHead("foo", chain(), chain(buffer(2)));
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      //expected
+    }
   }
 
   @Test

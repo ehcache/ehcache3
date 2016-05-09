@@ -270,49 +270,11 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     @Override
     public boolean replace(Chain expected, Chain replacement) {
       if (expected.isEmpty()) {
-        if (replacement.isEmpty()) {
-          return true;
-        } else {
-          insertHeader(replacement);
-          return true;
-        }
+        throw new IllegalArgumentException("Empty expected sequence");
       } else if (replacement.isEmpty()) {
         return removeHeader(expected);
       } else {
         return replaceHeader(expected, replacement);
-      }
-    }
-
-    public void insertHeader(Chain header) {
-      int hash = readKeyHash(chain);
-      Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, header);
-      if (newChainAddress == null) {
-        evict();
-      } else {
-        AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress);
-        try {
-          //copy head element from old chain (by value)
-          if (!newChain.append(readElementBuffer(chain + CHAIN_HEADER_SIZE))) {
-            evict();
-          }
-
-          //copy remaining element from old chain (by reference)
-          long next = storage.readLong(chain + CHAIN_HEADER_SIZE + ELEMENT_HEADER_NEXT_OFFSET);
-          long tail = storage.readLong(chain + CHAIN_HEADER_TAIL_OFFSET);
-          if (next != chain) {
-            newChain.append(next, tail);
-          }
-
-          if (owner.updateEncoding(hash, chain, newChainAddress, ~0)) {
-            storage.writeLong(chain + CHAIN_HEADER_SIZE + ELEMENT_HEADER_NEXT_OFFSET, chain);
-            free();
-          } else {
-            newChain.free();
-            throw new AssertionError("Encoding update failure - impossible!");
-          }
-        } finally {
-          newChain.close();
-        }
       }
     }
 

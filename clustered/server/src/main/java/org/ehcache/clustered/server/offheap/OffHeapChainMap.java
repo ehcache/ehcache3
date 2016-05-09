@@ -115,10 +115,7 @@ class OffHeapChainMap<K> implements MapInternals {
         if (expected.iterator().hasNext()) {
           return false;
         } else {
-          for (Element element : replacement) {
-            append(key, element.getPayload());
-          }
-          return true;
+          throw new IllegalArgumentException("Empty expected sequence");
         }
       } else {
         try {
