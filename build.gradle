@@ -16,7 +16,7 @@
 import scripts.*
 
 ext {
-  baseVersion = '3.0.1-SNAPSHOT'
+  baseVersion = '3.0.1'
   offheapVersion = '2.2.1'
   managementVersion = '2.3.0'
   statisticVersion = '1.1.0'
