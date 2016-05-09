@@ -65,7 +65,7 @@ public class ConfigStatsManagementActivationTest {
 
   @Test
   public void testEnabledAtCacheManagerLevel() throws Exception {
-    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-mbeans-cache-manager-config.xml")
+    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/org/ehcache/docs/ehcache-107-mbeans-cache-manager-config.xml")
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("stringCache", String.class, String.class);
@@ -77,7 +77,7 @@ public class ConfigStatsManagementActivationTest {
 
   @Test
   public void testCacheLevelOverridesCacheManagerLevel() throws Exception {
-    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-mbeans-cache-manager-config.xml")
+    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/org/ehcache/docs/ehcache-107-mbeans-cache-manager-config.xml")
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("overrideCache", String.class, String.class);
@@ -89,7 +89,7 @@ public class ConfigStatsManagementActivationTest {
 
   @Test
   public void testCacheLevelOnlyOneOverridesCacheManagerLevel() throws Exception {
-    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/ehcache-107-mbeans-cache-manager-config.xml")
+    CacheManager cacheManager = provider.getCacheManager(getClass().getResource("/org/ehcache/docs/ehcache-107-mbeans-cache-manager-config.xml")
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("overrideOneCache", String.class, String.class);
