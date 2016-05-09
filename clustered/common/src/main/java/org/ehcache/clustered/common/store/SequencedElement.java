@@ -13,25 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.common.store;
 
-apply plugin: EhDeploy
+import org.ehcache.clustered.common.store.Element;
 
-configurations {
-    provided
-}
+public interface SequencedElement extends Element {
 
-dependencies {
-  compile project(':clustered:common')
-  compile "org.terracotta:offheap-store:$parent.offheapVersion"
-  provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
-}
-
-sourceSets {
-    main { 
-      compileClasspath += configurations.provided
-    }
-    test {
-      compileClasspath += configurations.provided
-      runtimeClasspath += configurations.provided
-    }
+  long getSequenceNumber();
 }
