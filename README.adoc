@@ -12,9 +12,9 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released 3.0.0 on April 15th 2016.
+We released 3.0.1 on May 9th 2016.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0[release notes] contain the links to the artifacts and the documentation to help you get started.
+The https://github.com/ehcache/ehcache3/releases/tag/v3.0.1[release notes] contain the links to the artifacts and the documentation to help you get started.
 
 == Current development & next release
 
