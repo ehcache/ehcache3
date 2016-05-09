@@ -38,6 +38,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionFactory;
+import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
@@ -50,6 +51,7 @@ import static java.util.Collections.emptyList;
 public class DefaultClusteringService implements ClusteringService {
 
   private static final String AUTO_CREATE_QUERY = "auto-create";
+  public static final String CONNECTION_PREFIX = "Ehcache:";
 
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
@@ -86,7 +88,9 @@ public class DefaultClusteringService implements ClusteringService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     try {
-      clusterConnection = ConnectionFactory.connect(clusterUri, new Properties());
+      Properties properties = new Properties();
+      properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + this.entityIdentifier);
+      clusterConnection = ConnectionFactory.connect(clusterUri, properties);
     } catch (ConnectionException ex) {
       throw new RuntimeException(ex);
     }

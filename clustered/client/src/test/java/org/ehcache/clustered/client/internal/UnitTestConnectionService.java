@@ -42,9 +42,16 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static PassthroughServer server = createServer();
 
+  private static Properties connectionProperties;
+
+  public static Properties getConnectionProperties() {
+    return connectionProperties;
+  }
+
   public static synchronized void reset() {
     server.stop();
     server = createServer();
+    connectionProperties = null;
   }
 
   public static synchronized PassthroughServer server() {
@@ -58,6 +65,7 @@ public class UnitTestConnectionService implements ConnectionService {
 
   @Override
   public Connection connect(URI uri, Properties properties) throws ConnectionException {
+    connectionProperties = properties;
     return server().connectNewClient();
   }
 }
