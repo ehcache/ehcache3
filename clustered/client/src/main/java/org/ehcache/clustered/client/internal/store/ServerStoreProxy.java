@@ -17,11 +17,12 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.store.ServerStore;
 
 /**
  * Provides client-side access to the services of a {@code ServerStore}.
  */
-public interface ServerStoreProxy<K, V> {
+public interface ServerStoreProxy<K, V> extends ServerStore {
 
   /**
    * Gets the identifier linking a client-side cache to a {@code ServerStore} instance.

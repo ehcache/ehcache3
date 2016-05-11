@@ -18,6 +18,9 @@ package org.ehcache.clustered.client.service;
 
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.store.Chain;
+
+import java.nio.ByteBuffer;
 
 /**
  * Provides a {@link ServerStoreProxy} that uses this {@link DefaultClusteringService} instance
@@ -58,5 +61,29 @@ final class ServerStoreProxyImpl<K, V> implements ServerStoreProxy<K, V> {
   @Override
   public ServerStoreConfiguration getServerStoreConfiguration() {
     return storeConfiguration;
+  }
+
+  @Override
+  public Chain get(long key) {
+    // TODO: Implement ServerStoreProxyImpl.get
+    throw new UnsupportedOperationException("ServerStoreProxyImpl.get not implemented");
+  }
+
+  @Override
+  public void append(long key, ByteBuffer payLoad) {
+    // TODO: Implement ServerStoreProxyImpl.append
+    throw new UnsupportedOperationException("ServerStoreProxyImpl.append not implemented");
+  }
+
+  @Override
+  public Chain getAndAppend(long key, ByteBuffer payLoad) {
+    // TODO: Implement ServerStoreProxyImpl.getAndAppend
+    throw new UnsupportedOperationException("ServerStoreProxyImpl.getAndAppend not implemented");
+  }
+
+  @Override
+  public void replaceAtHead(long key, Chain expect, Chain update) {
+    // TODO: Implement ServerStoreProxyImpl.replaceAtHead
+    throw new UnsupportedOperationException("ServerStoreProxyImpl.replaceAtHead not implemented");
   }
 }

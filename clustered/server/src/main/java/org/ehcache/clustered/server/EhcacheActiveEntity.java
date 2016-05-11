@@ -41,6 +41,7 @@ import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateServer
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
+import org.ehcache.clustered.common.store.ServerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -94,7 +95,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
    * The clustered stores representing the server-side of a {@code ClusterStore}.
    * The index is the cache alias/identifier.
    */
-  private Map<String, ServerStore> stores = Collections.emptyMap();
+  private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
 
   private final Map<ClientDescriptor, Set<String>> clientStoreMap = new HashMap<ClientDescriptor, Set<String>>();
   private final ConcurrentHashMap<String, Set<ClientDescriptor>> storeClientMap =
@@ -239,9 +240,9 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     /*
      * Ensure the allocated stores are closed out.
      */
-    final Iterator<Entry<String, ServerStore>> storeIterator = stores.entrySet().iterator();
+    final Iterator<Entry<String, ServerStoreImpl>> storeIterator = stores.entrySet().iterator();
     while (storeIterator.hasNext()) {
-      Entry<String, ServerStore> storeEntry = storeIterator.next();
+      Entry<String, ServerStoreImpl> storeEntry = storeIterator.next();
       final Set<ClientDescriptor> attachedClients = storeClientMap.get(storeEntry.getKey());
       if (attachedClients != null && !attachedClients.isEmpty()) {
         // This is logically an AssertionError; logging and continuing destroy
@@ -287,7 +288,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       } catch (RuntimeException e) {
         return failure(e);
       }
-      this.stores = new HashMap<String, ServerStore>();
+      this.stores = new HashMap<String, ServerStoreImpl>();
       return success();
     } else {
       return failure(new IllegalStateException("Clustered Cache Manager already configured"));
@@ -384,7 +385,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       return failure(cause);
     }
 
-    stores.put(name, new ServerStore(storeConfiguration, resourcePageSource));
+    stores.put(name, new ServerStoreImpl(storeConfiguration, resourcePageSource));
     attachStore(clientDescriptor, name);
     return success();
   }
@@ -407,7 +408,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
 
     LOGGER.info("Client {} validating server-side store '{}'", clientDescriptor, name);
-    ServerStore store = stores.get(name);
+    ServerStoreImpl store = stores.get(name);
     if (store != null) {
       try {
         storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
@@ -435,7 +436,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     String name = releaseServerStore.getName();
 
     LOGGER.info("Client {} releasing server-side store '{}'", clientDescriptor, name);
-    ServerStore store = stores.get(name);
+    ServerStoreImpl store = stores.get(name);
     if (store != null) {
 
       final Set<String> storeIds = clientStoreMap.get(clientDescriptor);
@@ -472,7 +473,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     }
 
     LOGGER.info("Client {} destroying server-side store '{}'", clientDescriptor, name);
-    final ServerStore store = stores.remove(name);
+    final ServerStoreImpl store = stores.remove(name);
     if (store == null) {
       return failure(new IllegalStateException("Store '" + name + "' does not exist"));
     } else {

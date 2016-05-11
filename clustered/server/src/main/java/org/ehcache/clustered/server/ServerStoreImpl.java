@@ -17,14 +17,18 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.store.ServerStore;
 import org.terracotta.offheapstore.paging.PageSource;
 
-class ServerStore {
+import java.nio.ByteBuffer;
+
+class ServerStoreImpl implements ServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;
 
-  public ServerStore(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
+  ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
   }
@@ -38,7 +42,31 @@ class ServerStore {
     return pageSource;
   }
 
-  public ServerStoreConfiguration getStoreConfiguration() {
+  ServerStoreConfiguration getStoreConfiguration() {
     return storeConfiguration;
+  }
+
+  @Override
+  public Chain get(long key) {
+    // TODO: Implement ServerStoreImpl.get
+    throw new UnsupportedOperationException("ServerStoreImpl.get not implemented");
+  }
+
+  @Override
+  public void append(long key, ByteBuffer payLoad) {
+    // TODO: Implement ServerStoreImpl.append
+    throw new UnsupportedOperationException("ServerStoreImpl.append not implemented");
+  }
+
+  @Override
+  public Chain getAndAppend(long key, ByteBuffer payLoad) {
+    // TODO: Implement ServerStoreImpl.getAndAppend
+    throw new UnsupportedOperationException("ServerStoreImpl.getAndAppend not implemented");
+  }
+
+  @Override
+  public void replaceAtHead(long key, Chain expect, Chain update) {
+    // TODO: Implement ServerStoreImpl.replaceAtHead
+    throw new UnsupportedOperationException("ServerStoreImpl.replaceAtHead not implemented");
   }
 }

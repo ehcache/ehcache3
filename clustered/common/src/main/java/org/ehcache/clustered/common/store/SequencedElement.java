@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.common.store;
 
-import org.ehcache.clustered.common.store.Element;
-
 public interface SequencedElement extends Element {
 
   long getSequenceNumber();

@@ -20,7 +20,7 @@ import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
 import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
-import org.ehcache.clustered.server.store.ServerStore;
+import org.ehcache.clustered.common.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
