@@ -19,6 +19,8 @@ package org.ehcache.clustered.client.internal;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.consensus.CoordinationService;
@@ -31,6 +33,8 @@ import org.terracotta.exception.EntityVersionMismatchException;
 import static org.ehcache.clustered.common.Util.unwrapException;
 
 public class EhcacheClientEntityFactory {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntityFactory.class);
 
   private static final long ENTITY_VERSION = 1L;
 
@@ -60,6 +64,7 @@ public class EhcacheClientEntityFactory {
         return true;
       }
     } catch (ExecutionException ex) {
+      LOGGER.error("Unable to acquire cluster leadership cluster id {}", entityIdentifier, ex);
       throw new AssertionError(ex.getCause());
     }
   }
@@ -84,13 +89,16 @@ public class EhcacheClientEntityFactory {
               }
             }
           } catch (EntityNotProvidedException e) {
+            LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
             throw new AssertionError(e);
           } catch (EntityVersionMismatchException e) {
+            LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
             throw new AssertionError(e);
           }
         }
       });
       if (created == null) {
+        LOGGER.error("Unable to create entity for cluster id {}: unable to obtain cluster leadership", identifier);
         throw new AssertionError("Not the leader");
       } else {
         return created;
@@ -107,6 +115,7 @@ public class EhcacheClientEntityFactory {
       try {
         return create(identifier, config);
       } catch (EntityAlreadyExistsException f) {
+        LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
         throw new AssertionError("Somebody else doing leader work!");
       }
     }
@@ -126,6 +135,7 @@ public class EhcacheClientEntityFactory {
         }
       }
     } catch (EntityVersionMismatchException e) {
+      LOGGER.error("Unable to retrieve entity for cluster id {}", identifier, e);
       throw new AssertionError(e);
     }
   }
@@ -143,6 +153,7 @@ public class EhcacheClientEntityFactory {
     try {
       return connection.getEntityRef(EhcacheClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
+      LOGGER.error("Unable to get entity for cluster id {}", identifier, e);
       throw new AssertionError(e);
     }
   }
