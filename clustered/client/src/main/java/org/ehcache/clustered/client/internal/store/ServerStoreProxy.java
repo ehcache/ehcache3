@@ -16,39 +16,53 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.ServerStore;
+
+import java.nio.ByteBuffer;
 
 /**
  * Provides client-side access to the services of a {@code ServerStore}.
  */
-public interface ServerStoreProxy<K, V> extends ServerStore {
+public class ServerStoreProxy implements ServerStore {
+
+  private final String cacheId;
+
+  // TODO: Provide EhcacheClientEntity or EntityClientEndpoint to support exchange with server
+  public ServerStoreProxy(String cacheId) {
+    this.cacheId = cacheId;
+  }
 
   /**
    * Gets the identifier linking a client-side cache to a {@code ServerStore} instance.
    *
    * @return the cache identifier
    */
-  String getCacheId();
+  public String getCacheId() {
+    return cacheId;
+  }
 
-  /**
-   * Gets the cache-exposed key type used in the {@code ServerStore}.
-   *
-   * @return the key type
-   */
-  Class<K> getKeyType();
+  @Override
+  public Chain get(long key) {
+    // TODO: Implement ServerStoreProxyImpl.get
+    throw new UnsupportedOperationException("ServerStoreProxyImpl.get not implemented");
+  }
 
-  /**
-   * Gets the cache-exposed value type used in the {@code ServerStore}.
-   *
-   * @return the value type
-   */
-  Class<V> getValueType();
+  @Override
+  public void append(long key, ByteBuffer payLoad) {
+    // TODO: Implement ServerStoreProxyImpl.append
+    throw new UnsupportedOperationException("ServerStoreProxyImpl.append not implemented");
+  }
 
-  /**
-   * Gets the {@link ServerStoreConfiguration} used to create this {@code ServerStoreProxy}.
-   *
-   * @return the {@code ServerStoreConfiguration}
-   */
-  ServerStoreConfiguration getServerStoreConfiguration();
+  @Override
+  public Chain getAndAppend(long key, ByteBuffer payLoad) {
+    // TODO: Implement ServerStoreProxyImpl.getAndAppend
+    throw new UnsupportedOperationException("ServerStoreProxyImpl.getAndAppend not implemented");
+  }
+
+  @Override
+  public void replaceAtHead(long key, Chain expect, Chain update) {
+    // TODO: Implement ServerStoreProxyImpl.replaceAtHead
+    throw new UnsupportedOperationException("ServerStoreProxyImpl.replaceAtHead not implemented");
+  }
 }

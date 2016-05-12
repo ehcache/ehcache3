@@ -64,10 +64,10 @@ import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmon
 // TODO: Remove underlyingStore when ServerStore/ServerStoreProxy is complete
 public class ClusteredStore<K, V> implements Store<K, V> {
 
-  private final ServerStoreProxy<K, V> storeProxy;
+  private final ServerStoreProxy storeProxy;
   private final Store<K, V> underlyingStore;
 
-  ClusteredStore(ServerStoreProxy<K, V> serverStoreProxy, Store<K, V> underlyingStore) {
+  private ClusteredStore(ServerStoreProxy serverStoreProxy, Store<K, V> underlyingStore) {
     this.storeProxy = serverStoreProxy;
     this.underlyingStore = underlyingStore;
   }
@@ -230,7 +230,7 @@ public class ClusteredStore<K, V> implements Store<K, V> {
       final Store<K, V> underlyingStore = underlyingStoreProvider.createStore(storeConfig, serviceConfigs);
 
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
-      ServerStoreProxy<K, V> serverStoreProxy = clusteringService.getServerStoreProxy(cacheId, storeConfig);
+      ServerStoreProxy serverStoreProxy = clusteringService.getServerStoreProxy(cacheId, storeConfig);
       Store<K, V> store = new ClusteredStore<K, V>(serverStoreProxy, underlyingStore);
 
       createdStores.put(store, underlyingStoreProvider);

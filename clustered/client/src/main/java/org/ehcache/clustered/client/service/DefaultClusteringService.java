@@ -36,7 +36,6 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.common.ServerStoreCompatibility;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePool;
@@ -60,12 +59,12 @@ import org.terracotta.exception.EntityNotFoundException;
 /**
  * Provides support for accessing server-based cluster services.
  */
-public class DefaultClusteringService implements ClusteringService {
+class DefaultClusteringService implements ClusteringService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
 
   private static final String AUTO_CREATE_QUERY = "auto-create";
-  public static final String CONNECTION_PREFIX = "Ehcache:";
+  static final String CONNECTION_PREFIX = "Ehcache:";
 
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
@@ -73,16 +72,13 @@ public class DefaultClusteringService implements ClusteringService {
   private final ServerSideConfiguration serverConfiguration;
   private final boolean autoCreate;
 
-  private final Map<String, ServerStoreProxy<?, ?>> storeProxies = new HashMap<String, ServerStoreProxy<?, ?>>();
-  private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
-
   private Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
   private EhcacheClientEntity entity;
 
   private volatile boolean inMaintenance = false;
 
-  public DefaultClusteringService(final ClusteringServiceConfiguration configuration) {
+  DefaultClusteringService(final ClusteringServiceConfiguration configuration) {
     this.configuration = configuration;
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
@@ -145,9 +141,6 @@ public class DefaultClusteringService implements ClusteringService {
     entityFactory.abandonLeadership(entityIdentifier);
     inMaintenance = false;
 
-    // Simple clear required here; disconnect should drive any server-side actions
-    storeProxies.clear();
-
     entity = null;
     entityFactory = null;
     try {
@@ -171,7 +164,6 @@ public class DefaultClusteringService implements ClusteringService {
     }
   }
 
-  @Override
   public void create() {
     try {
       entityFactory.create(entityIdentifier, serverConfiguration);
@@ -206,11 +198,7 @@ public class DefaultClusteringService implements ClusteringService {
 
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    try {
-      entity.destroyCache(name);
-    } finally {
-      storeProxies.remove(name);
-    }
+    entity.destroyCache(name);
   }
 
   private Map<String, ServerSideConfiguration.Pool> extractResourcePools(ClusteringServiceConfiguration configuration) {
@@ -227,10 +215,9 @@ public class DefaultClusteringService implements ClusteringService {
     return Collections.unmodifiableMap(pools);
   }
 
-  @SuppressWarnings("unchecked")
   @Override
-  public <K, V> ServerStoreProxy<K, V> getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
-                                                           final Store.Configuration<K, V> storeConfig) {
+  public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
+                                                     final Store.Configuration<K, V> storeConfig) {
     final String cacheId = cacheIdentifier.getId();
 
     /*
@@ -260,52 +247,32 @@ public class DefaultClusteringService implements ClusteringService {
         (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName())
     );
 
-    ServerStoreProxy<?, ?> storeProxy = this.storeProxies.get(cacheId);
-    if (storeProxy == null) {
-      storeProxy =
-          new ServerStoreProxyImpl<K, V>(cacheId, storeConfig.getKeyType(), storeConfig.getValueType(), clientStoreConfiguration);
-
-      if (autoCreate) {
-        try {
-          this.entity.createCache(cacheId, clientStoreConfiguration);
-        } catch (CachePersistenceException e) {
-          throw new ClusteredStoreCreationException("Error creating server-side cache for " + cacheId, e);
-        }
-      } else {
-        try {
-          this.entity.validateCache(cacheId, clientStoreConfiguration);
-        } catch (CachePersistenceException e) {
-          throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, e);
-        }
+    if (autoCreate) {
+      try {
+        this.entity.createCache(cacheId, clientStoreConfiguration);
+      } catch (CachePersistenceException e) {
+        throw new ClusteredStoreCreationException("Error creating server-side cache for " + cacheId, e);
       }
-
-      this.storeProxies.put(cacheId, storeProxy);
-
     } else {
-      this.storeCompatibility.verify(storeProxy.getServerStoreConfiguration(), clientStoreConfiguration);
+      try {
+        this.entity.validateCache(cacheId, clientStoreConfiguration);
+      } catch (CachePersistenceException e) {
+        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, e);
+      }
     }
 
-    return (ServerStoreProxy<K, V>)storeProxy;    // unchecked
+    return new ServerStoreProxy(cacheId);
   }
 
   @Override
-  public <K, V> void releaseServerStoreProxy(ServerStoreProxy<K, V> storeProxy) {
+  public void releaseServerStoreProxy(ServerStoreProxy storeProxy) {
     final String cacheId = storeProxy.getCacheId();
-
-    final ServerStoreProxy<?, ?> registeredProxy = this.storeProxies.get(cacheId);
-    if (registeredProxy == null) {
-      throw new IllegalStateException("ServerStoreProxy for '" + cacheId + "' is not registered");
-    } else if (storeProxy != registeredProxy) {
-      throw new IllegalStateException("ServerStoreProxy is not the registered proxy for '" + cacheId + "'");
-    }
 
     try {
       this.entity.releaseCache(cacheId);
     } catch (CachePersistenceException e) {
       throw new IllegalStateException(e);
     }
-
-    this.storeProxies.remove(cacheId);
   }
 
   /**

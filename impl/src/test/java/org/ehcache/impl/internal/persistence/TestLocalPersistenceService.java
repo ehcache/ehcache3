@@ -102,11 +102,6 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void create() throws CachePersistenceException {
-    persistenceService.create();
-  }
-
-  @Override
   public void destroyAll() {
     persistenceService.destroyAll();
   }

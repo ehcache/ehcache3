@@ -421,14 +421,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void create() {
-    //no-op
-  }
-
   private static abstract class FileHolder {
     final File directory;
 
