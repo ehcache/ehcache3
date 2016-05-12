@@ -16,6 +16,8 @@
 
 package org.ehcache.impl.serialization;
 
+import java.nio.ByteBuffer;
+import java.util.Random;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
@@ -25,15 +27,6 @@ import static org.junit.Assert.assertThat;
  * StringSerializerTest
  */
 public class StringSerializerTest {
-
-  @Test
-  public void testWeirdContentWhereStringLengthAndBytesLengthAreDifferent() throws ClassNotFoundException {
-    StringSerializer serializer = new StringSerializer();
-
-    String s = "ﾖ"; //0xFF6E
-    String read = serializer.read(serializer.serialize(s));
-    assertThat(read, is(s));
-  }
 
   @Test(expected = NullPointerException.class)
   public void testSerializeThrowsOnNull() {
@@ -45,4 +38,43 @@ public class StringSerializerTest {
     new StringSerializer().read(null);
   }
 
+  @Test
+  public void testSimpleString() throws ClassNotFoundException {
+    testString("eins");
+  }
+
+  @Test
+  public void testAllCharacters() throws ClassNotFoundException {
+    char c = Character.MIN_VALUE;
+    do {
+      testString(String.valueOf(c++));
+    } while (c != Character.MIN_VALUE);
+  }
+
+  private static void testString(String s) throws ClassNotFoundException {
+    StringSerializer serializer = new StringSerializer();
+    ByteBuffer serialized = serializer.serialize(s);
+
+    String read = serializer.read(serialized.asReadOnlyBuffer());
+    assertThat(read, is(s));
+
+    assertThat(serializer.equals(s, serialized), is(true));
+
+    Random rndm = new Random();
+
+    String padded = s + (char) rndm.nextInt();
+    assertThat(serializer.equals(padded, serialized.asReadOnlyBuffer()), is(false));
+
+    String trimmed = s.substring(0, s.length() - 1);
+    assertThat(serializer.equals(trimmed, serialized.asReadOnlyBuffer()), is(false));
+
+    char target = s.charAt(rndm.nextInt(s.length()));
+    char replacement;
+    do {
+      replacement = (char) rndm.nextInt();
+    } while (replacement == target);
+
+    String mutated = s.replace(target, replacement);
+    assertThat(serializer.equals(mutated, serialized.asReadOnlyBuffer()), is(false));
+  }
 }
