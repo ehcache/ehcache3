@@ -16,10 +16,12 @@
 
 package org.ehcache.clustered.client.docs;
 
+import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -41,7 +43,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 public class GettingStarted {
 
   @Before
-  public void resetPassthroughServer() {
+  public void resetPassthroughServer() throws Exception {
     UnitTestConnectionService.reset();
   }
 
@@ -65,15 +67,39 @@ public class GettingStarted {
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
                 .defaultServerResource("primary-server-resource")
-                .resourcePool("resource-pool-a", 128, MemoryUnit.GB)
-                .resourcePool("resource-pool-b", 128, MemoryUnit.GB, "secondary-server-resource"))
+                .resourcePool("resource-pool-a", 128, MemoryUnit.B)
+                .resourcePool("resource-pool-b", 128, MemoryUnit.B, "secondary-server-resource"))
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
-                    .with(ClusteredResourcePoolBuilder.fixed("resource-pool-a", 32, MemoryUnit.GB))));
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     cacheManager.close();
+    // end::clusteredCacheManagerWithServerSideConfigExample
+  }
+
+  @Test
+  public void clusteredCacheManagerWithDynamicallyAddedCacheExample() throws Exception {
+    // tag::clusteredCacheManagerWithServerSideConfigExample
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
+            = CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
+                    .defaultServerResource("primary-server-resource")
+                    .resourcePool("resource-pool-a", 128, MemoryUnit.B));
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    cacheManager.init();
+
+    try {
+      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+              ResourcePoolsBuilder.newResourcePoolsBuilder()
+                      .heap(10, EntryUnit.ENTRIES)
+                      .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))).build();
+
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+    } finally {
+      cacheManager.close();
+    }
     // end::clusteredCacheManagerWithServerSideConfigExample
   }
 }

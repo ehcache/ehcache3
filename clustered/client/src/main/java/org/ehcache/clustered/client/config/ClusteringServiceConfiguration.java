@@ -25,6 +25,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -43,33 +44,41 @@ public final class ClusteringServiceConfiguration
   private final String defaultServerResource;
   private final Map<String, PoolDefinition> pools;
 
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param defaultServerResource the server resource to use for pools not identifying a resource;
+   *                              may be {@code null} only when no {@code pools} item omits a resource
+   * @param pools the map of shared resource pool identifier to {@link PoolDefinition}; may be {@code null}
+   *              or empty; if any {@code PoolDefinition} omits its server resource identifier,
+   *              {@code defaultServerResource} must not be {@code null}
+   *
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
+   * @throws IllegalArgumentException if {@code pools} contains a {@code PoolDefinition} which omits the
+   *            resource identifier and {@code defaultServerResource} is {@code null}
+   */
   public ClusteringServiceConfiguration(final URI clusterUri, String defaultServerResource, Map<String, PoolDefinition> pools) {
     if (clusterUri == null) {
       throw new NullPointerException("Cluster URI cannot be null");
     }
+    if (pools == null) {
+      pools = Collections.emptyMap();
+    }
     if (defaultServerResource == null) {
-      throw new NullPointerException("Default server resource cannot be null");
-    }
-    this.clusterUri = clusterUri;
-    this.defaultServerResource = defaultServerResource;
-    this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
-  }
-
-  public ClusteringServiceConfiguration(URI clusterUri, Map<String, PoolDefinition> pools) {
-    if (clusterUri == null) {
-      throw new NullPointerException("Cluster URI cannot be null");
-    }
-    StringBuilder issues = new StringBuilder();
-    for (Entry<String, PoolDefinition> e : pools.entrySet()) {
-      if (e.getValue().getServerResource() == null) {
-        issues.append("Pool '").append(e.getKey()).append("' has no defined server resource, and no default value was supplied").append("\n");
+      StringBuilder issues = new StringBuilder();
+      for (Entry<String, PoolDefinition> e : pools.entrySet()) {
+        if (e.getValue().getServerResource() == null) {
+          issues.append("Pool '").append(e.getKey()).append("' has no defined server resource, and no default value was supplied").append("\n");
+        }
+      }
+      if (issues.length() > 0) {
+        throw new IllegalArgumentException(issues.toString());
       }
     }
-    if (issues.length() > 0) {
-      throw new IllegalArgumentException(issues.toString());
-    }
+
     this.clusterUri = clusterUri;
-    this.defaultServerResource = null;
+    this.defaultServerResource = defaultServerResource;
     this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
   }
 

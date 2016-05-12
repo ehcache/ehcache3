@@ -24,6 +24,7 @@ import org.terracotta.entity.EntityResponse;
  * @author cdennis
  */
 public abstract class EhcacheEntityResponse implements EntityResponse, Serializable {
+  private static final long serialVersionUID = 4559645892362408528L;
 
   public enum Type {
     SUCCESS,
@@ -37,8 +38,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse, Serializa
   }
 
   public static class Success extends EhcacheEntityResponse {
+    private static final long serialVersionUID = -9061756298941151437L;
 
-    public static final Success INSTANCE = new Success();
+    private static final Success INSTANCE = new Success();
 
     private Success() {
       //singleton
@@ -50,15 +52,16 @@ public abstract class EhcacheEntityResponse implements EntityResponse, Serializa
     }
   }
 
-  public static Failure failure(Throwable cause) {
+  public static Failure failure(Exception cause) {
     return new Failure(cause);
   }
 
   public static class Failure extends EhcacheEntityResponse {
+    private static final long serialVersionUID = -2120407256454458315L;
 
-    private final Throwable cause;
+    private final Exception cause;
 
-    public Failure(Throwable cause) {
+    private Failure(Exception cause) {
       this.cause = cause;
     }
 
@@ -67,10 +70,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse, Serializa
       return Type.FAILURE;
     }
 
-    public Throwable getCause() {
+    public Exception getCause() {
       return cause;
     }
   }
-
 
 }

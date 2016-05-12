@@ -21,6 +21,7 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
 
 import java.util.Collection;
+import org.ehcache.config.CacheConfiguration;
 
 /**
  * Interface for {@link Service}s that handle a {@link ResourceType} which is
@@ -49,6 +50,15 @@ public interface PersistableResourceService extends MaintainableService {
   Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException;
 
   /**
+   * Create the persistence space with the given name.
+   *
+   * @param name the name of the persistence context
+   * @param config the configuration for the associated cache
+   * @throws CachePersistenceException if the persistence space cannot be created
+   */
+  void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
+
+  /**
    * Destroys the persistence space with the given name.
    * <P>
    *   This method can be called without having created the persistence space
@@ -60,13 +70,6 @@ public interface PersistableResourceService extends MaintainableService {
    * @throws CachePersistenceException if the persistence space cannot be destroyed
    */
   void destroy(String name) throws CachePersistenceException;
-
-  /**
-   * Creates the persistent storage.
-   *
-   * @throws CachePersistenceException if the persistence storage cannot be created
-   */
-  void create() throws CachePersistenceException;
 
   /**
    * Destroys all persistence spaces.

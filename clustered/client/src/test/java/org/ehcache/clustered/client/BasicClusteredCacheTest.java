@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
 public class BasicClusteredCacheTest {
 
   @Before
-  public void resetPassthroughServer() {
+  public void resetPassthroughServer() throws Exception {
     UnitTestConnectionService.reset();
   }
 
@@ -52,12 +52,12 @@ public class BasicClusteredCacheTest {
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
                 .defaultServerResource("primary-server-resource")
-                .resourcePool("resource-pool-a", 128, MemoryUnit.GB)
-                .resourcePool("resource-pool-b", 128, MemoryUnit.GB, "secondary-server-resource"))
+                .resourcePool("resource-pool-a", 128, MemoryUnit.KB)
+                .resourcePool("resource-pool-b", 128, MemoryUnit.KB, "secondary-server-resource"))
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
-                    .with(ClusteredResourcePoolBuilder.fixed("resource-pool-a", 32, MemoryUnit.GB))));
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);

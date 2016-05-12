@@ -17,7 +17,9 @@
 package org.ehcache.clustered.client.internal;
 
 
+import java.math.BigInteger;
 import java.net.URI;
+import java.util.List;
 import java.util.Properties;
 
 import org.ehcache.clustered.server.EhcacheServerEntityService;
@@ -26,21 +28,53 @@ import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionService;
 import org.terracotta.consensus.entity.CoordinationServerEntityService;
 import org.terracotta.consensus.entity.client.ClientCoordinationEntityService;
+import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
+import org.terracotta.offheapresource.OffHeapResourcesProvider;
+import org.terracotta.offheapresource.config.MemoryUnit;
+import org.terracotta.offheapresource.config.OffheapResourcesType;
+import org.terracotta.offheapresource.config.ResourceType;
 import org.terracotta.passthrough.PassthroughServer;
 
 public class UnitTestConnectionService implements ConnectionService {
 
-  public static PassthroughServer createServer() {
+  private static PassthroughServer createServer() throws Exception {
     PassthroughServer newServer = new PassthroughServer(true);
     newServer.registerServerEntityService(new EhcacheServerEntityService());
     newServer.registerClientEntityService(new EhcacheClientEntityService());
     newServer.registerServerEntityService(new CoordinationServerEntityService());
     newServer.registerClientEntityService(new ClientCoordinationEntityService());
+
+    /*
+     * Construct an off-heap resource configuration and register an OffHeapResourcesProvider.
+     */
+    OffheapResourcesType resources = new OffheapResourcesType();
+    List<ResourceType> resourcesList = resources.getResource();
+    resourcesList.add(defineResource("defaultResource", MemoryUnit.MB, 128L));
+    resourcesList.add(defineResource("primary-server-resource", MemoryUnit.MB, 64L));
+    resourcesList.add(defineResource("secondary-server-resource", MemoryUnit.MB, 64L));
+    OffHeapResourcesConfiguration ohrpConfig = new OffHeapResourcesConfiguration(resources);
+    newServer.registerServiceProvider(new OffHeapResourcesProvider(), ohrpConfig);
+
     newServer.start();
     return newServer;
   }
 
-  private static PassthroughServer server = createServer();
+  private static ResourceType defineResource(String name, MemoryUnit unit, long size) {
+    final ResourceType resource = new ResourceType();
+    resource.setName(name);
+    resource.setUnit(unit);
+    resource.setValue(BigInteger.valueOf(size));
+    return resource;
+  }
+
+  private static PassthroughServer server;
+  static {
+    try {
+      server = createServer();
+    } catch (Exception ex) {
+      throw new AssertionError(ex);
+    }
+  }
 
   private static Properties connectionProperties;
 
@@ -48,7 +82,7 @@ public class UnitTestConnectionService implements ConnectionService {
     return connectionProperties;
   }
 
-  public static synchronized void reset() {
+  public static synchronized void reset() throws Exception {
     server.stop();
     server = createServer();
     connectionProperties = null;

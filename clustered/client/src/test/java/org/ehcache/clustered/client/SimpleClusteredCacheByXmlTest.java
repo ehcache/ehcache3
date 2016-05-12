@@ -35,15 +35,13 @@ import org.junit.Before;
 
 /**
  * Tests basic XML configuration of clustered {@link PersistentCacheManager}.
- *
- * @author Clifford W. Johnson
  */
 public class SimpleClusteredCacheByXmlTest {
 
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";
 
   @Before
-  public void resetPassthroughServer() {
+  public void resetPassthroughServer() throws Exception {
     UnitTestConnectionService.reset();
   }
 

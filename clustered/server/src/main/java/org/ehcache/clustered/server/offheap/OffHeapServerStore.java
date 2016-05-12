@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.server.store.ServerStore;
+import org.ehcache.clustered.common.store.ServerStore;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 

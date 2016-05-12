@@ -38,6 +38,9 @@ dependencies {
 
   serverLibs(project(':clustered:server')) {
     exclude group: 'org.terracotta', module: 'entity-server-api'
+    exclude group: 'org.terracotta', module: 'entity-common-api'
+    exclude group: 'org.terracotta', module: 'packaging-support'
+    exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
   serverLibs "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion" changing true
 

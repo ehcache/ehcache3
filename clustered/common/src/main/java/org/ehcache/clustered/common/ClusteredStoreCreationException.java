@@ -13,9 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.store;
 
-public interface SequencedElement extends Element {
+package org.ehcache.clustered.common;
 
-  long getSequenceNumber();
+/**
+ * Thrown to indicate a failure when creating a {@code ClusteredStore}.
+ */
+public class ClusteredStoreCreationException extends RuntimeException {
+  private static final long serialVersionUID = 8161642579437544726L;
+
+  public ClusteredStoreCreationException(String message) {
+    super(message);
+  }
+
+  public ClusteredStoreCreationException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public ClusteredStoreCreationException(Throwable cause) {
+    super(cause);
+  }
 }

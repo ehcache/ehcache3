@@ -91,7 +91,7 @@ public class ClusteredResourcePoolBuilderTest {
     assertThat(pool, is(instanceOf(SharedClusteredResourcePool.class)));
     assertThat(pool.getType(), Matchers.<ResourceType>is(ClusteredResourceType.Types.SHARED));
     assertThat(pool.isPersistent(), is(true));
-    assertThat(((SharedClusteredResourcePool)pool).getSharedResource(), is("resourceId"));
+    assertThat(((SharedClusteredResourcePool)pool).getSharedResourcePool(), is("resourceId"));
   }
 
   @Test

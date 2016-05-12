@@ -29,5 +29,5 @@ public interface SharedClusteredResourcePool extends ClusteredResourcePool {
    *
    * @return the server-side clustered resource id
    */
-  String getSharedResource();
+  String getSharedResourcePool();
 }

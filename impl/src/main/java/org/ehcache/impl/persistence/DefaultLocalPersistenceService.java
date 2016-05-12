@@ -51,6 +51,7 @@ import static java.lang.Integer.toHexString;
 import static java.nio.charset.Charset.forName;
 
 import java.util.concurrent.ConcurrentMap;
+import org.ehcache.config.CacheConfiguration;
 
 /**
  * Default implementation of the {@link LocalPersistenceService} which can be used explicitly when
@@ -202,13 +203,31 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   @Override
   public PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException {
-    PersistenceSpaceIdentifier existingSpace = knownPersistenceSpaces.get(name);
-    if (existingSpace != null) {
-      return existingSpace;
+    while (true) {
+      PersistenceSpaceIdentifier existingSpace = knownPersistenceSpaces.get(name);
+      if (existingSpace != null) {
+        return existingSpace;
+      }
+      PersistenceSpaceIdentifier newSpace = createSpace(name);
+      if (newSpace != null) {
+        return newSpace;
+      }
     }
+  }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    if (createSpace(name) == null) {
+      throw new CachePersistenceException("Persistence space already exists for " + name);
+    }
+  }
+
+  private PersistenceSpaceIdentifier createSpace(String name) throws CachePersistenceException {
     DefaultPersistenceSpaceIdentifier newSpace = new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name));
-    if ((existingSpace = knownPersistenceSpaces.putIfAbsent(name, newSpace)) == null) {
+    if (knownPersistenceSpaces.putIfAbsent(name, newSpace) == null) {
       try {
         create(newSpace.getDirectory());
       } catch (IOException e) {
@@ -217,10 +236,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       }
       return newSpace;
     } else {
-      return existingSpace;
+      return null;
     }
   }
-
   /**
    * {@inheritDoc}
    */
@@ -401,14 +419,6 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } catch (NoSuchAlgorithmException e) {
       throw new AssertionError("All JDKs must have SHA-1");
     }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void create() {
-    //no-op
   }
 
   private static abstract class FileHolder {

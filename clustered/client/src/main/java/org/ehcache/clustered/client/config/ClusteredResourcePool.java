@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.config;
 
+import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
 import org.ehcache.config.ResourcePool;
 
 /**
@@ -26,4 +27,11 @@ public interface ClusteredResourcePool extends ResourcePool {
   @Override
   ClusteredResourceType<? extends ClusteredResourcePool> getType();
 
+  /**
+   * Converts this {@code ClusteredResourcePool} into the {@link PoolAllocation}
+   * used by the cluster server.
+   *
+   * @return a {@code PoolAllocation} instance created from this {@code ClusteredResourcePool}
+   */
+  PoolAllocation getPoolAllocation();
 }

@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.persistence;
 
 import java.io.File;
 import java.util.Collection;
+import org.ehcache.config.CacheConfiguration;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -86,6 +87,11 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
+  public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    persistenceService.create(name, config);
+  }
+
+  @Override
   public void destroy(String name) throws CachePersistenceException {
     persistenceService.destroy(name);
   }
@@ -93,11 +99,6 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   @Override
   public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier space, String name) throws CachePersistenceException {
     return persistenceService.createPersistenceContextWithin(space, name);
-  }
-
-  @Override
-  public void create() throws CachePersistenceException {
-    persistenceService.create();
   }
 
   @Override

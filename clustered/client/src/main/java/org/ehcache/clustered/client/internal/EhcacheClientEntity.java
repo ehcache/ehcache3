@@ -17,6 +17,9 @@
 package org.ehcache.clustered.client.internal;
 
 import java.util.UUID;
+
+import org.ehcache.CachePersistenceException;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
@@ -26,6 +29,8 @@ import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.InvokeFuture;
+
+import static org.ehcache.clustered.common.Util.unwrapException;
 
 /**
  *
@@ -68,7 +73,39 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Throwable {
+  public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.createServerStore(name, serverStoreConfiguration));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
+  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.validateServerStore(name , serverStoreConfiguration));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
+  public void releaseCache(String name) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.releaseServerStore(name));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
+  public void destroyCache(String name) throws CachePersistenceException {
+    try {
+      invoke(EhcacheEntityMessage.destroyServerStore(name));
+    } catch (Exception e) {
+      throw unwrapException(e, CachePersistenceException.class);
+    }
+  }
+
+  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Exception {
     InvokeFuture<EhcacheEntityResponse> result = endpoint.beginInvoke().message(message).invoke();
     boolean interrupted = false;
     try {
