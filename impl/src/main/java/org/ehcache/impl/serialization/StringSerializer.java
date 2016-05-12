@@ -18,10 +18,11 @@ package org.ehcache.impl.serialization;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.serialization.Serializer;
-
 import java.nio.ByteBuffer;
+
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.Serializer;
 
 /**
  * Default {@link Serializer} for {@code String} type. Simply writes the string bytes in modified UTF-8
@@ -96,6 +97,19 @@ public class StringSerializer implements Serializer<String> {
         sb.append((char) (((a & 0x1f) << 6) | ((binary.get(++i) & 0x3f))));
       } else if ((a & 0xf0) == 0xe0) {
         sb.append((char) (((a & 0x0f) << 12) | ((binary.get(++i) & 0x3f) << 6) | (binary.get(++i) & 0x3f)));
+      } else {
+        //these remaining stanzas are for compatibility with the previous regular UTF-8 codec
+        int codepoint;
+        if ((a & 0xf8) == 0xf0) {
+          codepoint = ((a & 0x7) << 18) | ((binary.get(++i) & 0x3f) << 12) | ((binary.get(++i) & 0x3f) << 6) | ((binary.get(++i) & 0x3f));
+        } else if ((a & 0xfc) == 0xf8) {
+          codepoint = ((a & 0x3) << 24) | ((binary.get(++i) & 0x3f) << 18) | ((binary.get(++i) & 0x3f) << 12) | ((binary.get(++i) & 0x3f) << 6) | ((binary.get(++i) & 0x3f));
+        } else if ((a & 0xfe) == 0xfc) {
+          codepoint = ((a & 0x1) << 30) | ((binary.get(++i) & 0x3f) << 24) | ((binary.get(++i) & 0x3f) << 18) | ((binary.get(++i) & 0x3f) << 12) | ((binary.get(++i) & 0x3f) << 6) | ((binary.get(++i) & 0x3f));
+        } else {
+          throw new SerializerException("Unexpected encoding");
+        }
+        sb.appendCodePoint(codepoint);
       }
     }
 
@@ -132,6 +146,22 @@ public class StringSerializer implements Serializer<String> {
           }
         } else if ((a & 0xf0) == 0xe0) {
           if (object.charAt(si) != (char) (((a & 0x0f) << 12) | ((binary.get(++bi) & 0x3f) << 6) | (binary.get(++bi) & 0x3f))) {
+            return false;
+          }
+        } else {
+          //these remaining stanzas are for compatibility with the previous regular UTF-8 codec
+          int codepoint;
+          if ((a & 0xf8) == 0xf0) {
+            codepoint = ((a & 0x7) << 18) | ((binary.get(++bi) & 0x3f) << 12) | ((binary.get(++bi) & 0x3f) << 6) | ((binary.get(++bi) & 0x3f));
+          } else if ((a & 0xfc) == 0xf8) {
+            codepoint = ((a & 0x3) << 24) | ((binary.get(++bi) & 0x3f) << 18) | ((binary.get(++bi) & 0x3f) << 12) | ((binary.get(++bi) & 0x3f) << 6) | ((binary.get(++bi) & 0x3f));
+          } else if ((a & 0xfe) == 0xfc) {
+            codepoint = ((a & 0x1) << 30) | ((binary.get(++bi) & 0x3f) << 24) | ((binary.get(++bi) & 0x3f) << 18) | ((binary.get(++bi) & 0x3f) << 12) | ((binary.get(++bi) & 0x3f) << 6) | ((binary.get(++bi) & 0x3f));
+          } else {
+            throw new SerializerException("Unrecognized encoding");
+          }
+          char[] chars = Character.toChars(codepoint);
+          if (si + 1 == sLength || object.charAt(si) != chars[0] || object.charAt(++si) != chars[1]) {
             return false;
           }
         }

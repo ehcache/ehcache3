@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.Random;
 import org.junit.Test;
@@ -76,5 +77,29 @@ public class StringSerializerTest {
 
     String mutated = s.replace(target, replacement);
     assertThat(serializer.equals(mutated, serialized.asReadOnlyBuffer()), is(false));
+  }
+
+  @Test
+  public void testBackwardsCompatibility() throws UnsupportedEncodingException, ClassNotFoundException {
+    StringSerializer serializer = new StringSerializer();
+    int codepoint = 65536;
+    do {
+      if (Character.isValidCodePoint(codepoint) && !(Character.isHighSurrogate((char) codepoint) || Character.isLowSurrogate((char) codepoint))) {
+        String s = new String(Character.toChars(codepoint));
+        ByteBuffer bytes = ByteBuffer.wrap(s.getBytes("UTF-8"));
+        assertThat("Codepoint : 0x" + Integer.toHexString(codepoint), serializer.read(bytes), is(s));
+        assertThat("Codepoint : 0x" + Integer.toHexString(codepoint), serializer.equals(s, bytes), is(true));
+      }
+    } while (++codepoint != Integer.MIN_VALUE);
+  }
+
+  @Test
+  public void testEqualsMismatchOnMissingFinalSurrogateAgainstOldFormat() throws UnsupportedEncodingException, ClassNotFoundException {
+    StringSerializer serializer = new StringSerializer();
+    String string = "🂱🂾🂽🂻🂺";
+
+    String trimmed = string.substring(0, string.length() - 1);
+    ByteBuffer bytes = ByteBuffer.wrap(string.getBytes("UTF-8"));
+    assertThat(serializer.equals(trimmed, bytes), is(false));
   }
 }
