@@ -33,4 +33,18 @@ public interface HigherCachingTierOperationOutcomes {
      */
     MISS
   }
+
+  /**
+   * the invalidateAll outcomes
+   */
+  enum SilentInvalidateAllOutcome implements HigherCachingTierOperationOutcomes {
+    /**
+     * entries invalidated, without errors
+     */
+    SUCCESS,
+    /**
+     * entries invalidated, with errors
+     */
+    FAILURE
+  }
 }

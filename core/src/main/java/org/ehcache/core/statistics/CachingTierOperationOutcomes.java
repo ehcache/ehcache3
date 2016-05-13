@@ -60,4 +60,18 @@ public interface CachingTierOperationOutcomes {
      */
     MISS
   }
+
+  /**
+   * the invalidateAll outcomes
+   */
+  enum InvalidateAllOutcome implements CachingTierOperationOutcomes {
+    /**
+     * entries invalidated, without errors
+     */
+    SUCCESS,
+    /**
+     * entries invalidated, with errors
+     */
+    FAILURE
+  }
 }
