@@ -41,6 +41,7 @@ import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateServer
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.store.ServerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -202,6 +203,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       case VALIDATE_SERVER_STORE: return validateServerStore(clientDescriptor, (ValidateServerStore) message);
       case RELEASE_SERVER_STORE: return releaseServerStore(clientDescriptor, (ReleaseServerStore) message);
       case DESTROY_SERVER_STORE: return destroyServerStore(clientDescriptor, (DestroyServerStore) message);
+      case SERVER_STORE_OP: return invokeServerStoreOperation(clientDescriptor, (ServerStoreOpMessage) message);
       default: throw new IllegalArgumentException("Unknown message " + message);
     }
   }
@@ -224,6 +226,25 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   @Override
   public void loadExisting() {
     //nothing to do
+  }
+
+  private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) {
+    try {
+      switch (message.operation()) {
+        case GET: return EhcacheEntityResponse.response(stores.get(message.getCacheId()).get(message.getKey()));
+        case APPEND: stores.get(message.getCacheId()).append(message.getKey(), ((ServerStoreOpMessage.AppendMessage)message).getPayload());
+          return EhcacheEntityResponse.success();
+        case GETANDAPPEND: return EhcacheEntityResponse.response(stores.get(message.getCacheId()).getAndAppend(message.getKey(), ((ServerStoreOpMessage.GetAndAppendMessage)message).getPayload()));
+        case REPLACE:
+          ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
+          stores.get(replaceAtHeadMessage.getCacheId()).replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
+          return EhcacheEntityResponse.success();
+        default: throw new IllegalArgumentException("Unknown Server Store operation " + message);
+      }
+
+    } catch (Exception e) {
+      return EhcacheEntityResponse.failure(e);
+    }
   }
 
   /**

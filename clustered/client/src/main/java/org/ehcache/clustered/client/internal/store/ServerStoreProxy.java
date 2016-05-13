@@ -35,7 +35,6 @@ public class ServerStoreProxy implements ServerStore {
   private final String cacheId;
   private final EhcacheClientEntity entity;
 
-  // TODO: Provide EhcacheClientEntity or EntityClientEndpoint to support exchange with server
   public ServerStoreProxy(String cacheId, EhcacheClientEntity entity) {
     this.cacheId = cacheId;
     this.entity = entity;
