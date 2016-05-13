@@ -96,7 +96,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     when(computedValueHolder.value()).thenReturn(value);
     when(computedValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(Store.ValueHolder.NO_EXPIRE);
 
-    tier = factory.newCachingTier(1L);
+    tier = factory.newCachingTier();
 
     try {
       tier.getOrComputeIfAbsent(key, new Function() {   // actually put mapping in tier
