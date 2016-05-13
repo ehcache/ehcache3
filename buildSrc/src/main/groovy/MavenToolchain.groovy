@@ -26,11 +26,11 @@ class MavenToolchain {
 
   private static def exe = OperatingSystem.current().isWindows() ? '.exe' : ''
 
-  static def javaHome = { v ->
+  static def javaHome = { v -> 
     def jdk = toolchains.get(v);
     if (jdk == null) {
 
-            throw new RuntimeException("JDK $v not available - check your toolchains.xml")
+      throw new RuntimeException("JDK $v not available - check your toolchains.xml")
     } else {
       return jdk;
     }
