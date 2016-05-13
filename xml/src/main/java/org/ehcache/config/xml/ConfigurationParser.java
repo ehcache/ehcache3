@@ -61,6 +61,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -73,6 +74,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.ehcache.config.xml.model.ObjectFactory;
 import org.ehcache.config.xml.model.ThreadPoolReferenceType;
 import org.ehcache.config.xml.model.ThreadPoolsType;
 
@@ -159,8 +161,9 @@ class ConfigurationParser {
     return config.getThreadPools();
   }
 
-  public SizeofType getHeapStore() {
-    return config.getHeapStore();
+  public SizeOfEngineLimits getHeapStore() {
+    SizeofType type = config.getHeapStore();
+    return type == null ? null : new XmlSizeOfEngineLimits(type);
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -863,17 +866,32 @@ class ConfigurationParser {
 
     @Override
     public long getMaxObjectGraphSize() {
-      return sizeoflimits.getMaxObjectGraphSize().getValue().longValue();
+      SizeofType.MaxObjectGraphSize value = sizeoflimits.getMaxObjectGraphSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectGraphSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public long getMaxObjectSize() {
-      return sizeoflimits.getMaxObjectSize().getValue().longValue();
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public MemoryUnit getUnit() {
-      return MemoryUnit.valueOf(sizeoflimits.getMaxObjectSize().getUnit().value().toUpperCase());
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return MemoryUnit.valueOf(new ObjectFactory().createMemoryType().getUnit().value().toUpperCase());
+      } else {
+        return MemoryUnit.valueOf(value.getUnit().value().toUpperCase());
+      }
     }
 
   }

@@ -52,4 +52,36 @@
       <ehcache:max-object-size>200000</ehcache:max-object-size>
     </ehcache:heap-store-settings>
   </ehcache:cache>
+
+  <ehcache:cache alias="usesPartialOneConfiguredInCache">
+    <ehcache:key-type>
+    java.lang.String
+    </ehcache:key-type>
+    <ehcache:value-type>
+     java.lang.String
+    </ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap unit="kb">10</ehcache:heap>
+      <ehcache:offheap unit="mb">1</ehcache:offheap>
+    </ehcache:resources>
+    <ehcache:heap-store-settings>
+      <ehcache:max-object-graph-size>500</ehcache:max-object-graph-size>
+    </ehcache:heap-store-settings>
+  </ehcache:cache>
+
+  <ehcache:cache alias="usesPartialTwoConfiguredInCache">
+    <ehcache:key-type>
+    java.lang.String
+    </ehcache:key-type>
+    <ehcache:value-type>
+     java.lang.String
+    </ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap unit="kb">10</ehcache:heap>
+      <ehcache:offheap unit="mb">1</ehcache:offheap>
+    </ehcache:resources>
+    <ehcache:heap-store-settings>
+      <ehcache:max-object-size>200000</ehcache:max-object-size>
+    </ehcache:heap-store-settings>
+  </ehcache:cache>
 </ehcache:config>
