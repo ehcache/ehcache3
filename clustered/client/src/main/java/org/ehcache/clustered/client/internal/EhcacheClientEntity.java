@@ -105,8 +105,31 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Exception {
+  public EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Exception {
     InvokeFuture<EhcacheEntityResponse> result = endpoint.beginInvoke().message(message).invoke();
+    boolean interrupted = false;
+    try {
+      while (true) {
+        try {
+          EhcacheEntityResponse response = result.get();
+          if (Type.FAILURE.equals(response.getType())) {
+            throw ((Failure) response).getCause();
+          } else {
+            return response;
+          }
+        } catch (InterruptedException e) {
+          interrupted = true;
+        }
+      }
+    } finally {
+      if (interrupted) {
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
+  public EhcacheEntityResponse invokeCompleted(EhcacheEntityMessage message) throws Exception {
+    InvokeFuture<EhcacheEntityResponse> result = endpoint.beginInvoke().message(message).ackCompleted().invoke();
     boolean interrupted = false;
     try {
       while (true) {

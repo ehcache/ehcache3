@@ -261,7 +261,7 @@ class DefaultClusteringService implements ClusteringService {
       }
     }
 
-    return new ServerStoreProxy(cacheId);
+    return new ServerStoreProxy(cacheId, entity);
   }
 
   @Override
