@@ -1005,33 +1005,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void invalidate(K key, final NullaryFunction<K> function) throws StoreAccessException {
-    invalidateObserver.begin();
-
-    final AtomicBoolean removed = new AtomicBoolean(false);
-    try {
-      backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-        @Override
-        public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> offHeapValueHolder) {
-          if (offHeapValueHolder != null) {
-            removed.set(true);
-            notifyInvalidation(k, offHeapValueHolder);
-          }
-          function.apply();
-          return null;
-        }
-      }, false);
-      if (removed.get()) {
-        invalidateObserver.end(LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED);
-      } else {
-        invalidateObserver.end(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS);
-      }
-    } catch (RuntimeException re) {
-      handleRuntimeException(re);
-    }
-  }
-
-  @Override
   public void invalidateAll() throws StoreAccessException {
     invalidateAllObserver.begin();
     StoreAccessException exception = null;
