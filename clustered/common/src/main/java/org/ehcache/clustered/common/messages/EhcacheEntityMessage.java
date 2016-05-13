@@ -16,9 +16,11 @@
 package org.ehcache.clustered.common.messages;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.store.Chain;
 import org.terracotta.entity.EntityMessage;
 
 /**
@@ -33,7 +35,8 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
     CREATE_SERVER_STORE,
     VALIDATE_SERVER_STORE,
     RELEASE_SERVER_STORE,
-    DESTROY_SERVER_STORE
+    DESTROY_SERVER_STORE,
+    SERVER_STORE_OP
   }
 
   public abstract Type getType();
@@ -196,5 +199,22 @@ public abstract class EhcacheEntityMessage implements EntityMessage, Serializabl
       return name;
     }
   }
+
+  public static EhcacheEntityMessage getOperation(String cacheId, long key) {
+    return new ServerStoreOpMessage.GetMessage(cacheId, key);
+  }
+
+  public static EhcacheEntityMessage getAndAppendOperation(String cacheId, long key, ByteBuffer payload) {
+    return new ServerStoreOpMessage.GetAndAppendMessage(cacheId, key, payload);
+  }
+
+  public static EhcacheEntityMessage appendOperation(String cacheId, long key, ByteBuffer payload) {
+    return new ServerStoreOpMessage.AppendMessage(cacheId, key, payload);
+  }
+
+  public static EhcacheEntityMessage replaceAtHeadOperation(String cacheId, long key, Chain expect, Chain update) {
+    return new ServerStoreOpMessage.ReplaceAtHeadMessage(cacheId, key, expect, update);
+  }
+
 
 }
