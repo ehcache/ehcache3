@@ -51,9 +51,8 @@ public class ServerStoreProxy implements ServerStore {
 
   @Override
   public Chain get(long key) {
-    EhcacheEntityResponse response = null;
     try {
-      response = entity.invoke(EhcacheEntityMessage.getOperation(cacheId, key));
+      EhcacheEntityResponse response = entity.invoke(EhcacheEntityMessage.getOperation(cacheId, key), false);
       if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
         return ((EhcacheEntityResponse.GetResponse)response).getChain();
       }
@@ -66,7 +65,7 @@ public class ServerStoreProxy implements ServerStore {
   @Override
   public void append(long key, ByteBuffer payLoad) {
     try {
-      entity.invokeCompleted(EhcacheEntityMessage.appendOperation(cacheId, key, payLoad));
+      entity.invoke(EhcacheEntityMessage.appendOperation(cacheId, key, payLoad), true);
     } catch (Exception e) {
       unwrapException(e, StoreAccessException.class);
     }
@@ -74,9 +73,8 @@ public class ServerStoreProxy implements ServerStore {
 
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
-    EhcacheEntityResponse response = null;
     try {
-      response = entity.invokeCompleted(EhcacheEntityMessage.getAndAppendOperation(cacheId, key, payLoad));
+      EhcacheEntityResponse response = entity.invoke(EhcacheEntityMessage.getAndAppendOperation(cacheId, key, payLoad), true);
       if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
         return ((EhcacheEntityResponse.GetResponse)response).getChain();
       }
@@ -89,7 +87,7 @@ public class ServerStoreProxy implements ServerStore {
   @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
     try {
-      entity.invokeCompleted(EhcacheEntityMessage.replaceAtHeadOperation(cacheId, key, expect, update));
+      entity.invoke(EhcacheEntityMessage.replaceAtHeadOperation(cacheId, key, expect, update), true);
     } catch (Exception e) {
       unwrapException(e, StoreAccessException.class);
     }
