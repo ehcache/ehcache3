@@ -5,12 +5,12 @@ class MavenToolchain {
 
   static def mavenToolchainDefinitions = {
     String userHome = System.getProperty("user.home");
-    File toolchain = new File(userHome, ".m2/toolchains.xml")
+    File toolchain = new File(userHome, ".m2" + File.separator + "toolchains.xml")
     if (toolchain.isFile()) {
       def xmlSlurper = new XmlSlurper()
       return new XmlSlurper().parse(toolchain)
     } else {
-      return null;
+      throw new Exception("toolchain file not found!!! " + toolchain);
     }
   }
 
