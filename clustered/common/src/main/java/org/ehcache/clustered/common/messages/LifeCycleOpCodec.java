@@ -22,48 +22,23 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 
-import org.terracotta.entity.MessageCodec;
-import org.terracotta.entity.MessageCodecException;
-
 /**
  *
- * @author cdennis
  */
-public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class LifeCycleOpCodec {
 
-  private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE = new EhcacheCodec();
-
-  public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> messageCodec() {
-    return SERVER_INSTANCE;
+  public static byte[] encode(LifecycleMessage message) {
+    byte[] encodedMsg = marshall(message);
+    ByteBuffer buffer = ByteBuffer.allocate(1 + encodedMsg.length);
+    buffer.put(EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode());
+    buffer.put(encodedMsg);
+    buffer.flip();
+    return buffer.array();
   }
 
-  @Override
-  public byte[] encodeMessage(EhcacheEntityMessage message) {
-    if (message.getType() == EhcacheEntityMessage.Type.LIFECYCLE_OP) {
-      return LifeCycleOpCodec.encode((LifecycleMessage) message);
-    } else {
-      return ServerStoreOpCodec.encode((ServerStoreOpMessage) message);
-    }
-  }
-
-  @Override
-  public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
-    ByteBuffer payloadBuf = ByteBuffer.wrap(payload);
-    if (payloadBuf.get() == 1) {
-      return LifeCycleOpCodec.decode(payload);
-    } else {
-      return ServerStoreOpCodec.decode(payload);
-    }
-  }
-
-  @Override
-  public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
-    return marshall(response);
-  }
-
-  @Override
-  public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
-    return (EhcacheEntityResponse) unmarshall(payload);
+  public static LifecycleMessage decode(byte[] payload) {
+    ByteBuffer buffer =  ByteBuffer.wrap(payload, 1, payload.length-1);
+    return (LifecycleMessage) unmarshall(buffer.array());
   }
 
   private static Object unmarshall(byte[] payload) {

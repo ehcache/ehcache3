@@ -35,8 +35,19 @@ import static org.ehcache.clustered.common.messages.LifecycleMessage.DestroyServ
 public abstract class EhcacheEntityMessage implements EntityMessage {
 
   public enum Type {
-    SERVER_STORE_OP,
-    LIFECYCLE_OP
+
+    SERVER_STORE_OP((byte)0),
+    LIFECYCLE_OP((byte)1);
+
+    private final byte opCode;
+
+    Type(byte opCode) {
+      this.opCode = opCode;
+    }
+
+    public byte getOpCode() {
+      return this.opCode;
+    }
   }
 
   public abstract Type getType();

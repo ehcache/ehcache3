@@ -23,10 +23,21 @@ import java.nio.ByteBuffer;
  */
 public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   public enum ServerStoreOp {
-    GET,
-    GETANDAPPEND,
-    APPEND,
-    REPLACE
+
+    GET((byte) 0),
+    GETANDAPPEND((byte) 1),
+    APPEND((byte) 2),
+    REPLACE((byte) 3);
+
+    private final byte storeOpCode;
+
+    ServerStoreOp(byte storeOpCode) {
+      this.storeOpCode = storeOpCode;
+    }
+
+    public byte getStoreOpCode() {
+      return this.storeOpCode;
+    }
   }
 
   private final String cacheId;
