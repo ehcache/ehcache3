@@ -49,34 +49,33 @@ public class GettingStarted {
 
   @Test
   public void clusteredCacheManagerExample() throws Exception {
-    // tag::clusteredCacheManagerExample
+    // tag::clusteredCacheManagerExample[]
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create")))
-            .withCache("simple-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10)));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+        CacheManagerBuilder.newCacheManagerBuilder() // <1>
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://localhost:9510/my-application?auto-create"))); // <2>
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true); // <3>
 
-    cacheManager.close();
-    // end::clusteredCacheManagerExample
+    cacheManager.close(); // <4>
+    // end::clusteredCacheManagerExample[]
   }
 
   @Test
   public void clusteredCacheManagerWithServerSideConfigExample() throws Exception {
-    // tag::clusteredCacheManagerWithServerSideConfigExample
+    // tag::clusteredCacheManagerWithServerSideConfigExample[]
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
-                .defaultServerResource("primary-server-resource")
-                .resourcePool("resource-pool-a", 128, MemoryUnit.B)
-                .resourcePool("resource-pool-b", 128, MemoryUnit.B, "secondary-server-resource"))
-            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        CacheManagerBuilder.newCacheManagerBuilder() // <1>
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://localhost:9510/my-application?auto-create")) // <2>
+                .defaultServerResource("primary-server-resource") // <3>
+                .resourcePool("resource-pool-a", 128, MemoryUnit.B, "secondary-server-resource") // <4>
+                .resourcePool("resource-pool-b", 128, MemoryUnit.B)) // <5>
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <6>
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES)
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+                    .heap(10, EntryUnit.ENTRIES) // <7>
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB)))); // <8>
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true); // <9>
 
-    cacheManager.close();
-    // end::clusteredCacheManagerWithServerSideConfigExample
+    cacheManager.close(); // <10>
+    // end::clusteredCacheManagerWithServerSideConfigExample[]
   }
 
   @Test

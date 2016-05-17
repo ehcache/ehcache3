@@ -15,6 +15,7 @@ User documentation::
 - link:./writers{outfilesuffix}[Cache Writers]
 - link:./cache-event-listeners{outfilesuffix}[Cache Event Listeners]
 - link:./eviction-advisor{outfilesuffix}[Eviction Advisor]
+- link:./clustered-cache{outfilesuffix}[Clustering with Terracotta]
 Resources::
 - link:./examples{outfilesuffix}[Java examples]
 - link:./xsds{outfilesuffix}[Configuration XSD]

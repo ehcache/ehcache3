@@ -55,6 +55,26 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <10> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 
+=== Creating cache manager with clustering support
+
+To enable Clustering with Terracotta, firstly you will have to <<clustered-cache.adoc#starting-terracotta-server, start the Terracotta server>> configured with clustered storage.
+Further, for creating the cache manager with clustering support, you will need to provide the clustering service configuration:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+----
+
+<1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
+<2> Use the `ClusteringServiceConfigurationBuilder`{empty}'s static method `.cluster(URI)` for connecting the cache manager to the clustering storage at the
+    URI specified that returns the clustering service configuration builder instance.
+    Sample URI provided in the example is pointing to the clustered storage with clustered storage identifier *my-application* on the Terracotta server (Assuming the server is running on localhost and port *9510*); the query-param `auto-create`
+    creates the clustered storage in the server if it doesn't already exist.
+<3> Returns a fully initialized cache manager that can be used to create clustered caches.
+<4> Close the cache manager.
+
+NOTE: See <<clustered-cache.adoc#,the clustered cache documentation>> for more information on this feature.
+
 ==== User managed cache
 
 Ehcache 3 introduces the concept of `UserManagedCache`:

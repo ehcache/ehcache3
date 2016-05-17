@@ -25,6 +25,7 @@ Each topic below corresponds to a menu item at the left.
 |link:107.html[JSR-107 Support]|Using Ehcache as a javax.cache aka JSR-107 provider
 |link:examples.html[Java Examples]|Examples of using Ehcache APIs
 |link:xsds.html[Configuration XSD]|Reference XSD for configuration
+|link:clustered-cache.html[Clustering with Terracotta]|Using Terracotta to enable clustering of caches in EhCache
 |===
 
 === General Topics
