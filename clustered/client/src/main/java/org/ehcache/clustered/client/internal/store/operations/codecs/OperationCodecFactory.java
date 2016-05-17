@@ -34,4 +34,24 @@ public abstract class OperationCodecFactory {
       return new PutOperationCodec<K, V>(keySerializer, valueSerializer);
     }
   }
+
+  /**
+   * Codec factory for put operation
+   */
+  public static class RemoveOperationCodecFactory extends OperationCodecFactory {
+
+    public <K, V> OperationCodec<K> getOperationCodec(Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+      return new RemoveOperationCodec<K>(keySerializer);
+    }
+  }
+
+  /**
+   * Codec factory for put operation
+   */
+  public static class PutIfAbsentOperationCodecFactory extends OperationCodecFactory {
+
+    public <K, V> OperationCodec<K> getOperationCodec(Serializer<K> keySerializer, Serializer<V> valueSerializer) {
+      return new PutIfAbsentOperationCodec<K, V>(keySerializer, valueSerializer);
+    }
+  }
 }

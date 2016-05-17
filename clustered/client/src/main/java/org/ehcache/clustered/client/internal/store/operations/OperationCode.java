@@ -19,10 +19,14 @@ package org.ehcache.clustered.client.internal.store.operations;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecFactory;
 
 import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecFactory.PutOperationCodecFactory;
+import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecFactory.RemoveOperationCodecFactory;
+import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecFactory.PutIfAbsentOperationCodecFactory;
 
 public enum OperationCode {
 
-  PUT((byte)1, new PutOperationCodecFactory());
+  PUT((byte)1, new PutOperationCodecFactory()),
+  REMOVE((byte)2, new RemoveOperationCodecFactory()),
+  PUT_IF_ABSENT((byte)3, new PutIfAbsentOperationCodecFactory());
 
   private byte value;
   private OperationCodecFactory codecFactory;
@@ -44,6 +48,10 @@ public enum OperationCode {
     switch (value) {
       case 1:
         return PUT;
+      case 2:
+        return REMOVE;
+      case 3:
+        return PUT_IF_ABSENT;
       default:
         throw new IllegalArgumentException("Operation undefined for the value " + value);
     }
