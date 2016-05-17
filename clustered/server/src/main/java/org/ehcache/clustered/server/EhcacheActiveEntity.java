@@ -57,6 +57,7 @@ import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.failure;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.response;
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.success;
 import static org.ehcache.clustered.common.messages.LifecycleMessage.ConfigureCacheManager;
 import static org.ehcache.clustered.common.messages.LifecycleMessage.CreateServerStore;
@@ -250,32 +251,45 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         case VALIDATE_SERVER_STORE: return validateServerStore(clientDescriptor, (ValidateServerStore) message);
         case RELEASE_SERVER_STORE: return releaseServerStore(clientDescriptor, (ReleaseServerStore) message);
         case DESTROY_SERVER_STORE: return destroyServerStore(clientDescriptor, (DestroyServerStore) message);
-        default: throw new IllegalArgumentException("Unknown LifeCycle operation " + message);
+        default:
+          String msg = "Unknown LifeCycle operation " + message;
+          IllegalArgumentException cause = new IllegalArgumentException(msg);
+          LOGGER.error(msg, cause);
+          return failure(cause);
       }
     } catch (Exception e) {
-      return EhcacheEntityResponse.failure(e);
+      LOGGER.error("Unexpected exception raised during LifeCycle operation: " + e, e);
+      return failure(e);
     }
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message) {
+    ServerStore cacheStore = stores.get(message.getCacheId());
+    if (cacheStore == null) {
+      // An operation on a non-existent store should never get out of the client
+      String msg = "Server Store not present for cacheId :" + message.getCacheId();
+      IllegalStateException cause = new IllegalStateException(msg);
+      LOGGER.error(msg, cause);
+      return failure(cause);
+    }
     try {
-      ServerStore cacheStore = stores.get(message.getCacheId());
-      if (cacheStore == null) {
-        throw new IllegalStateException("Server Store not present for cacheId :" + message.getCacheId());
-      }
       switch (message.operation()) {
-        case GET: return EhcacheEntityResponse.response(cacheStore.get(message.getKey()));
+        case GET: return response(cacheStore.get(message.getKey()));
         case APPEND: cacheStore.append(message.getKey(), ((ServerStoreOpMessage.AppendMessage)message).getPayload());
-          return EhcacheEntityResponse.success();
-        case GET_AND_APPEND: return EhcacheEntityResponse.response(cacheStore.getAndAppend(message.getKey(), ((ServerStoreOpMessage.GetAndAppendMessage)message).getPayload()));
+          return success();
+        case GET_AND_APPEND: return response(cacheStore.getAndAppend(message.getKey(), ((ServerStoreOpMessage.GetAndAppendMessage)message).getPayload()));
         case REPLACE:
           ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
           cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
-          return EhcacheEntityResponse.success();
-        default: throw new IllegalArgumentException("Unknown Server Store operation " + message);
+          return success();
+        default:
+          String msg = "Unknown Server Store operation " + message;
+          IllegalArgumentException cause = new IllegalArgumentException(msg);
+          LOGGER.error(msg, cause);
+          return failure(cause);
       }
     } catch (Exception e) {
-      return EhcacheEntityResponse.failure(e);
+      return failure(e);
     }
   }
 
@@ -364,7 +378,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * Handles the {@link ValidateCacheManager ValidateCacheManager} message.  This message is used by a client to
    * connect to an established {@code EhcacheActiveEntity}.  This method validates the client-provided configuration
    * against the existing configuration to ensure compatibility.
-   *
    *
    * @param clientDescriptor the client identifier requesting attachment to a configured store manager
    * @param message the {@code ValidateCacheManager} message carrying the client expected resource pool configuration

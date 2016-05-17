@@ -73,7 +73,8 @@ public class EhcacheClientEntityFactory {
     coordinator.delist(EhcacheClientEntity.class, entityIdentifier);
   }
 
-  public EhcacheClientEntity create(final String identifier, final ServerSideConfiguration config) throws EntityAlreadyExistsException {
+  public EhcacheClientEntity create(final String identifier, final ServerSideConfiguration config)
+      throws EntityAlreadyExistsException, EhcacheEntityCreationException {
     try {
       EhcacheClientEntity created = asLeaderOf(identifier, new ElectionTask<EhcacheClientEntity>() {
         @Override
@@ -98,8 +99,10 @@ public class EhcacheClientEntityFactory {
         }
       });
       if (created == null) {
-        LOGGER.error("Unable to create entity for cluster id {}: unable to obtain cluster leadership", identifier);
-        throw new AssertionError("Not the leader");
+        String message = "Unable to create entity for cluster id " + identifier
+            + ": unable to obtain cluster leadership";
+        LOGGER.error(message);
+        throw new EhcacheEntityCreationException(message);
       } else {
         return created;
       }
@@ -114,9 +117,16 @@ public class EhcacheClientEntityFactory {
     } catch (EntityNotFoundException e) {
       try {
         return create(identifier, config);
+      } catch (EhcacheEntityCreationException f) {
+        LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
+        AssertionError error = new AssertionError("Somebody else doing leader work!");
+        error.initCause(f);
+        throw error;
       } catch (EntityAlreadyExistsException f) {
         LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
-        throw new AssertionError("Somebody else doing leader work!");
+        AssertionError error = new AssertionError("Somebody else doing leader work!");
+        error.initCause(f);
+        throw error;
       }
     }
   }
