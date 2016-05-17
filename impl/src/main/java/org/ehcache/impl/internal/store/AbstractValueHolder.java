@@ -29,6 +29,8 @@ import static java.lang.String.format;
  */
 public abstract class AbstractValueHolder<V> implements Store.ValueHolder<V> {
 
+  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
+
   private static final AtomicLongFieldUpdater<AbstractValueHolder> HITS_UPDATER = AtomicLongFieldUpdater.newUpdater(AbstractValueHolder.class, "hits");
   private final long id;
   private final long creationTime;

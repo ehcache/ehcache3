@@ -16,10 +16,19 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
+import org.ehcache.clustered.client.internal.store.operations.KeyValueOperation;
+import org.ehcache.clustered.client.internal.store.operations.Operation;
+import org.ehcache.clustered.client.internal.store.operations.OperationResolver;
+import org.ehcache.clustered.client.internal.store.operations.PutOperation;
+import org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecProvider;
+import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
+import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.store.Element;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.internal.store.StoreSupport;
@@ -37,6 +46,7 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,15 +76,34 @@ public class ClusteredStore<K, V> implements Store<K, V> {
 
   private final ServerStoreProxy storeProxy;
   private final Store<K, V> underlyingStore;
+  private final OperationsCodec<K, V> codec;
+  private final OperationResolver<K, V> resolver;
 
-  private ClusteredStore(ServerStoreProxy serverStoreProxy, Store<K, V> underlyingStore) {
+  private ClusteredStore(ServerStoreProxy serverStoreProxy, Store<K, V> underlyingStore,
+                         final OperationsCodec<K, V> codec, final OperationResolver<K, V> resolver) {
     this.storeProxy = serverStoreProxy;
     this.underlyingStore = underlyingStore;
+    this.codec = codec;
+    this.resolver = resolver;
   }
 
+  @SuppressFBWarnings("DLS_DEAD_LOCAL_STORE")
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
+    Chain chain = storeProxy.get(key.hashCode());
+    Chain resolvedChain = resolver.resolve(chain, key);
+    java.util.Iterator<Element> iterator = resolvedChain.reverseIterator();
+    V value = null;
+    if(iterator.hasNext()) {
+      Element last = iterator.next();
+      Operation<K> operation = codec.decode(last.getPayload());
+      if(operation.getKey() == key && operation instanceof KeyValueOperation) {
+        value = ((KeyValueOperation<K, V>)operation).getValue();
+      }
+    }
+    storeProxy.replaceAtHead(key.hashCode(), chain, resolvedChain);
+//    return new ClusteredValueHolder<V>(value);
+
     return underlyingStore.get(key);
   }
 
@@ -86,7 +115,11 @@ public class ClusteredStore<K, V> implements Store<K, V> {
 
   @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
+    PutOperation<K, V> operation = new PutOperation<K, V>(key, value);
+    ByteBuffer payload = codec.encode(operation);
+    storeProxy.append(key.hashCode(), payload);
+//    return PutStatus.PUT; // TODO: 17/05/16 Do we need to differentiate between different statuses?
+
     return underlyingStore.put(key, value);
   }
 
@@ -231,7 +264,11 @@ public class ClusteredStore<K, V> implements Store<K, V> {
 
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
       ServerStoreProxy serverStoreProxy = clusteringService.getServerStoreProxy(cacheId, storeConfig);
-      Store<K, V> store = new ClusteredStore<K, V>(serverStoreProxy, underlyingStore);
+      OperationCodecProvider<K, V> codecProvider =
+          new OperationCodecProvider<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
+      OperationsCodec<K, V> codec = new OperationsCodec<K, V>(codecProvider);
+      OperationResolver<K, V> resolver = new OperationResolver<K, V>(codec);
+      Store<K, V> store = new ClusteredStore<K, V>(serverStoreProxy, underlyingStore, codec, resolver);
 
       createdStores.put(store, underlyingStoreProvider);
       return store;

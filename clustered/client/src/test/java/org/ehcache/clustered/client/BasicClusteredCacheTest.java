@@ -27,6 +27,7 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.URI;
@@ -45,6 +46,7 @@ public class BasicClusteredCacheTest {
   }
 
 
+  @Ignore
   @Test
   public void underlyingHeap() throws Exception {
 
