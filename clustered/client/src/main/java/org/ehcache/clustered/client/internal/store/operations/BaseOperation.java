@@ -21,7 +21,7 @@ package org.ehcache.clustered.client.internal.store.operations;
  *
  * @param <K> key type
  */
-public abstract class BaseOperation<K> {
+public abstract class BaseOperation<K> implements Operation<K> {
 
   protected final K key;
 
@@ -29,9 +29,12 @@ public abstract class BaseOperation<K> {
     this.key = key;
   }
 
-  public abstract OperationCode getOpCode();
-
   public K getKey() {
     return key;
+  }
+
+  @Override
+  public String toString() {
+    return getOpCode() + " key: " + key;
   }
 }

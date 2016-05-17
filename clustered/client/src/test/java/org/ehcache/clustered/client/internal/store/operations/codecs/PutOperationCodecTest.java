@@ -71,7 +71,7 @@ public class PutOperationCodecTest {
     PutOperationCodec<Long, String> codec =
         new PutOperationCodec<Long, String>(new LongSerializer(), new StringSerializer());
 
-    PutOperation<Long, String> putOperation = codec.decode(blob);
+    PutOperation<Long, String> putOperation = (PutOperation<Long, String>) codec.decode(blob);
     assertEquals(key, putOperation.getKey());
     assertEquals(value, putOperation.getValue());
   }
@@ -84,7 +84,7 @@ public class PutOperationCodecTest {
     PutOperationCodec<Long, String> codec =
         new PutOperationCodec<Long, String>(new LongSerializer(), new StringSerializer());
 
-    PutOperation<Long, String> decodedPutOperation = codec.decode(codec.encode(putOperation));
+    PutOperation<Long, String> decodedPutOperation = (PutOperation<Long, String>) codec.decode(codec.encode(putOperation));
     assertEquals(key, decodedPutOperation.getKey());
     assertEquals(value, decodedPutOperation.getValue());
   }

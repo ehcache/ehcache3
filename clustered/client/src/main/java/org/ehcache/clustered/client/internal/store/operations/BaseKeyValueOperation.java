@@ -14,20 +14,30 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations.codecs;
-
-import org.ehcache.clustered.client.internal.store.operations.Operation;
-
-import java.nio.ByteBuffer;
+package org.ehcache.clustered.client.internal.store.operations;
 
 /**
- * Generic operation codec for all {@link Operation}s
+ * Base class that represents {@link org.ehcache.Cache} operations
+ * that involves a key and a value.
  *
- * @param <K> the key type
+ * @param <K> key type
+ * @param <V> value type
  */
-public interface OperationCodec<K> {
+public abstract class BaseKeyValueOperation<K, V> extends BaseOperation<K> implements KeyValueOperation<K, V> {
 
-  ByteBuffer encode(Operation<K> operation);
+  protected final V value;
 
-  Operation<K> decode(ByteBuffer buffer);
+  public BaseKeyValueOperation(final K key, final V value) {
+    super(key);
+    this.value = value;
+  }
+
+  public V getValue() {
+    return this.value;
+  }
+
+  @Override
+  public String toString() {
+    return super.toString() + ", value: " + value;
+  }
 }

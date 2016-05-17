@@ -38,7 +38,7 @@ public class OperationCodecProvider<K, V> {
   private Map<OperationCode, OperationCodec<K>> populateCodecMap() {
     Map<OperationCode, OperationCodec<K>> map = new HashMap<OperationCode, OperationCodec<K>>();
     for (OperationCode code : OperationCode.values()) {
-      operationCodeVsCodecMap.put(code, getNewCodec(code));
+      map.put(code, getNewCodec(code));
     }
     return map;
   }

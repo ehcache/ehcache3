@@ -21,17 +21,10 @@ package org.ehcache.clustered.client.internal.store.operations;
  * @param <K> key type
  * @param <V> value type
  */
-public class PutOperation<K, V> extends BaseOperation<K> {
+public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> {
 
   public PutOperation(final K key, final V value) {
-    super(key);
-    this.value = value;
-  }
-
-  private final V value;
-
-  public V getValue() {
-    return value;
+    super(key, value);
   }
 
   @Override
@@ -40,7 +33,7 @@ public class PutOperation<K, V> extends BaseOperation<K> {
   }
 
   @Override
-  public String toString() {
-    return "PUT {" + key + ", " + value + '}';
+  public Operation<K> apply(final Operation<K> operation) {
+    return this;
   }
 }

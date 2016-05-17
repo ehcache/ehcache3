@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store.operations.codecs;
 
-import org.ehcache.clustered.client.internal.store.operations.BaseOperation;
+import org.ehcache.clustered.client.internal.store.operations.Operation;
 import org.ehcache.clustered.client.internal.store.operations.OperationCode;
 
 import java.nio.ByteBuffer;
@@ -33,12 +33,12 @@ public class OperationsCodec<K, V> {
     this.codecProvider = codecProvider;
   }
 
-  public ByteBuffer encode(BaseOperation<K> operation) {
+  public ByteBuffer encode(Operation<K> operation) {
     OperationCode opCode = operation.getOpCode();
     return codecProvider.getOperationCodec(opCode).encode(operation);
   }
 
-  public BaseOperation<K> decode(ByteBuffer buffer) throws ClassNotFoundException {
+  public Operation<K> decode(ByteBuffer buffer) {
     OperationCode opCode = OperationCode.valueOf(buffer.get());
     buffer.rewind();
     return codecProvider.getOperationCodec(opCode).decode(buffer);

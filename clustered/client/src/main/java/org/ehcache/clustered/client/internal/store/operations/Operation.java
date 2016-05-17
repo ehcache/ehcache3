@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations.codecs;
+package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.operations.Operation;
+import org.ehcache.core.spi.function.Function;
 
-import java.nio.ByteBuffer;
+public interface Operation<K> extends Function<Operation<K>, Operation<K>> {
 
-/**
- * Generic operation codec for all {@link Operation}s
- *
- * @param <K> the key type
- */
-public interface OperationCodec<K> {
+  OperationCode getOpCode();
 
-  ByteBuffer encode(Operation<K> operation);
-
-  Operation<K> decode(ByteBuffer buffer);
+  K getKey();
 }
