@@ -39,6 +39,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
+import java.util.Arrays;
+
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 
@@ -90,10 +92,9 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          return newResourcePoolsBuilder().heap(10l, MemoryUnit.MB).build();
-        } else {
-          return newResourcePoolsBuilder().heap((Long)capacityConstraint, MemoryUnit.MB).build();
+          capacityConstraint = 10L;
         }
+        return newResourcePoolsBuilder().heap((Long)capacityConstraint, MemoryUnit.MB).build();
       }
 
       @Override
@@ -113,12 +114,14 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return Long.toString(seed);
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        char[] chars = new char[600 * 1024];
+        Arrays.fill(chars, (char) (0x1 + (seed & 0x7e)));
+        return new String(chars);
       }
 
       @Override

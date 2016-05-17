@@ -93,10 +93,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private final OperationObserver<AuthoritativeTierOperationOutcomes.FlushOutcome> flushObserver;
 
   private final OperationObserver<LowerCachingTierOperationsOutcome.InvalidateOutcome> invalidateObserver;
+  private final OperationObserver<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAllObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome> getAndRemoveObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.InstallMappingOutcome> installMappingObserver;
 
-  private volatile Callable<Void> valve;
+  private volatile InvalidationValve valve;
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
   private volatile CachingTier.InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
 
@@ -125,6 +126,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.flushObserver = operation(AuthoritativeTierOperationOutcomes.FlushOutcome.class).of(this).named("flush").tag(statisticsTag).build();
 
     this.invalidateObserver = operation(LowerCachingTierOperationsOutcome.InvalidateOutcome.class).of(this).named("invalidate").tag(statisticsTag).build();
+    this.invalidateAllObserver = operation(LowerCachingTierOperationsOutcome.InvalidateAllOutcome.class).of(this).named("invalidateAll").tag(statisticsTag).build();
     this.getAndRemoveObserver= operation(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class).of(this).named("getAndRemove").tag(statisticsTag).build();
     this.installMappingObserver= operation(LowerCachingTierOperationsOutcome.InstallMappingOutcome.class).of(this).named("installMapping").tag(statisticsTag).build();
 
@@ -969,6 +971,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
+  public void setInvalidationValve(InvalidationValve valve) {
+    this.valve = valve;
+  }
+
+  @Override
   public void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
     this.invalidationListener = invalidationListener;
     mapEvictionListener.setInvalidationListener(invalidationListener);
@@ -998,30 +1005,25 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void invalidate(K key, final NullaryFunction<K> function) throws StoreAccessException {
-    invalidateObserver.begin();
-
-    final AtomicBoolean removed = new AtomicBoolean(false);
-    try {
-      backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-        @Override
-        public OffHeapValueHolder<V> apply(K k, OffHeapValueHolder<V> offHeapValueHolder) {
-          if (offHeapValueHolder != null) {
-            removed.set(true);
-            notifyInvalidation(k, offHeapValueHolder);
-          }
-          function.apply();
-          return null;
+  public void invalidateAll() throws StoreAccessException {
+    invalidateAllObserver.begin();
+    StoreAccessException exception = null;
+    long errorCount = 0;
+    for (K k : backingMap().keySet()) {
+      try {
+        invalidate(k);
+      } catch (StoreAccessException e) {
+        errorCount++;
+        if (exception == null) {
+          exception = e;
         }
-      }, false);
-      if (removed.get()) {
-        invalidateObserver.end(LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED);
-      } else {
-        invalidateObserver.end(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS);
       }
-    } catch (RuntimeException re) {
-      handleRuntimeException(re);
     }
+    if (exception != null) {
+      invalidateAllObserver.end(LowerCachingTierOperationsOutcome.InvalidateAllOutcome.FAILURE);
+      throw new StoreAccessException("invalidateAll failed - error count: " + errorCount, exception);
+    }
+    invalidateAllObserver.end(LowerCachingTierOperationsOutcome.InvalidateAllOutcome.SUCCESS);
   }
 
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
@@ -1115,10 +1117,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  public void registerEmergencyValve(final Callable<Void> valve) {
-    this.valve = valve;
-  }
-
   private boolean safeEquals(V existingValue, V computedValue) {
     return existingValue == computedValue || (existingValue != null && existingValue.equals(computedValue));
   }
@@ -1200,11 +1198,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause, StoreEventSink<K, V> eventSink) throws StoreAccessException {
+  void handleOversizeMappingException(K key, OversizeMappingException cause, StoreEventSink<K, V> eventSink) throws StoreAccessException {
     handleOversizeMappingException(key, cause, null, eventSink);
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve, StoreEventSink<K, V> eventSink) throws StoreAccessException {
+  void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve, StoreEventSink<K, V> eventSink) throws StoreAccessException {
     if (eventSink != null) {
       eventDispatcher.reset(eventSink);
     }
@@ -1234,10 +1232,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       return false;
     }
     invokeValve.set(false);
-    Callable<Void> valve = this.valve;
+    InvalidationValve valve = this.valve;
     if (valve != null) {
       try {
-        valve.call();
+        valve.invalidateAll();
       } catch (Exception exception) {
         throw new StoreAccessException("Failed invoking valve", exception);
       }

@@ -16,6 +16,7 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.spi.service.ServiceProvider;
@@ -139,6 +140,24 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       });
     } catch (ComputationException ce) {
       throw ce.getStoreAccessException();
+    }
+  }
+
+  @Override
+  public void invalidateAll() throws StoreAccessException {
+    try {
+      higher.silentInvalidateAll(new BiFunction<K, Store.ValueHolder<V>, Void>() {
+
+        @Override
+        public Void apply(K key, Store.ValueHolder<V> mappedValue) {
+          if (mappedValue != null) {
+            notifyInvalidation(key, mappedValue);
+          }
+          return null;
+        }
+      });
+    } finally {
+      lower.invalidateAll();
     }
   }
 

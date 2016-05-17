@@ -64,6 +64,31 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
   boolean flush(K key, ValueHolder<V> valueHolder);
 
   /**
+   * Sets the {@link InvalidationValve} to be used by this {@code AuthoritativeTier}.
+   * <P>
+   *   The invalidation valve provides a way for the {@code AuthoritativeTier} to force invalidation of
+   *   {@link CachingTier} entries when that is required.
+   * </P>
+   *
+   * @param valve the valve to use for triggering invalidations
+   */
+  void setInvalidationValve(InvalidationValve valve);
+
+  /**
+   * Invalidation valve, that is the mechanism through which an {@link AuthoritativeTier} can request invalidations
+   * from the {@link CachingTier}.
+   */
+  interface InvalidationValve {
+
+    /**
+     * Requests an invalidation of all {@link CachingTier} mappings.
+     *
+     * @throws StoreAccessException when en error occurs while invalidating mappings
+     */
+    void invalidateAll() throws StoreAccessException;
+  }
+
+  /**
    * {@link Service} interface for providing {@link AuthoritativeTier} instances.
    *
    * <P>

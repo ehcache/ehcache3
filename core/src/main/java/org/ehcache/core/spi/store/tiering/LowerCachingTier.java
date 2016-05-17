@@ -69,14 +69,12 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   void invalidate(K key) throws StoreAccessException;
 
   /**
-   * Removes a mapping, then call a function under the same lock scope irrespectively of a mapping being there or not.
+   * Invalidates all mapping, invoking the {@link org.ehcache.core.spi.store.tiering.CachingTier.InvalidationListener} if
+   * registered.
    *
-   * @param key the key
-   * @param function the function to call
-   *
-   * @throws StoreAccessException if the mapping cannot be removed or the function throws
+   * @throws StoreAccessException if mappings cannot be removed
    */
-  void invalidate(K key, NullaryFunction<K> function) throws StoreAccessException;
+  void invalidateAll() throws StoreAccessException;
 
   /**
    * Empty out this tier
