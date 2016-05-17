@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered.common.messages;
 
-import java.io.Serializable;
 
 import org.ehcache.clustered.common.store.Chain;
 import org.terracotta.entity.EntityResponse;
@@ -27,9 +26,19 @@ import org.terracotta.entity.EntityResponse;
 public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public enum Type {
-    SUCCESS,
-    FAILURE,
-    GET_RESPONSE
+    SUCCESS((byte) 0),
+    FAILURE((byte) 1),
+    GET_RESPONSE((byte) 2);
+
+    private final byte opCode;
+
+    Type(byte opCode) {
+      this.opCode = opCode;
+    }
+
+    public byte getOpCode() {
+      return this.opCode;
+    }
   }
 
   public abstract Type getType();

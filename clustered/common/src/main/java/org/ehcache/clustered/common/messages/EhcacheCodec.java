@@ -15,11 +15,6 @@
  */
 package org.ehcache.clustered.common.messages;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 
 import org.terracotta.entity.MessageCodec;
@@ -50,7 +45,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
   public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
     ByteBuffer payloadBuf = ByteBuffer.wrap(payload);
     if (payloadBuf.get() == 1) {
-      return LifeCycleOpCodec.decode(payload);
+      return LifeCycleOpCodec.decode(payloadBuf);
     } else {
       return ServerStoreOpCodec.decode(payload);
     }
@@ -58,36 +53,11 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
 
   @Override
   public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
-    return marshall(response);
+    return ResponseCodec.encode(response);
   }
 
   @Override
   public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
-    return (EhcacheEntityResponse) unmarshall(payload);
-  }
-
-  private static Object unmarshall(byte[] payload) {
-    try {
-      return new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
-      throw new IllegalArgumentException(ex);
-    }
-  }
-
-  private static byte[] marshall(Object message) {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    try {
-      ObjectOutputStream oout = new ObjectOutputStream(out);
-      try {
-        oout.writeObject(message);
-      } finally {
-        oout.close();
-      }
-    } catch (IOException e) {
-      throw new IllegalArgumentException(e);
-    }
-    return out.toByteArray();
+    return ResponseCodec.decode(payload);
   }
 }

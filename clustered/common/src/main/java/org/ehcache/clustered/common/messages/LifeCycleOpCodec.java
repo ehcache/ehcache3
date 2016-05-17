@@ -32,16 +32,16 @@ public class LifeCycleOpCodec {
     ByteBuffer buffer = ByteBuffer.allocate(1 + encodedMsg.length);
     buffer.put(EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode());
     buffer.put(encodedMsg);
-    buffer.flip();
     return buffer.array();
   }
 
-  public static LifecycleMessage decode(byte[] payload) {
-    ByteBuffer buffer =  ByteBuffer.wrap(payload, 1, payload.length-1);
-    return (LifecycleMessage) unmarshall(buffer.array());
+  public static LifecycleMessage decode(ByteBuffer payload) {
+    byte[] payArr = new byte[payload.remaining()];
+    payload.get(payArr);
+    return (LifecycleMessage) unmarshall(payArr);
   }
 
-  private static Object unmarshall(byte[] payload) {
+  public static Object unmarshall(byte[] payload) {
     try {
       return new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
     } catch (IOException ex) {
@@ -51,7 +51,7 @@ public class LifeCycleOpCodec {
     }
   }
 
-  private static byte[] marshall(Object message) {
+  public static byte[] marshall(Object message) {
     ByteArrayOutputStream out = new ByteArrayOutputStream();
     try {
       ObjectOutputStream oout = new ObjectOutputStream(out);

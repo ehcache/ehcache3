@@ -42,7 +42,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
+import org.ehcache.clustered.common.messages.LifecycleMessage.ConfigureCacheManager;
 
 /**
  *
@@ -131,8 +131,8 @@ public class EhcacheActiveEntityTest {
     resourcePools.put("primary", new Pool("serverResource1", MemoryUnit.MEGABYTES.toBytes(4L)));
     resourcePools.put("secondary", new Pool("serverResource2", MemoryUnit.MEGABYTES.toBytes(8L)));
 
-    final EhcacheEntityMessage.ConfigureCacheManager configureMessage =
-        EhcacheEntityMessage.configure(new ServerSideConfiguration("defaultServerResource", resourcePools));
+    final ConfigureCacheManager configureMessage =
+        (ConfigureCacheManager)EhcacheEntityMessage.configure(new ServerSideConfiguration("defaultServerResource", resourcePools));
 
     ClientDescriptor client = new TestClientDescriptor();
     assertSuccess(activeEntity.invoke(client, configureMessage));
