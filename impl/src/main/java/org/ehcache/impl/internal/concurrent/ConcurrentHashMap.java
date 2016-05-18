@@ -30,6 +30,7 @@ import java.lang.reflect.Type;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -1162,6 +1163,40 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
         return null;
     }
+
+  /**
+   * Remove and return all mappings for which the keys have the specified hashcode.
+   * @param keyHash the keys' hashcode.
+   * @return the removed mappings.
+   */
+  public final Map<K, V> removeAllWithHash(int keyHash) {
+      Map<K, V> invalidated = new HashMap<K, V>();
+
+      int hash = spread(keyHash);
+      for (Node<K, V>[] tab = table; ; ) {
+          Node<K, V> f;
+          int n, i;
+          if (tab == null || (n = tab.length) == 0 ||
+              (f = tabAt(tab, i = (n - 1) & hash)) == null)
+              break;
+          else if (f.hash == MOVED)
+              tab = helpTransfer(tab, f);
+          else {
+              Map<K, V> nodes = null;
+              synchronized (f) {
+                  if (tabAt(tab, i) == f) {
+                      nodes = nodesAt(f);
+                      setTabAt(tab, i, null);
+                      invalidated.putAll(nodes);
+                  }
+              }
+              if (nodes != null) {
+                  addCount(-nodes.size(), -nodes.size());
+              }
+          }
+      }
+      return invalidated;
+  }
 
     /**
      * Removes all of the mappings from this map.
@@ -2641,6 +2676,32 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             tl = p;
         }
         return hd;
+    }
+
+    private static <K,V> Map<K, V> nodesAt(Node<K,V> b) {
+        Map<K, V> nodes = new HashMap<K, V>();
+
+        if (b instanceof TreeBin) {
+            return treeNodesAt(((TreeBin<K,V>)b).root);
+        } else {
+            for (Node<K,V> q = b; q != null; q = q.next) {
+                nodes.put(q.key, q.val);
+            }
+        }
+
+        return nodes;
+    }
+
+    private static <K,V> Map<K, V> treeNodesAt(TreeNode<K, V> root) {
+        if (root == null) {
+            return Collections.emptyMap();
+        }
+
+        Map<K, V> result = new HashMap<K, V>();
+        result.put(root.key, root.val);
+        result.putAll(treeNodesAt(root.left));
+        result.putAll(treeNodesAt(root.right));
+        return result;
     }
 
     /* ---------------- TreeNodes -------------- */
