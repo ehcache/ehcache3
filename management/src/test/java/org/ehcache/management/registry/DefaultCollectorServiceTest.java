@@ -29,9 +29,7 @@ import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.junit.Test;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
-import org.terracotta.management.registry.MessageConsumer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,7 +52,7 @@ public class DefaultCollectorServiceTest {
 
   @Test(timeout = 6000)
   public void test_collector() throws Exception {
-    final Queue<Message> messages = new ConcurrentLinkedQueue<Message>();
+    final Queue<Object> messages = new ConcurrentLinkedQueue<Object>();
     final List<String> notifs = new ArrayList<String>(6);
     final CountDownLatch num = new CountDownLatch(5);
 
@@ -73,13 +71,13 @@ public class DefaultCollectorServiceTest {
         .addConfiguration(statisticsProviderConfiguration)
         .setCacheManagerAlias("my-cm-1"));
 
-    CollectorService collectorService = new DefaultCollectorService(new MessageConsumer() {
+    CollectorService collectorService = new DefaultCollectorService(new CollectorService.EventListener() {
       @Override
-      public void accept(Message message) {
-        System.out.println(message);
-        messages.offer(message);
-        if (message.getType().equals("NOTIFICATION")) {
-          notifs.add(message.unwrap(ContextualNotification.class).getType());
+      public void onEvent(String type, Object event) {
+        System.out.println(type + " - " + event);
+        messages.offer(event);
+        if (type.equals("NOTIFICATION")) {
+          notifs.add(((ContextualNotification) event).getType());
         }
         num.countDown();
       }
