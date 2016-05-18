@@ -22,10 +22,12 @@ import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
 
 import java.nio.ByteBuffer;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Map;
 
 public class OperationResolver<K, V> {
 
@@ -45,12 +47,12 @@ public class OperationResolver<K, V> {
    *
    * @param chain a heterogeneous {@code Chain}
    * @param key a key
-   * @return the resolved {@code Chain}
+   * @return an entry with the resolved operation for the provided key as the key
+   * and the compacted chain as the value
    * @throws ClassNotFoundException
    */
   @SuppressFBWarnings({ "DLS_DEAD_LOCAL_STORE", "UC_USELESS_OBJECT" })
-  public Chain resolve(Chain chain, K key) {
-    List<Operation<K>> operations = new ArrayList<Operation<K>>();
+  public Map.Entry<Operation<K>, Chain> resolve(Chain chain, K key) {
     Operation<K> resolvedOperation = null;
     List<Element> elements = new ArrayList<Element>();
     for (Element element : chain) {
@@ -66,6 +68,6 @@ public class OperationResolver<K, V> {
     Element resolvedElement = null; // TODO: 13/05/16 build an element using the payload
     elements.add(resolvedElement);
     Chain newChain = null;  // TODO: 13/05/16  build the chain using the list of elements and the resolvedElement
-    return newChain;
+    return new AbstractMap.SimpleEntry<Operation<K>, Chain>(resolvedOperation, newChain);
   }
 }

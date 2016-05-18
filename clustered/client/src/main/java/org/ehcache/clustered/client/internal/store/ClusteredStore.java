@@ -91,17 +91,16 @@ public class ClusteredStore<K, V> implements Store<K, V> {
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
     Chain chain = storeProxy.get(key.hashCode());
-    Chain resolvedChain = resolver.resolve(chain, key);
-    java.util.Iterator<Element> iterator = resolvedChain.reverseIterator();
+    Map.Entry<Operation<K>, Chain> entry = resolver.resolve(chain, key);
+
+    Chain compactedChain = entry.getValue();
+    storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
+
+    Operation<K> resolvedOperation = entry.getKey();
     V value = null;
-    if(iterator.hasNext()) {
-      Element last = iterator.next();
-      Operation<K> operation = codec.decode(last.getPayload());
-      if(operation.getKey() == key && operation instanceof KeyValueOperation) {
-        value = ((KeyValueOperation<K, V>)operation).getValue();
-      }
+    if(resolvedOperation != null && resolvedOperation instanceof KeyValueOperation) {
+      value = ((KeyValueOperation<K, V>)resolvedOperation).getValue();
     }
-    storeProxy.replaceAtHead(key.hashCode(), chain, resolvedChain);
 //    return new ClusteredValueHolder<V>(value);
 
     return underlyingStore.get(key);
