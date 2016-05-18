@@ -46,25 +46,26 @@ public class ResponseCodec {
         buffer.put(encodedChain);
         return buffer.array();
       default:
-        throw new UnsupportedOperationException("The operation is not supported");
+        throw new UnsupportedOperationException("The operation is not supported : " + response.getType());
     }
   }
 
   public static EhcacheEntityResponse decode(byte[] payload) {
     ByteBuffer buffer = ByteBuffer.wrap(payload);
     byte opCode = buffer.get();
+    EhcacheEntityResponse.Type type = EhcacheEntityResponse.Type.responseType(opCode);
     byte[] payArr = new byte[buffer.remaining()];
     buffer.get(payArr);
-    switch (opCode) {
-      case 0:
+    switch (type) {
+      case SUCCESS:
         return EhcacheEntityResponse.success();
-      case 1:
+      case FAILURE:
         Exception exception = (Exception)LifeCycleOpCodec.unmarshall(payArr);
         return EhcacheEntityResponse.failure(exception);
-      case 2:
+      case GET_RESPONSE:
         return EhcacheEntityResponse.response(ChainCodec.decode(payArr));
       default:
-        throw new UnsupportedOperationException("The operation is not supported");
+        throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);
     }
   }
 }

@@ -25,7 +25,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   public enum ServerStoreOp {
 
     GET((byte) 0),
-    GETANDAPPEND((byte) 1),
+    GET_AND_APPEND((byte) 1),
     APPEND((byte) 2),
     REPLACE((byte) 3);
 
@@ -37,6 +37,21 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
     public byte getStoreOpCode() {
       return this.storeOpCode;
+    }
+
+    public static ServerStoreOp getServerStoreOp(byte storeOpCode) {
+      switch (storeOpCode) {
+        case 0:
+          return GET;
+        case 1:
+          return GET_AND_APPEND;
+        case 2:
+          return APPEND;
+        case 3:
+          return REPLACE;
+        default:
+          throw new IllegalArgumentException("Store operation not defined for : " + storeOpCode);
+      }
     }
   }
 
@@ -86,7 +101,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
     @Override
     public ServerStoreOp operation() {
-      return ServerStoreOp.GETANDAPPEND;
+      return ServerStoreOp.GET_AND_APPEND;
     }
 
     public ByteBuffer getPayload() {

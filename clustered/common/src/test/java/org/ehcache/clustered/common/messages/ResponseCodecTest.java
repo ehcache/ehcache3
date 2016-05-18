@@ -21,6 +21,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.ehcache.clustered.common.store.Util.createPayload;
+import static org.ehcache.clustered.common.store.Util.getChain;
 
 public class ResponseCodecTest {
 
@@ -35,8 +37,8 @@ public class ResponseCodecTest {
 
   @Test
   public void testGetResponseCodec() {
-    EhcacheEntityResponse getResponse = EhcacheEntityResponse.response(Util.getChain(false,
-        Util.createPayload(1L), Util.createPayload(11L), Util.createPayload(111L)));
+    EhcacheEntityResponse getResponse = EhcacheEntityResponse.response(getChain(false,
+        createPayload(1L), createPayload(11L), createPayload(111L)));
 
     EhcacheEntityResponse decoded = ResponseCodec.decode(ResponseCodec.encode(getResponse));
 

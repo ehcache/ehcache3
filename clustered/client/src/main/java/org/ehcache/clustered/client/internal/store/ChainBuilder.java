@@ -16,13 +16,10 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.store.Util;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -30,51 +27,27 @@ import java.util.List;
  */
 public class ChainBuilder {
 
-  private List<Element> elements = new ArrayList<Element>();
+  private List<ByteBuffer> buffers = new ArrayList<ByteBuffer>();
 
   public ChainBuilder() {
-
   }
 
-  private ChainBuilder(List<Element> elements) {
-    this.elements = elements;
+  private ChainBuilder(List<ByteBuffer> buffers) {
+    this.buffers = buffers;
   }
 
+  //TODO: optimize this & make this mutable
   public ChainBuilder add(final ByteBuffer payload) {
-    this.elements.add(new Element() {
-      @Override
-      public ByteBuffer getPayload() {
-        return payload;
-      }
-    });
-    return new ChainBuilder(this.elements);
+    List<ByteBuffer> newList = new ArrayList<ByteBuffer>();
+    newList.addAll(this.buffers);
+    newList.add(payload);
+    return new ChainBuilder(newList);
   }
 
   public Chain build() {
-    return new DummyChain(elements);
+    ByteBuffer[] elements = new ByteBuffer[buffers.size()];
+    buffers.toArray(elements);
+    return Util.getChain(false, elements);
   }
 
-  private static class DummyChain implements Chain {
-
-    private final List<Element> elementList;
-
-    private DummyChain(List<Element> elements) {
-      elementList = elements;
-    }
-
-    @Override
-    public Iterator<Element> reverseIterator() {
-      throw new UnsupportedOperationException("Not Supported");
-    }
-
-    @Override
-    public boolean isEmpty() {
-      return elementList.isEmpty();
-    }
-
-    @Override
-    public Iterator<Element> iterator() {
-      return elementList.iterator();
-    }
-  }
 }

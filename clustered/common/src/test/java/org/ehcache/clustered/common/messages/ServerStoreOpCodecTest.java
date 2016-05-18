@@ -17,10 +17,11 @@ package org.ehcache.clustered.common.messages;
 
 import org.junit.Test;
 
-import static org.ehcache.clustered.common.messages.Util.createPayload;
-import static org.ehcache.clustered.common.messages.Util.readPayLoad;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.ehcache.clustered.common.store.Util.createPayload;
+import static org.ehcache.clustered.common.store.Util.readPayLoad;
+import static org.ehcache.clustered.common.store.Util.getChain;
 
 public class ServerStoreOpCodecTest {
 
@@ -59,5 +60,19 @@ public class ServerStoreOpCodecTest {
     assertThat(readPayLoad(((ServerStoreOpMessage.GetAndAppendMessage)decodedMsg).getPayload()), is(10L));
   }
 
+  @Test
+  public void testReplaceAtHeadMessageCodec() {
+    EhcacheEntityMessage replaceAtHeadMessage = EhcacheEntityMessage.replaceAtHeadOperation("test", 10L,
+        getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)),
+        getChain(false, createPayload(2000L)));
+
+    EhcacheEntityMessage decodedMsg = ServerStoreOpCodec.decode(ServerStoreOpCodec
+        .encode((ServerStoreOpMessage)replaceAtHeadMessage));
+
+    assertThat(((ServerStoreOpMessage)decodedMsg).getCacheId(), is("test"));
+    assertThat(((ServerStoreOpMessage)decodedMsg).getKey(), is(10L));
+    Util.assertChainHas(((ServerStoreOpMessage.ReplaceAtHeadMessage)decodedMsg).getExpect(), 10L, 100L, 1000L);
+    Util.assertChainHas(((ServerStoreOpMessage.ReplaceAtHeadMessage)decodedMsg).getUpdate(), 2000L);
+  }
 
 }

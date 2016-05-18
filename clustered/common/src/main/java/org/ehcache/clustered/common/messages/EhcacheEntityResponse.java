@@ -39,6 +39,19 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     public byte getOpCode() {
       return this.opCode;
     }
+
+    public static Type responseType(byte opCode) {
+      switch (opCode) {
+        case 0:
+          return SUCCESS;
+        case 1:
+          return FAILURE;
+        case 2:
+          return GET_RESPONSE;
+        default:
+          throw new IllegalArgumentException("Store operation not defined for : " + opCode);
+      }
+    }
   }
 
   public abstract Type getType();

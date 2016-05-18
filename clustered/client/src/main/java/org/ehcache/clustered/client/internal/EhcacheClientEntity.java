@@ -108,7 +108,7 @@ public class EhcacheClientEntity implements Entity {
   public EhcacheEntityResponse invoke(EhcacheEntityMessage message, boolean waitUntilReplicated) throws Exception {
     InvokeFuture<EhcacheEntityResponse> result = null;
     if (waitUntilReplicated) {
-      result = endpoint.beginInvoke().message(message).ackCompleted().invoke();
+      result = endpoint.beginInvoke().message(message).replicate(true).ackCompleted().invoke();
     } else {
       result = endpoint.beginInvoke().message(message).invoke();
     }

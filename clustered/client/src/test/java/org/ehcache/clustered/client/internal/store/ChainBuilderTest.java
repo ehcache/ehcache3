@@ -13,29 +13,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.store.Util;
+import org.junit.Test;
 
 import java.util.Iterator;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.ehcache.clustered.common.store.Util.readPayLoad;
 
 /**
- *
  */
-public final class Util {
+public class ChainBuilderTest {
 
-  private Util() {
+  @Test
+  public void testChainBuilder() {
+    ChainBuilder cb1 = new ChainBuilder();
+
+    ChainBuilder cb2 = cb1.add(Util.createPayload(1L))
+                          .add(Util.createPayload(3L))
+                          .add(Util.createPayload(4L));
+
+    ChainBuilder cb3  = cb2.add(Util.createPayload(2L));
+
+    Chain chain1 = cb1.build();
+    Chain chain2 = cb2.build();
+    Chain chain3 = cb3.build();
+
+    assertChainHas(chain1);
+    assertChainHas(chain2, 1L, 3L, 4L);
+    assertChainHas(chain3, 1L, 3L, 4L, 2L);
+
   }
 
-  public static void assertChainHas(Chain chain, long... payLoads) {
+  private static void assertChainHas(Chain chain, long... payLoads) {
     Iterator<Element> elements = chain.iterator();
     for (long payLoad : payLoads) {
-      assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(payLoad)));
+      assertThat(Util.readPayLoad(elements.next().getPayload()), is(Long.valueOf(payLoad)));
     }
     assertThat(elements.hasNext(), is(false));
   }

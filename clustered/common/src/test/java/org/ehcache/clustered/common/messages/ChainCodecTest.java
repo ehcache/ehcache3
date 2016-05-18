@@ -23,8 +23,9 @@ import java.util.Iterator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.ehcache.clustered.common.messages.Util.createPayload;
-import static org.ehcache.clustered.common.messages.Util.readPayLoad;
+import static org.ehcache.clustered.common.store.Util.createPayload;
+import static org.ehcache.clustered.common.store.Util.readPayLoad;
+import static org.ehcache.clustered.common.store.Util.getChain;
 
 /**
  *
@@ -33,7 +34,7 @@ public class ChainCodecTest {
 
   @Test
   public void testChainWithSingleElement() {
-    Chain chain = Util.getChain(false, createPayload(1L));
+    Chain chain = getChain(false, createPayload(1L));
 
     assertThat(chain.isEmpty(), is(false));
     Iterator<Element> chainIterator = chain.iterator();
@@ -50,7 +51,7 @@ public class ChainCodecTest {
 
   @Test
   public void testChainWithSingleSequencedElement() {
-    Chain chain = Util.getChain(true, createPayload(1L));
+    Chain chain = getChain(true, createPayload(1L));
 
     assertThat(chain.isEmpty(), is(false));
     Iterator<Element> chainIterator = chain.iterator();
@@ -69,7 +70,7 @@ public class ChainCodecTest {
 
   @Test
   public void testChainWithMultipleElements() {
-    Chain chain = Util.getChain(false, createPayload(1L), createPayload(2L), createPayload(3L));
+    Chain chain = getChain(false, createPayload(1L), createPayload(2L), createPayload(3L));
 
     assertThat(chain.isEmpty(), is(false));
     Util.assertChainHas(chain, 1L, 2L, 3L);
@@ -82,7 +83,7 @@ public class ChainCodecTest {
 
   @Test
   public void testChainWithMultipleSequencedElements() {
-    Chain chain = Util.getChain(true, createPayload(1L), createPayload(2L), createPayload(3L));
+    Chain chain = getChain(true, createPayload(1L), createPayload(2L), createPayload(3L));
 
     assertThat(chain.isEmpty(), is(false));
     Util.assertChainHas(chain, 1L, 2L, 3L);
@@ -97,7 +98,7 @@ public class ChainCodecTest {
 
   @Test
   public void testEmptyChain() {
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(Util.getChain(false)));
+    Chain decoded = ChainCodec.decode(ChainCodec.encode(getChain(false)));
 
     assertThat(decoded.isEmpty(), is(true));
   }

@@ -26,16 +26,20 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import static org.ehcache.clustered.common.store.Util.getElement;
+import static org.ehcache.clustered.common.store.Util.getChain;
+
 /**
  *
  */
 public class ChainCodec {
 
-  private static final byte NON_SEQUNCED_CHAIN = 0;
+  private static final byte NON_SEQUENCED_CHAIN = 0;
   private static final byte SEQUENCED_CHAIN = 1;
   private static final byte SEQ_NUM_OFFSET = 8;
   private static final byte ELEMENT_PAYLOAD_OFFSET = 4;
 
+  //TODO: optimize too many bytebuffer allocation
   public static byte[] encode(Chain chain) {
     ByteBuffer msg = null;
     boolean firstIteration = true ;
@@ -46,7 +50,7 @@ public class ChainCodec {
         if (element instanceof SequencedElement) {
           buffer.put(SEQUENCED_CHAIN);
         } else {
-          buffer.put(NON_SEQUNCED_CHAIN);
+          buffer.put(NON_SEQUENCED_CHAIN);
         }
         buffer.flip();
         msg = combine(buffer, encodeElement(element));
@@ -56,7 +60,6 @@ public class ChainCodec {
         throw new IllegalArgumentException("Message cannot be null");
       }
       msg = combine(msg, encodeElement(element));
-
     }
     return msg != null ? msg.array() : new byte[0];
   }
@@ -68,60 +71,26 @@ public class ChainCodec {
       boolean isSequenced = buffer.get() == 1;
       if (isSequenced) {
         while (buffer.hasRemaining()) {
-          final long sequence = buffer.getLong();
+          long sequence = buffer.getLong();
           int payloadSize = buffer.getInt();
           buffer.limit(buffer.position() + payloadSize);
-          final ByteBuffer elementPayload = buffer.slice();
+          ByteBuffer elementPayload = buffer.slice();
           buffer.position(buffer.limit());
           buffer.limit(buffer.capacity());
-          elements.add(new SequencedElement() {
-            @Override
-            public long getSequenceNumber() {
-              return sequence;
-            }
-
-            @Override
-            public ByteBuffer getPayload() {
-              return elementPayload;
-            }
-          });
+          elements.add(getElement(sequence, elementPayload));
         }
       } else {
         while (buffer.hasRemaining()) {
           int payloadSize = buffer.getInt();
           buffer.limit(buffer.position() + payloadSize);
-          final ByteBuffer elementPayload = buffer.slice();
+          ByteBuffer elementPayload = buffer.slice();
           buffer.position(buffer.limit());
           buffer.limit(buffer.capacity());
-          elements.add(new Element() {
-            @Override
-            public ByteBuffer getPayload() {
-              return elementPayload;
-            }
-          });
+          elements.add(getElement(elementPayload));
         }
       }
     }
-
-    return new Chain() {
-
-      final List<Element> elementList = Collections.unmodifiableList(elements);
-
-      @Override
-      public Iterator<Element> reverseIterator() {
-        return Util.reverseIterator(elementList);
-      }
-
-      @Override
-      public boolean isEmpty() {
-        return elementList.isEmpty();
-      }
-
-      @Override
-      public Iterator<Element> iterator() {
-        return elementList.iterator();
-      }
-    };
+    return getChain(elements);
   }
 
   private static ByteBuffer combine(ByteBuffer buffer1, ByteBuffer buffer2) {
@@ -133,18 +102,17 @@ public class ChainCodec {
   }
 
   private static ByteBuffer encodeElement(Element element) {
+    ByteBuffer buffer = null;
     if (element instanceof SequencedElement) {
-      ByteBuffer buffer = ByteBuffer.allocate(SEQ_NUM_OFFSET + ELEMENT_PAYLOAD_OFFSET + element.getPayload().remaining());
+      buffer = ByteBuffer.allocate(SEQ_NUM_OFFSET + ELEMENT_PAYLOAD_OFFSET + element.getPayload().remaining());
       buffer.putLong(((SequencedElement)element).getSequenceNumber());
-      buffer.putInt(element.getPayload().remaining());
-      buffer.put(element.getPayload());
-      buffer.flip();
-      return buffer;
+    } else {
+      buffer = ByteBuffer.allocate(ELEMENT_PAYLOAD_OFFSET + element.getPayload().remaining());
     }
-    ByteBuffer buffer = ByteBuffer.allocate(ELEMENT_PAYLOAD_OFFSET + element.getPayload().remaining());
     buffer.putInt(element.getPayload().remaining());
     buffer.put(element.getPayload());
     buffer.flip();
     return buffer;
+
   }
 }

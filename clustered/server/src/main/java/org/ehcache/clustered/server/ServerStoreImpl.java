@@ -26,6 +26,8 @@ import java.nio.ByteBuffer;
 
 class ServerStoreImpl implements ServerStore {
 
+  private static final int OFFHEAP_CHAIN_SEGMENTS = 16;
+
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;
   private final OffHeapServerStore store;
@@ -33,7 +35,7 @@ class ServerStoreImpl implements ServerStore {
   ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
-    this.store = new OffHeapServerStore(pageSource, 16);
+    this.store = new OffHeapServerStore(pageSource, OFFHEAP_CHAIN_SEGMENTS);
   }
 
   /**

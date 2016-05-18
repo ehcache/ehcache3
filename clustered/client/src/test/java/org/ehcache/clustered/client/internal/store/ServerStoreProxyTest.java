@@ -31,12 +31,14 @@ import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.passthrough.PassthroughServer;
 
-import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Iterator;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.ehcache.clustered.common.store.Util.readPayLoad;
+import static org.ehcache.clustered.common.store.Util.createPayload;
+import static org.ehcache.clustered.common.store.Util.getChain;
 
 public class ServerStoreProxyTest {
 
@@ -47,6 +49,7 @@ public class ServerStoreProxyTest {
 
   @BeforeClass
   public static void setUp() throws Exception {
+    UnitTestConnectionService.reset();
     PassthroughServer server = UnitTestConnectionService.server();
 
     Connection connection = server.connectNewClient();
@@ -64,17 +67,15 @@ public class ServerStoreProxyTest {
     serverStoreProxy = new ServerStoreProxy(CACHE_IDENTIFIER, clientEntity);
   }
 
-
-
   @Test
-  public void testGetKeyNotPresent() throws Exception {
+  public void testGetKeyNotPresent() {
     Chain chain = serverStoreProxy.get(1);
 
     assertThat(chain.isEmpty(), is(true));
   }
 
   @Test
-  public void testAppendKeyNotPresent() throws Exception {
+  public void testAppendKeyNotPresent() {
     serverStoreProxy.append(2, createPayload(2));
 
     Chain chain = serverStoreProxy.get(2);
@@ -83,7 +84,7 @@ public class ServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAfterMultipleAppendsOnSameKey() throws Exception {
+  public void testGetAfterMultipleAppendsOnSameKey() {
 
     serverStoreProxy.append(3L, createPayload(3L));
     serverStoreProxy.append(3L, createPayload(33L));
@@ -97,7 +98,7 @@ public class ServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAndAppendKeyNotPresent() throws Exception {
+  public void testGetAndAppendKeyNotPresent() {
     Chain chain = serverStoreProxy.getAndAppend(4L, createPayload(4L));
 
     assertThat(chain.isEmpty(), is(true));
@@ -109,7 +110,7 @@ public class ServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAndAppendMultipleTimesOnSameKey() throws Exception {
+  public void testGetAndAppendMultipleTimesOnSameKey() {
     serverStoreProxy.getAndAppend(5L, createPayload(5L));
     serverStoreProxy.getAndAppend(5L, createPayload(55L));
     serverStoreProxy.getAndAppend(5L, createPayload(555L));
@@ -119,16 +120,28 @@ public class ServerStoreProxyTest {
     assertChainHas(chain, 5L, 55L, 555L);
   }
 
+  @Test
+  public void testReplaceAtHeadSuccessFull() {
+    serverStoreProxy.append(20L, createPayload(200L));
+    serverStoreProxy.append(20L, createPayload(2000L));
+    serverStoreProxy.append(20L, createPayload(20000L));
 
+    Chain expect = serverStoreProxy.get(20L);
+    Chain update = getChain(false, createPayload(400L));
 
-  private static long readPayLoad(ByteBuffer byteBuffer) {
-    return byteBuffer.getLong();
-  }
+    serverStoreProxy.replaceAtHead(20l, expect, update);
 
-  private static ByteBuffer createPayload(long key) {
-    ByteBuffer byteBuffer = ByteBuffer.allocate(8).putLong(key);
-    byteBuffer.flip();
-    return byteBuffer.asReadOnlyBuffer();
+    Chain afterReplace = serverStoreProxy.get(20L);
+    assertChainHas(afterReplace, 400L);
+
+    serverStoreProxy.append(20L, createPayload(4000L));
+    serverStoreProxy.append(20L, createPayload(40000L));
+
+    serverStoreProxy.replaceAtHead(20L, afterReplace, getChain(false, createPayload(800L)));
+
+    Chain anotherReplace = serverStoreProxy.get(20L);
+
+    assertChainHas(anotherReplace, 800L, 4000L, 40000L);
   }
 
   private static void assertChainHas(Chain chain, long... payLoads) {

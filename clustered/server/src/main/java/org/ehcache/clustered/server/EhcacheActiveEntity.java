@@ -242,18 +242,21 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
   private EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message) {
     try {
+      ServerStore cacheStore = stores.get(message.getCacheId());
+      if (cacheStore == null) {
+        throw new IllegalStateException("Server Store not present for cacheId :" + message.getCacheId());
+      }
       switch (message.operation()) {
-        case GET: return EhcacheEntityResponse.response(stores.get(message.getCacheId()).get(message.getKey()));
-        case APPEND: stores.get(message.getCacheId()).append(message.getKey(), ((ServerStoreOpMessage.AppendMessage)message).getPayload());
+        case GET: return EhcacheEntityResponse.response(cacheStore.get(message.getKey()));
+        case APPEND: cacheStore.append(message.getKey(), ((ServerStoreOpMessage.AppendMessage)message).getPayload());
           return EhcacheEntityResponse.success();
-        case GETANDAPPEND: return EhcacheEntityResponse.response(stores.get(message.getCacheId()).getAndAppend(message.getKey(), ((ServerStoreOpMessage.GetAndAppendMessage)message).getPayload()));
+        case GET_AND_APPEND: return EhcacheEntityResponse.response(cacheStore.getAndAppend(message.getKey(), ((ServerStoreOpMessage.GetAndAppendMessage)message).getPayload()));
         case REPLACE:
           ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
-          stores.get(replaceAtHeadMessage.getCacheId()).replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
+          cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
           return EhcacheEntityResponse.success();
         default: throw new IllegalArgumentException("Unknown Server Store operation " + message);
       }
-
     } catch (Exception e) {
       return EhcacheEntityResponse.failure(e);
     }
