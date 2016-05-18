@@ -19,8 +19,6 @@ import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.spi.service.Service;
 import org.terracotta.management.registry.collect.StatisticCollector;
 
-import java.util.Collection;
-
 /**
  * Collector service installed in a cache manager
  * <p>
@@ -29,6 +27,7 @@ import java.util.Collection;
  * @author Mathieu Carbou
  */
 public interface CollectorService extends StatisticCollector, Service {
-
-
+  interface EventListener {
+    void onEvent(String type, Object event);
+  }
 }
