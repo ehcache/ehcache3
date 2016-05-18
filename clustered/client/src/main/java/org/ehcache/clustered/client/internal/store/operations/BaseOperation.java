@@ -37,4 +37,28 @@ public abstract class BaseOperation<K> implements Operation<K> {
   public String toString() {
     return getOpCode() + " key: " + key;
   }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if(obj == null) {
+      return false;
+    }
+    if(!(obj instanceof BaseOperation)) {
+      return false;
+    }
+
+    BaseOperation<K> other = (BaseOperation)obj;
+    if(this.getOpCode() != other.getOpCode()) {
+      return false;
+    }
+    if(!this.getKey().equals(other.getKey())) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return getOpCode().hashCode() + (key == null ? 0: key.hashCode());
+  }
 }

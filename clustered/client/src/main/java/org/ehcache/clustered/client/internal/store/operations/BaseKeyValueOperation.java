@@ -40,4 +40,25 @@ public abstract class BaseKeyValueOperation<K, V> extends BaseOperation<K> imple
   public String toString() {
     return super.toString() + ", value: " + value;
   }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if(!super.equals(obj)) {
+      return false;
+    }
+    if(!(obj instanceof BaseKeyValueOperation)) {
+      return false;
+    }
+
+    BaseKeyValueOperation<K, V> other = (BaseKeyValueOperation)obj;
+    if(!this.getValue().equals(other.getValue())) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    return super.hashCode() + (value == null? 0: value.hashCode());
+  }
 }

@@ -33,7 +33,8 @@ import java.net.URI;
 
 import org.junit.Before;
 
-import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.hamcrest.Matchers.equalTo;
+import static org.junit.Assert.assertThat;
 
 /**
  * Samples demonstrating use of a clustered cache.
@@ -96,6 +97,36 @@ public class GettingStarted {
                       .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+    } finally {
+      cacheManager.close();
+    }
+    // end::clusteredCacheManagerWithServerSideConfigExample
+  }
+
+  @Test
+  public void clusteredCachePutGet() throws Exception {
+    // tag::clusteredCacheManagerWithServerSideConfigExample
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
+        = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
+            .defaultServerResource("primary-server-resource"));
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    cacheManager.init();
+
+    try {
+      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+          ResourcePoolsBuilder.newResourcePoolsBuilder()
+              .heap(10, EntryUnit.ENTRIES)
+              .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 1, MemoryUnit.MB))).build();
+
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      cache.put(1L, "The one");
+      cache.put(2L, "The two");
+      cache.put(1L, "Another one");
+      cache.put(3L, "The three");
+      assertThat(cache.get(1L), equalTo("Another one"));
+      assertThat(cache.get(2L), equalTo("The two"));
+      assertThat(cache.get(3L), equalTo("The three"));
     } finally {
       cacheManager.close();
     }
