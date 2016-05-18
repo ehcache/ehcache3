@@ -1,0 +1,83 @@
+---
+---
+= Clustered Cache
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Introduction
+
+To enable Clustering with Terracotta, firstly you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.
+And then need a cache manager with clustering capabilities so that the caches can consume the clustered storage.
+
+== Starting Terracotta server
+
+Assuming that you have the clustered EhCache kit available locally, start with extracting the *ehcache-clustered* kit.
+Change to your extracted directory and then execute the *start-tc-server* script as below to start the Terracotta server with default configuration:
+
+On Windows: +
+Execute the *terracotta-5.x.y-SNAPSHOT/server/bin/start-tc-server.bat* script.
+
+On Unix/Mac:
+[source,bash]
+----
+cd terracotta-5.x.y-SNAPSHOT/server/bin
+./start-tc-server.sh
+----
+
+NOTE: You will need to have `JAVA_HOME` set to JDK8 while starting the Terracotta server.
+
+Check for the below `INFO` log to confirm if the server started successfully,
+`Terracotta Server instance has started up as ACTIVE node on 0:0:0:0:0:0:0:0:9510 successfully, and is now ready for work.`
+
+== Creating cache manager with clustering capabilities
+
+After starting the Terracotta server (Refer section: <<Starting Terracotta server>>), you can now proceed to create the cache manager.
+For creating the cache manager with clustering support you will need to provide the clustering service configuration:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+----
+
+<1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
+<2> Use the `ClusteringServiceConfigurationBuilder`{empty}'s static method `.cluster(URI)` for connecting the cache manager to the clustering storage at the
+    URI specified that returns the clustering service configuration builder instance.
+    Sample URI provided in the example is pointing to the clustered storage with clustered storage identifier *my-application* on the Terracotta server (Assuming the server is running on localhost and port *9510*); the query-param `auto-create`
+    creates the clustered storage in the server if it doesn't already exist.
+<3> Returns a fully initialized cache manager that can be used to create clustered caches.
+<4> Close the cache manager.
+
+== Cache manager configuration and usage of server side resources
+
+After starting the Terracotta server (Refer section: <<Starting Terracotta server>>), Cache manager with clustering capabilities can be configured with server side resource(s) and in turn can be used by cache(s) :
+
+[source,java,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerWithServerSideConfigExample]
+----
+
+<1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
+<2> Returns the `ClusteringServiceConfigurationBuilder` instance.
+<3> `defaultServerResource(String)` on ClusteringServiceConfigurationBuilder instance sets the default server resource for the cache manager.
+    From the example, cache manager sets its default server resource to server storage resource identifier *primary-server-resource* in the server.
+    The server storage resource identifier in turn will be used to create EhCache resource pools.
+<4> Adds a resource pool for the cache manager with the specified name(*resource-pool-a*) and size(*128B*) consumed out of a named server storage resource(*secondary-server-resource*)
+    already existing on the server.
+<5> Adds a resource pool for the cache manager with the specified name(*resource-pool-b*) and size(*128B*).
+    Since the server storage identifier is not explicitly passed, this resource pool will be consumed out of default server resource provided in Step 3.
+    This demonstrates that a cache manager with clustering support can have multiple resource pools created out of several server storage resources.
+<6> Provide the cache configuration to be created
+<7> Adding heap resource for the cache.
+<8> Allocates resource pool of the given/fixed size to the cache from the specified server storage resource.`.fixed(String , long , MemoryUnit )` allocates the resources from
+    the server storage resource identifier specified in the first argument.
+    Fixed size of the memory and its MemoryUnit being the 2nd and 3rd arguments respectively.
+    In the example, unnamed resource pool of 32KB is allocated for cache from server storage resource with the name *primary-server-resource*.
+    Caches can also be configured with shared resource pools where multiple caches can share the resources from the same resource pool.
+    This can be achieved using `.shared(String)`, passing the name of the resource pool. The resource pool name can be used by other caches to share the resource pool.
+<9> Creates fully initialized cache manager with the clustered cache(*clustered-cache*).
+<10> Close the cache manager.

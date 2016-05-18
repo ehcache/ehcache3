@@ -94,7 +94,8 @@ public class UnitTestConnectionService implements ConnectionService {
 
   @Override
   public boolean handlesURI(URI uri) {
-    return uri.getHost().endsWith("example.com");
+    String hostName = uri.getHost();
+    return hostName.endsWith("example.com") || hostName.equals("localhost");
   }
 
   @Override
