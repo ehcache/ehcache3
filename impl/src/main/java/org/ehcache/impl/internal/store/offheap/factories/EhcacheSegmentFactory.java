@@ -16,8 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap.factories;
 
-import org.ehcache.config.EvictionAdvisor;
-
+import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.paging.PageSource;
@@ -35,10 +34,10 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
   private final Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory;
   private final PageSource tableSource;
   private final int tableSize;
-  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
+  private final SwitchableEvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final EhcacheSegment.EvictionListener<K, V> evictionListener;
 
-  public EhcacheSegmentFactory(PageSource source, Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, EvictionAdvisor<? super K, ? super V> evictionAdvisor, EhcacheSegment.EvictionListener<K, V> evictionListener) {
+  public EhcacheSegmentFactory(PageSource source, Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, SwitchableEvictionAdvisor<? super K, ? super V> evictionAdvisor, EhcacheSegment.EvictionListener<K, V> evictionListener) {
     this.storageEngineFactory = storageEngineFactory;
     this.tableSource = source;
     this.tableSize = initialTableSize;
@@ -60,10 +59,10 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
 
     public static final int ADVISED_AGAINST_EVICTION = 1 << (Integer.SIZE - 3);
 
-    private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
+    private final SwitchableEvictionAdvisor<? super K, ? super V> evictionAdvisor;
     private final EvictionListener<K, V> evictionListener;
 
-    EhcacheSegment(PageSource source, StorageEngine<? super K, ? super V> storageEngine, int tableSize, EvictionAdvisor<? super K, ? super V> evictionAdvisor, EvictionListener<K, V> evictionListener) {
+    EhcacheSegment(PageSource source, StorageEngine<? super K, ? super V> storageEngine, int tableSize, SwitchableEvictionAdvisor<? super K, ? super V> evictionAdvisor, EvictionListener<K, V> evictionListener) {
       super(source, true, storageEngine, tableSize);
       this.evictionAdvisor = evictionAdvisor;
       this.evictionListener = evictionListener;
@@ -87,7 +86,7 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
 
     @Override
     protected boolean evictable(int status) {
-      return super.evictable(status) && ((status & ADVISED_AGAINST_EVICTION) == 0);
+      return super.evictable(status) && (((status & ADVISED_AGAINST_EVICTION) == 0) || !evictionAdvisor.isSwitchedOn());
     }
 
     @Override

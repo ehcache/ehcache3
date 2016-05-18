@@ -24,7 +24,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
 
 import org.ehcache.Cache;
 import org.ehcache.config.EvictionAdvisor;
@@ -49,7 +48,6 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
@@ -274,36 +272,29 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     final AtomicBoolean added = new AtomicBoolean();
     final AtomicReference<OffHeapValueHolder<V>> replacedVal = new AtomicReference<OffHeapValueHolder<V>>(null);
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
+
+    final long now = timeSource.getTimeMillis();
     try {
-      while (true) {
-        final long now = timeSource.getTimeMillis();
-        try {
-          backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-            @Override
-            public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+      BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
 
-              if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-                mappedValue = null;
-              }
+          if (mappedValue != null && mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            mappedValue = null;
+          }
 
-              if (mappedValue == null) {
-                OffHeapValueHolder<V> newValue = newCreateValueHolder(key, value, now, eventSink);
-                added.set(newValue != null);
-                return newValue;
-              } else {
-                OffHeapValueHolder<V> newValue = newUpdatedValueHolder(key, value, mappedValue, now, eventSink);
-                replacedVal.set(mappedValue);
-                return newValue;
-              }
-            }
-          }, false);
-          break;
-        } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex, eventSink);
-        } catch (RuntimeException re) {
-          handleRuntimeException(re);
+          if (mappedValue == null) {
+            OffHeapValueHolder<V> newValue = newCreateValueHolder(key, value, now, eventSink);
+            added.set(newValue != null);
+            return newValue;
+          } else {
+            OffHeapValueHolder<V> newValue = newUpdatedValueHolder(key, value, mappedValue, now, eventSink);
+            replacedVal.set(mappedValue);
+            return newValue;
+          }
         }
-      }
+      };
+      computeWithRetry(key, mappingFunction, false);
       eventDispatcher.releaseEventSink(eventSink);
       if (replacedVal.get() != null) {
         putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
@@ -334,40 +325,33 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
 
     try {
-      while (true) {
-        try {
-          backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
-            @Override
-            public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
-              long now = timeSource.getTimeMillis();
+      BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> mappingFunction = new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
+        @Override
+        public OffHeapValueHolder<V> apply(K mappedKey, OffHeapValueHolder<V> mappedValue) {
+          long now = timeSource.getTimeMillis();
 
-              if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
-                if (mappedValue != null) {
-                  onExpiration(mappedKey, mappedValue, eventSink);
-                }
-                return newCreateValueHolder(mappedKey, value, now, eventSink);
-              }
-              mappedValue.forceDeserialization();
-              returnValue.set(mappedValue);
-              return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
+          if (mappedValue == null || mappedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
+            if (mappedValue != null) {
+              onExpiration(mappedKey, mappedValue, eventSink);
             }
-          }, false);
-
-          eventDispatcher.releaseEventSink(eventSink);
-
-          ValueHolder<V> resultHolder = returnValue.get();
-          if (resultHolder == null) {
-            putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
-            return null;
-          } else {
-            putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
-            return resultHolder;
+            return newCreateValueHolder(mappedKey, value, now, eventSink);
           }
-        } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex, eventSink);
-        } catch (RuntimeException re) {
-          handleRuntimeException(re);
+          mappedValue.forceDeserialization();
+          returnValue.set(mappedValue);
+          return setAccessTimeAndExpiryThenReturnMapping(mappedKey, mappedValue, now, eventSink);
         }
+      };
+      computeWithRetry(key, mappingFunction, false);
+
+      eventDispatcher.releaseEventSink(eventSink);
+
+      ValueHolder<V> resultHolder = returnValue.get();
+      if (resultHolder == null) {
+        putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
+        return null;
+      } else {
+        putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
+        return resultHolder;
       }
     } catch (StoreAccessException caex) {
       eventDispatcher.releaseEventSinkAfterFailure(eventSink, caex);
@@ -498,16 +482,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
     };
     try {
-      while (true) {
-        try {
-          backingMap().compute(key, mappingFunction, false);
-          break;
-        } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex, eventSink);
-        } catch (RuntimeException re) {
-          handleRuntimeException(re);
-        }
-      }
+      computeWithRetry(key, mappingFunction, false);
       eventDispatcher.releaseEventSink(eventSink);
       ValueHolder<V> resultHolder = returnValue.get();
       if (resultHolder != null) {
@@ -557,16 +532,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     };
 
     try {
-      while (true) {
-        try {
-          backingMap().compute(key, mappingFunction, false);
-          break;
-        } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex, eventSink);
-        } catch (RuntimeException re) {
-          handleRuntimeException(re);
-        }
-      }
+      computeWithRetry(key, mappingFunction, false);
       eventDispatcher.releaseEventSink(eventSink);
       if (replaced.get()) {
         conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
@@ -692,16 +658,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     OffHeapValueHolder<V> result;
     try {
-      while (true) {
-        try {
-          result = backingMap().compute(key, computeFunction, false);
-          break;
-        } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e, eventSink);
-        } catch (RuntimeException re) {
-          handleRuntimeException(re);
-        }
-      }
+      result = computeWithRetry(key, computeFunction, false);
       if (result == null && valueHeld.get() != null) {
         result = valueHeld.get();
       }
@@ -777,16 +734,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     OffHeapValueHolder<V> computeResult;
     try {
-      while (true) {
-        try {
-          computeResult = backingMap().compute(key, computeFunction, fault);
-          break;
-        } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e, eventSink);
-        } catch (RuntimeException re) {
-          handleRuntimeException(re);
-        }
-      }
+      computeResult = computeWithRetry(key, computeFunction, fault);
       if (computeResult == null && valueHeld.get() != null) {
         computeResult = valueHeld.get();
       }
@@ -1097,14 +1045,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     };
     OffHeapValueHolder<V> computeResult;
     try {
-      while (true) {
-        try {
-          computeResult = backingMap().compute(key, computeFunction, false);
-          break;
-        } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e, null);
-        }
-      }
+      computeResult = computeWithRetry(key, computeFunction, false);
       if (computeResult != null) {
         installMappingObserver.end(LowerCachingTierOperationsOutcome.InstallMappingOutcome.PUT);
       } else {
@@ -1115,6 +1056,29 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       handleRuntimeException(re);
       return null;
     }
+  }
+
+  private OffHeapValueHolder<V> computeWithRetry(K key, BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>> computeFunction, boolean fault) throws StoreAccessException {
+    OffHeapValueHolder<V> computeResult = null;
+    try {
+      computeResult = backingMap().compute(key, computeFunction, fault);
+    } catch (OversizeMappingException ex) {
+      try {
+        evictionAdvisor().setSwitchedOn(false);
+        invokeValve();
+        computeResult = backingMap().compute(key, computeFunction, fault);
+      } catch (OversizeMappingException e) {
+        throw new StoreAccessException("The element with key '" + key + "' is too large to be stored"
+                                       + " in this offheap store.", e);
+      } catch (RuntimeException e) {
+        handleRuntimeException(e);
+      } finally {
+        evictionAdvisor().setSwitchedOn(true);
+      }
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
+    }
+    return computeResult;
   }
 
   private boolean safeEquals(V existingValue, V computedValue) {
@@ -1198,49 +1162,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  void handleOversizeMappingException(K key, OversizeMappingException cause, StoreEventSink<K, V> eventSink) throws StoreAccessException {
-    handleOversizeMappingException(key, cause, null, eventSink);
-  }
-
-  void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve, StoreEventSink<K, V> eventSink) throws StoreAccessException {
-    if (eventSink != null) {
-      eventDispatcher.reset(eventSink);
-    }
-    if (!backingMap().shrinkOthers(key.hashCode())) {
-      if(!invokeValve(invokeValve)) {
-        for (Segment<K, OffHeapValueHolder<V>> segment : backingMap().getSegments()) {
-          Lock lock = segment.writeLock();
-          lock.lock();
-          try {
-            for (K keyToEvict : segment.keySet()) {
-              if (backingMap().getAndSetMetadata(keyToEvict, EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION, 0) == EhcacheSegmentFactory.EhcacheSegment.ADVISED_AGAINST_EVICTION) {
-                return;
-              }
-            }
-          } finally {
-            lock.unlock();
-          }
-        }
-        throw new StoreAccessException("The element with key '" + key + "' is too large to be stored"
-                                       + " in this offheap store.", cause);
-      }
-    }
-  }
-
-  private boolean invokeValve(final AtomicBoolean invokeValve) throws StoreAccessException {
-    if(invokeValve == null || !invokeValve.get()) {
-      return false;
-    }
-    invokeValve.set(false);
+  private void invokeValve() throws StoreAccessException {
     InvalidationValve valve = this.valve;
     if (valve != null) {
-      try {
-        valve.invalidateAll();
-      } catch (Exception exception) {
-        throw new StoreAccessException("Failed invoking valve", exception);
-      }
+      valve.invalidateAll();
     }
-    return true;
   }
 
   private static long safeExpireTime(long now, Duration duration) {
@@ -1290,13 +1216,16 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
 
-  protected static <K, V> EvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
+  protected abstract SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor();
+
+  protected static <K, V> SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> wrap(EvictionAdvisor<? super K, ? super V> delegate) {
     return new OffHeapEvictionAdvisorWrapper<K, V>(delegate);
   }
 
-  private static class OffHeapEvictionAdvisorWrapper<K, V> implements EvictionAdvisor<K, OffHeapValueHolder<V>> {
+  private static class OffHeapEvictionAdvisorWrapper<K, V> implements SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> {
 
     private final EvictionAdvisor<? super K, ? super V> delegate;
+    private volatile boolean adviceEnabled;
 
     private OffHeapEvictionAdvisorWrapper(EvictionAdvisor<? super K, ? super V> delegate) {
       this.delegate = delegate;
@@ -1311,6 +1240,16 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
                   "- Eviction will assume entry is NOT advised against eviction", e);
         return false;
       }
+    }
+
+    @Override
+    public boolean isSwitchedOn() {
+      return adviceEnabled;
+    }
+
+    @Override
+    public void setSwitchedOn(boolean switchedOn) {
+      this.adviceEnabled = switchedOn;
     }
   }
 
