@@ -28,6 +28,7 @@ import org.ehcache.config.EvictionAdvisor;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
+import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -51,7 +52,7 @@ public class ConcurrentHashMapTest {
 
         Map<Comparable<?>, String> removed = map.removeAllWithHash(lastHash);
 
-        assertThat(removed.size() > 0, is(true));
+        assertThat(removed.size(), greaterThan(0));
         assertThat(map.size() + removed.size(), is(totalCount));
         for (Comparable<?> key : map.keySet()) {
             assertThat(removed.containsKey(key), is(false));

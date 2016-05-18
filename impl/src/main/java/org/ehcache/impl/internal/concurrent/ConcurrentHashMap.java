@@ -1182,16 +1182,15 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
           else if (f.hash == MOVED)
               tab = helpTransfer(tab, f);
           else {
-              Map<K, V> nodes = null;
+              int nodesCount = 0;
               synchronized (f) {
                   if (tabAt(tab, i) == f) {
-                      nodes = nodesAt(f);
+                      nodesCount = nodesAt(f, invalidated);
                       setTabAt(tab, i, null);
-                      invalidated.putAll(nodes);
                   }
               }
-              if (nodes != null) {
-                  addCount(-nodes.size(), -nodes.size());
+              if (nodesCount > 0) {
+                  addCount(-nodesCount, -nodesCount);
               }
           }
       }
@@ -2678,30 +2677,29 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return hd;
     }
 
-    private static <K,V> Map<K, V> nodesAt(Node<K,V> b) {
-        Map<K, V> nodes = new HashMap<K, V>();
-
+    private static <K,V> int nodesAt(Node<K,V> b, Map<K, V> nodes) {
         if (b instanceof TreeBin) {
-            return treeNodesAt(((TreeBin<K,V>)b).root);
+            return treeNodesAt(((TreeBin<K,V>)b).root, nodes);
         } else {
+            int count = 0;
             for (Node<K,V> q = b; q != null; q = q.next) {
                 nodes.put(q.key, q.val);
+                count++;
             }
+            return count;
         }
-
-        return nodes;
     }
 
-    private static <K,V> Map<K, V> treeNodesAt(TreeNode<K, V> root) {
+    private static <K,V> int treeNodesAt(TreeNode<K, V> root, Map<K, V> nodes) {
         if (root == null) {
-            return Collections.emptyMap();
+            return 0;
         }
 
-        Map<K, V> result = new HashMap<K, V>();
-        result.put(root.key, root.val);
-        result.putAll(treeNodesAt(root.left));
-        result.putAll(treeNodesAt(root.right));
-        return result;
+        int count = 1;
+        nodes.put(root.key, root.val);
+        count += treeNodesAt(root.left, nodes);
+        count += treeNodesAt(root.right, nodes);
+        return count;
     }
 
     /* ---------------- TreeNodes -------------- */
