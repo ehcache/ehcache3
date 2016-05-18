@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
 
+  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
+
   private final V value;
 
   public ClusteredValueHolder(V value) {

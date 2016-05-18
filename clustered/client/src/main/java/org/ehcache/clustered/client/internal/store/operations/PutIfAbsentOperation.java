@@ -27,12 +27,16 @@ public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> {
     return OperationCode.PUT_IF_ABSENT;
   }
 
+  /**
+   * PutIfAbsent operation succeeds only when there is no previous operation
+   * for the same key.
+   */
   @Override
-  public Operation<K> apply(final Operation<K> operation) {
-    if(operation == null) {
+  public Operation<K> apply(final Operation<K> previousOperation) {
+    if(previousOperation == null) {
       return this;
     } else {
-      return operation;
+      return previousOperation;
     }
   }
 }

@@ -27,23 +27,14 @@ import java.nio.ByteBuffer;
 import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec.BYTE_SIZE_BYTES;
 import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec.INT_SIZE_BYTES;
 
-public abstract class BaseKeyValueOperationCodec<K, V> implements OperationCodec<K> {
+public abstract class BaseKeyValueOperationCodec<K, V> extends RootOperationCodec<K> {
 
-  protected final Serializer<K> keySerializer;
-  protected final Serializer<V> valueSerializer;
+  private final Serializer<K> keySerializer;
+  private final Serializer<V> valueSerializer;
 
   public BaseKeyValueOperationCodec(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     this.keySerializer = keySerializer;
     this.valueSerializer = valueSerializer;
-  }
-
-  protected abstract OperationCode getOperationCode();
-
-  private void validateOperation(OperationCode code) {
-    if (code != getOperationCode()) {
-      throw new IllegalArgumentException(this.getClass().getName() +
-                                         " can only encode/decode " + getOperationCode() + " operations");
-    }
   }
 
   @Override
@@ -99,7 +90,7 @@ public abstract class BaseKeyValueOperationCodec<K, V> implements OperationCodec
     try {
       return newOperation(keySerializer.read(keyBlob), valueSerializer.read(valueBlob));
     } catch (ClassNotFoundException e) {
-      throw new SerializerException(e);
+      throw new CodecException(e);
     }
   }
 }

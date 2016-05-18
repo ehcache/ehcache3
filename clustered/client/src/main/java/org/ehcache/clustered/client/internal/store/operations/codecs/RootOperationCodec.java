@@ -14,25 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations;
+package org.ehcache.clustered.client.internal.store.operations.codecs;
 
-public class RemoveOperation<K> extends BaseOperation<K> {
+import org.ehcache.clustered.client.internal.store.operations.OperationCode;
 
-  public RemoveOperation(final K key) {
-    super(key);
+public abstract class RootOperationCodec<K> implements OperationCodec<K> {
+
+  protected abstract OperationCode getOperationCode();
+
+  protected void validateOperation(OperationCode code) {
+    if (code != getOperationCode()) {
+      throw new IllegalArgumentException(this.getClass().getName() +
+                                         " can only encode/decode " + getOperationCode() + " operations");
+    }
   }
 
-  @Override
-  public OperationCode getOpCode() {
-    return OperationCode.REMOVE;
-  }
-
-  /**
-   * Remove operation applied on top of another operation does not care
-   * what the other operation is. The result is always gonna be null.
-   */
-  @Override
-  public Operation<K> apply(final Operation<K> previousOperation) {
-    return null;
-  }
 }

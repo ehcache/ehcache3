@@ -25,15 +25,13 @@ import java.nio.ByteBuffer;
 
 import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec.BYTE_SIZE_BYTES;
 
-public abstract class BaseOperationCodec<K> implements OperationCodec<K> {
+public abstract class BaseOperationCodec<K> extends RootOperationCodec<K> {
 
-  protected final Serializer<K> keySerializer;
+  private final Serializer<K> keySerializer;
 
   public BaseOperationCodec(final Serializer<K> keySerializer) {
     this.keySerializer = keySerializer;
   }
-
-  protected abstract OperationCode getOperationCode();
 
   @Override
   public ByteBuffer encode(final Operation<K> operation) {
@@ -56,14 +54,7 @@ public abstract class BaseOperationCodec<K> implements OperationCodec<K> {
     try {
       return newOperation(keySerializer.read(buffer));
     } catch (ClassNotFoundException e) {
-      throw new SerializerException(e);
-    }
-  }
-
-  protected void validateOperation(OperationCode code) {
-    if (code != getOperationCode()) {
-      throw new IllegalArgumentException(this.getClass().getName() +
-                                         " can only encode/decode " + getOperationCode() + " operations");
+      throw new CodecException(e);
     }
   }
 

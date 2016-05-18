@@ -32,8 +32,12 @@ public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> {
     return OperationCode.PUT;
   }
 
+  /**
+   * Put operation applied on top of another {@link Operation} does not care
+   * what the other operation is. The result is gonna be {@code this} operation.
+   */
   @Override
-  public Operation<K> apply(final Operation<K> operation) {
+  public Operation<K> apply(final Operation<K> previousOperation) {
     return this;
   }
 }
