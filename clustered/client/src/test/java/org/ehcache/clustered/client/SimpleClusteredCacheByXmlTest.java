@@ -23,7 +23,9 @@ import org.ehcache.Status;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.XmlConfiguration;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -39,10 +41,19 @@ import org.junit.Before;
 public class SimpleClusteredCacheByXmlTest {
 
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";
+  private static final String CLUSTER_URI = "terracotta://example.com:9540/cachemanager?auto-create";
 
   @Before
   public void resetPassthroughServer() throws Exception {
-    UnitTestConnectionService.reset();
+    UnitTestConnectionService.add(CLUSTER_URI,
+        new UnitTestConnectionService.PassthroughServerBuilder()
+            .resource("primary-server-resource", 64, MemoryUnit.MB)
+            .build());
+  }
+
+  @After
+  public void removePassthroughServer() throws Exception {
+    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   @Test

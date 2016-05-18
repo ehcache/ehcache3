@@ -20,19 +20,22 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
-import org.terracotta.passthrough.PassthroughServer;
 
+import java.net.URI;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Properties;
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -42,22 +45,24 @@ import static org.ehcache.clustered.common.store.Util.getChain;
 
 public class ServerStoreProxyTest {
 
-
   private static final String CACHE_IDENTIFIER = "testCache";
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510/TestCacheManager");
 
+  private static EhcacheClientEntity clientEntity;
   private static ServerStoreProxy serverStoreProxy;
 
   @BeforeClass
   public static void setUp() throws Exception {
-    UnitTestConnectionService.reset();
-    PassthroughServer server = UnitTestConnectionService.server();
-
-    Connection connection = server.connectNewClient();
+    UnitTestConnectionService.add(CLUSTER_URI,
+        new PassthroughServerBuilder()
+            .resource("defaultResource", 128, MemoryUnit.MB)
+            .build());
+    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
 
     EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
 
-    EhcacheClientEntity clientEntity = entityFactory.create("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.EMPTY_MAP));
+    clientEntity = entityFactory.create("TestCacheManager",
+        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.fixed(16L, MemoryUnit.MB);
 
@@ -65,6 +70,17 @@ public class ServerStoreProxyTest {
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName()));
     serverStoreProxy = new ServerStoreProxy(CACHE_IDENTIFIER, clientEntity);
+  }
+
+  @AfterClass
+  public static void tearDown() throws Exception {
+    serverStoreProxy = null;
+    if (clientEntity != null) {
+      clientEntity.close();
+      clientEntity = null;
+    }
+
+    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   @Test

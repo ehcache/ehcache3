@@ -21,13 +21,16 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.terracotta.passthrough.PassthroughServer;
 
 import java.net.URI;
 
@@ -39,18 +42,28 @@ import static org.junit.Assert.assertThat;
  */
 public class BasicClusteredCacheTest {
 
+  private static final URI CLUSTER_URI = URI.create("http://example.com:9540/my-application?auto-create");
+
   @Before
-  public void resetPassthroughServer() throws Exception {
-    UnitTestConnectionService.reset();
+  public void definePassthroughServer() throws Exception {
+    UnitTestConnectionService.add(CLUSTER_URI,
+        new PassthroughServerBuilder()
+            .resource("primary-server-resource", 64, MemoryUnit.MB)
+            .resource("secondary-server-resource", 64, MemoryUnit.MB)
+            .build());
   }
 
+  @After
+  public void removePassthroughServer() throws Exception {
+    UnitTestConnectionService.remove(CLUSTER_URI);
+  }
 
   @Test
   public void underlyingHeap() throws Exception {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI)
                 .defaultServerResource("primary-server-resource")
                 .resourcePool("resource-pool-a", 128, MemoryUnit.KB)
                 .resourcePool("resource-pool-b", 128, MemoryUnit.KB, "secondary-server-resource"))
@@ -74,7 +87,7 @@ public class BasicClusteredCacheTest {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI)
                 .defaultServerResource("primary-server-resource")
                 .resourcePool("resource-pool-a", 128, MemoryUnit.KB)
                 .resourcePool("resource-pool-b", 128, MemoryUnit.KB, "secondary-server-resource"))

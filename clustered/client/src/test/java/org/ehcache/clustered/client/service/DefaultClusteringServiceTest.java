@@ -18,20 +18,34 @@ package org.ehcache.clustered.client.service;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
+import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.connection.ConnectionPropertyNames;
 
 import java.net.URI;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Properties;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
 public class DefaultClusteringServiceTest {
 
+  private static final String CLUSTER_URI_BASE = "http://example.com:9540/";
+
   @Before
-  public void resetPassthroughServer() throws Exception {
-    UnitTestConnectionService.reset();
+  public void definePassthroughServer() throws Exception {
+    UnitTestConnectionService.add(CLUSTER_URI_BASE,
+        new PassthroughServerBuilder()
+            .build());
+  }
+
+  @After
+  public void removePassthroughServer() throws Exception {
+    UnitTestConnectionService.remove(CLUSTER_URI_BASE);
   }
 
   @Test
@@ -39,14 +53,17 @@ public class DefaultClusteringServiceTest {
     String entityIdentifier = "my-application";
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(
-            URI.create("http://example.com:9540/" + entityIdentifier + "?auto-create"),
+            URI.create(CLUSTER_URI_BASE + entityIdentifier + "?auto-create"),
             null,
             Collections.<String, ClusteringServiceConfiguration.PoolDefinition>emptyMap());
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 
+    Collection<Properties> propsCollection = UnitTestConnectionService.getConnectionProperties(URI.create(CLUSTER_URI_BASE));
+    assertThat(propsCollection.size(), is(1));
+    Properties props = propsCollection.iterator().next();
     assertEquals(
-        UnitTestConnectionService.getConnectionProperties().getProperty(ConnectionPropertyNames.CONNECTION_NAME),
+        props.getProperty(ConnectionPropertyNames.CONNECTION_NAME),
         DefaultClusteringService.CONNECTION_PREFIX + entityIdentifier
     );
   }
