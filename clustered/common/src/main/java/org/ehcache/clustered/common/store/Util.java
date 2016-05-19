@@ -15,6 +15,9 @@
  */
 package org.ehcache.clustered.common.store;
 
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
@@ -40,4 +43,72 @@ public class Util {
       }
     };
   }
+
+  public static long readPayLoad(ByteBuffer byteBuffer) {
+    return byteBuffer.getLong();
+  }
+
+  public static ByteBuffer createPayload(long key) {
+    ByteBuffer byteBuffer = ByteBuffer.allocate(8).putLong(key);
+    byteBuffer.flip();
+    return byteBuffer.asReadOnlyBuffer();
+  }
+
+  public static Element getElement(final ByteBuffer payload) {
+    return new Element() {
+      @Override
+      public ByteBuffer getPayload() {
+        return payload.duplicate();
+      }
+    };
+  }
+
+  public static Chain getChain(boolean isSequenced, ByteBuffer... buffers) {
+    List<Element> elements = new ArrayList<Element>();
+    long counter = 0;
+    for (final ByteBuffer buffer : buffers) {
+      if (isSequenced) {
+        elements.add(getElement(counter++, buffer));
+      } else {
+        elements.add(getElement(buffer));
+      }
+
+    }
+    return getChain(elements);
+  }
+
+  public static Chain getChain(final List<Element> elements) {
+    return new Chain() {
+      private final List<Element> list = Collections.unmodifiableList(elements);
+      @Override
+      public Iterator<Element> reverseIterator() {
+        return Util.reverseIterator(list);
+      }
+
+      @Override
+      public boolean isEmpty() {
+        return list.isEmpty();
+      }
+
+      @Override
+      public Iterator<Element> iterator() {
+        return list.iterator();
+      }
+    };
+  }
+
+  public static SequencedElement getElement(final long sequence, final ByteBuffer payload) {
+    return new SequencedElement() {
+      @Override
+      public long getSequenceNumber() {
+        return sequence;
+      }
+
+      @Override
+      public ByteBuffer getPayload() {
+        return payload.duplicate();
+      }
+    };
+  }
+
 }

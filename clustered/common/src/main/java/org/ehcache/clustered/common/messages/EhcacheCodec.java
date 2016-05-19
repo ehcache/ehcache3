@@ -15,11 +15,8 @@
  */
 package org.ehcache.clustered.common.messages;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.nio.ByteBuffer;
+
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.MessageCodecException;
 
@@ -37,46 +34,30 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
 
   @Override
   public byte[] encodeMessage(EhcacheEntityMessage message) {
-    return marshall(message);
+    if (message.getType() == EhcacheEntityMessage.Type.LIFECYCLE_OP) {
+      return LifeCycleOpCodec.encode((LifecycleMessage) message);
+    } else {
+      return ServerStoreOpCodec.encode((ServerStoreOpMessage) message);
+    }
   }
 
   @Override
   public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
-    return (EhcacheEntityMessage) unmarshall(payload);
+    ByteBuffer payloadBuf = ByteBuffer.wrap(payload);
+    if (payloadBuf.get() == EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode()) {
+      return LifeCycleOpCodec.decode(payloadBuf);
+    } else {
+      return ServerStoreOpCodec.decode(payload);
+    }
   }
 
   @Override
   public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
-    return marshall(response);
+    return ResponseCodec.encode(response);
   }
 
   @Override
   public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
-    return (EhcacheEntityResponse) unmarshall(payload);
-  }
-
-  private static Object unmarshall(byte[] payload) {
-    try {
-      return new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
-      throw new IllegalArgumentException(ex);
-    }
-  }
-
-  private static byte[] marshall(Object message) {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    try {
-      ObjectOutputStream oout = new ObjectOutputStream(out);
-      try {
-        oout.writeObject(message);
-      } finally {
-        oout.close();
-      }
-    } catch (IOException e) {
-      throw new IllegalArgumentException(e);
-    }
-    return out.toByteArray();
+    return ResponseCodec.decode(payload);
   }
 }

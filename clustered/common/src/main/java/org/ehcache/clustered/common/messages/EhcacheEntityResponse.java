@@ -15,20 +15,43 @@
  */
 package org.ehcache.clustered.common.messages;
 
-import java.io.Serializable;
 
+import org.ehcache.clustered.common.store.Chain;
 import org.terracotta.entity.EntityResponse;
 
 /**
  *
  * @author cdennis
  */
-public abstract class EhcacheEntityResponse implements EntityResponse, Serializable {
-  private static final long serialVersionUID = 4559645892362408528L;
+public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public enum Type {
-    SUCCESS,
-    FAILURE;
+    SUCCESS((byte) 0),
+    FAILURE((byte) 1),
+    GET_RESPONSE((byte) 2);
+
+    private final byte opCode;
+
+    Type(byte opCode) {
+      this.opCode = opCode;
+    }
+
+    public byte getOpCode() {
+      return this.opCode;
+    }
+
+    public static Type responseType(byte opCode) {
+      switch (opCode) {
+        case 0:
+          return SUCCESS;
+        case 1:
+          return FAILURE;
+        case 2:
+          return GET_RESPONSE;
+        default:
+          throw new IllegalArgumentException("Store operation not defined for : " + opCode);
+      }
+    }
   }
 
   public abstract Type getType();
@@ -38,7 +61,6 @@ public abstract class EhcacheEntityResponse implements EntityResponse, Serializa
   }
 
   public static class Success extends EhcacheEntityResponse {
-    private static final long serialVersionUID = -9061756298941151437L;
 
     private static final Success INSTANCE = new Success();
 
@@ -57,7 +79,6 @@ public abstract class EhcacheEntityResponse implements EntityResponse, Serializa
   }
 
   public static class Failure extends EhcacheEntityResponse {
-    private static final long serialVersionUID = -2120407256454458315L;
 
     private final Exception cause;
 
@@ -72,6 +93,28 @@ public abstract class EhcacheEntityResponse implements EntityResponse, Serializa
 
     public Exception getCause() {
       return cause;
+    }
+  }
+
+  public static GetResponse response(Chain chain) {
+    return new GetResponse(chain);
+  }
+
+  public static class GetResponse extends EhcacheEntityResponse {
+
+    private final Chain chain;
+
+    private GetResponse(Chain chain) {
+      this.chain = chain;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.GET_RESPONSE;
+    }
+
+    public Chain getChain() {
+      return chain;
     }
   }
 

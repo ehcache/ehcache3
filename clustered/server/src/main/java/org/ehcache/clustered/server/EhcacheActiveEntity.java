@@ -33,14 +33,10 @@ import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ConfigureCacheManager;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage.CreateServerStore;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage.DestroyServerStore;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ReleaseServerStore;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateServerStore;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateCacheManager;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
+import org.ehcache.clustered.common.messages.LifecycleMessage;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.store.ServerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +59,12 @@ import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.failure;
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.success;
+import static org.ehcache.clustered.common.messages.LifecycleMessage.ConfigureCacheManager;
+import static org.ehcache.clustered.common.messages.LifecycleMessage.CreateServerStore;
+import static org.ehcache.clustered.common.messages.LifecycleMessage.DestroyServerStore;
+import static org.ehcache.clustered.common.messages.LifecycleMessage.ReleaseServerStore;
+import static org.ehcache.clustered.common.messages.LifecycleMessage.ValidateServerStore;
+import static org.ehcache.clustered.common.messages.LifecycleMessage.ValidateCacheManager;
 
 // TODO: Provide some mechanism to report on storage utilization -- PageSource provides little visibility
 // TODO: Ensure proper operations for concurrent requests
@@ -196,12 +198,8 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   @Override
   public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
     switch (message.getType()) {
-      case CONFIGURE: return configure((ConfigureCacheManager) message);
-      case VALIDATE: return validate((ValidateCacheManager) message);
-      case CREATE_SERVER_STORE: return createServerStore(clientDescriptor, (CreateServerStore) message);
-      case VALIDATE_SERVER_STORE: return validateServerStore(clientDescriptor, (ValidateServerStore) message);
-      case RELEASE_SERVER_STORE: return releaseServerStore(clientDescriptor, (ReleaseServerStore) message);
-      case DESTROY_SERVER_STORE: return destroyServerStore(clientDescriptor, (DestroyServerStore) message);
+      case LIFECYCLE_OP: return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
+      case SERVER_STORE_OP: return invokeServerStoreOperation((ServerStoreOpMessage) message);
       default: throw new IllegalArgumentException("Unknown message " + message);
     }
   }
@@ -224,6 +222,44 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   @Override
   public void loadExisting() {
     //nothing to do
+  }
+
+  private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) {
+    try {
+      switch (message.operation()) {
+        case CONFIGURE: return configure((LifecycleMessage.ConfigureCacheManager) message);
+        case VALIDATE: return validate((ValidateCacheManager) message);
+        case CREATE_SERVER_STORE: return createServerStore(clientDescriptor, (CreateServerStore) message);
+        case VALIDATE_SERVER_STORE: return validateServerStore(clientDescriptor, (ValidateServerStore) message);
+        case RELEASE_SERVER_STORE: return releaseServerStore(clientDescriptor, (ReleaseServerStore) message);
+        case DESTROY_SERVER_STORE: return destroyServerStore(clientDescriptor, (DestroyServerStore) message);
+        default: throw new IllegalArgumentException("Unknown LifeCycle operation " + message);
+      }
+    } catch (Exception e) {
+      return EhcacheEntityResponse.failure(e);
+    }
+  }
+
+  private EhcacheEntityResponse invokeServerStoreOperation(ServerStoreOpMessage message) {
+    try {
+      ServerStore cacheStore = stores.get(message.getCacheId());
+      if (cacheStore == null) {
+        throw new IllegalStateException("Server Store not present for cacheId :" + message.getCacheId());
+      }
+      switch (message.operation()) {
+        case GET: return EhcacheEntityResponse.response(cacheStore.get(message.getKey()));
+        case APPEND: cacheStore.append(message.getKey(), ((ServerStoreOpMessage.AppendMessage)message).getPayload());
+          return EhcacheEntityResponse.success();
+        case GET_AND_APPEND: return EhcacheEntityResponse.response(cacheStore.getAndAppend(message.getKey(), ((ServerStoreOpMessage.GetAndAppendMessage)message).getPayload()));
+        case REPLACE:
+          ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
+          cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
+          return EhcacheEntityResponse.success();
+        default: throw new IllegalArgumentException("Unknown Server Store operation " + message);
+      }
+    } catch (Exception e) {
+      return EhcacheEntityResponse.failure(e);
+    }
   }
 
   /**

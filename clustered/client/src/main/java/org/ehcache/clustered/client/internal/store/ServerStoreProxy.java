@@ -16,6 +16,9 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.ServerStore;
 
@@ -27,10 +30,11 @@ import java.nio.ByteBuffer;
 public class ServerStoreProxy implements ServerStore {
 
   private final String cacheId;
+  private final EhcacheClientEntity entity;
 
-  // TODO: Provide EhcacheClientEntity or EntityClientEndpoint to support exchange with server
-  public ServerStoreProxy(String cacheId) {
+  public ServerStoreProxy(String cacheId, EhcacheClientEntity entity) {
     this.cacheId = cacheId;
+    this.entity = entity;
   }
 
   /**
@@ -44,25 +48,52 @@ public class ServerStoreProxy implements ServerStore {
 
   @Override
   public Chain get(long key) {
-    // TODO: Implement ServerStoreProxyImpl.get
-    throw new UnsupportedOperationException("ServerStoreProxyImpl.get not implemented");
+    EhcacheEntityResponse response;
+    try {
+      response = entity.invoke(EhcacheEntityMessage.getOperation(cacheId, key), false);
+    } catch (Exception e) {
+      throw new ServerStoreProxyException(e);
+    }
+    if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
+      return ((EhcacheEntityResponse.GetResponse)response).getChain();
+    } else {
+      throw new ServerStoreProxyException("Response for get operation was invalid : " +
+                                          response != null ? response.getType().toString() : "null message");
+    }
   }
 
   @Override
   public void append(long key, ByteBuffer payLoad) {
-    // TODO: Implement ServerStoreProxyImpl.append
-    throw new UnsupportedOperationException("ServerStoreProxyImpl.append not implemented");
+    try {
+      entity.invoke(EhcacheEntityMessage.appendOperation(cacheId, key, payLoad), true);
+    } catch (Exception e) {
+      throw new ServerStoreProxyException(e);
+    }
   }
 
   @Override
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
-    // TODO: Implement ServerStoreProxyImpl.getAndAppend
-    throw new UnsupportedOperationException("ServerStoreProxyImpl.getAndAppend not implemented");
+    EhcacheEntityResponse response;
+    try {
+      response = entity.invoke(EhcacheEntityMessage.getAndAppendOperation(cacheId, key, payLoad), true);
+    } catch (Exception e) {
+      throw new ServerStoreProxyException(e);
+    }
+    if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
+      return ((EhcacheEntityResponse.GetResponse)response).getChain();
+    } else {
+      throw new ServerStoreProxyException("Response for getAndAppend operation was invalid : " +
+                                          response != null ? response.getType().toString() : "null message");
+    }
   }
 
   @Override
   public void replaceAtHead(long key, Chain expect, Chain update) {
-    // TODO: Implement ServerStoreProxyImpl.replaceAtHead
-    throw new UnsupportedOperationException("ServerStoreProxyImpl.replaceAtHead not implemented");
+    // TODO: Optimize this method to just send sequences for expect Chain
+    try {
+      entity.invoke(EhcacheEntityMessage.replaceAtHeadOperation(cacheId, key, expect, update), true);
+    } catch (Exception e) {
+      throw new ServerStoreProxyException(e);
+    }
   }
 }

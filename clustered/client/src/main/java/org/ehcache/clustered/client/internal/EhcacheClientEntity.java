@@ -55,7 +55,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void validate(ServerSideConfiguration config) throws IllegalArgumentException {
     try {
-      invoke(EhcacheEntityMessage.validate(config));
+      invoke(EhcacheEntityMessage.validate(config), false);
     } catch (IllegalArgumentException e) {
       throw e;
     } catch (Throwable e) {
@@ -65,7 +65,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void configure(ServerSideConfiguration config) throws IllegalStateException {
     try {
-      invoke(EhcacheEntityMessage.configure(config));
+      invoke(EhcacheEntityMessage.configure(config), false);
     } catch (IllegalStateException e) {
       throw e;
     } catch (Throwable e) {
@@ -75,7 +75,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
     try {
-      invoke(EhcacheEntityMessage.createServerStore(name, serverStoreConfiguration));
+      invoke(EhcacheEntityMessage.createServerStore(name, serverStoreConfiguration), false);
     } catch (Exception e) {
       throw unwrapException(e, CachePersistenceException.class);
     }
@@ -83,7 +83,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
     try {
-      invoke(EhcacheEntityMessage.validateServerStore(name , serverStoreConfiguration));
+      invoke(EhcacheEntityMessage.validateServerStore(name , serverStoreConfiguration), false);
     } catch (Exception e) {
       throw unwrapException(e, CachePersistenceException.class);
     }
@@ -91,7 +91,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void releaseCache(String name) throws CachePersistenceException {
     try {
-      invoke(EhcacheEntityMessage.releaseServerStore(name));
+      invoke(EhcacheEntityMessage.releaseServerStore(name), false);
     } catch (Exception e) {
       throw unwrapException(e, CachePersistenceException.class);
     }
@@ -99,14 +99,20 @@ public class EhcacheClientEntity implements Entity {
 
   public void destroyCache(String name) throws CachePersistenceException {
     try {
-      invoke(EhcacheEntityMessage.destroyServerStore(name));
+      invoke(EhcacheEntityMessage.destroyServerStore(name), false);
     } catch (Exception e) {
       throw unwrapException(e, CachePersistenceException.class);
     }
   }
 
-  private EhcacheEntityResponse invoke(EhcacheEntityMessage message) throws Exception {
-    InvokeFuture<EhcacheEntityResponse> result = endpoint.beginInvoke().message(message).invoke();
+  public EhcacheEntityResponse invoke(EhcacheEntityMessage message, boolean waitUntilReplicated) throws Exception {
+    InvokeFuture<EhcacheEntityResponse> result = null;
+    if (waitUntilReplicated) {
+      result = endpoint.beginInvoke().message(message).replicate(true).ackCompleted().invoke();
+    } else {
+      result = endpoint.beginInvoke().message(message).invoke();
+    }
+
     boolean interrupted = false;
     try {
       while (true) {
