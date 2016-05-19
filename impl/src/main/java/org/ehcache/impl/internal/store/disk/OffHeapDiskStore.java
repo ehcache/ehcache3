@@ -30,6 +30,7 @@ import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
+import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
@@ -89,7 +90,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   protected final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
 
-  private final EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
+  private final SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final ClassLoader classLoader;
@@ -116,7 +117,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      this.evictionAdvisor = Eviction.noAdvice();
+      this.evictionAdvisor = wrap(Eviction.noAdvice());
     }
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
@@ -135,7 +136,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return Collections.emptyList();
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
     File metadataFile = getMetadataFile();
@@ -155,7 +156,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
     File metadataFile = getMetadataFile();
@@ -237,7 +238,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
     File metadataFile = getMetadataFile();
     FileOutputStream fos = new FileOutputStream(metadataFile);
     try {
@@ -270,6 +271,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   @Override
   protected EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap() {
     return map;
+  }
+
+  @Override
+  protected SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor() {
+    return evictionAdvisor;
   }
 
   private File getDataFile() {

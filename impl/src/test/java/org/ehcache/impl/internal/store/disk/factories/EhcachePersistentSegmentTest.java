@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.store.disk.factories;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory.EhcachePersistentSegment;
+import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
@@ -61,7 +62,7 @@ public class EhcachePersistentSegmentTest {
     return createTestSegment(Eviction.<String, String>noAdvice(), evictionListener);
   }
 
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionAdvisor<String, String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(final EvictionAdvisor<String, String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -72,7 +73,26 @@ public class EhcachePersistentSegmentTest {
       PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
       PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
       Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, keyPortability, elementPortability);
-      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, evictionPredicate, evictionListener);
+      SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
+
+        private volatile boolean enabled = true;
+
+        @Override
+        public boolean adviseAgainstEviction(String key, String value) {
+          return evictionPredicate.adviseAgainstEviction(key, value);
+        }
+
+        @Override
+        public boolean isSwitchedOn() {
+          return enabled;
+        }
+
+        @Override
+        public void setSwitchedOn(boolean switchedOn) {
+          this.enabled = switchedOn;
+        }
+      };
+      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, wrappedEvictionAdvisor, evictionListener);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }

@@ -63,7 +63,7 @@ import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBuffe
  */
 public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
-  private final EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
+  private final SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
   private final long sizeInBytes;
@@ -76,7 +76,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      this.evictionAdvisor = Eviction.noAdvice();
+      this.evictionAdvisor = wrap(Eviction.noAdvice());
     }
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();
@@ -88,7 +88,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     return Collections.emptyList();
   }
 
-  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
+  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
     HeuristicConfiguration config = new HeuristicConfiguration(size);
     PageSource source = new UpfrontAllocatingPageSource(getBufferSource(), config.getMaximumSize(), config.getMaximumChunkSize(), config.getMinimumChunkSize());
     Portability<K> keyPortability = new SerializerPortability<K>(keySerializer);
@@ -109,6 +109,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
   @Override
   protected EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap() {
     return map;
+  }
+
+  @Override
+  protected SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor() {
+    return evictionAdvisor;
   }
 
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class})
