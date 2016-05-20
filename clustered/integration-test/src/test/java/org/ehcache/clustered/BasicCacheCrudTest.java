@@ -69,7 +69,6 @@ public class BasicCacheCrudTest {
     try {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .heap(10, EntryUnit.ENTRIES)
               .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 1, MemoryUnit.MB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);

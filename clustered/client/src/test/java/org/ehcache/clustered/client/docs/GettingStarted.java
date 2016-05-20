@@ -81,11 +81,10 @@ public class GettingStarted {
                 .resourcePool("resource-pool-b", 128, MemoryUnit.B)) // <5>
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <6>
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES) // <7>
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB)))); // <8>
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true); // <9>
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB)))); // <7>
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true); // <8>
 
-    cacheManager.close(); // <10>
+    cacheManager.close(); // <9>
     // end::clusteredCacheManagerWithServerSideConfigExample[]
   }
 
@@ -103,7 +102,6 @@ public class GettingStarted {
     try {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                      .heap(10, EntryUnit.ENTRIES)
                       .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);

@@ -74,21 +74,22 @@ public class ClusteredStoreProviderTest {
     assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK);
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.HEAP);
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    // Tiering is not supported yet
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     // Multiple clustered resources not yet supported
     assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
