@@ -18,25 +18,24 @@ package org.ehcache.clustered.client.internal.store.operations.codecs;
 
 import org.ehcache.clustered.client.internal.store.operations.KeyValueOperation;
 import org.ehcache.clustered.client.internal.store.operations.OperationCode;
-import org.ehcache.clustered.client.internal.store.operations.PutOperation;
+import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
 import org.ehcache.spi.serialization.Serializer;
 
-import static org.ehcache.clustered.client.internal.store.operations.OperationCode.PUT;
+import static org.ehcache.clustered.client.internal.store.operations.OperationCode.PUT_IF_ABSENT;
 
-public class PutOperationCodec<K, V> extends BaseKeyValueOperationCodec<K, V> {
+public class PutIfAbsentOperationCodec<K, V>  extends BaseKeyValueOperationCodec<K, V> {
 
-  public PutOperationCodec(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+  public PutIfAbsentOperationCodec(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     super(keySerializer, valueSerializer);
   }
 
   @Override
-  protected OperationCode getOperationCode() {
-    return PUT;
+  protected KeyValueOperation<K, V> newOperation(final K key, final V value) {
+    return new PutIfAbsentOperation<K, V>(key, value);
   }
 
   @Override
-  protected KeyValueOperation<K, V> newOperation(final K key, final V value) {
-    return new PutOperation<K, V>(key, value);
+  protected OperationCode getOperationCode() {
+    return PUT_IF_ABSENT;
   }
-
 }

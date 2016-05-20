@@ -17,41 +17,41 @@
 package org.ehcache.clustered.client.internal.store.operations;
 
 /**
- * Base class that represents a {@link org.ehcache.Cache} operation
+ * Base class that represents {@link org.ehcache.Cache} operations
+ * that involves a key and a value.
  *
  * @param <K> key type
+ * @param <V> value type
  */
-public abstract class BaseOperation<K> implements Operation<K> {
+public abstract class BaseKeyValueOperation<K, V> extends BaseOperation<K> implements KeyValueOperation<K, V> {
 
-  protected final K key;
+  protected final V value;
 
-  public BaseOperation(final K key) {
-    this.key = key;
+  public BaseKeyValueOperation(final K key, final V value) {
+    super(key);
+    this.value = value;
   }
 
-  public K getKey() {
-    return key;
+  public V getValue() {
+    return this.value;
   }
 
   @Override
   public String toString() {
-    return getOpCode() + " key: " + key;
+    return super.toString() + ", value: " + value;
   }
 
   @Override
   public boolean equals(final Object obj) {
-    if(obj == null) {
+    if(!super.equals(obj)) {
       return false;
     }
-    if(!(obj instanceof BaseOperation)) {
+    if(!(obj instanceof BaseKeyValueOperation)) {
       return false;
     }
 
-    BaseOperation<K> other = (BaseOperation)obj;
-    if(this.getOpCode() != other.getOpCode()) {
-      return false;
-    }
-    if(!this.getKey().equals(other.getKey())) {
+    BaseKeyValueOperation<K, V> other = (BaseKeyValueOperation)obj;
+    if(!this.getValue().equals(other.getValue())) {
       return false;
     }
     return true;
@@ -59,6 +59,6 @@ public abstract class BaseOperation<K> implements Operation<K> {
 
   @Override
   public int hashCode() {
-    return getOpCode().hashCode() + (key == null ? 0: key.hashCode());
+    return super.hashCode() + (value == null? 0: value.hashCode());
   }
 }

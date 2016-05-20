@@ -16,28 +16,27 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-/**
- * Represents the PUT operation on a {@link org.ehcache.Cache}
- * @param <K> key type
- * @param <V> value type
- */
-public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> {
+public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> {
 
-  public PutOperation(final K key, final V value) {
+  public PutIfAbsentOperation(final K key, final V value) {
     super(key, value);
   }
 
   @Override
   public OperationCode getOpCode() {
-    return OperationCode.PUT;
+    return OperationCode.PUT_IF_ABSENT;
   }
 
   /**
-   * Put operation applied on top of another {@link Operation} does not care
-   * what the other operation is. The result is gonna be {@code this} operation.
+   * PutIfAbsent operation succeeds only when there is no previous operation
+   * for the same key.
    */
   @Override
   public Operation<K> apply(final Operation<K> previousOperation) {
-    return this;
+    if(previousOperation == null) {
+      return this;
+    } else {
+      return previousOperation;
+    }
   }
 }

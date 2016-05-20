@@ -14,20 +14,30 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations.codecs;
+package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.store.operations.Operation;
+import org.ehcache.impl.internal.store.AbstractValueHolder;
 
-import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
-/**
- * Generic operation codec for all {@link Operation}s
- *
- * @param <K> the key type
- */
-public interface OperationCodec<K> {
+public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
 
-  ByteBuffer encode(Operation<K> operation);
+  public static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
-  Operation<K> decode(ByteBuffer buffer);
+  private final V value;
+
+  public ClusteredValueHolder(V value) {
+    super(0, 0);
+    this.value = value;
+  }
+
+  @Override
+  protected TimeUnit nativeTimeUnit() {
+    return TIME_UNIT;
+  }
+
+  @Override
+  public V value() {
+    return value;
+  }
 }

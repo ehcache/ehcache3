@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.store.operations.codecs;
+package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.operations.Operation;
+public class RemoveOperation<K> extends BaseOperation<K> {
 
-import java.nio.ByteBuffer;
+  public RemoveOperation(final K key) {
+    super(key);
+  }
 
-/**
- * Generic operation codec for all {@link Operation}s
- *
- * @param <K> the key type
- */
-public interface OperationCodec<K> {
+  @Override
+  public OperationCode getOpCode() {
+    return OperationCode.REMOVE;
+  }
 
-  ByteBuffer encode(Operation<K> operation);
-
-  Operation<K> decode(ByteBuffer buffer);
+  /**
+   * Remove operation applied on top of another operation does not care
+   * what the other operation is. The result is always gonna be null.
+   */
+  @Override
+  public Operation<K> apply(final Operation<K> previousOperation) {
+    return null;
+  }
 }

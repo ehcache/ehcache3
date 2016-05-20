@@ -18,29 +18,23 @@ package org.ehcache.clustered.client.internal.store.operations.codecs;
 
 import org.ehcache.clustered.client.internal.store.operations.Operation;
 import org.ehcache.clustered.client.internal.store.operations.OperationCode;
+import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
+import org.ehcache.spi.serialization.Serializer;
 
-import java.nio.ByteBuffer;
+import static org.ehcache.clustered.client.internal.store.operations.OperationCode.REMOVE;
 
-public class OperationsCodec<K, V> {
-
-  public static final int BYTE_SIZE_BYTES = 1;
-  public static final int INT_SIZE_BYTES = 4;
-  public static final int LONG_SIZE_BYTES = 8;
-
-  private final OperationCodecProvider<K, V> codecProvider;
-
-  public OperationsCodec(final OperationCodecProvider<K, V> codecProvider) {
-    this.codecProvider = codecProvider;
+public class RemoveOperationCodec<K> extends BaseOperationCodec<K> {
+  public RemoveOperationCodec(final Serializer<K> keySerializer) {
+    super(keySerializer);
   }
 
-  public ByteBuffer encode(Operation<K> operation) {
-    OperationCode opCode = operation.getOpCode();
-    return codecProvider.getOperationCodec(opCode).encode(operation);
+  @Override
+  protected OperationCode getOperationCode() {
+    return REMOVE;
   }
 
-  public Operation<K> decode(ByteBuffer buffer) {
-    OperationCode opCode = OperationCode.valueOf(buffer.get());
-    buffer.rewind();
-    return codecProvider.getOperationCodec(opCode).decode(buffer);
+  @Override
+  protected Operation<K> newOperation(final K key) {
+    return new RemoveOperation<K>(key);
   }
 }

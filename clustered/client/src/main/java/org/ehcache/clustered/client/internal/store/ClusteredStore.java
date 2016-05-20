@@ -18,8 +18,15 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
+import org.ehcache.clustered.client.internal.store.operations.KeyValueOperation;
+import org.ehcache.clustered.client.internal.store.operations.Operation;
+import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
+import org.ehcache.clustered.client.internal.store.operations.PutOperation;
+import org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecProvider;
+import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
+import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.internal.store.StoreSupport;
@@ -37,6 +44,7 @@ import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,16 +74,31 @@ public class ClusteredStore<K, V> implements Store<K, V> {
 
   private final ServerStoreProxy storeProxy;
   private final Store<K, V> underlyingStore;
+  private final OperationsCodec<K, V> codec;
+  private final ChainResolver<K, V> resolver;
 
-  private ClusteredStore(ServerStoreProxy serverStoreProxy, Store<K, V> underlyingStore) {
+  private ClusteredStore(ServerStoreProxy serverStoreProxy, Store<K, V> underlyingStore,
+                         final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.storeProxy = serverStoreProxy;
     this.underlyingStore = underlyingStore;
+    this.codec = codec;
+    this.resolver = resolver;
   }
 
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    return underlyingStore.get(key);
+    Chain chain = storeProxy.get(key.hashCode());
+    ResolvedChain<K> resolvedChain = resolver.resolve(chain, key);
+
+    Chain compactedChain = resolvedChain.getCompactedChain();
+    storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
+
+    Operation<K> resolvedOperation = resolvedChain.getResolvedOperation(key);
+    V value = null;
+    if(resolvedOperation != null && resolvedOperation instanceof KeyValueOperation) {
+      value = ((KeyValueOperation<K, V>)resolvedOperation).getValue();
+    }
+    return new ClusteredValueHolder<V>(value);
   }
 
   @Override
@@ -86,8 +109,10 @@ public class ClusteredStore<K, V> implements Store<K, V> {
 
   @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    return underlyingStore.put(key, value);
+    PutOperation<K, V> operation = new PutOperation<K, V>(key, value);
+    ByteBuffer payload = codec.encode(operation);
+    storeProxy.append(key.hashCode(), payload);
+    return PutStatus.PUT; // TODO: 17/05/16 Do we need to differentiate between different statuses?
   }
 
   @Override
@@ -231,7 +256,11 @@ public class ClusteredStore<K, V> implements Store<K, V> {
 
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
       ServerStoreProxy serverStoreProxy = clusteringService.getServerStoreProxy(cacheId, storeConfig);
-      Store<K, V> store = new ClusteredStore<K, V>(serverStoreProxy, underlyingStore);
+      OperationCodecProvider<K, V> codecProvider =
+          new OperationCodecProvider<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
+      OperationsCodec<K, V> codec = new OperationsCodec<K, V>(codecProvider);
+      ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec);
+      Store<K, V> store = new ClusteredStore<K, V>(serverStoreProxy, underlyingStore, codec, resolver);
 
       createdStores.put(store, underlyingStoreProvider);
       return store;
