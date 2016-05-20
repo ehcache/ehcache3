@@ -98,6 +98,7 @@ public class BasicClusteredCacheTest {
     final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
 
     cache1.put(1L, "value");
+    cache2.put(2L, "value2");
     assertThat(cache1.get(1L), is("value"));
     assertThat(cache2.get(1L), is("value"));
 

@@ -49,6 +49,7 @@ public class ServerStoreProxy implements ServerStore {
           long key = response.getKey();
           System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", server notified that clients invalidated key " + key);
           List<CountDownLatch> countDownLatches = invalidationsInProgress.get(key);
+          //TODO: in case of eventual consistency, countDownLatches will be null - it might be good enough to just skip the countDown and remove
           countDownLatches.remove(0).countDown();
           if (countDownLatches.isEmpty()) {
             invalidationsInProgress.remove(key, Collections.emptyList());
@@ -113,6 +114,7 @@ public class ServerStoreProxy implements ServerStore {
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     EhcacheEntityResponse response;
     try {
+      //TODO: wait for invalidation in strong consistency
       response = entity.invoke(EhcacheEntityMessage.getAndAppendOperation(cacheId, key, payLoad), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
