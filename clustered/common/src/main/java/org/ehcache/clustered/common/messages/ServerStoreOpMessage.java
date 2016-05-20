@@ -158,8 +158,16 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   }
 
   public static class ClientInvalidateHashAck extends ServerStoreOpMessage {
-    ClientInvalidateHashAck(String cacheId, long key) {
+
+    private final int invalidationId;
+
+    ClientInvalidateHashAck(String cacheId, long key, int invalidationId) {
       super(cacheId, key);
+      this.invalidationId = invalidationId;
+    }
+
+    public int getInvalidationId() {
+      return invalidationId;
     }
 
     @Override

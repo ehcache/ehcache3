@@ -60,10 +60,11 @@ public class ResponseCodec {
       case CLIENT_INVALIDATE_HASH: {
         ClientInvalidateHash clientInvalidateHash = (ClientInvalidateHash) response;
         byte[] cacheIdBytes = clientInvalidateHash.getCacheId().getBytes(Charset.forName("UTF-8"));
-        buffer = ByteBuffer.allocate(OP_CODE_OFFSET + cacheIdBytes.length + 8);
+        buffer = ByteBuffer.allocate(OP_CODE_OFFSET + cacheIdBytes.length + 12);
         buffer.put(EhcacheEntityResponse.Type.CLIENT_INVALIDATE_HASH.getOpCode());
         buffer.put(cacheIdBytes);
         buffer.putLong(clientInvalidateHash.getKey());
+        buffer.putInt(((ClientInvalidateHash) response).getInvalidationId());
         return buffer.array();
       }
       default:
@@ -91,9 +92,11 @@ public class ResponseCodec {
         return EhcacheEntityResponse.invalidationDone(cacheId, key);
       }
       case CLIENT_INVALIDATE_HASH: {
-        String cacheId = new String(payArr, 0, payArr.length - 8, Charset.forName("UTF-8"));
-        long key = ByteBuffer.wrap(payArr, payArr.length - 8, 8).getLong();
-        return EhcacheEntityResponse.clientInvalidateHash(cacheId, key);
+        String cacheId = new String(payArr, 0, payArr.length - 12, Charset.forName("UTF-8"));
+        ByteBuffer byteBuffer = ByteBuffer.wrap(payArr, payArr.length - 12, 12);
+        long key = byteBuffer.getLong();
+        int invalidationId = byteBuffer.getInt();
+        return EhcacheEntityResponse.clientInvalidateHash(cacheId, key, invalidationId);
       }
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + type);

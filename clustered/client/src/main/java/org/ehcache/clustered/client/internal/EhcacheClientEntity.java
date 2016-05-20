@@ -73,11 +73,12 @@ public class EhcacheClientEntity implements Entity {
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
         final String cacheId = response.getCacheId();
         final long key = response.getKey();
+        final int invalidationId = response.getInvalidationId();
 
-        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId);
+        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + "(ID " + invalidationId + ")");
 
         try {
-          invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key), true); //TODO: wait until replicated or not?
+          invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key, invalidationId), true); //TODO: wait until replicated or not?
         } catch (Exception e) {
           LOGGER.warn("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
         }

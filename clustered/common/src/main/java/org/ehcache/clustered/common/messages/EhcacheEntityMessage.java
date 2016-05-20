@@ -92,8 +92,8 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
     return new ServerStoreOpMessage.ReplaceAtHeadMessage(cacheId, key, expect, update);
   }
 
-  public static EhcacheEntityMessage clientInvalidateHashAck(String cacheId, long key) {
-    return new ServerStoreOpMessage.ClientInvalidateHashAck(cacheId, key);
+  public static EhcacheEntityMessage clientInvalidateHashAck(String cacheId, long key, int invalidationId) {
+    return new ServerStoreOpMessage.ClientInvalidateHashAck(cacheId, key, invalidationId);
   }
 
 }
