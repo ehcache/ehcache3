@@ -111,9 +111,9 @@ import org.terracotta.passthrough.PassthroughServer;
  */
 public class UnitTestConnectionService implements ConnectionService {
 
-  private static Logger LOGGER = LoggerFactory.getLogger(UnitTestConnectionService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UnitTestConnectionService.class);
 
-  private static final Map<URI, ServerDescriptor> servers = new HashMap<URI, ServerDescriptor>();
+  private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<URI, ServerDescriptor>();
 
   /**
    * Adds a {@link PassthroughServer} if, and only if, a mapping for the {@code URI} supplied does not
@@ -125,11 +125,11 @@ public class UnitTestConnectionService implements ConnectionService {
    */
   public static void add(URI uri, PassthroughServer server) {
     URI keyURI = createKey(uri);
-    if (servers.containsKey(keyURI)) {
+    if (SERVERS.containsKey(keyURI)) {
       throw new AssertionError("Server at " + uri + " already provided; use remove() to remove");
     }
 
-    servers.put(keyURI, new ServerDescriptor(server));
+    SERVERS.put(keyURI, new ServerDescriptor(server));
     server.start();
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
@@ -158,7 +158,7 @@ public class UnitTestConnectionService implements ConnectionService {
    */
   public static PassthroughServer remove(URI uri) {
     URI keyURI = createKey(uri);
-    ServerDescriptor serverDescriptor = servers.remove(keyURI);
+    ServerDescriptor serverDescriptor = SERVERS.remove(keyURI);
     if (serverDescriptor != null) {
       serverDescriptor.server.stop();
       LOGGER.info("Stopped PassthroughServer at {}", keyURI);
@@ -293,7 +293,7 @@ public class UnitTestConnectionService implements ConnectionService {
   }
 
   public static Collection<Properties> getConnectionProperties(URI uri) {
-    ServerDescriptor serverDescriptor = servers.get(createKey(uri));
+    ServerDescriptor serverDescriptor = SERVERS.get(createKey(uri));
     if (serverDescriptor != null) {
       return serverDescriptor.getConnections().values();
     } else {
@@ -303,14 +303,15 @@ public class UnitTestConnectionService implements ConnectionService {
 
   @Override
   public boolean handlesURI(URI uri) {
-    return servers.containsKey(createKey(uri));
+    checkURI(uri);
+    return SERVERS.containsKey(uri);
   }
 
   @Override
   public Connection connect(URI uri, Properties properties) throws ConnectionException {
+    checkURI(uri);
 
-    URI keyURI = createKey(uri);
-    ServerDescriptor serverDescriptor = servers.get(keyURI);
+    ServerDescriptor serverDescriptor = SERVERS.get(uri);
     if (serverDescriptor == null) {
       throw new IllegalArgumentException("No server available for " + uri);
     }
@@ -318,7 +319,7 @@ public class UnitTestConnectionService implements ConnectionService {
     Connection connection = serverDescriptor.server.connectNewClient();
     serverDescriptor.add(connection, properties);
 
-    LOGGER.info("Client opened {} to PassthroughServer at {}", formatConnectionId(connection), keyURI);
+    LOGGER.info("Client opened {} to PassthroughServer at {}", formatConnectionId(connection), uri);
 
     /*
      * Uses a Proxy around Connection so closed connections can be removed from the ServerDescriptor.
@@ -326,6 +327,22 @@ public class UnitTestConnectionService implements ConnectionService {
     return (Connection) Proxy.newProxyInstance(Connection.class.getClassLoader(),
         new Class[] { Connection.class },
         new ConnectionInvocationHandler(serverDescriptor, connection));
+  }
+
+  /**
+   * Ensures that the {@code URI} presented conforms to the value used to locate a server.
+   *
+   * @param requestURI the {@code URI} to check
+   *
+   * @throws IllegalArgumentException if the {@code URI} is not equal to the {@code URI} as reformed
+   *          by {@link #createKey(URI)}
+   *
+   * @see #checkURI(URI)
+   */
+  private static void checkURI(URI requestURI) throws IllegalArgumentException {
+    if (!requestURI.equals(createKey(requestURI))) {
+      throw new IllegalArgumentException("Connection URI contains user-info, path, query, and/or fragment");
+    }
   }
 
   /**

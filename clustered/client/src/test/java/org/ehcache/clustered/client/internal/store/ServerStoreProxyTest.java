@@ -46,7 +46,7 @@ import static org.ehcache.clustered.common.store.Util.getChain;
 public class ServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
-  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510/TestCacheManager");
+  private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
   private static EhcacheClientEntity clientEntity;
   private static ServerStoreProxy serverStoreProxy;
