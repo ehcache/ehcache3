@@ -166,21 +166,30 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     public Chain getUpdate() {
       return update;
     }
+  }
 
-    public static class ClientInvalidateHashAck extends ServerStoreOpMessage {
-      ClientInvalidateHashAck(String cacheId, long key) {
-        super(cacheId, key);
-      }
 
-      @Override
-      public ServerStoreOp operation() {
-        return ServerStoreOp.CLIENT_INVALIDATE_HASH_ACK;
-      }
+  public static class ClientInvalidateHashAck extends ServerStoreOpMessage {
 
-      @Override
-      public byte getOpCode() {
-        return ServerStoreOp.CLIENT_INVALIDATE_HASH_ACK.getStoreOpCode();
-      }
+    private final int invalidationId;
+
+    public ClientInvalidateHashAck(String cacheId, long key, int invalidationId) {
+      super(cacheId, key);
+      this.invalidationId = invalidationId;
+    }
+
+    public int getInvalidationId() {
+      return invalidationId;
+    }
+
+    @Override
+    public ServerStoreOp operation() {
+      return ServerStoreOp.CLIENT_INVALIDATE_HASH_ACK;
+    }
+
+    @Override
+    public byte getOpCode() {
+      return ServerStoreOp.CLIENT_INVALIDATE_HASH_ACK.getStoreOpCode();
     }
   }
 

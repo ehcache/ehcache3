@@ -79,8 +79,10 @@ class ServerStoreOpCodec {
         encodedMsg.put(encodedUpdatedChain);
         return encodedMsg.array();
       case CLIENT_INVALIDATE_HASH_ACK:
-        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen);
+        ReplaceAtHeadMessage.ClientInvalidateHashAck clientInvalidateHashAck = (ReplaceAtHeadMessage.ClientInvalidateHashAck) message;
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + 4);
         putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
+        encodedMsg.putInt(clientInvalidateHashAck.getInvalidationId());
         return encodedMsg.array();
       case CLEAR:
         ClearMessage clearMessage = (ClearMessage)message;
@@ -138,7 +140,9 @@ class ServerStoreOpCodec {
         return new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
             chainCodec.decode(encodedUpdateChain));
       case CLIENT_INVALIDATE_HASH_ACK:
-        return new ReplaceAtHeadMessage.ClientInvalidateHashAck(cacheId, key);
+        ByteBuffer remainingBuf = ByteBuffer.wrap(remaining);
+        int invalidationId = remainingBuf.getInt();
+        return new ReplaceAtHeadMessage.ClientInvalidateHashAck(cacheId, key, invalidationId);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 

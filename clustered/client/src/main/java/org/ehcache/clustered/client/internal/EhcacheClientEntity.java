@@ -25,6 +25,7 @@ import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
@@ -35,11 +36,11 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  *
@@ -47,10 +48,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class EhcacheClientEntity implements Entity {
 
+  public interface ResponseListener<T extends EhcacheEntityResponse> {
+    void onResponse(T response);
+  }
+
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
+  private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
 
   public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
@@ -76,19 +82,18 @@ public class EhcacheClientEntity implements Entity {
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
         final String cacheId = response.getCacheId();
         final long key = response.getKey();
+        final int invalidationId = response.getInvalidationId();
 
-        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId);
+        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + "(ID " + invalidationId + ")");
 
         try {
-          invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key), true); //TODO: wait until replicated or not?
+          invoke(new ServerStoreOpMessage.ClientInvalidateHashAck(cacheId, key, invalidationId), true); //TODO: wait until replicated or not?
         } catch (Exception e) {
           LOGGER.warn("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
         }
       }
     });
   }
-
-  private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
 
   private void fireResponseEvent(EhcacheEntityResponse response) {
     List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(response.getClass());
@@ -103,14 +108,10 @@ public class EhcacheClientEntity implements Entity {
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
     List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
     if (responseListeners == null) {
-      responseListeners = new ArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
+      responseListeners = new CopyOnWriteArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
       this.responseListeners.put(responseType, responseListeners);
     }
     responseListeners.add(responseListener);
-  }
-
-  public interface ResponseListener<T extends EhcacheEntityResponse> {
-    void onResponse(T response);
   }
 
   public UUID identity() {

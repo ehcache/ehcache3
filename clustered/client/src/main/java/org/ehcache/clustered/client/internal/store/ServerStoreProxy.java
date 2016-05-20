@@ -45,8 +45,11 @@ public class ServerStoreProxy implements ServerStore {
       @Override
       public void onResponse(EhcacheEntityResponse.InvalidationDone response) {
         if (response.getCacheId().equals(ServerStoreProxy.this.cacheId)) {
-          System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", server notified that clients invalidated key " + response.getKey());
-          invalidationsInProgress.get(response.getKey()).countDown();
+          long key = response.getKey();
+          System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", server notified that clients invalidated key " + key);
+          //TODO: in case of eventual consistency, countDownLatch will be null - it might be good enough to just skip the countDown
+          CountDownLatch countDownLatch = invalidationsInProgress.remove(key);
+          countDownLatch.countDown();
         } else {
           System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", ignoring invalidation on unrelated cache : " + response.getCacheId());
         }
@@ -82,17 +85,20 @@ public class ServerStoreProxy implements ServerStore {
   @Override
   public void append(long key, ByteBuffer payLoad) {
     try {
-      entity.invoke(messageFactory.appendOperation(key, payLoad), true);
       CountDownLatch latch = new CountDownLatch(1);
-      invalidationsInProgress.put(key, latch);
+      while (true) {
+        CountDownLatch countDownLatch = invalidationsInProgress.putIfAbsent(key, latch);
+        if (countDownLatch == null) {
+          break;
+        }
+        countDownLatch.await();
+      }
 
       entity.invoke(messageFactory.appendOperation(key, payLoad), true);
 
-      //TODO: eventual should not need to wait on the latch
-      //TODO: concurrent invalidation waits on the same key won't work with such mechanism
+      //TODO: eventual should not need to wait on a latch
       latch.await();
       System.out.println("CLIENT: key " + key + " invalidated on all clients, unblocking append");
-      invalidationsInProgress.remove(key);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
@@ -102,6 +108,7 @@ public class ServerStoreProxy implements ServerStore {
   public Chain getAndAppend(long key, ByteBuffer payLoad) {
     EhcacheEntityResponse response;
     try {
+      //TODO: wait for invalidation in strong consistency
       response = entity.invoke(messageFactory.getAndAppendOperation(key, payLoad), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
