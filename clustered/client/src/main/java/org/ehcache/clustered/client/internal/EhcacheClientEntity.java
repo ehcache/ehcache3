@@ -16,21 +16,29 @@
 
 package org.ehcache.clustered.client.internal;
 
-import java.util.UUID;
-
 import org.ehcache.CachePersistenceException;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
+import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
+import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  *
@@ -38,11 +46,70 @@ import org.terracotta.exception.EntityException;
  */
 public class EhcacheClientEntity implements Entity {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
+
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
 
   public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
+    endpoint.setDelegate(new EndpointDelegate() {
+      @Override
+      public void handleMessage(EntityResponse messageFromServer) {
+        fireResponseEvent((EhcacheEntityResponse) messageFromServer);
+      }
+
+      @Override
+      public byte[] createExtendedReconnectData() {
+        return new byte[0];
+      }
+
+      @Override
+      public void didDisconnectUnexpectedly() {
+
+      }
+    });
+    addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
+      @Override
+      public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
+        final String cacheId = response.getCacheId();
+        final long key = response.getKey();
+
+        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId);
+
+        try {
+          invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key), true); //TODO: wait until replicated or not?
+        } catch (Exception e) {
+          LOGGER.warn("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
+        }
+      }
+    });
   }
+
+  private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
+
+  private void fireResponseEvent(EhcacheEntityResponse response) {
+    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(response.getClass());
+    if (responseListeners == null) {
+      return;
+    }
+    for (ResponseListener responseListener : responseListeners) {
+      responseListener.onResponse(response);
+    }
+  }
+
+  public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
+    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
+    if (responseListeners == null) {
+      responseListeners = new ArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
+      this.responseListeners.put(responseType, responseListeners);
+    }
+    responseListeners.add(responseListener);
+  }
+
+  public interface ResponseListener<T extends EhcacheEntityResponse> {
+    void onResponse(T response);
+  }
+
 
   public UUID identity() {
     return ClusteredEhcacheIdentity.deserialize(endpoint.getEntityConfiguration());

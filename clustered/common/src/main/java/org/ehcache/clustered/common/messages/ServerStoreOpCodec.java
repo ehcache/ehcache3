@@ -88,6 +88,14 @@ public class ServerStoreOpCodec {
         encodedMsg.putInt(encodedUpdatedChain.length);
         encodedMsg.put(encodedUpdatedChain);
         return encodedMsg.array();
+      case CLIENT_INVALIDATE_HASH_ACK:
+        encodedMsg = ByteBuffer.allocate(MSG_TYPE_OFFSET + STORE_OP_CODE_OFFSET + CACHE_ID_LEN_OFFSET + cacheIdLen + KEY_OFFSET);
+        encodedMsg.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
+        encodedMsg.putInt(cacheIdLen);
+        encodedMsg.put(message.getCacheId().getBytes(UTF_8));
+        encodedMsg.putLong(message.getKey());
+        encodedMsg.put(message.operation().getStoreOpCode());
+        return encodedMsg.array();
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.operation());
     }
@@ -122,6 +130,8 @@ public class ServerStoreOpCodec {
         replaceBuf.get(encodedUpdateChain);
         return EhcacheEntityMessage.replaceAtHeadOperation(cacheId, key, ChainCodec.decode(encodedExpectChain),
             ChainCodec.decode(encodedUpdateChain));
+      case CLIENT_INVALIDATE_HASH_ACK:
+        return EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 

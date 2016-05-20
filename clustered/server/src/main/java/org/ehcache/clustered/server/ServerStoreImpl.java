@@ -30,12 +30,14 @@ class ServerStoreImpl implements ServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;
-  private final OffHeapServerStore store;
+  private final ServerStore store;
 
   ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
-    this.store = new OffHeapServerStore(pageSource, OFFHEAP_CHAIN_SEGMENTS);
+    //TODO: workaround for broken OffHeapServerStore
+//    this.store = new OffHeapServerStore(pageSource, OFFHEAP_CHAIN_SEGMENTS);
+    this.store = new ReferenceStoreImpl();
   }
 
   /**

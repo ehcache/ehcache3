@@ -23,6 +23,9 @@ import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.ServerStore;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Provides client-side access to the services of a {@code ServerStore}.
@@ -31,10 +34,22 @@ public class ServerStoreProxy implements ServerStore {
 
   private final String cacheId;
   private final EhcacheClientEntity entity;
+  private final ConcurrentMap<Long, CountDownLatch> invalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
 
   public ServerStoreProxy(String cacheId, EhcacheClientEntity entity) {
     this.cacheId = cacheId;
     this.entity = entity;
+    entity.addResponseListener(EhcacheEntityResponse.InvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.InvalidationDone>() {
+      @Override
+      public void onResponse(EhcacheEntityResponse.InvalidationDone response) {
+        if (response.getCacheId().equals(ServerStoreProxy.this.cacheId)) {
+          System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", server notified that clients invalidated key " + response.getKey());
+          invalidationsInProgress.get(response.getKey()).countDown();
+        } else {
+          System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", ignoring invalidation on unrelated cache : " + response.getCacheId());
+        }
+      }
+    });
   }
 
   /**
@@ -65,7 +80,16 @@ public class ServerStoreProxy implements ServerStore {
   @Override
   public void append(long key, ByteBuffer payLoad) {
     try {
+      CountDownLatch latch = new CountDownLatch(1);
+      invalidationsInProgress.put(key, latch);
+
       entity.invoke(EhcacheEntityMessage.appendOperation(cacheId, key, payLoad), true);
+
+      //TODO: eventual should not need to wait on the latch
+      //TODO: concurrent invalidation waits on the same key won't work with such mechanism
+      latch.await();
+      System.out.println("CLIENT: key " + key + " invalidated on all clients, unblocking append");
+      invalidationsInProgress.remove(key);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }

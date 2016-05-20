@@ -47,7 +47,7 @@ public class ChainBuilder {
   public Chain build() {
     ByteBuffer[] elements = new ByteBuffer[buffers.size()];
     buffers.toArray(elements);
-    return Util.getChain(false, elements);
+    return Util.getChain(true, elements);
   }
 
 }
