@@ -27,6 +27,7 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.junit.After;
 import org.junit.Test;
 
 import java.net.URI;
@@ -45,7 +46,16 @@ public class GettingStarted {
 
   @Before
   public void resetPassthroughServer() throws Exception {
-    UnitTestConnectionService.reset();
+    UnitTestConnectionService.add("http://localhost:9510/my-application?auto-create",
+        new UnitTestConnectionService.PassthroughServerBuilder()
+            .resource("primary-server-resource", 64, MemoryUnit.MB)
+            .resource("secondary-server-resource", 64, MemoryUnit.MB)
+            .build());
+  }
+
+  @After
+  public void removePassthroughServer() throws Exception {
+    UnitTestConnectionService.remove("http://localhost:9510/my-application?auto-create");
   }
 
   @Test
@@ -84,7 +94,7 @@ public class GettingStarted {
     // tag::clusteredCacheManagerWithServerSideConfigExample
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://localhost:9510/my-application?auto-create"))
                     .defaultServerResource("primary-server-resource")
                     .resourcePool("resource-pool-a", 128, MemoryUnit.B));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
@@ -108,7 +118,7 @@ public class GettingStarted {
     // tag::clusteredCacheManagerWithServerSideConfigExample
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://localhost:9510/my-application?auto-create"))
             .defaultServerResource("primary-server-resource"));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
