@@ -17,13 +17,12 @@
 package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
 
 import java.nio.ByteBuffer;
-import java.util.AbstractMap;
-import java.util.Map;
 
 public class ChainResolver<K, V> {
 
@@ -47,7 +46,7 @@ public class ChainResolver<K, V> {
    * and the compacted chain as the value
    * @throws ClassNotFoundException
    */
-  public Map.Entry<Operation<K>, Chain> resolve(Chain chain, K key) {
+  public ResolvedChain<K> resolve(Chain chain, K key) {
     Operation<K> resolvedOperation = null;
     ChainBuilder chainBuilder = new ChainBuilder();
     for (Element element : chain) {
@@ -64,6 +63,6 @@ public class ChainResolver<K, V> {
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }
-    return new AbstractMap.SimpleEntry<Operation<K>, Chain>(resolvedOperation, chainBuilder.build());
+    return new ResolvedChain.SimpleResolvedChain<K>(chainBuilder.build(), resolvedOperation);
   }
 }

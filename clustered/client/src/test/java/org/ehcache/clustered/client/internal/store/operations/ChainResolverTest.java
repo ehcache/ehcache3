@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecProvider;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
@@ -58,12 +59,12 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertEquals(expected, resolvedOp);
 
-    Chain resolvedChain = entry.getValue();
-    List<Operation<Long>> operations = getOperationsListFromChain(resolvedChain);
+    Chain compactedChain = resolvedChain.getCompactedChain();
+    List<Operation<Long>> operations = getOperationsListFromChain(compactedChain);
 
     List<Operation<Long>> expectedOps = new ArrayList<Operation<Long>>();
     expectedOps.add(new PutOperation<Long, String>(2L, "Albin"));
@@ -78,12 +79,12 @@ public class ChainResolverTest {
   public void testResolveEmptyChain() throws Exception {
     Chain chain = (new ChainBuilder()).build();
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertNull(resolvedOp);
 
-    Chain resolvedChain = entry.getValue();
-    assertTrue(resolvedChain.isEmpty());
+    Chain compactedChain = resolvedChain.getCompactedChain();
+    assertTrue(compactedChain.isEmpty());
   }
 
   @Test
@@ -95,12 +96,12 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 3L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 3L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(3L);
     assertNull(resolvedOp);
 
-    Chain resolvedChain = entry.getValue();
-    List<Operation<Long>> expectedOperations = getOperationsListFromChain(resolvedChain);
+    Chain compactedChain = resolvedChain.getCompactedChain();
+    List<Operation<Long>> expectedOperations = getOperationsListFromChain(compactedChain);
     assertThat(expectedOperations, IsIterableContainingInOrder.contains(list.toArray()));
   }
 
@@ -112,8 +113,8 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertEquals(expected, resolvedOp);
   }
 
@@ -128,8 +129,8 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertEquals(expected, resolvedOp);
   }
 
@@ -140,8 +141,8 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertNull(resolvedOp);
   }
 
@@ -153,8 +154,8 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertNull(resolvedOp);
   }
 
@@ -166,8 +167,8 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertNull(resolvedOp);
   }
 
@@ -179,8 +180,8 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertEquals(expected, resolvedOp);
   }
 
@@ -194,8 +195,8 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertEquals(expected, resolvedOp);
   }
 
@@ -209,8 +210,8 @@ public class ChainResolverTest {
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    Map.Entry<Operation<Long>, Chain> entry = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = entry.getKey();
+    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
+    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
     assertEquals(expected, resolvedOp);
   }
 
