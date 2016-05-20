@@ -74,13 +74,12 @@ import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmon
 // TODO: Remove underlyingStore when ServerStore/ServerStoreProxy is complete
 public class ClusteredStore<K, V> implements Store<K, V> {
 
-  private final ServerStoreProxy storeProxy;
   private final OperationsCodec<K, V> codec;
   private final ChainResolver<K, V> resolver;
 
-  private ClusteredStore(ServerStoreProxy serverStoreProxy,
-                         final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
-    this.storeProxy = serverStoreProxy;
+  private volatile ServerStoreProxy storeProxy;
+
+  private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
     this.resolver = resolver;
   }
@@ -229,6 +228,8 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     private volatile ServiceProvider<Service> serviceProvider;
     private volatile ClusteringService clusteringService;
 
+    private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, StoreConfig>();
+
     @Override
     public <K, V> Store<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       if (clusteringService == null) {
@@ -247,27 +248,33 @@ public class ClusteredStore<K, V> implements Store<K, V> {
       }
 
       // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.CacheStore.Provider
-
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
-      ServerStoreProxy serverStoreProxy = clusteringService.getServerStoreProxy(cacheId, storeConfig);
       OperationCodecProvider<K, V> codecProvider =
           new OperationCodecProvider<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
       OperationsCodec<K, V> codec = new OperationsCodec<K, V>(codecProvider);
       ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec);
-      Store<K, V> store = new ClusteredStore<K, V>(serverStoreProxy, codec, resolver);
-
+      Store<K, V> store = new ClusteredStore<K, V>(codec, resolver);
+      createdStores.put(store, new StoreConfig(cacheId, storeConfig));
       return store;
     }
 
     @Override
     public void releaseStore(final Store<?, ?> resource) {
+      if (createdStores.remove(resource) == null) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
       ClusteredStore clusteredStore = (ClusteredStore)resource;
       this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy);
     }
 
     @Override
     public void initStore(final Store<?, ?> resource) {
-      //no op
+      StoreConfig storeConfig = createdStores.get(resource);
+      if (storeConfig == null) {
+        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+      }
+      ClusteredStore clusteredStore = (ClusteredStore) resource;
+      clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig());
     }
 
     @Override
@@ -288,7 +295,27 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     @Override
     public void stop() {
       this.serviceProvider = null;
+      createdStores.clear();
     }
 
+  }
+
+  private static class StoreConfig {
+
+    private final ClusteredCacheIdentifier cacheIdentifier;
+    private final Store.Configuration storeConfig;
+
+    StoreConfig(ClusteredCacheIdentifier cacheIdentifier, Store.Configuration storeConfig) {
+      this.cacheIdentifier = cacheIdentifier;
+      this.storeConfig = storeConfig;
+    }
+
+    public Configuration getStoreConfig() {
+      return this.storeConfig;
+    }
+
+    public ClusteredCacheIdentifier getCacheIdentifier() {
+      return this.cacheIdentifier;
+    }
   }
 }
