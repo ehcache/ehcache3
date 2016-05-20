@@ -27,6 +27,7 @@ import java.util.Properties;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
+import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
@@ -167,6 +168,8 @@ class DefaultClusteringService implements ClusteringService {
   public void create() {
     try {
       entityFactory.create(entityIdentifier, serverConfiguration);
+    } catch (EhcacheEntityCreationException e) {
+      throw new IllegalStateException(e);
     } catch (EntityAlreadyExistsException e) {
       throw new IllegalStateException(e);
     }
@@ -249,9 +252,13 @@ class DefaultClusteringService implements ClusteringService {
 
     if (autoCreate) {
       try {
-        this.entity.createCache(cacheId, clientStoreConfiguration);
+        this.entity.validateCache(cacheId, clientStoreConfiguration);
       } catch (CachePersistenceException e) {
-        throw new ClusteredStoreCreationException("Error creating server-side cache for " + cacheId, e);
+        try {
+          this.entity.createCache(cacheId, clientStoreConfiguration);
+        } catch (CachePersistenceException ex) {
+          throw new ClusteredStoreCreationException("Error creating server-side cache for " + cacheId, ex);
+        }
       }
     } else {
       try {

@@ -16,6 +16,8 @@
 
 package org.ehcache.clustered.common;
 
+import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+
 /**
  * Provides configuration compatibility checks for {@link ServerStoreConfiguration}
  * between client and server specifications.
@@ -37,9 +39,30 @@ public class ServerStoreCompatibility {
     StringBuilder sb = new StringBuilder("Existing ServerStore configuration is not compatible with the desired configuration: ");
 
     boolean isCompatible;
+
+    PoolAllocation serverPoolAllocation = serverConfiguration.getPoolAllocation();
+    PoolAllocation clientPoolAllocation = clientConfiguration.getPoolAllocation();
     isCompatible = compareField(sb, "resourcePoolType",
-        serverConfiguration.getPoolAllocation().getClass().getName(),
-        clientConfiguration.getPoolAllocation().getClass().getName());
+        serverPoolAllocation.getClass().getName(),
+        clientPoolAllocation.getClass().getName());
+    if (serverPoolAllocation instanceof PoolAllocation.Fixed) {
+      PoolAllocation.Fixed serverFixedAllocation = (PoolAllocation.Fixed)serverPoolAllocation;
+      PoolAllocation.Fixed clientFixedAllocation = (PoolAllocation.Fixed)clientPoolAllocation;
+      if (compareField(sb, "resourcePoolFixedResourceName",
+          serverFixedAllocation.getResourceName(),
+          clientFixedAllocation.getResourceName())) {
+        if (clientFixedAllocation.getSize() > serverFixedAllocation.getSize()) {
+          appendFault(sb, "resourcePoolFixedSize", serverFixedAllocation.getSize(), clientFixedAllocation.getSize());
+          isCompatible &= false;
+        }
+      } else {
+        isCompatible &= false;
+      }
+    } else if (serverPoolAllocation instanceof PoolAllocation.Shared) {
+      isCompatible &= compareField(sb, "resourcePoolSharedPoolName",
+          ((PoolAllocation.Shared)serverPoolAllocation).getResourcePoolName(),
+          ((PoolAllocation.Shared)clientPoolAllocation).getResourcePoolName());
+    }
 
     isCompatible &= compareField(sb, "storedKeyType", serverConfiguration.getStoredKeyType(), clientConfiguration.getStoredKeyType());
     isCompatible &= compareField(sb, "storedValueType", serverConfiguration.getStoredValueType(), clientConfiguration.getStoredValueType());
@@ -59,10 +82,13 @@ public class ServerStoreCompatibility {
       return true;
     }
 
+    appendFault(sb, fieldName, serverConfigValue, clientConfigValue);
+    return false;
+  }
+
+  private static void appendFault(StringBuilder sb, String fieldName, Object serverConfigValue, Object clientConfigValue) {
     sb.append("\n\t").append(fieldName)
         .append(" existing: ").append(serverConfigValue)
         .append(" desired: ").append(clientConfigValue);
-
-    return false;
   }
 }

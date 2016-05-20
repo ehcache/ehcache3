@@ -68,4 +68,35 @@ public class BasicClusteredCacheTest {
 
     cacheManager.close();
   }
+
+  @Test
+  public void underlyingHeapTwoClients() throws Exception {
+
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+        CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://example.com:9540/my-application?auto-create"))
+                .defaultServerResource("primary-server-resource")
+                .resourcePool("resource-pool-a", 128, MemoryUnit.KB)
+                .resourcePool("resource-pool-b", 128, MemoryUnit.KB, "secondary-server-resource"))
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .heap(10, EntryUnit.ENTRIES)
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))));
+
+    final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
+    final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);
+
+    final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
+    final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
+
+    cache1.put(1L, "value");
+    assertThat(cache1.containsKey(1L), is(true));
+    assertThat(cache1.get(1L), is("value"));
+    // TODO: Unblock once clustered cache operations are implemented.
+//    assertThat(cache2.containsKey(1L), is(true));
+//    assertThat(cache2.get(1L), is("value"));
+
+    cacheManager2.close();
+    cacheManager1.close();
+  }
 }
