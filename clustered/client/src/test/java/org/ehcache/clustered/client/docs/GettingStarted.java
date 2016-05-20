@@ -90,7 +90,7 @@ public class GettingStarted {
 
   @Test
   public void clusteredCacheManagerWithDynamicallyAddedCacheExample() throws Exception {
-    // tag::clusteredCacheManagerWithServerSideConfigExample
+    // tag::clusteredCacheManagerWithDynamicallyAddedCacheExample[]
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
             = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://localhost:9510/my-application?auto-create"))
@@ -102,18 +102,19 @@ public class GettingStarted {
     try {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                      .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB))).build();
+                      .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+
     } finally {
       cacheManager.close();
     }
-    // end::clusteredCacheManagerWithServerSideConfigExample
+    // end::clusteredCacheManagerWithDynamicallyAddedCacheExample[]
   }
 
   @Test
   public void clusteredCachePutGet() throws Exception {
-    // tag::clusteredCacheManagerWithServerSideConfigExample
+    // tag::clusteredCachePutGet[]
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("http://localhost:9510/my-application?auto-create"))
@@ -124,7 +125,6 @@ public class GettingStarted {
     try {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .heap(10, EntryUnit.ENTRIES)
               .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 1, MemoryUnit.MB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
@@ -138,6 +138,7 @@ public class GettingStarted {
     } finally {
       cacheManager.close();
     }
-    // end::clusteredCacheManagerWithServerSideConfigExample
+    // tag::clusteredCachePutGet[]
   }
+
 }

@@ -71,13 +71,12 @@ include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client
 <5> Adds a resource pool for the cache manager with the specified name(*resource-pool-b*) and size(*128B*).
     Since the server storage identifier is not explicitly passed, this resource pool will be consumed out of default server resource provided in Step 3.
     This demonstrates that a cache manager with clustering support can have multiple resource pools created out of several server storage resources.
-<6> Provide the cache configuration to be created
-<7> Adding heap resource for the cache.
-<8> Allocates resource pool of the given/fixed size to the cache from the specified server storage resource.`.fixed(String , long , MemoryUnit )` allocates the resources from
+<6> Provide the cache configuration to be created.
+<7> Allocates resource pool of the given/fixed size to the cache from the specified server storage resource.`.fixed(String , long , MemoryUnit )` allocates the resources from
     the server storage resource identifier specified in the first argument.
     Fixed size of the memory and its MemoryUnit being the 2nd and 3rd arguments respectively.
     In the example, unnamed resource pool of 32KB is allocated for cache from server storage resource with the name *primary-server-resource*.
     Caches can also be configured with shared resource pools where multiple caches can share the resources from the same resource pool.
     This can be achieved using `.shared(String)`, passing the name of the resource pool. The resource pool name can be used by other caches to share the resource pool.
-<9> Creates fully initialized cache manager with the clustered cache(*clustered-cache*).
-<10> Close the cache manager.
+<8> Creates fully initialized cache manager with the clustered cache(*clustered-cache*).
+<9> Close the cache manager.
