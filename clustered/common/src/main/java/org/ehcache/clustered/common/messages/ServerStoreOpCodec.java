@@ -78,6 +78,10 @@ class ServerStoreOpCodec {
         encodedMsg.putInt(encodedUpdatedChain.length);
         encodedMsg.put(encodedUpdatedChain);
         return encodedMsg.array();
+      case CLIENT_INVALIDATE_HASH_ACK:
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen);
+        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
+        return encodedMsg.array();
       case CLEAR:
         ClearMessage clearMessage = (ClearMessage)message;
         encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + 2 * cacheIdLen);
@@ -133,6 +137,8 @@ class ServerStoreOpCodec {
         replaceBuf.get(encodedUpdateChain);
         return new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
             chainCodec.decode(encodedUpdateChain));
+      case CLIENT_INVALIDATE_HASH_ACK:
+        return new ReplaceAtHeadMessage.ClientInvalidateHashAck(cacheId, key);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 
