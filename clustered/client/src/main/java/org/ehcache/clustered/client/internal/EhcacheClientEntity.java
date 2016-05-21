@@ -34,11 +34,11 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  *
@@ -46,9 +46,14 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class EhcacheClientEntity implements Entity {
 
+  public interface ResponseListener<T extends EhcacheEntityResponse> {
+    void onResponse(T response);
+  }
+
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
+  private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
 
   public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
@@ -86,8 +91,6 @@ public class EhcacheClientEntity implements Entity {
     });
   }
 
-  private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
-
   private void fireResponseEvent(EhcacheEntityResponse response) {
     List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(response.getClass());
     if (responseListeners == null) {
@@ -101,16 +104,11 @@ public class EhcacheClientEntity implements Entity {
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
     List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
     if (responseListeners == null) {
-      responseListeners = new ArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
+      responseListeners = new CopyOnWriteArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
       this.responseListeners.put(responseType, responseListeners);
     }
     responseListeners.add(responseListener);
   }
-
-  public interface ResponseListener<T extends EhcacheEntityResponse> {
-    void onResponse(T response);
-  }
-
 
   public UUID identity() {
     return ClusteredEhcacheIdentity.deserialize(endpoint.getEntityConfiguration());

@@ -24,9 +24,9 @@ import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
-import org.ehcache.clustered.common.messages.LifecycleMessage.ConfigureCacheManager;
 import org.hamcrest.Matchers;
 import org.junit.Test;
+import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -52,6 +52,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 /**
  *
@@ -96,7 +97,7 @@ public class EhcacheActiveEntityTest {
    */
   @Test
   public void testConnected() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(null, ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -110,7 +111,7 @@ public class EhcacheActiveEntityTest {
 
   @Test
   public void testConnectedAgain() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(null, ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -127,7 +128,7 @@ public class EhcacheActiveEntityTest {
 
   @Test
   public void testConnectedSecond() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(null, ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -149,7 +150,7 @@ public class EhcacheActiveEntityTest {
    */
   @Test
   public void testDisconnectedNotConnected() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(null, ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.disconnected(client);
@@ -161,7 +162,7 @@ public class EhcacheActiveEntityTest {
    */
   @Test
   public void testDisconnected() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(null, ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -178,7 +179,7 @@ public class EhcacheActiveEntityTest {
    */
   @Test
   public void testDisconnectedSecond() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(null, ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -1344,7 +1345,7 @@ public class EhcacheActiveEntityTest {
 
   @Test
   public void testDestroyEmpty() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(null, ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
     activeEntity.destroy();
   }
 
@@ -1575,6 +1576,8 @@ public class EhcacheActiveEntityTest {
           this.pools.put(resourceIdentifier, offHeapResource);
         }
         return (T)offHeapResource;    // unchecked
+      } else if (serviceConfiguration.getServiceType().equals(ClientCommunicator.class)) {
+        return (T)mock(ClientCommunicator.class);
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

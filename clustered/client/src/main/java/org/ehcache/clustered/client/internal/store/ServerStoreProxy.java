@@ -23,11 +23,8 @@ import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.ServerStore;
 
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -37,7 +34,7 @@ public class ServerStoreProxy implements ServerStore {
 
   private final String cacheId;
   private final EhcacheClientEntity entity;
-  private final ConcurrentMap<Long, List<CountDownLatch>> invalidationsInProgress = new ConcurrentHashMap<Long, List<CountDownLatch>>();
+  private final ConcurrentMap<Long, CountDownLatch> invalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
 
   public ServerStoreProxy(String cacheId, EhcacheClientEntity entity) {
     this.cacheId = cacheId;
@@ -48,12 +45,9 @@ public class ServerStoreProxy implements ServerStore {
         if (response.getCacheId().equals(ServerStoreProxy.this.cacheId)) {
           long key = response.getKey();
           System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", server notified that clients invalidated key " + key);
-          List<CountDownLatch> countDownLatches = invalidationsInProgress.get(key);
-          //TODO: in case of eventual consistency, countDownLatches will be null - it might be good enough to just skip the countDown and remove
-          countDownLatches.remove(0).countDown();
-          if (countDownLatches.isEmpty()) {
-            invalidationsInProgress.remove(key, Collections.emptyList());
-          }
+          //TODO: in case of eventual consistency, countDownLatch will be null - it might be good enough to just skip the countDown
+          CountDownLatch countDownLatch = invalidationsInProgress.remove(key);
+          countDownLatch.countDown();
         } else {
           System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", ignoring invalidation on unrelated cache : " + response.getCacheId());
         }
@@ -89,16 +83,14 @@ public class ServerStoreProxy implements ServerStore {
   @Override
   public void append(long key, ByteBuffer payLoad) {
     try {
-      List<CountDownLatch> countDownLatches = invalidationsInProgress.get(key);
-      if (countDownLatches == null) {
-        countDownLatches = new CopyOnWriteArrayList<CountDownLatch>();
-        List<CountDownLatch> raceWinner = invalidationsInProgress.putIfAbsent(key, countDownLatches);
-        if (raceWinner != null) {
-          countDownLatches = raceWinner;
-        }
-      }
       CountDownLatch latch = new CountDownLatch(1);
-      countDownLatches.add(latch);
+      while (true) {
+        CountDownLatch countDownLatch = invalidationsInProgress.putIfAbsent(key, latch);
+        if (countDownLatch == null) {
+          break;
+        }
+        countDownLatch.await();
+      }
 
       entity.invoke(EhcacheEntityMessage.appendOperation(cacheId, key, payLoad), true);
 
