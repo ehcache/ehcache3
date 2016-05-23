@@ -17,12 +17,16 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.ServerStore;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CountDownLatch;
@@ -32,27 +36,75 @@ import java.util.concurrent.CountDownLatch;
  */
 public class ServerStoreProxy implements ServerStore {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServerStoreProxy.class);
+
   private final String cacheId;
   private final EhcacheClientEntity entity;
+  private final Consistency consistency;
   private final ConcurrentMap<Long, CountDownLatch> invalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
 
-  public ServerStoreProxy(String cacheId, EhcacheClientEntity entity) {
+  public ServerStoreProxy(String cacheId, final EhcacheClientEntity entity, final Consistency consistency) {
     this.cacheId = cacheId;
     this.entity = entity;
-    entity.addResponseListener(EhcacheEntityResponse.InvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.InvalidationDone>() {
+    this.consistency = consistency;
+    if (consistency == Consistency.STRONG) {
+      entity.addResponseListener(EhcacheEntityResponse.InvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.InvalidationDone>() {
+        @Override
+        public void onResponse(EhcacheEntityResponse.InvalidationDone response) {
+          if (response.getCacheId().equals(ServerStoreProxy.this.cacheId)) {
+            long key = response.getKey();
+            System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", server notified that clients invalidated key " + key);
+            CountDownLatch countDownLatch = invalidationsInProgress.remove(key);
+            countDownLatch.countDown();
+          } else {
+            System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", ignoring invalidation on unrelated cache : " + response.getCacheId());
+          }
+        }
+      });
+    }
+    entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
       @Override
-      public void onResponse(EhcacheEntityResponse.InvalidationDone response) {
-        if (response.getCacheId().equals(ServerStoreProxy.this.cacheId)) {
-          long key = response.getKey();
-          System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", server notified that clients invalidated key " + key);
-          //TODO: in case of eventual consistency, countDownLatch will be null - it might be good enough to just skip the countDown
-          CountDownLatch countDownLatch = invalidationsInProgress.remove(key);
-          countDownLatch.countDown();
-        } else {
-          System.out.println("CLIENT: on cache " + ServerStoreProxy.this.cacheId + ", ignoring invalidation on unrelated cache : " + response.getCacheId());
+      public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
+        final String cacheId = response.getCacheId();
+        final long key = response.getKey();
+        final int invalidationId = response.getInvalidationId();
+
+        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
+        //TODO: wire invalidation valve here
+
+        if (consistency == Consistency.STRONG) {
+          try {
+            System.out.println("CLIENT: ack'ing invalidation of hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
+            entity.invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key, invalidationId), true); //TODO: wait until replicated or not?
+          } catch (Exception e) {
+            LOGGER.warn("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
+          }
         }
       }
     });
+  }
+
+  private EhcacheEntityResponse performWaitingForInvalidationIfNeeded(long key, Callable<EhcacheEntityResponse> c) throws Exception {
+    CountDownLatch latch = null;
+    if (consistency == Consistency.STRONG) {
+      latch = new CountDownLatch(1);
+      while (true) {
+        CountDownLatch countDownLatch = invalidationsInProgress.putIfAbsent(key, latch);
+        if (countDownLatch == null) {
+          break;
+        }
+        countDownLatch.await();
+      }
+    }
+
+    try {
+      return c.call();
+    } finally {
+      if (latch != null) {
+        latch.await();
+        System.out.println("CLIENT: key " + key + " invalidated on all clients, unblocking append");
+      }
+    }
   }
 
   /**
@@ -81,33 +133,29 @@ public class ServerStoreProxy implements ServerStore {
   }
 
   @Override
-  public void append(long key, ByteBuffer payLoad) {
+  public void append(final long key, final ByteBuffer payLoad) {
     try {
-      CountDownLatch latch = new CountDownLatch(1);
-      while (true) {
-        CountDownLatch countDownLatch = invalidationsInProgress.putIfAbsent(key, latch);
-        if (countDownLatch == null) {
-          break;
+      performWaitingForInvalidationIfNeeded(key, new Callable<EhcacheEntityResponse>() {
+        @Override
+        public EhcacheEntityResponse call() throws Exception {
+          return entity.invoke(EhcacheEntityMessage.appendOperation(cacheId, key, payLoad), true);
         }
-        countDownLatch.await();
-      }
-
-      entity.invoke(EhcacheEntityMessage.appendOperation(cacheId, key, payLoad), true);
-
-      //TODO: eventual should not need to wait on a latch
-      latch.await();
-      System.out.println("CLIENT: key " + key + " invalidated on all clients, unblocking append");
+      });
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
   }
 
   @Override
-  public Chain getAndAppend(long key, ByteBuffer payLoad) {
+  public Chain getAndAppend(final long key, final ByteBuffer payLoad) {
     EhcacheEntityResponse response;
     try {
-      //TODO: wait for invalidation in strong consistency
-      response = entity.invoke(EhcacheEntityMessage.getAndAppendOperation(cacheId, key, payLoad), true);
+      response = performWaitingForInvalidationIfNeeded(key, new Callable<EhcacheEntityResponse>() {
+        @Override
+        public EhcacheEntityResponse call() throws Exception {
+          return entity.invoke(EhcacheEntityMessage.getAndAppendOperation(cacheId, key, payLoad), true);
+        }
+      });
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }

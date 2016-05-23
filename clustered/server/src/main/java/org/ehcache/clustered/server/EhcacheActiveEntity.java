@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreCompatibility;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
@@ -46,6 +47,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -303,36 +305,12 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         case GET: return response(cacheStore.get(message.getKey()));
         case APPEND:  {
           cacheStore.append(message.getKey(), ((ServerStoreOpMessage.AppendMessage) message).getPayload());
-
-          //TODO: no need to notify originating client in eventual consistency mode
-          // invalidate
-          int invalidationId = invalidationIdGenerator.getAndIncrement();
-          Set<ClientDescriptor> clientsToInvalidate = new HashSet<ClientDescriptor>(storeClientMap.get(message.getCacheId()));
-          int clientCountHavingToInvalidate = clientsToInvalidate.size() - 1;
-          InvalidationHolder invalidationHolder = new InvalidationHolder(clientDescriptor, clientCountHavingToInvalidate);
-          clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
-          System.out.println("SERVER: requesting " + clientCountHavingToInvalidate + " client(s) invalidation of hash " + message.getKey() + " in cache "+ message.getCacheId() + " (ID " + invalidationId + ")");
-          for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
-            if (clientDescriptor.equals(clientDescriptorThatHasToInvalidate)) {
-              continue;
-            }
-            System.out.println("SERVER: asking client " + clientDescriptorThatHasToInvalidate + " to invalidate hash " + message.getKey() + " from cache " + message.getCacheId() + " (ID " + invalidationId + ")");
-            clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateHash(message.getCacheId(), message.getKey(), invalidationId));
-          }
-
-          if (clientCountHavingToInvalidate == 0) {
-            System.out.println("SERVER: no client has to invalidate, immediately notifying originating client (ID " + invalidationId + ")");
-            clientsWaitingForInvalidation.remove(invalidationId);
-            clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, EhcacheEntityResponse.invalidationDone(message.getCacheId(), message.getKey()));
-          }
-
+          invalidate(clientDescriptor, message.getCacheId(), message.getKey());
           return EhcacheEntityResponse.success();
         }
         case GET_AND_APPEND: {
           EhcacheEntityResponse.GetResponse response = EhcacheEntityResponse.response(cacheStore.getAndAppend(message.getKey(), ((ServerStoreOpMessage.GetAndAppendMessage) message).getPayload()));
-
-          //TODO invalidate
-
+          invalidate(clientDescriptor, message.getCacheId(), message.getKey());
           return response;
         }
         case REPLACE:
@@ -345,11 +323,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           String cacheId = message.getCacheId();
           int invalidationId = clientInvalidateHashAck.getInvalidationId();
           System.out.println("SERVER: got notification of invalidation ack on key " + key + " in cache " + cacheId + " from " + clientDescriptor + " (ID " + invalidationId + ")");
-          InvalidationHolder invalidationHolder = clientsWaitingForInvalidation.get(invalidationId);
-          if (invalidationHolder.clientCountHavingToInvalidate.decrementAndGet() == 0) {
-            clientsWaitingForInvalidation.remove(invalidationId);
-            clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, EhcacheEntityResponse.invalidationDone(cacheId, key));
-            System.out.println("SERVER: notifying originating client that all other clients invalidated key " + key + " in cache " + cacheId + " from " + clientDescriptor + " (ID " + invalidationId + ")");
+          if (stores.get(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
+            InvalidationHolder invalidationHolder = clientsWaitingForInvalidation.get(invalidationId);
+            if (invalidationHolder.clientCountHavingToInvalidate.decrementAndGet() == 0) {
+              clientsWaitingForInvalidation.remove(invalidationId);
+              clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, EhcacheEntityResponse.invalidationDone(cacheId, key));
+              System.out.println("SERVER: notifying originating client that all other clients invalidated key " + key + " in cache " + cacheId + " from " + clientDescriptor + " (ID " + invalidationId + ")");
+            }
           }
           return EhcacheEntityResponse.success();
         default:
@@ -360,6 +340,33 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
     } catch (Exception e) {
       return failure(e);
+    }
+  }
+
+  private void invalidate(ClientDescriptor originatingClientDescriptor, String cacheId, long key) throws MessageCodecException {
+    int invalidationId = invalidationIdGenerator.getAndIncrement();
+    Set<ClientDescriptor> clientsToInvalidate = new HashSet<ClientDescriptor>(storeClientMap.get(cacheId));
+    int clientCountHavingToInvalidate = clientsToInvalidate.size() - 1;
+
+    InvalidationHolder invalidationHolder = null;
+    if (stores.get(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
+      invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientCountHavingToInvalidate);
+      clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
+    }
+
+    System.out.println("SERVER: requesting " + clientCountHavingToInvalidate + " client(s) invalidation of hash " + key + " in cache " + cacheId + " (ID " + invalidationId + ")");
+    for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
+      if (originatingClientDescriptor.equals(clientDescriptorThatHasToInvalidate)) {
+        continue;
+      }
+      System.out.println("SERVER: asking client " + clientDescriptorThatHasToInvalidate + " to invalidate hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
+      clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateHash(cacheId, key, invalidationId));
+    }
+
+    if (invalidationHolder != null && clientCountHavingToInvalidate == 0) {
+      System.out.println("SERVER: no client has to invalidate, immediately notifying originating client (ID " + invalidationId + ")");
+      clientsWaitingForInvalidation.remove(invalidationId);
+      clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, EhcacheEntityResponse.invalidationDone(cacheId, key));
     }
   }
 

@@ -18,19 +18,19 @@ package org.ehcache.clustered.client;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
+import org.ehcache.clustered.client.internal.store.ClusteredStoreServiceConfiguration;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.passthrough.PassthroughServer;
 
 import java.net.URI;
 
@@ -89,7 +89,9 @@ public class BasicClusteredCacheTest {
             .with(cluster(CLUSTER_URI))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))));
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                .add(new ClusteredStoreServiceConfiguration().consistency(Consistency.STRONG)))
+        ;
 
     final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
     final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);

@@ -21,6 +21,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.store.Chain;
@@ -66,10 +67,12 @@ public class ServerStoreProxyTest {
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.fixed(16L, MemoryUnit.MB);
 
+    Consistency consistency = Consistency.EVENTUAL;
+
     clientEntity.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName()));
-    serverStoreProxy = new ServerStoreProxy(CACHE_IDENTIFIER, clientEntity);
+        .getName(), consistency));
+    serverStoreProxy = new ServerStoreProxy(CACHE_IDENTIFIER, clientEntity, consistency);
   }
 
   @AfterClass

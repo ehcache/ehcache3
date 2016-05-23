@@ -1504,7 +1504,7 @@ public class EhcacheActiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-          actualKeyType, actualValueType, keySerializerType, valueSerializerType);
+          actualKeyType, actualValueType, keySerializerType, valueSerializerType, null);
     }
   }
 

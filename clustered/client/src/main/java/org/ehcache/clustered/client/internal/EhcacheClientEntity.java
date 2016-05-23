@@ -24,8 +24,6 @@ import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
@@ -50,8 +48,6 @@ public class EhcacheClientEntity implements Entity {
     void onResponse(T response);
   }
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
-
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
 
@@ -71,22 +67,6 @@ public class EhcacheClientEntity implements Entity {
       @Override
       public void didDisconnectUnexpectedly() {
 
-      }
-    });
-    addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
-        final String cacheId = response.getCacheId();
-        final long key = response.getKey();
-        final int invalidationId = response.getInvalidationId();
-
-        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + "(ID " + invalidationId + ")");
-
-        try {
-          invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key, invalidationId), true); //TODO: wait until replicated or not?
-        } catch (Exception e) {
-          LOGGER.warn("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
-        }
       }
     });
   }
