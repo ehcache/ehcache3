@@ -82,7 +82,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
     private final Exception cause;
 
-    private Failure(Exception cause) {
+    Failure(Exception cause) {
       this.cause = cause;
     }
 
@@ -104,7 +104,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
     private final Chain chain;
 
-    private GetResponse(Chain chain) {
+    GetResponse(Chain chain) {
       this.chain = chain;
     }
 
