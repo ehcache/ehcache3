@@ -23,6 +23,7 @@ import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
@@ -39,9 +40,11 @@ import org.terracotta.exception.EntityException;
 public class EhcacheClientEntity implements Entity {
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
+  private final LifeCycleMessageFactory messageFactory;
 
-  public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
+  public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint, LifeCycleMessageFactory messageFactory) {
     this.endpoint = endpoint;
+    this.messageFactory = messageFactory;
   }
 
   public UUID identity() {
@@ -55,7 +58,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void validate(ServerSideConfiguration config) throws IllegalArgumentException {
     try {
-      invokeInternal(EhcacheEntityMessage.validate(config), false);
+      invokeInternal(messageFactory.validateCacheManger(config), false);
     } catch (Exception e) {
       throw convert(e, IllegalArgumentException.class, ILLEGAL_ARGUMENT_EXCEPTION_CTOR);
     }
@@ -63,7 +66,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void configure(ServerSideConfiguration config) throws IllegalStateException {
     try {
-      invokeInternal(EhcacheEntityMessage.configure(config), false);
+      invokeInternal(messageFactory.configureCacheManager(config), false);
     } catch (Exception e) {
       throw convert(e, IllegalStateException.class, ILLEGAL_STATE_EXCEPTION_CTOR);
     }
@@ -71,7 +74,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
     try {
-      invokeInternal(EhcacheEntityMessage.createServerStore(name, serverStoreConfiguration), false);
+      invokeInternal(messageFactory.createServerStore(name, serverStoreConfiguration), false);
     } catch (Exception e) {
       throw convert(e, CachePersistenceException.class, CACHE_PERSISTENCE_EXCEPTION_CTOR);
     }
@@ -79,7 +82,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
     try {
-      invokeInternal(EhcacheEntityMessage.validateServerStore(name , serverStoreConfiguration), false);
+      invokeInternal(messageFactory.validateServerStore(name , serverStoreConfiguration), false);
     } catch (Exception e) {
       throw convert(e, CachePersistenceException.class, CACHE_PERSISTENCE_EXCEPTION_CTOR);
     }
@@ -87,7 +90,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void releaseCache(String name) throws CachePersistenceException {
     try {
-      invokeInternal(EhcacheEntityMessage.releaseServerStore(name), false);
+      invokeInternal(messageFactory.releaseServerStore(name), false);
     } catch (Exception e) {
       throw convert(e, CachePersistenceException.class, CACHE_PERSISTENCE_EXCEPTION_CTOR);
     }
@@ -95,7 +98,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void destroyCache(String name) throws CachePersistenceException {
     try {
-      invokeInternal(EhcacheEntityMessage.destroyServerStore(name), false);
+      invokeInternal(messageFactory.destroyServerStore(name), false);
     } catch (Exception e) {
       throw convert(e, CachePersistenceException.class, CACHE_PERSISTENCE_EXCEPTION_CTOR);
     }

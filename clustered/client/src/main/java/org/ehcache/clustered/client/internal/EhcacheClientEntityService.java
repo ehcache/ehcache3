@@ -21,6 +21,7 @@ import java.util.UUID;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.messages.EhcacheCodec;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
 import org.terracotta.entity.EntityClientEndpoint;
@@ -46,7 +47,7 @@ public class EhcacheClientEntityService implements EntityClientService<EhcacheCl
 
   @Override
   public EhcacheClientEntity create(EntityClientEndpoint endpoint) {
-    return new EhcacheClientEntity(endpoint);
+    return new EhcacheClientEntity(endpoint, new LifeCycleMessageFactory());
   }
 
   @Override
