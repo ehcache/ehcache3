@@ -74,23 +74,24 @@ public class ClusteredStoreProviderTest {
     assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK);
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.HEAP);
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    // TODO: Tiering is not supported yet, update this accordingly
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    // Multiple clustered resources not yet supported
+    // TODO: Multiple clustered resources not yet supported, will it be
     assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
     assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
     assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
@@ -114,7 +115,7 @@ public class ClusteredStoreProviderTest {
       }
     };
     assertRank(provider, 0, unmatchedResourceType);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, unmatchedResourceType);
+    assertRank(provider, 1, ClusteredResourceType.Types.FIXED);
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {

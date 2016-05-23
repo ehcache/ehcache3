@@ -59,7 +59,7 @@ public class BasicClusteredCacheTest {
   }
 
   @Test
-  public void underlyingHeap() throws Exception {
+  public void testClusteredCacheSingleClient() throws Exception {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -69,21 +69,19 @@ public class BasicClusteredCacheTest {
                 .resourcePool("resource-pool-b", 128, MemoryUnit.KB, "secondary-server-resource"))
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
 
     cache.put(1L, "value");
-//    assertThat(cache.containsKey(1L), is(true));
     assertThat(cache.get(1L), is("value"));
 
     cacheManager.close();
   }
 
   @Test
-  public void underlyingHeapTwoClients() throws Exception {
+  public void testClusteredCacheTwoClients() throws Exception {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -93,7 +91,6 @@ public class BasicClusteredCacheTest {
                 .resourcePool("resource-pool-b", 128, MemoryUnit.KB, "secondary-server-resource"))
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))));
 
     final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);

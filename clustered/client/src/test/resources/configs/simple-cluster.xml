@@ -12,7 +12,6 @@
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap unit="entries">10</ehcache:heap>
       <tc:cluster-fixed from="primary-server-resource" unit="MB">16</tc:cluster-fixed>
     </ehcache:resources>
   </ehcache:cache>
