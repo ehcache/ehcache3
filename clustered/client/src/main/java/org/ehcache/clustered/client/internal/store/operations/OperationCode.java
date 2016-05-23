@@ -39,6 +39,24 @@ public enum OperationCode {
     public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
       return new PutIfAbsentOperation<K, V>(buffer, keySerializer, valueSerializer);
     }
+  },
+  REMOVE_CONDITIONAL((byte)4) {
+    @Override
+    public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+      return new ConditionalRemoveOperation<K, V>(buffer, keySerializer, valueSerializer);
+    }
+  },
+  REPLACE((byte)5) {
+    @Override
+    public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+      return new ReplaceOperation<K, V>(buffer, keySerializer, valueSerializer);
+    }
+  },
+  REPLACE_CONDITIONAL((byte)6) {
+    @Override
+    public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+      return new ConditionalReplaceOperation<K, V>(buffer, keySerializer, valueSerializer);
+    }
   };
 
   private byte value;
@@ -61,6 +79,12 @@ public enum OperationCode {
         return REMOVE;
       case 3:
         return PUT_IF_ABSENT;
+      case 4:
+        return REMOVE_CONDITIONAL;
+      case 5:
+        return REPLACE;
+      case 6:
+        return REPLACE_CONDITIONAL;
       default:
         throw new IllegalArgumentException("Operation undefined for the value " + value);
     }
