@@ -15,6 +15,8 @@
  */
 package org.ehcache.clustered.common.messages;
 
+import org.ehcache.clustered.common.store.Util;
+
 import java.nio.ByteBuffer;
 
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
@@ -28,7 +30,7 @@ public class ResponseCodec {
     switch (response.getType()) {
       case FAILURE:
         Failure failure = (Failure)response;
-        byte[] failureMsg = LifeCycleOpCodec.marshall(failure.getCause());
+        byte[] failureMsg = Util.marshall(failure.getCause());
         ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_OFFSET + failureMsg.length);
         buffer.put(EhcacheEntityResponse.Type.FAILURE.getOpCode());
         buffer.put(failureMsg);
@@ -60,7 +62,7 @@ public class ResponseCodec {
       case SUCCESS:
         return EhcacheEntityResponse.success();
       case FAILURE:
-        Exception exception = (Exception)LifeCycleOpCodec.unmarshall(payArr);
+        Exception exception = (Exception)Util.unmarshall(payArr);
         return EhcacheEntityResponse.failure(exception);
       case GET_RESPONSE:
         return EhcacheEntityResponse.response(ChainCodec.decode(payArr));

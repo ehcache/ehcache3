@@ -29,7 +29,7 @@ public class EhcacheEntityResponseFactory {
     return new EhcacheEntityResponse.Failure(cause);
   }
 
-  public EhcacheEntityResponse getResponse(Chain chain) {
+  public EhcacheEntityResponse response(Chain chain) {
     return new EhcacheEntityResponse.GetResponse(chain);
   }
 }

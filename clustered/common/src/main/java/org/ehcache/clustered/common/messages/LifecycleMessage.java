@@ -17,8 +17,10 @@ package org.ehcache.clustered.common.messages;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.store.Util;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 
 /**
  *
@@ -40,6 +42,15 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
   }
 
   public abstract LifeCycleOp operation();
+
+  @Override
+  public byte[] encode() {
+    byte[] encodedMsg = Util.marshall(this);
+    ByteBuffer buffer = ByteBuffer.allocate(1 + encodedMsg.length);
+    buffer.put(EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode());
+    buffer.put(encodedMsg);
+    return buffer.array();
+  }
 
   public static class ValidateCacheManager extends LifecycleMessage {
     private static final long serialVersionUID = 5742152283115139745L;

@@ -17,13 +17,18 @@ package org.ehcache.clustered.common.messages;
 
 
 import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.store.Util;
 import org.terracotta.entity.EntityResponse;
+
+import java.nio.ByteBuffer;
 
 /**
  *
  * @author cdennis
  */
 public abstract class EhcacheEntityResponse implements EntityResponse {
+
+  private static final byte OP_CODE_OFFSET = 1;
 
   public enum Type {
     SUCCESS((byte) 0),
@@ -54,6 +59,8 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
+  public abstract byte[] encode();
+
   public abstract Type getType();
 
   public static Success success() {
@@ -71,6 +78,13 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     @Override
     public Type getType() {
       return Type.SUCCESS;
+    }
+
+    @Override
+    public byte[] encode() {
+      ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_OFFSET );
+      buffer.put(Type.SUCCESS.getOpCode());
+      return buffer.array();
     }
   }
 
@@ -94,6 +108,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     public Exception getCause() {
       return cause;
     }
+
+    @Override
+    public byte[] encode() {
+      byte[] failureMsg = Util.marshall(this.cause);
+      ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_OFFSET + failureMsg.length);
+      buffer.put(Type.FAILURE.getOpCode());
+      buffer.put(failureMsg);
+      return buffer.array();
+    }
   }
 
   public static GetResponse response(Chain chain) {
@@ -116,6 +139,17 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     public Chain getChain() {
       return chain;
     }
+
+    @Override
+    public byte[] encode() {
+      byte[] encodedChain = ChainCodec.encode(this.chain);
+      int chainLen = encodedChain.length;
+      ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_OFFSET + chainLen);
+      buffer.put(Type.GET_RESPONSE.getOpCode());
+      buffer.put(encodedChain);
+      return buffer.array();
+    }
+
   }
 
 }

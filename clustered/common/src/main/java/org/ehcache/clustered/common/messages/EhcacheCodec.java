@@ -34,11 +34,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
 
   @Override
   public byte[] encodeMessage(EhcacheEntityMessage message) {
-    if (message.getType() == EhcacheEntityMessage.Type.LIFECYCLE_OP) {
-      return LifeCycleOpCodec.encode((LifecycleMessage) message);
-    } else {
-      return ServerStoreOpCodec.encode((ServerStoreOpMessage) message);
-    }
+    return message.encode();
   }
 
   @Override
@@ -53,7 +49,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
 
   @Override
   public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
-    return ResponseCodec.encode(response);
+    return response.encode();
   }
 
   @Override

@@ -52,6 +52,8 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
 
   public abstract Type getType();
 
+  public abstract byte[] encode();
+
   public static EhcacheEntityMessage validate(ServerSideConfiguration config) {
     return new ValidateCacheManager(config);
   }

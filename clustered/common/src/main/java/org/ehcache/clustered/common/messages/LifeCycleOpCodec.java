@@ -15,11 +15,8 @@
  */
 package org.ehcache.clustered.common.messages;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import org.ehcache.clustered.common.store.Util;
+
 import java.nio.ByteBuffer;
 
 /**
@@ -27,42 +24,10 @@ import java.nio.ByteBuffer;
  */
 public class LifeCycleOpCodec {
 
-  public static byte[] encode(LifecycleMessage message) {
-    byte[] encodedMsg = marshall(message);
-    ByteBuffer buffer = ByteBuffer.allocate(1 + encodedMsg.length);
-    buffer.put(EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode());
-    buffer.put(encodedMsg);
-    return buffer.array();
-  }
-
   public static LifecycleMessage decode(ByteBuffer payload) {
     byte[] payArr = new byte[payload.remaining()];
     payload.get(payArr);
-    return (LifecycleMessage) unmarshall(payArr);
+    return (LifecycleMessage) Util.unmarshall(payArr);
   }
 
-  public static Object unmarshall(byte[] payload) {
-    try {
-      return new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
-    } catch (IOException ex) {
-      throw new IllegalArgumentException(ex);
-    } catch (ClassNotFoundException ex) {
-      throw new IllegalArgumentException(ex);
-    }
-  }
-
-  public static byte[] marshall(Object message) {
-    ByteArrayOutputStream out = new ByteArrayOutputStream();
-    try {
-      ObjectOutputStream oout = new ObjectOutputStream(out);
-      try {
-        oout.writeObject(message);
-      } finally {
-        oout.close();
-      }
-    } catch (IOException e) {
-      throw new IllegalArgumentException(e);
-    }
-    return out.toByteArray();
-  }
 }

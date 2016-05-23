@@ -24,23 +24,25 @@ import static org.hamcrest.Matchers.is;
 import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.ehcache.clustered.common.store.Util.getChain;
 
-public class ResponseCodecTest {
+public class EhcacheEntityResponseFactoryTest {
+
+  private static final EhcacheEntityResponseFactory RESPONSE_FACTORY = new EhcacheEntityResponseFactory();
 
   @Test
   public void testFailureResponseCodec() {
-    EhcacheEntityResponse failure = EhcacheEntityResponse.failure(new Exception("Test Exception"));
+    EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new Exception("Test Exception"));
 
-    EhcacheEntityResponse decoded = ResponseCodec.decode(ResponseCodec.encode(failure));
+    EhcacheEntityResponse decoded = ResponseCodec.decode(failure.encode());
 
     assertThat(((EhcacheEntityResponse.Failure)decoded).getCause().getMessage(), is("Test Exception"));
   }
 
   @Test
   public void testGetResponseCodec() {
-    EhcacheEntityResponse getResponse = EhcacheEntityResponse.response(getChain(false,
+    EhcacheEntityResponse getResponse = RESPONSE_FACTORY.response(getChain(false,
         createPayload(1L), createPayload(11L), createPayload(111L)));
 
-    EhcacheEntityResponse decoded = ResponseCodec.decode(ResponseCodec.encode(getResponse));
+    EhcacheEntityResponse decoded = ResponseCodec.decode(getResponse.encode());
 
     Chain decodedChain = ((EhcacheEntityResponse.GetResponse) decoded).getChain();
 
