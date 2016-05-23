@@ -32,8 +32,10 @@ import org.ehcache.clustered.client.internal.EhcacheEntityBusyException;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
+import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
@@ -253,8 +255,13 @@ class DefaultClusteringService implements ClusteringService {
   @Override
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                      final Store.Configuration<K, V> storeConfig,
-                                                     Consistency consistency) {
+                                                     Consistency configuredConsistency) {
     final String cacheId = cacheIdentifier.getId();
+
+    Consistency consistency = configuredConsistency;
+    if (consistency == null) {
+      consistency = Consistency.EVENTUAL;
+    }
 
     /*
      * This method is expected to be called with exactly ONE ClusteredResourcePool specified.
@@ -271,10 +278,6 @@ class DefaultClusteringService implements ClusteringService {
     }
     if (clusteredResourcePool == null) {
       throw new IllegalStateException("A clustered resource is required for a clustered cache");
-    }
-
-    if (consistency == null) {
-      consistency = Consistency.EVENTUAL;
     }
 
     final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
@@ -306,7 +309,15 @@ class DefaultClusteringService implements ClusteringService {
       }
     }
 
-    return new ServerStoreProxy(cacheId, entity, consistency);
+    switch (consistency) {
+      case STRONG:
+        return new StrongServerStoreProxy(cacheId, entity);
+      case EVENTUAL:
+        return new EventualServerStoreProxy(cacheId, entity);
+      default:
+        throw new AssertionError("Unknown consistency : " + consistency);
+    }
+
   }
 
   @Override

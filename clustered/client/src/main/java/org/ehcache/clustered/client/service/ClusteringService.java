@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.service;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.internal.store.ClusteredStoreServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.core.spi.store.Store;
@@ -38,8 +37,8 @@ public interface ClusteringService extends PersistableResourceService {
    * @param <V> the cache-exposed value type
    *
    * @param cacheIdentifier the {@code ClusteredCacheIdentifier} for the cache for which a
-   *                        {@code ServerStoreProxy} is requested
-   * @param storeConfig the configuration used for the {@link Store} for which the {@code ServerStoreProxy}
+   *                        {@link ServerStoreProxy} is requested
+   * @param storeConfig the configuration used for the {@link Store} for which the {@link ServerStoreProxy}
    *                    is requested
    * @param consistency the store's consistency
    * @return a new {@link ServerStoreProxy}
@@ -49,9 +48,9 @@ public interface ClusteringService extends PersistableResourceService {
   /**
    * Releases access to a {@link ServerStoreProxy} and the server-resident {@code ServerStore} it represents.
    *
-   * @param storeProxy a {@code ServerStoreProxy} obtained through {@link #getServerStoreProxy}
+   * @param serverStoreProxy a {@link ServerStoreProxy} obtained through {@link #getServerStoreProxy}
    */
-  void releaseServerStoreProxy(ServerStoreProxy storeProxy);
+  void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy);
 
   /**
    * Identifies a client-side cache to server-based components.

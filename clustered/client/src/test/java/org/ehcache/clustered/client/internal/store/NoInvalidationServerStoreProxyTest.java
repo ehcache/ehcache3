@@ -45,13 +45,13 @@ import static org.ehcache.clustered.common.store.Util.readPayLoad;
 import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.ehcache.clustered.common.store.Util.getChain;
 
-public class ServerStoreProxyTest {
+public class NoInvalidationServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
   private static EhcacheClientEntity clientEntity;
-  private static ServerStoreProxy serverStoreProxy;
+  private static NoInvalidationServerStoreProxy serverStoreProxy;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -70,12 +70,10 @@ public class ServerStoreProxyTest {
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.fixed(16L, MemoryUnit.MB);
 
-    Consistency consistency = Consistency.EVENTUAL;
-
     clientEntity.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), consistency));
-    serverStoreProxy = new ServerStoreProxy(CACHE_IDENTIFIER, clientEntity, consistency);
+        .getName(), null));
+    serverStoreProxy = new NoInvalidationServerStoreProxy(CACHE_IDENTIFIER, clientEntity);
   }
 
   @AfterClass
