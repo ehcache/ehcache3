@@ -36,6 +36,7 @@ import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 
@@ -251,7 +252,8 @@ class DefaultClusteringService implements ClusteringService {
 
   @Override
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
-                                                     final Store.Configuration<K, V> storeConfig) {
+                                                     final Store.Configuration<K, V> storeConfig,
+                                                     Consistency consistency) {
     final String cacheId = cacheIdentifier.getId();
 
     /*
@@ -271,6 +273,10 @@ class DefaultClusteringService implements ClusteringService {
       throw new IllegalStateException("A clustered resource is required for a clustered cache");
     }
 
+    if (consistency == null) {
+      consistency = Consistency.EVENTUAL;
+    }
+
     final ServerStoreConfiguration clientStoreConfiguration = new ServerStoreConfiguration(
         clusteredResourcePool.getPoolAllocation(),
         storeConfig.getKeyType().getName(),
@@ -278,7 +284,8 @@ class DefaultClusteringService implements ClusteringService {
         null, // TODO: Need actual key type -- cache wrappers can wrap key/value types
         null, // TODO: Need actual value type -- cache wrappers can wrap key/value types
         (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
-        (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName())
+        (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
+        consistency
     );
 
     if (autoCreate) {
@@ -299,7 +306,7 @@ class DefaultClusteringService implements ClusteringService {
       }
     }
 
-    return new ServerStoreProxy(cacheId, entity);
+    return new ServerStoreProxy(cacheId, entity, consistency);
   }
 
   @Override

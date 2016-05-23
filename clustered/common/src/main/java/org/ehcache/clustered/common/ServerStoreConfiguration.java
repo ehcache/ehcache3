@@ -35,6 +35,7 @@ public class ServerStoreConfiguration implements Serializable {
   private final String actualValueType;
   private final String keySerializerType;
   private final String valueSerializerType;
+  private final Consistency consistency;
   // TODO: Loader/Writer configuration ...
 
   public ServerStoreConfiguration(PoolAllocation poolAllocation,
@@ -43,7 +44,8 @@ public class ServerStoreConfiguration implements Serializable {
                                   String actualKeyType,
                                   String actualValueType,
                                   String keySerializerType,
-                                  String valueSerializerType) {
+                                  String valueSerializerType,
+                                  Consistency consistency) {
     this.poolAllocation = poolAllocation;
     this.storedKeyType = storedKeyType;
     this.storedValueType = storedValueType;
@@ -51,6 +53,7 @@ public class ServerStoreConfiguration implements Serializable {
     this.actualValueType = actualValueType;
     this.keySerializerType = keySerializerType;
     this.valueSerializerType = valueSerializerType;
+    this.consistency = consistency;
   }
 
   public PoolAllocation getPoolAllocation() {
@@ -79,6 +82,10 @@ public class ServerStoreConfiguration implements Serializable {
 
   public String getValueSerializerType() {
     return valueSerializerType;
+  }
+
+  public Consistency getConsistency() {
+    return consistency;
   }
 
   public interface PoolAllocation extends Serializable {

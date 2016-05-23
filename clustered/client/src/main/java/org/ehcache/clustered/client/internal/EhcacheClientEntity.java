@@ -48,11 +48,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class EhcacheClientEntity implements Entity {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
+
   public interface ResponseListener<T extends EhcacheEntityResponse> {
     void onResponse(T response);
   }
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
@@ -64,7 +64,9 @@ public class EhcacheClientEntity implements Entity {
     endpoint.setDelegate(new EndpointDelegate() {
       @Override
       public void handleMessage(EntityResponse messageFromServer) {
-        fireResponseEvent((EhcacheEntityResponse) messageFromServer);
+        if (messageFromServer instanceof EhcacheEntityResponse) {
+          fireResponseEvent((EhcacheEntityResponse) messageFromServer);
+        }
       }
 
       @Override
