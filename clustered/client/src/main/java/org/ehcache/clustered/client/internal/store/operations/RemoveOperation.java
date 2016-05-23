@@ -16,10 +16,31 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-public class RemoveOperation<K> extends BaseOperation<K> {
+import org.ehcache.clustered.client.internal.store.operations.codecs.CodecException;
+import org.ehcache.spi.serialization.Serializer;
+
+import java.nio.ByteBuffer;
+
+public class RemoveOperation<K, V> extends BaseOperation<K, V> {
 
   public RemoveOperation(final K key) {
     super(key);
+  }
+
+  @Override
+  protected void checkValueNonNull(final V value) {
+    // do nothing
+  }
+
+  RemoveOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+    OperationCode opCode = OperationCode.valueOf(buffer.get());
+    validateOperation(opCode);
+    try {
+      this.key = keySerializer.read(buffer);
+    } catch (ClassNotFoundException e) {
+      throw new CodecException(e);
+    }
+    this.value = null;
   }
 
   @Override
@@ -32,7 +53,21 @@ public class RemoveOperation<K> extends BaseOperation<K> {
    * what the other operation is. The result is always gonna be null.
    */
   @Override
-  public Operation<K> apply(final Operation<K> previousOperation) {
+  public Operation<K, V> apply(final Operation<K, V> previousOperation) {
+    if(previousOperation != null) {
+      assertSameKey(previousOperation);
+    }
     return null;
+  }
+
+  @Override
+  public ByteBuffer encode(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+    ByteBuffer keyBuf = keySerializer.serialize(key);
+    ByteBuffer buffer = ByteBuffer.allocate(BYTE_SIZE_BYTES +   // Operation type
+                                            keyBuf.remaining());  // The key payload itself
+    buffer.put(getOpCode().getValue());
+    buffer.put(keyBuf);
+    buffer.flip();
+    return buffer;
   }
 }

@@ -16,33 +16,42 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecFactory;
+import org.ehcache.spi.serialization.Serializer;
 
-import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecFactory.PutOperationCodecFactory;
-import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecFactory.RemoveOperationCodecFactory;
-import static org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecFactory.PutIfAbsentOperationCodecFactory;
+import java.nio.ByteBuffer;
 
 public enum OperationCode {
 
-  PUT((byte)1, new PutOperationCodecFactory()),
-  REMOVE((byte)2, new RemoveOperationCodecFactory()),
-  PUT_IF_ABSENT((byte)3, new PutIfAbsentOperationCodecFactory());
+  PUT((byte)1) {
+    @Override
+    public <K, V> Operation<K, V> decode(ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+      return new PutOperation<K, V>(buffer, keySerializer, valueSerializer);
+    }
+  },
+  REMOVE((byte)2) {
+    @Override
+    public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+      return new RemoveOperation<K, V>(buffer, keySerializer, valueSerializer);
+    }
+  },
+  PUT_IF_ABSENT((byte)3) {
+    @Override
+    public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+      return new PutIfAbsentOperation<K, V>(buffer, keySerializer, valueSerializer);
+    }
+  };
 
   private byte value;
-  private OperationCodecFactory codecFactory;
 
-  OperationCode(byte value, OperationCodecFactory codecFactory) {
+  OperationCode(byte value) {
     this.value = value;
-    this.codecFactory = codecFactory;
   }
 
   public byte getValue() {
     return value;
   }
 
-  public OperationCodecFactory getCodecFactory() {
-    return codecFactory;
-  }
+  public abstract  <K, V> Operation<K, V> decode(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer);
 
   public static OperationCode valueOf(byte value) {
     switch (value) {

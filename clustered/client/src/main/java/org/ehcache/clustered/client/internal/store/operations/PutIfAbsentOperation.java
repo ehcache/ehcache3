@@ -16,10 +16,18 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> {
+import org.ehcache.spi.serialization.Serializer;
+
+import java.nio.ByteBuffer;
+
+public class PutIfAbsentOperation<K, V> extends BaseOperation<K, V> {
 
   public PutIfAbsentOperation(final K key, final V value) {
     super(key, value);
+  }
+
+  PutIfAbsentOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+    super(buffer, keySerializer, valueSerializer);
   }
 
   @Override
@@ -32,10 +40,11 @@ public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> {
    * for the same key.
    */
   @Override
-  public Operation<K> apply(final Operation<K> previousOperation) {
+  public Operation<K, V> apply(final Operation<K, V> previousOperation) {
     if(previousOperation == null) {
       return this;
     } else {
+      assertSameKey(previousOperation);
       return previousOperation;
     }
   }

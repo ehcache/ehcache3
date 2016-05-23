@@ -17,10 +17,17 @@
 package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.serialization.Serializer;
 
-public interface Operation<K> extends Function<Operation<K>, Operation<K>> {
+import java.nio.ByteBuffer;
+
+public interface Operation<K, V> extends Function<Operation<K, V>, Operation<K, V>> {
 
   OperationCode getOpCode();
 
   K getKey();
+
+  V getValue();
+
+  ByteBuffer encode(Serializer<K> keySerializer, Serializer<V> valueSerializer);
 }

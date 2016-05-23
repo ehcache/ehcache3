@@ -46,12 +46,12 @@ public class ChainResolver<K, V> {
    * and the compacted chain as the value
    * @throws ClassNotFoundException
    */
-  public ResolvedChain<K> resolve(Chain chain, K key) {
-    Operation<K> resolvedOperation = null;
+  public ResolvedChain<K, V> resolve(Chain chain, K key) {
+    Operation<K, V> resolvedOperation = null;
     ChainBuilder chainBuilder = new ChainBuilder();
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
-      Operation<K> operation = codec.decode(payload);
+      Operation<K, V> operation = codec.decode(payload);
       if(key.equals(operation.getKey())) {
         resolvedOperation = operation.apply(resolvedOperation);
       } else {
@@ -63,6 +63,6 @@ public class ChainResolver<K, V> {
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }
-    return new ResolvedChain.SimpleResolvedChain<K>(chainBuilder.build(), resolvedOperation);
+    return new ResolvedChain.SimpleResolvedChain<K, V>(chainBuilder.build(), resolvedOperation);
   }
 }

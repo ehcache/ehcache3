@@ -19,11 +19,9 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
-import org.ehcache.clustered.client.internal.store.operations.KeyValueOperation;
 import org.ehcache.clustered.client.internal.store.operations.Operation;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecProvider;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
@@ -60,18 +58,6 @@ import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmon
 /**
  * Supports a {@link Store} in a clustered environment.
  */
-// *********************************************************************************************
-// *********************************************************************************************
-// *                                                                                           *
-// * This is a shell of an implementation that is a placeholder for a real implementation.     *
-// * The methods in this class are, at this point, not expected to function "properly".        *
-// *                                                                                           *
-// * In its present form, the cache configuration must provide some 'core' resource in         *
-// * addition to the clustered resources.                                                      *
-// *                                                                                           *
-// *********************************************************************************************
-// *********************************************************************************************
-// TODO: Remove underlyingStore when ServerStore/ServerStoreProxy is complete
 public class ClusteredStore<K, V> implements Store<K, V> {
 
   private final OperationsCodec<K, V> codec;
@@ -87,15 +73,17 @@ public class ClusteredStore<K, V> implements Store<K, V> {
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
     Chain chain = storeProxy.get(key.hashCode());
-    ResolvedChain<K> resolvedChain = resolver.resolve(chain, key);
-
-    Chain compactedChain = resolvedChain.getCompactedChain();
-    storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
-
-    Operation<K> resolvedOperation = resolvedChain.getResolvedOperation(key);
     V value = null;
-    if(resolvedOperation != null && resolvedOperation instanceof KeyValueOperation) {
-      value = ((KeyValueOperation<K, V>)resolvedOperation).getValue();
+    if(!chain.isEmpty()) {
+      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+
+      Chain compactedChain = resolvedChain.getCompactedChain();
+      storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
+
+      Operation<K, V> resolvedOperation = resolvedChain.getResolvedOperation(key);
+      if(resolvedOperation != null) {
+        value = resolvedOperation.getValue();
+      }
     }
     return new ClusteredValueHolder<V>(value);
   }
@@ -249,9 +237,7 @@ public class ClusteredStore<K, V> implements Store<K, V> {
 
       // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.CacheStore.Provider
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
-      OperationCodecProvider<K, V> codecProvider =
-          new OperationCodecProvider<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
-      OperationsCodec<K, V> codec = new OperationsCodec<K, V>(codecProvider);
+      OperationsCodec<K, V> codec = new OperationsCodec<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
       ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec);
       Store<K, V> store = new ClusteredStore<K, V>(codec, resolver);
       createdStores.put(store, new StoreConfig(cacheId, storeConfig));

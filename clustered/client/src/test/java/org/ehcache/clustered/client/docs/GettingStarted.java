@@ -35,6 +35,8 @@ import java.net.URI;
 import org.junit.Before;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -128,6 +130,7 @@ public class GettingStarted {
               .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 1, MemoryUnit.MB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      assertThat(cache.get(1L), is(nullValue()));
       cache.put(1L, "The one");
       cache.put(2L, "The two");
       cache.put(1L, "Another one");
