@@ -20,6 +20,9 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.OffHeapStore;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -193,6 +196,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
 
+  @ServiceDependencies({OnHeapStore.Provider.class, OffHeapStore.Provider.class})
   public static class Provider implements CachingTier.Provider {
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>>();
@@ -203,15 +207,10 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
         throw new RuntimeException("ServiceProvider is null.");
       }
 
-      CompoundCachingTierServiceConfiguration compoundCachingTierServiceConfiguration = findSingletonAmongst(CompoundCachingTierServiceConfiguration.class, (Object[])serviceConfigs);
-      if (compoundCachingTierServiceConfiguration == null) {
-        throw new IllegalArgumentException("Compound caching tier cannot be configured without explicit config");
-      }
-
-      HigherCachingTier.Provider higherProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.higherProvider());
+      HigherCachingTier.Provider higherProvider = serviceProvider.getService(HigherCachingTier.Provider.class);
       HigherCachingTier<K, V> higherCachingTier = higherProvider.createHigherCachingTier(storeConfig, serviceConfigs);
 
-      LowerCachingTier.Provider lowerProvider = serviceProvider.getService(compoundCachingTierServiceConfiguration.lowerProvider());
+      LowerCachingTier.Provider lowerProvider = serviceProvider.getService(LowerCachingTier.Provider.class);
       LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig, serviceConfigs);
 
       CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<K, V>(higherCachingTier, lowerCachingTier);
