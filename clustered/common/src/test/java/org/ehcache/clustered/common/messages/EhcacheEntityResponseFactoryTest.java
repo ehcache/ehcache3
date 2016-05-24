@@ -19,6 +19,8 @@ import org.ehcache.clustered.common.store.Chain;
 import org.junit.Test;
 
 
+import java.nio.ByteBuffer;
+
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.ehcache.clustered.common.store.Util.createPayload;
@@ -32,7 +34,7 @@ public class EhcacheEntityResponseFactoryTest {
   public void testFailureResponseCodec() {
     EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new Exception("Test Exception"));
 
-    EhcacheEntityResponse decoded = ResponseCodec.decode(failure.encode());
+    EhcacheEntityResponse decoded = EhcacheEntityResponse.decode(ByteBuffer.wrap(failure.encode()));
 
     assertThat(((EhcacheEntityResponse.Failure)decoded).getCause().getMessage(), is("Test Exception"));
   }
@@ -42,7 +44,7 @@ public class EhcacheEntityResponseFactoryTest {
     EhcacheEntityResponse getResponse = RESPONSE_FACTORY.response(getChain(false,
         createPayload(1L), createPayload(11L), createPayload(111L)));
 
-    EhcacheEntityResponse decoded = ResponseCodec.decode(getResponse.encode());
+    EhcacheEntityResponse decoded = EhcacheEntityResponse.decode(ByteBuffer.wrap(getResponse.encode()));
 
     Chain decodedChain = ((EhcacheEntityResponse.GetResponse) decoded).getChain();
 

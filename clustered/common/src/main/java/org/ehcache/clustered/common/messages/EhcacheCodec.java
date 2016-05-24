@@ -40,10 +40,12 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
   @Override
   public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
     ByteBuffer payloadBuf = ByteBuffer.wrap(payload);
-    if (payloadBuf.get() == EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode()) {
-      return LifeCycleOpCodec.decode(payloadBuf);
+    byte opcode = payloadBuf.get();
+    payloadBuf.rewind();
+    if (opcode == EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode()) {
+      return LifecycleMessage.decode(payloadBuf);
     } else {
-      return ServerStoreOpCodec.decode(payload);
+      return ServerStoreOpMessage.decode(payloadBuf);
     }
   }
 
@@ -54,6 +56,6 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
 
   @Override
   public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
-    return ResponseCodec.decode(payload);
+    return EhcacheEntityResponse.decode(ByteBuffer.wrap(payload));
   }
 }

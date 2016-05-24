@@ -22,7 +22,7 @@ import org.ehcache.clustered.common.store.Chain;
 public class EhcacheEntityResponseFactory {
 
   public EhcacheEntityResponse success() {
-    return EhcacheEntityResponse.Success.success();
+    return EhcacheEntityResponse.Success.INSTANCE;
   }
 
   public EhcacheEntityResponse failure(Exception cause) {

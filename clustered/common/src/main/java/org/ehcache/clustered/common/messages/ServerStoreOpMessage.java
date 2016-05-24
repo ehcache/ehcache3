@@ -62,14 +62,24 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   private final String cacheId;
   private final long key;
 
-  protected static final byte MSG_TYPE_OFFSET = 1;
-  protected static final byte STORE_OP_CODE_OFFSET = 1;
-  protected static final byte CACHE_ID_LEN_OFFSET = 4;
-  protected static final byte KEY_OFFSET = 8;
+  private static final byte MSG_TYPE_SIZE = 1;
+  private static final byte STORE_OP_CODE_SIZE = 1;
+  private static final byte CACHE_ID_LEN_SIZE = 4;
+  private static final byte KEY_SIZE = 8;
 
-  protected ServerStoreOpMessage(String cacheId, long key) {
+  private ServerStoreOpMessage(String cacheId, long key) {
     this.cacheId = cacheId;
     this.key = key;
+  }
+
+  private ServerStoreOpMessage(ByteBuffer payload) {
+    payload.get();
+    payload.get();
+    int cacheIdLen = payload.getInt();
+    byte[] encodedCacheId = new byte[cacheIdLen];
+    payload.get(encodedCacheId);
+    this.cacheId = new String(encodedCacheId, UTF_8);
+    this.key = payload.getLong();
   }
 
   @Override
@@ -88,13 +98,31 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   public abstract ServerStoreOp operation();
 
   public byte[] encode() {
-    ByteBuffer encodedMsg = ByteBuffer.allocate(MSG_TYPE_OFFSET + STORE_OP_CODE_OFFSET + CACHE_ID_LEN_OFFSET + KEY_OFFSET + getCacheId().length());
+    ByteBuffer encodedMsg = ByteBuffer.allocate(MSG_TYPE_SIZE + STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + getCacheId().length());
     encodedMsg.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
-    encodedMsg.putInt(this.cacheId.length());
-    encodedMsg.put(this.cacheId.getBytes(UTF_8));
-    encodedMsg.putLong(this.key);
     encodedMsg.put(this.operation().getStoreOpCode());
+    byte[] cacheIdBytes = cacheId.getBytes(UTF_8);
+    encodedMsg.putInt(cacheIdBytes.length);
+    encodedMsg.put(cacheIdBytes);
+    encodedMsg.putLong(this.key);
     return encodedMsg.array();
+  }
+
+  public static EhcacheEntityMessage decode(ByteBuffer message) {
+    byte opCode = message.get(1);
+    ServerStoreOp storeOp = ServerStoreOp.getServerStoreOp(opCode);
+    switch (storeOp) {
+      case GET:
+        return new GetMessage(message);
+      case GET_AND_APPEND:
+        return new GetAndAppendMessage(message);
+      case APPEND:
+        return new AppendMessage(message);
+      case REPLACE:
+        return new ReplaceAtHeadMessage(message);
+      default:
+        throw new IllegalArgumentException("Store operation not defined for : " + opCode);
+    }
   }
 
   public static class GetMessage extends ServerStoreOpMessage {
@@ -103,14 +131,15 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       super(cacheId, key);
     }
 
+    GetMessage(ByteBuffer buffer) {
+      super(buffer);
+    }
+
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.GET;
     }
 
-    public byte[] encode() {
-      return super.encode();
-    }
   }
 
   public static class GetAndAppendMessage extends ServerStoreOpMessage {
@@ -122,6 +151,13 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       this.payload = payload;
     }
 
+    GetAndAppendMessage(ByteBuffer buffer) {
+      super(buffer);
+      byte[] remaining = new byte[buffer.remaining()];
+      buffer.get(remaining);
+      this.payload = ByteBuffer.wrap(remaining).asReadOnlyBuffer();
+    }
+
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.GET_AND_APPEND;
@@ -131,6 +167,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       return payload;
     }
 
+    @Override
     public byte[] encode() {
       byte[] encodedMsg = super.encode();
       byte[] msg = new byte[encodedMsg.length + this.payload.remaining()];
@@ -139,6 +176,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       buffer.put(this.payload);
       return buffer.array();
     }
+
   }
 
   public static class AppendMessage extends ServerStoreOpMessage {
@@ -150,6 +188,13 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       this.payload = payload;
     }
 
+    AppendMessage(ByteBuffer buffer) {
+      super(buffer);
+      byte[] remaining = new byte[buffer.remaining()];
+      buffer.get(remaining);
+      this.payload = ByteBuffer.wrap(remaining).asReadOnlyBuffer();
+    }
+
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.APPEND;
@@ -159,6 +204,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       return payload;
     }
 
+    @Override
     public byte[] encode() {
       byte[] encodedMsg = super.encode();
       byte[] msg = new byte[encodedMsg.length + this.payload.remaining()];
@@ -167,6 +213,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       buffer.put(this.payload);
       return buffer.array();
     }
+
   }
 
   public static class ReplaceAtHeadMessage extends ServerStoreOpMessage {
@@ -180,6 +227,18 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       super(cacheId, key);
       this.expect = expect;
       this.update = update;
+    }
+
+    ReplaceAtHeadMessage(ByteBuffer buffer) {
+      super(buffer);
+      int expectChainLen = buffer.getInt();
+      byte[] encodedExpectChain = new byte[expectChainLen];
+      buffer.get(encodedExpectChain);
+      this.expect = ChainCodec.decode(encodedExpectChain);
+      int updateChainLen = buffer.getInt();
+      byte[] encodedUpdateChain = new byte[updateChainLen];
+      buffer.get(encodedUpdateChain);
+      this.update = ChainCodec.decode(encodedUpdateChain);
     }
 
     @Override
@@ -209,6 +268,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       buffer.put(encodedUpdatedChain);
       return buffer.array();
     }
+
   }
 }
 

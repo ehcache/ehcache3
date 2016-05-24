@@ -52,6 +52,14 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     return buffer.array();
   }
 
+  public static EhcacheEntityMessage decode(ByteBuffer message) {
+    byte[] encodedMsg = new byte[message.capacity() - 1];
+    message.get();
+    message.get(encodedMsg, 0, encodedMsg.length);
+    EhcacheEntityMessage entityMessage = (EhcacheEntityMessage) Util.unmarshall(encodedMsg);
+    return entityMessage;
+  }
+
   public static class ValidateCacheManager extends LifecycleMessage {
     private static final long serialVersionUID = 5742152283115139745L;
 
