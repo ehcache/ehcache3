@@ -15,6 +15,7 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.StoreAccessException;
@@ -33,10 +34,17 @@ import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 
+import static java.util.Collections.unmodifiableSet;
+import static org.ehcache.config.ResourceType.Core.HEAP;
+import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
@@ -233,6 +241,12 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
 
       entry.getValue().initCachingTier(compoundCachingTier.lower);
       entry.getKey().initHigherCachingTier(compoundCachingTier.higher);
+    }
+
+    @Override
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      return resourceTypes.equals(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP))) ? 2 : 0;
+
     }
 
     @Override

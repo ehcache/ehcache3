@@ -296,6 +296,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     @Override
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      if (clusteringService == null) {
+        return 0;
+      } else {
+        return CLUSTER_RESOURCES.contains(authorityResource) ? 1 : 0;
+      }
+    }
+
+    @Override
     public void start(final ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
       this.clusteringService = this.serviceProvider.getService(ClusteringService.class);

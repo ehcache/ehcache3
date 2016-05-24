@@ -35,6 +35,7 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.impl.internal.util.UnmatchedResourceType;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -50,6 +51,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
+import static java.util.Collections.EMPTY_LIST;
 import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -206,6 +208,13 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Test
+  public void testAuthoritativeRank() throws Exception {
+    OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
+    assertThat(provider.rankAuthority(ResourceType.Core.DISK, EMPTY_LIST), is(1));
+    assertThat(provider.rankAuthority(new UnmatchedResourceType(), EMPTY_LIST), is(0));
+  }
+
+  @Test
   public void testRank() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
 
@@ -217,22 +226,8 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
-      @Override
-      public Class<ResourcePool> getResourcePoolClass() {
-        return ResourcePool.class;
-      }
-      @Override
-      public boolean isPersistable() {
-        return true;
-      }
-      @Override
-      public boolean requiresSerialization() {
-        return true;
-      }
-    };
-    assertRank(provider, 0, unmatchedResourceType);
-    assertRank(provider, 0, ResourceType.Core.DISK, unmatchedResourceType);
+    assertRank(provider, 0, (ResourceType<ResourcePool>) new UnmatchedResourceType());
+    assertRank(provider, 0, ResourceType.Core.DISK, new UnmatchedResourceType());
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {

@@ -56,6 +56,10 @@ public class StoreSupportTest {
       return false;
     }
     @Override
+    public int getTierHeight() {
+      return 10;
+    }
+    @Override
     public String toString() {
       return "anyResourceType";
     }
@@ -143,6 +147,10 @@ public class StoreSupportTest {
       @Override
       public boolean requiresSerialization() {
         return true;
+      }
+      @Override
+      public int getTierHeight() {
+        return 10;
       }
     };
 

@@ -16,12 +16,15 @@
 
 package org.ehcache.core.spi.store.tiering;
 
+import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+
+import java.util.Collection;
 
 /**
  * Authoritative tier, that is the lower most tier of a multi tiered store.
@@ -125,6 +128,23 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      * @param resource the authoritative tier to initialise
      */
     void initAuthoritativeTier(AuthoritativeTier<?, ?> resource);
+
+    /**
+     * Gets the internal ranking for the {@link AuthoritativeTier} instances provided by this {@code Provider} of the
+     * authority's ability to handle the specified resource.
+     * <P>
+     *   A higher rank value indicates a more capable {@code AuthoritativeTier}.
+     * </P>
+     *
+     * @param authorityResource the {@code ResourceType} for the authority to handle
+     * @param serviceConfigs the collection of {@code ServiceConfiguration} instances that may contribute
+     *                       to the ranking
+     *
+     * @return a non-negative rank indicating the ability of a {@code AuthoritativeTier} created by this {@code Provider}
+     *      to handle the resource type specified by {@code authorityResource}; a rank of 0 indicates the authority
+     *      can not handle the type specified in {@code authorityResource}
+     */
+    int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs);
   }
 
 }

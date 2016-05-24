@@ -77,6 +77,11 @@ public interface ClusteredResourceType<P extends ClusteredResourcePool> extends 
       }
 
       @Override
+      public int getTierHeight() {
+        return 10;
+      }
+
+      @Override
       public String toString() {
         return "clustered-" + this.name.toLowerCase();
       }

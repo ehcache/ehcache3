@@ -368,26 +368,46 @@ public class TieredStore<K, V> implements Store<K, V> {
       OnHeapStore.Provider.class, OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})
   public static class Provider implements Store.Provider {
 
-    private static final Set<Set<ResourceType.Core>> SUPPORTED_RESOURCE_COMBINATIONS;
-    static {
-      // Logic in setTierConfigurations must mirror this set
-      final Set<Set<ResourceType.Core>> supported = new HashSet<Set<ResourceType.Core>>();
-      supported.add(unmodifiableSet(EnumSet.of(HEAP, DISK)));
-      supported.add(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP)));
-      supported.add(unmodifiableSet(EnumSet.of(HEAP, OFFHEAP, DISK)));
-      SUPPORTED_RESOURCE_COMBINATIONS = unmodifiableSet(supported);
-    }
-
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<Store<?, ?>, Map.Entry<CachingTier.Provider, AuthoritativeTier.Provider>>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
-      if (SUPPORTED_RESOURCE_COMBINATIONS.contains(resourceTypes)) {
-        return resourceTypes.size();
-      } else {
+      if (resourceTypes.size() == 1) {
         return 0;
       }
+      ResourceType<?> authorityResource = null;
+      for (ResourceType<?> resourceType : resourceTypes) {
+        if (authorityResource == null || authorityResource.getTierHeight() > resourceType.getTierHeight()) {
+          authorityResource = resourceType;
+        }
+      }
+      int authorityRank = 0;
+      Collection<AuthoritativeTier.Provider> authorityProviders = serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class);
+      for (AuthoritativeTier.Provider authorityProvider : authorityProviders) {
+        int newRank = authorityProvider.rankAuthority(authorityResource, serviceConfigs);
+        if (newRank > authorityRank) {
+          authorityRank = newRank;
+        }
+      }
+      if (authorityRank == 0) {
+        return 0;
+      }
+      HashSet<ResourceType<?>> cachingResources = new HashSet<ResourceType<?>>();
+      cachingResources.addAll(resourceTypes);
+      cachingResources.remove(authorityResource);
+      int cachingTierRank = 0;
+      Collection<CachingTier.Provider> cachingTierProviders = serviceProvider.getServicesOfType(CachingTier.Provider.class);
+      for (CachingTier.Provider cachingTierProvider : cachingTierProviders) {
+        int newRank = cachingTierProvider.rankCachingTier(cachingResources, serviceConfigs);
+        if (newRank > cachingTierRank) {
+          cachingTierRank = newRank;
+        }
+      }
+      if (cachingTierRank == 0) {
+        return 0;
+      }
+      return authorityRank + cachingTierRank;
     }
 
     @Override
