@@ -34,6 +34,10 @@ import org.terracotta.passthrough.PassthroughServer;
 
 import java.net.URI;
 
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -62,12 +66,9 @@ public class BasicClusteredCacheTest {
   public void testClusteredCacheSingleClient() throws Exception {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI)
-                .defaultServerResource("primary-server-resource")
-                .resourcePool("resource-pool-a", 128, MemoryUnit.KB)
-                .resourcePool("resource-pool-b", 128, MemoryUnit.KB, "secondary-server-resource"))
-            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newCacheManagerBuilder()
+            .with(cluster(CLUSTER_URI))
+            .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
@@ -84,12 +85,9 @@ public class BasicClusteredCacheTest {
   public void testClusteredCacheTwoClients() throws Exception {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        CacheManagerBuilder.newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER_URI)
-                .defaultServerResource("primary-server-resource")
-                .resourcePool("resource-pool-a", 128, MemoryUnit.KB)
-                .resourcePool("resource-pool-b", 128, MemoryUnit.KB, "secondary-server-resource"))
-            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newCacheManagerBuilder()
+            .with(cluster(CLUSTER_URI))
+            .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))));
 
@@ -100,12 +98,28 @@ public class BasicClusteredCacheTest {
     final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
 
     cache1.put(1L, "value");
-//    assertThat(cache1.containsKey(1L), is(true)); // TODO: 20/05/16 Undo when containsKey is implemented
     assertThat(cache1.get(1L), is("value"));
-//    assertThat(cache2.containsKey(1L), is(true)); // TODO: 20/05/16 Undo when containsKey is implemented
     assertThat(cache2.get(1L), is("value"));
 
     cacheManager2.close();
     cacheManager1.close();
+  }
+
+  @Test
+  public void testTieredClusteredCache() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+        newCacheManagerBuilder()
+            .with(cluster(CLUSTER_URI))
+            .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
+                    heap(2)
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))));
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+
+    final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
+
+    cache.put(1L, "value");
+    assertThat(cache.get(1L), is("value"));
+
+    cacheManager.close();
   }
 }

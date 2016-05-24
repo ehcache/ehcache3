@@ -68,8 +68,6 @@ public class SimpleClusteredCacheByXmlTest {
     final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     assertThat(cache, is(not(nullValue())));
 
-    if (cacheManager.getStatus() != Status.UNINITIALIZED) {
-      cacheManager.close();
-    }
+    cacheManager.close();
   }
 }
