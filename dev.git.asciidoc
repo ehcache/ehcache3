@@ -7,12 +7,21 @@
  . If you don't have an account on GitHub, create one now and fork your own copy of Ehcache to your account;
  . +git clone+ that fork to your computer, by default that remote's name will be +origin+;
  . +git remote add ehcache \git@github.com:ehcache/ehcache3.git+;
- . You'll have to keep your +master+ branch in sync (both on your computer and the one on your GitHub account) with the one from +ehcache+ (see §2.1 below)
+ . You'll have to keep your +master+ branch in sync (both on your computer and the one on your GitHub account) with the one from +ehcache+ (see §2.1.1 below)
  . +git checkout -b issue-'<id>'+, where '<id>' of +issue-'<id>'+ is the number of the issue you will work on (command that both creates the branch and switches to it). Commit as you see fit on each of these branches (we recommend small commits often;
  . You can have as many parallel branches as issues you might be working on;
  . Once done, you may want to re-organize you commits by doing a +git rebase -i HEAD~'<n>'+ where '<n>' is how many commits you'd be ahead when done;
 
 == Initiate a pull request
+
+Now that Ehcache 3.0 has releases out there, bug fixes may apply to both the release branches and/or master.
+
+Given this, the development team has decided on the following development strategy.
+
+=== Feature development
+
+This happens on master only, using a rebase model described below.
+We strive on keeping a clean and very linear history for feature development.
 
  . Right before sharing your changes, make sure your +issue-'<id>'+ branch is based of +ehcache/master+'s current +HEAD+, e.g.:
 
@@ -26,6 +35,42 @@
  . You then need to create a pull request, using the UI on GitHub;
  . Someone from our team is then going to review it.
 
+=== Bug fixing
+
+If what you are working on is a bug fix, we want to be able to merge the fix commits on all impacted release branches and master.
+In order to do that, we use a strategy inspired from http://wiki.monotone.ca/DaggyFixes/[DaggyFixes].
+
+==== Picking the base commit
+
+The base commit for your fix must be at the earliest a parent of all branches it will need to be merged to, it can also be at the latest the commit that introduced the bug as describe in DaggyFixes.
+
+Such a commit can be found using the following (presented here as an alias definiton):
+
+`alias.oldest-ancestor=!bash -c 'diff --old-line-format='' --new-line-format='' <(git rev-list --first-parent ${1:-master}) <(git rev-list --first-parent ${2:-HEAD}) | head -1' -`
+
+==== Developing the fix
+
+That's you doing the work - nothing specific there but the usual commit recommendations.
+
+==== Pull requests
+
+As the fix developer, integrating the fix in the different target branches is your responsibility.
+So unless your fix can directly be merged in the different branches, you will have to merge the branches into the fix to resolve conflicts.
+
+I will use the `release/3.0` branch as the target in the example below and assume your fix branch is `issue-1048`. These names should be replaced by the one applicable to your context.
+
+ . On your fix branch
+
+   git checkout -b issue-1048-release-3.0
+   git merge release/3.0
+   // Resolve conflicts
+   git merge --continue
+
+ . Open a pull request from that, making sure it is against `release/3.0`
+ . Repeat for each target branch, including `master`
+
+The idea behind this strategy is that the commits that were created on branch `issue-1048` in this example are now part of the history of the different releases and tracking which fix exists where is vastly simplified over the different strategies that are `cherry-pick` based.
+
 == Have it reviewed
 
  . The pull request will be reviewed for:
@@ -33,7 +78,7 @@
  .. 'Style': which needs to match the style of the project;
  .. 'Testing': all changes need to have appropriate test coverage, without breaking existing tests.
  .. You can look up link:dev.guidelines[general developer guidelines] as well
- . There could be some back and forth between you and the 'reviewer' in that process. Keep in mind that during that time +ehcache/master+ may drift, you'd then need to follow §2.1 above, but finally +git push --force origin issue-'<id>'+ to keep the pull request updated.
+ . There could be some back and forth between you and the 'reviewer' in that process. Keep in mind that during that time +ehcache/master+ may drift, you'd then need to follow §2.1.1 above, but finally `git push --force origin issue-<id>` to keep the pull request updated.
 
 == Merging a pull request
 
