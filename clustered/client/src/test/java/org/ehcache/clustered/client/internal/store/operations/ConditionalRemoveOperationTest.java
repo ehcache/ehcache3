@@ -16,74 +16,28 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.impl.serialization.LongSerializer;
-import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.BYTE_SIZE_BYTES;
-import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.INT_SIZE_BYTES;
-import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.LONG_SIZE_BYTES;
 import static org.junit.Assert.*;
 
-public class ConditionalRemoveOperationTest {
+public class ConditionalRemoveOperationTest extends BaseOperationTest {
 
-  private static final Serializer<Long> keySerializer = new LongSerializer();
-  private static final Serializer<String> valueSerializer = new StringSerializer();
-
-  @Test
-  public void testEncode() throws Exception {
-    Long key = 12L;
-    String value = "The value";
-    ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<Long, String>(key, value);
-    ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
-
-    ByteBuffer expected = ByteBuffer.allocate(BYTE_SIZE_BYTES +
-                                              INT_SIZE_BYTES + LONG_SIZE_BYTES + value.length());
-    expected.put(OperationCode.REMOVE_CONDITIONAL.getValue());
-    expected.putInt(LONG_SIZE_BYTES);
-    expected.putLong(key);
-    expected.put(value.getBytes());
-    expected.flip();
-    assertArrayEquals(expected.array(), byteBuffer.array());
+  @Override
+  protected <K, V> Operation<K, V> getNewOperation(final K key, final V value) {
+    return new ConditionalRemoveOperation<K, V>(key, value);
   }
 
-  @Test
-  public void testDecode() throws Exception {
-    Long key = 12L;
-    String value = "The value";
-
-    ByteBuffer blob = ByteBuffer.allocate(BYTE_SIZE_BYTES +
-                                          INT_SIZE_BYTES + LONG_SIZE_BYTES + value.length());
-    blob.put(OperationCode.REMOVE_CONDITIONAL.getValue());
-    blob.putInt(LONG_SIZE_BYTES);
-    blob.putLong(key);
-    blob.put(value.getBytes());
-    blob.flip();
-
-    ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<Long, String>(blob, keySerializer, valueSerializer);
-    assertEquals(key, operation.getKey());
-    assertEquals(value, operation.getValue());
+  @Override
+  protected <K, V> Operation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+    return new ConditionalRemoveOperation<K, V>(buffer, keySerializer, valueSerializer);
   }
 
-  @Test
-  public void testEncodeDecodeInvariant() throws Exception {
-    Long key = 12L;
-    String value = "The value";
-    ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<Long, String>(key, value);
-
-    ConditionalRemoveOperation<Long, String> decodedOperation =
-        new ConditionalRemoveOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);
-    assertEquals(key, decodedOperation.getKey());
-    assertEquals(value, decodedOperation.getValue());
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testDecodeThrowsOnInvalidType() throws Exception {
-    ByteBuffer buffer = ByteBuffer.wrap(new byte[] {10});
-    new PutOperation<Long, String>(buffer, keySerializer, valueSerializer);
+  @Override
+  protected OperationCode getOperationCode() {
+    return OperationCode.REMOVE_CONDITIONAL;
   }
 
   @Test
