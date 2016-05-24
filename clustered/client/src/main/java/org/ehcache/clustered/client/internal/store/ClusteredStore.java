@@ -60,18 +60,6 @@ import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmon
 /**
  * Supports a {@link Store} in a clustered environment.
  */
-// *********************************************************************************************
-// *********************************************************************************************
-// *                                                                                           *
-// * This is a shell of an implementation that is a placeholder for a real implementation.     *
-// * The methods in this class are, at this point, not expected to function "properly".        *
-// *                                                                                           *
-// * In its present form, the cache configuration must provide some 'core' resource in         *
-// * addition to the clustered resources.                                                      *
-// *                                                                                           *
-// *********************************************************************************************
-// *********************************************************************************************
-// TODO: Remove underlyingStore when ServerStore/ServerStoreProxy is complete
 public class ClusteredStore<K, V> implements Store<K, V> {
 
   private final OperationsCodec<K, V> codec;
