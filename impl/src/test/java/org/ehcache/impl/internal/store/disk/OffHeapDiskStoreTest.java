@@ -171,6 +171,49 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     }
   }
 
+  @Test
+  public void testRecoveryWithArrayType() throws Exception {
+    OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
+    ServiceLocator serviceLocator = new ServiceLocator();
+    serviceLocator.addService(persistenceService);
+    serviceLocator.addService(provider);
+    serviceLocator.startAllServices();
+
+    PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace("cache");
+
+    {
+      Store.Configuration<Long, Object[]> storeConfig1 = mock(Store.Configuration.class);
+      when(storeConfig1.getKeyType()).thenReturn(Long.class);
+      when(storeConfig1.getValueType()).thenReturn(Object[].class);
+      when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .disk(10, MemoryUnit.MB)
+          .build());
+      when(storeConfig1.getOrderedEventParallelism()).thenReturn(1);
+
+      OffHeapDiskStore<Long, Object[]> offHeapDiskStore1 = provider.createStore(storeConfig1, space);
+      provider.initStore(offHeapDiskStore1);
+
+      destroyStore(offHeapDiskStore1);
+    }
+
+    {
+      Store.Configuration<Long, Object[]> storeConfig2 = mock(Store.Configuration.class);
+      when(storeConfig2.getKeyType()).thenReturn(Long.class);
+      when(storeConfig2.getValueType()).thenReturn(Object[].class);
+      when(storeConfig2.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .disk(10, MemoryUnit.MB)
+          .build());
+      when(storeConfig2.getOrderedEventParallelism()).thenReturn(1);
+      when(storeConfig2.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
+
+
+      OffHeapDiskStore<Long, Object[]> offHeapDiskStore2 = provider.createStore(storeConfig2, space);
+      provider.initStore(offHeapDiskStore2);
+
+      destroyStore(offHeapDiskStore2);
+    }
+  }
+
   @Override
   protected OffHeapDiskStore<String, String> createAndInitStore(final TimeSource timeSource, final Expiry<? super String, ? super String> expiry) {
     try {
