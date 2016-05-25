@@ -84,6 +84,41 @@ public class PersistentCacheTest {
     return result;
   }
 
+  @Test
+  public void testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass() throws Exception {
+    {
+      PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+          .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass")))
+          .withCache("persistentCache",
+              CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, byte[].class,
+                  newResourcePoolsBuilder()
+                      .heap(1, MemoryUnit.MB)
+                      .offheap(2, MemoryUnit.MB)
+                      .disk(5, MemoryUnit.MB, true)
+                  )
+          ).build(true);
+
+
+      cacheManager.close();
+    }
+
+    {
+      PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+          .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass")))
+          .withCache("persistentCache",
+              CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, byte[].class,
+                  newResourcePoolsBuilder()
+                      .heap(1, MemoryUnit.MB)
+                      .offheap(2, MemoryUnit.MB)
+                      .disk(5, MemoryUnit.MB, true)
+                  )
+          ).build(true);
+
+
+      cacheManager.close();
+    }
+  }
+
   private String getStoragePath() throws URISyntaxException {
     return getClass().getClassLoader().getResource(".").toURI().getPath();
   }
