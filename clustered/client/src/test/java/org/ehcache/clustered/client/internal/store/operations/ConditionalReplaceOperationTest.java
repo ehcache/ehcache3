@@ -101,23 +101,16 @@ public class ConditionalReplaceOperationTest {
   @Test
   public void testApply() throws Exception {
     ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(1L, "one", "two");
-    Operation<Long, String> applied = operation.apply(null);
-    assertNull(applied);
+    Result<String> result = operation.apply(null);
+    assertNull(result);
 
-    Operation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one");
-    applied = operation.apply(anotherOperation);
-    assertSame(operation, applied);
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one");
+    result = operation.apply(anotherOperation);
+    assertSame(operation, result);
 
     anotherOperation = new PutOperation<Long, String>(1L, "another one");
-    applied = operation.apply(anotherOperation);
-    assertSame(anotherOperation, applied);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testApplyOnDifferentkey() throws Exception {
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(1L, "one", "two");
-    Operation<Long, String> anotherOperation = new PutOperation<Long, String>(2L, "another one");
-    operation.apply(anotherOperation);
+    result = operation.apply(anotherOperation);
+    assertSame(anotherOperation, result);
   }
 
 }

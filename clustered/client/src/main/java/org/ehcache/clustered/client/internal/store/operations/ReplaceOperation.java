@@ -20,7 +20,7 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class ReplaceOperation<K, V> extends BaseOperation<K, V> {
+public class ReplaceOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
 
   public ReplaceOperation(final K key, final V value) {
     super(key, value);
@@ -36,12 +36,16 @@ public class ReplaceOperation<K, V> extends BaseOperation<K, V> {
   }
 
   @Override
-  public Operation<K, V> apply(final Operation<K, V> previousOperation) {
+  public Result<V> apply(final Result<V> previousOperation) {
     if(previousOperation == null) {
       return null;
     } else {
-      assertSameKey(previousOperation);
       return this;
     }
+  }
+
+  @Override
+  public String toString() {
+    return "{" + super.toString() + "}";
   }
 }

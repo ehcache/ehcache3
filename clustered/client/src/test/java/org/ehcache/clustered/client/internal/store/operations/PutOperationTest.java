@@ -23,15 +23,15 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
-public class PutOperationTest extends BaseOperationTest {
+public class PutOperationTest extends BaseKeyValueOperationTest {
 
   @Override
-  protected <K, V> Operation<K, V> getNewOperation(final K key, final V value) {
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value) {
     return new PutOperation<K, V>(key, value);
   }
 
   @Override
-  protected <K, V> Operation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     return new PutOperation<K, V>(buffer, keySerializer, valueSerializer);
   }
 
@@ -43,17 +43,10 @@ public class PutOperationTest extends BaseOperationTest {
   @Test
   public void testApply() throws Exception {
     PutOperation<Long, String> putOperation = new PutOperation<Long, String>(1L, "one");
-    Operation<Long, String> operation = putOperation.apply(null);
-    assertSame(putOperation, operation);
+    Result<String> result = putOperation.apply(null);
+    assertSame(putOperation, result);
     PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "two");
-    operation = anotherOperation.apply(putOperation);
-    assertSame(anotherOperation, operation);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testApplyOnDifferentkey() throws Exception {
-    PutOperation<Long, String> putOperation = new PutOperation<Long, String>(1L, "one");
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(2L, "two");
-    putOperation.apply(anotherOperation);
+    result = anotherOperation.apply(putOperation);
+    assertSame(anotherOperation, result);
   }
 }

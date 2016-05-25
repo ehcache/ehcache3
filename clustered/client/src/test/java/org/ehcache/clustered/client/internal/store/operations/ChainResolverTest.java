@@ -54,8 +54,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
 
     Chain compactedChain = resolvedChain.getCompactedChain();
     List<Operation<Long, String>> operations = getOperationsListFromChain(compactedChain);
@@ -74,8 +74,8 @@ public class ChainResolverTest {
     Chain chain = (new ChainBuilder()).build();
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertNull(resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertNull(result);
 
     Chain compactedChain = resolvedChain.getCompactedChain();
     assertTrue(compactedChain.isEmpty());
@@ -91,8 +91,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 3L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(3L);
-    assertNull(resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(3L);
+    assertNull(result);
 
     Chain compactedChain = resolvedChain.getCompactedChain();
     List<Operation<Long, String>> expectedOperations = getOperationsListFromChain(compactedChain);
@@ -108,8 +108,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -124,8 +124,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -136,8 +136,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertNull(resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertNull(result);
   }
 
   @Test
@@ -149,8 +149,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertNull(resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertNull(result);
   }
 
   @Test
@@ -162,8 +162,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertNull(resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertNull(result);
   }
 
   @Test
@@ -175,8 +175,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -190,8 +190,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -205,8 +205,8 @@ public class ChainResolverTest {
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long, String> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   private Chain getChainFromOperations(List<Operation<Long, String>> operations) {

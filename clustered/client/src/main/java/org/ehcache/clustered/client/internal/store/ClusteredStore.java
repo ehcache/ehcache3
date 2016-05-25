@@ -17,18 +17,16 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
-import org.ehcache.clustered.client.internal.store.operations.Operation;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
+import org.ehcache.clustered.client.internal.store.operations.Result;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -45,7 +43,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -80,10 +77,14 @@ public class ClusteredStore<K, V> implements Store<K, V> {
       Chain compactedChain = resolvedChain.getCompactedChain();
       storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
 
-      Operation<K, V> resolvedOperation = resolvedChain.getResolvedOperation(key);
-      if(resolvedOperation != null) {
-        value = resolvedOperation.getValue();
+      Result<V> resolvedResult = resolvedChain.getResolvedResult(key);
+      if(resolvedResult != null) {
+        value = resolvedResult.getValue();
+      } else {
+        return null;
       }
+    } else {
+      return null;
     }
     return new ClusteredValueHolder<V>(value);
   }

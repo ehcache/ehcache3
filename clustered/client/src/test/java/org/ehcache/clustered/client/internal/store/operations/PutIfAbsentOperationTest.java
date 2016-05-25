@@ -23,15 +23,15 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
-public class PutIfAbsentOperationTest extends BaseOperationTest {
+public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
 
   @Override
-  protected <K, V> Operation<K, V> getNewOperation(final K key, final V value) {
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value) {
     return new PutIfAbsentOperation<K, V>(key, value);
   }
 
   @Override
-  protected <K, V> Operation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     return new PutIfAbsentOperation<K, V>(buffer, keySerializer, valueSerializer);
   }
 
@@ -43,18 +43,11 @@ public class PutIfAbsentOperationTest extends BaseOperationTest {
   @Test
   public void testApply() throws Exception {
     PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<Long, String>(1L, "one");
-    Operation<Long, String> applied = operation.apply(null);
-    assertSame(operation, applied);
+    Result<String> result = operation.apply(null);
+    assertSame(operation, result);
 
-    Operation<Long, String> anotherOperation = new ReplaceOperation<Long, String>(1L, "another one");
-    applied = operation.apply(anotherOperation);
-    assertSame(anotherOperation, applied);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testApplyOnDifferentkey() throws Exception {
-    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<Long, String>(1L, "one");
-    PutIfAbsentOperation<Long, String> anotherOperation = new PutIfAbsentOperation<Long, String>(2L, "two");
-    operation.apply(anotherOperation);
+    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<Long, String>(1L, "another one");
+    result = operation.apply(anotherOperation);
+    assertSame(anotherOperation, result);
   }
 }

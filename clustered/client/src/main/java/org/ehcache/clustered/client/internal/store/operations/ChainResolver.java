@@ -47,22 +47,24 @@ public class ChainResolver<K, V> {
    * @throws ClassNotFoundException
    */
   public ResolvedChain<K, V> resolve(Chain chain, K key) {
-    Operation<K, V> resolvedOperation = null;
+    Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
       Operation<K, V> operation = codec.decode(payload);
       if(key.equals(operation.getKey())) {
-        resolvedOperation = operation.apply(resolvedOperation);
+        result = operation.apply(result);
       } else {
         payload.flip();
         chainBuilder = chainBuilder.add(payload);
       }
     }
-    if(resolvedOperation != null) {
+    Operation<K, V> resolvedOperation = null;
+    if(result != null) {
+      resolvedOperation = new PutOperation<K, V>(key, result.getValue());
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }
-    return new ResolvedChain.SimpleResolvedChain<K, V>(chainBuilder.build(), resolvedOperation);
+    return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result);
   }
 }

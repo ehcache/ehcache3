@@ -23,27 +23,25 @@ import java.nio.ByteBuffer;
 
 import static org.ehcache.clustered.client.internal.store.operations.OperationCode.REPLACE_CONDITIONAL;
 
-public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> {
+public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> implements Result<V> {
 
   private final V oldValue;
+  private final V newValue;
 
-  public ConditionalReplaceOperation(final K key, final V oldValue, final V value) {
-    super(key, value);
+  public ConditionalReplaceOperation(final K key, final V oldValue, final V newValue) {
+    super(key);
     if(oldValue == null) {
       throw new NullPointerException("Old value can not be null");
     }
     this.oldValue = oldValue;
+    if(newValue == null) {
+      throw new NullPointerException("New value can not be null");
+    }
+    this.newValue = newValue;
   }
 
   ConditionalReplaceOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-    OperationCode opCode = OperationCode.valueOf(buffer.get());
-    validateOperation(opCode);
-
-    int keySize = buffer.getInt();
-    buffer.limit(buffer.position() + keySize);
-    ByteBuffer keyBlob = buffer.slice();
-    buffer.position(buffer.limit());
-    buffer.limit(buffer.capacity());
+    super(buffer, keySerializer, valueSerializer);
 
     int oldValueSize = buffer.getInt();
     buffer.limit(buffer.position() + oldValueSize);
@@ -54,9 +52,8 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> {
     ByteBuffer valueBlob = buffer.slice();
 
     try {
-      this.key = keySerializer.read(keyBlob);
-      this.value = valueSerializer.read(valueBlob);
       this.oldValue = valueSerializer.read(oldValueBlob);
+      this.newValue = valueSerializer.read(valueBlob);
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
@@ -67,20 +64,24 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> {
   }
 
   @Override
+  public V getValue() {
+    return this.newValue;
+  }
+
+  @Override
   public OperationCode getOpCode() {
     return REPLACE_CONDITIONAL;
   }
 
   @Override
-  public Operation<K, V> apply(final Operation<K, V> previousOperation) {
-    if(previousOperation == null) {
+  public Result<V> apply(Result<V> previousResult) {
+    if(previousResult == null) {
       return null;
     } else {
-      assertSameKey(previousOperation);
-      if(oldValue.equals(previousOperation.getValue())) {
+      if(oldValue.equals(previousResult.getValue())) {
         return this;  // TODO: A new PutOperation can be created and returned here to minimize the size of returned operation
       } else {
-        return previousOperation;
+        return previousResult;
       }
     }
   }
@@ -88,13 +89,13 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> {
   @Override
   public ByteBuffer encode(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     ByteBuffer keyBuf = keySerializer.serialize(key);
-    ByteBuffer valueBuf = valueSerializer.serialize(value);
     ByteBuffer oldValueBuf = valueSerializer.serialize(oldValue);
+    ByteBuffer valueBuf = valueSerializer.serialize(newValue);
 
     ByteBuffer buffer = ByteBuffer.allocate(BYTE_SIZE_BYTES +   // Operation type
                                             INT_SIZE_BYTES +    // Size of the key payload
-                                            keyBuf.remaining() +  // the kay payload itself
-                                            INT_SIZE_BYTES +    // Size of old value payload
+                                            keyBuf.remaining() + // the key payload itself
+                                            INT_SIZE_BYTES +    // Size of the value payload
                                             oldValueBuf.remaining() +  // The old value payload itself
                                             valueBuf.remaining());  // The value payload itself
 
@@ -111,22 +112,7 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> {
 
   @Override
   public String toString() {
-    StringBuilder builder = new StringBuilder();
-    builder.append("{");
-    builder.append(getOpCode());
-    builder.append("# key: ");
-    builder.append(key);
-    if(oldValue != null) {
-      builder.append(", oldValue: ");
-      builder.append(oldValue);
-    }
-    if(value != null) {
-      builder.append(", newvalue: ");
-      builder.append(value);
-    }
-    builder.append("}");
-
-    return builder.toString();
+    return "{" + super.toString() + ", oldValue: " + oldValue + ", newValue: " + newValue + "}";
   }
 
   @Override

@@ -28,6 +28,9 @@ public class ClusteredValueHolder<V> extends AbstractValueHolder<V> {
 
   public ClusteredValueHolder(V value) {
     super(0, 0);
+    if(value == null) {
+      throw new NullPointerException("Value can not be null");
+    }
     this.value = value;
   }
 

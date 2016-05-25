@@ -23,15 +23,15 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
-public class ReplaceOperationTest extends BaseOperationTest {
+public class ReplaceOperationTest extends BaseKeyValueOperationTest {
 
   @Override
-  protected <K, V> Operation<K, V> getNewOperation(final K key, final V value) {
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value) {
     return new ReplaceOperation<K, V>(key, value);
   }
 
   @Override
-  protected <K, V> Operation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     return new ReplaceOperation<K, V>(buffer, keySerializer, valueSerializer);
   }
 
@@ -43,18 +43,11 @@ public class ReplaceOperationTest extends BaseOperationTest {
   @Test
   public void testApply() throws Exception {
     ReplaceOperation<Long, String> operation = new ReplaceOperation<Long, String>(1L, "one");
-    Operation<Long, String> applied = operation.apply(null);
-    assertNull(applied);
+    Result<String> result = operation.apply(null);
+    assertNull(result);
 
-    Operation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one");
-    applied = operation.apply(anotherOperation);
-    assertSame(operation, applied);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testApplyOnDifferentkey() throws Exception {
-    ReplaceOperation<Long, String> operation = new ReplaceOperation<Long, String>(1L, "one");
-    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<Long, String>(2L, "two");
-    operation.apply(anotherOperation);
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one");
+    result = operation.apply(anotherOperation);
+    assertSame(operation, result);
   }
 }

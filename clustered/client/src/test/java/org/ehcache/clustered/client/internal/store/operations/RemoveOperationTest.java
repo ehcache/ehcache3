@@ -55,7 +55,6 @@ public class RemoveOperationTest {
 
     RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(blob, keySerializer, valueSerializer);
     assertEquals(key, operation.getKey());
-    assertNull(operation.getValue());
   }
 
   @Test
@@ -66,7 +65,6 @@ public class RemoveOperationTest {
     RemoveOperation<Long, String> decodedOperation =
         new RemoveOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);
     assertEquals(key, decodedOperation.getKey());
-    assertNull(operation.getValue());
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -78,18 +76,11 @@ public class RemoveOperationTest {
   @Test
   public void testApply() throws Exception {
     RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(1L);
-    Operation<Long, String> applied = operation.apply(null);
-    assertNull(applied);
+    Result<String> result = operation.apply(null);
+    assertNull(result);
 
-    Operation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one");
-    applied = operation.apply(anotherOperation);
-    assertNull(applied);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testApplyOnDifferentkey() throws Exception {
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(1L);
-    Operation<Long, String> anotherOperation = new PutOperation<Long, String>(2L, "two");
-    operation.apply(anotherOperation);
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one");
+    result = operation.apply(anotherOperation);
+    assertNull(result);
   }
 }

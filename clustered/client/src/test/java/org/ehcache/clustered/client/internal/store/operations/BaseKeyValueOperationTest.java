@@ -28,14 +28,14 @@ import static org.ehcache.clustered.client.internal.store.operations.BaseOperati
 import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.LONG_SIZE_BYTES;
 import static org.junit.Assert.*;
 
-public abstract class BaseOperationTest {
+public abstract class BaseKeyValueOperationTest {
 
   protected static final Serializer<Long> keySerializer = new LongSerializer();
   protected static final Serializer<String> valueSerializer = new StringSerializer();
 
-  protected abstract <K, V> Operation<K, V> getNewOperation(K key, V value);
+  protected abstract <K, V> BaseKeyValueOperation<K, V> getNewOperation(K key, V value);
 
-  protected abstract <K, V> Operation<K, V> getNewOperation(ByteBuffer buffer,
+  protected abstract <K, V> BaseKeyValueOperation<K, V> getNewOperation(ByteBuffer buffer,
                                                             Serializer<K> keySerializer, Serializer<V> valueSerializer);
 
   protected abstract OperationCode getOperationCode();
@@ -70,7 +70,7 @@ public abstract class BaseOperationTest {
     blob.put(value.getBytes());
     blob.flip();
 
-    Operation<Long, String> operation = getNewOperation(key, value);
+    BaseKeyValueOperation<Long, String> operation = getNewOperation(key, value);
     assertEquals(key, operation.getKey());
     assertEquals(value, operation.getValue());
   }
@@ -81,7 +81,7 @@ public abstract class BaseOperationTest {
     String value = "The value";
     Operation<Long, String> operation = getNewOperation(key, value);
 
-    Operation<Long, String> decodedOperation = getNewOperation(
+    BaseKeyValueOperation<Long, String> decodedOperation = getNewOperation(
         operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);
     assertEquals(key, decodedOperation.getKey());
     assertEquals(value, decodedOperation.getValue());

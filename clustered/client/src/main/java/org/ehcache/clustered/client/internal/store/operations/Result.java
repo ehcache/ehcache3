@@ -16,17 +16,8 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.spi.serialization.Serializer;
+public interface Result<V> {
 
-import java.nio.ByteBuffer;
+  V getValue();
 
-public interface Operation<K, V> {
-
-  OperationCode getOpCode();
-
-  K getKey();
-
-  Result<V> apply(Result<V> previousResult);
-
-  ByteBuffer encode(Serializer<K> keySerializer, Serializer<V> valueSerializer);
 }

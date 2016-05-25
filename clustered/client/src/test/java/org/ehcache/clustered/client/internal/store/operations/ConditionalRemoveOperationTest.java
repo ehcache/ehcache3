@@ -23,15 +23,15 @@ import java.nio.ByteBuffer;
 
 import static org.junit.Assert.*;
 
-public class ConditionalRemoveOperationTest extends BaseOperationTest {
+public class ConditionalRemoveOperationTest extends BaseKeyValueOperationTest {
 
   @Override
-  protected <K, V> Operation<K, V> getNewOperation(final K key, final V value) {
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value) {
     return new ConditionalRemoveOperation<K, V>(key, value);
   }
 
   @Override
-  protected <K, V> Operation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     return new ConditionalRemoveOperation<K, V>(buffer, keySerializer, valueSerializer);
   }
 
@@ -43,22 +43,15 @@ public class ConditionalRemoveOperationTest extends BaseOperationTest {
   @Test
   public void testApply() throws Exception {
     ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<Long, String>(1L, "one");
-    Operation<Long, String> applied = operation.apply(null);
-    assertNull(applied);
+    Result<String> result = operation.apply(null);
+    assertNull(result);
 
-    Operation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one");
-    applied = operation.apply(anotherOperation);
-    assertNull(applied);
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one");
+    result = operation.apply(anotherOperation);
+    assertNull(result);
 
-    anotherOperation = new PutIfAbsentOperation<Long, String>(1L, "two");
-    applied = operation.apply(anotherOperation);
-    assertSame(anotherOperation, applied);
-  }
-
-  @Test(expected = IllegalArgumentException.class)
-  public void testApplyOnDifferentkey() throws Exception {
-    ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<Long, String>(1L, "one");
-    ConditionalRemoveOperation<Long, String> anotherOperation = new ConditionalRemoveOperation<Long, String>(2L, "two");
-    operation.apply(anotherOperation);
+    PutIfAbsentOperation yetAnotherOperation = new PutIfAbsentOperation<Long, String>(1L, "two");
+    result = operation.apply(yetAnotherOperation);
+    assertSame(yetAnotherOperation, result);
   }
 }

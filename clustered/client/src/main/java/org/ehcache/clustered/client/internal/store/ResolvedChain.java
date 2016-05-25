@@ -16,9 +16,10 @@
 
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.store.operations.Operation;
+import org.ehcache.clustered.client.internal.store.operations.Result;
 import org.ehcache.clustered.common.store.Chain;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
@@ -32,56 +33,32 @@ public interface ResolvedChain<K, V> {
 
   Chain getCompactedChain();
 
-  Operation<K, V> getResolvedOperation(K key);
-
-  abstract class BaseResolvedChain<K, V> implements ResolvedChain<K, V> {
-
-    private final Chain compactedChain;
-
-    protected BaseResolvedChain(final Chain compactedChain) {this.compactedChain = compactedChain;}
-
-    public Chain getCompactedChain() {
-      return this.compactedChain;
-    }
-  }
+  Result<V> getResolvedResult(K key);
 
   /**
    * Represents the {@link ResolvedChain} result of a resolver that resolves
    * all the keys in a {@link Chain}
    */
-  class CombinedResolvedChain<K, V> extends BaseResolvedChain<K, V> {
+  class Impl<K, V> implements ResolvedChain<K, V> {
 
-    private final Map<K, Operation<K, V>> resolvedOperations;
+    private final Chain compactedChain;
+    private final Map<K, Result<V>> resolvedOperations;
 
-    public CombinedResolvedChain(Chain compactedChain, Map<K, Operation<K, V>> resolvedOperations) {
-      super(compactedChain);
+    public Impl(Chain compactedChain, Map<K, Result<V>> resolvedOperations) {
+      this.compactedChain = compactedChain;
       this.resolvedOperations = resolvedOperations;
     }
 
-    public Operation<K, V> getResolvedOperation(K key) {
+    public Impl(Chain compactedChain, K key, Result<V> result) {
+      this(compactedChain, Collections.singletonMap(key, result));
+    }
+
+    public Chain getCompactedChain() {
+      return this.compactedChain;
+    }
+
+    public Result<V> getResolvedResult(K key) {
       return resolvedOperations.get(key);
-    }
-  }
-
-  /**
-   * Represents the {@link ResolvedChain} result of a resolver that resolves
-   * only one key in a {@link Chain}
-   */
-  class SimpleResolvedChain<K, V> extends BaseResolvedChain<K, V> {
-
-    Operation<K, V> resolvedOperation;
-
-    public SimpleResolvedChain(Chain compactedChain, Operation<K, V> resolvedOperation) {
-      super(compactedChain);
-      this.resolvedOperation = resolvedOperation;
-    }
-
-    public Operation<K, V> getResolvedOperation(K key) {
-      if(resolvedOperation != null && resolvedOperation.getKey().equals(key)) {
-        return resolvedOperation;
-      } else {
-        return null;
-      }
     }
   }
 }

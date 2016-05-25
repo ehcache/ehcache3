@@ -20,7 +20,7 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class PutIfAbsentOperation<K, V> extends BaseOperation<K, V> {
+public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
 
   public PutIfAbsentOperation(final K key, final V value) {
     super(key, value);
@@ -40,12 +40,16 @@ public class PutIfAbsentOperation<K, V> extends BaseOperation<K, V> {
    * for the same key.
    */
   @Override
-  public Operation<K, V> apply(final Operation<K, V> previousOperation) {
+  public Result<V> apply(final Result<V> previousOperation) {
     if(previousOperation == null) {
       return this;
     } else {
-      assertSameKey(previousOperation);
       return previousOperation;
     }
+  }
+
+  @Override
+  public String toString() {
+    return "{" + super.toString() + "}";
   }
 }

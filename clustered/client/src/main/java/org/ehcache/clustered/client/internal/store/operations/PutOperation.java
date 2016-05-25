@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
  * @param <K> key type
  * @param <V> value type
  */
-public class PutOperation<K, V> extends BaseOperation<K, V> {
+public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
 
   public PutOperation(final K key, final V value) {
     super(key, value);
@@ -45,10 +45,12 @@ public class PutOperation<K, V> extends BaseOperation<K, V> {
    * what the other operation is. The result is gonna be {@code this} operation.
    */
   @Override
-  public Operation<K, V> apply(final Operation<K, V> previousOperation) {
-    if(previousOperation != null) {
-      assertSameKey(previousOperation);
-    }
+  public Result<V> apply(final Result<V> previousOperation) {
     return this;
+  }
+
+  @Override
+  public String toString() {
+    return "{" + super.toString() + "}";
   }
 }
