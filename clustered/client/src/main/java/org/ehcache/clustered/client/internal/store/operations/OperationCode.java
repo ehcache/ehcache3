@@ -31,7 +31,7 @@ public enum OperationCode {
   REMOVE((byte)2) {
     @Override
     public <K, V> Operation<K, V> decode(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-      return new RemoveOperation<K, V>(buffer, keySerializer, valueSerializer);
+      return new RemoveOperation<K, V>(buffer, keySerializer);
     }
   },
   PUT_IF_ABSENT((byte)3) {

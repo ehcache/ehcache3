@@ -47,9 +47,4 @@ public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> impl
       return previousOperation;
     }
   }
-
-  @Override
-  public String toString() {
-    return "{" + super.toString() + "}";
-  }
 }

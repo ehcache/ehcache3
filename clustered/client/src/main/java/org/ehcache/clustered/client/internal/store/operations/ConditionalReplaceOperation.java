@@ -23,13 +23,17 @@ import java.nio.ByteBuffer;
 
 import static org.ehcache.clustered.client.internal.store.operations.OperationCode.REPLACE_CONDITIONAL;
 
-public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> implements Result<V> {
+public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Result<V> {
 
+  private final K key;
   private final V oldValue;
   private final V newValue;
 
   public ConditionalReplaceOperation(final K key, final V oldValue, final V newValue) {
-    super(key);
+    if(key == null) {
+      throw new NullPointerException("Key can not be null");
+    }
+    this.key = key;
     if(oldValue == null) {
       throw new NullPointerException("Old value can not be null");
     }
@@ -41,7 +45,15 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> imple
   }
 
   ConditionalReplaceOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
-    super(buffer, keySerializer, valueSerializer);
+    OperationCode opCode = OperationCode.valueOf(buffer.get());
+    if (opCode != getOpCode()) {
+      throw new IllegalArgumentException("Invalid operation: " + opCode);
+    }
+    int keySize = buffer.getInt();
+    buffer.limit(buffer.position() + keySize);
+    ByteBuffer keyBlob = buffer.slice();
+    buffer.position(buffer.limit());
+    buffer.limit(buffer.capacity());
 
     int oldValueSize = buffer.getInt();
     buffer.limit(buffer.position() + oldValueSize);
@@ -52,6 +64,7 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> imple
     ByteBuffer valueBlob = buffer.slice();
 
     try {
+      this.key = keySerializer.read(keyBlob);
       this.oldValue = valueSerializer.read(oldValueBlob);
       this.newValue = valueSerializer.read(valueBlob);
     } catch (ClassNotFoundException e) {
@@ -59,7 +72,11 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> imple
     }
   }
 
-  public V getOldValue() {
+  public K getKey() {
+    return key;
+  }
+
+  V getOldValue() {
     return this.oldValue;
   }
 
@@ -95,7 +112,7 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> imple
     ByteBuffer buffer = ByteBuffer.allocate(BYTE_SIZE_BYTES +   // Operation type
                                             INT_SIZE_BYTES +    // Size of the key payload
                                             keyBuf.remaining() + // the key payload itself
-                                            INT_SIZE_BYTES +    // Size of the value payload
+                                            INT_SIZE_BYTES +    // Size of the old value payload
                                             oldValueBuf.remaining() +  // The old value payload itself
                                             valueBuf.remaining());  // The value payload itself
 
@@ -112,21 +129,26 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> imple
 
   @Override
   public String toString() {
-    return "{" + super.toString() + ", oldValue: " + oldValue + ", newValue: " + newValue + "}";
+    return "{" + getOpCode() + "# key: " + key + ", oldValue: " + oldValue + ", newValue: " + newValue + "}";
   }
 
   @Override
   public boolean equals(final Object obj) {
-    if(!super.equals(obj)) {
+    if(obj == null) {
       return false;
     }
-
     if(!(obj instanceof ConditionalReplaceOperation)) {
       return false;
     }
 
     ConditionalReplaceOperation<K, V> other = (ConditionalReplaceOperation)obj;
-    if(this.getOldValue() == null && other.getOldValue() != null) {
+    if(this.getOpCode() != other.getOpCode()) {
+      return false;
+    }
+    if(!this.getKey().equals(other.getKey())) {
+      return false;
+    }
+    if(!this.getValue().equals(other.getValue())) {
       return false;
     }
     if(!this.getOldValue().equals(other.getOldValue())) {
@@ -137,6 +159,10 @@ public class ConditionalReplaceOperation<K, V> extends BaseOperation<K, V> imple
 
   @Override
   public int hashCode() {
-    return super.hashCode() + (oldValue == null? 0: oldValue.hashCode());
+    int hash = getOpCode().hashCode();
+    hash = hash * 31 + key.hashCode();
+    hash = hash * 31 + oldValue.hashCode();
+    hash = hash * 31 + newValue.hashCode();
+    return hash;
   }
 }

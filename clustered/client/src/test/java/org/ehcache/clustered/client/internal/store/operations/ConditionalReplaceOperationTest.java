@@ -23,9 +23,9 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.BYTE_SIZE_BYTES;
-import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.INT_SIZE_BYTES;
-import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.LONG_SIZE_BYTES;
+import static org.ehcache.clustered.client.internal.store.operations.Operation.BYTE_SIZE_BYTES;
+import static org.ehcache.clustered.client.internal.store.operations.Operation.INT_SIZE_BYTES;
+import static org.ehcache.clustered.client.internal.store.operations.Operation.LONG_SIZE_BYTES;
 import static org.junit.Assert.*;
 
 public class ConditionalReplaceOperationTest {

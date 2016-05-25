@@ -40,16 +40,11 @@ public class ConditionalRemoveOperation<K, V> extends BaseKeyValueOperation<K, V
     if(previousOperation == null) {
       return null;
     } else {
-      if(value.equals(previousOperation.getValue())) {
+      if(getValue().equals(previousOperation.getValue())) {
         return null;
       } else {
         return previousOperation;
       }
     }
-  }
-
-  @Override
-  public String toString() {
-    return "{" + super.toString() + "}";
   }
 }

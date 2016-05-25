@@ -43,9 +43,4 @@ public class ReplaceOperation<K, V> extends BaseKeyValueOperation<K, V> implemen
       return this;
     }
   }
-
-  @Override
-  public String toString() {
-    return "{" + super.toString() + "}";
-  }
 }

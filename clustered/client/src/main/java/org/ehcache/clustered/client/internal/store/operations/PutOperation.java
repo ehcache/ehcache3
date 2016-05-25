@@ -48,9 +48,4 @@ public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> implements R
   public Result<V> apply(final Result<V> previousOperation) {
     return this;
   }
-
-  @Override
-  public String toString() {
-    return "{" + super.toString() + "}";
-  }
 }

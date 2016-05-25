@@ -23,8 +23,8 @@ import org.junit.Test;
 
 import java.nio.ByteBuffer;
 
-import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.BYTE_SIZE_BYTES;
-import static org.ehcache.clustered.client.internal.store.operations.BaseOperation.LONG_SIZE_BYTES;
+import static org.ehcache.clustered.client.internal.store.operations.Operation.BYTE_SIZE_BYTES;
+import static org.ehcache.clustered.client.internal.store.operations.Operation.LONG_SIZE_BYTES;
 import static org.junit.Assert.*;
 
 public class RemoveOperationTest {
@@ -53,7 +53,7 @@ public class RemoveOperationTest {
     blob.putLong(key);
     blob.flip();
 
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(blob, keySerializer, valueSerializer);
+    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(blob, keySerializer);
     assertEquals(key, operation.getKey());
   }
 
@@ -63,14 +63,14 @@ public class RemoveOperationTest {
     RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key);
 
     RemoveOperation<Long, String> decodedOperation =
-        new RemoveOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);
+        new RemoveOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer);
     assertEquals(key, decodedOperation.getKey());
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testDecodeThrowsOnInvalidType() throws Exception {
     ByteBuffer buffer = ByteBuffer.wrap(new byte[] {10});
-    new RemoveOperation<Long, String>(buffer, keySerializer, valueSerializer);
+    new RemoveOperation<Long, String>(buffer, keySerializer);
   }
 
   @Test

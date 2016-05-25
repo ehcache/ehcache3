@@ -22,6 +22,10 @@ import java.nio.ByteBuffer;
 
 public interface Operation<K, V> {
 
+  int BYTE_SIZE_BYTES = 1;
+  int INT_SIZE_BYTES = 4;
+  int LONG_SIZE_BYTES = 8;
+
   OperationCode getOpCode();
 
   K getKey();

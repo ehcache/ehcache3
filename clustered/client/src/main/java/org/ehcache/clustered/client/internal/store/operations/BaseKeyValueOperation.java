@@ -16,31 +16,47 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.ehcache.clustered.client.internal.store.operations.codecs.CodecException;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public abstract class BaseKeyValueOperation<K, V> extends BaseOperation<K, V> {
+abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
-  protected final V value;
+  private final K key;
+  private final V value;
 
   BaseKeyValueOperation(K key, V value) {
-    super(key);
+    if(key == null) {
+      throw new NullPointerException("Key can not be null");
+    }
     if(value == null) {
       throw new NullPointerException("Value can not be null");
     }
+    this.key = key;
     this.value = value;
   }
 
   BaseKeyValueOperation(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
-    super(buffer, keySerializer, valueSerializer);
+    OperationCode opCode = OperationCode.valueOf(buffer.get());
+    if (opCode != getOpCode()) {
+      throw new IllegalArgumentException("Invalid operation: " + opCode);
+    }
+    int keySize = buffer.getInt();
+    buffer.limit(buffer.position() + keySize);
+    ByteBuffer keyBlob = buffer.slice();
+    buffer.position(buffer.limit());
+    buffer.limit(buffer.capacity());
     try {
-      value = valueSerializer.read(buffer.slice());
+      this.key = keySerializer.read(keyBlob);
+      this.value = valueSerializer.read(buffer.slice());
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
+  }
+
+  public K getKey() {
+    return key;
   }
 
   public V getValue() {
@@ -65,7 +81,7 @@ public abstract class BaseKeyValueOperation<K, V> extends BaseOperation<K, V> {
 
     int size = BYTE_SIZE_BYTES +   // Operation type
                INT_SIZE_BYTES +    // Size of the key payload
-               keyBuf.remaining() + // the kay payload itself
+               keyBuf.remaining() + // the key payload itself
                valueBuf.remaining();  // the value payload
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
@@ -81,13 +97,12 @@ public abstract class BaseKeyValueOperation<K, V> extends BaseOperation<K, V> {
 
   @Override
   public String toString() {
-    return super.toString() + ", value: " + value;
+    return "{" + getOpCode() + "# key: " + key + ", value: " + value + "}";
   }
 
-  @SuppressFBWarnings("NP_NULL_ON_SOME_PATH")
   @Override
   public boolean equals(final Object obj) {
-    if(!super.equals(obj)) {
+    if(obj == null) {
       return false;
     }
     if(!(obj instanceof BaseKeyValueOperation)) {
@@ -95,6 +110,12 @@ public abstract class BaseKeyValueOperation<K, V> extends BaseOperation<K, V> {
     }
 
     BaseKeyValueOperation other = (BaseKeyValueOperation) obj;
+    if(this.getOpCode() != other.getOpCode()) {
+      return false;
+    }
+    if(!this.getKey().equals(other.getKey())) {
+      return false;
+    }
     if(!this.getValue().equals(other.getValue())) {
       return false;
     }
@@ -103,7 +124,9 @@ public abstract class BaseKeyValueOperation<K, V> extends BaseOperation<K, V> {
 
   @Override
   public int hashCode() {
-    return super.hashCode() +
-           (value == null? 0: value.hashCode());
+    int hash = getOpCode().hashCode();
+    hash = hash * 31 + key.hashCode();
+    hash = hash * 31 + value.hashCode();
+    return hash;
   }
 }
