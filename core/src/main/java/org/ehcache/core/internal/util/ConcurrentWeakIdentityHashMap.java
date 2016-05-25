@@ -191,6 +191,9 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
 
     private WeakReference(final T referent, final ReferenceQueue<? super T> q) {
       super(referent, q);
+      if (reference == null) {
+        throw new NullPointerException();
+      }
       hashCode = System.identityHashCode(referent);
     }
 
