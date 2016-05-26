@@ -37,6 +37,8 @@ import java.net.URI;
 import java.util.Collections;
 
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 public class BasicCacheCrudTest {
@@ -58,7 +60,7 @@ public class BasicCacheCrudTest {
   }
 
   @Test
-  public void basicCacheGetPut() throws Exception {
+  public void basicCacheCRUD() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager?auto-create"))
@@ -79,6 +81,8 @@ public class BasicCacheCrudTest {
       assertThat(cache.get(1L), equalTo("Another one"));
       assertThat(cache.get(2L), equalTo("The two"));
       assertThat(cache.get(3L), equalTo("The three"));
+      cache.remove(1L);
+      assertThat(cache.get(1L), is(nullValue()));
     } finally {
       cacheManager.close();
     }

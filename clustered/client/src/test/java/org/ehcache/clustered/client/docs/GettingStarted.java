@@ -115,8 +115,8 @@ public class GettingStarted {
   }
 
   @Test
-  public void clusteredCachePutGet() throws Exception {
-    // tag::clusteredCachePutGet[]
+  public void clusteredCacheCRUD() throws Exception {
+    // tag::clusteredCacheCRUD[]
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application?auto-create"))
@@ -138,10 +138,12 @@ public class GettingStarted {
       assertThat(cache.get(1L), equalTo("Another one"));
       assertThat(cache.get(2L), equalTo("The two"));
       assertThat(cache.get(3L), equalTo("The three"));
+      cache.remove(1L);
+      assertThat(cache.get(1L), is(nullValue()));
     } finally {
       cacheManager.close();
     }
-    // tag::clusteredCachePutGet[]
+    // tag::clusteredCacheCRUD[]
   }
 
 }
