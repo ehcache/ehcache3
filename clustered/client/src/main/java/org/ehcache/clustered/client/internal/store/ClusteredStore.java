@@ -63,6 +63,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final ChainResolver<K, V> resolver;
 
   private volatile ServerStoreProxy storeProxy;
+  private volatile InvalidationValve invalidationValve;
 
   private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
@@ -233,7 +234,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void setInvalidationValve(InvalidationValve valve) {
-    // no-op for now
+    this.invalidationValve = valve;
   }
 
 
@@ -297,8 +298,21 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       if (storeConfig == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ClusteredStore clusteredStore = (ClusteredStore) resource;
+      final ClusteredStore clusteredStore = (ClusteredStore) resource;
       clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
+      clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+        @Override
+        public void onInvalidationRequest(long hash) {
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              System.out.println("CLIENT: calling invalidation valve");
+              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+            } catch (StoreAccessException sae) {
+              LOGGER.error("error invalidating hash " + hash, sae);
+            }
+          }
+        }
+      });
     }
 
     @Override

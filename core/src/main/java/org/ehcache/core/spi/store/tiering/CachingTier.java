@@ -72,6 +72,14 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
   void invalidateAll() throws StoreAccessException;
 
   /**
+   * Remove all mappings whose key have the specified hash code from the {@code CachingTier}, triggering the
+   * {@link InvalidationListener} if registered.
+   *
+   * @throws StoreAccessException if mappings cannot be removed
+   */
+  void invalidateAllWithHash(long hash) throws StoreAccessException;
+
+  /**
    * Empty out the caching tier.
    * <P>
    *   Note that this operation is not atomic.

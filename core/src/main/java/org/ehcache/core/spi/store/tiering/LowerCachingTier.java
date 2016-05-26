@@ -16,11 +16,10 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -75,6 +74,14 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @throws StoreAccessException if mappings cannot be removed
    */
   void invalidateAll() throws StoreAccessException;
+
+  /**
+   * Invalidates all mappings whose key's hash code matches the provided one, invoking the
+   * {@link org.ehcache.core.spi.store.tiering.CachingTier.InvalidationListener} if registered.
+   *
+   * @throws StoreAccessException if mappings cannot be removed
+   */
+  void invalidateAllWithHash(long hash) throws StoreAccessException;
 
   /**
    * Empty out this tier
