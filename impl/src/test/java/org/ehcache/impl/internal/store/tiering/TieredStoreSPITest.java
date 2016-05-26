@@ -61,7 +61,9 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -156,6 +158,11 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
+            public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+              throw new UnsupportedOperationException("Implement me!");
+            }
+
+            @Override
             public void start(final ServiceProvider<Service> serviceProvider) {
               throw new UnsupportedOperationException("Implement me!");
             }
@@ -178,6 +185,11 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
             @Override
             public void initAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
               OffHeapDiskStoreSPITest.initStore((OffHeapDiskStore<?, ?>)resource);
+            }
+
+            @Override
+            public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+              throw new UnsupportedOperationException("Implement me!");
             }
 
             @Override
@@ -331,6 +343,11 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       throw new UnsupportedOperationException();
     }
@@ -354,6 +371,11 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
     @Override
     public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
       throw new UnsupportedOperationException();
     }
 

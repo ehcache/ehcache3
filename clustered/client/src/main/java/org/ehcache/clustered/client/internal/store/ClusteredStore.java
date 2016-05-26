@@ -34,6 +34,7 @@ import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
@@ -55,12 +56,13 @@ import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmon
 /**
  * Supports a {@link Store} in a clustered environment.
  */
-public class ClusteredStore<K, V> implements Store<K, V> {
+public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   private final OperationsCodec<K, V> codec;
   private final ChainResolver<K, V> resolver;
 
   private volatile ServerStoreProxy storeProxy;
+  private InvalidationValve invalidationValve;
 
   private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
@@ -198,12 +200,33 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     return Collections.emptyList();
   }
 
+  @Override
+  public ValueHolder<V> getAndFault(K key) throws StoreAccessException {
+    return get(key);
+  }
+
+  @Override
+  public ValueHolder<V> computeIfAbsentAndFault(K key, Function<? super K, ? extends V> mappingFunction) throws StoreAccessException {
+    return computeIfAbsent(key, mappingFunction);
+  }
+
+  @Override
+  public boolean flush(K key, ValueHolder<V> valueHolder) {
+    // TODO wire this once metadata are maintained
+    return true;
+  }
+
+  @Override
+  public void setInvalidationValve(InvalidationValve valve) {
+    invalidationValve = valve;
+  }
+
 
   /**
    * Provider of {@link ClusteredStore} instances.
    */
   @ServiceDependencies({ClusteringService.class})
-  public static class Provider implements Store.Provider {
+  public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
@@ -220,7 +243,7 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, StoreConfig>();
 
     @Override
-    public <K, V> Store<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
+    public <K, V> ClusteredStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       if (clusteringService == null) {
         throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore called without ClusteringServiceConfiguration");
       }
@@ -236,11 +259,10 @@ public class ClusteredStore<K, V> implements Store<K, V> {
         throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore can not create store with multiple clustered resources");
       }
 
-      // TODO: Create tiered configuration ala org.ehcache.impl.internal.store.tiering.CacheStore.Provider
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
       OperationsCodec<K, V> codec = new OperationsCodec<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
       ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec);
-      Store<K, V> store = new ClusteredStore<K, V>(codec, resolver);
+      ClusteredStore<K, V> store = new ClusteredStore<K, V>(codec, resolver);
       createdStores.put(store, new StoreConfig(cacheId, storeConfig));
       return store;
     }
@@ -274,6 +296,15 @@ public class ClusteredStore<K, V> implements Store<K, V> {
     }
 
     @Override
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      if (clusteringService == null) {
+        return 0;
+      } else {
+        return CLUSTER_RESOURCES.contains(authorityResource) ? 1 : 0;
+      }
+    }
+
+    @Override
     public void start(final ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
       this.clusteringService = this.serviceProvider.getService(ClusteringService.class);
@@ -285,6 +316,20 @@ public class ClusteredStore<K, V> implements Store<K, V> {
       createdStores.clear();
     }
 
+    @Override
+    public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      return createStore(storeConfig, serviceConfigs);
+    }
+
+    @Override
+    public void releaseAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      releaseStore(resource);
+    }
+
+    @Override
+    public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      initStore(resource);
+    }
   }
 
   private static class StoreConfig {

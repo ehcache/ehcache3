@@ -16,4 +16,13 @@
     </ehcache:resources>
   </ehcache:cache>
 
+  <ehcache:cache alias="tiered-cache">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap>10</ehcache:heap>
+      <tc:cluster-fixed from="primary-server-resource" unit="MB">4</tc:cluster-fixed>
+    </ehcache:resources>
+  </ehcache:cache>
+
 </ehcache:config>

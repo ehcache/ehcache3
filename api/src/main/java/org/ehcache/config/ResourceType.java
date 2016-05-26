@@ -51,29 +51,41 @@ public interface ResourceType<T extends ResourcePool> {
   boolean requiresSerialization();
 
   /**
+   * Indicates the level this resource sits in the tiering system.
+   * <P>
+   *   Higher means resource is faster and less abundant, lower means resource is slower but potentially larger.
+   * </P>
+   *
+   * @return the resource tier height
+   */
+  int getTierHeight();
+
+  /**
    * An enumeration of core {@link ResourceType}s in Ehcache.
    */
   enum Core implements ResourceType<SizedResourcePool> {
     /**
      * Heap: not persistable, {@link org.ehcache.spi.serialization.Serializer serialization} not required.
      */
-    HEAP(false, false),
+    HEAP(false, false, 10000),
     /**
      * OffHeap: not persistable, {@link org.ehcache.spi.serialization.Serializer serialization} required.
      */
-    OFFHEAP(false, true),
+    OFFHEAP(false, true, 1000),
     /**
      * Disk: persistable, {@link org.ehcache.spi.serialization.Serializer serialization} required.
      */
-    DISK(true, true);
+    DISK(true, true, 100);
 
 
     private final boolean persistable;
     private final boolean requiresSerialization;
+    private final int tierHeight;
 
-    Core(boolean persistable, final boolean requiresSerialization) {
+    Core(boolean persistable, final boolean requiresSerialization, int tierHeight) {
       this.persistable = persistable;
       this.requiresSerialization = requiresSerialization;
+      this.tierHeight = tierHeight;
     }
 
     @Override
@@ -92,9 +104,16 @@ public interface ResourceType<T extends ResourcePool> {
     }
 
     @Override
+    public int getTierHeight() {
+      return tierHeight;
+    }
+
+    @Override
     public String toString() {
       return name().toLowerCase();
     }
+
+
   }
 
 }
