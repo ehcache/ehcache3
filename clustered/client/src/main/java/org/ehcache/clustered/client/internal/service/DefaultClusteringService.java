@@ -19,6 +19,7 @@ package org.ehcache.clustered.client.internal.service;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,7 +28,9 @@ import java.util.Properties;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
+import org.ehcache.clustered.client.internal.EhcacheEntityBusyException;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
+import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -116,14 +119,39 @@ class DefaultClusteringService implements ClusteringService {
       throw new RuntimeException(ex);
     }
     entityFactory = new EhcacheClientEntityFactory(clusterConnection);
-    if (autoCreate) {
-      try {
-        create();
-      } catch (IllegalStateException ex) {
-        //ignore - entity already exists
+    try {
+      EhcacheEntityCreationException failure = null;
+      if (autoCreate) {
+        try {
+          entityFactory.create(entityIdentifier, serverConfiguration);
+        } catch (EhcacheEntityCreationException e) {
+          failure = e;
+        } catch (EntityAlreadyExistsException e) {
+          //ignore - entity already exists
+        }
       }
+      try {
+        entity = entityFactory.retrieve(entityIdentifier, serverConfiguration);
+      } catch (EntityNotFoundException e) {
+        /*
+         * If the connection failed because of a creation failure, re-throw the creation failure.
+         */
+        throw new IllegalStateException(failure == null ? e : failure);
+      }
+    } catch (RuntimeException e) {
+      if (entityFactory != null) {
+        entityFactory.abandonLeadership(entityIdentifier);
+        entityFactory.close();
+        entityFactory = null;
+      }
+      try {
+        clusterConnection.close();
+        clusterConnection = null;
+      } catch (IOException ex) {
+        LOGGER.info("Error closing cluster connection: " + ex);
+      }
+      throw e;
     }
-    connect();
   }
 
   @Override
@@ -135,6 +163,13 @@ class DefaultClusteringService implements ClusteringService {
     }
     entityFactory = new EhcacheClientEntityFactory(clusterConnection);
     if (!entityFactory.acquireLeadership(entityIdentifier)) {
+      entityFactory = null;
+      try {
+        clusterConnection.close();
+        clusterConnection = null;
+      } catch (IOException e) {
+        LOGGER.info("Error closing cluster connection: " + e);
+      }
       throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
     }
     inMaintenance = true;
@@ -143,20 +178,29 @@ class DefaultClusteringService implements ClusteringService {
   @Override
   public void stop() {
     LOGGER.info("stop called for clustered caches on {}", this.clusterUri);
-    entityFactory.abandonLeadership(entityIdentifier);
+    if (entityFactory != null) {
+      entityFactory.abandonLeadership(entityIdentifier);
+      entityFactory.close();
+      entityFactory = null;
+    }
     inMaintenance = false;
 
-    entity = null;
-    entityFactory = null;
+    if (entity != null) {
+      entity.close();
+      entity = null;
+    }
     try {
-      clusterConnection.close();
+      if (clusterConnection != null) {
+        clusterConnection.close();
+        clusterConnection = null;
+      }
     } catch (IOException ex) {
       throw new RuntimeException(ex);
     }
   }
 
   @Override
-  public void destroyAll() {
+  public void destroyAll() throws CachePersistenceException {
     if (!inMaintenance) {
       throw new IllegalStateException("Maintenance mode required");
     }
@@ -164,33 +208,16 @@ class DefaultClusteringService implements ClusteringService {
 
     try {
       entityFactory.destroy(entityIdentifier);
-    } catch (EntityNotFoundException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  public void create() {
-    try {
-      entityFactory.create(entityIdentifier, serverConfiguration);
-    } catch (EhcacheEntityCreationException e) {
-      throw new IllegalStateException(e);
-    } catch (EntityAlreadyExistsException e) {
-      throw new IllegalStateException(e);
-    }
-  }
-
-  @Override
-  public void connect() {
-    try {
-      entity = entityFactory.retrieve(entityIdentifier, serverConfiguration);
-    } catch (EntityNotFoundException ex) {
-      throw new IllegalStateException(ex);
+    } catch (EhcacheEntityNotFoundException e) {
+      throw new CachePersistenceException("Clustered caches on " + this.clusterUri + " not found", e);
+    } catch (EhcacheEntityBusyException e) {
+      throw new CachePersistenceException("Can not delete clustered caches on " + this.clusterUri + ": " + e.toString(), e);
     }
   }
 
   @Override
   public boolean handlesResourceType(ResourceType<?> resourceType) {
-    return (ClusteredResourceType.class.isAssignableFrom(resourceType.getClass()));
+    return (Arrays.asList(ClusteredResourceType.Types.values()).contains(resourceType));
   }
 
   @Override

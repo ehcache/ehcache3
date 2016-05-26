@@ -37,7 +37,6 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.terracotta.connection.entity.EntityRef;
@@ -55,7 +54,7 @@ public class EhcacheClientEntityFactoryTest {
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, winner());
-    assertThat(factory.create("test", null), is(entity));
+    factory.create("test", null);
     verify(entityRef).create(any(UUID.class));
   }
 
@@ -73,33 +72,6 @@ public class EhcacheClientEntityFactoryTest {
     } catch (EntityAlreadyExistsException e) {
       //expected
     }
-  }
-
-  @Test
-  public void testCreateOrRetrieve() throws Exception {
-    EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
-    when(entityRef.fetchEntity()).thenThrow(EntityNotFoundException.class).thenReturn(entity);
-    Connection connection = mock(Connection.class);
-    when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
-
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, winner());
-    assertThat(factory.createOrRetrieve("test", null), is(entity));
-    verify(entityRef).create(any(UUID.class));
-  }
-
-  @Test
-  public void testCreateOrRetrieveWhenExisting() throws Exception {
-    EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
-    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
-    when(entityRef.fetchEntity()).thenReturn(entity);
-    doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any());
-    Connection connection = mock(Connection.class);
-    when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
-
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, winner());
-    assertThat(factory.createOrRetrieve("test", null), is(entity));
-    verify(entityRef, never()).create(any(UUID.class));
   }
 
   @Test
@@ -166,8 +138,8 @@ public class EhcacheClientEntityFactoryTest {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, winner());
     try {
       factory.destroy("test");
-      fail("Expected EntityNotFoundException");
-    } catch (EntityNotFoundException e) {
+      fail("Expected EhcacheEntityNotFoundException");
+    } catch (EhcacheEntityNotFoundException e) {
       //expected
     }
   }
@@ -183,8 +155,8 @@ public class EhcacheClientEntityFactoryTest {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, loserThenWinner());
     try {
       factory.destroy("test");
-      fail("Expected EntityNotFoundException");
-    } catch (EntityNotFoundException e) {
+      fail("Expected EhcacheEntityNotFoundException");
+    } catch (EhcacheEntityNotFoundException e) {        // TODO: Is this correct?
       //expected
     }
   }

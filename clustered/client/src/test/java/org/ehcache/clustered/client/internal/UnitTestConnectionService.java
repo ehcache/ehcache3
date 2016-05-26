@@ -190,8 +190,9 @@ public class UnitTestConnectionService implements ConnectionService {
   }
 
   /**
-   * A builder for a new {@link PassthroughServer} instance.  This builder defined the following for each
-   * {@code PassthroughServer} built:
+   * A builder for a new {@link PassthroughServer} instance.  If no services are added using
+   * {@link #serverEntityService(ServerEntityService)} or {@link #clientEntityService(EntityClientService)},
+   * this builder defines the following services for each {@code PassthroughServer} built:
    * <ul>
    *   <li>{@link EhcacheServerEntityService}</li>
    *   <li>{@link EhcacheClientEntityService}</li>
@@ -267,10 +268,15 @@ public class UnitTestConnectionService implements ConnectionService {
     public PassthroughServer build() {
       PassthroughServer newServer = new PassthroughServer(true);
 
-      newServer.registerServerEntityService(new EhcacheServerEntityService());
-      newServer.registerClientEntityService(new EhcacheClientEntityService());
-      newServer.registerServerEntityService(new CoordinationServerEntityService());
-      newServer.registerClientEntityService(new ClientCoordinationEntityService());
+      /*
+       * If services have been specified, don't establish the "defaults".
+       */
+      if (serverEntityServices.isEmpty() && clientEntityServices.isEmpty()) {
+        newServer.registerServerEntityService(new EhcacheServerEntityService());
+        newServer.registerClientEntityService(new EhcacheClientEntityService());
+        newServer.registerServerEntityService(new CoordinationServerEntityService());
+        newServer.registerClientEntityService(new ClientCoordinationEntityService());
+      }
 
       for (ServerEntityService<?, ?> service : serverEntityServices) {
         newServer.registerServerEntityService(service);

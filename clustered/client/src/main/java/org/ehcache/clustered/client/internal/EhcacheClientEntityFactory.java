@@ -50,6 +50,11 @@ public class EhcacheClientEntityFactory {
     this.coordinator = coordinator;
   }
 
+  public void close() {
+    if (coordinator != null) {
+      coordinator.close();
+    }
+  }
 
   public boolean acquireLeadership(String entityIdentifier) {
     try {
@@ -73,20 +78,38 @@ public class EhcacheClientEntityFactory {
     coordinator.delist(EhcacheClientEntity.class, entityIdentifier);
   }
 
-  public EhcacheClientEntity create(final String identifier, final ServerSideConfiguration config)
+  /**
+   * Attempts to create and configure the {@code EhcacheActiveEntity} in the Ehcache clustered server.
+   *
+   * @param identifier the instance identifier for the {@code EhcacheActiveEntity}
+   * @param config the {@code EhcacheActiveEntity} configuration
+   *
+   * @throws EntityAlreadyExistsException if the {@code EhcacheActiveEntity} for {@code identifier} already exists
+   * @throws EhcacheEntityCreationException if an error preventing {@code EhcacheActiveEntity} creation was raised;
+   *        this is generally resulting from another client holding operational leadership preventing this client
+   *        from becoming leader and creating the {@code EhcacheActiveEntity} instance
+   */
+  public void create(final String identifier, final ServerSideConfiguration config)
       throws EntityAlreadyExistsException, EhcacheEntityCreationException {
     try {
-      EhcacheClientEntity created = asLeaderOf(identifier, new ElectionTask<EhcacheClientEntity>() {
+      Boolean created = asLeaderOf(identifier, new ElectionTask<Boolean>() {
         @Override
-        public EhcacheClientEntity call(boolean clean) throws EntityAlreadyExistsException {
+        public Boolean call(boolean clean) throws EntityAlreadyExistsException {
           EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
           try {
             while (true) {
               ref.create(UUID.randomUUID());
+              EhcacheClientEntity entity = null;
               try {
-                return configure(ref.fetchEntity(), config);
+                entity = ref.fetchEntity();
+                configure(entity, config);
+                return true;
               } catch (EntityNotFoundException e) {
                 //continue;
+              } finally {
+                if (entity != null) {
+                  entity.close();
+                }
               }
             }
           } catch (EntityNotProvidedException e) {
@@ -98,36 +121,14 @@ public class EhcacheClientEntityFactory {
           }
         }
       });
-      if (created == null) {
+      if (created == null || !created) {
         String message = "Unable to create entity for cluster id " + identifier
             + ": unable to obtain cluster leadership";
         LOGGER.error(message);
         throw new EhcacheEntityCreationException(message);
-      } else {
-        return created;
       }
     } catch (ExecutionException ex) {
       throw unwrapException(ex, EntityAlreadyExistsException.class);
-    }
-  }
-
-  public EhcacheClientEntity createOrRetrieve(String identifier, ServerSideConfiguration config) {
-    try {
-      return retrieve(identifier, config);
-    } catch (EntityNotFoundException e) {
-      try {
-        return create(identifier, config);
-      } catch (EhcacheEntityCreationException f) {
-        LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
-        AssertionError error = new AssertionError("Somebody else doing leader work!");
-        error.initCause(f);
-        throw error;
-      } catch (EntityAlreadyExistsException f) {
-        LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
-        AssertionError error = new AssertionError("Somebody else doing leader work!");
-        error.initCause(f);
-        throw error;
-      }
     }
   }
 
@@ -150,9 +151,45 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  public void destroy(final String identifier) throws EntityNotFoundException {
-    // TODO: Send com.tc.objectserver.api.ServerEntityRequest with com.tc.objectserver.api.ServerEntityAction#DESTROY_ENTITY
-    throw new UnsupportedOperationException("Destroy implementation waiting on fix for Terracotta-OSS/terracotta-apis#27");
+  public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EhcacheEntityBusyException {
+    try {
+      while (true) {
+        Boolean success = asLeaderOf(identifier, new ElectionTask<Boolean>() {
+          @Override
+          public Boolean call(boolean clean) throws EntityNotFoundException, EhcacheEntityBusyException {
+            EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
+            try {
+              if (ref.tryDestroy()) {
+                return Boolean.TRUE;
+              } else {
+                throw new EhcacheEntityBusyException("Destroy operation failed; " + identifier + " caches in use by other clients");
+              }
+            } catch (EntityNotProvidedException e) {
+              LOGGER.error("Unable to delete entity for cluster id {}", identifier, e);
+              throw new AssertionError(e);
+            }
+          }
+        });
+        if (Boolean.TRUE.equals(success)) {
+          return;
+        }
+      }
+    } catch (ExecutionException ex) {
+      Throwable cause = (ex.getCause() == null ? ex : ex.getCause());
+      if (cause instanceof Error) {
+        throw new Error(cause);
+      } else if (cause instanceof EntityNotFoundException) {
+        throw new EhcacheEntityNotFoundException(cause);
+      } else if (cause instanceof EhcacheEntityBusyException) {
+        throw new EhcacheEntityBusyException(cause);
+      } else if (cause instanceof IllegalArgumentException) {
+        throw new IllegalArgumentException(cause);
+      } else if (cause instanceof IllegalStateException) {
+        throw new IllegalStateException(cause);
+      } else {
+        throw new RuntimeException(cause);
+      }
+    }
   }
 
   private <T> T asLeaderOf(String identifier, final ElectionTask<T> task) throws ExecutionException {
@@ -172,8 +209,7 @@ public class EhcacheClientEntityFactory {
     entity.validate(config);
   }
 
-  private EhcacheClientEntity configure(EhcacheClientEntity entity, ServerSideConfiguration config) {
+  private void configure(EhcacheClientEntity entity, ServerSideConfiguration config) {
     entity.configure(config);
-    return entity;
   }
 }
