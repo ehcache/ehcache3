@@ -16,10 +16,38 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-public class RemoveOperation<K> extends BaseOperation<K> {
+import org.ehcache.clustered.client.internal.store.operations.codecs.CodecException;
+import org.ehcache.spi.serialization.Serializer;
+
+import java.nio.ByteBuffer;
+
+public class RemoveOperation<K, V> implements Operation<K, V> {
+
+  private final K key;
 
   public RemoveOperation(final K key) {
-    super(key);
+    if(key == null) {
+      throw new NullPointerException("Key can not be null");
+    }
+    this.key = key;
+  }
+
+  RemoveOperation(final ByteBuffer buffer, final Serializer<K> keySerializer) {
+    OperationCode opCode = OperationCode.valueOf(buffer.get());
+    if (opCode != getOpCode()) {
+      throw new IllegalArgumentException("Invalid operation: " + opCode);
+    }
+
+    ByteBuffer keyBlob = buffer.slice();
+    try {
+      this.key = keySerializer.read(keyBlob);
+    } catch (ClassNotFoundException e) {
+      throw new CodecException(e);
+    }
+  }
+
+  public K getKey() {
+    return key;
   }
 
   @Override
@@ -32,7 +60,52 @@ public class RemoveOperation<K> extends BaseOperation<K> {
    * what the other operation is. The result is always gonna be null.
    */
   @Override
-  public Operation<K> apply(final Operation<K> previousOperation) {
+  public Result<V> apply(final Result<V> previousOperation) {
     return null;
+  }
+
+  @Override
+  public ByteBuffer encode(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+    ByteBuffer keyBuf = keySerializer.serialize(key);
+
+    int size = BYTE_SIZE_BYTES +   // Operation type
+               keyBuf.remaining();   // the key payload itself
+
+    ByteBuffer buffer = ByteBuffer.allocate(size);
+    buffer.put(getOpCode().getValue());
+    buffer.put(keyBuf);
+    buffer.flip();
+    return buffer;
+  }
+
+  @Override
+  public String toString() {
+    return "{" + getOpCode() + "# key: " + key + "}";
+  }
+
+  @Override
+  public boolean equals(final Object obj) {
+    if(obj == null) {
+      return false;
+    }
+    if(!(obj instanceof RemoveOperation)) {
+      return false;
+    }
+
+    RemoveOperation<K, V> other = (RemoveOperation)obj;
+    if(this.getOpCode() != other.getOpCode()) {
+      return false;
+    }
+    if(!this.getKey().equals(other.getKey())) {
+      return false;
+    }
+    return true;
+  }
+
+  @Override
+  public int hashCode() {
+    int hash = getOpCode().hashCode();
+    hash = hash * 31 + key.hashCode();
+    return hash;
   }
 }

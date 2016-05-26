@@ -16,11 +16,21 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
-import org.ehcache.core.spi.function.Function;
+import org.ehcache.spi.serialization.Serializer;
 
-public interface Operation<K> extends Function<Operation<K>, Operation<K>> {
+import java.nio.ByteBuffer;
+
+public interface Operation<K, V> {
+
+  int BYTE_SIZE_BYTES = 1;
+  int INT_SIZE_BYTES = 4;
+  int LONG_SIZE_BYTES = 8;
 
   OperationCode getOpCode();
 
   K getKey();
+
+  Result<V> apply(Result<V> previousResult);
+
+  ByteBuffer encode(Serializer<K> keySerializer, Serializer<V> valueSerializer);
 }

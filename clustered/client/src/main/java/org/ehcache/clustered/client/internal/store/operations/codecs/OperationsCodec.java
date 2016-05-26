@@ -18,29 +18,28 @@ package org.ehcache.clustered.client.internal.store.operations.codecs;
 
 import org.ehcache.clustered.client.internal.store.operations.Operation;
 import org.ehcache.clustered.client.internal.store.operations.OperationCode;
+import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
 public class OperationsCodec<K, V> {
 
-  public static final int BYTE_SIZE_BYTES = 1;
-  public static final int INT_SIZE_BYTES = 4;
-  public static final int LONG_SIZE_BYTES = 8;
+  private final Serializer<K> keySerializer;
+  private final Serializer<V> valueSerializer;
 
-  private final OperationCodecProvider<K, V> codecProvider;
 
-  public OperationsCodec(final OperationCodecProvider<K, V> codecProvider) {
-    this.codecProvider = codecProvider;
+  public OperationsCodec(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+    this.keySerializer = keySerializer;
+    this.valueSerializer = valueSerializer;
   }
 
-  public ByteBuffer encode(Operation<K> operation) {
-    OperationCode opCode = operation.getOpCode();
-    return codecProvider.getOperationCodec(opCode).encode(operation);
+  public ByteBuffer encode(Operation<K, V> operation) {
+    return operation.encode(keySerializer, valueSerializer);
   }
 
-  public Operation<K> decode(ByteBuffer buffer) {
+  public Operation<K, V> decode(ByteBuffer buffer) {
     OperationCode opCode = OperationCode.valueOf(buffer.get());
     buffer.rewind();
-    return codecProvider.getOperationCodec(opCode).decode(buffer);
+    return opCode.decode(buffer, keySerializer, valueSerializer);
   }
 }

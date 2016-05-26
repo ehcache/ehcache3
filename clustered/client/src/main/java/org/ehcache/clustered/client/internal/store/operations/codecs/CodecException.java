@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal.store.operations.codecs;
 
 /**
- * Thrown by an {@link OperationCodec} when it cannot encode or decode a payload
+ * Thrown when a payload can not be encoded or decoded
  */
 public class CodecException extends RuntimeException {
 

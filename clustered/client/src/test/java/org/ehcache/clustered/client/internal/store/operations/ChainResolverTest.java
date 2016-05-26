@@ -18,7 +18,6 @@ package org.ehcache.clustered.client.internal.store.operations;
 
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
-import org.ehcache.clustered.client.internal.store.operations.codecs.OperationCodecProvider;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
@@ -29,9 +28,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.Assert.*;
 
@@ -41,32 +38,29 @@ public class ChainResolverTest {
 
   @BeforeClass
   public static void initialSetup() {
-    ClassLoader classLoader = ChainResolverTest.class.getClassLoader();
-    OperationCodecProvider<Long, String> codecProvider =
-        new OperationCodecProvider<Long, String>(new LongSerializer(classLoader), new StringSerializer(classLoader));
-    codec = new OperationsCodec<Long, String>(codecProvider);
+    codec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
   }
 
   @Test
   public void testResolveMaintainsOtherKeysInOrder() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     list.add(new PutOperation<Long, String>(1L, "Albin"));
     list.add(new PutOperation<Long, String>(2L, "Albin"));
-    Operation<Long> expected = new PutOperation<Long, String>(1L, "Suresh");
+    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Suresh");
     list.add(expected);
     list.add(new PutOperation<Long, String>(2L, "Suresh"));
     list.add(new PutOperation<Long, String>(2L, "Mathew"));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
 
     Chain compactedChain = resolvedChain.getCompactedChain();
-    List<Operation<Long>> operations = getOperationsListFromChain(compactedChain);
+    List<Operation<Long, String>> operations = getOperationsListFromChain(compactedChain);
 
-    List<Operation<Long>> expectedOps = new ArrayList<Operation<Long>>();
+    List<Operation<Long, String>> expectedOps = new ArrayList<Operation<Long, String>>();
     expectedOps.add(new PutOperation<Long, String>(2L, "Albin"));
     expectedOps.add(new PutOperation<Long, String>(2L, "Suresh"));
     expectedOps.add(new PutOperation<Long, String>(2L, "Mathew"));
@@ -79,9 +73,9 @@ public class ChainResolverTest {
   public void testResolveEmptyChain() throws Exception {
     Chain chain = (new ChainBuilder()).build();
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertNull(resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertNull(result);
 
     Chain compactedChain = resolvedChain.getCompactedChain();
     assertTrue(compactedChain.isEmpty());
@@ -89,144 +83,144 @@ public class ChainResolverTest {
 
   @Test
   public void testResolveChainWithNonExistentKey() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     list.add(new PutOperation<Long, String>(1L, "Albin"));
     list.add(new PutOperation<Long, String>(2L, "Suresh"));
     list.add(new PutOperation<Long, String>(2L, "Mathew"));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 3L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(3L);
-    assertNull(resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 3L);
+    Result<String> result = resolvedChain.getResolvedResult(3L);
+    assertNull(result);
 
     Chain compactedChain = resolvedChain.getCompactedChain();
-    List<Operation<Long>> expectedOperations = getOperationsListFromChain(compactedChain);
+    List<Operation<Long, String>> expectedOperations = getOperationsListFromChain(compactedChain);
     assertThat(expectedOperations, IsIterableContainingInOrder.contains(list.toArray()));
   }
 
   @Test
   public void testResolveSinglePut() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
-    Operation<Long> expected = new PutOperation<Long, String>(1L, "Albin");
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Albin");
     list.add(expected);
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   @Test
   public void testResolvePutsOnly() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     list.add(new PutOperation<Long, String>(1L, "Albin"));
     list.add(new PutOperation<Long, String>(1L, "Suresh"));
-    Operation<Long> expected = new PutOperation<Long, String>(1L, "Mathew");
+    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Mathew");
     list.add(expected);
 
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   @Test
   public void testResolveSingleRemove() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
-    list.add(new RemoveOperation<Long>(1L));
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new RemoveOperation<Long, String>(1L));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertNull(resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertNull(result);
   }
 
   @Test
   public void testResolveRemovesOnly() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
-    list.add(new RemoveOperation<Long>(1L));
-    list.add(new RemoveOperation<Long>(1L));
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new RemoveOperation<Long, String>(1L));
+    list.add(new RemoveOperation<Long, String>(1L));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertNull(resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertNull(result);
   }
 
   @Test
   public void testPutAndRemove() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     list.add(new PutOperation<Long, String>(1L, "Albin"));
-    list.add(new RemoveOperation<Long>(1L));
+    list.add(new RemoveOperation<Long, String>(1L));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertNull(resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertNull(result);
   }
 
   @Test
   public void testResolvePutIfAbsentOnly() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
-    Operation<Long> expected = new PutIfAbsentOperation<Long, String>(1L, "Mathew");
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Mathew");
     list.add(expected);
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   @Test
   public void testResolvePutIfAbsentsOnly() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
-    Operation<Long> expected = new PutIfAbsentOperation<Long, String>(1L, "Albin");
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Albin");
     list.add(expected);
     list.add(new PutIfAbsentOperation<Long, String>(1L, "Suresh"));
     list.add(new PutIfAbsentOperation<Long, String>(1L, "Mathew"));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
   @Test
   public void testResolvePutIfAbsentSucceeds() throws Exception {
-    ArrayList<Operation<Long>> list = new ArrayList<Operation<Long>>();
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     list.add(new PutOperation<Long, String>(1L, "Albin"));
-    list.add(new RemoveOperation<Long>(1L));
-    Operation<Long> expected = new PutIfAbsentOperation<Long, String>(1L, "Mathew");
+    list.add(new RemoveOperation<Long, String>(1L));
+    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Mathew");
     list.add(expected);
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    ResolvedChain<Long> resolvedChain = resolver.resolve(chain, 1L);
-    Operation<Long> resolvedOp = resolvedChain.getResolvedOperation(1L);
-    assertEquals(expected, resolvedOp);
+    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L);
+    Result<String> result = resolvedChain.getResolvedResult(1L);
+    assertEquals(expected, result);
   }
 
-  private Chain getChainFromOperations(List<Operation<Long>> operations) {
+  private Chain getChainFromOperations(List<Operation<Long, String>> operations) {
     ChainBuilder chainBuilder = new ChainBuilder();
-    for(Operation<Long> operation: operations) {
+    for(Operation<Long, String> operation: operations) {
       chainBuilder = chainBuilder.add(codec.encode(operation));
     }
     return chainBuilder.build();
   }
 
-  private List<Operation<Long>> getOperationsListFromChain(Chain chain) {
-    List<Operation<Long>> list = new ArrayList<Operation<Long>>();
+  private List<Operation<Long, String>> getOperationsListFromChain(Chain chain) {
+    List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     for (Element element : chain) {
-      Operation<Long> operation = codec.decode(element.getPayload());
+      Operation<Long, String> operation = codec.decode(element.getPayload());
       list.add(operation);
     }
     return list;

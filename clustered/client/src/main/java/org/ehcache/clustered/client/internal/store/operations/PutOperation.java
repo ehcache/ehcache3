@@ -16,15 +16,23 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
+import org.ehcache.spi.serialization.Serializer;
+
+import java.nio.ByteBuffer;
+
 /**
  * Represents the PUT operation on a {@link org.ehcache.Cache}
  * @param <K> key type
  * @param <V> value type
  */
-public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> {
+public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
 
   public PutOperation(final K key, final V value) {
     super(key, value);
+  }
+
+  PutOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+    super(buffer, keySerializer, valueSerializer);
   }
 
   @Override
@@ -37,7 +45,7 @@ public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> {
    * what the other operation is. The result is gonna be {@code this} operation.
    */
   @Override
-  public Operation<K> apply(final Operation<K> previousOperation) {
+  public Result<V> apply(final Result<V> previousOperation) {
     return this;
   }
 }

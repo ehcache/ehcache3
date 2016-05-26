@@ -20,31 +20,31 @@ import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
+public class ConditionalRemoveOperation<K, V> extends BaseKeyValueOperation<K, V> {
 
-  public PutIfAbsentOperation(final K key, final V value) {
+  public ConditionalRemoveOperation(final K key, final V value) {
     super(key, value);
   }
 
-  PutIfAbsentOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
+  ConditionalRemoveOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     super(buffer, keySerializer, valueSerializer);
   }
 
   @Override
   public OperationCode getOpCode() {
-    return OperationCode.PUT_IF_ABSENT;
+    return OperationCode.REMOVE_CONDITIONAL;
   }
 
-  /**
-   * PutIfAbsent operation succeeds only when there is no previous operation
-   * for the same key.
-   */
   @Override
   public Result<V> apply(final Result<V> previousOperation) {
     if(previousOperation == null) {
-      return this;
+      return null;
     } else {
-      return previousOperation;
+      if(getValue().equals(previousOperation.getValue())) {
+        return null;
+      } else {
+        return previousOperation;
+      }
     }
   }
 }
