@@ -441,7 +441,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @param expiry the expiry to use
    * @return a new builer with the added expiry
    */
-  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<K, V> expiry) {
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<? super K, ? super V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
