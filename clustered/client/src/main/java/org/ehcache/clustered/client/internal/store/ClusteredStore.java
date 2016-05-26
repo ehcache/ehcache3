@@ -283,8 +283,21 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       if (storeConfig == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ClusteredStore clusteredStore = (ClusteredStore) resource;
+      final ClusteredStore clusteredStore = (ClusteredStore) resource;
       clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
+      clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+        @Override
+        public void onInvalidationRequest(long hash) {
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              System.out.println("CLIENT: calling invalidation valve");
+              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+            } catch (StoreAccessException sae) {
+              LOGGER.error("error invalidating hash " + hash, sae);
+            }
+          }
+        }
+      });
     }
 
     @Override

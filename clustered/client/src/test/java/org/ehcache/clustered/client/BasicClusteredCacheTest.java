@@ -19,14 +19,13 @@ package org.ehcache.clustered.client;
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.store.ClusteredStoreServiceConfiguration;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
@@ -39,6 +38,7 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -88,7 +88,7 @@ public class BasicClusteredCacheTest {
         newCacheManagerBuilder()
             .with(cluster(CLUSTER_URI))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
-                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
                 .add(new ClusteredStoreServiceConfiguration().consistency(Consistency.STRONG)))
         ;
@@ -99,10 +99,13 @@ public class BasicClusteredCacheTest {
     final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
     final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
 
-    cache1.put(1L, "value");
-    cache2.put(2L, "value2");
-    assertThat(cache1.get(1L), is("value"));
-    assertThat(cache2.get(1L), is("value"));
+    assertThat(cache2.get(1L), nullValue());
+    cache1.put(1L, "value1");
+    assertThat(cache2.get(1L), is("value1"));
+    assertThat(cache2.get(1L), is("value1"));
+    cache1.put(1L, "value2");
+    assertThat(cache2.get(1L), is("value2"));
+    assertThat(cache1.get(1L), is("value2"));
 
     cacheManager2.close();
     cacheManager1.close();

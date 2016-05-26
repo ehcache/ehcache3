@@ -20,6 +20,8 @@ import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.store.Chain;
 
 import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * @author Ludovic Orban
@@ -27,6 +29,7 @@ import java.nio.ByteBuffer;
 public class EventualServerStoreProxy implements ServerStoreProxy {
 
   private final ServerStoreProxy delegate;
+  private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
 
   public EventualServerStoreProxy(String cacheId, final EhcacheClientEntity entity) {
     this.delegate = new NoInvalidationServerStoreProxy(cacheId, entity);
@@ -38,7 +41,9 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
         final int invalidationId = response.getInvalidationId();
 
         System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
-        //TODO: wire invalidation valve here
+        for (InvalidationListener listener : invalidationListeners) {
+          listener.onInvalidationRequest(key);
+        }
       }
     });
   }
@@ -46,6 +51,11 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   @Override
   public String getCacheId() {
     return delegate.getCacheId();
+  }
+
+  @Override
+  public void addInvalidationListener(InvalidationListener listener) {
+    invalidationListeners.add(listener);
   }
 
   @Override

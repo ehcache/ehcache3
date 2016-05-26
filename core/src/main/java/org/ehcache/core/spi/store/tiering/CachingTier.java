@@ -88,6 +88,8 @@ public interface CachingTier<K, V> extends ConfigurationChangeSupport {
    */
   void setInvalidationListener(InvalidationListener<K, V> invalidationListener);
 
+  void invalidateAllWithHash(long hash) throws StoreAccessException;
+
   /**
    * Caching tier invalidation listener.
    * <P>

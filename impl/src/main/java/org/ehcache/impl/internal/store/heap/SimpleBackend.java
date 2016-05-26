@@ -17,8 +17,8 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
@@ -99,6 +99,18 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   @Override
   public Backend<K, V> clear() {
     return new SimpleBackend<K, V>(byteSized);
+  }
+
+  @Override
+  public void removeAllWithHash(int hash) {
+    Map<K, OnHeapValueHolder<V>> removed = realMap.removeAllWithHash(hash);
+    if (byteSized) {
+      long delta = 0L;
+      for (Map.Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+        delta -= entry.getValue().size();
+      }
+      updateUsageInBytesIfRequired(delta);
+    }
   }
 
   @Override

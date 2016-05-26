@@ -166,6 +166,18 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
+  public void removeAllWithHash(int hash) {
+    Map<OnHeapKey<K>, OnHeapValueHolder<V>> removed = keyCopyMap.removeAllWithHash(hash);
+    if (byteSized) {
+      long delta = 0L;
+      for (Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+        delta -= entry.getValue().size();
+      }
+      updateUsageInBytesIfRequired(delta);
+    }
+  }
+
+  @Override
   public OnHeapValueHolder<V> remove(K key) {
     return keyCopyMap.remove(lookupOnlyKey(key));
   }

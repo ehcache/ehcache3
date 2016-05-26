@@ -906,6 +906,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     };
   }
 
+  @Override
+  public void invalidateAllWithHash(long hash) throws StoreAccessException {
+    map.removeAllWithHash((int) hash);
+    System.out.println("CLIENT: onheap store removed all with hash " + hash);
+    //TODO: update stats & fire events
+  }
+
   private ValueHolder<V> getValue(final ValueHolder<V> cachedValue) {
     if (cachedValue instanceof Fault) {
       return ((Fault<V>)cachedValue).get();

@@ -16,11 +16,10 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -89,6 +88,8 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @param invalidationListener the listener
    */
   void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener);
+
+  void invalidateAllWithHash(long hash);
 
   /**
    * {@link Service} interface for providing {@link LowerCachingTier} instances.

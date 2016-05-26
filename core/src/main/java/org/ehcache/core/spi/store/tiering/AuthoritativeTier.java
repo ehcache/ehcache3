@@ -89,6 +89,8 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      * @throws StoreAccessException when en error occurs while invalidating mappings
      */
     void invalidateAll() throws StoreAccessException;
+
+    void invalidateAllWithHash(long hash) throws StoreAccessException;
   }
 
   /**

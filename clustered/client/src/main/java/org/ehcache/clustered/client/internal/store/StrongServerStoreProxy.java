@@ -24,8 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 
 /**
@@ -37,6 +39,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
   private final ServerStoreProxy delegate;
   private final ConcurrentMap<Long, CountDownLatch> invalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
+  private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
 
   public StrongServerStoreProxy(String cacheId, final EhcacheClientEntity entity) {
     this.delegate = new NoInvalidationServerStoreProxy(cacheId, entity);
@@ -61,7 +64,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         final int invalidationId = response.getInvalidationId();
 
         System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
-        //TODO: wire invalidation valve here
+        for (InvalidationListener listener : invalidationListeners) {
+          listener.onInvalidationRequest(key);
+        }
 
         try {
           System.out.println("CLIENT: ack'ing invalidation of hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
@@ -95,6 +100,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   @Override
   public String getCacheId() {
     return delegate.getCacheId();
+  }
+
+  @Override
+  public void addInvalidationListener(InvalidationListener listener) {
+    invalidationListeners.add(listener);
   }
 
   @Override

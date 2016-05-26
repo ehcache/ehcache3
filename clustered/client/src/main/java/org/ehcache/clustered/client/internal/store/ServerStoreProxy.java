@@ -7,6 +7,12 @@ import org.ehcache.clustered.common.store.ServerStore;
  */
 public interface ServerStoreProxy extends ServerStore {
 
+  interface InvalidationListener {
+    void onInvalidationRequest(long hash);
+  }
+
   String getCacheId();
+
+  void addInvalidationListener(InvalidationListener listener);
 
 }

@@ -47,6 +47,11 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
+  public void addInvalidationListener(InvalidationListener listener) {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
   public Chain get(long key) {
     EhcacheEntityResponse response;
     try {

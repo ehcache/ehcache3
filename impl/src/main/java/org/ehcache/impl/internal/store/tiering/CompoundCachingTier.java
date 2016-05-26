@@ -188,6 +188,15 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   @Override
+  public void invalidateAllWithHash(long hash) throws StoreAccessException {
+    try {
+      higher.invalidateAllWithHash(hash);
+    } finally {
+      lower.invalidateAllWithHash(hash);
+    }
+  }
+
+  @Override
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> listeners = new ArrayList<CacheConfigurationChangeListener>();
     listeners.addAll(higher.getConfigurationChangeListeners());
