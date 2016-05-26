@@ -169,7 +169,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       fis.close();
     }
     try {
-      Class<?> persistedKeyType = classLoader.loadClass(properties.getProperty(KEY_TYPE_PROPERTY_NAME));
+      Class<?> persistedKeyType = Class.forName(properties.getProperty(KEY_TYPE_PROPERTY_NAME), false, classLoader);
       if (!keyType.equals(persistedKeyType)) {
         throw new IllegalArgumentException("Persisted key type '" + persistedKeyType.getName() + "' is not the same as the configured key type '" + keyType.getName() + "'");
       }
@@ -177,7 +177,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       throw new IllegalStateException("Persisted key type class not found", cnfe);
     }
     try {
-      Class<?> persistedValueType = classLoader.loadClass(properties.getProperty(VALUE_TYPE_PROPERTY_NAME));
+      Class<?> persistedValueType = Class.forName(properties.getProperty(VALUE_TYPE_PROPERTY_NAME), false, classLoader);
       if (!valueType.equals(persistedValueType)) {
         throw new IllegalArgumentException("Persisted value type '" + persistedValueType.getName() + "' is not the same as the configured value type '" + valueType.getName() + "'");
       }
