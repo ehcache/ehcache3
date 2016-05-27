@@ -63,6 +63,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final ChainResolver<K, V> resolver;
 
   private volatile ServerStoreProxy storeProxy;
+  private volatile InvalidationValve invalidationValve;
 
   private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
@@ -218,7 +219,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void setInvalidationValve(InvalidationValve valve) {
-    // no-op for now
+    this.invalidationValve = valve;
   }
 
 
