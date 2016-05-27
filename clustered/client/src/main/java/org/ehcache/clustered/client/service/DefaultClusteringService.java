@@ -28,9 +28,12 @@ import java.util.Properties;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
+import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 
@@ -220,8 +223,14 @@ class DefaultClusteringService implements ClusteringService {
 
   @Override
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
-                                                     final Store.Configuration<K, V> storeConfig) {
+                                                     final Store.Configuration<K, V> storeConfig,
+                                                     Consistency configuredConsistency) {
     final String cacheId = cacheIdentifier.getId();
+
+    Consistency consistency = configuredConsistency;
+    if (consistency == null) {
+      consistency = Consistency.EVENTUAL;
+    }
 
     /*
      * This method is expected to be called with exactly ONE ClusteredResourcePool specified.
@@ -247,7 +256,8 @@ class DefaultClusteringService implements ClusteringService {
         null, // TODO: Need actual key type -- cache wrappers can wrap key/value types
         null, // TODO: Need actual value type -- cache wrappers can wrap key/value types
         (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
-        (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName())
+        (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
+        consistency
     );
 
     if (autoCreate) {
@@ -268,7 +278,15 @@ class DefaultClusteringService implements ClusteringService {
       }
     }
 
-    return new ServerStoreProxy(cacheId, entity);
+    switch (consistency) {
+      case STRONG:
+        return new StrongServerStoreProxy(cacheId, entity);
+      case EVENTUAL:
+        return new EventualServerStoreProxy(cacheId, entity);
+      default:
+        throw new AssertionError("Unknown consistency : " + consistency);
+    }
+
   }
 
   @Override

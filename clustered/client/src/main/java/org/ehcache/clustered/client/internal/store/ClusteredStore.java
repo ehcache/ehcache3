@@ -24,6 +24,7 @@ import org.ehcache.clustered.client.internal.store.operations.Result;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
@@ -62,6 +63,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final ChainResolver<K, V> resolver;
 
   private volatile ServerStoreProxy storeProxy;
+  private volatile InvalidationValve invalidationValve;
 
   private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
@@ -217,7 +219,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void setInvalidationValve(InvalidationValve valve) {
-    // no-op for now
+    this.invalidationValve = valve;
   }
 
 
@@ -258,11 +260,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore can not create store with multiple clustered resources");
       }
 
+      ClusteredStoreServiceConfiguration clusteredStoreServiceConfiguration = findSingletonAmongst(ClusteredStoreServiceConfiguration.class, (Object[])serviceConfigs);
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
       OperationsCodec<K, V> codec = new OperationsCodec<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
       ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec);
       ClusteredStore<K, V> store = new ClusteredStore<K, V>(codec, resolver);
-      createdStores.put(store, new StoreConfig(cacheId, storeConfig));
+      createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreServiceConfiguration == null ? null : clusteredStoreServiceConfiguration.getConsistency()));
       return store;
     }
 
@@ -281,8 +284,22 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       if (storeConfig == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      ClusteredStore clusteredStore = (ClusteredStore) resource;
-      clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig());
+      final ClusteredStore clusteredStore = (ClusteredStore) resource;
+      clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
+      clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+        @Override
+        public void onInvalidationRequest(long hash) {
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              LOGGER.debug("CLIENT: calling invalidation valve");
+              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+            } catch (StoreAccessException sae) {
+              //TODO: what should be done here?
+              LOGGER.error("Error invalidating hash {}", hash, sae);
+            }
+          }
+        }
+      });
     }
 
     @Override
@@ -335,10 +352,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
     private final ClusteredCacheIdentifier cacheIdentifier;
     private final Store.Configuration storeConfig;
+    private final Consistency consistency;
 
-    StoreConfig(ClusteredCacheIdentifier cacheIdentifier, Store.Configuration storeConfig) {
+    StoreConfig(ClusteredCacheIdentifier cacheIdentifier, Configuration storeConfig, Consistency consistency) {
       this.cacheIdentifier = cacheIdentifier;
       this.storeConfig = storeConfig;
+      this.consistency = consistency;
     }
 
     public Configuration getStoreConfig() {
@@ -347,6 +366,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
     public ClusteredCacheIdentifier getCacheIdentifier() {
       return this.cacheIdentifier;
+    }
+
+    public Consistency getConsistency() {
+      return consistency;
     }
   }
 }

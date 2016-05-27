@@ -974,6 +974,14 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     invalidateAllObserver.end(LowerCachingTierOperationsOutcome.InvalidateAllOutcome.SUCCESS);
   }
 
+  @Override
+  public void invalidateAllWithHash(long hash) {
+    throw new UnsupportedOperationException("not yet implemented");
+//    backingMap().removeAllWithHash((int) hash);
+//    LOGGER.debug("CLIENT: offheap store removed all with hash {}", hash);
+//    TODO stats & notify invalidations
+  }
+
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
     final CachingTier.InvalidationListener<K, V> invalidationListener = this.invalidationListener;
     if (invalidationListener != null) {

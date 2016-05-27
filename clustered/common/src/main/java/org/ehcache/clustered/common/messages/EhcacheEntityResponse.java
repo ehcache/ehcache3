@@ -28,7 +28,10 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
   public enum Type {
     SUCCESS((byte) 0),
     FAILURE((byte) 1),
-    GET_RESPONSE((byte) 2);
+    GET_RESPONSE((byte) 2),
+    INVALIDATION_DONE((byte) 3),
+    CLIENT_INVALIDATE_HASH((byte) 4),
+    ;
 
     private final byte opCode;
 
@@ -48,6 +51,10 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
           return FAILURE;
         case 2:
           return GET_RESPONSE;
+        case 3:
+          return INVALIDATION_DONE;
+        case 4:
+          return CLIENT_INVALIDATE_HASH;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + opCode);
       }
@@ -115,6 +122,67 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
     public Chain getChain() {
       return chain;
+    }
+  }
+
+  public static InvalidationDone invalidationDone(String cacheId, long key) {
+    return new InvalidationDone(cacheId, key);
+  }
+
+  public static class InvalidationDone extends EhcacheEntityResponse {
+    private final String cacheId;
+    private final long key;
+
+    public InvalidationDone(String cacheId, long key) {
+      this.cacheId = cacheId;
+      this.key = key;
+    }
+
+    public String getCacheId() {
+      return cacheId;
+    }
+
+    public long getKey() {
+      return key;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.INVALIDATION_DONE;
+    }
+
+  }
+
+  public static ClientInvalidateHash clientInvalidateHash(String cacheId, long key, int invalidationId) {
+    return new ClientInvalidateHash(cacheId, key, invalidationId);
+  }
+
+  public static class ClientInvalidateHash extends EhcacheEntityResponse {
+    private final String cacheId;
+    private final long key;
+    private final int invalidationId;
+
+    public ClientInvalidateHash(String cacheId, long key, int invalidationId) {
+      this.cacheId = cacheId;
+      this.key = key;
+      this.invalidationId = invalidationId;
+    }
+
+    public String getCacheId() {
+      return cacheId;
+    }
+
+    public long getKey() {
+      return key;
+    }
+
+    public int getInvalidationId() {
+      return invalidationId;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.CLIENT_INVALIDATE_HASH;
     }
   }
 

@@ -30,7 +30,7 @@ class ServerStoreImpl implements ServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;
-  private final OffHeapServerStore store;
+  private final ServerStore store;
 
   ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
     this.storeConfiguration = storeConfiguration;

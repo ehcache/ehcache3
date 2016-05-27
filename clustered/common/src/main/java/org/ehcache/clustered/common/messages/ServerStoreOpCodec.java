@@ -22,6 +22,7 @@ import java.nio.charset.Charset;
 import static org.ehcache.clustered.common.messages.ServerStoreOpMessage.AppendMessage;
 import static org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetAndAppendMessage;
 import static org.ehcache.clustered.common.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
+import static org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClientInvalidateHashAck;
 
 /**
  *
@@ -88,6 +89,16 @@ public class ServerStoreOpCodec {
         encodedMsg.putInt(encodedUpdatedChain.length);
         encodedMsg.put(encodedUpdatedChain);
         return encodedMsg.array();
+      case CLIENT_INVALIDATE_HASH_ACK:
+        ClientInvalidateHashAck clientInvalidateHashAck = (ClientInvalidateHashAck)message;
+        encodedMsg = ByteBuffer.allocate(MSG_TYPE_OFFSET + STORE_OP_CODE_OFFSET + CACHE_ID_LEN_OFFSET + cacheIdLen + KEY_OFFSET + 4);
+        encodedMsg.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
+        encodedMsg.putInt(cacheIdLen);
+        encodedMsg.put(message.getCacheId().getBytes(UTF_8));
+        encodedMsg.putLong(message.getKey());
+        encodedMsg.put(message.operation().getStoreOpCode());
+        encodedMsg.putInt(clientInvalidateHashAck.getInvalidationId());
+        return encodedMsg.array();
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.operation());
     }
@@ -122,6 +133,11 @@ public class ServerStoreOpCodec {
         replaceBuf.get(encodedUpdateChain);
         return EhcacheEntityMessage.replaceAtHeadOperation(cacheId, key, ChainCodec.decode(encodedExpectChain),
             ChainCodec.decode(encodedUpdateChain));
+      case CLIENT_INVALIDATE_HASH_ACK: {
+        ByteBuffer remainingBuf = ByteBuffer.wrap(remaining);
+        int invalidationId = remainingBuf.getInt();
+        return EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key, invalidationId);
+      }
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 

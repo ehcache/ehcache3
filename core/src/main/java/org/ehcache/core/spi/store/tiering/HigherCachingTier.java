@@ -52,6 +52,14 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
   void silentInvalidateAll(BiFunction<K, Store.ValueHolder<V>, Void> biFunction) throws StoreAccessException;
 
   /**
+   * Remove all mappings whose key have the specified hash code without firing an invalidation event instead
+   * invoking the provided function.
+   *
+   * @throws StoreAccessException if mappings cannot be removed or the function throws
+   */
+  void silentInvalidateAllWithHash(long hash, BiFunction<K, Store.ValueHolder<V>, Void> biFunction) throws StoreAccessException;
+
+  /**
    * {@link Service} interface for providing {@link HigherCachingTier} instances.
    */
   interface Provider extends Service {
