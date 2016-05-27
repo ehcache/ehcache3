@@ -40,6 +40,4 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
 
   public abstract Type getType();
 
-  public abstract byte[] encode();
-
 }

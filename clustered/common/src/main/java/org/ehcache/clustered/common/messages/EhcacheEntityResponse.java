@@ -28,8 +28,6 @@ import java.nio.ByteBuffer;
  */
 public abstract class EhcacheEntityResponse implements EntityResponse {
 
-  private static final byte OP_CODE_SIZE = 1;
-
   public enum Type {
     SUCCESS((byte) 0),
     FAILURE((byte) 1),
@@ -59,26 +57,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     }
   }
 
-  public abstract byte[] encode();
-
   public abstract Type getType();
-
-  public static EhcacheEntityResponse decode(ByteBuffer response) {
-    byte opCode = response.get();
-    EhcacheEntityResponse.Type type = EhcacheEntityResponse.Type.responseType(opCode);
-    byte[] payArr = new byte[response.remaining()];
-    response.get(payArr);
-    switch (type) {
-      case SUCCESS:
-        return Success.INSTANCE;
-      case FAILURE:
-        return new Failure(ByteBuffer.wrap(payArr));
-      case GET_RESPONSE:
-        return new GetResponse(ByteBuffer.wrap(payArr));
-      default:
-        throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);
-    }
-  }
 
   public static class Success extends EhcacheEntityResponse {
 
@@ -93,12 +72,6 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
       return Type.SUCCESS;
     }
 
-    @Override
-    public byte[] encode() {
-      ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_SIZE);
-      buffer.put(Type.SUCCESS.getOpCode());
-      return buffer.array();
-    }
   }
 
   public static class Failure extends EhcacheEntityResponse {
@@ -107,10 +80,6 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
     Failure(Exception cause) {
       this.cause = cause;
-    }
-
-    Failure(ByteBuffer failure) {
-      this.cause = (Exception)Util.unmarshall(failure.array());
     }
 
     @Override
@@ -122,14 +91,6 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
       return cause;
     }
 
-    @Override
-    public byte[] encode() {
-      byte[] failureMsg = Util.marshall(this.cause);
-      ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_SIZE + failureMsg.length);
-      buffer.put(Type.FAILURE.getOpCode());
-      buffer.put(failureMsg);
-      return buffer.array();
-    }
   }
 
   public static class GetResponse extends EhcacheEntityResponse {
@@ -140,10 +101,6 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
       this.chain = chain;
     }
 
-    GetResponse(ByteBuffer response) {
-      this.chain = ChainCodec.decode(response.array());
-    }
-
     @Override
     public Type getType() {
       return Type.GET_RESPONSE;
@@ -151,16 +108,6 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
     public Chain getChain() {
       return chain;
-    }
-
-    @Override
-    public byte[] encode() {
-      byte[] encodedChain = ChainCodec.encode(this.chain);
-      int chainLen = encodedChain.length;
-      ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_SIZE + chainLen);
-      buffer.put(Type.GET_RESPONSE.getOpCode());
-      buffer.put(encodedChain);
-      return buffer.array();
     }
 
   }

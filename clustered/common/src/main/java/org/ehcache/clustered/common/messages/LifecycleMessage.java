@@ -43,29 +43,12 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
 
   public abstract LifeCycleOp operation();
 
-  @Override
-  public byte[] encode() {
-    byte[] encodedMsg = Util.marshall(this);
-    ByteBuffer buffer = ByteBuffer.allocate(1 + encodedMsg.length);
-    buffer.put(EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode());
-    buffer.put(encodedMsg);
-    return buffer.array();
-  }
-
-  public static EhcacheEntityMessage decode(ByteBuffer message) {
-    byte[] encodedMsg = new byte[message.capacity() - 1];
-    message.get();
-    message.get(encodedMsg, 0, encodedMsg.length);
-    EhcacheEntityMessage entityMessage = (EhcacheEntityMessage) Util.unmarshall(encodedMsg);
-    return entityMessage;
-  }
-
-  public static class ValidateCacheManager extends LifecycleMessage {
+  public static class ValidateStoreManager extends LifecycleMessage {
     private static final long serialVersionUID = 5742152283115139745L;
 
     private final ServerSideConfiguration configuration;
 
-    ValidateCacheManager(ServerSideConfiguration config) {
+    ValidateStoreManager(ServerSideConfiguration config) {
       this.configuration = config;
     }
 
@@ -79,12 +62,12 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     }
   }
 
-  public static class ConfigureCacheManager extends LifecycleMessage {
+  public static class ConfigureStoreManager extends LifecycleMessage {
     private static final long serialVersionUID = 730771302294202898L;
 
     private final ServerSideConfiguration configuration;
 
-    ConfigureCacheManager(ServerSideConfiguration config) {
+    ConfigureStoreManager(ServerSideConfiguration config) {
       this.configuration = config;
     }
 

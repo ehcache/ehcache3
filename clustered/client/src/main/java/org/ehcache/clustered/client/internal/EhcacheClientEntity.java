@@ -58,7 +58,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void validate(ServerSideConfiguration config) throws IllegalArgumentException {
     try {
-      invokeInternal(messageFactory.validateCacheManger(config), false);
+      invokeInternal(messageFactory.validateStoreManager(config), false);
     } catch (Exception e) {
       throw convert(e, IllegalArgumentException.class, ILLEGAL_ARGUMENT_EXCEPTION_CTOR);
     }
@@ -66,7 +66,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void configure(ServerSideConfiguration config) throws IllegalStateException {
     try {
-      invokeInternal(messageFactory.configureCacheManager(config), false);
+      invokeInternal(messageFactory.configureStoreManager(config), false);
     } catch (Exception e) {
       throw convert(e, IllegalStateException.class, ILLEGAL_STATE_EXCEPTION_CTOR);
     }

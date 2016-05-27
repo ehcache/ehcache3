@@ -29,7 +29,7 @@ import static org.ehcache.clustered.common.store.Util.getChain;
 /**
  *
  */
-public class ChainCodec {
+class ChainCodec {
 
   private static final byte NON_SEQUENCED_CHAIN = 0;
   private static final byte SEQUENCED_CHAIN = 1;

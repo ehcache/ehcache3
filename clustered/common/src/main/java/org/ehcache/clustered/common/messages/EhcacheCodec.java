@@ -15,8 +15,6 @@
  */
 package org.ehcache.clustered.common.messages;
 
-import java.nio.ByteBuffer;
-
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.MessageCodecException;
 
@@ -26,36 +24,49 @@ import org.terracotta.entity.MessageCodecException;
  */
 public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE = new EhcacheCodec();
+  private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE =
+      new EhcacheCodec(new ServerStoreOpCodec(), new LifeCycleMessageCodec(), new ResponseCodec());
+
+  private final ServerStoreOpCodec serverStoreOpCodec;
+  private final LifeCycleMessageCodec lifeCycleMessageCodec;
+  private final ResponseCodec responseCodec;
 
   public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> messageCodec() {
     return SERVER_INSTANCE;
   }
 
+  private EhcacheCodec(ServerStoreOpCodec serverStoreOpCodec, LifeCycleMessageCodec lifeCycleMessageCodec, ResponseCodec responseCodec) {
+    this.serverStoreOpCodec = serverStoreOpCodec;
+    this.lifeCycleMessageCodec = lifeCycleMessageCodec;
+    this.responseCodec = responseCodec;
+  }
+
   @Override
   public byte[] encodeMessage(EhcacheEntityMessage message) {
-    return message.encode();
+    if (message.getType() == EhcacheEntityMessage.Type.LIFECYCLE_OP) {
+      return lifeCycleMessageCodec.encode((LifecycleMessage) message);
+    } else {
+      return serverStoreOpCodec.encode((ServerStoreOpMessage) message);
+    }
   }
 
   @Override
   public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
-    ByteBuffer payloadBuf = ByteBuffer.wrap(payload);
-    byte opcode = payloadBuf.get();
-    payloadBuf.rewind();
+    byte opcode = payload[0];
     if (opcode == EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode()) {
-      return LifecycleMessage.decode(payloadBuf);
+      return lifeCycleMessageCodec.decode(payload);
     } else {
-      return ServerStoreOpMessage.decode(payloadBuf);
+      return serverStoreOpCodec.decode(payload);
     }
   }
 
   @Override
   public byte[] encodeResponse(EhcacheEntityResponse response) throws MessageCodecException {
-    return response.encode();
+    return responseCodec.encode(response);
   }
 
   @Override
   public EhcacheEntityResponse decodeResponse(byte[] payload) throws MessageCodecException {
-    return EhcacheEntityResponse.decode(ByteBuffer.wrap(payload));
+    return responseCodec.decode(payload);
   }
 }

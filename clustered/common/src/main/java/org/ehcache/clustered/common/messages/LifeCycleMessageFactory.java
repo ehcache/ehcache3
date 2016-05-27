@@ -23,12 +23,12 @@ import org.ehcache.clustered.common.ServerStoreConfiguration;
  */
 public class LifeCycleMessageFactory {
 
-  public EhcacheEntityMessage validateCacheManger(ServerSideConfiguration configuration){
-    return new LifecycleMessage.ValidateCacheManager(configuration);
+  public EhcacheEntityMessage validateStoreManager(ServerSideConfiguration configuration){
+    return new LifecycleMessage.ValidateStoreManager(configuration);
   }
 
-  public EhcacheEntityMessage configureCacheManager(ServerSideConfiguration configuration) {
-    return new LifecycleMessage.ConfigureCacheManager(configuration);
+  public EhcacheEntityMessage configureStoreManager(ServerSideConfiguration configuration) {
+    return new LifecycleMessage.ConfigureStoreManager(configuration);
   }
 
   public EhcacheEntityMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {

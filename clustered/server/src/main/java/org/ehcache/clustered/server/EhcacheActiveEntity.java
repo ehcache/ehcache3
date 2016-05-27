@@ -57,12 +57,12 @@ import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
-import static org.ehcache.clustered.common.messages.LifecycleMessage.ConfigureCacheManager;
+import static org.ehcache.clustered.common.messages.LifecycleMessage.ConfigureStoreManager;
 import static org.ehcache.clustered.common.messages.LifecycleMessage.CreateServerStore;
 import static org.ehcache.clustered.common.messages.LifecycleMessage.DestroyServerStore;
 import static org.ehcache.clustered.common.messages.LifecycleMessage.ReleaseServerStore;
 import static org.ehcache.clustered.common.messages.LifecycleMessage.ValidateServerStore;
-import static org.ehcache.clustered.common.messages.LifecycleMessage.ValidateCacheManager;
+import static org.ehcache.clustered.common.messages.LifecycleMessage.ValidateStoreManager;
 
 // TODO: Provide some mechanism to report on storage utilization -- PageSource provides little visibility
 // TODO: Ensure proper operations for concurrent requests
@@ -108,11 +108,15 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       new ConcurrentHashMap<String, Set<ClientDescriptor>>();
 
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
-  private final EhcacheEntityResponseFactory responseFactory = new EhcacheEntityResponseFactory();
+  private final EhcacheEntityResponseFactory responseFactory;
 
-  EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
+  EhcacheActiveEntity(ServiceRegistry services, byte[] config, EhcacheEntityResponseFactory responseFactory) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
     this.services = services;
+    if (responseFactory == null) {
+      throw new IllegalArgumentException("Response Factory cannot be null");
+    }
+    this.responseFactory = responseFactory;
   }
 
   /**
@@ -244,8 +248,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) {
     try {
       switch (message.operation()) {
-        case CONFIGURE: return configure(clientDescriptor, (LifecycleMessage.ConfigureCacheManager) message);
-        case VALIDATE: return validate(clientDescriptor, (ValidateCacheManager) message);
+        case CONFIGURE: return configure(clientDescriptor, (ConfigureStoreManager) message);
+        case VALIDATE: return validate(clientDescriptor, (ValidateStoreManager) message);
         case CREATE_SERVER_STORE: return createServerStore(clientDescriptor, (CreateServerStore) message);
         case VALIDATE_SERVER_STORE: return validateServerStore(clientDescriptor, (ValidateServerStore) message);
         case RELEASE_SERVER_STORE: return releaseServerStore(clientDescriptor, (ReleaseServerStore) message);
@@ -329,15 +333,15 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   /**
-   * Handles the {@link ConfigureCacheManager ConfigureCacheManager} message.  This method creates the shared
+   * Handles the {@link LifecycleMessage.ConfigureStoreManager ConfigureStoreManager} message.  This method creates the shared
    * resource pools to be available to clients of this {@code EhcacheActiveEntity}.
    *
    * @param clientDescriptor the client identifier requesting store manager configuration
-   * @param message the {@code ConfigureCacheManager} message carrying the desired shared resource pool configuration
+   * @param message the {@code ConfigureStoreManager} message carrying the desired shared resource pool configuration
    *
    * @return an {@code EhcacheEntityResponse} indicating the success or failure of the configuration
    */
-  private EhcacheEntityResponse configure(ClientDescriptor clientDescriptor, ConfigureCacheManager message) {
+  private EhcacheEntityResponse configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
       return responseFactory.failure(new IllegalStateException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager"));
@@ -374,16 +378,16 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   /**
-   * Handles the {@link ValidateCacheManager ValidateCacheManager} message.  This message is used by a client to
+   * Handles the {@link ValidateStoreManager ValidateStoreManager} message.  This message is used by a client to
    * connect to an established {@code EhcacheActiveEntity}.  This method validates the client-provided configuration
    * against the existing configuration to ensure compatibility.
    *
    * @param clientDescriptor the client identifier requesting attachment to a configured store manager
-   * @param message the {@code ValidateCacheManager} message carrying the client expected resource pool configuration
+   * @param message the {@code ValidateStoreManager} message carrying the client expected resource pool configuration
    *
    * @return an {@code EhcacheEntityResponse} indicating the success or failure of the consistency check
    */
-  private EhcacheEntityResponse validate(ClientDescriptor clientDescriptor, ValidateCacheManager message) {
+  private EhcacheEntityResponse validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
       return responseFactory.failure(new IllegalStateException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager"));

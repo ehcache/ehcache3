@@ -18,30 +18,39 @@ package org.ehcache.clustered.common.messages;
 import org.ehcache.clustered.common.store.Chain;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.ehcache.clustered.common.store.Util.getChain;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-public class EhcacheEntityResponseFactoryTest {
+/**
+ *
+ */
+public class ResponseCodecTest {
 
   private static final EhcacheEntityResponseFactory RESPONSE_FACTORY = new EhcacheEntityResponseFactory();
+  private static final ResponseCodec RESPONSE_CODEC = new ResponseCodec();
 
   @Test
-  public void testFailureResponse() {
+  public void testFailureResponseCodec() {
     EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new Exception("Test Exception"));
 
-    assertThat(((EhcacheEntityResponse.Failure)failure).getCause().getMessage(), is("Test Exception"));
+    EhcacheEntityResponse decoded = RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(failure));
+
+    assertThat(((EhcacheEntityResponse.Failure)decoded).getCause().getMessage(), is("Test Exception"));
   }
 
   @Test
-  public void testGetResponse() {
+  public void testGetResponseCodec() {
     EhcacheEntityResponse getResponse = RESPONSE_FACTORY.response(getChain(false,
         createPayload(1L), createPayload(11L), createPayload(111L)));
 
-    Chain chain = ((EhcacheEntityResponse.GetResponse) getResponse).getChain();
+    EhcacheEntityResponse decoded = RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(getResponse));
 
-    Util.assertChainHas(chain, 1L, 11L, 111L);
+    Chain decodedChain = ((EhcacheEntityResponse.GetResponse) decoded).getChain();
+
+    Util.assertChainHas(decodedChain, 1L, 11L, 111L);
   }
 }

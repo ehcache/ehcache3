@@ -18,6 +18,7 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.messages.EhcacheCodec;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponseFactory;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
@@ -42,7 +43,7 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
 
   @Override
   public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcacheActiveEntity(registry, configuration);
+    return new EhcacheActiveEntity(registry, configuration, new EhcacheEntityResponseFactory());
   }
 
   @Override
