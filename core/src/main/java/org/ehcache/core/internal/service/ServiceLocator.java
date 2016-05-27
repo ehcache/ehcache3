@@ -308,7 +308,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
           }
         }
       }
-      LOGGER.info("All Services successfully started.");
+      LOGGER.debug("All Services successfully started.");
     } catch (Exception e) {
       while(!started.isEmpty()) {
         Service toBeStopped = started.pop();
