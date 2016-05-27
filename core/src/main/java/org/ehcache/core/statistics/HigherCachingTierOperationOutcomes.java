@@ -47,4 +47,18 @@ public interface HigherCachingTierOperationOutcomes {
      */
     FAILURE
   }
+
+  /**
+   * the invalidateAllWithHash outcomes
+   */
+  enum SilentInvalidateAllWithHashOutcome implements HigherCachingTierOperationOutcomes {
+    /**
+     * entries invalidated, without errors
+     */
+    SUCCESS,
+    /**
+     * entries invalidated, with errors
+     */
+    FAILURE
+  }
 }

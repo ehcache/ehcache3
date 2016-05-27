@@ -102,7 +102,7 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public void removeAllWithHash(int hash) {
+  public Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash) {
     Map<K, OnHeapValueHolder<V>> removed = realMap.removeAllWithHash(hash);
     if (byteSized) {
       long delta = 0L;
@@ -111,6 +111,7 @@ class SimpleBackend<K, V> implements Backend<K, V> {
       }
       updateUsageInBytesIfRequired(delta);
     }
+    return removed;
   }
 
   @Override

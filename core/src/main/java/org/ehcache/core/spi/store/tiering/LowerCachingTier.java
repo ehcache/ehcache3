@@ -76,6 +76,14 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   void invalidateAll() throws StoreAccessException;
 
   /**
+   * Invalidates all mappings whose key's hash code matches the provided one, invoking the
+   * {@link org.ehcache.core.spi.store.tiering.CachingTier.InvalidationListener} if registered.
+   *
+   * @throws StoreAccessException if mappings cannot be removed
+   */
+  void invalidateAllWithHash(long hash) throws StoreAccessException;
+
+  /**
    * Empty out this tier
    *
    * @throws StoreAccessException if mappings cannot be removed
@@ -88,8 +96,6 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
    * @param invalidationListener the listener
    */
   void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener);
-
-  void invalidateAllWithHash(long hash);
 
   /**
    * {@link Service} interface for providing {@link LowerCachingTier} instances.

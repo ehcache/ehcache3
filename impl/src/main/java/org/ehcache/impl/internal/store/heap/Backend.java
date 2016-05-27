@@ -39,7 +39,7 @@ interface Backend<K, V> {
 
   Backend<K, V> clear();
 
-  void removeAllWithHash(int hash);
+  Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash);
 
   Iterable<K> keySet();
 

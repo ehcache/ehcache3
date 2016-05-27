@@ -74,4 +74,18 @@ public interface CachingTierOperationOutcomes {
      */
     FAILURE
   }
+
+  /**
+   * the invalidateAllWithHash outcomes
+   */
+  enum InvalidateAllWithHashOutcome implements CachingTierOperationOutcomes {
+    /**
+     * entries invalidated, without errors
+     */
+    SUCCESS,
+    /**
+     * entries invalidated, with errors
+     */
+    FAILURE
+  }
 }

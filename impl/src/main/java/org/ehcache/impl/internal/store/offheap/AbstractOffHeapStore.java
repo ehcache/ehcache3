@@ -930,14 +930,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   @Override
-  public void invalidateAllWithHash(long hash) {
-    throw new UnsupportedOperationException("not yet implemented");
-//    backingMap().removeAllWithHash((int) hash);
-//    LOGGER.debug("CLIENT: offheap store removed all with hash {}", hash);
-//    TODO fire events
-  }
-
-  @Override
   public void invalidate(final K key) throws StoreAccessException {
     invalidateObserver.begin();
     final AtomicBoolean removed = new AtomicBoolean(false);
@@ -980,6 +972,14 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       throw new StoreAccessException("invalidateAll failed - error count: " + errorCount, exception);
     }
     invalidateAllObserver.end(LowerCachingTierOperationsOutcome.InvalidateAllOutcome.SUCCESS);
+  }
+
+  @Override
+  public void invalidateAllWithHash(long hash) {
+    throw new UnsupportedOperationException("not yet implemented");
+//    backingMap().removeAllWithHash((int) hash);
+//    LOGGER.debug("CLIENT: offheap store removed all with hash {}", hash);
+//    TODO stats & notify invalidations
   }
 
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {

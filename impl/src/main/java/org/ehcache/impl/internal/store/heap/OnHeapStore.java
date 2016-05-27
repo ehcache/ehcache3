@@ -191,8 +191,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final OperationObserver<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome> getOrComputeIfAbsentObserver;
   private final OperationObserver<CachingTierOperationOutcomes.InvalidateOutcome> invalidateObserver;
   private final OperationObserver<CachingTierOperationOutcomes.InvalidateAllOutcome> invalidateAllObserver;
+  private final OperationObserver<CachingTierOperationOutcomes.InvalidateAllWithHashOutcome> invalidateAllWithHashObserver;
   private final OperationObserver<HigherCachingTierOperationOutcomes.SilentInvalidateOutcome> silentInvalidateObserver;
   private final OperationObserver<HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome> silentInvalidateAllObserver;
+  private final OperationObserver<HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome> silentInvalidateAllWithHashObserver;
 
   private final OnHeapStoreStatsSettings onHeapStoreStatsSettings;
 
@@ -249,8 +251,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     getOrComputeIfAbsentObserver = operation(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.class).named("getOrComputeIfAbsent").of(this).tag("onheap-store").build();
     invalidateObserver = operation(CachingTierOperationOutcomes.InvalidateOutcome.class).named("invalidate").of(this).tag("onheap-store").build();
     invalidateAllObserver = operation(CachingTierOperationOutcomes.InvalidateAllOutcome.class).named("invalidateAll").of(this).tag("onheap-store").build();
+    invalidateAllWithHashObserver = operation(CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.class).named("invalidateAllWithHash").of(this).tag("onheap-store").build();
     silentInvalidateObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.class).named("silentInvalidate").of(this).tag("onheap-store").build();
     silentInvalidateAllObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome.class).named("silentInvalidateAll").of(this).tag("onheap-store").build();
+    silentInvalidateAllWithHashObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class).named("silentInvalidateAllWithHash").of(this).tag("onheap-store").build();
     StatisticsManager.createPassThroughStatistic(this, "mappingsCount", Collections.singleton("onheap-store"), new Callable<Number>() {
       @Override
       public Number call() throws Exception {
@@ -887,6 +891,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     silentInvalidateAllObserver.end(HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome.SUCCESS);
   }
 
+  @Override
+  public void silentInvalidateAllWithHash(long hash, BiFunction<K, ValueHolder<V>, Void> biFunction) throws StoreAccessException {
+    silentInvalidateAllWithHashObserver.begin();
+    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash((int) hash);
+    for (Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+      biFunction.apply(entry.getKey(), entry.getValue());
+    }
+    silentInvalidateAllWithHashObserver.end(HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.SUCCESS);
+  }
+
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
     final InvalidationListener<K, V> invalidationListener = this.invalidationListener;
     if(invalidationListener != null) {
@@ -908,9 +922,13 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   @Override
   public void invalidateAllWithHash(long hash) throws StoreAccessException {
-    map.removeAllWithHash((int) hash);
+    invalidateAllWithHashObserver.begin();
+    Map<K, OnHeapValueHolder<V>> removed = map.removeAllWithHash((int) hash);
+    for (Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+      notifyInvalidation(entry.getKey(), entry.getValue());
+    }
     LOG.debug("CLIENT: onheap store removed all with hash {}", hash);
-    //TODO: update stats & fire events
+    invalidateAllWithHashObserver.end(CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.SUCCESS);
   }
 
   private ValueHolder<V> getValue(final ValueHolder<V> cachedValue) {
