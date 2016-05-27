@@ -145,6 +145,28 @@ public class ReferenceStoreImpl implements ServerStore  {
     }
   }
 
+  private void writeLockAll() {
+    for (ReadWriteLock lock : locks) {
+      lock.writeLock().lock();
+    }
+  }
+
+  private void writeUnlockAll() {
+    for (ReadWriteLock lock : locks) {
+      lock.writeLock().unlock();
+    }
+  }
+
+  @Override
+  public void clear() {
+    writeLockAll();
+    try {
+      map.clear();
+    } finally {
+      writeUnlockAll();
+    }
+  }
+
   private HeapChainImpl cast(Chain chain) {
     return (HeapChainImpl)chain;
   }

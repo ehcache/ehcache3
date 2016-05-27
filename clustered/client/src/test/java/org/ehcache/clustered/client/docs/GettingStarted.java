@@ -142,6 +142,11 @@ public class GettingStarted {
       assertThat(cache.get(3L), equalTo("The three"));
       cache.remove(1L);
       assertThat(cache.get(1L), is(nullValue()));
+
+      cache.clear();
+      assertThat(cache.get(1L), is(nullValue()));
+      assertThat(cache.get(2L), is(nullValue()));
+      assertThat(cache.get(3L), is(nullValue()));
     } finally {
       cacheManager.close();
     }

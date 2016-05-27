@@ -155,7 +155,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void clear() throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
+    storeProxy.clear();
   }
 
   @Override

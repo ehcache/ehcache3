@@ -98,4 +98,13 @@ public class ServerStoreProxy implements ServerStore {
       throw new ServerStoreProxyException(e);
     }
   }
+
+  @Override
+  public void clear() {
+    try {
+      entity.invoke(EhcacheEntityMessage.clearOperation(cacheId), true);
+    } catch (Exception e) {
+      throw new ServerStoreProxyException(e);
+    }
+  }
 }

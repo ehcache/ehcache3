@@ -77,6 +77,14 @@ class ServerStoreOpCodec {
         encodedMsg.putInt(encodedUpdatedChain.length);
         encodedMsg.put(encodedUpdatedChain);
         return encodedMsg.array();
+      case CLEAR:
+        encodedMsg = ByteBuffer.allocate(MSG_TYPE_OFFSET + STORE_OP_CODE_OFFSET + CACHE_ID_LEN_OFFSET + KEY_OFFSET + cacheIdLen);
+        encodedMsg.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
+        encodedMsg.putInt(cacheIdLen);
+        encodedMsg.put(message.getCacheId().getBytes(UTF_8));
+        encodedMsg.putLong(message.getKey());
+        encodedMsg.put(message.operation().getStoreOpCode());
+        return encodedMsg.array();
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.operation());
     }
@@ -122,6 +130,8 @@ class ServerStoreOpCodec {
         replaceBuf.get(encodedUpdateChain);
         return new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
             chainCodec.decode(encodedUpdateChain));
+      case CLEAR:
+        return EhcacheEntityMessage.clearOperation(cacheId);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 

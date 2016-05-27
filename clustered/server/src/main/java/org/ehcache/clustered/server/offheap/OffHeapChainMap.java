@@ -129,6 +129,15 @@ class OffHeapChainMap<K> implements MapInternals {
     }
   }
 
+  public void clear() {
+    heads.writeLock().lock();
+    try {
+      this.heads.clear();
+    } finally {
+      heads.writeLock().unlock();
+    }
+  }
+
   private static final Chain EMPTY_CHAIN = new Chain() {
     @Override
     public Iterator<Element> reverseIterator() {

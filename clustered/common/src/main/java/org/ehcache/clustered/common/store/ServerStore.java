@@ -109,4 +109,11 @@ public interface ServerStore {
    * @param update the new Chain to be replaced
    */
   void replaceAtHead(long key, Chain expect, Chain update);
+
+  /**
+   * Removes all the mappings from this store. But this operation is not atomic.
+   * If appends are happening in parallel, this operation does not guarantee an
+   * empty store on the completion of this operation.
+   */
+  void clear();
 }

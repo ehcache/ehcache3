@@ -27,7 +27,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     GET((byte) 10),
     GET_AND_APPEND((byte) 11),
     APPEND((byte) 12),
-    REPLACE((byte) 13);
+    REPLACE((byte) 13),
+    CLEAR((byte) 14);
 
     private final byte storeOpCode;
 
@@ -49,6 +50,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
           return APPEND;
         case 13:
           return REPLACE;
+        case 4:
+          return CLEAR;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + storeOpCode);
       }
@@ -176,5 +179,24 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
 
   }
+
+  public static class ClearMessage extends ServerStoreOpMessage {
+
+
+    ClearMessage(final String cacheId) {
+      super(cacheId, 0L);
+    }
+
+    @Override
+    public ServerStoreOp operation() {
+      return ServerStoreOp.CLEAR;
+    }
+
+    @Override
+    public byte getOpCode() {
+      return ServerStoreOp.CLEAR.getStoreOpCode();
+    }
+  }
+
 }
 

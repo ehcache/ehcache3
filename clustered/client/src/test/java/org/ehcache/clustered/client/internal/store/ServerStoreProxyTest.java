@@ -163,6 +163,19 @@ public class ServerStoreProxyTest {
     assertChainHas(anotherReplace, 800L, 4000L, 40000L);
   }
 
+  @Test
+  public void testClear() {
+    serverStoreProxy.append(1L, createPayload(100L));
+
+    Chain chain = serverStoreProxy.get(1);
+    assertThat(chain.isEmpty(), is(false));
+    assertThat(readPayLoad(chain.iterator().next().getPayload()), is(100L));
+
+    serverStoreProxy.clear();
+    chain = serverStoreProxy.get(1);
+    assertThat(chain.isEmpty(), is(true));
+  }
+
   private static void assertChainHas(Chain chain, long... payLoads) {
     Iterator<Element> elements = chain.iterator();
     for (long payLoad : payLoads) {
