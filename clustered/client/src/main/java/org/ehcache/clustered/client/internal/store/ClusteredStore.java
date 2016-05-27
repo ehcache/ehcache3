@@ -305,10 +305,11 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         public void onInvalidationRequest(long hash) {
           if (clusteredStore.invalidationValve != null) {
             try {
-              System.out.println("CLIENT: calling invalidation valve");
+              LOGGER.debug("CLIENT: calling invalidation valve");
               clusteredStore.invalidationValve.invalidateAllWithHash(hash);
             } catch (StoreAccessException sae) {
-              LOGGER.error("error invalidating hash " + hash, sae);
+              //TODO: what should be done here?
+              LOGGER.error("Error invalidating hash {}", hash, sae);
             }
           }
         }

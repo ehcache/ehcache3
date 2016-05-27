@@ -331,7 +331,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           long key = message.getKey();
           String cacheId = message.getCacheId();
           int invalidationId = clientInvalidateHashAck.getInvalidationId();
-          System.out.println("SERVER: got notification of invalidation ack on key " + key + " in cache " + cacheId + " from " + clientDescriptor + " (ID " + invalidationId + ")");
+          LOGGER.debug("SERVER: got notification of invalidation ack on key {} in cache {} from {} (ID {})", key, cacheId, clientDescriptor, invalidationId);
           clientInvalidated(clientDescriptor, invalidationId);
           return responseFactory.success();
         case CLEAR:
@@ -360,13 +360,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
     }
 
-    System.out.println("SERVER: requesting " + clientsToInvalidate.size() + " client(s) invalidation of hash " + key + " in cache " + cacheId + " (ID " + invalidationId + ")");
+    LOGGER.debug("SERVER: requesting {} client(s) invalidation of hash {} in cache {} (ID {})", clientsToInvalidate.size(), key, cacheId, invalidationId);
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
-      System.out.println("SERVER: asking client " + clientDescriptorThatHasToInvalidate + " to invalidate hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
+      LOGGER.debug("SERVER: asking client {}" + clientDescriptorThatHasToInvalidate + " to invalidate hash {} from cache {} (ID {})", clientDescriptorThatHasToInvalidate, key, cacheId, invalidationId);
       try {
         clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, clientInvalidateHash(cacheId, key, invalidationId));
       } catch (MessageCodecException mce) {
-        LOGGER.error("", mce);
+        //TODO: what should be done here?
+        LOGGER.error("Codec error", mce);
       }
     }
 
@@ -384,9 +385,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         clientsWaitingForInvalidation.remove(invalidationId);
         try {
           clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, EhcacheEntityResponse.invalidationDone(invalidationHolder.cacheId, invalidationHolder.key));
-          System.out.println("SERVER: notifying originating client that all other clients invalidated key " + invalidationHolder.key + " in cache " + invalidationHolder.cacheId + " from " + clientDescriptor + " (ID " + invalidationId + ")");
+          LOGGER.debug("SERVER: notifying originating client that all other clients invalidated key {} in cache {} from {} (ID {})", invalidationHolder.key, invalidationHolder.cacheId, clientDescriptor, invalidationId);
         } catch (MessageCodecException mce) {
-          LOGGER.error("", mce);
+          //TODO: what should be done here?
+          LOGGER.error("Codec error", mce);
         }
       }
     }
