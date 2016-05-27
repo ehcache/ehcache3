@@ -75,7 +75,9 @@ public class BasicCacheCrudTest {
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
       cache.put(1L, "The one");
+      assertThat(cache.containsKey(2L), is(false));
       cache.put(2L, "The two");
+      assertThat(cache.containsKey(2L), is(true));
       cache.put(1L, "Another one");
       cache.put(3L, "The three");
       assertThat(cache.get(1L), equalTo("Another one"));

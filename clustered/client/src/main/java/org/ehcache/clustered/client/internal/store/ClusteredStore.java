@@ -70,8 +70,17 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
+    V value = getInternal(key);
+    if(value == null) {
+      return null;
+    } else {
+      return new ClusteredValueHolder<V>(value);
+    }
+  }
+
+  private V getInternal(K key) {
     Chain chain = storeProxy.get(key.hashCode());
-    V value = null;
+    V value;
     if(!chain.isEmpty()) {
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
 
@@ -87,13 +96,16 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     } else {
       return null;
     }
-    return new ClusteredValueHolder<V>(value);
+    return value;
   }
 
   @Override
   public boolean containsKey(final K key) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    if(getInternal(key) == null) {
+      return false;
+    } else {
+      return true;
+    }
   }
 
   @Override
