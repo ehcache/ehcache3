@@ -263,7 +263,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     protected <T> Serializer<T> constructSerializer(Class<T> clazz, Constructor<? extends Serializer<T>> constructor, Object ... args) {
       try {
         Serializer<T> serializer = constructor.newInstance(args);
-        LOG.info("Serializer for <{}> : {}", clazz.getName(), serializer);
+        LOG.debug("Serializer for <{}> : {}", clazz.getName(), serializer);
         return serializer;
       } catch (InstantiationException e) {
         throw new RuntimeException(e);
