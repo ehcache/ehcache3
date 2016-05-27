@@ -213,7 +213,7 @@ final class StatusTransitioner {
         fireTransitionEvent(st.from().toPublicStatus(), st.to().toPublicStatus());
       } finally {
         maintenanceLease = thread;
-        logger.info("{} successful.", action);
+        logger.debug("{} successful.", action);
       }
     }
 

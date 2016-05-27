@@ -258,7 +258,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   @Override
   public void destroyAll() {
     if(recursiveDeleteDirectoryContent(rootDirectory)){
-      LOGGER.info("Destroyed all file based persistence context");
+      LOGGER.debug("Destroyed all file based persistence context");
     } else {
       LOGGER.warn("Could not delete all file based persistence context");
     }
@@ -300,9 +300,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private static void create(File directory) throws IOException, CachePersistenceException {
     if (directory.isDirectory()) {
-      LOGGER.info("Reusing " + directory.getAbsolutePath());
+      LOGGER.debug("Reusing " + directory.getAbsolutePath());
     } else if (directory.mkdir()) {
-      LOGGER.info("Created " + directory.getAbsolutePath());
+      LOGGER.debug("Created " + directory.getAbsolutePath());
     } else {
       throw new CachePersistenceException("Unable to create or reuse directory: " + directory.getAbsolutePath());
     }
@@ -310,7 +310,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private static void destroy(String identifier, DefaultPersistenceSpaceIdentifier fileBasedPersistenceContext, boolean verbose) {
     if (verbose) {
-      LOGGER.info("Destroying file based persistence context for {}", identifier);
+      LOGGER.debug("Destroying file based persistence context for {}", identifier);
     }
     if (fileBasedPersistenceContext.getDirectory().exists() && !tryRecursiveDelete(fileBasedPersistenceContext.getDirectory())) {
       if (verbose) {
