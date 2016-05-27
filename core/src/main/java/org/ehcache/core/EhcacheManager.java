@@ -190,19 +190,14 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
           }
         }
 
-        closeCache(alias, ehcache);
+        ehcache.close();
+        closeEhcache(alias, ehcache);
         if (removeFromConfig) {
           configuration.removeCacheConfiguration(alias);
         }
       }
-      LOGGER.info("Cache '{}' is removed from {}.", alias, simpleName);
+      LOGGER.info("Cache '{}' removed from {}.", alias, simpleName);
     }
-  }
-
-  private void closeCache(final String alias, final InternalCache<?, ?> ehcache) {
-    ehcache.close();
-    closeEhcache(alias, ehcache);
-    LOGGER.info("Cache '{}' is closed from {}.", alias, simpleName);
   }
 
   /**
@@ -243,7 +238,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   private <K, V> Cache<K, V> createCache(final String alias, CacheConfiguration<K, V> originalConfig, boolean addToConfig) throws IllegalArgumentException {
     statusTransitioner.checkAvailable();
 
-    LOGGER.info("Cache '{}' is getting created in {}.", alias, simpleName);
+    LOGGER.debug("Creating Cache '{}' in {}.", alias, simpleName);
 
     CacheConfiguration<K, V> config = adjustConfigurationWithCacheManagerDefaults(originalConfig);
     Class<K> keyType = config.getKeyType();
@@ -569,13 +564,13 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
           try {
             removeCache(toBeClosed, false);
           } catch (Exception exceptionClosingCache) {
-            LOGGER.error("Cache '{}' could not be removed due to ", toBeClosed, exceptionClosingCache);
+            LOGGER.error("Cache '{}' could not be removed after initialization failure due to ", toBeClosed, exceptionClosingCache);
           }
         }
         try {
           serviceLocator.stopAllServices();
         } catch (Exception exceptionStoppingServices) {
-          LOGGER.error("Stopping services failed due to ", exceptionStoppingServices);
+          LOGGER.error("Stopping services after initialization failure failed due to ", exceptionStoppingServices);
         }
         throw e;
       }
@@ -652,10 +647,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     if (alias == null) {
       throw new NullPointerException("Alias cannot be null");
     }
-    LOGGER.info("Destroying Cache '{}' in {}.", alias, simpleName);
+    LOGGER.debug("Destroying Cache '{}' in {}.", alias, simpleName);
     removeAndCloseWithoutNotice(alias);
     destroyPersistenceSpace(alias);
-    LOGGER.info("Cache '{}' is successfully destroyed in {}.", alias, simpleName);
+    LOGGER.info("Cache '{}' successfully destroyed in {}.", alias, simpleName);
   }
 
   private void destroyPersistenceSpace(String alias) throws CachePersistenceException {
@@ -682,6 +677,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     } catch (Throwable t) {
       throw st.failed(t);
     }
+    LOGGER.info("All persistent data destroyed for {}", simpleName);
   }
 
   private void startMaintainableServices() {
