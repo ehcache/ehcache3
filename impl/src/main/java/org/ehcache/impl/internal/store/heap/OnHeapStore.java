@@ -909,7 +909,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @Override
   public void invalidateAllWithHash(long hash) throws StoreAccessException {
     map.removeAllWithHash((int) hash);
-    System.out.println("CLIENT: onheap store removed all with hash " + hash);
+    LOG.debug("CLIENT: onheap store removed all with hash {}", hash);
     //TODO: update stats & fire events
   }
 

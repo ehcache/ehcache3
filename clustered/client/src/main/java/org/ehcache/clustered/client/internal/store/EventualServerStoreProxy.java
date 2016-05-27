@@ -18,6 +18,8 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.store.Chain;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -27,6 +29,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * @author Ludovic Orban
  */
 public class EventualServerStoreProxy implements ServerStoreProxy {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(EventualServerStoreProxy.class);
 
   private final ServerStoreProxy delegate;
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
@@ -40,7 +44,7 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
         final long key = response.getKey();
         final int invalidationId = response.getInvalidationId();
 
-        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
+        LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
         for (InvalidationListener listener : invalidationListeners) {
           listener.onInvalidationRequest(key);
         }

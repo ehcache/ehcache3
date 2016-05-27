@@ -48,11 +48,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       public void onResponse(EhcacheEntityResponse.InvalidationDone response) {
         if (response.getCacheId().equals(getCacheId())) {
           long key = response.getKey();
-          System.out.println("CLIENT: on cache " + getCacheId() + ", server notified that clients invalidated key " + key);
+          LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated key {}", getCacheId(), key);
           CountDownLatch countDownLatch = invalidationsInProgress.remove(key);
           countDownLatch.countDown();
         } else {
-          System.out.println("CLIENT: on cache " + getCacheId() + ", ignoring invalidation on unrelated cache : " + response.getCacheId());
+          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", getCacheId(), response.getCacheId());
         }
       }
     });
@@ -63,16 +63,17 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         final long key = response.getKey();
         final int invalidationId = response.getInvalidationId();
 
-        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
+        LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
         for (InvalidationListener listener : invalidationListeners) {
           listener.onInvalidationRequest(key);
         }
 
         try {
-          System.out.println("CLIENT: ack'ing invalidation of hash " + key + " from cache " + cacheId + " (ID " + invalidationId + ")");
-          entity.invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key, invalidationId), true); //TODO: wait until replicated or not?
+          LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+          entity.invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key, invalidationId), true);
         } catch (Exception e) {
-          LOGGER.warn("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
+          //TODO: what should be done here?
+          LOGGER.error("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
         }
       }
     });
@@ -92,7 +93,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       return c.apply();
     } finally {
       latch.await();
-      System.out.println("CLIENT: key " + key + " invalidated on all clients, unblocking append");
+      LOGGER.debug("CLIENT: key {} invalidated on all clients, unblocking append");
     }
   }
 

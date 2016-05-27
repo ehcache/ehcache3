@@ -933,7 +933,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   public void invalidateAllWithHash(long hash) {
     throw new UnsupportedOperationException("not yet implemented");
 //    backingMap().removeAllWithHash((int) hash);
-//    System.out.println("CLIENT: offheap store removed all with hash " + hash);
+//    LOGGER.debug("CLIENT: offheap store removed all with hash {}", hash);
 //    TODO fire events
   }
 
