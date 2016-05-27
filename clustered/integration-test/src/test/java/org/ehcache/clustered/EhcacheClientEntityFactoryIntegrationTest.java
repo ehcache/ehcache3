@@ -91,7 +91,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   public void testRetrieveWithGoodConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithGoodConfig",
-        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 42L))));
+        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 43L))));
     assertThat(factory.retrieve("testRetrieveWithGoodConfig",
         new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 43L)))), notNullValue());
   }
