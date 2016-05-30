@@ -39,7 +39,6 @@ import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -224,7 +223,6 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   /**
    * Provider of {@link ClusteredStore} instances.
    */
-  @ServiceDependencies({ClusteringService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
