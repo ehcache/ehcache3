@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.service;
+package org.ehcache.clustered.client.internal.service;
 
+import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.junit.Test;
