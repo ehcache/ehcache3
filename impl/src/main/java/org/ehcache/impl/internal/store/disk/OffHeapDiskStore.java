@@ -229,7 +229,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw e;
       }
     } catch (Exception e) {
-      LOGGER.info("Index file was corrupt. Deleting data file " + dataFile.getAbsolutePath() +". " + e.getMessage());
+      LOGGER.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
       LOGGER.debug("Exception during recovery", e);
       return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
     } finally {

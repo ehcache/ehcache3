@@ -264,7 +264,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
           throw new RuntimeException(e);
         } else {
-          LOGGER.debug("Could not create serializers for user managed cache " + id, e);
+          LOGGER.debug("Could not create serializers for user managed cache {}", id, e);
         }
       }
     }
