@@ -25,6 +25,8 @@ import java.io.Serializable;
  */
 public abstract class LifecycleMessage extends EhcacheEntityMessage implements Serializable {
 
+  public static final int LIFECYCLE_MSG_OP_CODE = 1;
+
   public enum LifeCycleOp {
     CONFIGURE,
     VALIDATE,
@@ -35,18 +37,23 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
   }
 
   @Override
+  public byte getOpCode() {
+    return LIFECYCLE_MSG_OP_CODE;
+  }
+
+  @Override
   public Type getType() {
     return Type.LIFECYCLE_OP;
   }
 
   public abstract LifeCycleOp operation();
 
-  public static class ValidateCacheManager extends LifecycleMessage {
+  public static class ValidateStoreManager extends LifecycleMessage {
     private static final long serialVersionUID = 5742152283115139745L;
 
     private final ServerSideConfiguration configuration;
 
-    ValidateCacheManager(ServerSideConfiguration config) {
+    ValidateStoreManager(ServerSideConfiguration config) {
       this.configuration = config;
     }
 
@@ -60,12 +67,12 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     }
   }
 
-  public static class ConfigureCacheManager extends LifecycleMessage {
+  public static class ConfigureStoreManager extends LifecycleMessage {
     private static final long serialVersionUID = 730771302294202898L;
 
     private final ServerSideConfiguration configuration;
 
-    ConfigureCacheManager(ServerSideConfiguration config) {
+    ConfigureStoreManager(ServerSideConfiguration config) {
       this.configuration = config;
     }
 

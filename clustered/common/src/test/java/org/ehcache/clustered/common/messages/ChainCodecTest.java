@@ -15,7 +15,9 @@
  */
 package org.ehcache.clustered.common.messages;
 
-import org.ehcache.clustered.common.store.*;
+import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.store.SequencedElement;
 import org.junit.Test;
 
 import java.util.Iterator;
@@ -32,6 +34,8 @@ import static org.ehcache.clustered.common.store.Util.getChain;
  */
 public class ChainCodecTest {
 
+  private static final ChainCodec CHAIN_CODEC = new ChainCodec();
+
   @Test
   public void testChainWithSingleElement() {
     Chain chain = getChain(false, createPayload(1L));
@@ -41,7 +45,7 @@ public class ChainCodecTest {
     assertThat(readPayLoad(chainIterator.next().getPayload()), is(1L));
     assertThat(chainIterator.hasNext(), is(false));
 
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
+    Chain decoded = CHAIN_CODEC.decode(CHAIN_CODEC.encode(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     chainIterator = decoded.iterator();
@@ -58,7 +62,7 @@ public class ChainCodecTest {
     assertThat(readPayLoad(chainIterator.next().getPayload()), is(1L));
     assertThat(chainIterator.hasNext(), is(false));
 
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
+    Chain decoded = CHAIN_CODEC.decode(CHAIN_CODEC.encode(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     chainIterator = decoded.iterator();
@@ -75,7 +79,7 @@ public class ChainCodecTest {
     assertThat(chain.isEmpty(), is(false));
     Util.assertChainHas(chain, 1L, 2L, 3L);
 
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
+    Chain decoded = CHAIN_CODEC.decode(CHAIN_CODEC.encode(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     Util.assertChainHas(decoded, 1L, 2L, 3L);
@@ -88,7 +92,7 @@ public class ChainCodecTest {
     assertThat(chain.isEmpty(), is(false));
     Util.assertChainHas(chain, 1L, 2L, 3L);
 
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(chain));
+    Chain decoded = CHAIN_CODEC.decode(CHAIN_CODEC.encode(chain));
 
     assertThat(decoded.isEmpty(), is(false));
     Util.assertChainHas(decoded, 1L, 2L, 3L);
@@ -98,7 +102,7 @@ public class ChainCodecTest {
 
   @Test
   public void testEmptyChain() {
-    Chain decoded = ChainCodec.decode(ChainCodec.encode(getChain(false)));
+    Chain decoded = CHAIN_CODEC.decode(CHAIN_CODEC.encode(getChain(false)));
 
     assertThat(decoded.isEmpty(), is(true));
   }

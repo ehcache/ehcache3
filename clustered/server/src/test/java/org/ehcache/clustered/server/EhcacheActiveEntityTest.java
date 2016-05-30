@@ -21,10 +21,9 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
-import org.ehcache.clustered.common.messages.LifecycleMessage.ConfigureCacheManager;
+import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.terracotta.entity.ClientDescriptor;
@@ -42,7 +41,6 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type.FAILURE;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.success;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -60,6 +58,7 @@ import static org.junit.Assert.fail;
 public class EhcacheActiveEntityTest {
 
   private static final byte[] ENTITY_ID = ClusteredEhcacheIdentity.serialize(UUID.randomUUID());
+  private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
 
   @Test
   public void testConfigTooShort() {
@@ -207,7 +206,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -232,7 +231,7 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -250,7 +249,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -264,7 +263,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client2));
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -297,7 +296,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)    // missing on 'server'
@@ -330,7 +329,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -361,7 +360,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -395,13 +394,13 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
 
     ClientDescriptor client2 = new TestClientDescriptor();
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage.validate(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().get(client2), is(Matchers.<String>empty()));
@@ -423,7 +422,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
 
     activeEntity.disconnected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
@@ -431,7 +430,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.validate(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
     assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
@@ -451,9 +450,9 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.validate(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
     assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
@@ -470,14 +469,14 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.validate(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.validateStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -496,13 +495,13 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.validate(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.validateStoreManager(new ServerSideConfigBuilder()
             .defaultResource("defaultServerResource")
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -520,7 +519,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())),
@@ -537,7 +536,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
@@ -550,7 +549,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client2));
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())),
@@ -569,13 +568,13 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -618,7 +617,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
 
     activeEntity.disconnected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
@@ -627,10 +626,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client2));
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage.validate(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
     assertSuccess(activeEntity.invoke(client2,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -660,10 +659,10 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -675,10 +674,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client2));
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage. validate(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())),
@@ -697,19 +696,19 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("secondCache",
+        MESSAGE_FACTORY.createServerStore("secondCache",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource2", 8, MemoryUnit.MEGABYTES)
                 .build())));
@@ -728,7 +727,7 @@ public class EhcacheActiveEntityTest {
     /*
      * Separately release the stores ...
      */
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.releaseServerStore("cacheAlias")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("cacheAlias")));
 
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias", "secondCache"));
     assertThat(activeEntity.getConnectedClients().get(client), containsInAnyOrder("secondCache"));
@@ -736,10 +735,10 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getInUseStores().get("secondCache"), contains(client));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.releaseServerStore("cacheAlias")),
+        MESSAGE_FACTORY.releaseServerStore("cacheAlias")),
         IllegalStateException.class, "not in use");
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.releaseServerStore("secondCache")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("secondCache")));
 
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias", "secondCache"));
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
@@ -766,19 +765,19 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias", serverStoreConfiguration)));
+        MESSAGE_FACTORY.createServerStore("cacheAlias", serverStoreConfiguration)));
 
     ClientDescriptor client2 = new TestClientDescriptor();
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage.validate(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client2,
-        EhcacheEntityMessage.validateServerStore("cacheAlias", serverStoreConfiguration)));
+        MESSAGE_FACTORY.validateServerStore("cacheAlias", serverStoreConfiguration)));
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -807,10 +806,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -819,10 +818,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage.validate(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.validateServerStore("cacheAlias",
+        MESSAGE_FACTORY.validateServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 8, MemoryUnit.MEGABYTES)
                 .build())),
@@ -856,16 +855,16 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
 
     ClientDescriptor client2 = new TestClientDescriptor();
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage.validate(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.validateServerStore("cacheAlias",
+        MESSAGE_FACTORY.validateServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())),
@@ -895,13 +894,13 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .shared("primary")
                 .build())));
@@ -942,10 +941,10 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(serverSideConfiguration)));
+        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .shared("primary")
                 .build())));
@@ -961,10 +960,10 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client2));
 
     assertSuccess(activeEntity.invoke(client2,
-        EhcacheEntityMessage.validate(serverSideConfiguration)));
+        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .shared("primary")
                 .build())),
@@ -989,10 +988,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias", sharedStoreConfig)));
+        MESSAGE_FACTORY.createServerStore("cacheAlias", sharedStoreConfig)));
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -1008,10 +1007,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage.validate(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client2,
-        EhcacheEntityMessage.validateServerStore("cacheAlias", sharedStoreConfig)));
+        MESSAGE_FACTORY.validateServerStore("cacheAlias", sharedStoreConfig)));
 
     assertThat(activeEntity.getConnectedClients().get(client), contains("cacheAlias"));
     assertThat(activeEntity.getConnectedClients().get(client2), contains("cacheAlias"));
@@ -1034,10 +1033,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .shared("primary")
                 .build())));
@@ -1046,10 +1045,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage.validate(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.validateServerStore("cacheAlias",
+        MESSAGE_FACTORY.validateServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .shared("secondary")
                 .build())),
@@ -1077,13 +1076,13 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.releaseServerStore("cacheAlias")),
+        MESSAGE_FACTORY.releaseServerStore("cacheAlias")),
         IllegalStateException.class, "does not exist");
   }
 
@@ -1097,13 +1096,13 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("cacheAlias",
+        MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -1111,14 +1110,14 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().get(client), containsInAnyOrder("cacheAlias"));
     assertThat(activeEntity.getInUseStores().get("cacheAlias"), containsInAnyOrder(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.releaseServerStore("cacheAlias")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("cacheAlias")));
 
     assertThat(activeEntity.getStores(), containsInAnyOrder("cacheAlias"));
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
     assertThat(activeEntity.getInUseStores().get("cacheAlias"), is(Matchers.<ClientDescriptor>empty()));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.releaseServerStore("cacheAlias")),
+        MESSAGE_FACTORY.releaseServerStore("cacheAlias")),
         IllegalStateException.class, "not in use by client");
   }
 
@@ -1132,13 +1131,13 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("fixedCache",
+        MESSAGE_FACTORY.createServerStore("fixedCache",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -1149,27 +1148,27 @@ public class EhcacheActiveEntityTest {
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L + 4L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.releaseServerStore("fixedCache")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("fixedCache")));
 
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache"));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("fixedCache"));
     assertThat(activeEntity.getInUseStores().get("fixedCache"), is(Matchers.<ClientDescriptor>empty()));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("sharedCache",
+        MESSAGE_FACTORY.createServerStore("sharedCache",
             new ServerStoreConfigBuilder()
                 .shared("secondary")
                 .build())));
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache", "sharedCache"));
     assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder("fixedCache", "sharedCache"));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.releaseServerStore("sharedCache")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("sharedCache")));
 
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache", "sharedCache"));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("fixedCache"));
     assertThat(activeEntity.getInUseStores().get("fixedCache"), is(Matchers.<ClientDescriptor>empty()));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.destroyServerStore("sharedCache")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.destroyServerStore("sharedCache")));
 
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L + 4L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
@@ -1177,7 +1176,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache"));
     assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder("fixedCache"));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.destroyServerStore("fixedCache")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.destroyServerStore("fixedCache")));
 
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -1189,8 +1188,8 @@ public class EhcacheActiveEntityTest {
 
   /**
    * Tests the destroy server store operation <b>before</b> the use of either a
-   * {@link org.ehcache.clustered.common.messages.EhcacheEntityMessage.CreateServerStore CreateServerStore}
-   * {@link org.ehcache.clustered.common.messages.EhcacheEntityMessage.ValidateServerStore ValidateServerStore}
+   * {@link org.ehcache.clustered.common.messages.LifecycleMessage.CreateServerStore CreateServerStore}
+   * {@link org.ehcache.clustered.common.messages.LifecycleMessage.ValidateServerStore ValidateServerStore}
    * operation.
    */
   @Test
@@ -1203,13 +1202,13 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertFailure(activeEntity.invoke(client,
-        EhcacheEntityMessage.destroyServerStore("cacheAlias")),
+        MESSAGE_FACTORY.destroyServerStore("cacheAlias")),
         IllegalStateException.class, "does not exist");
   }
 
@@ -1226,10 +1225,10 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.configure(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("fixedCache",
+        MESSAGE_FACTORY.createServerStore("fixedCache",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -1239,7 +1238,7 @@ public class EhcacheActiveEntityTest {
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("sharedCache",
+        MESSAGE_FACTORY.createServerStore("sharedCache",
             new ServerStoreConfigBuilder()
                 .shared("secondary")
                 .build())));
@@ -1250,14 +1249,14 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client2 = new TestClientDescriptor();
     activeEntity.connected(client2);
 
-    assertSuccess(activeEntity.invoke(client2, EhcacheEntityMessage.validate(serverSideConfiguration)));
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.destroyServerStore("sharedCache")),
+        MESSAGE_FACTORY.destroyServerStore("sharedCache")),
         IllegalStateException.class, "in use");
 
     assertFailure(activeEntity.invoke(client2,
-        EhcacheEntityMessage.destroyServerStore("fixedCache")),
+        MESSAGE_FACTORY.destroyServerStore("fixedCache")),
         IllegalStateException.class, "in use");
 
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache", "sharedCache"));
@@ -1287,14 +1286,14 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("fixedCache",
+        MESSAGE_FACTORY.createServerStore("fixedCache",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -1304,7 +1303,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache"));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("sharedCache",
+        MESSAGE_FACTORY.createServerStore("sharedCache",
             new ServerStoreConfigBuilder()
                 .shared("primary")
                 .build())));
@@ -1314,7 +1313,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache", "sharedCache"));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("primary",
+        MESSAGE_FACTORY.createServerStore("primary",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource2", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -1323,19 +1322,19 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("fixedCache", "primary"));
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache", "sharedCache", "primary"));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.releaseServerStore("fixedCache")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("fixedCache")));
     assertThat(activeEntity.getConnectedClients().get(client), containsInAnyOrder("sharedCache", "primary"));
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("fixedCache", "primary"));
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache", "sharedCache", "primary"));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.releaseServerStore("primary")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("primary")));
     assertThat(activeEntity.getConnectedClients().get(client), containsInAnyOrder("sharedCache"));
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("fixedCache", "primary"));
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache", "sharedCache", "primary"));
 
-    assertSuccess(activeEntity.invoke(client, EhcacheEntityMessage.releaseServerStore("sharedCache")));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("sharedCache")));
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("fixedCache", "primary"));
@@ -1358,13 +1357,13 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.configure(new ServerSideConfigBuilder()
+        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("fixedCache",
+        MESSAGE_FACTORY.createServerStore("fixedCache",
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())));
@@ -1374,7 +1373,7 @@ public class EhcacheActiveEntityTest {
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
 
     assertSuccess(activeEntity.invoke(client,
-        EhcacheEntityMessage.createServerStore("sharedCache",
+        MESSAGE_FACTORY.createServerStore("sharedCache",
             new ServerStoreConfigBuilder()
                 .shared("secondary")
                 .build())));
@@ -1409,7 +1408,7 @@ public class EhcacheActiveEntityTest {
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
-    if (!response.equals(success())) {
+    if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
       throw ((Failure)response).getCause();
     }
   }

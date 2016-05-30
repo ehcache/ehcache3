@@ -15,20 +15,21 @@
  */
 package org.ehcache.clustered.common.messages;
 
-import org.terracotta.entity.EntityMessage;
+import org.ehcache.clustered.common.store.Chain;
 
 /**
- * Defines messages for interactions with an {@code EhcacheActiveEntity}.
  */
-public abstract class EhcacheEntityMessage implements EntityMessage {
+public class EhcacheEntityResponseFactory {
 
-  public enum Type {
-    SERVER_STORE_OP,
-    LIFECYCLE_OP;
+  public EhcacheEntityResponse success() {
+    return EhcacheEntityResponse.Success.INSTANCE;
   }
 
-  public abstract Type getType();
+  public EhcacheEntityResponse failure(Exception cause) {
+    return new EhcacheEntityResponse.Failure(cause);
+  }
 
-  public abstract byte getOpCode();
-
+  public EhcacheEntityResponse response(Chain chain) {
+    return new EhcacheEntityResponse.GetResponse(chain);
+  }
 }

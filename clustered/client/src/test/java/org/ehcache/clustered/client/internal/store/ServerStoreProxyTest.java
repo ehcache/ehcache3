@@ -23,6 +23,7 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
 import org.ehcache.config.units.MemoryUnit;

@@ -56,13 +56,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public abstract Type getType();
 
-  public static Success success() {
-    return Success.INSTANCE;
-  }
-
   public static class Success extends EhcacheEntityResponse {
 
-    private static final Success INSTANCE = new Success();
+    public static final Success INSTANCE = new Success();
 
     private Success() {
       //singleton
@@ -72,17 +68,14 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     public Type getType() {
       return Type.SUCCESS;
     }
-  }
 
-  public static Failure failure(Exception cause) {
-    return new Failure(cause);
   }
 
   public static class Failure extends EhcacheEntityResponse {
 
     private final Exception cause;
 
-    private Failure(Exception cause) {
+    Failure(Exception cause) {
       this.cause = cause;
     }
 
@@ -94,17 +87,14 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     public Exception getCause() {
       return cause;
     }
-  }
 
-  public static GetResponse response(Chain chain) {
-    return new GetResponse(chain);
   }
 
   public static class GetResponse extends EhcacheEntityResponse {
 
     private final Chain chain;
 
-    private GetResponse(Chain chain) {
+    GetResponse(Chain chain) {
       this.chain = chain;
     }
 
@@ -116,6 +106,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     public Chain getChain() {
       return chain;
     }
+
   }
 
 }

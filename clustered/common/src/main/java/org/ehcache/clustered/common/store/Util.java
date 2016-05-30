@@ -15,6 +15,11 @@
  */
 package org.ehcache.clustered.common.store;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -111,4 +116,28 @@ public class Util {
     };
   }
 
+  public static Object unmarshall(byte[] payload) {
+    try {
+      return new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
+    } catch (IOException ex) {
+      throw new IllegalArgumentException(ex);
+    } catch (ClassNotFoundException ex) {
+      throw new IllegalArgumentException(ex);
+    }
+  }
+
+  public static byte[] marshall(Object message) {
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    try {
+      ObjectOutputStream oout = new ObjectOutputStream(out);
+      try {
+        oout.writeObject(message);
+      } finally {
+        oout.close();
+      }
+    } catch (IOException e) {
+      throw new IllegalArgumentException(e);
+    }
+    return out.toByteArray();
+  }
 }

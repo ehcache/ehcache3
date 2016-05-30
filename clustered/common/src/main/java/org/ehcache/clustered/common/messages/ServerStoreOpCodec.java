@@ -15,74 +15,63 @@
  */
 package org.ehcache.clustered.common.messages;
 
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage.AppendMessage;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetAndAppendMessage;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetMessage;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ServerStoreOp;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
-
-import static org.ehcache.clustered.common.messages.ServerStoreOpMessage.AppendMessage;
-import static org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetAndAppendMessage;
-import static org.ehcache.clustered.common.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
 
 /**
  *
  */
-public class ServerStoreOpCodec {
+class ServerStoreOpCodec {
 
-  private static final Charset UTF_8 = Charset.forName("UTF-8");
 
-  private static final byte MSG_TYPE_OFFSET = 1;
-  private static final byte STORE_OP_CODE_OFFSET = 1;
-  private static final byte CACHE_ID_LEN_OFFSET = 4;
-  private static final byte KEY_OFFSET = 8;
-  private static final byte CHAIN_LEN_OFFSET = 4;
+  private static final byte STORE_OP_CODE_SIZE = 1;
+  private static final byte CACHE_ID_LEN_SIZE = 4;
+  private static final byte KEY_SIZE = 8;
+  private static final byte CHAIN_LEN_SIZE = 4;
 
-  public static byte[] encode(ServerStoreOpMessage message) {
+  private final ChainCodec chainCodec;
+
+  ServerStoreOpCodec() {
+    this.chainCodec = new ChainCodec();
+  }
+
+  public byte[] encode(ServerStoreOpMessage message) {
     // TODO: improve data send over n/w by optimizing cache Id
+    ByteBuffer encodedMsg;
     int cacheIdLen = message.getCacheId().length();
     switch (message.operation()) {
       case GET:
-        ByteBuffer encodedMsg = ByteBuffer.allocate(MSG_TYPE_OFFSET + STORE_OP_CODE_OFFSET + CACHE_ID_LEN_OFFSET + KEY_OFFSET + cacheIdLen);
-        encodedMsg.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
-        encodedMsg.putInt(cacheIdLen);
-        encodedMsg.put(message.getCacheId().getBytes(UTF_8));
-        encodedMsg.putLong(message.getKey());
-        encodedMsg.put(message.operation().getStoreOpCode());
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen);
+        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
         return encodedMsg.array();
       case APPEND:
         AppendMessage appendMessage = (AppendMessage)message;
-        encodedMsg = ByteBuffer.allocate(MSG_TYPE_OFFSET + STORE_OP_CODE_OFFSET + CACHE_ID_LEN_OFFSET + KEY_OFFSET + cacheIdLen + appendMessage
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + appendMessage
             .getPayload()
             .remaining());
-        encodedMsg.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
-        encodedMsg.putInt(cacheIdLen);
-        encodedMsg.put(message.getCacheId().getBytes(UTF_8));
-        encodedMsg.putLong(message.getKey());
-        encodedMsg.put(message.operation().getStoreOpCode());
+        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
         encodedMsg.put(appendMessage.getPayload());
         return encodedMsg.array();
       case GET_AND_APPEND:
         GetAndAppendMessage getAndAppendMessage = (GetAndAppendMessage)message;
-        encodedMsg = ByteBuffer.allocate(MSG_TYPE_OFFSET + STORE_OP_CODE_OFFSET + CACHE_ID_LEN_OFFSET + KEY_OFFSET + cacheIdLen + getAndAppendMessage
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + getAndAppendMessage
             .getPayload()
             .remaining());
-        encodedMsg.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
-        encodedMsg.putInt(cacheIdLen);
-        encodedMsg.put(message.getCacheId().getBytes(UTF_8));
-        encodedMsg.putLong(message.getKey());
-        encodedMsg.put(message.operation().getStoreOpCode());
+        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
         encodedMsg.put(getAndAppendMessage.getPayload());
         return encodedMsg.array();
       case REPLACE:
         ReplaceAtHeadMessage replaceAtHeadMessage = (ReplaceAtHeadMessage)message;
-        byte[] encodedExpectedChain = ChainCodec.encode(replaceAtHeadMessage.getExpect());
-        byte[] encodedUpdatedChain = ChainCodec.encode(replaceAtHeadMessage.getUpdate());
-        encodedMsg = ByteBuffer.allocate(MSG_TYPE_OFFSET + STORE_OP_CODE_OFFSET + CACHE_ID_LEN_OFFSET + KEY_OFFSET + cacheIdLen +
-              2 * CHAIN_LEN_OFFSET + encodedExpectedChain.length + encodedUpdatedChain.length);
-        encodedMsg.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
-        encodedMsg.putInt(cacheIdLen);
-        encodedMsg.put(message.getCacheId().getBytes(UTF_8));
-        encodedMsg.putLong(message.getKey());
-        encodedMsg.put(message.operation().getStoreOpCode());
+        byte[] encodedExpectedChain = chainCodec.encode(replaceAtHeadMessage.getExpect());
+        byte[] encodedUpdatedChain = chainCodec.encode(replaceAtHeadMessage.getUpdate());
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen +
+                                         2 * CHAIN_LEN_SIZE + encodedExpectedChain.length + encodedUpdatedChain.length);
+        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
         encodedMsg.putInt(encodedExpectedChain.length);
         encodedMsg.put(encodedExpectedChain);
         encodedMsg.putInt(encodedUpdatedChain.length);
@@ -93,25 +82,36 @@ public class ServerStoreOpCodec {
     }
   }
 
-  public static EhcacheEntityMessage decode(byte[] payload) {
+  // This assumes correct allocation and puts extracts common code
+  private static void putCacheIdKeyAndOpCode(ByteBuffer byteBuffer, String cacheId, long key, byte opcode) {
+    byteBuffer.put(opcode);
+    byteBuffer.putInt(cacheId.length());
+    for (int i = 0; i < cacheId.length(); i++) {
+      byteBuffer.putChar(cacheId.charAt(i));
+    }
+    byteBuffer.putLong(key);
+  }
+
+  public EhcacheEntityMessage decode(byte[] payload) {
     ByteBuffer msg = ByteBuffer.wrap(payload);
-    msg.get();
-    int cacheIdLen = msg.getInt();
-    byte[] idArr = new byte[cacheIdLen];
-    msg.get(idArr);
-    String cacheId = new String(idArr, UTF_8);
-    long key = msg.getLong();
     byte opCode = msg.get();
-    ServerStoreOpMessage.ServerStoreOp storeOp = ServerStoreOpMessage.ServerStoreOp.getServerStoreOp(opCode);
+    ServerStoreOp storeOp = ServerStoreOp.getServerStoreOp(opCode);
+    int cacheIdLen = msg.getInt();
+    char[] idArr = new char[cacheIdLen];
+    for (int i = 0; i < cacheIdLen; i++) {
+      idArr[i] = msg.getChar();
+    }
+    String cacheId = new String(idArr);
+    long key = msg.getLong();
     byte[] remaining = new byte[msg.remaining()];
     msg.get(remaining);
     switch (storeOp) {
       case GET:
-        return EhcacheEntityMessage.getOperation(cacheId, key);
+        return new GetMessage(cacheId, key);
       case GET_AND_APPEND:
-        return EhcacheEntityMessage.getAndAppendOperation(cacheId, key, ByteBuffer.wrap(remaining).asReadOnlyBuffer());
+        return new GetAndAppendMessage(cacheId, key, ByteBuffer.wrap(remaining).asReadOnlyBuffer());
       case APPEND:
-        return EhcacheEntityMessage.appendOperation(cacheId, key, ByteBuffer.wrap(remaining).asReadOnlyBuffer());
+        return new AppendMessage(cacheId, key, ByteBuffer.wrap(remaining).asReadOnlyBuffer());
       case REPLACE:
         ByteBuffer replaceBuf = ByteBuffer.wrap(remaining);
         int expectChainLen = replaceBuf.getInt();
@@ -120,8 +120,8 @@ public class ServerStoreOpCodec {
         int updateChainLen = replaceBuf.getInt();
         byte[] encodedUpdateChain = new byte[updateChainLen];
         replaceBuf.get(encodedUpdateChain);
-        return EhcacheEntityMessage.replaceAtHeadOperation(cacheId, key, ChainCodec.decode(encodedExpectChain),
-            ChainCodec.decode(encodedUpdateChain));
+        return new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
+            chainCodec.decode(encodedUpdateChain));
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 

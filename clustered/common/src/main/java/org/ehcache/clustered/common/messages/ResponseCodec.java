@@ -15,33 +15,41 @@
  */
 package org.ehcache.clustered.common.messages;
 
+import org.ehcache.clustered.common.store.Util;
+
 import java.nio.ByteBuffer;
 
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.GetResponse;
+/**
+ *
+ */
+class ResponseCodec {
 
-public class ResponseCodec {
+  private static final byte OP_CODE_SIZE = 1;
 
-  private static final byte OP_CODE_OFFSET = 1;
+  private final ChainCodec chainCodec;
 
-  public static byte[] encode(EhcacheEntityResponse response) {
+  ResponseCodec() {
+    this.chainCodec = new ChainCodec();
+  }
+
+  public byte[] encode(EhcacheEntityResponse response) {
     switch (response.getType()) {
       case FAILURE:
-        Failure failure = (Failure)response;
-        byte[] failureMsg = LifeCycleOpCodec.marshall(failure.getCause());
-        ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_OFFSET + failureMsg.length);
+        EhcacheEntityResponse.Failure failure = (EhcacheEntityResponse.Failure)response;
+        byte[] failureMsg = Util.marshall(failure.getCause());
+        ByteBuffer buffer = ByteBuffer.allocate(OP_CODE_SIZE + failureMsg.length);
         buffer.put(EhcacheEntityResponse.Type.FAILURE.getOpCode());
         buffer.put(failureMsg);
         return buffer.array();
       case SUCCESS:
-        buffer = ByteBuffer.allocate(OP_CODE_OFFSET);
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE);
         buffer.put(EhcacheEntityResponse.Type.SUCCESS.getOpCode());
         return buffer.array();
       case GET_RESPONSE:
-        GetResponse getResponse = (GetResponse)response;
-        byte[] encodedChain = ChainCodec.encode(getResponse.getChain());
+        EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse)response;
+        byte[] encodedChain = chainCodec.encode(getResponse.getChain());
         int chainLen = encodedChain.length;
-        buffer = ByteBuffer.allocate(OP_CODE_OFFSET + chainLen);
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + chainLen);
         buffer.put(EhcacheEntityResponse.Type.GET_RESPONSE.getOpCode());
         buffer.put(encodedChain);
         return buffer.array();
@@ -50,7 +58,7 @@ public class ResponseCodec {
     }
   }
 
-  public static EhcacheEntityResponse decode(byte[] payload) {
+  public EhcacheEntityResponse decode(byte[] payload) {
     ByteBuffer buffer = ByteBuffer.wrap(payload);
     byte opCode = buffer.get();
     EhcacheEntityResponse.Type type = EhcacheEntityResponse.Type.responseType(opCode);
@@ -58,12 +66,12 @@ public class ResponseCodec {
     buffer.get(payArr);
     switch (type) {
       case SUCCESS:
-        return EhcacheEntityResponse.success();
+        return EhcacheEntityResponse.Success.INSTANCE;
       case FAILURE:
-        Exception exception = (Exception)LifeCycleOpCodec.unmarshall(payArr);
-        return EhcacheEntityResponse.failure(exception);
+        Exception exception = (Exception)Util.unmarshall(payArr);
+        return new EhcacheEntityResponse.Failure(exception);
       case GET_RESPONSE:
-        return EhcacheEntityResponse.response(ChainCodec.decode(payArr));
+        return new EhcacheEntityResponse.GetResponse(chainCodec.decode(payArr));
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);
     }

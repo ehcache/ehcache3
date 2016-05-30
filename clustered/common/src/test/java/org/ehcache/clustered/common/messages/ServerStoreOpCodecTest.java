@@ -17,20 +17,26 @@ package org.ehcache.clustered.common.messages;
 
 import org.junit.Test;
 
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.ehcache.clustered.common.store.Util.createPayload;
-import static org.ehcache.clustered.common.store.Util.readPayLoad;
 import static org.ehcache.clustered.common.store.Util.getChain;
+import static org.ehcache.clustered.common.store.Util.readPayLoad;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
+/**
+ *
+ */
 public class ServerStoreOpCodecTest {
+
+  private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory("test");
+  private static final ServerStoreOpCodec STORE_OP_CODEC = new ServerStoreOpCodec();
 
   @Test
   public void testAppendMessageCodec() {
-    EhcacheEntityMessage appendMessage = EhcacheEntityMessage.appendOperation("test", 1L, createPayload(1L));
 
-    EhcacheEntityMessage decodedMsg = ServerStoreOpCodec.decode(ServerStoreOpCodec
-        .encode((ServerStoreOpMessage)appendMessage));
+    EhcacheEntityMessage appendMessage = MESSAGE_FACTORY.appendOperation(1L, createPayload(1L));
+
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(STORE_OP_CODEC.encode((ServerStoreOpMessage)appendMessage));
 
     assertThat(((ServerStoreOpMessage)decodedMsg).getCacheId(), is("test"));
     assertThat(((ServerStoreOpMessage)decodedMsg).getKey(), is(1L));
@@ -39,10 +45,9 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testGetMessageCodec() {
-    EhcacheEntityMessage getMessage = EhcacheEntityMessage.getOperation("test", 2L);
+    EhcacheEntityMessage getMessage = MESSAGE_FACTORY.getOperation(2L);
 
-    EhcacheEntityMessage decodedMsg = ServerStoreOpCodec.decode(ServerStoreOpCodec
-        .encode((ServerStoreOpMessage)getMessage));
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(STORE_OP_CODEC.encode((ServerStoreOpMessage)getMessage));
 
     assertThat(((ServerStoreOpMessage)decodedMsg).getCacheId(), is("test"));
     assertThat(((ServerStoreOpMessage)decodedMsg).getKey(), is(2L));
@@ -50,10 +55,9 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testGetAndAppendMessageCodec() {
-    EhcacheEntityMessage getAndAppendMessage = EhcacheEntityMessage.getAndAppendOperation("test", 10L, createPayload(10L));
+    EhcacheEntityMessage getAndAppendMessage = MESSAGE_FACTORY.getAndAppendOperation(10L, createPayload(10L));
 
-    EhcacheEntityMessage decodedMsg = ServerStoreOpCodec.decode(ServerStoreOpCodec
-        .encode((ServerStoreOpMessage)getAndAppendMessage));
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(STORE_OP_CODEC.encode((ServerStoreOpMessage)getAndAppendMessage));
 
     assertThat(((ServerStoreOpMessage)decodedMsg).getCacheId(), is("test"));
     assertThat(((ServerStoreOpMessage)decodedMsg).getKey(), is(10L));
@@ -62,12 +66,11 @@ public class ServerStoreOpCodecTest {
 
   @Test
   public void testReplaceAtHeadMessageCodec() {
-    EhcacheEntityMessage replaceAtHeadMessage = EhcacheEntityMessage.replaceAtHeadOperation("test", 10L,
+    EhcacheEntityMessage replaceAtHeadMessage = MESSAGE_FACTORY.replaceAtHeadOperation(10L,
         getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)),
         getChain(false, createPayload(2000L)));
 
-    EhcacheEntityMessage decodedMsg = ServerStoreOpCodec.decode(ServerStoreOpCodec
-        .encode((ServerStoreOpMessage)replaceAtHeadMessage));
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(STORE_OP_CODEC.encode((ServerStoreOpMessage)replaceAtHeadMessage));
 
     assertThat(((ServerStoreOpMessage)decodedMsg).getCacheId(), is("test"));
     assertThat(((ServerStoreOpMessage)decodedMsg).getKey(), is(10L));

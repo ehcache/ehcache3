@@ -18,12 +18,9 @@ package org.ehcache.clustered.common.messages;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
 import org.ehcache.clustered.common.store.SequencedElement;
-import org.ehcache.clustered.common.store.Util;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import static org.ehcache.clustered.common.store.Util.getElement;
@@ -32,7 +29,7 @@ import static org.ehcache.clustered.common.store.Util.getChain;
 /**
  *
  */
-public class ChainCodec {
+class ChainCodec {
 
   private static final byte NON_SEQUENCED_CHAIN = 0;
   private static final byte SEQUENCED_CHAIN = 1;
@@ -40,7 +37,7 @@ public class ChainCodec {
   private static final byte ELEMENT_PAYLOAD_OFFSET = 4;
 
   //TODO: optimize too many bytebuffer allocation
-  public static byte[] encode(Chain chain) {
+  public byte[] encode(Chain chain) {
     ByteBuffer msg = null;
     boolean firstIteration = true ;
     for (Element element : chain) {
@@ -64,7 +61,7 @@ public class ChainCodec {
     return msg != null ? msg.array() : new byte[0];
   }
 
-  public static Chain decode(byte[] payload) {
+  public Chain decode(byte[] payload) {
     final List<Element> elements = new ArrayList<Element>();
     if (payload.length != 0) {
       ByteBuffer buffer = ByteBuffer.wrap(payload);
@@ -72,21 +69,11 @@ public class ChainCodec {
       if (isSequenced) {
         while (buffer.hasRemaining()) {
           long sequence = buffer.getLong();
-          int payloadSize = buffer.getInt();
-          buffer.limit(buffer.position() + payloadSize);
-          ByteBuffer elementPayload = buffer.slice();
-          buffer.position(buffer.limit());
-          buffer.limit(buffer.capacity());
-          elements.add(getElement(sequence, elementPayload));
+          elements.add(getElement(sequence, getElementPayLoad(buffer)));
         }
       } else {
         while (buffer.hasRemaining()) {
-          int payloadSize = buffer.getInt();
-          buffer.limit(buffer.position() + payloadSize);
-          ByteBuffer elementPayload = buffer.slice();
-          buffer.position(buffer.limit());
-          buffer.limit(buffer.capacity());
-          elements.add(getElement(elementPayload));
+          elements.add(getElement(getElementPayLoad(buffer)));
         }
       }
     }
@@ -113,6 +100,14 @@ public class ChainCodec {
     buffer.put(element.getPayload());
     buffer.flip();
     return buffer;
+  }
 
+  private static ByteBuffer getElementPayLoad(ByteBuffer buffer) {
+    int payloadSize = buffer.getInt();
+    buffer.limit(buffer.position() + payloadSize);
+    ByteBuffer elementPayload = buffer.slice();
+    buffer.position(buffer.limit());
+    buffer.limit(buffer.capacity());
+    return elementPayload;
   }
 }
