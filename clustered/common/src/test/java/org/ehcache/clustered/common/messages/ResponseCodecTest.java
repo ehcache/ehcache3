@@ -18,8 +18,6 @@ package org.ehcache.clustered.common.messages;
 import org.ehcache.clustered.common.store.Chain;
 import org.junit.Test;
 
-import java.nio.ByteBuffer;
-
 import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.ehcache.clustered.common.store.Util.getChain;
 import static org.hamcrest.Matchers.is;

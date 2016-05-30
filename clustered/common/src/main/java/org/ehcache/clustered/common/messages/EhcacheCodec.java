@@ -53,7 +53,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
   @Override
   public EhcacheEntityMessage decodeMessage(byte[] payload) throws MessageCodecException {
     byte opcode = payload[0];
-    if (opcode == EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode()) {
+    if (opcode == LifecycleMessage.LIFECYCLE_MSG_OP_CODE) {
       return lifeCycleMessageCodec.decode(payload);
     } else {
       return serverStoreOpCodec.decode(payload);

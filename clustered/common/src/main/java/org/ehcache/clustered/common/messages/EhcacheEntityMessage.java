@@ -23,21 +23,12 @@ import org.terracotta.entity.EntityMessage;
 public abstract class EhcacheEntityMessage implements EntityMessage {
 
   public enum Type {
-
-    SERVER_STORE_OP((byte)0),
-    LIFECYCLE_OP((byte)1);
-
-    private final byte opCode;
-
-    Type(byte opCode) {
-      this.opCode = opCode;
-    }
-
-    public byte getOpCode() {
-      return this.opCode;
-    }
+    SERVER_STORE_OP,
+    LIFECYCLE_OP;
   }
 
   public abstract Type getType();
+
+  public abstract byte getOpCode();
 
 }

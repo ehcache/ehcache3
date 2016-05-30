@@ -24,21 +24,27 @@ import java.nio.ByteBuffer;
  */
 class LifeCycleMessageCodec {
 
+  private static final byte OPCODE_SIZE = 1;
+
   public byte[] encode(LifecycleMessage message) {
     byte[] encodedMsg = Util.marshall(message);
-    ByteBuffer buffer = ByteBuffer.allocate(1 + encodedMsg.length);
-    buffer.put(EhcacheEntityMessage.Type.LIFECYCLE_OP.getOpCode());
+    ByteBuffer buffer = ByteBuffer.allocate(OPCODE_SIZE + encodedMsg.length);
+    buffer.put(message.getOpCode());
     buffer.put(encodedMsg);
     return buffer.array();
   }
 
   public EhcacheEntityMessage decode(byte[] payload) {
     ByteBuffer message = ByteBuffer.wrap(payload);
-    byte[] encodedMsg = new byte[message.capacity() - 1];
-    message.get();
-    message.get(encodedMsg, 0, encodedMsg.length);
-    EhcacheEntityMessage entityMessage = (EhcacheEntityMessage) Util.unmarshall(encodedMsg);
-    return entityMessage;
+    byte[] encodedMsg = new byte[message.capacity() - OPCODE_SIZE];
+    byte opCode = message.get();
+    if (opCode == LifecycleMessage.LIFECYCLE_MSG_OP_CODE) {
+      message.get(encodedMsg, 0, encodedMsg.length);
+      EhcacheEntityMessage entityMessage = (EhcacheEntityMessage) Util.unmarshall(encodedMsg);
+      return entityMessage;
+    } else {
+      throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + opCode);
+    }
   }
 
 }

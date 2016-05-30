@@ -29,7 +29,6 @@ import java.nio.ByteBuffer;
 class ServerStoreOpCodec {
 
 
-  private static final byte MSG_TYPE_SIZE = 1;
   private static final byte STORE_OP_CODE_SIZE = 1;
   private static final byte CACHE_ID_LEN_SIZE = 4;
   private static final byte KEY_SIZE = 8;
@@ -47,12 +46,12 @@ class ServerStoreOpCodec {
     int cacheIdLen = message.getCacheId().length();
     switch (message.operation()) {
       case GET:
-        encodedMsg = ByteBuffer.allocate(MSG_TYPE_SIZE + STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen);
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen);
         putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
         return encodedMsg.array();
       case APPEND:
         AppendMessage appendMessage = (AppendMessage)message;
-        encodedMsg = ByteBuffer.allocate(MSG_TYPE_SIZE + STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + appendMessage
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + appendMessage
             .getPayload()
             .remaining());
         putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
@@ -60,7 +59,7 @@ class ServerStoreOpCodec {
         return encodedMsg.array();
       case GET_AND_APPEND:
         GetAndAppendMessage getAndAppendMessage = (GetAndAppendMessage)message;
-        encodedMsg = ByteBuffer.allocate(MSG_TYPE_SIZE + STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + getAndAppendMessage
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + getAndAppendMessage
             .getPayload()
             .remaining());
         putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
@@ -70,7 +69,7 @@ class ServerStoreOpCodec {
         ReplaceAtHeadMessage replaceAtHeadMessage = (ReplaceAtHeadMessage)message;
         byte[] encodedExpectedChain = chainCodec.encode(replaceAtHeadMessage.getExpect());
         byte[] encodedUpdatedChain = chainCodec.encode(replaceAtHeadMessage.getUpdate());
-        encodedMsg = ByteBuffer.allocate(MSG_TYPE_SIZE + STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen +
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen +
                                          2 * CHAIN_LEN_SIZE + encodedExpectedChain.length + encodedUpdatedChain.length);
         putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
         encodedMsg.putInt(encodedExpectedChain.length);
@@ -85,7 +84,6 @@ class ServerStoreOpCodec {
 
   // This assumes correct allocation and puts extracts common code
   private static void putCacheIdKeyAndOpCode(ByteBuffer byteBuffer, String cacheId, long key, byte opcode) {
-    byteBuffer.put(EhcacheEntityMessage.Type.SERVER_STORE_OP.getOpCode());
     byteBuffer.put(opcode);
     byteBuffer.putInt(cacheId.length());
     for (int i = 0; i < cacheId.length(); i++) {
@@ -96,7 +94,6 @@ class ServerStoreOpCodec {
 
   public EhcacheEntityMessage decode(byte[] payload) {
     ByteBuffer msg = ByteBuffer.wrap(payload);
-    msg.get();
     byte opCode = msg.get();
     ServerStoreOp storeOp = ServerStoreOp.getServerStoreOp(opCode);
     int cacheIdLen = msg.getInt();

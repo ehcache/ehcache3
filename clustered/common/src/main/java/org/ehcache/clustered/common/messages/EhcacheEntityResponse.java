@@ -17,10 +17,7 @@ package org.ehcache.clustered.common.messages;
 
 
 import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Util;
 import org.terracotta.entity.EntityResponse;
-
-import java.nio.ByteBuffer;
 
 /**
  *

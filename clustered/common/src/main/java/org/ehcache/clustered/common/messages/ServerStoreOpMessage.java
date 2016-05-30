@@ -24,10 +24,10 @@ import java.nio.ByteBuffer;
 public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   public enum ServerStoreOp {
 
-    GET((byte) 0),
-    GET_AND_APPEND((byte) 1),
-    APPEND((byte) 2),
-    REPLACE((byte) 3);
+    GET((byte) 10),
+    GET_AND_APPEND((byte) 11),
+    APPEND((byte) 12),
+    REPLACE((byte) 13);
 
     private final byte storeOpCode;
 
@@ -41,13 +41,13 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
     public static ServerStoreOp getServerStoreOp(byte storeOpCode) {
       switch (storeOpCode) {
-        case 0:
+        case 10:
           return GET;
-        case 1:
+        case 11:
           return GET_AND_APPEND;
-        case 2:
+        case 12:
           return APPEND;
-        case 3:
+        case 13:
           return REPLACE;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + storeOpCode);
@@ -64,17 +64,17 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     this.key = key;
   }
 
-  @Override
-  public Type getType() {
-    return Type.SERVER_STORE_OP;
-  }
-
   public String getCacheId() {
     return cacheId;
   }
 
   public long getKey() {
     return key;
+  }
+
+  @Override
+  public Type getType() {
+    return Type.SERVER_STORE_OP;
   }
 
   public abstract ServerStoreOp operation();
@@ -90,6 +90,10 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       return ServerStoreOp.GET;
     }
 
+    @Override
+    public byte getOpCode() {
+      return ServerStoreOp.GET.getStoreOpCode();
+    }
   }
 
   public static class GetAndAppendMessage extends ServerStoreOpMessage {
@@ -104,6 +108,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.GET_AND_APPEND;
+    }
+
+    @Override
+    public byte getOpCode() {
+      return ServerStoreOp.GET_AND_APPEND.getStoreOpCode();
     }
 
     public ByteBuffer getPayload() {
@@ -126,6 +135,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       return ServerStoreOp.APPEND;
     }
 
+    @Override
+    public byte getOpCode() {
+      return ServerStoreOp.APPEND.getStoreOpCode();
+    }
+
     public ByteBuffer getPayload() {
       return payload;
     }
@@ -146,6 +160,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.REPLACE;
+    }
+
+    @Override
+    public byte getOpCode() {
+      return ServerStoreOp.REPLACE.getStoreOpCode();
     }
 
     public Chain getExpect() {
