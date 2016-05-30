@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.service;
+package org.ehcache.clustered.client.internal.service;
 
 import java.io.IOException;
 import java.net.URI;
@@ -28,7 +28,9 @@ import java.util.Properties;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
+import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
@@ -43,6 +45,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
@@ -60,6 +63,7 @@ import org.terracotta.exception.EntityNotFoundException;
 /**
  * Provides support for accessing server-based cluster services.
  */
+@ServiceDependencies(ClusteredStore.Provider.class)
 class DefaultClusteringService implements ClusteringService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);

@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.service;
+package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
+import org.ehcache.clustered.client.internal.service.DefaultClusteringService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

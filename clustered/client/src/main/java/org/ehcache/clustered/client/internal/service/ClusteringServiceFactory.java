@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.service;
+package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.internal.service.DefaultClusteringService;
+import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
