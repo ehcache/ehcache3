@@ -22,7 +22,6 @@ import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ReplaceAtHeadM
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ServerStoreOp;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
 /**
  *
@@ -35,6 +34,12 @@ class ServerStoreOpCodec {
   private static final byte CACHE_ID_LEN_SIZE = 4;
   private static final byte KEY_SIZE = 8;
   private static final byte CHAIN_LEN_SIZE = 4;
+
+  private final ChainCodec chainCodec;
+
+  ServerStoreOpCodec() {
+    this.chainCodec = new ChainCodec();
+  }
 
   public byte[] encode(ServerStoreOpMessage message) {
     // TODO: improve data send over n/w by optimizing cache Id
@@ -63,8 +68,8 @@ class ServerStoreOpCodec {
         return encodedMsg.array();
       case REPLACE:
         ReplaceAtHeadMessage replaceAtHeadMessage = (ReplaceAtHeadMessage)message;
-        byte[] encodedExpectedChain = ChainCodec.encode(replaceAtHeadMessage.getExpect());
-        byte[] encodedUpdatedChain = ChainCodec.encode(replaceAtHeadMessage.getUpdate());
+        byte[] encodedExpectedChain = chainCodec.encode(replaceAtHeadMessage.getExpect());
+        byte[] encodedUpdatedChain = chainCodec.encode(replaceAtHeadMessage.getUpdate());
         encodedMsg = ByteBuffer.allocate(MSG_TYPE_SIZE + STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen +
                                          2 * CHAIN_LEN_SIZE + encodedExpectedChain.length + encodedUpdatedChain.length);
         putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
@@ -118,8 +123,8 @@ class ServerStoreOpCodec {
         int updateChainLen = replaceBuf.getInt();
         byte[] encodedUpdateChain = new byte[updateChainLen];
         replaceBuf.get(encodedUpdateChain);
-        return new ReplaceAtHeadMessage(cacheId, key, ChainCodec.decode(encodedExpectChain),
-            ChainCodec.decode(encodedUpdateChain));
+        return new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
+            chainCodec.decode(encodedUpdateChain));
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 

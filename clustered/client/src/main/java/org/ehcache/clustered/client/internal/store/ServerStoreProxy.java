@@ -33,10 +33,10 @@ public class ServerStoreProxy implements ServerStore {
   private final EhcacheClientEntity entity;
   private final ServerStoreMessageFactory messageFactory;
 
-  public ServerStoreProxy(String cacheId, EhcacheClientEntity entity, ServerStoreMessageFactory messageFactory) {
+  public ServerStoreProxy(String cacheId, EhcacheClientEntity entity) {
     this.cacheId = cacheId;
     this.entity = entity;
-    this.messageFactory = messageFactory;
+    this.messageFactory = new ServerStoreMessageFactory(cacheId);
   }
 
   /**

@@ -110,13 +110,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
   private final EhcacheEntityResponseFactory responseFactory;
 
-  EhcacheActiveEntity(ServiceRegistry services, byte[] config, EhcacheEntityResponseFactory responseFactory) {
+  EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
     this.services = services;
-    if (responseFactory == null) {
-      throw new IllegalArgumentException("Response Factory cannot be null");
-    }
-    this.responseFactory = responseFactory;
+    this.responseFactory = new EhcacheEntityResponseFactory();
   }
 
   /**

@@ -26,6 +26,12 @@ class ResponseCodec {
 
   private static final byte OP_CODE_SIZE = 1;
 
+  private final ChainCodec chainCodec;
+
+  ResponseCodec() {
+    this.chainCodec = new ChainCodec();
+  }
+
   public byte[] encode(EhcacheEntityResponse response) {
     switch (response.getType()) {
       case FAILURE:
@@ -41,7 +47,7 @@ class ResponseCodec {
         return buffer.array();
       case GET_RESPONSE:
         EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse)response;
-        byte[] encodedChain = ChainCodec.encode(getResponse.getChain());
+        byte[] encodedChain = chainCodec.encode(getResponse.getChain());
         int chainLen = encodedChain.length;
         buffer = ByteBuffer.allocate(OP_CODE_SIZE + chainLen);
         buffer.put(EhcacheEntityResponse.Type.GET_RESPONSE.getOpCode());
@@ -65,7 +71,7 @@ class ResponseCodec {
         Exception exception = (Exception)Util.unmarshall(payArr);
         return new EhcacheEntityResponse.Failure(exception);
       case GET_RESPONSE:
-        return new EhcacheEntityResponse.GetResponse(ChainCodec.decode(payArr));
+        return new EhcacheEntityResponse.GetResponse(chainCodec.decode(payArr));
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + opCode);
     }

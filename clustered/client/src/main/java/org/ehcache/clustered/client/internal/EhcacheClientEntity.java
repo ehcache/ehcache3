@@ -42,9 +42,9 @@ public class EhcacheClientEntity implements Entity {
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
 
-  public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint, LifeCycleMessageFactory messageFactory) {
+  public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
-    this.messageFactory = messageFactory;
+    this.messageFactory = new LifeCycleMessageFactory();
   }
 
   public UUID identity() {

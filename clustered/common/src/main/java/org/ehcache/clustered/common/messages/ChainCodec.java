@@ -37,7 +37,7 @@ class ChainCodec {
   private static final byte ELEMENT_PAYLOAD_OFFSET = 4;
 
   //TODO: optimize too many bytebuffer allocation
-  public static byte[] encode(Chain chain) {
+  public byte[] encode(Chain chain) {
     ByteBuffer msg = null;
     boolean firstIteration = true ;
     for (Element element : chain) {
@@ -61,7 +61,7 @@ class ChainCodec {
     return msg != null ? msg.array() : new byte[0];
   }
 
-  public static Chain decode(byte[] payload) {
+  public Chain decode(byte[] payload) {
     final List<Element> elements = new ArrayList<Element>();
     if (payload.length != 0) {
       ByteBuffer buffer = ByteBuffer.wrap(payload);

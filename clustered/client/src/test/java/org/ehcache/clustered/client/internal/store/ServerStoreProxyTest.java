@@ -70,7 +70,7 @@ public class ServerStoreProxyTest {
     clientEntity.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName()));
-    serverStoreProxy = new ServerStoreProxy(CACHE_IDENTIFIER, clientEntity, new ServerStoreMessageFactory(CACHE_IDENTIFIER));
+    serverStoreProxy = new ServerStoreProxy(CACHE_IDENTIFIER, clientEntity);
   }
 
   @AfterClass
