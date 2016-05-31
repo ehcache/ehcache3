@@ -20,6 +20,7 @@ import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClearMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetAndAppendMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClientInvalidateHashAck;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ServerStoreOp;
 
 import java.nio.ByteBuffer;
@@ -142,7 +143,7 @@ class ServerStoreOpCodec {
       case CLIENT_INVALIDATE_HASH_ACK:
         ByteBuffer remainingBuf = ByteBuffer.wrap(remaining);
         int invalidationId = remainingBuf.getInt();
-        return new ReplaceAtHeadMessage.ClientInvalidateHashAck(cacheId, key, invalidationId);
+        return new ClientInvalidateHashAck(cacheId, key, invalidationId);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 

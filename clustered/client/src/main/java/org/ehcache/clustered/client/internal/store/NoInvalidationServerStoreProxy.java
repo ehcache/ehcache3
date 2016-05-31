@@ -17,8 +17,8 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.store.Chain;
 
 import java.nio.ByteBuffer;
@@ -28,22 +28,17 @@ import java.nio.ByteBuffer;
  */
 class NoInvalidationServerStoreProxy implements ServerStoreProxy {
 
-  private final String cacheId;
+  private final ServerStoreMessageFactory messageFactory;
   private final EhcacheClientEntity entity;
 
-  NoInvalidationServerStoreProxy(String cacheId, final EhcacheClientEntity entity) {
-    this.cacheId = cacheId;
+  NoInvalidationServerStoreProxy(ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+    this.messageFactory = messageFactory;
     this.entity = entity;
   }
 
-  /**
-   * Gets the identifier linking a client-side cache to a {@code ServerStore} instance.
-   *
-   * @return the cache identifier
-   */
   @Override
   public String getCacheId() {
-    return cacheId;
+    return messageFactory.getCacheId();
   }
 
   @Override
@@ -55,7 +50,7 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
   public Chain get(long key) {
     EhcacheEntityResponse response;
     try {
-      response = entity.invoke(EhcacheEntityMessage.getOperation(cacheId, key), false);
+      response = entity.invoke(messageFactory.getOperation(key), false);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
@@ -70,7 +65,7 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
   @Override
   public void append(final long key, final ByteBuffer payLoad) {
     try {
-      entity.invoke(EhcacheEntityMessage.appendOperation(cacheId, key, payLoad), true);
+      entity.invoke(messageFactory.appendOperation(key, payLoad), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
@@ -80,7 +75,7 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
   public Chain getAndAppend(final long key, final ByteBuffer payLoad) {
     EhcacheEntityResponse response;
     try {
-      response = entity.invoke(EhcacheEntityMessage.getAndAppendOperation(cacheId, key, payLoad), true);
+      response = entity.invoke(messageFactory.getAndAppendOperation(key, payLoad), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
@@ -96,7 +91,7 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
   public void replaceAtHead(long key, Chain expect, Chain update) {
     // TODO: Optimize this method to just send sequences for expect Chain
     try {
-      entity.invoke(EhcacheEntityMessage.replaceAtHeadOperation(cacheId, key, expect, update), true);
+      entity.invoke(messageFactory.replaceAtHeadOperation(key, expect, update), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }

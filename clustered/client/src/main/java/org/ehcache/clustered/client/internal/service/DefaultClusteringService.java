@@ -46,6 +46,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -309,11 +310,12 @@ class DefaultClusteringService implements ClusteringService {
       }
     }
 
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
     switch (consistency) {
       case STRONG:
-        return new StrongServerStoreProxy(cacheId, entity);
+        return new StrongServerStoreProxy(messageFactory, entity);
       case EVENTUAL:
-        return new EventualServerStoreProxy(cacheId, entity);
+        return new EventualServerStoreProxy(messageFactory, entity);
       default:
         throw new AssertionError("Unknown consistency : " + consistency);
     }

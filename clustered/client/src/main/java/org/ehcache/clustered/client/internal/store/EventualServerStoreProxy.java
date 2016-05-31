@@ -17,6 +17,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,8 +36,8 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   private final ServerStoreProxy delegate;
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
 
-  public EventualServerStoreProxy(String cacheId, final EhcacheClientEntity entity) {
-    this.delegate = new NoInvalidationServerStoreProxy(cacheId, entity);
+  public EventualServerStoreProxy(ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+    this.delegate = new NoInvalidationServerStoreProxy(messageFactory, entity);
     entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {

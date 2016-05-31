@@ -79,22 +79,6 @@ public class EhcacheClientEntity implements Entity {
 
       }
     });
-    addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
-      @Override
-      public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
-        final String cacheId = response.getCacheId();
-        final long key = response.getKey();
-        final int invalidationId = response.getInvalidationId();
-
-        System.out.println("CLIENT: doing work to invalidate hash " + key + " from cache " + cacheId + "(ID " + invalidationId + ")");
-
-        try {
-          invoke(new ServerStoreOpMessage.ClientInvalidateHashAck(cacheId, key, invalidationId), true); //TODO: wait until replicated or not?
-        } catch (Exception e) {
-          LOGGER.warn("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
-        }
-      }
-    });
   }
 
   private void fireResponseEvent(EhcacheEntityResponse response) {

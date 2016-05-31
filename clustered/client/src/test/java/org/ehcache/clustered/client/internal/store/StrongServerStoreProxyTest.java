@@ -24,6 +24,7 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService.Passthrou
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.AfterClass;
@@ -34,7 +35,6 @@ import org.terracotta.connection.Connection;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.clustered.common.store.Util.createPayload;
@@ -71,8 +71,8 @@ public class StrongServerStoreProxyTest {
     clientEntity1.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), Consistency.STRONG));
-    serverStoreProxy1 = new StrongServerStoreProxy(CACHE_IDENTIFIER, clientEntity1);
-    serverStoreProxy2 = new StrongServerStoreProxy(CACHE_IDENTIFIER, clientEntity2);
+    serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity1);
+    serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity2);
   }
 
   @AfterClass

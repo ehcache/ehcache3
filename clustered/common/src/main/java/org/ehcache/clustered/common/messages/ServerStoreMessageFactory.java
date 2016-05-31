@@ -43,8 +43,17 @@ public class ServerStoreMessageFactory {
     return new ServerStoreOpMessage.ReplaceAtHeadMessage(this.cacheId, key, expect, update);
   }
 
+  public EhcacheEntityMessage clientInvalidateHashAck(long key, int invalidationId) {
+    return new ServerStoreOpMessage.ClientInvalidateHashAck(this.cacheId, key, invalidationId);
+  }
+
   public EhcacheEntityMessage clearOperation() {
     return new ServerStoreOpMessage.ClearMessage(this.cacheId);
   }
+
+  public String getCacheId() {
+    return cacheId;
+  }
+
 }
 

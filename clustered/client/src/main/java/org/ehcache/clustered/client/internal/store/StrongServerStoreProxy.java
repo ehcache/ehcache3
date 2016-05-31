@@ -16,8 +16,8 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.slf4j.Logger;
@@ -41,20 +41,20 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final ConcurrentMap<Long, CountDownLatch> invalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
 
-  public StrongServerStoreProxy(String cacheId, final EhcacheClientEntity entity) {
-    this.delegate = new NoInvalidationServerStoreProxy(cacheId, entity);
+  public StrongServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+    this.delegate = new NoInvalidationServerStoreProxy(messageFactory, entity);
     entity.addResponseListener(EhcacheEntityResponse.InvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.InvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.InvalidationDone response) {
-        if (response.getCacheId().equals(getCacheId())) {
+        if (response.getCacheId().equals(messageFactory.getCacheId())) {
           long key = response.getKey();
-          LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated key {}", getCacheId(), key);
+          LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated key {}", messageFactory.getCacheId(), key);
           CountDownLatch countDownLatch = invalidationsInProgress.remove(key);
           if (countDownLatch != null) {
             countDownLatch.countDown();
           }
         } else {
-          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", getCacheId(), response.getCacheId());
+          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
         }
       }
     });
@@ -72,7 +72,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
         try {
           LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-          entity.invoke(EhcacheEntityMessage.clientInvalidateHashAck(cacheId, key, invalidationId), true);
+          entity.invoke(messageFactory.clientInvalidateHashAck(key, invalidationId), true);
         } catch (Exception e) {
           //TODO: what should be done here?
           LOGGER.error("error acking client invalidation of hash " + key + " on cache " + cacheId, e);

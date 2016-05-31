@@ -22,12 +22,30 @@ import org.ehcache.clustered.common.store.ServerStore;
  */
 public interface ServerStoreProxy extends ServerStore {
 
+  /**
+   * The invalidation listener
+   */
   interface InvalidationListener {
+    /**
+     * Callback for invalidation requests
+     *
+     * @param hash the hash of the keys to invalidate
+     */
     void onInvalidationRequest(long hash);
   }
 
+  /**
+   * Gets the identifier linking a client-side cache to a {@code ServerStore} instance.
+   *
+   * @return the cache identifier
+   */
   String getCacheId();
 
+  /**
+   * Add a listener called when invalidation requests arrive.
+   *
+   * @param listener the listener
+   */
   void addInvalidationListener(InvalidationListener listener);
 
 }
