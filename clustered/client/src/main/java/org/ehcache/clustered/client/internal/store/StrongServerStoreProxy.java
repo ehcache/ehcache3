@@ -25,10 +25,12 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 /**
  * @author Ludovic Orban
@@ -40,9 +42,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final ServerStoreProxy delegate;
   private final ConcurrentMap<Long, CountDownLatch> invalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
+  private final EhcacheClientEntity entity;
 
   public StrongServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
     this.delegate = new NoInvalidationServerStoreProxy(messageFactory, entity);
+    this.entity = entity;
     entity.addResponseListener(EhcacheEntityResponse.InvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.InvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.InvalidationDone response) {
@@ -79,27 +83,52 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
+    entity.addDisconnectionListener(new EhcacheClientEntity.DisconnectionListener() {
+      @Override
+      public void onDisconnection() {
+        for (Map.Entry<Long, CountDownLatch> entry : invalidationsInProgress.entrySet()) {
+          entry.getValue().countDown();
+        }
+        invalidationsInProgress.clear();
+      }
+    });
   }
 
-  private <T> T performWaitingForInvalidationIfNeeded(long key, NullaryFunction<T> c) throws InterruptedException {
+  private <T> T performWaitingForInvalidation(long key, NullaryFunction<T> c) throws InterruptedException {
     CountDownLatch latch = new CountDownLatch(1);
     while (true) {
+      if (!entity.isConnected()) {
+        throw new IllegalStateException("Entity disconnected");
+      }
       CountDownLatch countDownLatch = invalidationsInProgress.putIfAbsent(key, latch);
       if (countDownLatch == null) {
         break;
       }
-      countDownLatch.await();
+      awaitOnLatch(countDownLatch);
     }
 
     try {
       T result = c.apply();
-      latch.await();
+      awaitOnLatch(latch);
       LOGGER.debug("CLIENT: key {} invalidated on all clients, unblocking append");
       return result;
     } catch (Exception ex) {
       invalidationsInProgress.remove(key);
       latch.countDown();
       throw new RuntimeException(ex);
+    }
+  }
+
+  private void awaitOnLatch(CountDownLatch countDownLatch) throws InterruptedException {
+    int totalAwaitTime = 0;
+    int backoff = 1;
+    while (!countDownLatch.await(backoff, TimeUnit.SECONDS)) {
+      totalAwaitTime += backoff;
+      backoff = (backoff >= 10) ? 10 : backoff * 2;
+      LOGGER.debug("Waiting for the server's InvalidationDone message for {}s, backing off {}s...", totalAwaitTime, backoff);
+    }
+    if (!entity.isConnected()) {
+      throw new IllegalStateException("Entity disconnected");
     }
   }
 
@@ -122,7 +151,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   @Override
   public void append(final long key, final ByteBuffer payLoad) {
     try {
-      performWaitingForInvalidationIfNeeded(key, new NullaryFunction<Void>() {
+      performWaitingForInvalidation(key, new NullaryFunction<Void>() {
         @Override
         public Void apply() {
           delegate.append(key, payLoad);
@@ -137,7 +166,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   @Override
   public Chain getAndAppend(final long key, final ByteBuffer payLoad) {
     try {
-      return performWaitingForInvalidationIfNeeded(key, new NullaryFunction<Chain>() {
+      return performWaitingForInvalidation(key, new NullaryFunction<Chain>() {
         @Override
         public Chain apply() {
           return delegate.getAndAppend(key, payLoad);

@@ -25,7 +25,6 @@ import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
@@ -54,9 +53,15 @@ public class EhcacheClientEntity implements Entity {
     void onResponse(T response);
   }
 
+  public interface DisconnectionListener {
+    void onDisconnection();
+  }
+
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
+  private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
+  private volatile boolean connected = true;
 
   public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
@@ -76,9 +81,16 @@ public class EhcacheClientEntity implements Entity {
 
       @Override
       public void didDisconnectUnexpectedly() {
-
+        connected = false;
+        fireDisconnectionEvent();
       }
     });
+  }
+
+  private void fireDisconnectionEvent() {
+    for (DisconnectionListener listener : disconnectionListeners) {
+      listener.onDisconnection();
+    }
   }
 
   private void fireResponseEvent(EhcacheEntityResponse response) {
@@ -89,6 +101,14 @@ public class EhcacheClientEntity implements Entity {
     for (ResponseListener responseListener : responseListeners) {
       responseListener.onResponse(response);
     }
+  }
+
+  public boolean isConnected() {
+    return connected;
+  }
+
+  public void addDisconnectionListener(DisconnectionListener listener) {
+    disconnectionListeners.add(listener);
   }
 
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
