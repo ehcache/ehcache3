@@ -45,7 +45,6 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.consensus.entity.CoordinationServerEntityService;
@@ -497,7 +496,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
   }
 
-  @Ignore("Needs Terracotta-OSS/terracotta-apis#95")
   @Test
   public void testBasicDestroyAll() throws Exception {
     ClusteringServiceConfiguration configuration =
@@ -1280,6 +1278,67 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
 
     creationService.stop();
+  }
+
+  @Test
+  public void testFullDestroyAll() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+            .defaultServerResource("defaultResource")
+            .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+            .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+            .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+            .build();
+    DefaultClusteringService createService = new DefaultClusteringService(configuration);
+    createService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+
+    Store.Configuration<Long, String> sharedStoreConfiguration =
+        getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
+
+    ServerStoreProxy sharedProxy = createService.getServerStoreProxy(
+        getClusteredCacheIdentifier(createService, "sharedCache", sharedStoreConfiguration), sharedStoreConfiguration);
+    assertThat(sharedProxy.getCacheId(), is("sharedCache"));
+
+    Store.Configuration<Long, String> storeConfiguration =
+        getFixedStoreConfig("serverResource2", serializationProvider, Long.class, String.class);
+
+    ServerStoreProxy fixedProxy = createService.getServerStoreProxy(
+        getClusteredCacheIdentifier(createService, "fixedCache", storeConfiguration), storeConfiguration);
+    assertThat(fixedProxy.getCacheId(), is("fixedCache"));
+
+    createService.stop();
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("fixedCache"));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getStores(), containsInAnyOrder("sharedCache", "fixedCache"));
+
+    try {
+      createService.destroyAll();
+      fail("Expecting IllegalStateException");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("Maintenance mode required"));
+    }
+
+    createService.startForMaintenance(null);
+
+    createService.destroyAll();
+
+    activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is(nullValue()));
+    assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
   }
 
   private <K, V> Store.Configuration<K, V> getSharedStoreConfig(

@@ -20,6 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import static org.hamcrest.core.Is.is;
 
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.consensus.CoordinationService;
@@ -30,13 +31,14 @@ import org.terracotta.consensus.CoordinationService.ElectionTask;
 
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-import org.junit.Ignore;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.terracotta.connection.entity.EntityRef;
@@ -56,6 +58,29 @@ public class EhcacheClientEntityFactoryTest {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, winner());
     factory.create("test", null);
     verify(entityRef).create(any(UUID.class));
+    verify(entity).configure(any(ServerSideConfiguration.class));
+    verify(entity).close();
+  }
+
+  @Test
+  public void testCreateBadConfig() throws Exception {
+    EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
+    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
+    when(entityRef.fetchEntity()).thenReturn(entity);
+    doThrow(IllegalStateException.class).when(entity).configure(any(ServerSideConfiguration.class));
+    Connection connection = mock(Connection.class);
+    when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, winner());
+    try {
+      factory.create("test", null);
+      fail("Expecting IllegalStateException");
+    } catch (IllegalStateException e) {
+      // expected
+    }
+    verify(entityRef).create(any(UUID.class));
+    verify(entity).configure(any(ServerSideConfiguration.class));
+    verify(entity).close();
   }
 
   @Test
@@ -84,6 +109,28 @@ public class EhcacheClientEntityFactoryTest {
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, null);
     assertThat(factory.retrieve("test", null), is(entity));
+    verify(entity).validate(any(ServerSideConfiguration.class));
+    verify(entity, never()).close();
+  }
+
+  @Test
+  public void testRetrieveFailedValidate() throws Exception {
+    EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
+    EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
+    when(entityRef.fetchEntity()).thenReturn(entity);
+    doThrow(IllegalArgumentException.class).when(entity).validate(any(ServerSideConfiguration.class));
+    Connection connection = mock(Connection.class);
+    when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
+
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, null);
+    try {
+      factory.retrieve("test", null);
+      fail("Expecting IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      // expected
+    }
+    verify(entity).validate(any(ServerSideConfiguration.class));
+    verify(entity).close();
   }
 
   @Test
@@ -104,34 +151,33 @@ public class EhcacheClientEntityFactoryTest {
   }
 
   @Test
-  @Ignore("Pending fix for Terracotta-OSS/terracotta-apis#27")
   public void testDestroy() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
+    doReturn(Boolean.TRUE).when(entityRef).tryDestroy();
     Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, winner());
     factory.destroy("test");
-    verify(entityRef).destroy();
+    verify(entityRef).tryDestroy();
   }
 
   @Test
-  @Ignore("Pending fix for Terracotta-OSS/terracotta-apis#27")
   public void testDestroyAfterLosingElection() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
+    doReturn(Boolean.TRUE).when(entityRef).tryDestroy();
     Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, loserThenWinner());
     factory.destroy("test");
-    verify(entityRef).destroy();
+    verify(entityRef).tryDestroy();
   }
 
   @Test
-  @Ignore("Pending fix for Terracotta-OSS/terracotta-apis#27")
   public void testDestroyWhenNotExisting() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
-    doThrow(EntityNotFoundException.class).when(entityRef).destroy();
+    doThrow(EntityNotFoundException.class).when(entityRef).tryDestroy();
     Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
@@ -145,10 +191,9 @@ public class EhcacheClientEntityFactoryTest {
   }
 
   @Test
-  @Ignore("Pending fix for Terracotta-OSS/terracotta-apis#27")
   public void testDestroyWhenNotExistingAfterLosingElection() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
-    doThrow(EntityNotFoundException.class).when(entityRef).destroy();
+    doThrow(EntityNotFoundException.class).when(entityRef).tryDestroy();
     Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
@@ -156,7 +201,7 @@ public class EhcacheClientEntityFactoryTest {
     try {
       factory.destroy("test");
       fail("Expected EhcacheEntityNotFoundException");
-    } catch (EhcacheEntityNotFoundException e) {        // TODO: Is this correct?
+    } catch (EhcacheEntityNotFoundException e) {
       //expected
     }
   }
