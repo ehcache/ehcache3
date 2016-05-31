@@ -50,7 +50,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
           long key = response.getKey();
           LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated key {}", getCacheId(), key);
           CountDownLatch countDownLatch = invalidationsInProgress.remove(key);
-          countDownLatch.countDown();
+          if (countDownLatch != null) {
+            countDownLatch.countDown();
+          }
         } else {
           LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", getCacheId(), response.getCacheId());
         }
@@ -90,10 +92,14 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     }
 
     try {
-      return c.apply();
-    } finally {
+      T result = c.apply();
       latch.await();
       LOGGER.debug("CLIENT: key {} invalidated on all clients, unblocking append");
+      return result;
+    } catch (Exception ex) {
+      invalidationsInProgress.remove(key);
+      latch.countDown();
+      throw new RuntimeException(ex);
     }
   }
 
