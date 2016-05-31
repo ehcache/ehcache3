@@ -62,8 +62,10 @@ public class ServerStoreProxyTest {
 
     EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
 
-    clientEntity = entityFactory.create("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
+    ServerSideConfiguration serverConfig =
+        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());
+    entityFactory.create("TestCacheManager", serverConfig);
+    clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig);
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.fixed(16L, MemoryUnit.MB);
 

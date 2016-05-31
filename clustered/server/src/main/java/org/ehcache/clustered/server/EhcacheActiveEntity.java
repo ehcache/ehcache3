@@ -304,6 +304,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   @Override
   public void destroy() {
+
+    defaultServerResource = null;
+
     /*
      * Ensure the allocated stores are closed out.
      */
@@ -327,6 +330,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
      */
     releasePools("shared", this.sharedResourcePools);
     releasePools("fixed", this.fixedResourcePools);
+
+    this.sharedResourcePools = null;
   }
 
   /**

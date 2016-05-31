@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
+import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.junit.AfterClass;
@@ -70,13 +71,13 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   public void testCreate() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
 
-    assertThat(factory.create("testCreate", new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP)), notNullValue());
+    factory.create("testCreate", new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP));
   }
 
   @Test
   public void testCreateWhenExisting() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testCreateWhenExisting", new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP)).close();
+    factory.create("testCreateWhenExisting", new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP));
     try {
       factory.create("testCreateWhenExisting",
           new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("bar", 42L))));
@@ -87,40 +88,10 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   }
 
   @Test
-  public void testCreateOrRetrieve() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    assertThat(factory.createOrRetrieve("testCreateOrRetrieve",
-        new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP)), notNullValue());
-  }
-
-  @Test
-  public void testCreateOrRetrieveWhenExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testCreateOrRetrieveWhenExisting", new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP)).close();
-    assertThat(factory.createOrRetrieve("testCreateOrRetrieveWhenExisting",
-        new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP)), notNullValue());
-  }
-
-  @Test
-  public void testCreateOrRetrieveWhenExistingWithBadConfig() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testCreateOrRetrieveWhenExistingWithBadConfig",
-        new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP)).close();
-    try {
-      factory.createOrRetrieve("testCreateOrRetrieveWhenExistingWithBadConfig",
-          new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("bar", 42L))));
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
-  }
-
-  @Test
   public void testRetrieveWithGoodConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithGoodConfig",
-        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 42L))))
-        .close();
+        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 42L))));
     assertThat(factory.retrieve("testRetrieveWithGoodConfig",
         new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 43L)))), notNullValue());
   }
@@ -129,8 +100,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   public void testRetrieveWithBadConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithBadConfig",
-        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 42L))))
-        .close();
+        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 42L))));
     try {
       factory.retrieve("testRetrieveWithBadConfig",
           new ServerSideConfiguration(null, Collections.singletonMap("bar", new Pool("primary", 42L))));
@@ -155,7 +125,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   @Ignore
   public void testDestroy() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testDestroy", null).close();
+    factory.create("testDestroy", null);
     factory.destroy("testDestroy");
   }
 
@@ -166,7 +136,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
     try {
       factory.destroy("testDestroyWhenNotExisting");
       fail("Expected EntityNotFoundException");
-    } catch (EntityNotFoundException e) {
+    } catch (EhcacheEntityNotFoundException e) {
       //expected
     }
   }

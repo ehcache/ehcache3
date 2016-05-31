@@ -50,8 +50,6 @@ public interface ClusteringService extends PersistableResourceService {
    */
   void releaseServerStoreProxy(ServerStoreProxy storeProxy);
 
-  void connect();
-
   /**
    * Identifies a client-side cache to server-based components.
    */
