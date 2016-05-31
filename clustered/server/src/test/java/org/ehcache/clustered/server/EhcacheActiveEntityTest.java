@@ -24,6 +24,7 @@ import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
+import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.terracotta.entity.ClientCommunicator;
@@ -42,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type.FAILURE;
+import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -54,7 +56,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
 /**
- *
  * @author cdennis
  */
 public class EhcacheActiveEntityTest {
@@ -223,6 +224,141 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
     assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+  }
+
+  @Test
+  public void testNoAttachementFailsToInvokeServerStoreOperation() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertSuccess(
+        activeEntity.invoke(client,
+            MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
+                .defaultResource("defaultServerResource")
+                .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+                .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+                .build()))
+    );
+
+    assertSuccess(
+        activeEntity.invoke(client,
+            MESSAGE_FACTORY.createServerStore("testNoAttachementFailsToInvokeServerStoreOperation", new ServerStoreConfigBuilder()
+                .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
+                .build()))
+    );
+
+    // disconnect the client and connect a new non-attached one
+    activeEntity.disconnected(client);
+    client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testNoAttachementFailsToInvokeServerStoreOperation");
+
+    assertFailure(
+        activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
+        IllegalStateException.class, "Client not attached"
+    );
+  }
+
+  @Test
+  public void testAttachedClientButNotStoreFailsInvokingServerStoreOperation() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client,
+            MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration))
+    );
+
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
+        .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client,
+            MESSAGE_FACTORY.createServerStore("testAttachedClientButNotStoreFailsInvokingServerStoreOperation", serverStoreConfiguration))
+    );
+
+    // disconnect the client and connect a new non-attached one
+    activeEntity.disconnected(client);
+    client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testAttachedClientButNotStoreFailsInvokingServerStoreOperation");
+
+    // attach the client
+    assertSuccess(
+        activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+
+    assertFailure(
+        activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
+        IllegalStateException.class, "Client not attached on Server Store for cacheId : testAttachedClientButNotStoreFailsInvokingServerStoreOperation"
+    );
+  }
+
+  @Test
+  public void testWithAttachmentSucceedsInvokingServerStoreOperation() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client,
+            MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration))
+    );
+
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
+        .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client,
+            MESSAGE_FACTORY.createServerStore("testWithAttachmentSucceedsInvokingServerStoreOperation", serverStoreConfiguration))
+    );
+
+    // disconnect the client and connect a new non-attached one
+    activeEntity.disconnected(client);
+    client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testWithAttachmentSucceedsInvokingServerStoreOperation");
+
+    // attach the client
+    assertSuccess(
+        activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+
+    // attach to the store
+    assertSuccess(
+        activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore("testWithAttachmentSucceedsInvokingServerStoreOperation", serverStoreConfiguration))
+    );
+
+    assertSuccess(
+        activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L)))
+    );
   }
 
   @Test
@@ -1578,18 +1714,18 @@ public class EhcacheActiveEntityTest {
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
     if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
-      throw ((Failure)response).getCause();
+      throw ((Failure) response).getCause();
     }
   }
 
   private void assertFailure(EhcacheEntityResponse response, Class<? extends Exception> expectedException) {
     assertThat(response.getType(), is(FAILURE));
-    assertThat(((Failure)response).getCause(), is(instanceOf(expectedException)));
+    assertThat(((Failure) response).getCause(), is(instanceOf(expectedException)));
   }
 
   private void assertFailure(EhcacheEntityResponse response, Class<? extends Exception> expectedException, String expectedMessageContent) {
     assertThat(response.getType(), is(FAILURE));
-    Exception cause = ((Failure)response).getCause();
+    Exception cause = ((Failure) response).getCause();
     assertThat(cause, is(instanceOf(expectedException)));
     assertThat(cause.getMessage(), containsString(expectedMessageContent));
   }
@@ -1682,7 +1818,7 @@ public class EhcacheActiveEntityTest {
 
     @Override
     public String toString() {
-      return "TestClientDescriptor["+ clientId + "]";
+      return "TestClientDescriptor[" + clientId + "]";
     }
   }
 
@@ -1717,10 +1853,9 @@ public class EhcacheActiveEntityTest {
     /**
      * Adds an off-heap resource of the given name to this registry.
      *
-     * @param name the name of the resource
+     * @param name        the name of the resource
      * @param offHeapSize the off-heap size
-     * @param unit the size unit type
-     *
+     * @param unit        the size unit type
      * @return {@code this} {@code OffHeapIdentifierRegistry}
      */
     private OffHeapIdentifierRegistry addResource(String name, int offHeapSize, MemoryUnit unit) {
@@ -1736,15 +1871,15 @@ public class EhcacheActiveEntityTest {
     @Override
     public <T> T getService(ServiceConfiguration<T> serviceConfiguration) {
       if (serviceConfiguration instanceof OffHeapResourceIdentifier) {
-        final OffHeapResourceIdentifier resourceIdentifier = (OffHeapResourceIdentifier)serviceConfiguration;
+        final OffHeapResourceIdentifier resourceIdentifier = (OffHeapResourceIdentifier) serviceConfiguration;
         TestOffHeapResource offHeapResource = this.pools.get(resourceIdentifier);
         if (offHeapResource == null && offHeapSize != 0) {
           offHeapResource = new TestOffHeapResource(offHeapSize);
           this.pools.put(resourceIdentifier, offHeapResource);
         }
-        return (T)offHeapResource;    // unchecked
+        return (T) offHeapResource;    // unchecked
       } else if (serviceConfiguration.getServiceType().equals(ClientCommunicator.class)) {
-        return (T)mock(ClientCommunicator.class);
+        return (T) mock(ClientCommunicator.class);
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

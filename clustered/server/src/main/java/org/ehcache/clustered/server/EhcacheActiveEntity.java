@@ -304,11 +304,28 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ServerStore cacheStore = stores.get(message.getCacheId());
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
-      String msg = "Server Store not present for cacheId :" + message.getCacheId();
+      String msg = "Server Store not present for cacheId : " + message.getCacheId();
       IllegalStateException cause = new IllegalStateException(msg);
       LOGGER.error(msg, cause);
       return responseFactory.failure(cause);
     }
+
+    if (!clientStateMap.get(clientDescriptor).isAttached()) {
+      // An operation on a store should never happen from an unattached client
+      String msg = "Client not attached";
+      IllegalStateException cause = new IllegalStateException(msg);
+      LOGGER.error(msg, cause);
+      return responseFactory.failure(cause);
+    }
+
+    if (!storeClientMap.get(message.getCacheId()).contains(clientDescriptor)) {
+      // An operation on a store should never happen from client no attached onto that store
+      String msg = "Client not attached on Server Store for cacheId : " + message.getCacheId();
+      IllegalStateException cause = new IllegalStateException(msg);
+      LOGGER.error(msg, cause);
+      return responseFactory.failure(cause);
+    }
+
     try {
       switch (message.operation()) {
         case GET: return responseFactory.response(cacheStore.get(message.getKey()));
