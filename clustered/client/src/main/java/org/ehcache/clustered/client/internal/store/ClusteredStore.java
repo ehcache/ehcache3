@@ -308,7 +308,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
               LOGGER.debug("CLIENT: calling invalidation valve");
               clusteredStore.invalidationValve.invalidateAllWithHash(hash);
             } catch (StoreAccessException sae) {
-              //TODO: what should be done here?
+              //TODO: what should be done here? delegate to resilience strategy?
               LOGGER.error("Error invalidating hash {}", hash, sae);
             }
           }

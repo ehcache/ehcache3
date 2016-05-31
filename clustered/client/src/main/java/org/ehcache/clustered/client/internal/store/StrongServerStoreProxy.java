@@ -79,7 +79,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
           entity.invoke(messageFactory.clientInvalidateHashAck(key, invalidationId), true);
         } catch (Exception e) {
           //TODO: what should be done here?
-          LOGGER.error("error acking client invalidation of hash " + key + " on cache " + cacheId, e);
+          LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
         }
       }
     });
@@ -110,7 +110,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     try {
       T result = c.apply();
       awaitOnLatch(latch);
-      LOGGER.debug("CLIENT: key {} invalidated on all clients, unblocking append");
+      LOGGER.debug("CLIENT: key {} invalidated on all clients, unblocking append", key);
       return result;
     } catch (Exception ex) {
       invalidationsInProgress.remove(key);
