@@ -450,7 +450,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
             throw new RuntimeException(e);
           }
         }
-        LOGGER.debug("Could not create serializers for " + alias, e);
+        LOGGER.debug("Could not create serializers for {}", alias, e);
       }
       try {
         final Serializer<V> valueSer = serialization.createValueSerializer(valueType, config.getClassLoader(), serviceConfigArray);
@@ -467,7 +467,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
             throw new RuntimeException(e);
           }
         }
-        LOGGER.debug("Could not create serializers for " + alias, e);
+        LOGGER.debug("Could not create serializers for {}", alias, e);
       }
     }
 
