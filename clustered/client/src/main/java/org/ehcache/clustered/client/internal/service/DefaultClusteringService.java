@@ -148,7 +148,7 @@ class DefaultClusteringService implements ClusteringService {
         clusterConnection.close();
         clusterConnection = null;
       } catch (IOException ex) {
-        LOGGER.info("Error closing cluster connection: " + ex);
+        LOGGER.warn("Error closing cluster connection: " + ex);
       }
       throw e;
     }
@@ -168,7 +168,7 @@ class DefaultClusteringService implements ClusteringService {
         clusterConnection.close();
         clusterConnection = null;
       } catch (IOException e) {
-        LOGGER.info("Error closing cluster connection: " + e);
+        LOGGER.warn("Error closing cluster connection: " + e);
       }
       throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
     }

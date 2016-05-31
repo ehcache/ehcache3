@@ -18,7 +18,7 @@ package org.ehcache.clustered.client.internal;
 
 /**
  * Thrown by {@link EhcacheClientEntity} operations requiring exclusive access
- * to the {@code EhcacheActiveEntity} when the {@code EhcacheActiveEntity} is iin use.
+ * to the {@code EhcacheActiveEntity} when the {@code EhcacheActiveEntity} is in use.
  */
 public class EhcacheEntityBusyException extends Exception {
   private static final long serialVersionUID = -7706902691622092177L;
