@@ -127,7 +127,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
       try {
         localPersistenceService.destroy(id);
       } catch (CachePersistenceException e) {
-        logger.debug("Unable to clear persistence space for user managed cache " + id, e);
+        logger.debug("Unable to clear persistence space for user managed cache {}", id, e);
       }
     }
   }
