@@ -219,10 +219,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    */
   @Override
-  public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    if (createSpace(name) == null) {
+  public PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    PersistenceSpaceIdentifier spaceIdentifier = createSpace(name);
+    if (spaceIdentifier == null) {
       throw new CachePersistenceException("Persistence space already exists for " + name);
     }
+    return spaceIdentifier;
   }
 
   private PersistenceSpaceIdentifier createSpace(String name) throws CachePersistenceException {
@@ -433,7 +435,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
 
   }
-  private static class DefaultPersistenceSpaceIdentifier extends FileHolder implements PersistenceSpaceIdentifier {
+  private static class DefaultPersistenceSpaceIdentifier extends FileHolder implements PersistenceSpaceIdentifier<LocalPersistenceService> {
 
     DefaultPersistenceSpaceIdentifier(File directory) {
       super(directory);

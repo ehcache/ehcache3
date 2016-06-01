@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.spi.service;
+package org.ehcache.spi.persistence;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -22,9 +22,13 @@ import org.ehcache.CachePersistenceException;
 
 import java.util.Collection;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.spi.service.MaintainableService;
+import org.ehcache.spi.service.PluralService;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * Interface for {@link Service}s that handle a {@link ResourceType} which is
+ * Interface for {@link org.ehcache.spi.service.Service Service}s that handle a {@link ResourceType} which is
  * {@link ResourceType#isPersistable() persistable}.
  */
 @PluralService
@@ -55,8 +59,10 @@ public interface PersistableResourceService extends MaintainableService {
    * @param name the name of the persistence context
    * @param config the configuration for the associated cache
    * @throws CachePersistenceException if the persistence space cannot be created
+   *
+   * @return an identifier for the created persistence space
    */
-  void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
+  PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
 
   /**
    * Destroys the persistence space with the given name.
@@ -81,4 +87,9 @@ public interface PersistableResourceService extends MaintainableService {
    * @throws CachePersistenceException if the persistence storage cannot be destroyed
    */
   void destroyAll() throws CachePersistenceException;
+
+  /**
+   * An identifier for an existing persistable resource.
+   */
+  interface PersistenceSpaceIdentifier<T extends PersistableResourceService> extends ServiceConfiguration<T> {}
 }

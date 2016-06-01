@@ -20,7 +20,7 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.service.PersistableResourceService;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

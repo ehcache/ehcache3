@@ -228,7 +228,7 @@ class DefaultClusteringService implements ClusteringService {
   }
 
   @Override
-  public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+  public PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
     throw new UnsupportedOperationException("create() not supported for clustered caches");
   }
 
