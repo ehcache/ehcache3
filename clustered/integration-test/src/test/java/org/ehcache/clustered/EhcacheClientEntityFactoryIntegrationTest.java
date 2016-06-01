@@ -27,7 +27,6 @@ import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.exception.EntityAlreadyExistsException;
@@ -122,20 +121,18 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   }
 
   @Test
-  @Ignore
   public void testDestroy() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testDestroy", null);
+    factory.create("testDestroy", new ServerSideConfiguration(null, Collections.<String, Pool>emptyMap()));
     factory.destroy("testDestroy");
   }
 
   @Test
-  @Ignore
   public void testDestroyWhenNotExisting() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     try {
       factory.destroy("testDestroyWhenNotExisting");
-      fail("Expected EntityNotFoundException");
+      fail("Expected EhcacheEntityNotFoundException");
     } catch (EhcacheEntityNotFoundException e) {
       //expected
     }
