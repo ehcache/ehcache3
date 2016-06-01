@@ -72,9 +72,15 @@ public class EventualServerStoreProxyTest {
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.fixed(16L, MemoryUnit.MB);
 
-    clientEntity1.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.STRONG));
+        .getName(), Consistency.STRONG);
+    clientEntity1.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
+
+    // required to attach the store to the client
+    clientEntity1.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
+    clientEntity2.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
+
     serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity1);
     serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity2);
   }

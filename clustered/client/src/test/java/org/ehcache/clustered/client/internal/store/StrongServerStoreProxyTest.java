@@ -70,9 +70,15 @@ public class StrongServerStoreProxyTest {
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.fixed(16L, MemoryUnit.MB);
 
-    clientEntity1.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.STRONG));
+        .getName(), Consistency.STRONG);
+    clientEntity1.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
+
+    // required to attach the store to the client
+    clientEntity1.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
+    clientEntity2.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
+
     serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity1);
     serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity2);
   }
@@ -98,14 +104,14 @@ public class StrongServerStoreProxyTest {
   public void testInvalidationListenerWithAppend() throws Exception {
     final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
 
-    serverStoreProxy1.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+    serverStoreProxy2.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
       @Override
       public void onInvalidationRequest(long hash) {
         invalidatedHash.set(hash);
       }
     });
 
-    serverStoreProxy2.append(1L, createPayload(1L));
+    serverStoreProxy1.append(1L, createPayload(1L));
 
     assertThat(invalidatedHash.get(), is(1L));
   }
@@ -114,14 +120,14 @@ public class StrongServerStoreProxyTest {
   public void testInvalidationListenerWithGetAndAppend() throws Exception {
     final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
 
-    serverStoreProxy1.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+    serverStoreProxy2.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
       @Override
       public void onInvalidationRequest(long hash) {
         invalidatedHash.set(hash);
       }
     });
 
-    serverStoreProxy2.getAndAppend(1L, createPayload(1L));
+    serverStoreProxy1.getAndAppend(1L, createPayload(1L));
 
     assertThat(invalidatedHash.get(), is(1L));
   }
