@@ -18,6 +18,8 @@ package org.ehcache.clustered.client.docs;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
+import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
@@ -112,6 +114,30 @@ public class GettingStarted {
       cacheManager.close();
     }
     // end::clusteredCacheManagerWithDynamicallyAddedCacheExample[]
+  }
+
+  @Test
+  public void explicitConsistencyConfiguration() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
+            = CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application?auto-create"))
+                    .defaultServerResource("primary-server-resource")
+                    .resourcePool("resource-pool-a", 128, MemoryUnit.B));
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    cacheManager.init();
+
+    try {
+      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+              ResourcePoolsBuilder.newResourcePoolsBuilder()
+                      .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+          .add(ClusteredStoreConfigurationBuilder.withConsistency(ClusteredStoreConfiguration.Consistency.EVENTUAL))
+          .build();
+
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+
+    } finally {
+      cacheManager.close();
+    }
   }
 
 }
