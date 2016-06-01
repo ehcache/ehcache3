@@ -82,4 +82,9 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   public void replaceAtHead(long key, Chain expect, Chain update) {
     delegate.replaceAtHead(key, expect, update);
   }
+
+  @Override
+  public void clear() {
+    delegate.clear();
+  }
 }

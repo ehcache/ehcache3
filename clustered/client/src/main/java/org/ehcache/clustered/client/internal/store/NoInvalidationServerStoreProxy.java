@@ -58,12 +58,12 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
       return ((EhcacheEntityResponse.GetResponse)response).getChain();
     } else {
       throw new ServerStoreProxyException("Response for get operation was invalid : " +
-                                          response != null ? response.getType().toString() : "null message");
+                                          (response != null ? response.getType().toString() : "null message"));
     }
   }
 
   @Override
-  public void append(final long key, final ByteBuffer payLoad) {
+  public void append(long key, ByteBuffer payLoad) {
     try {
       entity.invoke(messageFactory.appendOperation(key, payLoad), true);
     } catch (Exception e) {
@@ -72,7 +72,7 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) {
+  public Chain getAndAppend(long key, ByteBuffer payLoad) {
     EhcacheEntityResponse response;
     try {
       response = entity.invoke(messageFactory.getAndAppendOperation(key, payLoad), true);
@@ -83,7 +83,7 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
       return ((EhcacheEntityResponse.GetResponse)response).getChain();
     } else {
       throw new ServerStoreProxyException("Response for getAndAppend operation was invalid : " +
-                                          response != null ? response.getType().toString() : "null message");
+                                          (response != null ? response.getType().toString() : "null message"));
     }
   }
 
@@ -92,6 +92,15 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
     // TODO: Optimize this method to just send sequences for expect Chain
     try {
       entity.invoke(messageFactory.replaceAtHeadOperation(key, expect, update), true);
+    } catch (Exception e) {
+      throw new ServerStoreProxyException(e);
+    }
+  }
+
+  @Override
+  public void clear() {
+    try {
+      entity.invoke(messageFactory.clearOperation(), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }

@@ -1308,14 +1308,14 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
 
     ServerStoreProxy sharedProxy = createService.getServerStoreProxy(
-        getClusteredCacheIdentifier(createService, "sharedCache", sharedStoreConfiguration), sharedStoreConfiguration);
+        getClusteredCacheIdentifier(createService, "sharedCache", sharedStoreConfiguration), sharedStoreConfiguration, null);
     assertThat(sharedProxy.getCacheId(), is("sharedCache"));
 
     Store.Configuration<Long, String> storeConfiguration =
         getFixedStoreConfig("serverResource2", serializationProvider, Long.class, String.class);
 
     ServerStoreProxy fixedProxy = createService.getServerStoreProxy(
-        getClusteredCacheIdentifier(createService, "fixedCache", storeConfiguration), storeConfiguration);
+        getClusteredCacheIdentifier(createService, "fixedCache", storeConfiguration), storeConfiguration, null);
     assertThat(fixedProxy.getCacheId(), is("fixedCache"));
 
     createService.stop();
