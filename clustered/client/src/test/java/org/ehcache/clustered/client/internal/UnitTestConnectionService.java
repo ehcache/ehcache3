@@ -167,6 +167,8 @@ public class UnitTestConnectionService implements ConnectionService {
         try {
           LOGGER.warn("Force close {}", formatConnectionId(connection));
           connection.close();
+        } catch (AssertionError e) {
+          // Ignored -- https://github.com/Terracotta-OSS/terracotta-apis/issues/102
         } catch (IOException e) {
           // Ignored
         }
