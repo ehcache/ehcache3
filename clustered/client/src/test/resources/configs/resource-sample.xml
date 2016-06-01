@@ -32,6 +32,7 @@
       <eh:offheap unit="MB">512</eh:offheap>
       <tc:cluster-fixed unit="GB" from="secondary">128</tc:cluster-fixed>
     </eh:resources>
+    <tc:clustered-store consistency="strong"/>
   </eh:cache>
 
   <eh:cache alias="sharing">

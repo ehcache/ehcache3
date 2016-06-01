@@ -165,4 +165,17 @@
       </xs:annotation>
     </xs:attribute>
   </xs:attributeGroup>
+
+  <xs:element name="clustered-store" type="tc:clustered-store-type" substitutionGroup="eh:service-configuration"/>
+
+  <xs:complexType name="clustered-store-type">
+    <xs:attribute name="consistency" type="tc:consistency-type" default="eventual"/>
+  </xs:complexType>
+
+  <xs:simpleType name="consistency-type">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="eventual"/>
+      <xs:enumeration value="strong"/>
+    </xs:restriction>
+  </xs:simpleType>
 </xs:schema>
