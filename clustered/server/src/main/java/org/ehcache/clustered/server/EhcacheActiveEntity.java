@@ -399,13 +399,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (stores.get(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
       invalidationHolder.clientsHavingToInvalidate.remove(clientDescriptor);
       if (invalidationHolder.clientsHavingToInvalidate.isEmpty()) {
-        clientsWaitingForInvalidation.remove(invalidationId);
-        try {
-          clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, EhcacheEntityResponse.invalidationDone(invalidationHolder.cacheId, invalidationHolder.key));
-          LOGGER.debug("SERVER: notifying originating client that all other clients invalidated key {} in cache {} from {} (ID {})", invalidationHolder.key, invalidationHolder.cacheId, clientDescriptor, invalidationId);
-        } catch (MessageCodecException mce) {
-          //TODO: what should be done here?
-          LOGGER.error("Codec error", mce);
+        if (clientsWaitingForInvalidation.remove(invalidationId) != null) {
+          try {
+            clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, EhcacheEntityResponse.invalidationDone(invalidationHolder.cacheId, invalidationHolder.key));
+            LOGGER.debug("SERVER: notifying originating client that all other clients invalidated key {} in cache {} from {} (ID {})", invalidationHolder.key, invalidationHolder.cacheId, clientDescriptor, invalidationId);
+          } catch (MessageCodecException mce) {
+            //TODO: what should be done here?
+            LOGGER.error("Codec error", mce);
+          }
         }
       }
     }
