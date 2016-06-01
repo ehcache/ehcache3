@@ -42,5 +42,9 @@ public class ServerStoreMessageFactory {
   public EhcacheEntityMessage replaceAtHeadOperation(long key, Chain expect, Chain update) {
     return new ServerStoreOpMessage.ReplaceAtHeadMessage(this.cacheId, key, expect, update);
   }
+
+  public EhcacheEntityMessage clearOperation() {
+    return new ServerStoreOpMessage.ClearMessage(this.cacheId);
+  }
 }
 

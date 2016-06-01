@@ -50,7 +50,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
           return APPEND;
         case 13:
           return REPLACE;
-        case 4:
+        case 14:
           return CLEAR;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + storeOpCode);
@@ -82,6 +82,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
   public abstract ServerStoreOp operation();
 
+  @Override
+  public byte getOpCode() {
+    return operation().getStoreOpCode();
+  }
+
   public static class GetMessage extends ServerStoreOpMessage {
 
     GetMessage(String cacheId, long key) {
@@ -91,11 +96,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.GET;
-    }
-
-    @Override
-    public byte getOpCode() {
-      return ServerStoreOp.GET.getStoreOpCode();
     }
   }
 
@@ -111,11 +111,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.GET_AND_APPEND;
-    }
-
-    @Override
-    public byte getOpCode() {
-      return ServerStoreOp.GET_AND_APPEND.getStoreOpCode();
     }
 
     public ByteBuffer getPayload() {
@@ -136,11 +131,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.APPEND;
-    }
-
-    @Override
-    public byte getOpCode() {
-      return ServerStoreOp.APPEND.getStoreOpCode();
     }
 
     public ByteBuffer getPayload() {
@@ -165,11 +155,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       return ServerStoreOp.REPLACE;
     }
 
-    @Override
-    public byte getOpCode() {
-      return ServerStoreOp.REPLACE.getStoreOpCode();
-    }
-
     public Chain getExpect() {
       return expect;
     }
@@ -180,7 +165,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
   }
 
-  public static class ClearMessage extends ServerStoreOpMessage {
+  static class ClearMessage extends ServerStoreOpMessage {
 
 
     ClearMessage(final String cacheId) {
@@ -195,6 +180,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public byte getOpCode() {
       return ServerStoreOp.CLEAR.getStoreOpCode();
+    }
+
+    @Override
+    public long getKey() {
+      throw new UnsupportedOperationException("Clear message does not have a key a parameter");
     }
   }
 

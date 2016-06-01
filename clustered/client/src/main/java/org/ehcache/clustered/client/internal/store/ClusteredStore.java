@@ -101,11 +101,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public boolean containsKey(final K key) throws StoreAccessException {
-    if(getInternal(key) == null) {
-      return false;
-    } else {
-      return true;
-    }
+    return getInternal(key) != null;
   }
 
   @Override

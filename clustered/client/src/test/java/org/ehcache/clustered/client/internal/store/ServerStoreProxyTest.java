@@ -167,12 +167,8 @@ public class ServerStoreProxyTest {
   public void testClear() {
     serverStoreProxy.append(1L, createPayload(100L));
 
-    Chain chain = serverStoreProxy.get(1);
-    assertThat(chain.isEmpty(), is(false));
-    assertThat(readPayLoad(chain.iterator().next().getPayload()), is(100L));
-
     serverStoreProxy.clear();
-    chain = serverStoreProxy.get(1);
+    Chain chain = serverStoreProxy.get(1);
     assertThat(chain.isEmpty(), is(true));
   }
 

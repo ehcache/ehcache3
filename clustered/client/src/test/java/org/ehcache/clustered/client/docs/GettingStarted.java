@@ -114,43 +114,4 @@ public class GettingStarted {
     // end::clusteredCacheManagerWithDynamicallyAddedCacheExample[]
   }
 
-  @Test
-  public void clusteredCacheCRUD() throws Exception {
-    // tag::clusteredCacheCRUD[]
-    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
-        = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application?auto-create"))
-            .defaultServerResource("primary-server-resource"));
-    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
-    cacheManager.init();
-
-    try {
-      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder()
-              .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 1, MemoryUnit.MB))).build();
-
-      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
-      assertThat(cache.get(1L), is(nullValue()));
-      cache.put(1L, "The one");
-      assertThat(cache.containsKey(2L), is(false));
-      cache.put(2L, "The two");
-      assertThat(cache.containsKey(2L), is(true));
-      cache.put(1L, "Another one");
-      cache.put(3L, "The three");
-      assertThat(cache.get(1L), equalTo("Another one"));
-      assertThat(cache.get(2L), equalTo("The two"));
-      assertThat(cache.get(3L), equalTo("The three"));
-      cache.remove(1L);
-      assertThat(cache.get(1L), is(nullValue()));
-
-      cache.clear();
-      assertThat(cache.get(1L), is(nullValue()));
-      assertThat(cache.get(2L), is(nullValue()));
-      assertThat(cache.get(3L), is(nullValue()));
-    } finally {
-      cacheManager.close();
-    }
-    // tag::clusteredCacheCRUD[]
-  }
-
 }
