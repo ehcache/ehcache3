@@ -259,9 +259,8 @@ class DefaultClusteringService implements ClusteringService {
                                                      Consistency configuredConsistency) {
     final String cacheId = cacheIdentifier.getId();
 
-    Consistency consistency = configuredConsistency;
-    if (consistency == null) {
-      consistency = Consistency.EVENTUAL;
+    if (configuredConsistency == null) {
+      throw new NullPointerException("Consistency cannot be null");
     }
 
     /*
@@ -289,7 +288,7 @@ class DefaultClusteringService implements ClusteringService {
         null, // TODO: Need actual value type -- cache wrappers can wrap key/value types
         (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
         (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
-        consistency
+        configuredConsistency
     );
 
     if (autoCreate) {
@@ -311,13 +310,13 @@ class DefaultClusteringService implements ClusteringService {
     }
 
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
-    switch (consistency) {
+    switch (configuredConsistency) {
       case STRONG:
         return new StrongServerStoreProxy(messageFactory, entity);
       case EVENTUAL:
         return new EventualServerStoreProxy(messageFactory, entity);
       default:
-        throw new AssertionError("Unknown consistency : " + consistency);
+        throw new AssertionError("Unknown consistency : " + configuredConsistency);
     }
 
   }

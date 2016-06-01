@@ -16,11 +16,18 @@
 package org.ehcache.clustered.common;
 
 /**
- * @author Ludovic Orban
+ *
+ * Enumeration of the different consistency levels supported in clustered caches.
  */
 public enum Consistency {
 
-  STRONG,
-  EVENTUAL
+  /**
+   * Indicates that the visibility of mutative operations is not guaranteed on operation completion.
+   */
+  EVENTUAL,
+  /**
+   * Indicates that the visibility of mutative operations is guaranteed on operation completion.
+   */
+  STRONG
 
 }

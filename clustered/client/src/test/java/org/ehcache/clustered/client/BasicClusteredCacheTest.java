@@ -18,10 +18,10 @@ package org.ehcache.clustered.client;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
-import org.ehcache.clustered.client.internal.store.ClusteredStoreServiceConfiguration;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -90,7 +90,7 @@ public class BasicClusteredCacheTest {
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
-                .add(new ClusteredStoreServiceConfiguration().consistency(Consistency.STRONG)))
+                .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
         ;
 
     final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);

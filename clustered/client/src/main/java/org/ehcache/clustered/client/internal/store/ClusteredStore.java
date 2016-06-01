@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
+import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
 import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
@@ -274,12 +275,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore can not create store with multiple clustered resources");
       }
 
-      ClusteredStoreServiceConfiguration clusteredStoreServiceConfiguration = findSingletonAmongst(ClusteredStoreServiceConfiguration.class, (Object[])serviceConfigs);
+      ClusteredStoreConfiguration clusteredStoreConfiguration = findSingletonAmongst(ClusteredStoreConfiguration.class, (Object[])serviceConfigs);
+      if (clusteredStoreConfiguration == null) {
+        clusteredStoreConfiguration = new ClusteredStoreConfiguration();
+      }
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
       OperationsCodec<K, V> codec = new OperationsCodec<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
       ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec);
       ClusteredStore<K, V> store = new ClusteredStore<K, V>(codec, resolver);
-      createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreServiceConfiguration == null ? null : clusteredStoreServiceConfiguration.getConsistency()));
+      createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
       return store;
     }
 
