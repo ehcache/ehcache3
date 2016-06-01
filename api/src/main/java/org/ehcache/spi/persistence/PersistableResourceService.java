@@ -24,7 +24,6 @@ import java.util.Collection;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.PluralService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -63,6 +62,21 @@ public interface PersistableResourceService extends MaintainableService {
    * @return an identifier for the created persistence space
    */
   PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
+
+  /**
+   * Returns a named {@link StateRepository state repository} in the context of the given
+   * {@link PersistenceSpaceIdentifier identifier}.
+   * <P>
+   *   If the {@code StateRepository} already existed, this method returns it in a fully available state.
+   * </P>
+   *
+   * @param identifier the space identifier
+   * @param name the state repository name
+   * @return a {@code StateRepository}
+   *
+   * @throws CachePersistenceException if the {@code StateRepository} cannot be created or recovered.
+   */
+  StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException;
 
   /**
    * Destroys the persistence space with the given name.
