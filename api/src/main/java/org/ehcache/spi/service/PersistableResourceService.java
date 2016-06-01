@@ -56,7 +56,7 @@ public interface PersistableResourceService extends MaintainableService {
    * @param config the configuration for the associated cache
    * @throws CachePersistenceException if the persistence space cannot be created
    */
-  void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
+  PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
 
   /**
    * Destroys the persistence space with the given name.
@@ -81,4 +81,9 @@ public interface PersistableResourceService extends MaintainableService {
    * @throws CachePersistenceException if the persistence storage cannot be destroyed
    */
   void destroyAll() throws CachePersistenceException;
+
+  /**
+   * An identifier for an existing persistable resource.
+   */
+  interface PersistenceSpaceIdentifier<T extends PersistableResourceService> extends ServiceConfiguration<T> {}
 }

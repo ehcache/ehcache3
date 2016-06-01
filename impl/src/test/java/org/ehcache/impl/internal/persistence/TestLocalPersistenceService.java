@@ -87,8 +87,8 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    persistenceService.create(name, config);
+  public PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    return persistenceService.create(name, config);
   }
 
   @Override
@@ -102,7 +102,7 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void destroyAll() {
+  public void destroyAll() throws CachePersistenceException {
     persistenceService.destroyAll();
   }
 
