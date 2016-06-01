@@ -133,6 +133,13 @@ public class OffHeapServerStore implements ServerStore {
     }
   }
 
+  @Override
+  public void clear() {
+    for (OffHeapChainMap<Long> segment : segments) {
+      segment.clear();
+    }
+  }
+
   private OffHeapChainMap<Long> segmentFor(long key) {
     return segments.get(Math.abs((int) (key % segments.size())));
   }

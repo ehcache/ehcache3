@@ -78,4 +78,11 @@ public class ServerStoreOpCodecTest {
     Util.assertChainHas(((ServerStoreOpMessage.ReplaceAtHeadMessage)decodedMsg).getUpdate(), 2000L);
   }
 
+  @Test
+  public void testClearMessageCodec() throws Exception {
+    EhcacheEntityMessage clearMessage = MESSAGE_FACTORY.clearOperation();
+    byte[] encodedBytes = STORE_OP_CODEC.encode((ServerStoreOpMessage)clearMessage);
+    EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(encodedBytes);
+    assertThat(((ServerStoreOpMessage)decodedMsg).getCacheId(), is("test"));
+  }
 }

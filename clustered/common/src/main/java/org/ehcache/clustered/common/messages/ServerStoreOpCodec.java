@@ -16,6 +16,7 @@
 package org.ehcache.clustered.common.messages;
 
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.AppendMessage;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClearMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetAndAppendMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
@@ -77,6 +78,12 @@ class ServerStoreOpCodec {
         encodedMsg.putInt(encodedUpdatedChain.length);
         encodedMsg.put(encodedUpdatedChain);
         return encodedMsg.array();
+      case CLEAR:
+        ClearMessage clearMessage = (ClearMessage)message;
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + 2 * cacheIdLen);
+        encodedMsg.put(clearMessage.getOpCode());
+        putCacheId(encodedMsg, clearMessage.getCacheId());
+        return encodedMsg.array();
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.operation());
     }
@@ -86,22 +93,26 @@ class ServerStoreOpCodec {
   private static void putCacheIdKeyAndOpCode(ByteBuffer byteBuffer, String cacheId, long key, byte opcode) {
     byteBuffer.put(opcode);
     byteBuffer.putInt(cacheId.length());
+    putCacheId(byteBuffer, cacheId);
+    byteBuffer.putLong(key);
+  }
+
+  private static void putCacheId(ByteBuffer byteBuffer, String cacheId) {
     for (int i = 0; i < cacheId.length(); i++) {
       byteBuffer.putChar(cacheId.charAt(i));
     }
-    byteBuffer.putLong(key);
   }
 
   public EhcacheEntityMessage decode(byte[] payload) {
     ByteBuffer msg = ByteBuffer.wrap(payload);
     byte opCode = msg.get();
     ServerStoreOp storeOp = ServerStoreOp.getServerStoreOp(opCode);
-    int cacheIdLen = msg.getInt();
-    char[] idArr = new char[cacheIdLen];
-    for (int i = 0; i < cacheIdLen; i++) {
-      idArr[i] = msg.getChar();
+    if(storeOp == ServerStoreOp.CLEAR) {
+      return new ClearMessage(getStringFromBuffer(msg, msg.remaining()/2));
     }
-    String cacheId = new String(idArr);
+
+    int cacheIdLen = msg.getInt();
+    String cacheId = getStringFromBuffer(msg, cacheIdLen);
     long key = msg.getLong();
     byte[] remaining = new byte[msg.remaining()];
     msg.get(remaining);
@@ -128,4 +139,11 @@ class ServerStoreOpCodec {
     }
   }
 
+  private static String getStringFromBuffer(ByteBuffer buffer, int length) {
+    char[] arr = new char[length];
+    for (int i = 0; i < length; i++) {
+      arr[i] = buffer.getChar();
+    }
+    return new String(arr);
+  }
 }

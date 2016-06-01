@@ -282,6 +282,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
           cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
           return responseFactory.success();
+        case CLEAR:
+          cacheStore.clear();
+          return responseFactory.success();
         default:
           String msg = "Unknown Server Store operation " + message;
           IllegalArgumentException cause = new IllegalArgumentException(msg);

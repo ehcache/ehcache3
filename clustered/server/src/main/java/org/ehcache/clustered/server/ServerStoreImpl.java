@@ -70,4 +70,9 @@ class ServerStoreImpl implements ServerStore {
   public void replaceAtHead(long key, Chain expect, Chain update) {
     store.replaceAtHead(key, expect, update);
   }
+
+  @Override
+  public void clear() {
+    store.clear();
+  }
 }

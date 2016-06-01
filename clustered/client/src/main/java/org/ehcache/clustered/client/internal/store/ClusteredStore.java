@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
+import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.Result;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -69,8 +70,17 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
+    V value = getInternal(key);
+    if(value == null) {
+      return null;
+    } else {
+      return new ClusteredValueHolder<V>(value);
+    }
+  }
+
+  private V getInternal(K key) {
     Chain chain = storeProxy.get(key.hashCode());
-    V value = null;
+    V value;
     if(!chain.isEmpty()) {
       ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
 
@@ -86,13 +96,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     } else {
       return null;
     }
-    return new ClusteredValueHolder<V>(value);
+    return value;
   }
 
   @Override
   public boolean containsKey(final K key) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    return getInternal(key) != null;
   }
 
   @Override
@@ -111,8 +120,15 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public boolean remove(final K key) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key);
+    ByteBuffer payload = codec.encode(operation);
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    if(resolvedChain.getResolvedResult(key) != null) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   @Override
@@ -135,7 +151,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public void clear() throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
+    storeProxy.clear();
   }
 
   @Override
