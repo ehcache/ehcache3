@@ -22,6 +22,8 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.service.PersistableResourceService;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
@@ -219,10 +221,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    */
   @Override
-  public void create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    if (createSpace(name) == null) {
+  public PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    PersistenceSpaceIdentifier spaceIdentifier = createSpace(name);
+    if (spaceIdentifier == null) {
       throw new CachePersistenceException("Persistence space already exists for " + name);
     }
+    return spaceIdentifier;
   }
 
   private PersistenceSpaceIdentifier createSpace(String name) throws CachePersistenceException {
@@ -262,6 +266,15 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } else {
       LOGGER.warn("Could not delete all file based persistence contexts");
     }
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
+    // here we will have to return a StateRepository which is remembered and has its content persisted on close
+    throw new UnsupportedOperationException("TODO Implement me!");
   }
 
   /**
@@ -433,7 +446,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
 
   }
-  private static class DefaultPersistenceSpaceIdentifier extends FileHolder implements PersistenceSpaceIdentifier {
+  private static class DefaultPersistenceSpaceIdentifier extends FileHolder implements PersistenceSpaceIdentifier<LocalPersistenceService> {
 
     DefaultPersistenceSpaceIdentifier(File directory) {
       super(directory);

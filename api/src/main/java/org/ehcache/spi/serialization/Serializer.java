@@ -28,8 +28,9 @@ import java.nio.ByteBuffer;
  * <dl>
  *   <dt><code><i>Serializer</i>(ClassLoader loader)</code>
  *   <dd>This constructor is used to initialize the serializer for transient caches.
- *   <dt><code><i>Serializer</i>(ClassLoader loader, org.ehcache.core.spi.service.FileBasedPersistenceContext context)</code>
- *   <dd>This constructor is used to initialize the serializer for persistent caches.
+ *   <dt><code><i>Serializer</i>(ClassLoader loader, org.ehcache.spi.persistence.StateRepository stateRepository)</code>
+ *   <dd>This constructor is used to initialize the serializer for persistent caches and allows them to store any relevant
+ *   state in the provided repository.
  * </dl>
  * The {@code ClassLoader} value may be {@code null}.  If not {@code null}, the class loader
  * instance provided should be used during deserialization to load classes needed by the deserialized objects.
