@@ -28,6 +28,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.xml.XmlConfiguration;
 import org.junit.After;
 import org.junit.Test;
 
@@ -135,6 +136,11 @@ public class GettingStarted {
     } finally {
       cacheManager.close();
     }
+  }
+
+  @Test
+  public void loadDocsXml() throws Exception {
+    new XmlConfiguration(getClass().getResource("/configs/docs/ehcache-clustered.xml"));
   }
 
 }

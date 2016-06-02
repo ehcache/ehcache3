@@ -105,3 +105,12 @@ include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client
 
 <1> Specify the consistency level through the use of additional service configuration, using _strong_ consistency here,
 <2> With the consistency used above, this `put` operation will return only when all other clients have had the corresponding mapping invalidated.
+
+The equivalent XML configuration is as follows:
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=consistencySample]
+----
+
+<1> Specify the consistency level through a custom service configuration from the `clustered` namespace.
