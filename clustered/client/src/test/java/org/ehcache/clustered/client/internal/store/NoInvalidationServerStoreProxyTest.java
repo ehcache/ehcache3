@@ -38,19 +38,19 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
 
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.ehcache.clustered.common.store.Util.readPayLoad;
 import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.ehcache.clustered.common.store.Util.getChain;
+import static org.ehcache.clustered.common.store.Util.readPayLoad;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
-public class ServerStoreProxyTest {
+public class NoInvalidationServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
 
   private static EhcacheClientEntity clientEntity;
-  private static ServerStoreProxy serverStoreProxy;
+  private static NoInvalidationServerStoreProxy serverStoreProxy;
 
   @BeforeClass
   public static void setUp() throws Exception {
@@ -71,8 +71,8 @@ public class ServerStoreProxyTest {
 
     clientEntity.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName()));
-    serverStoreProxy = new ServerStoreProxy(CACHE_IDENTIFIER, clientEntity);
+        .getName(), null));
+    serverStoreProxy = new NoInvalidationServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity);
   }
 
   @AfterClass

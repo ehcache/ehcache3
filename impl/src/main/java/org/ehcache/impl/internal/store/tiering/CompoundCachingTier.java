@@ -17,20 +17,20 @@ package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
-import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.core.spi.store.tiering.HigherCachingTier;
 import org.ehcache.core.spi.store.tiering.LowerCachingTier;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.StatisticsManager;
@@ -38,7 +38,6 @@ import org.terracotta.statistics.StatisticsManager;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +47,6 @@ import java.util.concurrent.ConcurrentMap;
 import static java.util.Collections.unmodifiableSet;
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * A {@link CachingTier} implementation supporting a cache hierarchy.
@@ -169,6 +167,23 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       });
     } finally {
       lower.invalidateAll();
+    }
+  }
+
+  @Override
+  public void invalidateAllWithHash(long hash) throws StoreAccessException {
+    try {
+      higher.silentInvalidateAllWithHash(hash, new BiFunction<K, Store.ValueHolder<V>, Void>() {
+        @Override
+        public Void apply(K key, Store.ValueHolder<V> mappedValue) {
+          if (mappedValue != null) {
+            notifyInvalidation(key, mappedValue);
+          }
+          return null;
+        }
+      });
+    } finally {
+      lower.invalidateAllWithHash(hash);
     }
   }
 

@@ -13,30 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
-import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.ServerStore;
 
-import java.nio.ByteBuffer;
-
 /**
- * Provides client-side access to the services of a {@code ServerStore}.
+ * @author Ludovic Orban
  */
-public class ServerStoreProxy implements ServerStore {
+public interface ServerStoreProxy extends ServerStore {
 
-  private final String cacheId;
-  private final EhcacheClientEntity entity;
-  private final ServerStoreMessageFactory messageFactory;
-
-  public ServerStoreProxy(String cacheId, EhcacheClientEntity entity) {
-    this.cacheId = cacheId;
-    this.entity = entity;
-    this.messageFactory = new ServerStoreMessageFactory(cacheId);
+  /**
+   * The invalidation listener
+   */
+  interface InvalidationListener {
+    /**
+     * Callback for invalidation requests
+     *
+     * @param hash the hash of the keys to invalidate
+     */
+    void onInvalidationRequest(long hash);
   }
 
   /**
@@ -44,67 +39,13 @@ public class ServerStoreProxy implements ServerStore {
    *
    * @return the cache identifier
    */
-  public String getCacheId() {
-    return cacheId;
-  }
+  String getCacheId();
 
-  @Override
-  public Chain get(long key) {
-    EhcacheEntityResponse response;
-    try {
-      response = entity.invoke(messageFactory.getOperation(key), false);
-    } catch (Exception e) {
-      throw new ServerStoreProxyException(e);
-    }
-    if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
-      return ((EhcacheEntityResponse.GetResponse)response).getChain();
-    } else {
-      throw new ServerStoreProxyException("Response for get operation was invalid : " +
-                                          (response != null ? response.getType().toString() : "null message"));
-    }
-  }
+  /**
+   * Add a listener called when invalidation requests arrive.
+   *
+   * @param listener the listener
+   */
+  void addInvalidationListener(InvalidationListener listener);
 
-  @Override
-  public void append(long key, ByteBuffer payLoad) {
-    try {
-      entity.invoke(messageFactory.appendOperation(key, payLoad), true);
-    } catch (Exception e) {
-      throw new ServerStoreProxyException(e);
-    }
-  }
-
-  @Override
-  public Chain getAndAppend(long key, ByteBuffer payLoad) {
-    EhcacheEntityResponse response;
-    try {
-      response = entity.invoke(messageFactory.getAndAppendOperation(key, payLoad), true);
-    } catch (Exception e) {
-      throw new ServerStoreProxyException(e);
-    }
-    if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
-      return ((EhcacheEntityResponse.GetResponse)response).getChain();
-    } else {
-      throw new ServerStoreProxyException("Response for getAndAppend operation was invalid : " +
-                                          (response != null ? response.getType().toString() : "null message"));
-    }
-  }
-
-  @Override
-  public void replaceAtHead(long key, Chain expect, Chain update) {
-    // TODO: Optimize this method to just send sequences for expect Chain
-    try {
-      entity.invoke(messageFactory.replaceAtHeadOperation(key, expect, update), true);
-    } catch (Exception e) {
-      throw new ServerStoreProxyException(e);
-    }
-  }
-
-  @Override
-  public void clear() {
-    try {
-      entity.invoke(messageFactory.clearOperation(), true);
-    } catch (Exception e) {
-      throw new ServerStoreProxyException(e);
-    }
-  }
 }

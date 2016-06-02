@@ -16,22 +16,30 @@
 
 package org.ehcache.clustered.client.internal;
 
-import java.util.UUID;
-
 import org.ehcache.CachePersistenceException;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
+import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
+import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
+
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  *
@@ -39,12 +47,77 @@ import org.terracotta.exception.EntityException;
  */
 public class EhcacheClientEntity implements Entity {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
+
+  public interface ResponseListener<T extends EhcacheEntityResponse> {
+    void onResponse(T response);
+  }
+
+  public interface DisconnectionListener {
+    void onDisconnection();
+  }
+
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
+  private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
+  private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
+  private volatile boolean connected = true;
 
   public EhcacheClientEntity(EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint) {
     this.endpoint = endpoint;
     this.messageFactory = new LifeCycleMessageFactory();
+    endpoint.setDelegate(new EndpointDelegate() {
+      @Override
+      public void handleMessage(EntityResponse messageFromServer) {
+        if (messageFromServer instanceof EhcacheEntityResponse) {
+          fireResponseEvent((EhcacheEntityResponse) messageFromServer);
+        }
+      }
+
+      @Override
+      public byte[] createExtendedReconnectData() {
+        return new byte[0];
+      }
+
+      @Override
+      public void didDisconnectUnexpectedly() {
+        connected = false;
+        fireDisconnectionEvent();
+      }
+    });
+  }
+
+  private void fireDisconnectionEvent() {
+    for (DisconnectionListener listener : disconnectionListeners) {
+      listener.onDisconnection();
+    }
+  }
+
+  private void fireResponseEvent(EhcacheEntityResponse response) {
+    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(response.getClass());
+    if (responseListeners == null) {
+      return;
+    }
+    for (ResponseListener responseListener : responseListeners) {
+      responseListener.onResponse(response);
+    }
+  }
+
+  public boolean isConnected() {
+    return connected;
+  }
+
+  public void addDisconnectionListener(DisconnectionListener listener) {
+    disconnectionListeners.add(listener);
+  }
+
+  public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
+    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
+    if (responseListeners == null) {
+      responseListeners = new CopyOnWriteArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
+      this.responseListeners.put(responseType, responseListeners);
+    }
+    responseListeners.add(responseListener);
   }
 
   public UUID identity() {

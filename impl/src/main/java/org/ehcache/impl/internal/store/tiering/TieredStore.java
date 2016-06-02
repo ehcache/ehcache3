@@ -90,6 +90,11 @@ public class TieredStore<K, V> implements Store<K, V> {
       public void invalidateAll() throws StoreAccessException {
         invalidateAllInternal();
       }
+
+      @Override
+      public void invalidateAllWithHash(long hash) throws StoreAccessException {
+        cachingTier().invalidateAllWithHash(hash);
+      }
     });
 
     StatisticsManager.associate(cachingTier).withParent(this);
@@ -555,6 +560,11 @@ public class TieredStore<K, V> implements Store<K, V> {
 
     @Override
     public void setInvalidationListener(final InvalidationListener<K, V> invalidationListener) {
+      // noop
+    }
+
+    @Override
+    public void invalidateAllWithHash(long hash) throws StoreAccessException {
       // noop
     }
 

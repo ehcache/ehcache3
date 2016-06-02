@@ -89,6 +89,13 @@ public interface AuthoritativeTier<K, V> extends Store<K, V> {
      * @throws StoreAccessException when en error occurs while invalidating mappings
      */
     void invalidateAll() throws StoreAccessException;
+
+    /**
+     * Requests an invalidation of all {@link CachingTier} mappings whose key's hashcode matches the provided one.
+     *
+     * @throws StoreAccessException when en error occurs while invalidating mappings
+     */
+    void invalidateAllWithHash(long hash) throws StoreAccessException;
   }
 
   /**

@@ -28,7 +28,9 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     GET_AND_APPEND((byte) 11),
     APPEND((byte) 12),
     REPLACE((byte) 13),
-    CLEAR((byte) 14);
+    CLIENT_INVALIDATE_HASH_ACK((byte) 14),
+    CLEAR((byte) 15),
+    ;
 
     private final byte storeOpCode;
 
@@ -51,6 +53,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
         case 13:
           return REPLACE;
         case 14:
+          return CLIENT_INVALIDATE_HASH_ACK;
+        case 15:
           return CLEAR;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + storeOpCode);
@@ -162,7 +166,31 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     public Chain getUpdate() {
       return update;
     }
+  }
 
+
+  public static class ClientInvalidateHashAck extends ServerStoreOpMessage {
+
+    private final int invalidationId;
+
+    public ClientInvalidateHashAck(String cacheId, long key, int invalidationId) {
+      super(cacheId, key);
+      this.invalidationId = invalidationId;
+    }
+
+    public int getInvalidationId() {
+      return invalidationId;
+    }
+
+    @Override
+    public ServerStoreOp operation() {
+      return ServerStoreOp.CLIENT_INVALIDATE_HASH_ACK;
+    }
+
+    @Override
+    public byte getOpCode() {
+      return ServerStoreOp.CLIENT_INVALIDATE_HASH_ACK.getStoreOpCode();
+    }
   }
 
   static class ClearMessage extends ServerStoreOpMessage {
