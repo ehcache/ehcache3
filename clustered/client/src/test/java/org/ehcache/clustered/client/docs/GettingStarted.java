@@ -121,14 +121,17 @@ public class GettingStarted {
     cacheManager.init();
 
     try {
+      // tag::clusteredCacheConsistency[]
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                       .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
-          .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+          .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)) // <1>
           .build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      cache.put(42L, "All you need to know!"); // <2>
 
+      // end::clusteredCacheConsistency[]
     } finally {
       cacheManager.close();
     }
