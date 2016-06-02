@@ -120,7 +120,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ClientCommunicator clientCommunicator;
 
-  private static class InvalidationHolder {
+  static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
     final Set<ClientDescriptor> clientsHavingToInvalidate;
     final String cacheId;
@@ -233,9 +233,19 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public void disconnected(ClientDescriptor clientDescriptor) {
+    // cleanup all invalidation requests waiting for a ack from this client
     Set<Integer> invalidationIds = clientsWaitingForInvalidation.keySet();
     for (Integer invalidationId : invalidationIds) {
       clientInvalidated(clientDescriptor, invalidationId);
+    }
+
+    // cleanup all invalidation request this client was blocking on
+    Iterator<Entry<Integer, InvalidationHolder>> it = clientsWaitingForInvalidation.entrySet().iterator();
+    while (it.hasNext()) {
+      Entry<Integer, InvalidationHolder> next = it.next();
+      if (next.getValue().clientDescriptorWaitingForInvalidation.equals(clientDescriptor)) {
+        it.remove();
+      }
     }
 
     ClientState clientState = clientStateMap.remove(clientDescriptor);
@@ -937,6 +947,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
 
     return wasRegistered;
+  }
+
+  ConcurrentMap<Integer, InvalidationHolder> getClientsWaitingForInvalidation() {
+    return clientsWaitingForInvalidation;
   }
 
   /**

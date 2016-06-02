@@ -17,6 +17,7 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
@@ -263,6 +264,252 @@ public class EhcacheActiveEntityTest {
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
         IllegalStateException.class, "Client not attached"
     );
+  }
+
+  @Test
+  public void testInvalidationAcksTakenIntoAccount() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client1 = new TestClientDescriptor();
+    ClientDescriptor client2 = new TestClientDescriptor();
+    ClientDescriptor client3 = new TestClientDescriptor();
+    activeEntity.connected(client1);
+    activeEntity.connected(client2);
+    activeEntity.connected(client3);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client1,
+            MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration))
+    );
+
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
+        .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
+        .consistency(Consistency.STRONG)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client1,
+            MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
+    );
+
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+
+    // attach the clients
+    assertSuccess(
+        activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+
+    // attach to the store
+    assertSuccess(
+        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+
+    // perform an append
+    assertSuccess(
+        activeEntity.invoke(client1, messageFactory.appendOperation(1L, createPayload(1L)))
+    );
+
+    // assert that an invalidation request is pending
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
+    EhcacheActiveEntity.InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
+
+    // client 2 acks
+    assertSuccess(
+        activeEntity.invoke(client2, messageFactory.clientInvalidateHashAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+    );
+
+    // assert that client 2 is not waited for anymore
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
+    invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(1));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(client3));
+
+    // client 3 acks
+    assertSuccess(
+        activeEntity.invoke(client3, messageFactory.clientInvalidateHashAck(1L, activeEntity.getClientsWaitingForInvalidation().keySet().iterator().next()))
+    );
+
+    // assert that the invalidation request is done since all clients disconnected
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
+  }
+
+  @Test
+  public void testInvalidationDisconnectionOfInvalidatingClientsTakenIntoAccount() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client1 = new TestClientDescriptor();
+    ClientDescriptor client2 = new TestClientDescriptor();
+    ClientDescriptor client3 = new TestClientDescriptor();
+    activeEntity.connected(client1);
+    activeEntity.connected(client2);
+    activeEntity.connected(client3);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client1,
+            MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration))
+    );
+
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
+        .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
+        .consistency(Consistency.STRONG)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client1,
+            MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
+    );
+
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+
+    // attach the clients
+    assertSuccess(
+        activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+
+    // attach to the store
+    assertSuccess(
+        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+
+    // perform an append
+    assertSuccess(
+        activeEntity.invoke(client1, messageFactory.appendOperation(1L, createPayload(1L)))
+    );
+
+    // assert that an invalidation request is pending
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
+    EhcacheActiveEntity.InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
+
+    // disconnect client2
+    activeEntity.disconnected(client2);
+
+    // assert that client 2 is not waited for anymore
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
+    invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(1));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, contains(client3));
+
+    // disconnect client3
+    activeEntity.disconnected(client3);
+
+    // assert that the invalidation request is done since all clients disconnected
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
+  }
+
+  @Test
+  public void testInvalidationDisconnectionOfBlockingClientTakenIntoAccount() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client1 = new TestClientDescriptor();
+    ClientDescriptor client2 = new TestClientDescriptor();
+    ClientDescriptor client3 = new TestClientDescriptor();
+    activeEntity.connected(client1);
+    activeEntity.connected(client2);
+    activeEntity.connected(client3);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client1,
+            MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration))
+    );
+
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
+        .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
+        .consistency(Consistency.STRONG)
+        .build();
+    assertSuccess(
+        activeEntity.invoke(client1,
+            MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
+    );
+
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+
+    // attach the clients
+    assertSuccess(
+        activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
+    );
+
+    // attach to the store
+    assertSuccess(
+        activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+    assertSuccess(
+        activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
+    );
+
+    // perform an append
+    assertSuccess(
+        activeEntity.invoke(client1, messageFactory.appendOperation(1L, createPayload(1L)))
+    );
+
+    // assert that an invalidation request is pending
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(1));
+    EhcacheActiveEntity.InvalidationHolder invalidationHolder = activeEntity.getClientsWaitingForInvalidation().values().iterator().next();
+    assertThat(invalidationHolder.clientDescriptorWaitingForInvalidation, is(client1));
+    assertThat(invalidationHolder.clientsHavingToInvalidate.size(), is(2));
+    assertThat(invalidationHolder.clientsHavingToInvalidate, containsInAnyOrder(client2, client3));
+
+    // disconnect client1
+    activeEntity.disconnected(client1);
+
+    // assert that the invalidation request is done since the originating client disconnected
+    assertThat(activeEntity.getClientsWaitingForInvalidation().size(), is(0));
   }
 
   @Test
@@ -1764,6 +2011,13 @@ public class EhcacheActiveEntityTest {
     private String actualValueType;
     private String keySerializerType;
     private String valueSerializerType;
+    private Consistency consistency;
+
+
+    ServerStoreConfigBuilder consistency(Consistency consistency) {
+      this.consistency = consistency;
+      return this;
+    }
 
     ServerStoreConfigBuilder fixed(String resourceName, int size, MemoryUnit unit) {
       this.poolAllocation = new PoolAllocation.Fixed(resourceName, unit.toBytes(size));
@@ -1807,7 +2061,7 @@ public class EhcacheActiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-          actualKeyType, actualValueType, keySerializerType, valueSerializerType, null);
+          actualKeyType, actualValueType, keySerializerType, valueSerializerType, consistency);
     }
   }
 
