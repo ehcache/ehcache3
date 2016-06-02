@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.config.xml;
+package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;

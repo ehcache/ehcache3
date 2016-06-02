@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.config.xml;
+package org.ehcache.clustered.client.internal.config.xml;
 
 import java.net.URI;
 import java.net.URL;
