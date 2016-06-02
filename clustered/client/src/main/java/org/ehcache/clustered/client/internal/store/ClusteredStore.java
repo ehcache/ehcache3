@@ -38,12 +38,14 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.statistics.observer.OperationObserver;
 
 import java.nio.ByteBuffer;
 import java.util.Collection;
@@ -54,11 +56,14 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
  * Supports a {@link Store} in a clustered environment.
  */
 public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
+
+  private static final String STATISTICS_TAG = "clustered-store";
 
   private final OperationsCodec<K, V> codec;
   private final ChainResolver<K, V> resolver;
@@ -66,17 +71,36 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private volatile ServerStoreProxy storeProxy;
   private volatile InvalidationValve invalidationValve;
 
-  private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
+  private final OperationObserver<StoreOperationOutcomes.GetOutcome> getObserver;
+  private final OperationObserver<StoreOperationOutcomes.PutOutcome> putObserver;
+  private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeObserver;
+
+  ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
     this.resolver = resolver;
+
+    this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(STATISTICS_TAG).build();
+    this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(STATISTICS_TAG).build();
+    this.removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag(STATISTICS_TAG).build();
+  }
+
+  /**
+   * For tests
+   */
+  ClusteredStore(OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy) {
+    this(codec, resolver);
+    this.storeProxy = proxy;
   }
 
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
+    getObserver.begin();
     V value = getInternal(key);
     if(value == null) {
+      getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
       return null;
     } else {
+      getObserver.end(StoreOperationOutcomes.GetOutcome.HIT);
       return new ClusteredValueHolder<V>(value);
     }
   }
@@ -109,10 +133,18 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
+    putObserver.begin();
     PutOperation<K, V> operation = new PutOperation<K, V>(key, value);
     ByteBuffer payload = codec.encode(operation);
-    storeProxy.append(key.hashCode(), payload);
-    return PutStatus.PUT; // TODO: 17/05/16 Do we need to differentiate between different statuses?
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    if(resolvedChain.getResolvedResult(key) == null) {
+      putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
+      return PutStatus.PUT;
+    } else {
+      putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
+      return PutStatus.UPDATE;
+    }
   }
 
   @Override
@@ -123,13 +155,16 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public boolean remove(final K key) throws StoreAccessException {
+    removeObserver.begin();
     RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key);
     ByteBuffer payload = codec.encode(operation);
     Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
     ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
     if(resolvedChain.getResolvedResult(key) != null) {
+      removeObserver.end(StoreOperationOutcomes.RemoveOutcome.REMOVED);
       return true;
     } else {
+      removeObserver.end(StoreOperationOutcomes.RemoveOutcome.MISS);
       return false;
     }
   }
