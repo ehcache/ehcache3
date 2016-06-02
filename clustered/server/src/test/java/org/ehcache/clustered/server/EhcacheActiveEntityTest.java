@@ -482,7 +482,7 @@ public class EhcacheActiveEntityTest {
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .sharedPool("tertiary", "serverResource3", 8, MemoryUnit.MEGABYTES)   // extra
             .build())),
-        IllegalArgumentException.class, "ResourcePools not aligned");
+        IllegalArgumentException.class, "SharedPoolResources aren't valid.");
   }
 
   @Test
@@ -1405,6 +1405,173 @@ public class EhcacheActiveEntityTest {
 
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(0L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(0L)));
+  }
+
+  @Test
+  public void testValidateSharedPoolSizeDifferent() throws Exception {
+    ServerSideConfiguration serverSideConfig = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    ServerSideConfiguration clientSideConfig = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 8, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
+
+    activeEntity.disconnected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
+
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertFailure(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(clientSideConfig)),IllegalArgumentException.class,"SharedPoolResources aren't valid. ServerSideConfiguration pool sent by client is different than server ServerSideConfiguration pool.");
+
+    assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+  }
+
+  @Test
+  public void testValidateSharedPoolNamesDifferent() throws Exception {
+    ServerSideConfiguration serverSideConfig = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    ServerSideConfiguration clientSideConfig = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("ternary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
+
+    activeEntity.disconnected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
+
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertFailure(activeEntity.invoke(client,MESSAGE_FACTORY.validateStoreManager(clientSideConfig)),IllegalArgumentException.class,"SharedPoolResources aren't valid. pool names not equal.");
+
+    assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+  }
+
+  @Test
+  public void testValidateDefaultResourceNameDifferent() throws Exception {
+    ServerSideConfiguration serverSideConfig = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource1")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    ServerSideConfiguration clientSideConfig = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource2")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertSuccess(activeEntity.invoke(client,MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
+
+    activeEntity.disconnected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
+
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertFailure(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(clientSideConfig)),IllegalArgumentException.class, "Default resource not aligned");
+
+    assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+  }
+
+  @Test
+  public void testValidateClientSharedPoolSizeTooBig() throws Exception {
+    ServerSideConfiguration serverSideConfig = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource1")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 32, MemoryUnit.MEGABYTES)
+        .build();
+    ServerSideConfiguration clientSideConfig = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource1")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 36, MemoryUnit.MEGABYTES)
+        .build();
+
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertSuccess(activeEntity.invoke(client,MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
+
+    activeEntity.disconnected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
+
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertFailure(activeEntity.invoke(client,MESSAGE_FACTORY.validateStoreManager(clientSideConfig)),IllegalArgumentException.class, "SharedPoolResources aren't valid. ServerSideConfiguration pool sent by client is different than server ServerSideConfiguration pool.");
+
+    assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+  }
+
+  @Test
+  public void testValidateSecondClientInheritsFirstClientConfig() throws Exception {
+    ServerSideConfiguration serverSideConfig1 = new ServerSideConfigBuilder()
+        .defaultResource("defaultServerResource")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build();
+    ServerSideConfiguration serverSideConfig2 = new ServerSideConfigBuilder()
+        .build();
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+    assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
+
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig1)));
+
+    ClientDescriptor client2 = new TestClientDescriptor();
+    activeEntity.connected(client2);
+    assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
+
+    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig2)));
+
+    assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().get(client2), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
