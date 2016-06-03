@@ -22,8 +22,8 @@ import java.nio.ByteBuffer;
 
 public class PutIfAbsentOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
 
-  public PutIfAbsentOperation(final K key, final V value) {
-    super(key, value);
+  public PutIfAbsentOperation(final K key, final V value,final long expirationTimeStamp) {
+    super(key, value, expirationTimeStamp);
   }
 
   PutIfAbsentOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {

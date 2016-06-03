@@ -104,11 +104,11 @@ public class ConditionalReplaceOperationTest {
     Result<String> result = operation.apply(null);
     assertNull(result);
 
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one");
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(operation, result);
 
-    anotherOperation = new PutOperation<Long, String>(1L, "another one");
+    anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(anotherOperation, result);
   }

@@ -24,12 +24,14 @@ import java.nio.ByteBuffer;
 public class RemoveOperation<K, V> implements Operation<K, V> {
 
   private final K key;
+  private final long expirationTimeStamp;
 
-  public RemoveOperation(final K key) {
+  public RemoveOperation(final K key, final long expirationTimeStamp) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
     this.key = key;
+    this.expirationTimeStamp = expirationTimeStamp;
   }
 
   RemoveOperation(final ByteBuffer buffer, final Serializer<K> keySerializer) {
@@ -37,6 +39,7 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
     if (opCode != getOpCode()) {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
+    this.expirationTimeStamp = buffer.getLong();
 
     ByteBuffer keyBlob = buffer.slice();
     try {
@@ -69,10 +72,12 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
     ByteBuffer keyBuf = keySerializer.serialize(key);
 
     int size = BYTE_SIZE_BYTES +   // Operation type
+               LONG_SIZE_BYTES +   // Size of expiration time stamp
                keyBuf.remaining();   // the key payload itself
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
     buffer.put(getOpCode().getValue());
+    buffer.putLong(this.expirationTimeStamp);
     buffer.put(keyBuf);
     buffer.flip();
     return buffer;

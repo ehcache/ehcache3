@@ -43,6 +43,9 @@ import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
@@ -72,6 +75,9 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationsCodec<K, V> codec;
   private final ChainResolver<K, V> resolver;
 
+  private final Expiry<? super K, ? super V> expiry;
+  private final TimeSource timeSource;
+
   private volatile ServerStoreProxy storeProxy;
   private volatile InvalidationValve invalidationValve;
 
@@ -83,9 +89,11 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.ReplaceOutcome> replaceObserver;
   private final OperationObserver<StoreOperationOutcomes.ConditionalReplaceOutcome> conditionalReplaceObserver;
 
-  ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
+  private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver, Expiry<? super K, ? super V> expiry, TimeSource timeSource) {
     this.codec = codec;
     this.resolver = resolver;
+    this.expiry = expiry;
+    this.timeSource = timeSource;
 
     this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(STATISTICS_TAG).build();
     this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(STATISTICS_TAG).build();
@@ -99,8 +107,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   /**
    * For tests
    */
-  ClusteredStore(OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy) {
-    this(codec, resolver);
+  ClusteredStore(OperationsCodec<K, V> codec, ChainResolver<K, V> resolver, ServerStoreProxy proxy, Expiry<? super K, ? super V> expiry, TimeSource timeSource) {
+    this(codec, resolver, expiry, timeSource);
     this.storeProxy = proxy;
   }
 
@@ -146,7 +154,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
-    PutOperation<K, V> operation = new PutOperation<K, V>(key, value);
+    PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis());
     ByteBuffer payload = codec.encode(operation);
     Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
     ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
@@ -179,7 +187,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   @Override
   public boolean remove(final K key) throws StoreAccessException {
     removeObserver.begin();
-    RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key);
+    RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key, timeSource.getTimeMillis());
     ByteBuffer payload = codec.encode(operation);
     Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
     ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
@@ -383,7 +391,9 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
       OperationsCodec<K, V> codec = new OperationsCodec<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
       ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec);
-      ClusteredStore<K, V> store = new ClusteredStore<K, V>(codec, resolver);
+
+      TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+      ClusteredStore<K, V> store = new ClusteredStore<K, V>(codec, resolver, storeConfig.getExpiry(), timeSource);
       createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
       return store;
     }

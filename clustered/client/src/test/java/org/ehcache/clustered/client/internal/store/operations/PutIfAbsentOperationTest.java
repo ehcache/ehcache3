@@ -27,7 +27,7 @@ public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value) {
-    return new PutIfAbsentOperation<K, V>(key, value);
+    return new PutIfAbsentOperation<K, V>(key, value, System.currentTimeMillis());
   }
 
   @Override
@@ -42,11 +42,11 @@ public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<Long, String>(1L, "one");
+    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<Long, String>(1L, "one", System.currentTimeMillis());
     Result<String> result = operation.apply(null);
     assertSame(operation, result);
 
-    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<Long, String>(1L, "another one");
+    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<Long, String>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(anotherOperation, result);
   }

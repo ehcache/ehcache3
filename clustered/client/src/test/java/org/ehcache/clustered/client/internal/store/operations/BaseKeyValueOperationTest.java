@@ -48,9 +48,10 @@ public abstract class BaseKeyValueOperationTest {
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
     ByteBuffer expected = ByteBuffer.allocate(BYTE_SIZE_BYTES +
-                                              INT_SIZE_BYTES + LONG_SIZE_BYTES + value.length());
+                                              INT_SIZE_BYTES + 2 * LONG_SIZE_BYTES + value.length());
     expected.put(getOperationCode().getValue());
-    expected.putInt(8);
+    expected.putLong(System.currentTimeMillis());
+    expected.putInt(LONG_SIZE_BYTES);
     expected.putLong(key);
     expected.put(value.getBytes());
     expected.flip();
@@ -63,9 +64,10 @@ public abstract class BaseKeyValueOperationTest {
     String value = "The value";
 
     ByteBuffer blob = ByteBuffer.allocate(BYTE_SIZE_BYTES +
-                                          INT_SIZE_BYTES + LONG_SIZE_BYTES + value.length());
+                                          INT_SIZE_BYTES + 2 * LONG_SIZE_BYTES + value.length());
     blob.put(getOperationCode().getValue());
-    blob.putInt(8);
+    blob.putLong(System.currentTimeMillis());
+    blob.putInt(LONG_SIZE_BYTES);
     blob.putLong(key);
     blob.put(value.getBytes());
     blob.flip();

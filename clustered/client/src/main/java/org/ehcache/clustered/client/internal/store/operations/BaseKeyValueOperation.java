@@ -25,8 +25,9 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   private final K key;
   private final V value;
+  private final long expirationTimeStamp;
 
-  BaseKeyValueOperation(K key, V value) {
+  BaseKeyValueOperation(K key, V value, long expirationTimeStamp) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
@@ -35,6 +36,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     }
     this.key = key;
     this.value = value;
+    this.expirationTimeStamp = expirationTimeStamp;
   }
 
   BaseKeyValueOperation(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
@@ -42,6 +44,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     if (opCode != getOpCode()) {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
+    this.expirationTimeStamp = buffer.getLong();
     int keySize = buffer.getInt();
     buffer.limit(buffer.position() + keySize);
     ByteBuffer keyBlob = buffer.slice();
@@ -81,16 +84,17 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
     int size = BYTE_SIZE_BYTES +   // Operation type
                INT_SIZE_BYTES +    // Size of the key payload
+               LONG_SIZE_BYTES +   // Size of expiration time stamp
                keyBuf.remaining() + // the key payload itself
                valueBuf.remaining();  // the value payload
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
 
     buffer.put(getOpCode().getValue());
+    buffer.putLong(this.expirationTimeStamp);
     buffer.putInt(keyBuf.remaining());
     buffer.put(keyBuf);
     buffer.put(valueBuf);
-
     buffer.flip();
     return buffer;
   }

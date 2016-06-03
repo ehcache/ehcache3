@@ -61,7 +61,7 @@ public class ChainResolver<K, V> {
     }
     Operation<K, V> resolvedOperation = null;
     if(result != null) {
-      resolvedOperation = new PutOperation<K, V>(key, result.getValue());
+      resolvedOperation = new PutOperation<K, V>(key, result.getValue(), System.currentTimeMillis());
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }
