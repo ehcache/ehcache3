@@ -143,11 +143,7 @@ class DefaultClusteringService implements ClusteringService {
         throw new IllegalStateException(failure == null ? e : failure);
       }
     } catch (RuntimeException e) {
-      if (entityFactory != null) {
-        entityFactory.abandonLeadership(entityIdentifier);
-        entityFactory.close();
-        entityFactory = null;
-      }
+      entityFactory = null;
       try {
         clusterConnection.close();
         clusterConnection = null;
@@ -182,17 +178,19 @@ class DefaultClusteringService implements ClusteringService {
   @Override
   public void stop() {
     LOGGER.info("stop called for clustered caches on {}", this.clusterUri);
-    if (entityFactory != null) {
-      entityFactory.abandonLeadership(entityIdentifier);
-      entityFactory.close();
-      entityFactory = null;
-    }
+
+    /*
+     * Entity close() operations must *not* be called; if the server connection is disconnected, the entity
+     * close operations will stall attempting to communicate with the server.  (EntityClientEndpointImpl.close()
+     * calls a "closeHook" method provided by ClientEntityManagerImpl which ultimately winds up in
+     * InFlightMessage.waitForAcks -- a method that can wait forever.)  Theoretically, the connection close will
+     * take care of server-side cleanup in the event the server is connected.
+     */
+    entityFactory = null;
     inMaintenance = false;
 
-    if (entity != null) {
-      entity.close();
-      entity = null;
-    }
+    entity = null;
+
     try {
       if (clusterConnection != null) {
         clusterConnection.close();
