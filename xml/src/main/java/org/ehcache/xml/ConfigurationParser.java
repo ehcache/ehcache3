@@ -331,13 +331,17 @@ class ConfigurationParser {
 
           @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
-            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
+            Map<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>> configsMap =
+                new HashMap<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>>();
             for (BaseCacheType source : sources) {
               for (Element child : source.getServiceConfiguration()) {
-                configs.add(parseCacheExtension(child));
+                ServiceConfiguration<?> serviceConfiguration = parseCacheExtension(child);
+                if (!configsMap.containsKey(serviceConfiguration.getClass())) {
+                  configsMap.put(serviceConfiguration.getClass(), serviceConfiguration);
+                }
               }
             }
-            return configs;
+            return configsMap.values();
           }
 
           @Override
