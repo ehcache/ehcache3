@@ -18,12 +18,18 @@ package org.ehcache.transactions;
 import bitronix.tm.BitronixTransactionManager;
 import bitronix.tm.TransactionManagerServices;
 import org.ehcache.CacheManager;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.Test;
 
 import java.net.URL;
+
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * @author Ludovic Orban
@@ -42,5 +48,16 @@ public class XmlConfigTest {
 
     myCacheManager.close();
     transactionManager.shutdown();
+  }
+
+  @Test
+  public void testTemplateConfigOverride() throws Exception {
+    final URL myUrl = this.getClass().getResource("/configs/template-xa.xml");
+    Configuration xmlConfig = new XmlConfiguration(myUrl);
+    CacheConfiguration<?, ?> cacheConfiguration = xmlConfig.getCacheConfigurations().get("xaCache1");
+    XAStoreConfiguration xaStoreConfiguration = ServiceLocator.findSingletonAmongst(XAStoreConfiguration.class, cacheConfiguration
+        .getServiceConfigurations());
+
+    assertThat(xaStoreConfiguration.getUniqueXAResourceId(), is("xaCache1"));
   }
 }
