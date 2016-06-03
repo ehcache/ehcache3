@@ -28,7 +28,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     GET_AND_APPEND((byte) 11),
     APPEND((byte) 12),
     REPLACE((byte) 13),
-    CLIENT_INVALIDATE_HASH_ACK((byte) 14),
+    CLIENT_INVALIDATION_ACK((byte) 14),
     CLEAR((byte) 15),
     ;
 
@@ -53,7 +53,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
         case 13:
           return REPLACE;
         case 14:
-          return CLIENT_INVALIDATE_HASH_ACK;
+          return CLIENT_INVALIDATION_ACK;
         case 15:
           return CLEAR;
         default:
@@ -168,14 +168,19 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
   }
 
-
-  public static class ClientInvalidateHashAck extends ServerStoreOpMessage {
+  // TODO: ClientInvalidationAck does not need a key
+  public static class ClientInvalidationAck extends ServerStoreOpMessage {
 
     private final int invalidationId;
 
-    public ClientInvalidateHashAck(String cacheId, long key, int invalidationId) {
-      super(cacheId, key);
+    ClientInvalidationAck(String cacheId, int invalidationId) {
+      super(cacheId, 0L);
       this.invalidationId = invalidationId;
+    }
+
+    @Override
+    public long getKey() {
+      throw new UnsupportedOperationException("ClientInvalidationAck message does not have a key parameter");
     }
 
     public int getInvalidationId() {
@@ -184,17 +189,17 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
     @Override
     public ServerStoreOp operation() {
-      return ServerStoreOp.CLIENT_INVALIDATE_HASH_ACK;
+      return ServerStoreOp.CLIENT_INVALIDATION_ACK;
     }
 
     @Override
     public byte getOpCode() {
-      return ServerStoreOp.CLIENT_INVALIDATE_HASH_ACK.getStoreOpCode();
+      return ServerStoreOp.CLIENT_INVALIDATION_ACK.getStoreOpCode();
     }
   }
 
+  // TODO: ClearMessage does not need a key
   static class ClearMessage extends ServerStoreOpMessage {
-
 
     ClearMessage(final String cacheId) {
       super(cacheId, 0L);

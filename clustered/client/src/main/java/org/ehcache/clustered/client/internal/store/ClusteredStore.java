@@ -302,14 +302,27 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
       clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
         @Override
-        public void onInvalidationRequest(long hash) {
+        public void onInvalidateHash(long hash) {
           if (clusteredStore.invalidationValve != null) {
             try {
-              LOGGER.debug("CLIENT: calling invalidation valve");
+              LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
               clusteredStore.invalidationValve.invalidateAllWithHash(hash);
             } catch (StoreAccessException sae) {
               //TODO: what should be done here? delegate to resilience strategy?
               LOGGER.error("Error invalidating hash {}", hash, sae);
+            }
+          }
+        }
+
+        @Override
+        public void onInvalidateAll() {
+          if (clusteredStore.invalidationValve != null) {
+            try {
+              LOGGER.debug("CLIENT: calling invalidation valve for all");
+              clusteredStore.invalidationValve.invalidateAll();
+            } catch (StoreAccessException sae) {
+              //TODO: what should be done here? delegate to resilience strategy?
+              LOGGER.error("Error invalidating all", sae);
             }
           }
         }
