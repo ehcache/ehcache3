@@ -36,7 +36,7 @@ public interface LocalPersistenceService extends PersistableResourceService {
    *
    * @throws CachePersistenceException if the persistence space cannot be created
    */
-  PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException;
+  PersistenceSpaceIdentifier<LocalPersistenceService> getOrCreatePersistenceSpace(String name) throws CachePersistenceException;
 
   /**
    * Creates a new persistence context within the given space.
@@ -45,5 +45,5 @@ public interface LocalPersistenceService extends PersistableResourceService {
    * @param name name of the context to create
    * @return a {@link FileBasedPersistenceContext}
    */
-  FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier space, String name) throws CachePersistenceException;
+  FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier<?> space, String name) throws CachePersistenceException;
 }

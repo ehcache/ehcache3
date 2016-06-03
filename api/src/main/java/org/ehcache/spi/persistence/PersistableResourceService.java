@@ -61,7 +61,7 @@ public interface PersistableResourceService extends MaintainableService {
    *
    * @return an identifier for the created persistence space
    */
-  PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
+  PersistenceSpaceIdentifier<?> create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
 
   /**
    * Returns a named {@link StateRepository state repository} in the context of the given
