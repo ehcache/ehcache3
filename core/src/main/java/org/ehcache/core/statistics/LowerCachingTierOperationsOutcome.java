@@ -49,6 +49,20 @@ public interface LowerCachingTierOperationsOutcome {
   }
 
   /**
+   * the invalidateAllWithHash outcomes
+   */
+  enum InvalidateAllWithHashOutcome implements LowerCachingTierOperationsOutcome {
+    /**
+     * entries invalidated, without errors
+     */
+    SUCCESS,
+    /**
+     * entries invalidated, with errors
+     */
+    FAILURE
+  }
+
+  /**
    * the getAndRemove outcomes
    */
   enum GetAndRemoveOutcome implements LowerCachingTierOperationsOutcome {

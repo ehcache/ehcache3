@@ -88,7 +88,7 @@ public class BasicClusteredCacheTest {
         newCacheManagerBuilder()
             .with(cluster(CLUSTER_URI))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
-                ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
+                ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
                 .add(new ClusteredStoreServiceConfiguration().consistency(Consistency.STRONG)))
         ;
