@@ -81,16 +81,20 @@ public class EhcacheClientEntity implements Entity {
 
       @Override
       public void didDisconnectUnexpectedly() {
-        connected = false;
         fireDisconnectionEvent();
       }
     });
   }
 
-  private void fireDisconnectionEvent() {
+  void fireDisconnectionEvent() {
+    connected = false;
     for (DisconnectionListener listener : disconnectionListeners) {
       listener.onDisconnection();
     }
+  }
+
+  void setConnected(boolean connected) {
+    this.connected = connected;
   }
 
   private void fireResponseEvent(EhcacheEntityResponse response) {
@@ -98,6 +102,7 @@ public class EhcacheClientEntity implements Entity {
     if (responseListeners == null) {
       return;
     }
+    LOGGER.debug("{} registered response listener(s) for {}", responseListeners.size(), response.getClass());
     for (ResponseListener responseListener : responseListeners) {
       responseListener.onResponse(response);
     }

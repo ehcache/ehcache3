@@ -37,6 +37,7 @@ import java.util.Collections;
 import java.util.Properties;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.clustered.common.store.Util.createPayload;
@@ -103,41 +104,81 @@ public class EventualServerStoreProxyTest {
   }
 
   @Test
-  public void testInvalidationListenerWithAppend() throws Exception {
+  public void testHashInvalidationListenerWithAppend() throws Exception {
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
 
-    serverStoreProxy1.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
-      public void onInvalidationRequest(long hash) {
+      public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
         latch.countDown();
       }
-    });
+
+      @Override
+      public void onInvalidateAll() {
+        throw new AssertionError("Should not be called");
+      }
+    };
+    serverStoreProxy1.addInvalidationListener(listener);
 
     serverStoreProxy2.append(1L, createPayload(1L));
 
     latch.await(5, TimeUnit.SECONDS);
     assertThat(invalidatedHash.get(), is(1L));
+    serverStoreProxy1.removeInvalidationListener(listener);
   }
 
   @Test
-  public void testInvalidationListenerWithGetAndAppend() throws Exception {
+  public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
     final CountDownLatch latch = new CountDownLatch(1);
     final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
 
-    serverStoreProxy1.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
-      public void onInvalidationRequest(long hash) {
+      public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
         latch.countDown();
       }
-    });
+
+      @Override
+      public void onInvalidateAll() {
+        throw new AssertionError("Should not be called");
+      }
+    };
+    serverStoreProxy1.addInvalidationListener(listener);
 
     serverStoreProxy2.getAndAppend(1L, createPayload(1L));
 
     latch.await(5, TimeUnit.SECONDS);
     assertThat(invalidatedHash.get(), is(1L));
+    serverStoreProxy1.removeInvalidationListener(listener);
+  }
+
+  @Test
+  public void testAllInvalidationListener() throws Exception {
+    final CountDownLatch latch = new CountDownLatch(1);
+    final AtomicBoolean invalidatedAll = new AtomicBoolean();
+
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+      @Override
+      public void onInvalidateHash(long hash) {
+        throw new AssertionError("Should not be called");
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        invalidatedAll.set(true);
+        latch.countDown();
+      }
+    };
+    serverStoreProxy1.addInvalidationListener(listener);
+
+    serverStoreProxy2.clear();
+
+    latch.await(5, TimeUnit.SECONDS);
+    assertThat(invalidatedAll.get(), is(true));
+    serverStoreProxy1.removeInvalidationListener(listener);
   }
 
 }
