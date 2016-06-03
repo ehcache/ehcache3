@@ -75,7 +75,9 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.lang.Math.max;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 /**
  * Implementation of {@link Store} supporting disk-resident persistence.
@@ -86,6 +88,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
+  private static final int DEFAULT_CONCURRENCY = 16;
 
   protected final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
 
@@ -209,7 +212,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-                keyPortability, elementPortability, writeWorkers, false);
+                max((size / DEFAULT_CONCURRENCY) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
 
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
             source,
@@ -255,7 +258,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-        keyPortability, elementPortability, writeWorkers, true);
+        max((size / DEFAULT_CONCURRENCY) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, true);
 
     EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
         source,
@@ -263,7 +266,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         64,
         evictionAdvisor,
         mapEvictionListener, true);
-    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, factory, 16);
+    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, factory, DEFAULT_CONCURRENCY);
 
   }
 
