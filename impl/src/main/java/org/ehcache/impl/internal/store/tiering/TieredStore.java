@@ -26,6 +26,7 @@ import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
@@ -50,6 +51,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -86,6 +88,32 @@ public class TieredStore<K, V> implements Store<K, V> {
         TieredStore.this.authoritativeTier.flush(key, valueHolder);
       }
     });
+
+    // Fix for 919 introduced the ugly code below
+    // After the 3.0 line, this is done through proper abstractions
+    if (this.authoritativeTier instanceof AbstractOffHeapStore) {
+      AbstractOffHeapStore abstractOffHeapStore = (AbstractOffHeapStore) this.authoritativeTier;
+      if (this.realCachingTier instanceof OnHeapStore) {
+        final OnHeapStore tier = (OnHeapStore) this.realCachingTier;
+        abstractOffHeapStore.registerEmergencyValve(new Callable<Void>() {
+          @Override
+          public Void call() throws Exception {
+            tier.invalidate();
+            return null;
+          }
+        });
+      } else if (this.realCachingTier instanceof CompoundCachingTier){
+        final CompoundCachingTier tier = (CompoundCachingTier) this.realCachingTier;
+        abstractOffHeapStore.registerEmergencyValve(new Callable<Void>() {
+          @Override
+          public Void call() throws Exception {
+            tier.invalidate();
+            return null;
+          }
+        });
+      }
+
+    }
 
     StatisticsManager.associate(cachingTier).withParent(this);
     StatisticsManager.associate(authoritativeTier).withParent(this);
