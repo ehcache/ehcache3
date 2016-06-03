@@ -47,7 +47,19 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
 
         LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
         for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidationRequest(key);
+          listener.onInvalidateHash(key);
+        }
+      }
+    });
+    entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateAll.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
+      @Override
+      public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
+        final String cacheId = response.getCacheId();
+        final int invalidationId = response.getInvalidationId();
+
+        LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
+        for (InvalidationListener listener : invalidationListeners) {
+          listener.onInvalidateAll();
         }
       }
     });
@@ -61,6 +73,11 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   @Override
   public void addInvalidationListener(InvalidationListener listener) {
     invalidationListeners.add(listener);
+  }
+
+  @Override
+  public boolean removeInvalidationListener(InvalidationListener listener) {
+    return invalidationListeners.remove(listener);
   }
 
   @Override

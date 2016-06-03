@@ -19,6 +19,7 @@ import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
+import org.ehcache.clustered.client.internal.EhcacheClientEntityHelper;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.common.Consistency;
@@ -35,13 +36,24 @@ import org.terracotta.connection.Connection;
 import java.net.URI;
 import java.util.Collections;
 import java.util.Properties;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.junit.Assert.fail;
 
 public class StrongServerStoreProxyTest {
+
+  private static final ExecutorService executorService = Executors.newCachedThreadPool();
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
@@ -98,38 +110,223 @@ public class StrongServerStoreProxyTest {
     }
 
     UnitTestConnectionService.remove(CLUSTER_URI);
+    executorService.shutdown();
   }
 
   @Test
-  public void testInvalidationListenerWithAppend() throws Exception {
+  public void testHashInvalidationListenerWithAppend() throws Exception {
     final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
 
-    serverStoreProxy2.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
-      public void onInvalidationRequest(long hash) {
+      public void onInvalidateHash(long hash) {
         invalidatedHash.set(hash);
       }
-    });
+
+      @Override
+      public void onInvalidateAll() {
+        throw new AssertionError("Should not be called");
+      }
+    };
+    serverStoreProxy2.addInvalidationListener(listener);
 
     serverStoreProxy1.append(1L, createPayload(1L));
 
     assertThat(invalidatedHash.get(), is(1L));
+    serverStoreProxy2.removeInvalidationListener(listener);
   }
 
   @Test
-  public void testInvalidationListenerWithGetAndAppend() throws Exception {
-    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+  public void testConcurrentHashInvalidationListenerWithAppend() throws Exception {
+    final AtomicBoolean invalidating = new AtomicBoolean();
+    final CountDownLatch latch = new CountDownLatch(2);
 
-    serverStoreProxy2.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
       @Override
-      public void onInvalidationRequest(long hash) {
-        invalidatedHash.set(hash);
+      public void onInvalidateHash(long hash) {
+        if (!invalidating.compareAndSet(false, true)) {
+          fail("Both threads entered the listener concurrently");
+        }
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException ie) {
+          throw new AssertionError(ie);
+        }
+        invalidating.set(false);
+        latch.countDown();
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        throw new AssertionError("Should not be called");
+      }
+    };
+    serverStoreProxy2.addInvalidationListener(listener);
+
+    executorService.submit(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        serverStoreProxy1.append(1L, createPayload(1L));
+        return null;
+      }
+    });
+    executorService.submit(new Callable<Object>() {
+      @Override
+      public Object call() throws Exception {
+        serverStoreProxy1.append(1L, createPayload(1L));
+        return null;
       }
     });
 
-    serverStoreProxy1.getAndAppend(1L, createPayload(1L));
-
-    assertThat(invalidatedHash.get(), is(1L));
+    if (!latch.await(5, TimeUnit.SECONDS)) {
+      fail("Both listeners were not called");
+    }
+    serverStoreProxy2.removeInvalidationListener(listener);
   }
 
+  @Test
+  public void testHashInvalidationListenerWithGetAndAppend() throws Exception {
+    final AtomicReference<Long> invalidatedHash = new AtomicReference<Long>();
+
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+      @Override
+      public void onInvalidateHash(long hash) {
+        invalidatedHash.set(hash);
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        throw new AssertionError("Should not be called");
+      }
+    };
+    serverStoreProxy2.addInvalidationListener(listener);
+
+    serverStoreProxy1.getAndAppend(1L, createPayload(1L));
+
+    serverStoreProxy2.removeInvalidationListener(listener);
+  }
+
+  @Test
+  public void testAllInvalidationListener() throws Exception {
+    final AtomicBoolean invalidatedAll = new AtomicBoolean();
+
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+      @Override
+      public void onInvalidateHash(long hash) {
+        throw new AssertionError("Should not be called");
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        invalidatedAll.set(true);
+      }
+    };
+    serverStoreProxy2.addInvalidationListener(listener);
+
+    serverStoreProxy1.clear();
+
+    assertThat(invalidatedAll.get(), is(true));
+    serverStoreProxy2.removeInvalidationListener(listener);
+  }
+
+  @Test
+  public void testConcurrentAllInvalidationListener() throws Exception {
+    final AtomicBoolean invalidating = new AtomicBoolean();
+    final CountDownLatch latch = new CountDownLatch(2);
+
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+      @Override
+      public void onInvalidateHash(long hash) {
+        throw new AssertionError("Should not be called");
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        if (!invalidating.compareAndSet(false, true)) {
+          fail("Both threads entered the listener concurrently");
+        }
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException ie) {
+          throw new AssertionError(ie);
+        }
+        invalidating.set(false);
+        latch.countDown();
+      }
+    };
+    serverStoreProxy2.addInvalidationListener(listener);
+
+    executorService.submit(new Callable<Future>() {
+      @Override
+      public Future call() throws Exception {
+        serverStoreProxy1.clear();
+        return null;
+      }
+    });
+    executorService.submit(new Callable<Future>() {
+      @Override
+      public Future call() throws Exception {
+        serverStoreProxy1.clear();
+        return null;
+      }
+    });
+
+    if (!latch.await(5, TimeUnit.SECONDS)) {
+      fail("Both listeners were not called");
+    }
+
+    serverStoreProxy2.removeInvalidationListener(listener);
+  }
+
+  @Test
+  public void testAppendInvalidationUnblockedByDisconnection() throws Exception {
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+      @Override
+      public void onInvalidateHash(long hash) {
+        EhcacheClientEntityHelper.fireDisconnectionEvent(clientEntity1);
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        throw new AssertionError("Should not be called");
+      }
+    };
+    serverStoreProxy2.addInvalidationListener(listener);
+
+    try {
+      serverStoreProxy1.append(1L, createPayload(1L));
+      fail("expected RuntimeException");
+    } catch (RuntimeException re) {
+      assertThat(re.getCause(), instanceOf(IllegalStateException.class));
+    }
+
+    serverStoreProxy2.removeInvalidationListener(listener);
+    EhcacheClientEntityHelper.setConnected(clientEntity1, true);
+  }
+
+  @Test
+  public void testClearInvalidationUnblockedByDisconnection() throws Exception {
+    ServerStoreProxy.InvalidationListener listener = new ServerStoreProxy.InvalidationListener() {
+      @Override
+      public void onInvalidateHash(long hash) {
+        throw new AssertionError("Should not be called");
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        EhcacheClientEntityHelper.fireDisconnectionEvent(clientEntity1);
+      }
+    };
+    serverStoreProxy2.addInvalidationListener(listener);
+
+    try {
+      serverStoreProxy1.clear();
+      fail("expected RuntimeException");
+    } catch (RuntimeException re) {
+      assertThat(re.getCause(), instanceOf(IllegalStateException.class));
+    }
+
+    serverStoreProxy2.removeInvalidationListener(listener);
+    EhcacheClientEntityHelper.setConnected(clientEntity1, true);
+  }
 }

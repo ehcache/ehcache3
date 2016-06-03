@@ -20,8 +20,10 @@ import org.ehcache.clustered.common.store.Util;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.InvalidationDone;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.HashInvalidationDone;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.AllInvalidationDone;
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ClientInvalidateHash;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ClientInvalidateAll;
 /**
  *
  */
@@ -56,13 +58,21 @@ class ResponseCodec {
         buffer.put(EhcacheEntityResponse.Type.GET_RESPONSE.getOpCode());
         buffer.put(encodedChain);
         return buffer.array();
-      case INVALIDATION_DONE: {
-        InvalidationDone invalidationDone = (InvalidationDone) response;
-        byte[] cacheIdBytes = invalidationDone.getCacheId().getBytes(Charset.forName("UTF-8"));
+      case HASH_INVALIDATION_DONE: {
+        HashInvalidationDone hashInvalidationDone = (HashInvalidationDone) response;
+        byte[] cacheIdBytes = hashInvalidationDone.getCacheId().getBytes(Charset.forName("UTF-8"));
         buffer = ByteBuffer.allocate(OP_CODE_SIZE + cacheIdBytes.length + 8);
-        buffer.put(EhcacheEntityResponse.Type.INVALIDATION_DONE.getOpCode());
+        buffer.put(EhcacheEntityResponse.Type.HASH_INVALIDATION_DONE.getOpCode());
         buffer.put(cacheIdBytes);
-        buffer.putLong(invalidationDone.getKey());
+        buffer.putLong(hashInvalidationDone.getKey());
+        return buffer.array();
+      }
+      case ALL_INVALIDATION_DONE: {
+        AllInvalidationDone allInvalidationDone = (AllInvalidationDone) response;
+        byte[] cacheIdBytes = allInvalidationDone.getCacheId().getBytes(Charset.forName("UTF-8"));
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + cacheIdBytes.length);
+        buffer.put(EhcacheEntityResponse.Type.ALL_INVALIDATION_DONE.getOpCode());
+        buffer.put(cacheIdBytes);
         return buffer.array();
       }
       case CLIENT_INVALIDATE_HASH: {
@@ -73,6 +83,15 @@ class ResponseCodec {
         buffer.put(cacheIdBytes);
         buffer.putLong(clientInvalidateHash.getKey());
         buffer.putInt(((ClientInvalidateHash) response).getInvalidationId());
+        return buffer.array();
+      }
+      case CLIENT_INVALIDATE_ALL: {
+        ClientInvalidateAll clientInvalidateAll = (ClientInvalidateAll) response;
+        byte[] cacheIdBytes = clientInvalidateAll.getCacheId().getBytes(Charset.forName("UTF-8"));
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + cacheIdBytes.length + 4);
+        buffer.put(EhcacheEntityResponse.Type.CLIENT_INVALIDATE_ALL.getOpCode());
+        buffer.put(cacheIdBytes);
+        buffer.putInt(((ClientInvalidateAll) response).getInvalidationId());
         return buffer.array();
       }
       default:
@@ -94,10 +113,14 @@ class ResponseCodec {
         return new EhcacheEntityResponse.Failure(exception);
       case GET_RESPONSE:
         return new EhcacheEntityResponse.GetResponse(chainCodec.decode(payArr));
-      case INVALIDATION_DONE: {
+      case HASH_INVALIDATION_DONE: {
         String cacheId = new String(payArr, 0, payArr.length - 8, Charset.forName("UTF-8"));
         long key = ByteBuffer.wrap(payArr, payArr.length - 8, 8).getLong();
-        return EhcacheEntityResponse.invalidationDone(cacheId, key);
+        return EhcacheEntityResponse.hashInvalidationDone(cacheId, key);
+      }
+      case ALL_INVALIDATION_DONE: {
+        String cacheId = new String(payArr, 0, payArr.length, Charset.forName("UTF-8"));
+        return EhcacheEntityResponse.allInvalidationDone(cacheId);
       }
       case CLIENT_INVALIDATE_HASH: {
         String cacheId = new String(payArr, 0, payArr.length - 12, Charset.forName("UTF-8"));
@@ -105,6 +128,12 @@ class ResponseCodec {
         long key = byteBuffer.getLong();
         int invalidationId = byteBuffer.getInt();
         return EhcacheEntityResponse.clientInvalidateHash(cacheId, key, invalidationId);
+      }
+      case CLIENT_INVALIDATE_ALL: {
+        String cacheId = new String(payArr, 0, payArr.length - 4, Charset.forName("UTF-8"));
+        ByteBuffer byteBuffer = ByteBuffer.wrap(payArr, payArr.length - 4, 4);
+        int invalidationId = byteBuffer.getInt();
+        return EhcacheEntityResponse.clientInvalidateAll(cacheId, invalidationId);
       }
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + type);
