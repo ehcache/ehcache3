@@ -21,13 +21,12 @@ import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.serialization.ByteArraySerializer;
 import org.ehcache.impl.serialization.CharSerializer;
-import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.serialization.DoubleSerializer;
 import org.ehcache.impl.serialization.FloatSerializer;
 import org.ehcache.impl.serialization.IntegerSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
+import org.ehcache.impl.serialization.PlainJavaSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -169,7 +168,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
-      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) CompactJavaSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) PlainJavaSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Integer.class, IntegerSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Float.class, FloatSerializer.class);
@@ -206,7 +205,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       persistence = serviceProvider.getService(LocalPersistenceService.class);
-      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) CompactPersistentJavaSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) PlainJavaSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Integer.class, IntegerSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Float.class, FloatSerializer.class);
