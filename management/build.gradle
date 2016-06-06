@@ -20,3 +20,7 @@ dependencies {
   compile project(':api'), project(':core'), project(':impl')
   compile group: 'org.terracotta.management', name: 'management-registry', version: parent.managementVersion
 }
+
+repositories {
+  maven { url "http://snapshots.terracotta.org/" }
+}
