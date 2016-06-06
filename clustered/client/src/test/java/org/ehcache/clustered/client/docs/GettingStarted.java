@@ -18,26 +18,23 @@ package org.ehcache.clustered.client.docs;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.xml.XmlConfiguration;
 import org.junit.After;
 import org.junit.Test;
 
 import java.net.URI;
 
 import org.junit.Before;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 /**
  * Samples demonstrating use of a clustered cache.
@@ -112,6 +109,38 @@ public class GettingStarted {
       cacheManager.close();
     }
     // end::clusteredCacheManagerWithDynamicallyAddedCacheExample[]
+  }
+
+  @Test
+  public void explicitConsistencyConfiguration() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
+            = CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application?auto-create"))
+                    .defaultServerResource("primary-server-resource")
+                    .resourcePool("resource-pool-a", 128, MemoryUnit.B));
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    cacheManager.init();
+
+    try {
+      // tag::clusteredCacheConsistency[]
+      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+              ResourcePoolsBuilder.newResourcePoolsBuilder()
+                      .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+          .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)) // <1>
+          .build();
+
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      cache.put(42L, "All you need to know!"); // <2>
+
+      // end::clusteredCacheConsistency[]
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Test
+  public void loadDocsXml() throws Exception {
+    new XmlConfiguration(getClass().getResource("/configs/docs/ehcache-clustered.xml"));
   }
 
 }

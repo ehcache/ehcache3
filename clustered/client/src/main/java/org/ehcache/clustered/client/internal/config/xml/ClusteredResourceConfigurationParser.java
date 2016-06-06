@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.config.xml;
+package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.internal.config.FixedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolImpl;
@@ -32,8 +32,8 @@ import java.net.URI;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
-import static org.ehcache.clustered.client.config.xml.ClusteredCacheConstants.NAMESPACE;
-import static org.ehcache.clustered.client.config.xml.ClusteredCacheConstants.XML_SCHEMA;
+import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.NAMESPACE;
+import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.XML_SCHEMA;
 
 /**
  * Provides a parser for the {@code /config/cache/resources} extension elements.

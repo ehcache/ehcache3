@@ -80,3 +80,37 @@ include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client
     This can be achieved using `.shared(String)`, passing the name of the resource pool. The resource pool name can be used by other caches to share the resource pool.
 <8> Creates fully initialized cache manager with the clustered cache(*clustered-cache*).
 <9> Close the cache manager.
+
+== Clustered caches
+
+IMPORTANT: Content needed here!
+
+=== Specifying consistency level
+
+Ehcache offers two level of consistency:
+
+Eventual::
+This consistency level indicates that the visibility of a write operation is not guaranteed when the operation returns.
+Other clients may still see a stale value for the given key.
+However this consistency level guarantees that for a mapping `(K, V1)` updated to `(K, V2)`, once a client sees `(K, V2)` it will never see `(K, V1)` again.
+Strong::
+This consistency level provides strong visibility guarantees ensuring that when a write operation returns other clients will be able to observe it immediately.
+This comes with a latency penalty on the write operation required to give this guarantee.
+
+
+[source,java,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheConsistency]
+----
+
+<1> Specify the consistency level through the use of additional service configuration, using _strong_ consistency here,
+<2> With the consistency used above, this `put` operation will return only when all other clients have had the corresponding mapping invalidated.
+
+The equivalent XML configuration is as follows:
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=consistencySample]
+----
+
+<1> Specify the consistency level through a custom service configuration from the `clustered` namespace.

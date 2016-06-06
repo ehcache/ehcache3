@@ -14,14 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.config.xml;
+package org.ehcache.clustered.client.internal.config.xml;
 
+import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
+import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.xml.CacheManagerServiceConfigurationParser;
+import org.ehcache.xml.CacheServiceConfigurationParser;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Element;
@@ -38,14 +43,18 @@ import java.util.Map;
 import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
-import static org.ehcache.clustered.client.config.xml.ClusteredCacheConstants.*;
+import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.*;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteringService ClusteringService}.
  *
  * @see ClusteredCacheConstants#XSD
  */
-public class ClusteringServiceConfigurationParser implements CacheManagerServiceConfigurationParser<ClusteringService> {
+public class ClusteringServiceConfigurationParser implements CacheManagerServiceConfigurationParser<ClusteringService>,
+                                                              CacheServiceConfigurationParser<ClusteredStore.Provider> {
+
+  public static final String CLUSTERED_STORE_ELEMENT_NAME = "clustered-store";
+  public static final String CONSISTENCY_ATTRIBUTE_NAME = "consistency";
 
   @Override
   public Source getXmlSchema() throws IOException {
@@ -55,6 +64,19 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   @Override
   public URI getNamespace() {
     return NAMESPACE;
+  }
+
+  @Override
+  public ServiceConfiguration<ClusteredStore.Provider> parseServiceConfiguration(Element fragment) {
+    if (CLUSTERED_STORE_ELEMENT_NAME.equals(fragment.getLocalName())) {
+      if (fragment.hasAttribute(CONSISTENCY_ATTRIBUTE_NAME)) {
+        return new ClusteredStoreConfiguration(Consistency.valueOf(fragment.getAttribute("consistency").toUpperCase()));
+      } else {
+        return new ClusteredStoreConfiguration();
+      }
+    }
+    throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",
+        fragment.getTagName(), (fragment.getParentNode() == null ? "null" : fragment.getParentNode().getLocalName())));
   }
 
   /**
