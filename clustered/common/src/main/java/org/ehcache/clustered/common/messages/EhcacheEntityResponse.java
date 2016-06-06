@@ -29,8 +29,10 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     SUCCESS((byte) 0),
     FAILURE((byte) 1),
     GET_RESPONSE((byte) 2),
-    INVALIDATION_DONE((byte) 3),
-    CLIENT_INVALIDATE_HASH((byte) 4),
+    HASH_INVALIDATION_DONE((byte) 3),
+    ALL_INVALIDATION_DONE((byte) 4),
+    CLIENT_INVALIDATE_HASH((byte) 5),
+    CLIENT_INVALIDATE_ALL((byte) 6),
     ;
 
     private final byte opCode;
@@ -52,9 +54,13 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
         case 2:
           return GET_RESPONSE;
         case 3:
-          return INVALIDATION_DONE;
+          return HASH_INVALIDATION_DONE;
         case 4:
+          return ALL_INVALIDATION_DONE;
+        case 5:
           return CLIENT_INVALIDATE_HASH;
+        case 6:
+          return CLIENT_INVALIDATE_ALL;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + opCode);
       }
@@ -116,15 +122,15 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
   }
 
-  public static InvalidationDone invalidationDone(String cacheId, long key) {
-    return new InvalidationDone(cacheId, key);
+  public static HashInvalidationDone hashInvalidationDone(String cacheId, long key) {
+    return new HashInvalidationDone(cacheId, key);
   }
 
-  public static class InvalidationDone extends EhcacheEntityResponse {
+  public static class HashInvalidationDone extends EhcacheEntityResponse {
     private final String cacheId;
     private final long key;
 
-    public InvalidationDone(String cacheId, long key) {
+    HashInvalidationDone(String cacheId, long key) {
       this.cacheId = cacheId;
       this.key = key;
     }
@@ -139,7 +145,29 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
     @Override
     public Type getType() {
-      return Type.INVALIDATION_DONE;
+      return Type.HASH_INVALIDATION_DONE;
+    }
+
+  }
+
+  public static AllInvalidationDone allInvalidationDone(String cacheId) {
+    return new AllInvalidationDone(cacheId);
+  }
+
+  public static class AllInvalidationDone extends EhcacheEntityResponse {
+    private final String cacheId;
+
+    AllInvalidationDone(String cacheId) {
+      this.cacheId = cacheId;
+    }
+
+    public String getCacheId() {
+      return cacheId;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.ALL_INVALIDATION_DONE;
     }
 
   }
@@ -174,6 +202,33 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     @Override
     public Type getType() {
       return Type.CLIENT_INVALIDATE_HASH;
+    }
+  }
+
+  public static ClientInvalidateAll clientInvalidateAll(String cacheId, int invalidationId) {
+    return new ClientInvalidateAll(cacheId, invalidationId);
+  }
+
+  public static class ClientInvalidateAll extends EhcacheEntityResponse {
+    private final String cacheId;
+    private final int invalidationId;
+
+    public ClientInvalidateAll(String cacheId, int invalidationId) {
+      this.cacheId = cacheId;
+      this.invalidationId = invalidationId;
+    }
+
+    public String getCacheId() {
+      return cacheId;
+    }
+
+    public int getInvalidationId() {
+      return invalidationId;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.CLIENT_INVALIDATE_ALL;
     }
   }
 

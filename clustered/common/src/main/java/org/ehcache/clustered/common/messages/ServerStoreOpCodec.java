@@ -20,7 +20,7 @@ import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClearMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetAndAppendMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetMessage;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClientInvalidateHashAck;
+import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClientInvalidationAck;
 import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ServerStoreOp;
 
 import java.nio.ByteBuffer;
@@ -79,11 +79,11 @@ class ServerStoreOpCodec {
         encodedMsg.putInt(encodedUpdatedChain.length);
         encodedMsg.put(encodedUpdatedChain);
         return encodedMsg.array();
-      case CLIENT_INVALIDATE_HASH_ACK:
-        ReplaceAtHeadMessage.ClientInvalidateHashAck clientInvalidateHashAck = (ReplaceAtHeadMessage.ClientInvalidateHashAck) message;
+      case CLIENT_INVALIDATION_ACK:
+        ClientInvalidationAck clientInvalidationAck = (ClientInvalidationAck) message;
         encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + 4);
-        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
-        encodedMsg.putInt(clientInvalidateHashAck.getInvalidationId());
+        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), 0L, message.operation().getStoreOpCode());
+        encodedMsg.putInt(clientInvalidationAck.getInvalidationId());
         return encodedMsg.array();
       case CLEAR:
         ClearMessage clearMessage = (ClearMessage)message;
@@ -140,10 +140,10 @@ class ServerStoreOpCodec {
         replaceBuf.get(encodedUpdateChain);
         return new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
             chainCodec.decode(encodedUpdateChain));
-      case CLIENT_INVALIDATE_HASH_ACK:
+      case CLIENT_INVALIDATION_ACK:
         ByteBuffer remainingBuf = ByteBuffer.wrap(remaining);
         int invalidationId = remainingBuf.getInt();
-        return new ClientInvalidateHashAck(cacheId, key, invalidationId);
+        return new ClientInvalidationAck(cacheId, invalidationId);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
 
