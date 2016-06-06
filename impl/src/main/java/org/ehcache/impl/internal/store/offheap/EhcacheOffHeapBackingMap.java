@@ -17,6 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
 import org.ehcache.core.spi.function.BiFunction;
@@ -86,4 +87,7 @@ public interface EhcacheOffHeapBackingMap<K, V> extends ConcurrentMap<K, V>, Off
   List<Segment<K, V>> getSegments();
 
   boolean shrinkOthers(int excludedHash);
+
+  Map<K, V> removeAllWithHash(int hash);
+
 }

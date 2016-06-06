@@ -83,7 +83,6 @@ public class BasicClusteredCacheTest {
 
   @Test
   public void testClusteredCacheTwoClients() throws Exception {
-
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
             .with(cluster(CLUSTER_URI))
@@ -106,6 +105,59 @@ public class BasicClusteredCacheTest {
     cache1.put(1L, "value2");
     assertThat(cache2.get(1L), is("value2"));
     assertThat(cache1.get(1L), is("value2"));
+
+    cacheManager2.close();
+    cacheManager1.close();
+  }
+
+  @Test
+  public void testClustered3TierCacheTwoClients() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+        newCacheManagerBuilder()
+            .with(cluster(CLUSTER_URI))
+            .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
+        ;
+
+    final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
+    final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);
+
+    final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
+    final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
+
+    assertThat(cache2.get(1L), nullValue());
+    cache1.put(1L, "value1");
+    cache1.put(2L, "value2");
+    cache1.put(3L, "value3");
+    assertThat(cache2.get(1L), is("value1"));
+    assertThat(cache2.get(2L), is("value2"));
+    assertThat(cache2.get(3L), is("value3"));
+    assertThat(cache2.get(1L), is("value1"));
+    assertThat(cache2.get(2L), is("value2"));
+    assertThat(cache2.get(3L), is("value3"));
+    assertThat(cache1.get(1L), is("value1"));
+    assertThat(cache1.get(2L), is("value2"));
+    assertThat(cache1.get(3L), is("value3"));
+    assertThat(cache1.get(1L), is("value1"));
+    assertThat(cache1.get(2L), is("value2"));
+    assertThat(cache1.get(3L), is("value3"));
+    cache1.put(1L, "value11");
+    cache1.put(2L, "value12");
+    cache1.put(3L, "value13");
+    assertThat(cache2.get(1L), is("value11"));
+    assertThat(cache2.get(2L), is("value12"));
+    assertThat(cache2.get(3L), is("value13"));
+    assertThat(cache2.get(1L), is("value11"));
+    assertThat(cache2.get(2L), is("value12"));
+    assertThat(cache2.get(3L), is("value13"));
+    assertThat(cache1.get(1L), is("value11"));
+    assertThat(cache1.get(2L), is("value12"));
+    assertThat(cache1.get(3L), is("value13"));
+    assertThat(cache1.get(1L), is("value11"));
+    assertThat(cache1.get(2L), is("value12"));
+    assertThat(cache1.get(3L), is("value13"));
 
     cacheManager2.close();
     cacheManager1.close();

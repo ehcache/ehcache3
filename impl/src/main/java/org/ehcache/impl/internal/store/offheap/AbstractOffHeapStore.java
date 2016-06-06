@@ -92,6 +92,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private final OperationObserver<LowerCachingTierOperationsOutcome.InvalidateOutcome> invalidateObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAllObserver;
+  private final OperationObserver<LowerCachingTierOperationsOutcome.InvalidateAllWithHashOutcome> invalidateAllWithHashObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome> getAndRemoveObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.InstallMappingOutcome> installMappingObserver;
 
@@ -125,6 +126,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     this.invalidateObserver = operation(LowerCachingTierOperationsOutcome.InvalidateOutcome.class).of(this).named("invalidate").tag(statisticsTag).build();
     this.invalidateAllObserver = operation(LowerCachingTierOperationsOutcome.InvalidateAllOutcome.class).of(this).named("invalidateAll").tag(statisticsTag).build();
+    this.invalidateAllWithHashObserver = operation(LowerCachingTierOperationsOutcome.InvalidateAllWithHashOutcome.class).of(this).named("invalidateAllWithHash").tag(statisticsTag).build();
     this.getAndRemoveObserver= operation(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class).of(this).named("getAndRemove").tag(statisticsTag).build();
     this.installMappingObserver= operation(LowerCachingTierOperationsOutcome.InstallMappingOutcome.class).of(this).named("installMapping").tag(statisticsTag).build();
 
@@ -976,10 +978,12 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   @Override
   public void invalidateAllWithHash(long hash) {
-    throw new UnsupportedOperationException("not yet implemented");
-//    backingMap().removeAllWithHash((int) hash);
-//    LOGGER.debug("CLIENT: offheap store removed all with hash {}", hash);
-//    TODO stats & notify invalidations
+    invalidateAllWithHashObserver.begin();
+    Map<K, OffHeapValueHolder<V>> removed = backingMap().removeAllWithHash((int) hash);
+    for (Map.Entry<K, OffHeapValueHolder<V>> entry : removed.entrySet()) {
+      notifyInvalidation(entry.getKey(), entry.getValue());
+    }
+    invalidateAllWithHashObserver.end(LowerCachingTierOperationsOutcome.InvalidateAllWithHashOutcome.SUCCESS);
   }
 
   private void notifyInvalidation(final K key, final ValueHolder<V> p) {
