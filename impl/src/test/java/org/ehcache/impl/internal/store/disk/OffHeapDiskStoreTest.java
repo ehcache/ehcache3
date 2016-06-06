@@ -16,6 +16,8 @@
 
 package org.ehcache.impl.internal.store.disk;
 
+import org.ehcache.Cache;
+import org.ehcache.CacheManager;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -40,6 +42,9 @@ import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,17 +53,37 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
+import static java.util.Collections.singleton;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.terracotta.context.ContextManager.nodeFor;
+import org.terracotta.context.query.Matcher;
+import static org.terracotta.context.query.Matchers.attributes;
+import static org.terracotta.context.query.Matchers.context;
+import static org.terracotta.context.query.Matchers.hasAttribute;
+import org.terracotta.context.query.Query;
+import org.terracotta.context.query.QueryBuilder;
+import org.terracotta.statistics.OperationStatistic;
 
 public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
@@ -294,4 +319,130 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     }
   }
 
+  @Test
+  public void diskStoreShrinkingTest() throws InterruptedException {
+
+    CacheManager manager = newCacheManagerBuilder()
+            .with(persistence("target/disk-stores"))
+            .build(true);
+
+    final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
+            heap(1000).offheap(20, MemoryUnit.MB).disk(30, MemoryUnit.MB))
+    .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
+      @Override
+      public CacheValue load(Long key) throws Exception {
+        return null;
+      }
+
+      @Override
+      public Map<Long, CacheValue> loadAll(Iterable<? extends Long> keys) throws BulkCacheLoadingException, Exception {
+        return Collections.emptyMap();
+      }
+
+      @Override
+      public void write(Long key, CacheValue value) throws Exception {
+      }
+
+      @Override
+      public void writeAll(Iterable<? extends Map.Entry<? extends Long, ? extends CacheValue>> entries) throws BulkCacheWritingException, Exception {
+      }
+
+      @Override
+      public void delete(Long key) throws Exception {
+      }
+
+      @Override
+      public void deleteAll(Iterable<? extends Long> keys) throws BulkCacheWritingException, Exception {
+      }
+    }));
+
+    for (long i = 0; i < 100000; i++) {
+      cache.put(i, new CacheValue((int) i));
+    }
+
+    Callable<Void> task = new Callable<Void>() {
+      @Override
+      public Void call() {
+        Random rndm = new Random();
+
+        long start = System.nanoTime();
+        while (System.nanoTime() < start + TimeUnit.SECONDS.toNanos(5)) {
+          Long k = key(rndm);
+          switch (rndm.nextInt(4)) {
+            case 0: {
+              CacheValue v = value(rndm);
+              cache.putIfAbsent(k, v);
+              break;
+            }
+            case 1: {
+              CacheValue nv = value(rndm);
+              CacheValue ov = value(rndm);
+              cache.put(k, ov);
+              cache.replace(k, nv);
+              break;
+            }
+            case 2: {
+              CacheValue nv = value(rndm);
+              CacheValue ov = value(rndm);
+              cache.put(k, ov);
+              cache.replace(k, ov, nv);
+              break;
+            }
+            case 3: {
+              CacheValue v = value(rndm);
+              cache.put(k, v);
+              cache.remove(k, v);
+              break;
+            }
+          }
+        }
+        return null;
+      }
+    };
+
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      executor.invokeAll(Collections.nCopies(4, task));
+    } finally {
+      executor.shutdown();
+    }
+
+    Query invalidateAllQuery = QueryBuilder.queryBuilder().descendants().filter(context(attributes(hasAttribute("tags", new Matcher<Set<String>>() {
+      @Override
+      protected boolean matchesSafely(Set<String> object) {
+        return object.contains("local-offheap");
+      }
+    })))).filter(context(attributes(hasAttribute("name", "emergencyValve")))).ensureUnique().build();
+
+    OperationStatistic<AbstractOffHeapStore.EmergencyValveOutcome> invalidateAll = (OperationStatistic<AbstractOffHeapStore.EmergencyValveOutcome>) invalidateAllQuery.execute(singleton(nodeFor(cache))).iterator().next().getContext().attributes().get("this");
+
+    assertThat(invalidateAll.sum(), is(0L));
+  }
+
+  private Long key(Random rndm) {
+    return (long) rndm.nextInt(100000);
+  }
+
+  private CacheValue value(Random rndm) {
+    return new CacheValue(rndm.nextInt(100000));
+  }
+
+  public static class CacheValue implements Serializable {
+
+    private final int value;
+    private final byte[] padding;
+
+    public CacheValue(int value) {
+      this.value = value;
+      this.padding = new byte[800];
+    }
+
+    public boolean equals(Object o) {
+      if (o instanceof CacheValue) {
+        return value == ((CacheValue) o).value;
+      } else {
+        return false;
+      }
+    }
+  }
 }
