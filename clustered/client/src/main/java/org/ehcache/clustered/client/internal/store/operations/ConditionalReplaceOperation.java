@@ -165,4 +165,10 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     hash = hash * 31 + newValue.hashCode();
     return hash;
   }
+
+  @Override
+  public long expirationTimeStamp() {
+    //TODO: complete this when CAS is done
+    return 0;
+  }
 }

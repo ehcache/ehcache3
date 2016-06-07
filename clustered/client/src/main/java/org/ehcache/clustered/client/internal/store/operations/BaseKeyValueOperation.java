@@ -133,4 +133,9 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     hash = hash * 31 + value.hashCode();
     return hash;
   }
+
+  @Override
+  public long expirationTimeStamp() {
+    return this.expirationTimeStamp;
+  }
 }

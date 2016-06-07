@@ -33,4 +33,7 @@ public interface Operation<K, V> {
   Result<V> apply(Result<V> previousResult);
 
   ByteBuffer encode(Serializer<K> keySerializer, Serializer<V> valueSerializer);
+
+  long expirationTimeStamp();
+
 }

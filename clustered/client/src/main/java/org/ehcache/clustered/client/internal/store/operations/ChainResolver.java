@@ -16,20 +16,28 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 public class ChainResolver<K, V> {
 
-  private final OperationsCodec<K, V> codec;
+  private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
-  public ChainResolver(final OperationsCodec<K, V> codec) {
+  private final OperationsCodec<K, V> codec;
+  private final Expiry<? super K, ? super V> expiry;
+
+  public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry) {
     this.codec = codec;
+    this.expiry = expiry;
   }
 
   /**
@@ -44,16 +52,40 @@ public class ChainResolver<K, V> {
    * @param key a key
    * @return an entry with the resolved operation for the provided key as the key
    * and the compacted chain as the value
-   * @throws ClassNotFoundException
    */
-  public ResolvedChain<K, V> resolve(Chain chain, K key) {
+  public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
     Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
       Operation<K, V> operation = codec.decode(payload);
+      final Result<V> previousResult = result;
+      Duration expiration;
       if(key.equals(operation.getKey())) {
         result = operation.apply(result);
+        //TODO: get the condition for choosing creation correct.
+        if(result == null) {
+          continue;
+        }
+        if(previousResult == null) {
+          expiration = expiry.getExpiryForCreation(key, result.getValue());
+        } else {
+          expiration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
+            @Override
+            public V value() {
+              return previousResult != null ? previousResult.getValue() : null;
+            }
+          }, result.getValue());
+        }
+
+        if(expiration == null || expiration.isInfinite()) {
+          continue;
+        }
+
+        long time = TIME_UNIT.convert(expiration.getLength(), expiration.getTimeUnit());
+        if(now >= time + operation.expirationTimeStamp()) {
+          result = null;
+        }
       } else {
         payload.flip();
         chainBuilder = chainBuilder.add(payload);

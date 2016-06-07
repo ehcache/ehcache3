@@ -113,4 +113,9 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
     hash = hash * 31 + key.hashCode();
     return hash;
   }
+
+  @Override
+  public long expirationTimeStamp() {
+    return this.expirationTimeStamp;
+  }
 }
