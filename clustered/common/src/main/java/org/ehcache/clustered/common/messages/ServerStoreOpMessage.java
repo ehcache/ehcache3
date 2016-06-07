@@ -64,19 +64,13 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   }
 
   private final String cacheId;
-  private final long key;
 
-  private ServerStoreOpMessage(String cacheId, long key) {
+  private ServerStoreOpMessage(String cacheId) {
     this.cacheId = cacheId;
-    this.key = key;
   }
 
   public String getCacheId() {
     return cacheId;
-  }
-
-  public long getKey() {
-    return key;
   }
 
   @Override
@@ -91,7 +85,21 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     return operation().getStoreOpCode();
   }
 
-  public static class GetMessage extends ServerStoreOpMessage {
+  private static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage {
+
+    private final long key;
+
+    KeyBasedServerStoreOpMessage(final String cacheId, final long key) {
+      super(cacheId);
+      this.key = key;
+    }
+
+    public long getKey() {
+      return key;
+    }
+  }
+
+  public static class GetMessage extends KeyBasedServerStoreOpMessage {
 
     GetMessage(String cacheId, long key) {
       super(cacheId, key);
@@ -103,7 +111,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
   }
 
-  public static class GetAndAppendMessage extends ServerStoreOpMessage {
+  public static class GetAndAppendMessage extends KeyBasedServerStoreOpMessage {
 
     private final ByteBuffer payload;
 
@@ -123,7 +131,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
   }
 
-  public static class AppendMessage extends ServerStoreOpMessage {
+  public static class AppendMessage extends KeyBasedServerStoreOpMessage {
 
     private final ByteBuffer payload;
 
@@ -143,7 +151,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
   }
 
-  public static class ReplaceAtHeadMessage extends ServerStoreOpMessage {
+  public static class ReplaceAtHeadMessage extends KeyBasedServerStoreOpMessage {
 
     private final Chain expect;
     private final Chain update;
@@ -168,19 +176,13 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
   }
 
-  // TODO: ClientInvalidationAck does not need a key
   public static class ClientInvalidationAck extends ServerStoreOpMessage {
 
     private final int invalidationId;
 
     ClientInvalidationAck(String cacheId, int invalidationId) {
-      super(cacheId, 0L);
+      super(cacheId);
       this.invalidationId = invalidationId;
-    }
-
-    @Override
-    public long getKey() {
-      throw new UnsupportedOperationException("ClientInvalidationAck message does not have a key parameter");
     }
 
     public int getInvalidationId() {
@@ -198,11 +200,10 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
   }
 
-  // TODO: ClearMessage does not need a key
   static class ClearMessage extends ServerStoreOpMessage {
 
     ClearMessage(final String cacheId) {
-      super(cacheId, 0L);
+      super(cacheId);
     }
 
     @Override
@@ -213,11 +214,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public byte getOpCode() {
       return ServerStoreOp.CLEAR.getStoreOpCode();
-    }
-
-    @Override
-    public long getKey() {
-      throw new UnsupportedOperationException("Clear message does not have a key a parameter");
     }
   }
 

@@ -29,40 +29,57 @@ public class ServerStoreMessageFactoryTest {
 
   @Test
   public void testAppendMessage() {
-    EhcacheEntityMessage appendMessage = MESSAGE_FACTORY.appendOperation(1L, createPayload(1L));
+    ServerStoreOpMessage.AppendMessage appendMessage =
+        (ServerStoreOpMessage.AppendMessage) MESSAGE_FACTORY.appendOperation(1L, createPayload(1L));
 
-    assertThat(((ServerStoreOpMessage)appendMessage).getCacheId(), is("test"));
-    assertThat(((ServerStoreOpMessage)appendMessage).getKey(), is(1L));
-    assertThat(readPayLoad(((ServerStoreOpMessage.AppendMessage)appendMessage).getPayload()), is(1L));
+    assertThat(appendMessage.getCacheId(), is("test"));
+    assertThat(appendMessage.getKey(), is(1L));
+    assertThat(readPayLoad(appendMessage.getPayload()), is(1L));
   }
 
   @Test
   public void testGetMessage() {
-    EhcacheEntityMessage getMessage = MESSAGE_FACTORY.getOperation(2L);
+    ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage) MESSAGE_FACTORY.getOperation(2L);
 
-    assertThat(((ServerStoreOpMessage)getMessage).getCacheId(), is("test"));
-    assertThat(((ServerStoreOpMessage)getMessage).getKey(), is(2L));
+    assertThat(getMessage.getCacheId(), is("test"));
+    assertThat(getMessage.getKey(), is(2L));
   }
 
   @Test
   public void testGetAndAppendMessage() {
-    EhcacheEntityMessage getAndAppendMessage = MESSAGE_FACTORY.getAndAppendOperation(10L, createPayload(10L));
+    ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage =
+        (ServerStoreOpMessage.GetAndAppendMessage) MESSAGE_FACTORY.getAndAppendOperation(10L, createPayload(10L));
 
-    assertThat(((ServerStoreOpMessage)getAndAppendMessage).getCacheId(), is("test"));
-    assertThat(((ServerStoreOpMessage)getAndAppendMessage).getKey(), is(10L));
-    assertThat(readPayLoad(((ServerStoreOpMessage.GetAndAppendMessage)getAndAppendMessage).getPayload()), is(10L));
+    assertThat(getAndAppendMessage.getCacheId(), is("test"));
+    assertThat(getAndAppendMessage.getKey(), is(10L));
+    assertThat(readPayLoad(getAndAppendMessage.getPayload()), is(10L));
   }
 
   @Test
   public void testReplaceAtHeadMessage() {
-    EhcacheEntityMessage replaceAtHeadMessage = MESSAGE_FACTORY.replaceAtHeadOperation(10L,
-        getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)),
-        getChain(false, createPayload(2000L)));
+    ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage =
+        (ServerStoreOpMessage.ReplaceAtHeadMessage) MESSAGE_FACTORY.replaceAtHeadOperation(10L,
+            getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)),
+            getChain(false, createPayload(2000L))
+        );
 
-    assertThat(((ServerStoreOpMessage)replaceAtHeadMessage).getCacheId(), is("test"));
-    assertThat(((ServerStoreOpMessage)replaceAtHeadMessage).getKey(), is(10L));
-    Util.assertChainHas(((ServerStoreOpMessage.ReplaceAtHeadMessage)replaceAtHeadMessage).getExpect(), 10L, 100L, 1000L);
-    Util.assertChainHas(((ServerStoreOpMessage.ReplaceAtHeadMessage)replaceAtHeadMessage).getUpdate(), 2000L);
+    assertThat(replaceAtHeadMessage.getCacheId(), is("test"));
+    assertThat(replaceAtHeadMessage.getKey(), is(10L));
+    Util.assertChainHas(replaceAtHeadMessage.getExpect(), 10L, 100L, 1000L);
+    Util.assertChainHas(replaceAtHeadMessage.getUpdate(), 2000L);
   }
 
+  @Test
+  public void testClearMessage() throws Exception {
+    ServerStoreOpMessage.ClearMessage clearMessage = (ServerStoreOpMessage.ClearMessage) MESSAGE_FACTORY.clearOperation();
+    assertThat(clearMessage.getCacheId(), is("test"));
+  }
+
+  @Test
+  public void testClientInvalidationAckMessage() throws Exception {
+    ServerStoreOpMessage.ClientInvalidationAck invalidationAck =
+        (ServerStoreOpMessage.ClientInvalidationAck) MESSAGE_FACTORY.clientInvalidationAck(1234);
+    assertThat(invalidationAck.getCacheId(), is("test"));
+    assertThat(invalidationAck.getInvalidationId(), is(1234));
+  }
 }
