@@ -51,7 +51,7 @@ public class ServerStoreCompatibility {
       if (compareField(sb, "resourcePoolFixedResourceName",
           serverFixedAllocation.getResourceName(),
           clientFixedAllocation.getResourceName())) {
-        if (clientFixedAllocation.getSize() > serverFixedAllocation.getSize()) {
+        if (clientFixedAllocation.getSize() != serverFixedAllocation.getSize()) {
           appendFault(sb, "resourcePoolFixedSize", serverFixedAllocation.getSize(), clientFixedAllocation.getSize());
           isCompatible &= false;
         }
