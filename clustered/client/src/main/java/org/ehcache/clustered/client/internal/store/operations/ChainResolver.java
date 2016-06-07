@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 
@@ -34,10 +35,12 @@ public class ChainResolver<K, V> {
 
   private final OperationsCodec<K, V> codec;
   private final Expiry<? super K, ? super V> expiry;
+  private final TimeSource timeSource;
 
-  public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry) {
+  public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry, TimeSource timeSource) {
     this.codec = codec;
     this.expiry = expiry;
+    this.timeSource = timeSource;
   }
 
   /**
@@ -56,18 +59,18 @@ public class ChainResolver<K, V> {
   public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
     Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
+    Operation<K, V> operation = null;
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
-      Operation<K, V> operation = codec.decode(payload);
+      operation = codec.decode(payload);
       final Result<V> previousResult = result;
       Duration expiration;
       if(key.equals(operation.getKey())) {
         result = operation.apply(result);
-        //TODO: get the condition for choosing creation correct.
         if(result == null) {
           continue;
         }
-        if(previousResult == null) {
+        if((previousResult == null & operation.isFirst())) {
           expiration = expiry.getExpiryForCreation(key, result.getValue());
         } else {
           expiration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
@@ -83,7 +86,7 @@ public class ChainResolver<K, V> {
         }
 
         long time = TIME_UNIT.convert(expiration.getLength(), expiration.getTimeUnit());
-        if(now >= time + operation.expirationTimeStamp()) {
+        if(now >= time + operation.timeStamp()) {
           result = null;
         }
       } else {
@@ -92,8 +95,8 @@ public class ChainResolver<K, V> {
       }
     }
     Operation<K, V> resolvedOperation = null;
-    if(result != null) {
-      resolvedOperation = new PutOperation<K, V>(key, result.getValue(), System.currentTimeMillis());
+    if(result != null & operation != null) {
+      resolvedOperation = new PutOperation<K, V>(key, result.getValue(), operation.timeStamp(), false);
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }

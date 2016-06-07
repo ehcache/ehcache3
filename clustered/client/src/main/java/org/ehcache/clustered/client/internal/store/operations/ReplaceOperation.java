@@ -22,8 +22,8 @@ import java.nio.ByteBuffer;
 
 public class ReplaceOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
 
-  public ReplaceOperation(final K key, final V value, final long expirationTimeStamp) {
-    super(key, value, expirationTimeStamp);
+  public ReplaceOperation(final K key, final V value, final long timeStamp, final boolean isFirst) {
+    super(key, value, timeStamp, isFirst);
   }
 
   ReplaceOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {

@@ -13,30 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.clustered.client;
 
-package org.ehcache.clustered.client.internal.store.operations;
+import org.ehcache.core.spi.time.TimeSource;
 
-import org.ehcache.spi.serialization.Serializer;
+public class TestTimeSource implements TimeSource {
 
-import java.nio.ByteBuffer;
+  private long time = 0;
 
-public interface Operation<K, V> {
+  @Override
+  public long getTimeMillis() {
+    return time;
+  }
 
-  int BYTE_SIZE_BYTES = 1;
-  int INT_SIZE_BYTES = 4;
-  int LONG_SIZE_BYTES = 8;
-
-  OperationCode getOpCode();
-
-  K getKey();
-
-  Result<V> apply(Result<V> previousResult);
-
-  ByteBuffer encode(Serializer<K> keySerializer, Serializer<V> valueSerializer);
-
-  long timeStamp();
-
-  //TODO: bit-mask this in opcode to reduce a byte usage
-  boolean isFirst();
-
+  public void advanceTime(long delta) {
+    this.time += delta;
+  }
 }

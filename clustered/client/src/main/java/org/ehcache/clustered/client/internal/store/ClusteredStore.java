@@ -152,7 +152,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
-    PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis());
+    PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis(), true);
     ByteBuffer payload = codec.encode(operation);
     Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
     ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
@@ -185,7 +185,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   @Override
   public boolean remove(final K key) throws StoreAccessException {
     removeObserver.begin();
-    RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key, timeSource.getTimeMillis());
+    RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key, timeSource.getTimeMillis(), true);
     ByteBuffer payload = codec.encode(operation);
     Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
     ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
@@ -387,10 +387,13 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         clusteredStoreConfiguration = new ClusteredStoreConfiguration();
       }
       ClusteredCacheIdentifier cacheId = findSingletonAmongst(ClusteredCacheIdentifier.class, (Object[]) serviceConfigs);
-      OperationsCodec<K, V> codec = new OperationsCodec<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
-      ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec, storeConfig.getExpiry());
 
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+
+      OperationsCodec<K, V> codec = new OperationsCodec<K, V>(storeConfig.getKeySerializer(), storeConfig.getValueSerializer());
+      ChainResolver<K, V> resolver = new ChainResolver<K, V>(codec, storeConfig.getExpiry(), timeSource);
+
+
       ClusteredStore<K, V> store = new ClusteredStore<K, V>(codec, resolver, timeSource);
       createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
       return store;

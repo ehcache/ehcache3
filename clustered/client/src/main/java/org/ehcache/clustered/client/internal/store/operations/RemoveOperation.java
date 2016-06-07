@@ -24,14 +24,20 @@ import java.nio.ByteBuffer;
 public class RemoveOperation<K, V> implements Operation<K, V> {
 
   private final K key;
-  private final long expirationTimeStamp;
+  private final long timeStamp;
+  private final byte isFirst;
 
-  public RemoveOperation(final K key, final long expirationTimeStamp) {
+  public RemoveOperation(final K key, final long timeStamp, final boolean isFirst) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
     this.key = key;
-    this.expirationTimeStamp = expirationTimeStamp;
+    this.timeStamp = timeStamp;
+    if (isFirst) {
+      this.isFirst = (byte)1;
+    } else {
+      this.isFirst = (byte)0;
+    }
   }
 
   RemoveOperation(final ByteBuffer buffer, final Serializer<K> keySerializer) {
@@ -39,8 +45,8 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
     if (opCode != getOpCode()) {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
-    this.expirationTimeStamp = buffer.getLong();
-
+    this.timeStamp = buffer.getLong();
+    this.isFirst = buffer.get();
     ByteBuffer keyBlob = buffer.slice();
     try {
       this.key = keySerializer.read(keyBlob);
@@ -73,11 +79,13 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
 
     int size = BYTE_SIZE_BYTES +   // Operation type
                LONG_SIZE_BYTES +   // Size of expiration time stamp
+               BYTE_SIZE_BYTES +   // isFirst status bit
                keyBuf.remaining();   // the key payload itself
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
     buffer.put(getOpCode().getValue());
-    buffer.putLong(this.expirationTimeStamp);
+    buffer.putLong(this.timeStamp);
+    buffer.put(this.isFirst);
     buffer.put(keyBuf);
     buffer.flip();
     return buffer;
@@ -115,7 +123,16 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
   }
 
   @Override
-  public long expirationTimeStamp() {
-    return this.expirationTimeStamp;
+  public long timeStamp() {
+    return this.timeStamp;
+  }
+
+  @Override
+  public boolean isFirst() {
+    if(isFirst == 1) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }

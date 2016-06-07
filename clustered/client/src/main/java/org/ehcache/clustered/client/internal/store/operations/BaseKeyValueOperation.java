@@ -25,9 +25,10 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   private final K key;
   private final V value;
-  private final long expirationTimeStamp;
+  private final long timeStamp;
+  private final byte isFirst;
 
-  BaseKeyValueOperation(K key, V value, long expirationTimeStamp) {
+  BaseKeyValueOperation(K key, V value, long timeStamp, boolean isFirst) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
@@ -36,7 +37,12 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     }
     this.key = key;
     this.value = value;
-    this.expirationTimeStamp = expirationTimeStamp;
+    this.timeStamp = timeStamp;
+    if (isFirst) {
+      this.isFirst = (byte)1;
+    } else {
+      this.isFirst = (byte)0;
+    }
   }
 
   BaseKeyValueOperation(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
@@ -44,7 +50,8 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     if (opCode != getOpCode()) {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
-    this.expirationTimeStamp = buffer.getLong();
+    this.timeStamp = buffer.getLong();
+    this.isFirst = buffer.get();
     int keySize = buffer.getInt();
     buffer.limit(buffer.position() + keySize);
     ByteBuffer keyBlob = buffer.slice();
@@ -85,13 +92,15 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     int size = BYTE_SIZE_BYTES +   // Operation type
                INT_SIZE_BYTES +    // Size of the key payload
                LONG_SIZE_BYTES +   // Size of expiration time stamp
+               BYTE_SIZE_BYTES +   // isFirst status bit
                keyBuf.remaining() + // the key payload itself
                valueBuf.remaining();  // the value payload
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
 
     buffer.put(getOpCode().getValue());
-    buffer.putLong(this.expirationTimeStamp);
+    buffer.putLong(this.timeStamp);
+    buffer.put(this.isFirst);
     buffer.putInt(keyBuf.remaining());
     buffer.put(keyBuf);
     buffer.put(valueBuf);
@@ -135,7 +144,16 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
   }
 
   @Override
-  public long expirationTimeStamp() {
-    return this.expirationTimeStamp;
+  public long timeStamp() {
+    return this.timeStamp;
+  }
+
+  @Override
+  public boolean isFirst() {
+    if(isFirst == 1) {
+      return true;
+    } else {
+      return false;
+    }
   }
 }

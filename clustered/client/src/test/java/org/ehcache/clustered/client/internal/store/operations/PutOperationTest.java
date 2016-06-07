@@ -26,8 +26,8 @@ import static org.junit.Assert.*;
 public class PutOperationTest extends BaseKeyValueOperationTest {
 
   @Override
-  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value) {
-    return new PutOperation<K, V>(key, value, System.currentTimeMillis());
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
+    return new PutOperation<K, V>(key, value, timestamp, true);
   }
 
   @Override
@@ -42,10 +42,10 @@ public class PutOperationTest extends BaseKeyValueOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    PutOperation<Long, String> putOperation = new PutOperation<Long, String>(1L, "one", System.currentTimeMillis());
+    PutOperation<Long, String> putOperation = new PutOperation<Long, String>(1L, "one", System.currentTimeMillis(), true);
     Result<String> result = putOperation.apply(null);
     assertSame(putOperation, result);
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "two", System.currentTimeMillis());
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "two", System.currentTimeMillis(), true);
     result = anotherOperation.apply(putOperation);
     assertSame(anotherOperation, result);
   }

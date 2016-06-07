@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
+import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
@@ -33,7 +34,9 @@ public abstract class BaseKeyValueOperationTest {
   protected static final Serializer<Long> keySerializer = new LongSerializer();
   protected static final Serializer<String> valueSerializer = new StringSerializer();
 
-  protected abstract <K, V> BaseKeyValueOperation<K, V> getNewOperation(K key, V value);
+  private static  final TestTimeSource TIME_SOURCE = new TestTimeSource();
+
+  protected abstract <K, V> BaseKeyValueOperation<K, V> getNewOperation(K key, V value, long timestamp);
 
   protected abstract <K, V> BaseKeyValueOperation<K, V> getNewOperation(ByteBuffer buffer,
                                                             Serializer<K> keySerializer, Serializer<V> valueSerializer);
@@ -44,13 +47,14 @@ public abstract class BaseKeyValueOperationTest {
   public void testEncode() throws Exception {
     Long key = 12L;
     String value = "The value";
-    Operation<Long, String> operation = getNewOperation(key, value);
+    Operation<Long, String> operation = getNewOperation(key, value, TIME_SOURCE.getTimeMillis());
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
-    ByteBuffer expected = ByteBuffer.allocate(BYTE_SIZE_BYTES +
+    ByteBuffer expected = ByteBuffer.allocate(2 * BYTE_SIZE_BYTES +
                                               INT_SIZE_BYTES + 2 * LONG_SIZE_BYTES + value.length());
     expected.put(getOperationCode().getValue());
-    expected.putLong(System.currentTimeMillis());
+    expected.putLong(TIME_SOURCE.getTimeMillis());
+    expected.put((byte)1);
     expected.putInt(LONG_SIZE_BYTES);
     expected.putLong(key);
     expected.put(value.getBytes());
@@ -63,10 +67,11 @@ public abstract class BaseKeyValueOperationTest {
     Long key = 12L;
     String value = "The value";
 
-    ByteBuffer blob = ByteBuffer.allocate(BYTE_SIZE_BYTES +
+    ByteBuffer blob = ByteBuffer.allocate(2 * BYTE_SIZE_BYTES +
                                           INT_SIZE_BYTES + 2 * LONG_SIZE_BYTES + value.length());
     blob.put(getOperationCode().getValue());
-    blob.putLong(System.currentTimeMillis());
+    blob.putLong(TIME_SOURCE.getTimeMillis());
+    blob.put((byte)1);
     blob.putInt(LONG_SIZE_BYTES);
     blob.putLong(key);
     blob.put(value.getBytes());
@@ -82,7 +87,7 @@ public abstract class BaseKeyValueOperationTest {
   public void testEncodeDecodeInvariant() throws Exception {
     Long key = 12L;
     String value = "The value";
-    Operation<Long, String> operation = getNewOperation(key, value);
+    Operation<Long, String> operation = getNewOperation(key, value, TIME_SOURCE.getTimeMillis());
 
     BaseKeyValueOperation<Long, String> decodedOperation = getNewOperation(
         operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);

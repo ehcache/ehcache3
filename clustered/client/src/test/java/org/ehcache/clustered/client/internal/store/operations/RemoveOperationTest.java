@@ -35,12 +35,13 @@ public class RemoveOperationTest {
   @Test
   public void testEncode() throws Exception {
     Long key = 12L;
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key, System.currentTimeMillis());
+    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key, System.currentTimeMillis(), true);
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
-    ByteBuffer expected = ByteBuffer.allocate(BYTE_SIZE_BYTES + 2 * LONG_SIZE_BYTES);
+    ByteBuffer expected = ByteBuffer.allocate(2 * BYTE_SIZE_BYTES + 2 * LONG_SIZE_BYTES);
     expected.put(OperationCode.REMOVE.getValue());
     expected.putLong(System.currentTimeMillis());
+    expected.put((byte)1);
     expected.putLong(key);
     expected.flip();
     assertArrayEquals(expected.array(), byteBuffer.array());
@@ -49,9 +50,10 @@ public class RemoveOperationTest {
   @Test
   public void testDecode() throws Exception {
     Long key = 12L;
-    ByteBuffer blob = ByteBuffer.allocate(BYTE_SIZE_BYTES + 2 * LONG_SIZE_BYTES);
+    ByteBuffer blob = ByteBuffer.allocate(2 * BYTE_SIZE_BYTES + 2 * LONG_SIZE_BYTES);
     blob.put(OperationCode.REMOVE.getValue());
     blob.putLong(System.currentTimeMillis());
+    blob.put((byte)1);
     blob.putLong(key);
     blob.flip();
 
@@ -62,7 +64,7 @@ public class RemoveOperationTest {
   @Test
   public void testEncodeDecodeInvariant() throws Exception {
     Long key = 12L;
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key, System.currentTimeMillis());
+    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key, System.currentTimeMillis(), true);
 
     RemoveOperation<Long, String> decodedOperation =
         new RemoveOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer);
@@ -77,11 +79,11 @@ public class RemoveOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(1L, System.currentTimeMillis());
+    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(1L, System.currentTimeMillis(), true);
     Result<String> result = operation.apply(null);
     assertNull(result);
 
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis());
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis(), true);
     result = operation.apply(anotherOperation);
     assertNull(result);
   }

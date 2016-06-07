@@ -27,8 +27,8 @@ import java.nio.ByteBuffer;
  */
 public class PutOperation<K, V> extends BaseKeyValueOperation<K, V> implements Result<V> {
 
-  public PutOperation(final K key, final V value, final long expirationTimeStamp) {
-    super(key, value, expirationTimeStamp);
+  public PutOperation(final K key, final V value, final long timeStamp, final boolean isFirst) {
+    super(key, value, timeStamp, isFirst);
   }
 
   PutOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {

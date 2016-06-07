@@ -26,8 +26,8 @@ import static org.junit.Assert.*;
 public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
 
   @Override
-  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value) {
-    return new PutIfAbsentOperation<K, V>(key, value, System.currentTimeMillis());
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
+    return new PutIfAbsentOperation<K, V>(key, value, timestamp, true);
   }
 
   @Override
@@ -42,11 +42,11 @@ public class PutIfAbsentOperationTest extends BaseKeyValueOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<Long, String>(1L, "one", System.currentTimeMillis());
+    PutIfAbsentOperation<Long, String> operation = new PutIfAbsentOperation<Long, String>(1L, "one", System.currentTimeMillis(), true);
     Result<String> result = operation.apply(null);
     assertSame(operation, result);
 
-    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<Long, String>(1L, "another one", System.currentTimeMillis());
+    ReplaceOperation<Long, String> anotherOperation = new ReplaceOperation<Long, String>(1L, "another one", System.currentTimeMillis(), true);
     result = operation.apply(anotherOperation);
     assertSame(anotherOperation, result);
   }
