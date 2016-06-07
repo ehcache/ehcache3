@@ -348,15 +348,20 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     try {
       switch (message.operation()) {
-        case GET: return responseFactory.response(cacheStore.get(message.getKey()));
+        case GET:
+          ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage)message;
+          return responseFactory.response(cacheStore.get(getMessage.getKey()));
         case APPEND: {
-          cacheStore.append(message.getKey(), ((ServerStoreOpMessage.AppendMessage) message).getPayload());
-          invalidateHash(clientDescriptor, message.getCacheId(), message.getKey());
+          ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
+          cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
+          invalidateHash(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
           return responseFactory.success();
         }
         case GET_AND_APPEND: {
-          EhcacheEntityResponse response = responseFactory.response(cacheStore.getAndAppend(message.getKey(), ((ServerStoreOpMessage.GetAndAppendMessage) message).getPayload()));
-          invalidateHash(clientDescriptor, message.getCacheId(), message.getKey());
+          ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
+          EhcacheEntityResponse response =
+              responseFactory.response(cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload()));
+          invalidateHash(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
           return response;
         }
         case REPLACE: {

@@ -25,16 +25,13 @@ import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ServerStoreOp;
 
 import java.nio.ByteBuffer;
 
-/**
- *
- */
 class ServerStoreOpCodec {
-
 
   private static final byte STORE_OP_CODE_SIZE = 1;
   private static final byte CACHE_ID_LEN_SIZE = 4;
   private static final byte KEY_SIZE = 8;
   private static final byte CHAIN_LEN_SIZE = 4;
+  private static final byte INVALIDATION_ID_LEN_SIZE = 4;
 
   private final ChainCodec chainCodec;
 
@@ -48,23 +45,25 @@ class ServerStoreOpCodec {
     int cacheIdLen = message.getCacheId().length();
     switch (message.operation()) {
       case GET:
-        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen);
-        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
+        GetMessage getMessage = (GetMessage)message;
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + KEY_SIZE + 2 * cacheIdLen);
+        encodedMsg.put(getMessage.getOpCode());
+        encodedMsg.putLong(getMessage.getKey());
+        putCacheId(encodedMsg, getMessage.getCacheId());
         return encodedMsg.array();
       case APPEND:
         AppendMessage appendMessage = (AppendMessage)message;
         encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + appendMessage
             .getPayload()
             .remaining());
-        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
+        putCacheIdKeyAndOpCode(encodedMsg, appendMessage.getCacheId(), appendMessage.getKey(), appendMessage.getOpCode());
         encodedMsg.put(appendMessage.getPayload());
         return encodedMsg.array();
       case GET_AND_APPEND:
         GetAndAppendMessage getAndAppendMessage = (GetAndAppendMessage)message;
-        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + getAndAppendMessage
-            .getPayload()
-            .remaining());
-        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen +
+                                         getAndAppendMessage.getPayload().remaining());
+        putCacheIdKeyAndOpCode(encodedMsg, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey(), getAndAppendMessage.getOpCode());
         encodedMsg.put(getAndAppendMessage.getPayload());
         return encodedMsg.array();
       case REPLACE:
@@ -72,18 +71,18 @@ class ServerStoreOpCodec {
         byte[] encodedExpectedChain = chainCodec.encode(replaceAtHeadMessage.getExpect());
         byte[] encodedUpdatedChain = chainCodec.encode(replaceAtHeadMessage.getUpdate());
         encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen +
-                                         2 * CHAIN_LEN_SIZE + encodedExpectedChain.length + encodedUpdatedChain.length);
-        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), message.getKey(), message.operation().getStoreOpCode());
+                                         CHAIN_LEN_SIZE + encodedExpectedChain.length + encodedUpdatedChain.length);
+        putCacheIdKeyAndOpCode(encodedMsg, replaceAtHeadMessage.getCacheId(), replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getOpCode());
         encodedMsg.putInt(encodedExpectedChain.length);
         encodedMsg.put(encodedExpectedChain);
-        encodedMsg.putInt(encodedUpdatedChain.length);
         encodedMsg.put(encodedUpdatedChain);
         return encodedMsg.array();
       case CLIENT_INVALIDATION_ACK:
-        ClientInvalidationAck clientInvalidationAck = (ClientInvalidationAck) message;
-        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + 2 * cacheIdLen + 4);
-        putCacheIdKeyAndOpCode(encodedMsg, message.getCacheId(), 0L, message.operation().getStoreOpCode());
+        ClientInvalidationAck clientInvalidationAck = (ClientInvalidationAck)message;
+        encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + INVALIDATION_ID_LEN_SIZE + 2 * cacheIdLen);
+        encodedMsg.put(clientInvalidationAck.getOpCode());
         encodedMsg.putInt(clientInvalidationAck.getInvalidationId());
+        putCacheId(encodedMsg, clientInvalidationAck.getCacheId());
         return encodedMsg.array();
       case CLEAR:
         ClearMessage clearMessage = (ClearMessage)message;
@@ -114,40 +113,49 @@ class ServerStoreOpCodec {
     ByteBuffer msg = ByteBuffer.wrap(payload);
     byte opCode = msg.get();
     ServerStoreOp storeOp = ServerStoreOp.getServerStoreOp(opCode);
-    if(storeOp == ServerStoreOp.CLEAR) {
-      return new ClearMessage(getStringFromBuffer(msg, msg.remaining()/2));
-    }
 
-    int cacheIdLen = msg.getInt();
-    String cacheId = getStringFromBuffer(msg, cacheIdLen);
-    long key = msg.getLong();
-    byte[] remaining = new byte[msg.remaining()];
-    msg.get(remaining);
+    long key;
+    String cacheId;
+
     switch (storeOp) {
       case GET:
+        key = msg.getLong();
+        cacheId = getStringFromBuffer(msg, msg.remaining() / 2);
         return new GetMessage(cacheId, key);
       case GET_AND_APPEND:
-        return new GetAndAppendMessage(cacheId, key, ByteBuffer.wrap(remaining).asReadOnlyBuffer());
+        cacheId = readStringFromBufferWithSize(msg);
+        key = msg.getLong();
+        return new GetAndAppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer());
       case APPEND:
-        return new AppendMessage(cacheId, key, ByteBuffer.wrap(remaining).asReadOnlyBuffer());
+        cacheId = readStringFromBufferWithSize(msg);
+        key = msg.getLong();
+        return new AppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer());
       case REPLACE:
-        ByteBuffer replaceBuf = ByteBuffer.wrap(remaining);
-        int expectChainLen = replaceBuf.getInt();
+        cacheId = readStringFromBufferWithSize(msg);
+        key = msg.getLong();
+        int expectChainLen = msg.getInt();
         byte[] encodedExpectChain = new byte[expectChainLen];
-        replaceBuf.get(encodedExpectChain);
-        int updateChainLen = replaceBuf.getInt();
+        msg.get(encodedExpectChain);
+        int updateChainLen = msg.remaining();
         byte[] encodedUpdateChain = new byte[updateChainLen];
-        replaceBuf.get(encodedUpdateChain);
+        msg.get(encodedUpdateChain);
         return new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
             chainCodec.decode(encodedUpdateChain));
       case CLIENT_INVALIDATION_ACK:
-        ByteBuffer remainingBuf = ByteBuffer.wrap(remaining);
-        int invalidationId = remainingBuf.getInt();
+        int invalidationId = msg.getInt();
+        cacheId = getStringFromBuffer(msg, msg.remaining() / 2);
         return new ClientInvalidationAck(cacheId, invalidationId);
+      case CLEAR:
+        cacheId = getStringFromBuffer(msg, msg.remaining() / 2);
+        return new ClearMessage(cacheId);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
-
     }
+  }
+
+  private static String readStringFromBufferWithSize(ByteBuffer buffer) {
+    int length = buffer.getInt();
+    return getStringFromBuffer(buffer, length);
   }
 
   private static String getStringFromBuffer(ByteBuffer buffer, int length) {
