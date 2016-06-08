@@ -132,5 +132,8 @@ public class BasicCacheCrudTest {
     assertThat(cache1.replace(1L, "one"), nullValue());
     cache1.putIfAbsent(1L, "one");
     assertThat(cache2.replace(1L, "another one"), is("one"));
+
+    assertThat(cache1.replace(1L, "another one", "yet another one"), is(true));
+    assertThat(cache2.replace(1L, "another one", "yet another one"), is(false));
   }
 }

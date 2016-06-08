@@ -171,4 +171,14 @@ public class ClusteredStoreTest {
     validateStat(store, StoreOperationOutcomes.ReplaceOutcome.REPLACED, 1);
     validateStat(store, StoreOperationOutcomes.ReplaceOutcome.MISS, 1);
   }
+
+  @Test
+  public void testConditionalReplace() throws Exception {
+    assertThat(store.replace(1L, "one" , "another one"), is(Store.ReplaceStatus.MISS_NOT_PRESENT));
+    store.put(1L, "some other one");
+    assertThat(store.replace(1L, "one" , "another one"), is(Store.ReplaceStatus.MISS_PRESENT));
+    assertThat(store.replace(1L, "some other one" , "another one"), is(Store.ReplaceStatus.HIT));
+    validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED, 1);
+    validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.MISS, 2);
+  }
 }
