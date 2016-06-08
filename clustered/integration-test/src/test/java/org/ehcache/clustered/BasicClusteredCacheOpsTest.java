@@ -18,14 +18,18 @@ package org.ehcache.clustered;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -36,12 +40,15 @@ import java.io.File;
 import java.net.URI;
 import java.util.Collections;
 
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-public class BasicCacheCrudTest {
+public class BasicClusteredCacheOpsTest {
 
   private static final String RESOURCE_CONFIG =
       "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
@@ -54,9 +61,14 @@ public class BasicCacheCrudTest {
   public static Cluster CLUSTER =
       new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG);
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
+  @Before
+  public void waitForActive() throws Exception {
     CLUSTER.getClusterControl().waitForActive();
+  }
+
+  @After
+  public void restartServer() throws Exception {
+    CLUSTER.getClusterControl().restartActive();
   }
 
   @Test
@@ -93,5 +105,32 @@ public class BasicCacheCrudTest {
     } finally {
       cacheManager.close();
     }
+  }
+
+  @Test
+  public void basicCacheCAS() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+        newCacheManagerBuilder()
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager?auto-create")))
+            .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
+        ;
+
+    final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
+    final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);
+
+    final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
+    final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
+
+    assertThat(cache1.putIfAbsent(1L, "one"), nullValue());
+    assertThat(cache2.putIfAbsent(1L, "another one"), is("one"));
+    assertThat(cache2.remove(1L, "another one"), is(false));
+    assertThat(cache1.replace(1L, "another one"), is("one"));
+    assertThat(cache2.replace(1L, "another one", "yet another one"), is(true));
+    assertThat(cache1.remove(1L, "yet another one"), is(true));
+    assertThat(cache2.replace(1L, "one"), nullValue());
+    assertThat(cache1.replace(1L, "another one", "yet another one"), is(false));
   }
 }

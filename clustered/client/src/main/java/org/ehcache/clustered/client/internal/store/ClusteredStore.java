@@ -20,8 +20,12 @@ import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
+import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
+import org.ehcache.clustered.client.internal.store.operations.ConditionalReplaceOperation;
+import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
 import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
+import org.ehcache.clustered.client.internal.store.operations.ReplaceOperation;
 import org.ehcache.clustered.client.internal.store.operations.Result;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -74,6 +78,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.GetOutcome> getObserver;
   private final OperationObserver<StoreOperationOutcomes.PutOutcome> putObserver;
   private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeObserver;
+  private final OperationObserver<StoreOperationOutcomes.PutIfAbsentOutcome> putIfAbsentObserver;
+  private final OperationObserver<StoreOperationOutcomes.ConditionalRemoveOutcome> conditionalRemoveObserver;
+  private final OperationObserver<StoreOperationOutcomes.ReplaceOutcome> replaceObserver;
+  private final OperationObserver<StoreOperationOutcomes.ConditionalReplaceOutcome> conditionalReplaceObserver;
 
   ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
@@ -82,6 +90,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(STATISTICS_TAG).build();
     this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(STATISTICS_TAG).build();
     this.removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag(STATISTICS_TAG).build();
+    this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(STATISTICS_TAG).build();
+    this.conditionalRemoveObserver = operation(StoreOperationOutcomes.ConditionalRemoveOutcome.class).of(this).named("conditionalRemove").tag(STATISTICS_TAG).build();
+    this.replaceObserver = operation(StoreOperationOutcomes.ReplaceOutcome.class).of(this).named("replace").tag(STATISTICS_TAG).build();
+    this.conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).of(this).named("conditionalReplace").tag(STATISTICS_TAG).build();
   }
 
   /**
@@ -149,8 +161,19 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> putIfAbsent(final K key, final V value) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    putIfAbsentObserver.begin();
+    PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<K, V>(key, value);
+    ByteBuffer payload = codec.encode(operation);
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    Result<V> result = resolvedChain.getResolvedResult(key);
+    if(result == null) {
+      putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
+      return null;
+    } else {
+      putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
+      return new ClusteredValueHolder<V>(result.getValue());
+    }
   }
 
   @Override
@@ -171,20 +194,63 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public RemoveStatus remove(final K key, final V value) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    conditionalRemoveObserver.begin();
+    ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<K, V>(key, value);
+    ByteBuffer payload = codec.encode(operation);
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    Result<V> result = resolvedChain.getResolvedResult(key);
+    if(result != null) {
+      if(value.equals(result.getValue())) {
+        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
+        return RemoveStatus.REMOVED;
+      } else {
+        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
+        return RemoveStatus.KEY_PRESENT;
+      }
+    } else {
+      conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
+      return RemoveStatus.KEY_MISSING;
+    }
   }
 
   @Override
   public ValueHolder<V> replace(final K key, final V value) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    replaceObserver.begin();
+    ReplaceOperation<K, V> operation = new ReplaceOperation<K, V>(key, value);
+    ByteBuffer payload = codec.encode(operation);
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    Result<V> result = resolvedChain.getResolvedResult(key);
+    if(result == null) {
+      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
+      return null;
+    } else {
+      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
+      return new ClusteredValueHolder<V>(result.getValue());
+    }
   }
 
   @Override
   public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    conditionalReplaceObserver.begin();
+    ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<K, V>(key, oldValue, newValue);
+    ByteBuffer payload = codec.encode(operation);
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    Result<V> result = resolvedChain.getResolvedResult(key);
+    if(result != null) {
+      if(oldValue.equals(result.getValue())) {
+        conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
+        return ReplaceStatus.HIT;
+      } else {
+        conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
+        return ReplaceStatus.MISS_PRESENT;
+      }
+    } else {
+      conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
+      return ReplaceStatus.MISS_NOT_PRESENT;
+    }
   }
 
   @Override
