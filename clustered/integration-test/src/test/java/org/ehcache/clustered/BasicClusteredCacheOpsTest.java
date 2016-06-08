@@ -28,6 +28,8 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -46,7 +48,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-public class BasicCacheCrudTest {
+public class BasicClusteredCacheOpsTest {
 
   private static final String RESOURCE_CONFIG =
       "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
@@ -59,9 +61,14 @@ public class BasicCacheCrudTest {
   public static Cluster CLUSTER =
       new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG);
 
-  @BeforeClass
-  public static void waitForActive() throws Exception {
+  @Before
+  public void waitForActive() throws Exception {
     CLUSTER.getClusterControl().waitForActive();
+  }
+
+  @After
+  public void restartServer() throws Exception {
+    CLUSTER.getClusterControl().restartActive();
   }
 
   @Test
@@ -116,24 +123,14 @@ public class BasicCacheCrudTest {
 
     final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
     final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
-    cache1.put(1L, "one");
 
-    cache1.putIfAbsent(1L, "another one");
-    assertThat(cache2.get(1L), is("one"));
-    cache2.remove(1L);
-    cache2.putIfAbsent(1L, "another one");
-    assertThat(cache1.get(1L), is("another one"));
-
-    assertThat(cache2.remove(1L, "one"), is(false));
-    assertThat(cache1.containsKey(1L), is(true));
-    assertThat(cache1.remove(1L, "another one"), is(true));
-    assertThat(cache1.containsKey(1L), is(false));
-
-    assertThat(cache1.replace(1L, "one"), nullValue());
-    cache1.putIfAbsent(1L, "one");
-    assertThat(cache2.replace(1L, "another one"), is("one"));
-
-    assertThat(cache1.replace(1L, "another one", "yet another one"), is(true));
-    assertThat(cache2.replace(1L, "another one", "yet another one"), is(false));
+    assertThat(cache1.putIfAbsent(1L, "one"), nullValue());
+    assertThat(cache2.putIfAbsent(1L, "another one"), is("one"));
+    assertThat(cache2.remove(1L, "another one"), is(false));
+    assertThat(cache1.replace(1L, "another one"), is("one"));
+    assertThat(cache2.replace(1L, "another one", "yet another one"), is(true));
+    assertThat(cache1.remove(1L, "yet another one"), is(true));
+    assertThat(cache2.replace(1L, "one"), nullValue());
+    assertThat(cache1.replace(1L, "another one", "yet another one"), is(false));
   }
 }
