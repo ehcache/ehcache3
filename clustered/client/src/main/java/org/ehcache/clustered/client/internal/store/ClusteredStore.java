@@ -223,10 +223,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
     Result<V> result = resolvedChain.getResolvedResult(key);
     if(result == null) {
-      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
+      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
       return null;
     } else {
-      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
+      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
       return new ClusteredValueHolder<V>(result.getValue());
     }
   }

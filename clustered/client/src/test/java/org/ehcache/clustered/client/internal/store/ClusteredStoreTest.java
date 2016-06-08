@@ -38,9 +38,11 @@ import org.terracotta.connection.Connection;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Properties;
 
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
+import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
@@ -92,6 +94,7 @@ public class ClusteredStoreTest {
   @Test
   public void testPut() throws Exception {
     assertThat(store.put(1L, "one"), is(Store.PutStatus.PUT));
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.PutOutcome.PUT));
     assertThat(store.put(1L, "another one"), is(Store.PutStatus.UPDATE));
     assertThat(store.put(1L, "yet another one"), is(Store.PutStatus.UPDATE));
     validateStat(store, StoreOperationOutcomes.PutOutcome.REPLACED, 2);
@@ -101,10 +104,10 @@ public class ClusteredStoreTest {
   @Test
   public void testGet() throws Exception {
     assertThat(store.get(1L), nullValue());
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS));
     store.put(1L, "one");
     assertThat(store.get(1L).value(), is("one"));
-    validateStat(store, StoreOperationOutcomes.GetOutcome.HIT, 1);
-    validateStat(store, StoreOperationOutcomes.GetOutcome.MISS, 1);
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS, StoreOperationOutcomes.GetOutcome.HIT));
   }
 
   @Test
@@ -119,11 +122,11 @@ public class ClusteredStoreTest {
   @Test
   public void testRemove() throws Exception {
     assertThat(store.remove(1L), is(false));
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.RemoveOutcome.MISS));
     store.put(1L, "one");
     assertThat(store.remove(1L), is(true));
     assertThat(store.containsKey(1L), is(false));
-    validateStat(store, StoreOperationOutcomes.RemoveOutcome.REMOVED, 1);
-    validateStat(store, StoreOperationOutcomes.RemoveOutcome.MISS, 1);
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.RemoveOutcome.MISS, StoreOperationOutcomes.RemoveOutcome.REMOVED));
   }
 
   @Test
@@ -147,36 +150,40 @@ public class ClusteredStoreTest {
   @Test
   public void testPutIfAbsent() throws Exception {
     assertThat(store.putIfAbsent(1L, "one"), nullValue());
-    validateStat(store, StoreOperationOutcomes.PutIfAbsentOutcome.PUT, 1);
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT));
     assertThat(store.putIfAbsent(1L, "another one").value(), is("one"));
-    validateStat(store, StoreOperationOutcomes.PutIfAbsentOutcome.HIT, 1);
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT, StoreOperationOutcomes.PutIfAbsentOutcome.HIT));
   }
 
   @Test
   public void testConditionalRemove() throws Exception {
     assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.KEY_MISSING));
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS));
     store.put(1L, "one");
     assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.REMOVED));
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS, StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED));
     store.put(1L, "another one");
     assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.KEY_PRESENT));
-    validateStat(store, StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED, 1);
     validateStat(store, StoreOperationOutcomes.ConditionalRemoveOutcome.MISS, 2);
   }
 
   @Test
   public void testReplace() throws Exception {
     assertThat(store.replace(1L, "one"), nullValue());
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS));
     store.put(1L, "one");
     assertThat(store.replace(1L, "another one").value(), is("one"));
-    validateStat(store, StoreOperationOutcomes.ReplaceOutcome.REPLACED, 1);
-    validateStat(store, StoreOperationOutcomes.ReplaceOutcome.MISS, 1);
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS, StoreOperationOutcomes.ReplaceOutcome.REPLACED));
   }
 
   @Test
   public void testConditionalReplace() throws Exception {
     assertThat(store.replace(1L, "one" , "another one"), is(Store.ReplaceStatus.MISS_NOT_PRESENT));
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS));
     store.put(1L, "some other one");
     assertThat(store.replace(1L, "one" , "another one"), is(Store.ReplaceStatus.MISS_PRESENT));
+    validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.MISS, 2);
+    validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED, 0);
     assertThat(store.replace(1L, "some other one" , "another one"), is(Store.ReplaceStatus.HIT));
     validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED, 1);
     validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.MISS, 2);
