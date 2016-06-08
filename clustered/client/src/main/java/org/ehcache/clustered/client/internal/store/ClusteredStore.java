@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
+import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
 import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
@@ -76,6 +77,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.PutOutcome> putObserver;
   private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeObserver;
   private final OperationObserver<StoreOperationOutcomes.PutIfAbsentOutcome> putIfAbsentObserver;
+  private final OperationObserver<StoreOperationOutcomes.ConditionalRemoveOutcome> conditionalRemoveObserver;
 
   ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
@@ -85,6 +87,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(STATISTICS_TAG).build();
     this.removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag(STATISTICS_TAG).build();
     this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(STATISTICS_TAG).build();
+    this.conditionalRemoveObserver = operation(StoreOperationOutcomes.ConditionalRemoveOutcome.class).of(this).named("conditionalRemove").tag(STATISTICS_TAG).build();
   }
 
   /**
@@ -185,8 +188,24 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public RemoveStatus remove(final K key, final V value) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    conditionalRemoveObserver.begin();
+    ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<K, V>(key, value);
+    ByteBuffer payload = codec.encode(operation);
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    Result<V> result = resolvedChain.getResolvedResult(key);
+    if(result != null) {
+      if(value.equals(result.getValue())) {
+        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
+        return RemoveStatus.REMOVED;
+      } else {
+        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
+        return RemoveStatus.KEY_PRESENT;
+      }
+    } else {
+      conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
+      return RemoveStatus.KEY_MISSING;
+    }
   }
 
   @Override

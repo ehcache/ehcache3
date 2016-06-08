@@ -151,4 +151,15 @@ public class ClusteredStoreTest {
     assertThat(store.putIfAbsent(1L, "another one").value(), is("one"));
     validateStat(store, StoreOperationOutcomes.PutIfAbsentOutcome.HIT, 1);
   }
+
+  @Test
+  public void testConditionalRemove() throws Exception {
+    assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.KEY_MISSING));
+    store.put(1L, "one");
+    assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.REMOVED));
+    store.put(1L, "another one");
+    assertThat(store.remove(1L, "one"), is(Store.RemoveStatus.KEY_PRESENT));
+    validateStat(store, StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED, 1);
+    validateStat(store, StoreOperationOutcomes.ConditionalRemoveOutcome.MISS, 2);
+  }
 }
