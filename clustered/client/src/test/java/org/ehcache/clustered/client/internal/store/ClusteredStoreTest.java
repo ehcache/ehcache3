@@ -143,4 +143,12 @@ public class ClusteredStoreTest {
     assertThat(store.containsKey(2L), is(false));
     assertThat(store.containsKey(3L), is(false));
   }
+
+  @Test
+  public void testPutIfAbsent() throws Exception {
+    assertThat(store.putIfAbsent(1L, "one"), nullValue());
+    validateStat(store, StoreOperationOutcomes.PutIfAbsentOutcome.PUT, 1);
+    assertThat(store.putIfAbsent(1L, "another one").value(), is("one"));
+    validateStat(store, StoreOperationOutcomes.PutIfAbsentOutcome.HIT, 1);
+  }
 }

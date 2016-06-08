@@ -18,8 +18,10 @@ package org.ehcache.clustered;
 
 import org.ehcache.Cache;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -36,6 +38,9 @@ import java.io.File;
 import java.net.URI;
 import java.util.Collections;
 
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -93,5 +98,30 @@ public class BasicCacheCrudTest {
     } finally {
       cacheManager.close();
     }
+  }
+
+  @Test
+  public void basicCacheCAS() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+        newCacheManagerBuilder()
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager?auto-create")))
+            .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
+        ;
+
+    final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
+    final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);
+
+    final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
+    final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
+    cache1.put(1L, "one");
+
+    cache1.putIfAbsent(1L, "another one");
+    assertThat(cache2.get(1L), is("one"));
+    cache2.remove(1L);
+    cache2.putIfAbsent(1L, "another one");
+    assertThat(cache1.get(1L), is("another one"));
   }
 }

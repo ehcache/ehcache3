@@ -20,6 +20,7 @@ import org.ehcache.Cache;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
+import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
 import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
 import org.ehcache.clustered.client.internal.store.operations.Result;
@@ -74,6 +75,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.GetOutcome> getObserver;
   private final OperationObserver<StoreOperationOutcomes.PutOutcome> putObserver;
   private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeObserver;
+  private final OperationObserver<StoreOperationOutcomes.PutIfAbsentOutcome> putIfAbsentObserver;
 
   ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
@@ -82,6 +84,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(STATISTICS_TAG).build();
     this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(STATISTICS_TAG).build();
     this.removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag(STATISTICS_TAG).build();
+    this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(STATISTICS_TAG).build();
   }
 
   /**
@@ -149,8 +152,19 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> putIfAbsent(final K key, final V value) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    putIfAbsentObserver.begin();
+    PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<K, V>(key, value);
+    ByteBuffer payload = codec.encode(operation);
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    Result<V> result = resolvedChain.getResolvedResult(key);
+    if(result == null) {
+      putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
+      return null;
+    } else {
+      putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
+      return new ClusteredValueHolder<V>(result.getValue());
+    }
   }
 
   @Override
