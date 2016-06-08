@@ -51,7 +51,7 @@ public class TerminatedServerTest {
 
   @Rule
   public final Cluster cluster =
-      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG);
+      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, null);
 
   @Before
   public void waitForActive() throws Exception {
