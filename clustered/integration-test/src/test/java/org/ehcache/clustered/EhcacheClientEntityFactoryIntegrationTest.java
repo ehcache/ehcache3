@@ -52,7 +52,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @ClassRule
   public static Cluster CLUSTER =
-      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG);
+      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, null);
   private static Connection CONNECTION;
 
   @BeforeClass
