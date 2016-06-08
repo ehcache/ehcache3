@@ -128,5 +128,9 @@ public class BasicCacheCrudTest {
     assertThat(cache1.containsKey(1L), is(true));
     assertThat(cache1.remove(1L, "another one"), is(true));
     assertThat(cache1.containsKey(1L), is(false));
+
+    assertThat(cache1.replace(1L, "one"), nullValue());
+    cache1.putIfAbsent(1L, "one");
+    assertThat(cache2.replace(1L, "another one"), is("one"));
   }
 }

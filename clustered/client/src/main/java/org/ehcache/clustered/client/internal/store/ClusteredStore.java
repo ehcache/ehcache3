@@ -24,6 +24,7 @@ import org.ehcache.clustered.client.internal.store.operations.ConditionalRemoveO
 import org.ehcache.clustered.client.internal.store.operations.PutIfAbsentOperation;
 import org.ehcache.clustered.client.internal.store.operations.PutOperation;
 import org.ehcache.clustered.client.internal.store.operations.RemoveOperation;
+import org.ehcache.clustered.client.internal.store.operations.ReplaceOperation;
 import org.ehcache.clustered.client.internal.store.operations.Result;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.client.service.ClusteringService;
@@ -78,6 +79,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeObserver;
   private final OperationObserver<StoreOperationOutcomes.PutIfAbsentOutcome> putIfAbsentObserver;
   private final OperationObserver<StoreOperationOutcomes.ConditionalRemoveOutcome> conditionalRemoveObserver;
+  private final OperationObserver<StoreOperationOutcomes.ReplaceOutcome> replaceObserver;
 
   ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver) {
     this.codec = codec;
@@ -88,6 +90,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag(STATISTICS_TAG).build();
     this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(STATISTICS_TAG).build();
     this.conditionalRemoveObserver = operation(StoreOperationOutcomes.ConditionalRemoveOutcome.class).of(this).named("conditionalRemove").tag(STATISTICS_TAG).build();
+    this.replaceObserver = operation(StoreOperationOutcomes.ReplaceOutcome.class).of(this).named("replace").tag(STATISTICS_TAG).build();
   }
 
   /**
@@ -210,8 +213,19 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public ValueHolder<V> replace(final K key, final V value) throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    replaceObserver.begin();
+    ReplaceOperation<K, V> operation = new ReplaceOperation<K, V>(key, value);
+    ByteBuffer payload = codec.encode(operation);
+    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key);
+    Result<V> result = resolvedChain.getResolvedResult(key);
+    if(result == null) {
+      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
+      return null;
+    } else {
+      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
+      return new ClusteredValueHolder<V>(result.getValue());
+    }
   }
 
   @Override

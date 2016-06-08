@@ -162,4 +162,13 @@ public class ClusteredStoreTest {
     validateStat(store, StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED, 1);
     validateStat(store, StoreOperationOutcomes.ConditionalRemoveOutcome.MISS, 2);
   }
+
+  @Test
+  public void testReplace() throws Exception {
+    assertThat(store.replace(1L, "one"), nullValue());
+    store.put(1L, "one");
+    assertThat(store.replace(1L, "another one").value(), is("one"));
+    validateStat(store, StoreOperationOutcomes.ReplaceOutcome.REPLACED, 1);
+    validateStat(store, StoreOperationOutcomes.ReplaceOutcome.MISS, 1);
+  }
 }
