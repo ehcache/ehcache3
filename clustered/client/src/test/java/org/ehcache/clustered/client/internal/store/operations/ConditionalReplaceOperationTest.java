@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
+import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
@@ -33,12 +34,14 @@ public class ConditionalReplaceOperationTest {
   private static final Serializer<Long> keySerializer = new LongSerializer();
   private static final Serializer<String> valueSerializer = new StringSerializer();
 
+  private static  final TestTimeSource TIME_SOURCE = new TestTimeSource();
+
   @Test
   public void testEncode() throws Exception {
     Long key = 1L;
     String newValue = "The one";
     String oldValue = "Another one";
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue, System.currentTimeMillis(), true);
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue, TIME_SOURCE.getTimeMillis(), true);
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
     ByteBuffer expected = ByteBuffer.allocate(2 *BYTE_SIZE_BYTES +
@@ -46,7 +49,7 @@ public class ConditionalReplaceOperationTest {
                                               INT_SIZE_BYTES + oldValue.length() +
                                               newValue.length());
     expected.put(OperationCode.REPLACE_CONDITIONAL.getValue());
-    expected.putLong(System.currentTimeMillis());
+    expected.putLong(TIME_SOURCE.getTimeMillis());
     expected.put((byte)1);
     expected.putInt(LONG_SIZE_BYTES);
     expected.putLong(key);
@@ -68,7 +71,7 @@ public class ConditionalReplaceOperationTest {
                                           INT_SIZE_BYTES + oldValue.length() +
                                           newValue.length());
     blob.put(OperationCode.REPLACE_CONDITIONAL.getValue());
-    blob.putLong(System.currentTimeMillis());
+    blob.putLong(TIME_SOURCE.getTimeMillis());
     blob.put((byte)1);
     blob.putInt(LONG_SIZE_BYTES);
     blob.putLong(key);
@@ -88,7 +91,7 @@ public class ConditionalReplaceOperationTest {
     Long key = 1L;
     String newValue = "The value";
     String oldValue = "Another one";
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue, System.currentTimeMillis(), true);
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue, TIME_SOURCE.getTimeMillis(), true);
 
     ConditionalReplaceOperation<Long, String> decodedOperation =
         new ConditionalReplaceOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);

@@ -86,7 +86,7 @@ public class ClusteredStoreTest {
     TestTimeSource testTimeSource = new TestTimeSource();
 
     OperationsCodec<Long, String> codec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
-    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration(), testTimeSource);
+    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
     store = new ClusteredStore<Long, String>(codec, resolver, serverStoreProxy, testTimeSource);
   }
 

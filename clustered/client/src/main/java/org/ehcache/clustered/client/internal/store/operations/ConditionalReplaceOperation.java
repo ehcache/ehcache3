@@ -32,7 +32,11 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
   private final byte isFirst;
 
 
-  public ConditionalReplaceOperation(final K key, final V oldValue, final V newValue, final long timeStamp, final boolean isFirst) {
+  public ConditionalReplaceOperation(final K key, final V oldValue, final V newValue, long timeStamp) {
+    this(key, oldValue, newValue, timeStamp, true);
+  }
+
+  ConditionalReplaceOperation(final K key, final V oldValue, final V newValue, final long timeStamp, final boolean isFirst) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }

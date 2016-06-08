@@ -22,7 +22,11 @@ import java.nio.ByteBuffer;
 
 public class ConditionalRemoveOperation<K, V> extends BaseKeyValueOperation<K, V> {
 
-  public ConditionalRemoveOperation(final K key, final V value, final long timeStamp, final boolean isFirst) {
+  public ConditionalRemoveOperation(final K key, final V value, final long timeStamp) {
+    this(key, value, timeStamp, true);
+  }
+
+  ConditionalRemoveOperation(final K key, final V value, final long timeStamp, final boolean isFirst) {
     super(key, value, timeStamp, isFirst);
   }
 

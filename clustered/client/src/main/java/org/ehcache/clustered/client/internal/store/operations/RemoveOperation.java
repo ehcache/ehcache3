@@ -27,7 +27,11 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
   private final long timeStamp;
   private final byte isFirst;
 
-  public RemoveOperation(final K key, final long timeStamp, final boolean isFirst) {
+  public RemoveOperation(final K key, final long timeStamp) {
+    this(key, timeStamp, true);
+  }
+
+  RemoveOperation(final K key, final long timeStamp, final boolean isFirst) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }

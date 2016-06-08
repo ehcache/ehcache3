@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
+import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
@@ -32,15 +33,17 @@ public class RemoveOperationTest {
   private static final Serializer<Long> keySerializer = new LongSerializer();
   private static final Serializer<String> valueSerializer = new StringSerializer();
 
+  private static  final TestTimeSource TIME_SOURCE = new TestTimeSource();
+
   @Test
   public void testEncode() throws Exception {
     Long key = 12L;
-    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key, System.currentTimeMillis(), true);
+    RemoveOperation<Long, String> operation = new RemoveOperation<Long, String>(key, TIME_SOURCE.getTimeMillis(), true);
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
     ByteBuffer expected = ByteBuffer.allocate(2 * BYTE_SIZE_BYTES + 2 * LONG_SIZE_BYTES);
     expected.put(OperationCode.REMOVE.getValue());
-    expected.putLong(System.currentTimeMillis());
+    expected.putLong(TIME_SOURCE.getTimeMillis());
     expected.put((byte)1);
     expected.putLong(key);
     expected.flip();
@@ -52,7 +55,7 @@ public class RemoveOperationTest {
     Long key = 12L;
     ByteBuffer blob = ByteBuffer.allocate(2 * BYTE_SIZE_BYTES + 2 * LONG_SIZE_BYTES);
     blob.put(OperationCode.REMOVE.getValue());
-    blob.putLong(System.currentTimeMillis());
+    blob.putLong(TIME_SOURCE.getTimeMillis());
     blob.put((byte)1);
     blob.putLong(key);
     blob.flip();

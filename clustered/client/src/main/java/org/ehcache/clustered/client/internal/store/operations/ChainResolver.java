@@ -35,12 +35,10 @@ public class ChainResolver<K, V> {
 
   private final OperationsCodec<K, V> codec;
   private final Expiry<? super K, ? super V> expiry;
-  private final TimeSource timeSource;
 
-  public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry, TimeSource timeSource) {
+  public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry) {
     this.codec = codec;
     this.expiry = expiry;
-    this.timeSource = timeSource;
   }
 
   /**
@@ -53,13 +51,14 @@ public class ChainResolver<K, V> {
    *
    * @param chain a heterogeneous {@code Chain}
    * @param key a key
-   * @return an entry with the resolved operation for the provided key as the key
-   * and the compacted chain as the value
+   * @param now time when the chain is being resolved
+   * @return a resolved chain, result of resolution of chain provided
    */
   public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
     Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
     Operation<K, V> operation = null;
+    boolean isNew = false;
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
       operation = codec.decode(payload);
@@ -70,15 +69,17 @@ public class ChainResolver<K, V> {
         if(result == null) {
           continue;
         }
-        if((previousResult == null & operation.isFirst())) {
+        if((previousResult == null && operation.isFirst())) {
           expiration = expiry.getExpiryForCreation(key, result.getValue());
+          isNew = true;
         } else {
           expiration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
             @Override
             public V value() {
-              return previousResult != null ? previousResult.getValue() : null;
+              return previousResult.getValue();
             }
           }, result.getValue());
+          isNew = false;
         }
 
         if(expiration == null || expiration.isInfinite()) {
@@ -96,7 +97,7 @@ public class ChainResolver<K, V> {
     }
     Operation<K, V> resolvedOperation = null;
     if(result != null & operation != null) {
-      resolvedOperation = new PutOperation<K, V>(key, result.getValue(), operation.timeStamp(), false);
+      resolvedOperation = new PutOperation<K, V>(key, result.getValue(), operation.timeStamp(), isNew);
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }
