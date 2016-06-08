@@ -43,6 +43,8 @@ import org.ehcache.spi.sizeof.SizeOfEngine;
 import org.junit.Test;
 import org.mockito.Matchers;
 
+import java.util.Arrays;
+
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -389,7 +391,9 @@ public class ByteAccountingTest {
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
     
     String key1 = "key1";
-    String value1 = new String(new byte[200]);
+    char[] chars = new char[200];
+    Arrays.fill(chars, (char) 0xffff);
+    String value1 = new String(chars);
     
     long requiredSize = getSize(key1, value1);
     
