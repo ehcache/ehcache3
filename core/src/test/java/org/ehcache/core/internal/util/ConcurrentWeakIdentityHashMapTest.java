@@ -233,4 +233,21 @@ public class ConcurrentWeakIdentityHashMapTest {
     assertThat(iterator.hasNext(), is(false));
   }
 
+  @Test
+  public void testMutableKey() {
+    ConcurrentWeakIdentityHashMap<Object, Object> map = new ConcurrentWeakIdentityHashMap<Object, Object>();
+    MutableKey mutableKey = new MutableKey();
+    map.put(mutableKey, mutableKey);
+    assertThat(map.get(mutableKey), is(mutableKey));
+  }
+
+  private static class MutableKey {
+
+    @Override
+    public int hashCode() {
+      return (int) System.nanoTime();
+    }
+
+  }
+
 }
