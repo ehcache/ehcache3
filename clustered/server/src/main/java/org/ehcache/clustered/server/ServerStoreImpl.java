@@ -23,6 +23,7 @@ import org.ehcache.clustered.server.offheap.OffHeapServerStore;
 import org.terracotta.offheapstore.paging.PageSource;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeoutException;
 
 class ServerStoreImpl implements ServerStore {
 

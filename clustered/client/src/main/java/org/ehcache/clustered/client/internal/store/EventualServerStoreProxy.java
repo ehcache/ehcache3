@@ -25,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeoutException;
 
 /**
  * @author Ludovic Orban
@@ -103,17 +104,17 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain get(long key) {
+  public Chain get(long key) throws TimeoutException {
     return delegate.get(key);
   }
 
   @Override
-  public void append(final long key, final ByteBuffer payLoad) {
+  public void append(final long key, final ByteBuffer payLoad) throws TimeoutException {
     delegate.append(key, payLoad);
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) {
+  public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     return delegate.getAndAppend(key, payLoad);
   }
 
@@ -123,7 +124,7 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void clear() {
+  public void clear() throws TimeoutException {
     delegate.clear();
   }
 }

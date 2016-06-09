@@ -17,9 +17,11 @@ package org.ehcache.clustered.client.config.builders;
 
 import java.net.URI;
 
+import org.ehcache.clustered.client.config.ClusteringServiceClientSideConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import java.util.concurrent.TimeUnit;
+import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.config.Builder;
-import org.ehcache.clustered.common.ServerSideConfiguration;
 
 /**
  * A builder of ClusteringService configurations.
@@ -27,6 +29,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 public final class ClusteringServiceConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
   private final URI clusterUri;
+  private final TimeoutDuration getOperationTimeout;
 
   /**
    * Creates a new builder connecting to the given cluster.
@@ -41,6 +44,12 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   private ClusteringServiceConfigurationBuilder(URI clusterUri) {
     this.clusterUri = clusterUri;
+    this.getOperationTimeout = null;
+  }
+
+  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, TimeoutDuration getOperationTimeout) {
+    this.clusterUri = original.clusterUri;
+    this.getOperationTimeout = getOperationTimeout;
   }
 
   /**
@@ -49,7 +58,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ServerSideConfigurationBuilder autoCreate() {
-    return new ServerSideConfigurationBuilder(clusterUri, true);
+    return new ServerSideConfigurationBuilder(getClientSideConfiguration(), true);
   }
 
   /**
@@ -58,11 +67,31 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ServerSideConfigurationBuilder expecting() {
-    return new ServerSideConfigurationBuilder(clusterUri, false);
+    return new ServerSideConfigurationBuilder(getClientSideConfiguration(), false);
+  }
+
+  private ClusteringServiceClientSideConfiguration getClientSideConfiguration() {
+    return new ClusteringServiceClientSideConfigurationImpl(clusterUri, getOperationTimeout);
+  }
+
+  /**
+   * Adds a get operation timeout.  Get operations which time out return the result determined
+   * by the <i>resilience strategy</i> in effect for the cache.
+   *
+   * @param duration the amount of time permitted for get operations
+   * @param unit the time units for {@code duration}
+   *
+   * @return a clustering service configuration builder
+   *
+   * @throws NullPointerException if {@code unit} is {@code null}
+   * @throws IllegalArgumentException if {@code amount} is negative
+   */
+  public ClusteringServiceConfigurationBuilder getOperationTimeout(long duration, TimeUnit unit) {
+    return new ClusteringServiceConfigurationBuilder(this, TimeoutDuration.of(duration, unit));
   }
 
   @Override
   public ClusteringServiceConfiguration build() {
-    return new ClusteringServiceConfiguration(clusterUri);
+    return new ClusteringServiceConfiguration(clusterUri, getOperationTimeout);
   }
 }

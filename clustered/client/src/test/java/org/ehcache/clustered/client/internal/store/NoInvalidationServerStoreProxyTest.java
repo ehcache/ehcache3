@@ -87,14 +87,14 @@ public class NoInvalidationServerStoreProxyTest {
   }
 
   @Test
-  public void testGetKeyNotPresent() {
+  public void testGetKeyNotPresent() throws Exception {
     Chain chain = serverStoreProxy.get(1);
 
     assertThat(chain.isEmpty(), is(true));
   }
 
   @Test
-  public void testAppendKeyNotPresent() {
+  public void testAppendKeyNotPresent() throws Exception {
     serverStoreProxy.append(2, createPayload(2));
 
     Chain chain = serverStoreProxy.get(2);
@@ -103,7 +103,7 @@ public class NoInvalidationServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAfterMultipleAppendsOnSameKey() {
+  public void testGetAfterMultipleAppendsOnSameKey() throws Exception {
 
     serverStoreProxy.append(3L, createPayload(3L));
     serverStoreProxy.append(3L, createPayload(33L));
@@ -117,7 +117,7 @@ public class NoInvalidationServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAndAppendKeyNotPresent() {
+  public void testGetAndAppendKeyNotPresent() throws Exception {
     Chain chain = serverStoreProxy.getAndAppend(4L, createPayload(4L));
 
     assertThat(chain.isEmpty(), is(true));
@@ -129,7 +129,7 @@ public class NoInvalidationServerStoreProxyTest {
   }
 
   @Test
-  public void testGetAndAppendMultipleTimesOnSameKey() {
+  public void testGetAndAppendMultipleTimesOnSameKey() throws Exception {
     serverStoreProxy.getAndAppend(5L, createPayload(5L));
     serverStoreProxy.getAndAppend(5L, createPayload(55L));
     serverStoreProxy.getAndAppend(5L, createPayload(555L));
@@ -140,7 +140,7 @@ public class NoInvalidationServerStoreProxyTest {
   }
 
   @Test
-  public void testReplaceAtHeadSuccessFull() {
+  public void testReplaceAtHeadSuccessFull() throws Exception {
     serverStoreProxy.append(20L, createPayload(200L));
     serverStoreProxy.append(20L, createPayload(2000L));
     serverStoreProxy.append(20L, createPayload(20000L));
@@ -164,7 +164,7 @@ public class NoInvalidationServerStoreProxyTest {
   }
 
   @Test
-  public void testClear() {
+  public void testClear() throws Exception {
     serverStoreProxy.append(1L, createPayload(100L));
 
     serverStoreProxy.clear();

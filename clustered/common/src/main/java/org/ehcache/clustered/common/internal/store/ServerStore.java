@@ -17,6 +17,7 @@
 package org.ehcache.clustered.common.internal.store;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Defines Server Side data structure for storing
@@ -43,8 +44,10 @@ public interface ServerStore {
    *
    * @param key hashcode of the key
    * @return the {@link Chain} associated with the hash
+   *
+   * @throws TimeoutException if the get exceeds the timeout configured for get operations
    */
-  Chain get(long key);
+  Chain get(long key) throws TimeoutException;
 
   /**
    * Appends the provided binary to Chain associated with key atomically.
@@ -53,8 +56,10 @@ public interface ServerStore {
    *
    * @param key to which the payLoad has to be appended
    * @param payLoad to be appended
+   *
+   * @throws TimeoutException if the append exceeds the timeout configured for mutative operations
    */
-  void append(long key, ByteBuffer payLoad);
+  void append(long key, ByteBuffer payLoad) throws TimeoutException;
 
   /**
    * The Chain associated with key, previous to append is returned.
@@ -72,8 +77,10 @@ public interface ServerStore {
    * @param key to which the payLoad has to be appended
    * @param payLoad to be appended
    * @return the Chain associated with the key before payLoad was appended
+   *
+   * @throws TimeoutException if the get exceeds the timeout configured for get operations
    */
-  Chain getAndAppend(long key, ByteBuffer payLoad);
+  Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException;
 
   /**
    * Replaces the provided Chain with the equivalent Chain present at the head.
@@ -117,6 +124,8 @@ public interface ServerStore {
    * Removes all the mappings from this store. But this operation is not atomic.
    * If appends are happening in parallel, this operation does not guarantee an
    * empty store on the completion of this operation.
+   *
+   * @throws TimeoutException if the get exceeds the timeout configured for mutative operations
    */
-  void clear();
+  void clear() throws TimeoutException;
 }

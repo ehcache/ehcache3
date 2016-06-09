@@ -42,6 +42,7 @@ import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessTimeoutException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -65,6 +66,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
@@ -118,7 +120,13 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   @Override
   public ValueHolder<V> get(final K key) throws StoreAccessException {
     getObserver.begin();
-    V value = getInternal(key);
+    V value;
+    try {
+      value = getInternal(key);
+    } catch (TimeoutException e) {
+      // Don't count as a MISS
+      return null;
+    }
     if(value == null) {
       getObserver.end(StoreOperationOutcomes.GetOutcome.MISS);
       return null;
@@ -128,7 +136,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     }
   }
 
-  private V getInternal(K key) throws StoreAccessException {
+  private V getInternal(K key) throws StoreAccessException, TimeoutException {
     V value = null;
     try {
       Chain chain = storeProxy.get(key.hashCode());
@@ -151,7 +159,11 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
   @Override
   public boolean containsKey(final K key) throws StoreAccessException {
-    return getInternal(key) != null;
+    try {
+      return getInternal(key) != null;
+    } catch (TimeoutException e) {
+      return false;
+    }
   }
 
   @Override
@@ -188,6 +200,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return PutStatus.NOOP;
+    } catch (TimeoutException e) {
+      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -210,6 +224,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return null;
+    } catch (TimeoutException e) {
+      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -239,6 +255,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return false;
+    } catch (TimeoutException e) {
+      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -266,6 +284,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return null;
+    } catch (TimeoutException e) {
+      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -288,6 +308,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return null;
+    } catch (TimeoutException e) {
+      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -315,6 +337,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return null;
+    } catch (TimeoutException e) {
+      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -324,6 +348,8 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       storeProxy.clear();
     } catch (RuntimeException re) {
       handleRuntimeException(re);
+    } catch (TimeoutException e) {
+      throw new StoreAccessTimeoutException(e);
     }
   }
 
@@ -407,7 +433,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     if(mappingFunction instanceof Ehcache.GetAllFunction) {
       Map<K, ValueHolder<V>> map  = new HashMap<K, ValueHolder<V>>();
       for (K key : keys) {
-        V value = getInternal(key);
+        V value;
+        try {
+          value = getInternal(key);
+        } catch (TimeoutException e) {
+          value = null;
+        }
         ValueHolder<V> holder = null;
         if(value != null) {
           holder = new ClusteredValueHolder<V>(value);
