@@ -28,7 +28,10 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.Ehcache;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.serialization.LongSerializer;
@@ -39,8 +42,12 @@ import org.junit.Test;
 import org.terracotta.connection.Connection;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
 import java.util.Properties;
 
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
@@ -48,6 +55,10 @@ import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class ClusteredStoreTest {
 
@@ -114,6 +125,17 @@ public class ClusteredStoreTest {
     validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.MISS, StoreOperationOutcomes.GetOutcome.HIT));
   }
 
+  @Test(expected = StoreAccessException.class)
+  public void testGetThrowsOnlySAE() throws Exception {
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
+    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    store.get(1L);
+  }
+
   @Test
   public void testContainsKey() throws Exception {
     assertThat(store.containsKey(1L), is(false));
@@ -121,6 +143,17 @@ public class ClusteredStoreTest {
     assertThat(store.containsKey(1L), is(true));
     validateStat(store, StoreOperationOutcomes.GetOutcome.HIT, 0);
     validateStat(store, StoreOperationOutcomes.GetOutcome.MISS, 0);
+  }
+
+  @Test(expected = StoreAccessException.class)
+  public void testContainsKeyThrowsOnlySAE() throws Exception {
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
+    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    store.containsKey(1L);
   }
 
   @Test
@@ -131,6 +164,17 @@ public class ClusteredStoreTest {
     assertThat(store.remove(1L), is(true));
     assertThat(store.containsKey(1L), is(false));
     validateStats(store, EnumSet.of(StoreOperationOutcomes.RemoveOutcome.MISS, StoreOperationOutcomes.RemoveOutcome.REMOVED));
+  }
+
+  @Test(expected = StoreAccessException.class)
+  public void testRemoveThrowsOnlySAE() throws Exception {
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
+    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    store.remove(1L);
   }
 
   @Test
@@ -151,12 +195,34 @@ public class ClusteredStoreTest {
     assertThat(store.containsKey(3L), is(false));
   }
 
+  @Test(expected = StoreAccessException.class)
+  public void testClearThrowsOnlySAE() throws Exception {
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    doThrow(new RuntimeException()).when(serverStoreProxy).clear();
+    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    store.remove(1L);
+  }
+
   @Test
   public void testPutIfAbsent() throws Exception {
     assertThat(store.putIfAbsent(1L, "one"), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT));
     assertThat(store.putIfAbsent(1L, "another one").value(), is("one"));
     validateStats(store, EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT, StoreOperationOutcomes.PutIfAbsentOutcome.HIT));
+  }
+
+  @Test(expected = StoreAccessException.class)
+  public void testPutIfAbsentThrowsOnlySAE() throws Exception {
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
+    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    store.putIfAbsent(1L, "one");
   }
 
   @Test
@@ -171,6 +237,17 @@ public class ClusteredStoreTest {
     validateStat(store, StoreOperationOutcomes.ConditionalRemoveOutcome.MISS, 2);
   }
 
+  @Test(expected = StoreAccessException.class)
+  public void testConditionalRemoveThrowsOnlySAE() throws Exception {
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
+    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    store.remove(1L, "one");
+  }
+
   @Test
   public void testReplace() throws Exception {
     assertThat(store.replace(1L, "one"), nullValue());
@@ -178,6 +255,17 @@ public class ClusteredStoreTest {
     store.put(1L, "one");
     assertThat(store.replace(1L, "another one").value(), is("one"));
     validateStats(store, EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS, StoreOperationOutcomes.ReplaceOutcome.REPLACED));
+  }
+
+  @Test(expected = StoreAccessException.class)
+  public void testReplaceThrowsOnlySAE() throws Exception {
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
+    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    store.replace(1L, "one");
   }
 
   @Test
@@ -192,4 +280,77 @@ public class ClusteredStoreTest {
     validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED, 1);
     validateStat(store, StoreOperationOutcomes.ConditionalReplaceOutcome.MISS, 2);
   }
+
+  @Test(expected = StoreAccessException.class)
+  public void testConditionalReplaceThrowsOnlySAE() throws Exception {
+    OperationsCodec<Long, String> codec = mock(OperationsCodec.class);
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    when(serverStoreProxy.get(anyLong())).thenThrow(new RuntimeException());
+    TestTimeSource testTimeSource = mock(TestTimeSource.class);
+    ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(codec, chainResolver, serverStoreProxy, testTimeSource);
+    store.replace(1L, "one", "another one");
+  }
+
+  @Test
+  public void testBulkComputePutAll() throws Exception {
+    store.put(1L, "another one");
+    Map<Long, String> map =  new HashMap<Long, String>();
+    map.put(1L, "one");
+    map.put(2L, "two");
+    Ehcache.PutAllFunction<Long, String> putAllFunction = new Ehcache.PutAllFunction<Long, String>(null, map, null);
+    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<Long>(Arrays.asList(1L, 2L)), putAllFunction);
+
+    assertThat(valueHolderMap.get(1L).value(), is(map.get(1L)));
+    assertThat(store.get(1L).value(), is(map.get(1L)));
+    assertThat(valueHolderMap.get(2L).value(), is(map.get(2L)));
+    assertThat(store.get(2L).value(), is(map.get(2L)));
+    assertThat(putAllFunction.getActualPutCount().get(), is(2));
+    validateStats(store, EnumSet.of(StoreOperationOutcomes.PutOutcome.PUT));  //outcome of the initial store put
+  }
+
+  @Test
+  public void testBulkComputeRemoveAll() throws Exception {
+    store.put(1L, "one");
+    store.put(2L, "two");
+    store.put(3L, "three");
+    Ehcache.RemoveAllFunction<Long, String> removeAllFunction = new Ehcache.RemoveAllFunction<Long, String>();
+    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkCompute(new HashSet<Long>(Arrays.asList(1L, 2L, 4L)), removeAllFunction);
+
+    assertThat(valueHolderMap.get(1L), nullValue());
+    assertThat(store.get(1L), nullValue());
+    assertThat(valueHolderMap.get(2L), nullValue());
+    assertThat(store.get(2L), nullValue());
+    assertThat(valueHolderMap.get(4L), nullValue());
+    assertThat(store.get(4L), nullValue());
+    validateStats(store, EnumSet.noneOf(StoreOperationOutcomes.RemoveOutcome.class));
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testBulkComputeThrowsForGenericFunction() throws Exception {
+    Function<Iterable<? extends Map.Entry<? extends Long, ? extends String>>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>> remappingFunction
+        = mock(Function.class);
+    store.bulkCompute(new HashSet<Long>(Arrays.asList(1L, 2L)), remappingFunction);
+  }
+
+  @Test
+  public void testBulkComputeIfAbsentGetAll() throws Exception {
+    store.put(1L, "one");
+    store.put(2L, "two");
+    Ehcache.GetAllFunction<Long, String> getAllAllFunction = new Ehcache.GetAllFunction<Long, String>();
+    Map<Long, Store.ValueHolder<String>> valueHolderMap = store.bulkComputeIfAbsent(new HashSet<Long>(Arrays.asList(1L, 2L)), getAllAllFunction);
+
+    assertThat(valueHolderMap.get(1L).value(), is("one"));
+    assertThat(store.get(1L).value(), is("one"));
+    assertThat(valueHolderMap.get(2L).value(), is("two"));
+    assertThat(store.get(2L).value(), is("two"));
+  }
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void testBulkComputeIfAbsentThrowsForGenericFunction() throws Exception {
+    Function<Iterable<? extends Long>, Iterable<? extends Map.Entry<? extends Long, ? extends String>>> mappingFunction
+        = mock(Function.class);
+    store.bulkComputeIfAbsent(new HashSet<Long>(Arrays.asList(1L, 2L)), mappingFunction);
+  }
+
 }

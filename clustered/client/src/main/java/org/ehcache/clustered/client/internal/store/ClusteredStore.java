@@ -34,6 +34,7 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.Ehcache;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -45,7 +46,6 @@ import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
@@ -57,11 +57,13 @@ import org.terracotta.statistics.observer.OperationObserver;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
@@ -123,23 +125,23 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     }
   }
 
-  private V getInternal(K key) {
-    Chain chain = storeProxy.get(key.hashCode());
-    V value;
-    if(!chain.isEmpty()) {
-      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+  private V getInternal(K key) throws StoreAccessException {
+    V value = null;
+    try {
+      Chain chain = storeProxy.get(key.hashCode());
+      if(!chain.isEmpty()) {
+        ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
 
-      Chain compactedChain = resolvedChain.getCompactedChain();
-      storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
+        Chain compactedChain = resolvedChain.getCompactedChain();
+        storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
 
-      Result<V> resolvedResult = resolvedChain.getResolvedResult(key);
-      if(resolvedResult != null) {
-        value = resolvedResult.getValue();
-      } else {
-        return null;
+        Result<V> resolvedResult = resolvedChain.getResolvedResult(key);
+        if (resolvedResult != null) {
+          value = resolvedResult.getValue();
+        }
       }
-    } else {
-      return null;
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
     }
     return value;
   }
@@ -152,44 +154,66 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   @Override
   public PutStatus put(final K key, final V value) throws StoreAccessException {
     putObserver.begin();
-    PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis());
-    ByteBuffer payload = codec.encode(operation);
-    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
-    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-    if(resolvedChain.getResolvedResult(key) == null) {
-      putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
-      return PutStatus.PUT;
-    } else {
-      putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
-      return PutStatus.UPDATE;
+    PutStatus status = silentPut(key, value);
+    switch (status) {
+      case PUT:
+        putObserver.end(StoreOperationOutcomes.PutOutcome.PUT);
+        break;
+      case UPDATE:
+        putObserver.end(StoreOperationOutcomes.PutOutcome.REPLACED);
+        break;
+      case NOOP:
+        putObserver.end(StoreOperationOutcomes.PutOutcome.NOOP);
+        break;
+      default:
+        throw new AssertionError("Invalid put status: " + status);
+    }
+    return status;
+  }
+
+  private PutStatus silentPut(final K key, final V value) throws StoreAccessException {
+    try {
+      PutOperation<K, V> operation = new PutOperation<K, V>(key, value, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      if(resolvedChain.getResolvedResult(key) == null) {
+        return PutStatus.PUT;
+      } else {
+        return PutStatus.UPDATE;
+      }
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
+      return PutStatus.NOOP;
     }
   }
 
   @Override
   public ValueHolder<V> putIfAbsent(final K key, final V value) throws StoreAccessException {
     putIfAbsentObserver.begin();
-    PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<K, V>(key, value, timeSource.getTimeMillis());
-    ByteBuffer payload = codec.encode(operation);
-    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
-    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-    Result<V> result = resolvedChain.getResolvedResult(key);
-    if(result == null) {
-      putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
+    try {
+      PutIfAbsentOperation<K, V> operation = new PutIfAbsentOperation<K, V>(key, value, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      Result<V> result = resolvedChain.getResolvedResult(key);
+      if(result == null) {
+        putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.PUT);
+        return null;
+      } else {
+        putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
+        return new ClusteredValueHolder<V>(result.getValue());
+      }
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
       return null;
-    } else {
-      putIfAbsentObserver.end(StoreOperationOutcomes.PutIfAbsentOutcome.HIT);
-      return new ClusteredValueHolder<V>(result.getValue());
     }
   }
 
   @Override
   public boolean remove(final K key) throws StoreAccessException {
     removeObserver.begin();
-    RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key, timeSource.getTimeMillis());
-    ByteBuffer payload = codec.encode(operation);
-    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
-    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-    if(resolvedChain.getResolvedResult(key) != null) {
+    if(silentRemove(key)) {
       removeObserver.end(StoreOperationOutcomes.RemoveOutcome.REMOVED);
       return true;
     } else {
@@ -198,70 +222,106 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     }
   }
 
+  private boolean silentRemove(final K key) throws StoreAccessException {
+    try {
+      RemoveOperation<K, V> operation = new RemoveOperation<K, V>(key, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      if(resolvedChain.getResolvedResult(key) != null) {
+        return true;
+      } else {
+        return false;
+      }
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
+      return false;
+    }
+  }
+
   @Override
   public RemoveStatus remove(final K key, final V value) throws StoreAccessException {
     conditionalRemoveObserver.begin();
-    ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<K, V>(key, value, timeSource.getTimeMillis());
-    ByteBuffer payload = codec.encode(operation);
-    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
-    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-    Result<V> result = resolvedChain.getResolvedResult(key);
-    if(result != null) {
-      if(value.equals(result.getValue())) {
-        conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
-        return RemoveStatus.REMOVED;
+    try {
+      ConditionalRemoveOperation<K, V> operation = new ConditionalRemoveOperation<K, V>(key, value, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      Result<V> result = resolvedChain.getResolvedResult(key);
+      if(result != null) {
+        if(value.equals(result.getValue())) {
+          conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED);
+          return RemoveStatus.REMOVED;
+        } else {
+          conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
+          return RemoveStatus.KEY_PRESENT;
+        }
       } else {
         conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
-        return RemoveStatus.KEY_PRESENT;
+        return RemoveStatus.KEY_MISSING;
       }
-    } else {
-      conditionalRemoveObserver.end(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS);
-      return RemoveStatus.KEY_MISSING;
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
+      return null;
     }
   }
 
   @Override
   public ValueHolder<V> replace(final K key, final V value) throws StoreAccessException {
     replaceObserver.begin();
-    ReplaceOperation<K, V> operation = new ReplaceOperation<K, V>(key, value, timeSource.getTimeMillis());
-    ByteBuffer payload = codec.encode(operation);
-    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
-    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-    Result<V> result = resolvedChain.getResolvedResult(key);
-    if(result == null) {
-      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
+    try {
+      ReplaceOperation<K, V> operation = new ReplaceOperation<K, V>(key, value, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      Result<V> result = resolvedChain.getResolvedResult(key);
+      if(result == null) {
+        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.MISS);
+        return null;
+      } else {
+        replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
+        return new ClusteredValueHolder<V>(result.getValue());
+      }
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
       return null;
-    } else {
-      replaceObserver.end(StoreOperationOutcomes.ReplaceOutcome.REPLACED);
-      return new ClusteredValueHolder<V>(result.getValue());
     }
   }
 
   @Override
   public ReplaceStatus replace(final K key, final V oldValue, final V newValue) throws StoreAccessException {
     conditionalReplaceObserver.begin();
-    ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<K, V>(key, oldValue, newValue, timeSource.getTimeMillis());
-    ByteBuffer payload = codec.encode(operation);
-    Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
-    ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
-    Result<V> result = resolvedChain.getResolvedResult(key);
-    if(result != null) {
-      if(oldValue.equals(result.getValue())) {
-        conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
-        return ReplaceStatus.HIT;
+    try {
+      ConditionalReplaceOperation<K, V> operation = new ConditionalReplaceOperation<K, V>(key, oldValue, newValue, timeSource.getTimeMillis());
+      ByteBuffer payload = codec.encode(operation);
+      Chain chain = storeProxy.getAndAppend(key.hashCode(), payload);
+      ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
+      Result<V> result = resolvedChain.getResolvedResult(key);
+      if(result != null) {
+        if(oldValue.equals(result.getValue())) {
+          conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED);
+          return ReplaceStatus.HIT;
+        } else {
+          conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
+          return ReplaceStatus.MISS_PRESENT;
+        }
       } else {
         conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
-        return ReplaceStatus.MISS_PRESENT;
+        return ReplaceStatus.MISS_NOT_PRESENT;
       }
-    } else {
-      conditionalReplaceObserver.end(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS);
-      return ReplaceStatus.MISS_NOT_PRESENT;
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
+      return null;
     }
   }
 
   @Override
   public void clear() throws StoreAccessException {
-    storeProxy.clear();
+    try {
+      storeProxy.clear();
+    } catch (RuntimeException re) {
+      handleRuntimeException(re);
+    }
   }
 
   @Override
@@ -297,11 +357,35 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     throw new UnsupportedOperationException("Implement me");
   }
 
+  /**
+   * The assumption is that this method will be invoked only by cache.putAll and cache.removeAll methods.
+   */
   @Override
   public Map<K, ValueHolder<V>> bulkCompute(final Set<? extends K> keys, final Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> remappingFunction)
       throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    Map<K, ValueHolder<V>> valueHolderMap = new HashMap<K, ValueHolder<V>>();
+    if(remappingFunction instanceof Ehcache.PutAllFunction) {
+      Ehcache.PutAllFunction<K, V> putAllFunction = (Ehcache.PutAllFunction)remappingFunction;
+      Map<K, V> entriesToRemap = putAllFunction.getEntriesToRemap();
+      for(Map.Entry<K, V> entry: entriesToRemap.entrySet()) {
+        PutStatus putStatus = silentPut(entry.getKey(), entry.getValue());
+        if(putStatus == PutStatus.PUT || putStatus == PutStatus.UPDATE) {
+          putAllFunction.getActualPutCount().incrementAndGet();
+          valueHolderMap.put(entry.getKey(), new ClusteredValueHolder<V>(entry.getValue()));
+        }
+      }
+    } else if(remappingFunction instanceof Ehcache.RemoveAllFunction) {
+      Ehcache.RemoveAllFunction<K, V> removeAllFunction = (Ehcache.RemoveAllFunction)remappingFunction;
+      for (K key : keys) {
+        boolean removed = silentRemove(key);
+        if(removed) {
+          removeAllFunction.getActualRemoveCount().incrementAndGet();
+        }
+      }
+    } else {
+      throw new UnsupportedOperationException("This compute method is not yet capable of handling generic computation functions");
+    }
+    return valueHolderMap;
   }
 
   @Override
@@ -311,11 +395,26 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     throw new UnsupportedOperationException("Implement me");
   }
 
+  /**
+   * The assumption is that this method will be invoked only by cache.getAll method.
+   */
   @Override
   public Map<K, ValueHolder<V>> bulkComputeIfAbsent(final Set<? extends K> keys, final Function<Iterable<? extends K>, Iterable<? extends Map.Entry<? extends K, ? extends V>>> mappingFunction)
       throws StoreAccessException {
-    // TODO: Make appropriate ServerStoreProxy call
-    throw new UnsupportedOperationException("Implement me");
+    if(mappingFunction instanceof Ehcache.GetAllFunction) {
+      Map<K, ValueHolder<V>> map  = new HashMap<K, ValueHolder<V>>();
+      for (K key : keys) {
+        V value = getInternal(key);
+        ValueHolder<V> holder = null;
+        if(value != null) {
+          holder = new ClusteredValueHolder<V>(value);
+        }
+        map.put(key, holder);
+      }
+      return map;
+    } else {
+      throw new UnsupportedOperationException("This compute method is not yet capable of handling generic computation functions");
+    }
   }
 
   @Override
