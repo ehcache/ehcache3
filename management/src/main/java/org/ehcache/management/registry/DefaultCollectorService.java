@@ -20,22 +20,22 @@ import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.notification.ContextualNotification;
-import org.terracotta.management.registry.StatisticQuery;
 import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.registry.StatisticQuery;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -179,11 +179,11 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
               lastPoll.set(System.currentTimeMillis());
 
               if (!statistics.isEmpty()) {
-                eventListener.onEvent("STATISTICS", statistics.toArray(new ContextualStatistics[statistics.size()]));
+                eventListener.onEvent("STATISTICS", statistics);
               }
             }
           } catch (RuntimeException e) {
-            LOGGER.error(e.getMessage(), e);
+            LOGGER.error("StatisticCollector: " + e.getMessage(), e);
           }
         }
       }, pollingIntervalMs, pollingIntervalMs, TimeUnit.MILLISECONDS);
