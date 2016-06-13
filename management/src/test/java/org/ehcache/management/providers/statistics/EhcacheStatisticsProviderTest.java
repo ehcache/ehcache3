@@ -28,6 +28,7 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.model.stats.StatisticType;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -69,7 +70,7 @@ public class EhcacheStatisticsProviderTest {
 
     ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(EhcacheWithLoaderWriter.class)));
 
-    Set<Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
+    Collection<Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
     assertThat(descriptions.size(), is(3));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new StatisticDescriptor("aCounter", StatisticType.COUNTER),

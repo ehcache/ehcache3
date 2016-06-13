@@ -71,7 +71,7 @@ public class EhcacheStatisticsProvider extends AbstractManagementProvider<CacheB
   }
 
   @Override
-  public Set<Descriptor> getDescriptors() {
+  public Collection<Descriptor> getDescriptors() {
     Set<Descriptor> capabilities = new HashSet<Descriptor>();
     for (ExposedObject ehcacheStatistics : managedObjects) {
       capabilities.addAll(((EhcacheStatistics) ehcacheStatistics).getDescriptors());
