@@ -64,6 +64,7 @@ import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.allInv
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.clientInvalidateAll;
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.clientInvalidateHash;
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.hashInvalidationDone;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.serverInvalidateHash;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
@@ -354,14 +355,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         case APPEND: {
           ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
           cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
-          invalidateHash(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
+          invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
           return responseFactory.success();
         }
         case GET_AND_APPEND: {
           ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
           EhcacheEntityResponse response =
               responseFactory.response(cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload()));
-          invalidateHash(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
+          invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
           return response;
         }
         case REPLACE: {
@@ -394,7 +395,22 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
-  private void invalidateHash(ClientDescriptor originatingClientDescriptor, String cacheId, long key) {
+  private void invalidateHashAfterEviction(String cacheId, long key) {
+    Set<ClientDescriptor> clientsToInvalidate = Collections.newSetFromMap(new ConcurrentHashMap<ClientDescriptor, Boolean>());
+    clientsToInvalidate.addAll(storeClientMap.get(cacheId));
+
+    for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
+      LOGGER.debug("SERVER: eviction happened; asking client {} to invalidate hash {} from cache {}", clientDescriptorThatHasToInvalidate, key, cacheId);
+      try {
+        clientCommunicator.sendNoResponse(clientDescriptorThatHasToInvalidate, serverInvalidateHash(cacheId, key));
+      } catch (MessageCodecException mce) {
+        //TODO: what should be done here?
+        LOGGER.error("Codec error", mce);
+      }
+    }
+  }
+
+  private void invalidateHashForClient(ClientDescriptor originatingClientDescriptor, String cacheId, long key) {
     int invalidationId = invalidationIdGenerator.getAndIncrement();
     Set<ClientDescriptor> clientsToInvalidate = Collections.newSetFromMap(new ConcurrentHashMap<ClientDescriptor, Boolean>());
     clientsToInvalidate.addAll(storeClientMap.get(cacheId));
@@ -678,7 +694,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       return responseFactory.failure(new IllegalStateException("Clustered Store Manager is not configured"));
     }
 
-    String name = createServerStore.getName();    // client cache identifier/name
+    final String name = createServerStore.getName();    // client cache identifier/name
 
     LOGGER.info("Client {} creating new server-side store '{}'", clientDescriptor, name);
 
@@ -730,7 +746,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       return responseFactory.failure(cause);
     }
 
-    stores.put(name, new ServerStoreImpl(storeConfiguration, resourcePageSource));
+    ServerStoreImpl serverStore = new ServerStoreImpl(storeConfiguration, resourcePageSource);
+    serverStore.setEvictionListener(new ServerStoreEvictionListener() {
+      @Override
+      public void onEviction(long key) {
+        invalidateHashAfterEviction(name, key);
+      }
+    });
+    stores.put(name, serverStore);
     attachStore(clientDescriptor, name);
     return responseFactory.success();
   }

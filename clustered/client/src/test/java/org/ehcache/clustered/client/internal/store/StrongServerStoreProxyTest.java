@@ -26,6 +26,7 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
+import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.AfterClass;
@@ -35,8 +36,10 @@ import org.terracotta.connection.Connection;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -45,8 +48,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.clustered.common.store.Util.chainsEqual;
 import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.fail;
@@ -111,6 +116,62 @@ public class StrongServerStoreProxyTest {
 
     UnitTestConnectionService.remove(CLUSTER_URI);
     executorService.shutdown();
+  }
+
+  @Test
+  public void testServerSideEvictionFiresInvalidations() throws Exception {
+    final List<Long> store1InvalidatedHashes = new CopyOnWriteArrayList<Long>();
+    final List<Long> store2InvalidatedHashes = new CopyOnWriteArrayList<Long>();
+
+    ServerStoreProxy.InvalidationListener listener1 = new ServerStoreProxy.InvalidationListener() {
+      @Override
+      public void onInvalidateHash(long hash) {
+        store1InvalidatedHashes.add(hash);
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        fail("should not be called");
+      }
+    };
+    ServerStoreProxy.InvalidationListener listener2 = new ServerStoreProxy.InvalidationListener() {
+      @Override
+      public void onInvalidateHash(long hash) {
+        store2InvalidatedHashes.add(hash);
+      }
+
+      @Override
+      public void onInvalidateAll() {
+        fail("should not be called");
+      }
+    };
+    serverStoreProxy1.addInvalidationListener(listener1);
+    serverStoreProxy2.addInvalidationListener(listener2);
+
+    final int ITERATIONS = 32;
+    for (int i = 0; i < ITERATIONS; i++) {
+      serverStoreProxy1.append(i, createPayload(i, 512 * 1024));
+    }
+
+    int nonEmptyCount = 0;
+    for (int i = 0; i < ITERATIONS; i++) {
+      Chain elements1 = serverStoreProxy1.get(i);
+      Chain elements2 = serverStoreProxy2.get(i);
+      assertThat(chainsEqual(elements1, elements2), is(true));
+      if (!elements1.isEmpty()) {
+        nonEmptyCount++;
+      }
+    }
+
+    // there has to be server-side evictions, otherwise this test is useless
+    assertThat(store1InvalidatedHashes.size(), greaterThan(0));
+    // test that each time the server evicted, the originating client got notified
+    assertThat(store1InvalidatedHashes.size(), is(ITERATIONS - nonEmptyCount));
+    // test that each time the server evicted, the other client got notified on top of normal invalidations
+    assertThat(store2InvalidatedHashes.size(), is(ITERATIONS + nonEmptyCount));
+
+    serverStoreProxy1.removeInvalidationListener(listener1);
+    serverStoreProxy2.removeInvalidationListener(listener2);
   }
 
   @Test

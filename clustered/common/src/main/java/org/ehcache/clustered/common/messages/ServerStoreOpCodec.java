@@ -49,7 +49,7 @@ class ServerStoreOpCodec {
         encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + KEY_SIZE + 2 * cacheIdLen);
         encodedMsg.put(getMessage.getOpCode());
         encodedMsg.putLong(getMessage.getKey());
-        putCacheId(encodedMsg, getMessage.getCacheId());
+        CodecUtil.putStringAsCharArray(encodedMsg, getMessage.getCacheId());
         return encodedMsg.array();
       case APPEND:
         AppendMessage appendMessage = (AppendMessage)message;
@@ -82,13 +82,13 @@ class ServerStoreOpCodec {
         encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + INVALIDATION_ID_LEN_SIZE + 2 * cacheIdLen);
         encodedMsg.put(clientInvalidationAck.getOpCode());
         encodedMsg.putInt(clientInvalidationAck.getInvalidationId());
-        putCacheId(encodedMsg, clientInvalidationAck.getCacheId());
+        CodecUtil.putStringAsCharArray(encodedMsg, clientInvalidationAck.getCacheId());
         return encodedMsg.array();
       case CLEAR:
         ClearMessage clearMessage = (ClearMessage)message;
         encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + 2 * cacheIdLen);
         encodedMsg.put(clearMessage.getOpCode());
-        putCacheId(encodedMsg, clearMessage.getCacheId());
+        CodecUtil.putStringAsCharArray(encodedMsg, clearMessage.getCacheId());
         return encodedMsg.array();
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.operation());
@@ -99,14 +99,8 @@ class ServerStoreOpCodec {
   private static void putCacheIdKeyAndOpCode(ByteBuffer byteBuffer, String cacheId, long key, byte opcode) {
     byteBuffer.put(opcode);
     byteBuffer.putInt(cacheId.length());
-    putCacheId(byteBuffer, cacheId);
+    CodecUtil.putStringAsCharArray(byteBuffer, cacheId);
     byteBuffer.putLong(key);
-  }
-
-  private static void putCacheId(ByteBuffer byteBuffer, String cacheId) {
-    for (int i = 0; i < cacheId.length(); i++) {
-      byteBuffer.putChar(cacheId.charAt(i));
-    }
   }
 
   public EhcacheEntityMessage decode(byte[] payload) {

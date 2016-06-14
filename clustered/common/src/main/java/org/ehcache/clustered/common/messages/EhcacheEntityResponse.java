@@ -33,6 +33,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     ALL_INVALIDATION_DONE((byte) 4),
     CLIENT_INVALIDATE_HASH((byte) 5),
     CLIENT_INVALIDATE_ALL((byte) 6),
+    SERVER_INVALIDATE_HASH((byte) 7),
     ;
 
     private final byte opCode;
@@ -61,6 +62,8 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
           return CLIENT_INVALIDATE_HASH;
         case 6:
           return CLIENT_INVALIDATE_ALL;
+        case 7:
+          return SERVER_INVALIDATE_HASH;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + opCode);
       }
@@ -170,6 +173,33 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
       return Type.ALL_INVALIDATION_DONE;
     }
 
+  }
+
+  public static ServerInvalidateHash serverInvalidateHash(String cacheId, long key) {
+    return new ServerInvalidateHash(cacheId, key);
+  }
+
+  public static class ServerInvalidateHash extends EhcacheEntityResponse {
+    private final String cacheId;
+    private final long key;
+
+    public ServerInvalidateHash(String cacheId, long key) {
+      this.cacheId = cacheId;
+      this.key = key;
+    }
+
+    public String getCacheId() {
+      return cacheId;
+    }
+
+    public long getKey() {
+      return key;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.SERVER_INVALIDATE_HASH;
+    }
   }
 
   public static ClientInvalidateHash clientInvalidateHash(String cacheId, long key, int invalidationId) {

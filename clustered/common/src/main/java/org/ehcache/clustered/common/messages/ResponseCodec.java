@@ -18,12 +18,13 @@ package org.ehcache.clustered.common.messages;
 import org.ehcache.clustered.common.store.Util;
 
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.HashInvalidationDone;
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.AllInvalidationDone;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ClientInvalidateHash;
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ClientInvalidateAll;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ClientInvalidateHash;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.HashInvalidationDone;
+import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ServerInvalidateHash;
+
 /**
  *
  */
@@ -60,38 +61,42 @@ class ResponseCodec {
         return buffer.array();
       case HASH_INVALIDATION_DONE: {
         HashInvalidationDone hashInvalidationDone = (HashInvalidationDone) response;
-        byte[] cacheIdBytes = hashInvalidationDone.getCacheId().getBytes(Charset.forName("UTF-8"));
-        buffer = ByteBuffer.allocate(OP_CODE_SIZE + cacheIdBytes.length + 8);
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + hashInvalidationDone.getCacheId().length() * 2 + 8);
         buffer.put(EhcacheEntityResponse.Type.HASH_INVALIDATION_DONE.getOpCode());
-        buffer.put(cacheIdBytes);
+        CodecUtil.putStringAsCharArray(buffer, hashInvalidationDone.getCacheId());
         buffer.putLong(hashInvalidationDone.getKey());
         return buffer.array();
       }
       case ALL_INVALIDATION_DONE: {
         AllInvalidationDone allInvalidationDone = (AllInvalidationDone) response;
-        byte[] cacheIdBytes = allInvalidationDone.getCacheId().getBytes(Charset.forName("UTF-8"));
-        buffer = ByteBuffer.allocate(OP_CODE_SIZE + cacheIdBytes.length);
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + allInvalidationDone.getCacheId().length() * 2);
         buffer.put(EhcacheEntityResponse.Type.ALL_INVALIDATION_DONE.getOpCode());
-        buffer.put(cacheIdBytes);
+        CodecUtil.putStringAsCharArray(buffer, allInvalidationDone.getCacheId());
         return buffer.array();
       }
       case CLIENT_INVALIDATE_HASH: {
         ClientInvalidateHash clientInvalidateHash = (ClientInvalidateHash) response;
-        byte[] cacheIdBytes = clientInvalidateHash.getCacheId().getBytes(Charset.forName("UTF-8"));
-        buffer = ByteBuffer.allocate(OP_CODE_SIZE + cacheIdBytes.length + 12);
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + clientInvalidateHash.getCacheId().length() * 2 + 12);
         buffer.put(EhcacheEntityResponse.Type.CLIENT_INVALIDATE_HASH.getOpCode());
-        buffer.put(cacheIdBytes);
+        CodecUtil.putStringAsCharArray(buffer, clientInvalidateHash.getCacheId());
         buffer.putLong(clientInvalidateHash.getKey());
         buffer.putInt(((ClientInvalidateHash) response).getInvalidationId());
         return buffer.array();
       }
       case CLIENT_INVALIDATE_ALL: {
         ClientInvalidateAll clientInvalidateAll = (ClientInvalidateAll) response;
-        byte[] cacheIdBytes = clientInvalidateAll.getCacheId().getBytes(Charset.forName("UTF-8"));
-        buffer = ByteBuffer.allocate(OP_CODE_SIZE + cacheIdBytes.length + 4);
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + clientInvalidateAll.getCacheId().length() * 2 + 4);
         buffer.put(EhcacheEntityResponse.Type.CLIENT_INVALIDATE_ALL.getOpCode());
-        buffer.put(cacheIdBytes);
+        CodecUtil.putStringAsCharArray(buffer, clientInvalidateAll.getCacheId());
         buffer.putInt(((ClientInvalidateAll) response).getInvalidationId());
+        return buffer.array();
+      }
+      case SERVER_INVALIDATE_HASH: {
+        ServerInvalidateHash serverInvalidateHash = (ServerInvalidateHash) response;
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + serverInvalidateHash.getCacheId().length() * 2 + 8);
+        buffer.put(EhcacheEntityResponse.Type.SERVER_INVALIDATE_HASH.getOpCode());
+        CodecUtil.putStringAsCharArray(buffer, serverInvalidateHash.getCacheId());
+        buffer.putLong(serverInvalidateHash.getKey());
         return buffer.array();
       }
       default:
@@ -114,26 +119,32 @@ class ResponseCodec {
       case GET_RESPONSE:
         return new EhcacheEntityResponse.GetResponse(chainCodec.decode(payArr));
       case HASH_INVALIDATION_DONE: {
-        String cacheId = new String(payArr, 0, payArr.length - 8, Charset.forName("UTF-8"));
+        String cacheId = ByteBuffer.wrap(payArr, 0, payArr.length - 8).asCharBuffer().toString();
         long key = ByteBuffer.wrap(payArr, payArr.length - 8, 8).getLong();
         return EhcacheEntityResponse.hashInvalidationDone(cacheId, key);
       }
       case ALL_INVALIDATION_DONE: {
-        String cacheId = new String(payArr, 0, payArr.length, Charset.forName("UTF-8"));
+        String cacheId = ByteBuffer.wrap(payArr).asCharBuffer().toString();
         return EhcacheEntityResponse.allInvalidationDone(cacheId);
       }
       case CLIENT_INVALIDATE_HASH: {
-        String cacheId = new String(payArr, 0, payArr.length - 12, Charset.forName("UTF-8"));
+        String cacheId = ByteBuffer.wrap(payArr, 0, payArr.length - 12).asCharBuffer().toString();
         ByteBuffer byteBuffer = ByteBuffer.wrap(payArr, payArr.length - 12, 12);
         long key = byteBuffer.getLong();
         int invalidationId = byteBuffer.getInt();
         return EhcacheEntityResponse.clientInvalidateHash(cacheId, key, invalidationId);
       }
       case CLIENT_INVALIDATE_ALL: {
-        String cacheId = new String(payArr, 0, payArr.length - 4, Charset.forName("UTF-8"));
+        String cacheId = ByteBuffer.wrap(payArr, 0, payArr.length - 4).asCharBuffer().toString();
         ByteBuffer byteBuffer = ByteBuffer.wrap(payArr, payArr.length - 4, 4);
         int invalidationId = byteBuffer.getInt();
         return EhcacheEntityResponse.clientInvalidateAll(cacheId, invalidationId);
+      }
+      case SERVER_INVALIDATE_HASH: {
+        String cacheId = ByteBuffer.wrap(payArr, 0, payArr.length - 8).asCharBuffer().toString();
+        ByteBuffer byteBuffer = ByteBuffer.wrap(payArr, payArr.length - 8, 8);
+        long key = byteBuffer.getLong();
+        return EhcacheEntityResponse.serverInvalidateHash(cacheId, key);
       }
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + type);

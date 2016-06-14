@@ -18,8 +18,10 @@ package org.ehcache.clustered.server.offheap;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.ServerStore;
+import org.ehcache.clustered.server.ServerStoreEvictionListener;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 
@@ -34,6 +36,18 @@ public class OffHeapServerStore implements ServerStore {
     segments = new ArrayList<OffHeapChainMap<Long>>(concurrency);
     for (int i = 0; i < concurrency; i++) {
       segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
+    }
+  }
+
+  public void setEvictionListener(final ServerStoreEvictionListener listener) {
+    OffHeapChainMap.ChainMapEvictionListener<Long> chainMapEvictionListener = new OffHeapChainMap.ChainMapEvictionListener<Long>() {
+      @Override
+      public void onEviction(Long key) {
+        listener.onEviction(key);
+      }
+    };
+    for (OffHeapChainMap<Long> segment : segments) {
+      segment.setEvictionListener(chainMapEvictionListener);
     }
   }
 

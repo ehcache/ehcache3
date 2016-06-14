@@ -56,7 +56,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       public void onResponse(EhcacheEntityResponse.HashInvalidationDone response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
           long key = response.getKey();
-          LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated key {}", messageFactory.getCacheId(), key);
+          LOGGER.debug("CLIENT: on cache {}, server notified that clients invalidated hash {}", messageFactory.getCacheId(), key);
           CountDownLatch countDownLatch = hashInvalidationsInProgress.remove(key);
           if (countDownLatch != null) {
             countDownLatch.countDown();
@@ -90,6 +90,20 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
+    entity.addResponseListener(EhcacheEntityResponse.ServerInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
+      @Override
+      public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
+        if (response.getCacheId().equals(messageFactory.getCacheId())) {
+          long key = response.getKey();
+          LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", messageFactory.getCacheId(), key);
+          for (InvalidationListener listener : invalidationListeners) {
+            listener.onInvalidateHash(key);
+          }
+        } else {
+          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
+        }
+      }
+    });
     entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
@@ -97,17 +111,21 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         final long key = response.getKey();
         final int invalidationId = response.getInvalidationId();
 
-        LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateHash(key);
-        }
+        if (cacheId.equals(messageFactory.getCacheId())) {
+          LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+          for (InvalidationListener listener : invalidationListeners) {
+            listener.onInvalidateHash(key);
+          }
 
-        try {
-          LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-          entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
-        } catch (Exception e) {
-          //TODO: what should be done here?
-          LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
+          try {
+            LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+            entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
+          } catch (Exception e) {
+            //TODO: what should be done here?
+            LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
+          }
+        } else {
+          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
         }
       }
     });
@@ -117,17 +135,21 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         final String cacheId = response.getCacheId();
         final int invalidationId = response.getInvalidationId();
 
-        LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateAll();
-        }
+        if (cacheId.equals(messageFactory.getCacheId())) {
+          LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
+          for (InvalidationListener listener : invalidationListeners) {
+            listener.onInvalidateAll();
+          }
 
-        try {
-          LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-          entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
-        } catch (Exception e) {
-          //TODO: what should be done here?
-          LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
+          try {
+            LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
+            entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
+          } catch (Exception e) {
+            //TODO: what should be done here?
+            LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
+          }
+        } else {
+          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
         }
       }
     });
