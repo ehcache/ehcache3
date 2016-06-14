@@ -101,7 +101,7 @@ public class BasicClusteredCacheTest {
     assertThat(cache2.get(1L), nullValue());
     cache1.put(1L, "value1");
     assertThat(cache2.get(1L), is("value1"));
-    assertThat(cache2.get(1L), is("value1"));
+    assertThat(cache1.get(1L), is("value1"));
     cache1.put(1L, "value2");
     assertThat(cache2.get(1L), is("value2"));
     assertThat(cache1.get(1L), is("value2"));

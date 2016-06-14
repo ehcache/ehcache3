@@ -28,8 +28,9 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
   private final K key;
   private final V oldValue;
   private final V newValue;
+  private final long timeStamp;
 
-  public ConditionalReplaceOperation(final K key, final V oldValue, final V newValue) {
+  public ConditionalReplaceOperation(final K key, final V oldValue, final V newValue, final long timeStamp) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
@@ -42,6 +43,7 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
       throw new NullPointerException("New value can not be null");
     }
     this.newValue = newValue;
+    this.timeStamp = timeStamp;
   }
 
   ConditionalReplaceOperation(final ByteBuffer buffer, final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
@@ -49,6 +51,7 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     if (opCode != getOpCode()) {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
+    this.timeStamp = buffer.getLong();
     int keySize = buffer.getInt();
     buffer.limit(buffer.position() + keySize);
     ByteBuffer keyBlob = buffer.slice();
@@ -111,12 +114,14 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
 
     ByteBuffer buffer = ByteBuffer.allocate(BYTE_SIZE_BYTES +   // Operation type
                                             INT_SIZE_BYTES +    // Size of the key payload
+                                            LONG_SIZE_BYTES +   // Size of expiration time stamp
                                             keyBuf.remaining() + // the key payload itself
                                             INT_SIZE_BYTES +    // Size of the old value payload
                                             oldValueBuf.remaining() +  // The old value payload itself
                                             valueBuf.remaining());  // The value payload itself
 
     buffer.put(getOpCode().getValue());
+    buffer.putLong(this.timeStamp);
     buffer.putInt(keyBuf.remaining());
     buffer.put(keyBuf);
     buffer.putInt(oldValueBuf.remaining());
@@ -165,4 +170,28 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     hash = hash * 31 + newValue.hashCode();
     return hash;
   }
+
+  @Override
+  public long timeStamp() {
+    if (!isExpiryAvailable()) {
+      return this.timeStamp;
+    } else {
+      throw new RuntimeException("Timestamp not available");
+    }
+  }
+
+  @Override
+  public boolean isExpiryAvailable() {
+    return timeStamp < 0;
+  }
+
+  @Override
+  public long expirationTime() {
+    if (isExpiryAvailable()) {
+      return - this.timeStamp;
+    } else {
+      throw new RuntimeException("Expiry not available");
+    }
+  }
+
 }

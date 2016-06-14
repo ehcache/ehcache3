@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store;
 
+import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
@@ -29,6 +30,7 @@ import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.junit.After;
@@ -81,9 +83,11 @@ public class ClusteredStoreTest {
     ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER);
     ServerStoreProxy serverStoreProxy = new NoInvalidationServerStoreProxy(factory, clientEntity);
 
+    TestTimeSource testTimeSource = new TestTimeSource();
+
     OperationsCodec<Long, String> codec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
-    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec);
-    store = new ClusteredStore<Long, String>(codec, resolver, serverStoreProxy);
+    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
+    store = new ClusteredStore<Long, String>(codec, resolver, serverStoreProxy, testTimeSource);
   }
 
   @After

@@ -26,8 +26,8 @@ import static org.junit.Assert.*;
 public class ConditionalRemoveOperationTest extends BaseKeyValueOperationTest {
 
   @Override
-  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value) {
-    return new ConditionalRemoveOperation<K, V>(key, value);
+  protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
+    return new ConditionalRemoveOperation<K, V>(key, value, timestamp);
   }
 
   @Override
@@ -42,15 +42,15 @@ public class ConditionalRemoveOperationTest extends BaseKeyValueOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<Long, String>(1L, "one");
+    ConditionalRemoveOperation<Long, String> operation = new ConditionalRemoveOperation<Long, String>(1L, "one", System.currentTimeMillis());
     Result<String> result = operation.apply(null);
     assertNull(result);
 
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one");
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertNull(result);
 
-    PutIfAbsentOperation yetAnotherOperation = new PutIfAbsentOperation<Long, String>(1L, "two");
+    PutIfAbsentOperation yetAnotherOperation = new PutIfAbsentOperation<Long, String>(1L, "two", System.currentTimeMillis());
     result = operation.apply(yetAnotherOperation);
     assertSame(yetAnotherOperation, result);
   }

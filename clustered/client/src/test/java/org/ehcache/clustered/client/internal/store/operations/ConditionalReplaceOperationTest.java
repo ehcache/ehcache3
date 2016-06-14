@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
+import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
 import org.ehcache.spi.serialization.Serializer;
@@ -33,19 +34,22 @@ public class ConditionalReplaceOperationTest {
   private static final Serializer<Long> keySerializer = new LongSerializer();
   private static final Serializer<String> valueSerializer = new StringSerializer();
 
+  private static  final TestTimeSource TIME_SOURCE = new TestTimeSource();
+
   @Test
   public void testEncode() throws Exception {
     Long key = 1L;
     String newValue = "The one";
     String oldValue = "Another one";
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue);
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue, TIME_SOURCE.getTimeMillis());
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
     ByteBuffer expected = ByteBuffer.allocate(BYTE_SIZE_BYTES +
-                                              INT_SIZE_BYTES + LONG_SIZE_BYTES +
+                                              INT_SIZE_BYTES + 2 * LONG_SIZE_BYTES +
                                               INT_SIZE_BYTES + oldValue.length() +
                                               newValue.length());
     expected.put(OperationCode.REPLACE_CONDITIONAL.getValue());
+    expected.putLong(TIME_SOURCE.getTimeMillis());
     expected.putInt(LONG_SIZE_BYTES);
     expected.putLong(key);
     expected.putInt(oldValue.length());
@@ -62,10 +66,11 @@ public class ConditionalReplaceOperationTest {
     String oldValue = "Another one";
 
     ByteBuffer blob = ByteBuffer.allocate(BYTE_SIZE_BYTES +
-                                          INT_SIZE_BYTES + LONG_SIZE_BYTES +
+                                          INT_SIZE_BYTES + 2 * LONG_SIZE_BYTES +
                                           INT_SIZE_BYTES + oldValue.length() +
                                           newValue.length());
     blob.put(OperationCode.REPLACE_CONDITIONAL.getValue());
+    blob.putLong(TIME_SOURCE.getTimeMillis());
     blob.putInt(LONG_SIZE_BYTES);
     blob.putLong(key);
     blob.putInt(oldValue.length());
@@ -84,7 +89,7 @@ public class ConditionalReplaceOperationTest {
     Long key = 1L;
     String newValue = "The value";
     String oldValue = "Another one";
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue);
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(key, oldValue, newValue, TIME_SOURCE.getTimeMillis());
 
     ConditionalReplaceOperation<Long, String> decodedOperation =
         new ConditionalReplaceOperation<Long, String>(operation.encode(keySerializer, valueSerializer), keySerializer, valueSerializer);
@@ -100,15 +105,15 @@ public class ConditionalReplaceOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(1L, "one", "two");
+    ConditionalReplaceOperation<Long, String> operation = new ConditionalReplaceOperation<Long, String>(1L, "one", "two", System.currentTimeMillis());
     Result<String> result = operation.apply(null);
     assertNull(result);
 
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one");
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(operation, result);
 
-    anotherOperation = new PutOperation<Long, String>(1L, "another one");
+    anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(anotherOperation, result);
   }

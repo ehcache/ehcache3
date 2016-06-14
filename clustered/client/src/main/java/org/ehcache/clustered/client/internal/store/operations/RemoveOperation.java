@@ -24,12 +24,14 @@ import java.nio.ByteBuffer;
 public class RemoveOperation<K, V> implements Operation<K, V> {
 
   private final K key;
+  private final long timeStamp;
 
-  public RemoveOperation(final K key) {
+  public RemoveOperation(final K key, final long timeStamp) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
     this.key = key;
+    this.timeStamp = timeStamp;
   }
 
   RemoveOperation(final ByteBuffer buffer, final Serializer<K> keySerializer) {
@@ -37,7 +39,7 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
     if (opCode != getOpCode()) {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
-
+    this.timeStamp = buffer.getLong();
     ByteBuffer keyBlob = buffer.slice();
     try {
       this.key = keySerializer.read(keyBlob);
@@ -69,10 +71,12 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
     ByteBuffer keyBuf = keySerializer.serialize(key);
 
     int size = BYTE_SIZE_BYTES +   // Operation type
+               LONG_SIZE_BYTES +   // Size of expiration time stamp
                keyBuf.remaining();   // the key payload itself
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
     buffer.put(getOpCode().getValue());
+    buffer.putLong(this.timeStamp);
     buffer.put(keyBuf);
     buffer.flip();
     return buffer;
@@ -108,4 +112,28 @@ public class RemoveOperation<K, V> implements Operation<K, V> {
     hash = hash * 31 + key.hashCode();
     return hash;
   }
+
+  @Override
+  public long timeStamp() {
+    if (!isExpiryAvailable()) {
+      return this.timeStamp;
+    } else {
+      throw new RuntimeException("Timestamp not available");
+    }
+  }
+
+  @Override
+  public boolean isExpiryAvailable() {
+    return timeStamp < 0;
+  }
+
+  @Override
+  public long expirationTime() {
+    if (isExpiryAvailable()) {
+      return - this.timeStamp;
+    } else {
+      throw new RuntimeException("Expiry not available");
+    }
+  }
+
 }

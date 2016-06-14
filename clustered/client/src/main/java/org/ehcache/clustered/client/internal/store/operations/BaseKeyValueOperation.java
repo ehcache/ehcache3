@@ -25,8 +25,9 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   private final K key;
   private final V value;
+  private final long timeStamp;
 
-  BaseKeyValueOperation(K key, V value) {
+  BaseKeyValueOperation(K key, V value, long timeStamp) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
@@ -35,6 +36,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     }
     this.key = key;
     this.value = value;
+    this.timeStamp = timeStamp;
   }
 
   BaseKeyValueOperation(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
@@ -42,6 +44,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     if (opCode != getOpCode()) {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
+    this.timeStamp = buffer.getLong();
     int keySize = buffer.getInt();
     buffer.limit(buffer.position() + keySize);
     ByteBuffer keyBlob = buffer.slice();
@@ -81,16 +84,17 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
     int size = BYTE_SIZE_BYTES +   // Operation type
                INT_SIZE_BYTES +    // Size of the key payload
+               LONG_SIZE_BYTES +   // Size of expiration time stamp
                keyBuf.remaining() + // the key payload itself
                valueBuf.remaining();  // the value payload
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
 
     buffer.put(getOpCode().getValue());
+    buffer.putLong(this.timeStamp);
     buffer.putInt(keyBuf.remaining());
     buffer.put(keyBuf);
     buffer.put(valueBuf);
-
     buffer.flip();
     return buffer;
   }
@@ -128,5 +132,28 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     hash = hash * 31 + key.hashCode();
     hash = hash * 31 + value.hashCode();
     return hash;
+  }
+
+  @Override
+  public long timeStamp() {
+    if (!isExpiryAvailable()) {
+      return this.timeStamp;
+    } else {
+      throw new RuntimeException("Timestamp not available");
+    }
+  }
+
+  @Override
+  public boolean isExpiryAvailable() {
+    return timeStamp < 0;
+  }
+
+  @Override
+  public long expirationTime() {
+    if (isExpiryAvailable()) {
+      return - this.timeStamp;
+    } else {
+      throw new RuntimeException("Expiry not available");
+    }
   }
 }

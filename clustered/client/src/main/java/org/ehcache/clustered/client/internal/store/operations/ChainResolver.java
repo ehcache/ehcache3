@@ -16,20 +16,31 @@
 
 package org.ehcache.clustered.client.internal.store.operations;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.TimeUnit;
 
 public class ChainResolver<K, V> {
 
-  private final OperationsCodec<K, V> codec;
+  private static final Logger LOG = LoggerFactory.getLogger(ChainResolver.class);
+  private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
-  public ChainResolver(final OperationsCodec<K, V> codec) {
+  private final OperationsCodec<K, V> codec;
+  private final Expiry<? super K, ? super V> expiry;
+
+  public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry) {
     this.codec = codec;
+    this.expiry = expiry;
   }
 
   /**
@@ -42,26 +53,71 @@ public class ChainResolver<K, V> {
    *
    * @param chain a heterogeneous {@code Chain}
    * @param key a key
-   * @return an entry with the resolved operation for the provided key as the key
-   * and the compacted chain as the value
-   * @throws ClassNotFoundException
+   * @param now time when the chain is being resolved
+   * @return a resolved chain, result of resolution of chain provided
    */
-  public ResolvedChain<K, V> resolve(Chain chain, K key) {
+  public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
     Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
+    long expirationTime = Long.MIN_VALUE;
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
       Operation<K, V> operation = codec.decode(payload);
+      final Result<V> previousResult = result;
       if(key.equals(operation.getKey())) {
         result = operation.apply(result);
+        if(result == null) {
+          continue;
+        }
+        if(operation.isExpiryAvailable()) {
+          expirationTime = operation.expirationTime();
+          if (expirationTime == Long.MIN_VALUE) {
+            continue;
+          }
+          if (now >= expirationTime) {
+            result = null;
+          }
+        } else {
+          Duration duration;
+          try {
+            if(previousResult == null) {
+              duration = expiry.getExpiryForCreation(key, result.getValue());
+              if (duration == null) {
+                result = null;
+                continue;
+              }
+            } else {
+              duration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
+                @Override
+                public V value() {
+                  return previousResult.getValue();
+                }
+              }, result.getValue());
+              if (duration == null) {
+                continue;
+              }
+            }
+          } catch (Exception ex) {
+            LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", ex);
+            duration = Duration.ZERO;
+          }
+          if(duration.isInfinite()) {
+            expirationTime = Long.MIN_VALUE;
+            continue;
+          }
+          long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
+          expirationTime = time + operation.timeStamp();
+          if(now >= expirationTime) {
+            result = null;
+          }
+        }
       } else {
         payload.flip();
         chainBuilder = chainBuilder.add(payload);
       }
     }
-    Operation<K, V> resolvedOperation = null;
     if(result != null) {
-      resolvedOperation = new PutOperation<K, V>(key, result.getValue());
+      Operation<K, V> resolvedOperation = new PutOperation<K, V>(key, result.getValue(), -expirationTime);
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }
