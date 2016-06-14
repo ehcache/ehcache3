@@ -50,11 +50,10 @@ public abstract class BaseKeyValueOperationTest {
     Operation<Long, String> operation = getNewOperation(key, value, TIME_SOURCE.getTimeMillis());
     ByteBuffer byteBuffer = operation.encode(keySerializer, valueSerializer);
 
-    ByteBuffer expected = ByteBuffer.allocate(2 * BYTE_SIZE_BYTES +
+    ByteBuffer expected = ByteBuffer.allocate(BYTE_SIZE_BYTES +
                                               INT_SIZE_BYTES + 2 * LONG_SIZE_BYTES + value.length());
     expected.put(getOperationCode().getValue());
     expected.putLong(TIME_SOURCE.getTimeMillis());
-    expected.put((byte)1);
     expected.putInt(LONG_SIZE_BYTES);
     expected.putLong(key);
     expected.put(value.getBytes());
@@ -67,11 +66,10 @@ public abstract class BaseKeyValueOperationTest {
     Long key = 12L;
     String value = "The value";
 
-    ByteBuffer blob = ByteBuffer.allocate(2 * BYTE_SIZE_BYTES +
+    ByteBuffer blob = ByteBuffer.allocate(BYTE_SIZE_BYTES +
                                           INT_SIZE_BYTES + 2 * LONG_SIZE_BYTES + value.length());
     blob.put(getOperationCode().getValue());
     blob.putLong(TIME_SOURCE.getTimeMillis());
-    blob.put((byte)1);
     blob.putInt(LONG_SIZE_BYTES);
     blob.putLong(key);
     blob.put(value.getBytes());

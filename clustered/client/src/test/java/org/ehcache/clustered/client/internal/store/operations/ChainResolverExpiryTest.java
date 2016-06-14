@@ -21,6 +21,7 @@ import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
@@ -39,6 +40,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class ChainResolverExpiryTest {
 
@@ -56,9 +58,11 @@ public class ChainResolverExpiryTest {
     Expiry<Long, String> expiry = mock(Expiry.class);
     ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
 
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+
     List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "One", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "Second", timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "One", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Second", timeSource.getTimeMillis()));
 
     Chain chain = getChainFromOperations(list);
 
@@ -75,11 +79,13 @@ public class ChainResolverExpiryTest {
     Expiry<Long, String> expiry = mock(Expiry.class);
     ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
 
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+
     List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "One", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "Second", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "Three", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "Four", timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "One", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Second", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Three", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Four", timeSource.getTimeMillis()));
 
     Chain chain = getChainFromOperations(list);
 
@@ -97,17 +103,19 @@ public class ChainResolverExpiryTest {
     Expiry<Long, String> expiry = mock(Expiry.class);
     ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
 
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+
     List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "Replaced", timeSource.getTimeMillis(), false));
-    list.add(new PutOperation<Long, String>(1L, "SecondAfterReplace", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "ThirdAfterReplace", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "FourthAfterReplace", timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Replaced", -10L));
+    list.add(new PutOperation<Long, String>(1L, "SecondAfterReplace", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "ThirdAfterReplace", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "FourthAfterReplace", timeSource.getTimeMillis()));
 
     Chain chain = getChainFromOperations(list);
 
     chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
     verify(expiry, times(0)).getExpiryForCreation(anyLong(), anyString());
-    verify(expiry, times(4)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
+    verify(expiry, times(3)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
 
   }
 
@@ -117,11 +125,13 @@ public class ChainResolverExpiryTest {
     Expiry<Long, String> expiry = mock(Expiry.class);
     ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
 
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+
     List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "Replaced", timeSource.getTimeMillis(), false));
-    list.add(new PutOperation<Long, String>(1L, "SecondAfterReplace", timeSource.getTimeMillis(), true));
-    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "FourthAfterReplace", timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Replaced", 10L));
+    list.add(new PutOperation<Long, String>(1L, "SecondAfterReplace", 3L));
+    list.add(new RemoveOperation<Long, String>(1L, 4L));
+    list.add(new PutOperation<Long, String>(1L, "FourthAfterReplace", 5L));
 
     Chain replacedChain = getChainFromOperations(list);
 
@@ -130,16 +140,18 @@ public class ChainResolverExpiryTest {
     InOrder inOrder = inOrder(expiry);
 
     verify(expiry, times(0)).getExpiryForAccess(anyLong(), any(ValueSupplier.class));
-    inOrder.verify(expiry, times(2)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
+    inOrder.verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
     inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
 
     reset(expiry);
 
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(Duration.INFINITE);
+
     list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "One", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "Second", timeSource.getTimeMillis(), true));
-    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "Four", timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "One", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Second", timeSource.getTimeMillis()));
+    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Four", timeSource.getTimeMillis()));
 
     Chain chain = getChainFromOperations(list);
 

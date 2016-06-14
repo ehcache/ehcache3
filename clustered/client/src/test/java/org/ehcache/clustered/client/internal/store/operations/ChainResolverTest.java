@@ -39,6 +39,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 public class ChainResolverTest {
 
@@ -55,12 +56,12 @@ public class ChainResolverTest {
   @Test
   public void testResolveMaintainsOtherKeysInOrder() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(2L, "Albin", timeSource.getTimeMillis(), true));
-    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis(), true);
+    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(2L, "Albin", timeSource.getTimeMillis()));
+    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis());
     list.add(expected);
-    list.add(new PutOperation<Long, String>(2L, "Suresh", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(2L, "Mathew", timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(2L, "Suresh", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(2L, "Mathew", timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
@@ -72,10 +73,10 @@ public class ChainResolverTest {
     List<Operation<Long, String>> operations = getOperationsListFromChain(compactedChain);
 
     List<Operation<Long, String>> expectedOps = new ArrayList<Operation<Long, String>>();
-    expectedOps.add(new PutOperation<Long, String>(2L, "Albin", timeSource.getTimeMillis(), true));
-    expectedOps.add(new PutOperation<Long, String>(2L, "Suresh", timeSource.getTimeMillis(), true));
-    expectedOps.add(new PutOperation<Long, String>(2L, "Mathew", timeSource.getTimeMillis(), true));
-    expectedOps.add(new PutOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis(), true));
+    expectedOps.add(new PutOperation<Long, String>(2L, "Albin", timeSource.getTimeMillis()));
+    expectedOps.add(new PutOperation<Long, String>(2L, "Suresh", timeSource.getTimeMillis()));
+    expectedOps.add(new PutOperation<Long, String>(2L, "Mathew", timeSource.getTimeMillis()));
+    expectedOps.add(new PutOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis()));
 
     assertThat(operations, IsIterableContainingInOrder.contains(expectedOps.toArray()));
   }
@@ -95,9 +96,9 @@ public class ChainResolverTest {
   @Test
   public void testResolveChainWithNonExistentKey() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(2L, "Suresh", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(2L, "Mathew", timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(2L, "Suresh", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(2L, "Mathew", timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
@@ -113,7 +114,7 @@ public class ChainResolverTest {
   @Test
   public void testResolveSinglePut() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis(), true);
+    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis());
     list.add(expected);
     Chain chain = getChainFromOperations(list);
 
@@ -126,9 +127,9 @@ public class ChainResolverTest {
   @Test
   public void testResolvePutsOnly() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis(), true));
-    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis(), true);
+    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis()));
+    Operation<Long, String> expected = new PutOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis());
     list.add(expected);
 
     Chain chain = getChainFromOperations(list);
@@ -142,7 +143,7 @@ public class ChainResolverTest {
   @Test
   public void testResolveSingleRemove() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis(), true));
+    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
@@ -154,8 +155,8 @@ public class ChainResolverTest {
   @Test
   public void testResolveRemovesOnly() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis(), true));
-    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis(), true));
+    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis()));
+    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
@@ -167,8 +168,8 @@ public class ChainResolverTest {
   @Test
   public void testPutAndRemove() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis(), true));
-    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
+    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
@@ -180,7 +181,7 @@ public class ChainResolverTest {
   @Test
   public void testResolvePutIfAbsentOnly() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis(), true);
+    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis());
     list.add(expected);
     Chain chain = getChainFromOperations(list);
 
@@ -193,10 +194,10 @@ public class ChainResolverTest {
   @Test
   public void testResolvePutIfAbsentsOnly() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis(), true);
+    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis());
     list.add(expected);
-    list.add(new PutIfAbsentOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis(), true));
-    list.add(new PutIfAbsentOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis(), true));
+    list.add(new PutIfAbsentOperation<Long, String>(1L, "Suresh", timeSource.getTimeMillis()));
+    list.add(new PutIfAbsentOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
@@ -208,9 +209,9 @@ public class ChainResolverTest {
   @Test
   public void testResolvePutIfAbsentSucceeds() throws Exception {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis(), true));
-    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis(), true));
-    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis(), true);
+    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
+    list.add(new RemoveOperation<Long, String>(1L, timeSource.getTimeMillis()));
+    Operation<Long, String> expected = new PutIfAbsentOperation<Long, String>(1L, "Mathew", timeSource.getTimeMillis());
     list.add(expected);
     Chain chain = getChainFromOperations(list);
 
@@ -223,7 +224,7 @@ public class ChainResolverTest {
   @Test
   public void testResolveForSingleOperationHasCorrectIsFirstAndTimeStamp() {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
@@ -231,9 +232,8 @@ public class ChainResolverTest {
 
     Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
 
-    assertThat(operation.timeStamp(), Matchers.is(timeSource.getTimeMillis()));
-    assertThat(operation.isFirst(), Matchers.is(true));
-
+    assertThat(operation.isExpiryAvailable(), Matchers.is(true));
+    assertThat(operation.expirationTime(), Matchers.is(Long.MIN_VALUE));
   }
 
   @Test
@@ -241,13 +241,13 @@ public class ChainResolverTest {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     TestTimeSource testTimeSource = new TestTimeSource();
 
-    list.add(new PutOperation<Long, String>(1L, "Albin1", testTimeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin1", testTimeSource.getTimeMillis()));
     testTimeSource.advanceTime(1L);
-    list.add(new PutOperation<Long, String>(1L, "Albin2", testTimeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin2", testTimeSource.getTimeMillis()));
     testTimeSource.advanceTime(1L);
-    list.add(new RemoveOperation<Long, String>(1L, testTimeSource.getTimeMillis(), true));
+    list.add(new RemoveOperation<Long, String>(1L, testTimeSource.getTimeMillis()));
     testTimeSource.advanceTime(1L);
-    list.add(new PutOperation<Long, String>(1L, "AlbinAfterRemove", testTimeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "AlbinAfterRemove", testTimeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
@@ -255,9 +255,14 @@ public class ChainResolverTest {
 
     Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
 
-    assertThat(operation.timeStamp(), Matchers.is(3L));
-    assertThat(operation.isFirst(), Matchers.is(true));
-
+    assertThat(operation.isExpiryAvailable(), Matchers.is(true));
+    assertThat(operation.expirationTime(), Matchers.is(Long.MIN_VALUE));
+    try {
+      operation.timeStamp();
+      fail();
+    } catch (Exception ex) {
+      assertThat(ex.getMessage(), Matchers.is("Timestamp not available"));
+    }
   }
 
   @Test
@@ -265,13 +270,13 @@ public class ChainResolverTest {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     TestTimeSource testTimeSource = new TestTimeSource();
 
-    list.add(new PutOperation<Long, String>(1L, "Albin1", testTimeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin1", testTimeSource.getTimeMillis()));
     testTimeSource.advanceTime(1L);
-    list.add(new PutOperation<Long, String>(1L, "Albin2", testTimeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin2", testTimeSource.getTimeMillis()));
     testTimeSource.advanceTime(1L);
-    list.add(new PutOperation<Long, String>(1L, "Albin3", testTimeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin3", testTimeSource.getTimeMillis()));
     testTimeSource.advanceTime(1L);
-    list.add(new PutOperation<Long, String>(1L, "Albin4", testTimeSource.getTimeMillis(), true));
+    list.add(new PutOperation<Long, String>(1L, "Albin4", testTimeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.timeToLiveExpiration(new Duration(1l, TimeUnit.MILLISECONDS)));
@@ -279,26 +284,16 @@ public class ChainResolverTest {
 
     Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
 
-    assertThat(operation.timeStamp(), Matchers.is(3L));
-    assertThat(operation.isFirst(), Matchers.is(true));
+    assertThat(operation.isExpiryAvailable(), Matchers.is(true));
+    assertThat(operation.expirationTime(), Matchers.is(4L));
 
-  }
+    try {
+      operation.timeStamp();
+      fail();
+    } catch (Exception ex) {
+      assertThat(ex.getMessage(), Matchers.is("Timestamp not available"));
+    }
 
-  @Test
-  public void testResolveUpdatesStatus() {
-    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
-    TestTimeSource testTimeSource = new TestTimeSource();
-
-    list.add(new PutOperation<Long, String>(1L, "Albin1", testTimeSource.getTimeMillis(), true));
-    list.add(new PutOperation<Long, String>(1L, "Albin2", testTimeSource.getTimeMillis(), true));
-    Chain chain = getChainFromOperations(list);
-
-    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
-    ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, testTimeSource.getTimeMillis());
-
-    Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
-
-    assertThat(operation.isFirst(), Matchers.is(false));
   }
 
   private Chain getChainFromOperations(List<Operation<Long, String>> operations) {

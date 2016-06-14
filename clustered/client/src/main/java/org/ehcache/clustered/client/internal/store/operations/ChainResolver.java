@@ -22,15 +22,17 @@ import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
-import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
 public class ChainResolver<K, V> {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ChainResolver.class);
   private static final TimeUnit TIME_UNIT = TimeUnit.MILLISECONDS;
 
   private final OperationsCodec<K, V> codec;
@@ -57,47 +59,65 @@ public class ChainResolver<K, V> {
   public ResolvedChain<K, V> resolve(Chain chain, K key, long now) {
     Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
-    Operation<K, V> operation = null;
-    boolean isNew = false;
+    long expirationTime = Long.MIN_VALUE;
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
-      operation = codec.decode(payload);
+      Operation<K, V> operation = codec.decode(payload);
       final Result<V> previousResult = result;
-      Duration expiration;
       if(key.equals(operation.getKey())) {
         result = operation.apply(result);
         if(result == null) {
           continue;
         }
-        if((previousResult == null && operation.isFirst())) {
-          expiration = expiry.getExpiryForCreation(key, result.getValue());
-          isNew = true;
+        if(operation.isExpiryAvailable()) {
+          expirationTime = operation.expirationTime();
+          if (expirationTime == Long.MIN_VALUE) {
+            continue;
+          }
+          if (now >= expirationTime) {
+            result = null;
+          }
         } else {
-          expiration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
-            @Override
-            public V value() {
-              return previousResult.getValue();
+          Duration duration;
+          try {
+            if(previousResult == null) {
+              duration = expiry.getExpiryForCreation(key, result.getValue());
+              if (duration == null) {
+                result = null;
+                continue;
+              }
+            } else {
+              duration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
+                @Override
+                public V value() {
+                  return previousResult.getValue();
+                }
+              }, result.getValue());
+              if (duration == null) {
+                continue;
+              }
             }
-          }, result.getValue());
-          isNew = false;
-        }
-
-        if(expiration == null || expiration.isInfinite()) {
-          continue;
-        }
-
-        long time = TIME_UNIT.convert(expiration.getLength(), expiration.getTimeUnit());
-        if(now >= time + operation.timeStamp()) {
-          result = null;
+          } catch (Exception ex) {
+            LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", ex);
+            duration = Duration.ZERO;
+          }
+          if(duration.isInfinite()) {
+            expirationTime = Long.MIN_VALUE;
+            continue;
+          }
+          long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
+          expirationTime = time + operation.timeStamp();
+          if(now >= expirationTime) {
+            result = null;
+          }
         }
       } else {
         payload.flip();
         chainBuilder = chainBuilder.add(payload);
       }
     }
-    Operation<K, V> resolvedOperation = null;
-    if(result != null & operation != null) {
-      resolvedOperation = new PutOperation<K, V>(key, result.getValue(), operation.timeStamp(), isNew);
+    if(result != null) {
+      Operation<K, V> resolvedOperation = new PutOperation<K, V>(key, result.getValue(), -expirationTime);
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }

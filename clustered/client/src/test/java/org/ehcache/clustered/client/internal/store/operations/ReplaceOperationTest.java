@@ -27,7 +27,7 @@ public class ReplaceOperationTest extends BaseKeyValueOperationTest {
 
   @Override
   protected <K, V> BaseKeyValueOperation<K, V> getNewOperation(final K key, final V value, long timestamp) {
-    return new ReplaceOperation<K, V>(key, value, timestamp, true);
+    return new ReplaceOperation<K, V>(key, value, timestamp);
   }
 
   @Override
@@ -42,11 +42,11 @@ public class ReplaceOperationTest extends BaseKeyValueOperationTest {
 
   @Test
   public void testApply() throws Exception {
-    ReplaceOperation<Long, String> operation = new ReplaceOperation<Long, String>(1L, "one", System.currentTimeMillis(), true);
+    ReplaceOperation<Long, String> operation = new ReplaceOperation<Long, String>(1L, "one", System.currentTimeMillis());
     Result<String> result = operation.apply(null);
     assertNull(result);
 
-    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis(), true);
+    PutOperation<Long, String> anotherOperation = new PutOperation<Long, String>(1L, "another one", System.currentTimeMillis());
     result = operation.apply(anotherOperation);
     assertSame(operation, result);
   }

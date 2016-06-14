@@ -26,9 +26,8 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
   private final K key;
   private final V value;
   private final long timeStamp;
-  private final byte isFirst;
 
-  BaseKeyValueOperation(K key, V value, long timeStamp, boolean isFirst) {
+  BaseKeyValueOperation(K key, V value, long timeStamp) {
     if(key == null) {
       throw new NullPointerException("Key can not be null");
     }
@@ -38,11 +37,6 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     this.key = key;
     this.value = value;
     this.timeStamp = timeStamp;
-    if (isFirst) {
-      this.isFirst = (byte)1;
-    } else {
-      this.isFirst = (byte)0;
-    }
   }
 
   BaseKeyValueOperation(ByteBuffer buffer, Serializer<K> keySerializer, Serializer<V> valueSerializer) {
@@ -51,7 +45,6 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
       throw new IllegalArgumentException("Invalid operation: " + opCode);
     }
     this.timeStamp = buffer.getLong();
-    this.isFirst = buffer.get();
     int keySize = buffer.getInt();
     buffer.limit(buffer.position() + keySize);
     ByteBuffer keyBlob = buffer.slice();
@@ -92,7 +85,6 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     int size = BYTE_SIZE_BYTES +   // Operation type
                INT_SIZE_BYTES +    // Size of the key payload
                LONG_SIZE_BYTES +   // Size of expiration time stamp
-               BYTE_SIZE_BYTES +   // isFirst status bit
                keyBuf.remaining() + // the key payload itself
                valueBuf.remaining();  // the value payload
 
@@ -100,7 +92,6 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
     buffer.put(getOpCode().getValue());
     buffer.putLong(this.timeStamp);
-    buffer.put(this.isFirst);
     buffer.putInt(keyBuf.remaining());
     buffer.put(keyBuf);
     buffer.put(valueBuf);
@@ -145,15 +136,24 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   @Override
   public long timeStamp() {
-    return this.timeStamp;
+    if (!isExpiryAvailable()) {
+      return this.timeStamp;
+    } else {
+      throw new RuntimeException("Timestamp not available");
+    }
   }
 
   @Override
-  public boolean isFirst() {
-    if(isFirst == 1) {
-      return true;
+  public boolean isExpiryAvailable() {
+    return timeStamp < 0;
+  }
+
+  @Override
+  public long expirationTime() {
+    if (isExpiryAvailable()) {
+      return - this.timeStamp;
     } else {
-      return false;
+      throw new RuntimeException("Expiry not available");
     }
   }
 }

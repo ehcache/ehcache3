@@ -36,7 +36,8 @@ public interface Operation<K, V> {
 
   long timeStamp();
 
-  //TODO: bit-mask this in opcode to reduce a byte usage
-  boolean isFirst();
+  boolean isExpiryAvailable();
+
+  long expirationTime();
 
 }
