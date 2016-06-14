@@ -17,12 +17,11 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.internal.TimeSourceConfiguration;
+import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -34,6 +33,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -52,9 +52,9 @@ public abstract class ExpiryEhcacheTestBase {
     manualTimeSource.setTimeMillis(0L);
     CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder().using(new TimeSourceConfiguration(manualTimeSource));
     cacheManager = builder.build(true);
-    CacheConfigurationBuilder<Object, Object> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder()
+    CacheConfigurationBuilder<Number, CharSequence> objectObjectCacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10))
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
-    testCache = cacheManager.createCache("testCache", objectObjectCacheConfigurationBuilder.buildConfig(Number.class, CharSequence.class));
+    testCache = cacheManager.createCache("testCache", objectObjectCacheConfigurationBuilder.build());
   }
 
   @After

@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
-import static org.ehcache.UserManagedCacheBuilder.newUserManagedCacheBuilder;
+import static org.ehcache.config.builders.UserManagedCacheBuilder.newUserManagedCacheBuilder;
 
 /**
  * Created by shdi on 3/12/15.

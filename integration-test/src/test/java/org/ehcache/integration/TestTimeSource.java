@@ -16,7 +16,7 @@
 
 package org.ehcache.integration;
 
-import org.ehcache.internal.TimeSource;
+import org.ehcache.core.spi.time.TimeSource;
 
 /**
  * A manual time source implementation that can be used for testing purposes.

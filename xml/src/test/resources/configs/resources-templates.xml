@@ -23,55 +23,47 @@
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap size="5"/>
-      <ehcache:disk size="50"/>
+      <ehcache:heap>5</ehcache:heap>
+      <ehcache:disk unit="MB">50</ehcache:disk>
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="templatedTieredResource" usesTemplate="tieredResourceTemplate">
+  <ehcache:cache alias="templatedTieredResource" uses-template="tieredResourceTemplate">
   </ehcache:cache>
 
   <ehcache:cache-template name="persistentTieredResourceTemplate">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap size="5"/>
-      <ehcache:disk size="50" persistent="true"/>
+      <ehcache:heap>5</ehcache:heap>
+      <ehcache:disk unit="MB" persistent="true">50</ehcache:disk>
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="persistentTemplatedTieredResource" usesTemplate="persistentTieredResourceTemplate">
+  <ehcache:cache alias="persistentTemplatedTieredResource" uses-template="persistentTieredResourceTemplate">
   </ehcache:cache>
 
   <ehcache:cache-template name="tieredOffHeapResourceTemplate">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap size="5"/>
-      <ehcache:offheap size="50" unit="mb"/>
+      <ehcache:heap>5</ehcache:heap>
+      <ehcache:offheap unit="MB">50</ehcache:offheap>
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="templatedOffHeapTieredResource" usesTemplate="tieredOffHeapResourceTemplate">
+  <ehcache:cache alias="templatedOffHeapTieredResource" uses-template="tieredOffHeapResourceTemplate">
   </ehcache:cache>
 
   <ehcache:cache-template name="explicitHeapResourceTemplate">
     <ehcache:key-type>java.lang.String</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <ehcache:heap size="15"/>
+      <ehcache:heap>15</ehcache:heap>
     </ehcache:resources>
   </ehcache:cache-template>
 
-  <ehcache:cache alias="templatedExplicitHeapResource" usesTemplate="explicitHeapResourceTemplate">
-  </ehcache:cache>
-
-  <ehcache:cache-template name="implicitHeapResourceTemplate">
-    <ehcache:key-type>java.lang.String</ehcache:key-type>
-    <ehcache:value-type>java.lang.String</ehcache:value-type>
-  </ehcache:cache-template>
-
-  <ehcache:cache alias="templatedImplicitHeapResource" usesTemplate="implicitHeapResourceTemplate">
+  <ehcache:cache alias="templatedExplicitHeapResource" uses-template="explicitHeapResourceTemplate">
   </ehcache:cache>
 
 </ehcache:config>

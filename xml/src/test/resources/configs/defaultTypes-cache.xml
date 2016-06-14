@@ -23,9 +23,11 @@
   </ehcache:cache-template>
 
   <ehcache:cache alias="foo">
+    <ehcache:heap>5</ehcache:heap>
   </ehcache:cache>
 
-  <ehcache:cache alias="bar" usesTemplate="example">
+  <ehcache:cache alias="bar" uses-template="example">
     <ehcache:key-type>java.lang.Number</ehcache:key-type>
+    <ehcache:heap>5</ehcache:heap>
   </ehcache:cache>
 </ehcache:config>

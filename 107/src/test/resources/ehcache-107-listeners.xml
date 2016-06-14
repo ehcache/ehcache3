@@ -31,15 +31,15 @@
   <cache-template name="stringCache">
     <key-type>java.lang.String</key-type>
     <value-type>java.lang.String</value-type>
-    <integration>
+    <listeners>
       <listener>
         <class>com.pany.ehcache.TestCacheEventListener</class>
-        <eventFiringMode>SYNCHRONOUS</eventFiringMode>
-        <eventOrderingMode>UNORDERED</eventOrderingMode>
-        <eventsToFireOn>CREATED</eventsToFireOn>
+        <event-firing-mode>SYNCHRONOUS</event-firing-mode>
+        <event-ordering-mode>UNORDERED</event-ordering-mode>
+        <events-to-fire-on>CREATED</events-to-fire-on>
       </listener>
-    </integration>
-    <heap size="2000" unit="entries"/>
+    </listeners>
+    <heap unit="entries">2000</heap>
   </cache-template>
 
 </config>

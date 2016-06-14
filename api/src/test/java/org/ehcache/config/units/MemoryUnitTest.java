@@ -26,7 +26,7 @@ import org.junit.Test;
  * @author cdennis
  */
 public class MemoryUnitTest {
-  
+
   @Test
   public void testBasicPositiveConversions() {
     assertThat(MemoryUnit.B.toBytes(1L), is(1L));
@@ -78,7 +78,7 @@ public class MemoryUnitTest {
     assertThat(MemoryUnit.TB.convert(1L, MemoryUnit.PB), is(1024L));
     assertThat(MemoryUnit.PB.convert(1L, MemoryUnit.PB), is(1L));
   }
-    
+
   @Test
   public void testBasicNegativeConversions() {
     assertThat(MemoryUnit.B.toBytes(-1L), is(-1L));
@@ -130,7 +130,7 @@ public class MemoryUnitTest {
     assertThat(MemoryUnit.TB.convert(-1L, MemoryUnit.PB), is(-1024L));
     assertThat(MemoryUnit.PB.convert(-1L, MemoryUnit.PB), is(-1L));
   }
-  
+
   @Test
   public void testPositiveThresholdConditions() {
     assertThat(MemoryUnit.KB.convert(1024L - 1, MemoryUnit.B), is(0L));
@@ -164,7 +164,7 @@ public class MemoryUnitTest {
     assertThat(MemoryUnit.TB.convert(1024L + 1, MemoryUnit.GB), is(1L));
     assertThat(MemoryUnit.PB.convert((1024L * 1024L) - 1, MemoryUnit.GB), is(0L));
     assertThat(MemoryUnit.PB.convert((1024L * 1024L) + 1, MemoryUnit.GB), is(1L));
-    
+
     assertThat(MemoryUnit.PB.convert(1024L - 1, MemoryUnit.TB), is(0L));
     assertThat(MemoryUnit.PB.convert(1024L + 1, MemoryUnit.TB), is(1L));
   }
@@ -202,7 +202,7 @@ public class MemoryUnitTest {
     assertThat(MemoryUnit.TB.convert(-1024L - 1, MemoryUnit.GB), is(-1L));
     assertThat(MemoryUnit.PB.convert(-(1024L * 1024L) + 1, MemoryUnit.GB), is(0L));
     assertThat(MemoryUnit.PB.convert(-(1024L * 1024L) - 1, MemoryUnit.GB), is(-1L));
-    
+
     assertThat(MemoryUnit.PB.convert(-1024L + 1, MemoryUnit.TB), is(0L));
     assertThat(MemoryUnit.PB.convert(-1024L - 1, MemoryUnit.TB), is(-1L));
   }

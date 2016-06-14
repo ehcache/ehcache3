@@ -44,9 +44,4 @@ public class LongSerializer implements Serializer<Long> {
   public boolean equals(Long object, ByteBuffer binary) {
     return object.equals(read(binary));
   }
-
-  @Override
-  public void close() {
-    //nothing
-  }
 }

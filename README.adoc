@@ -8,19 +8,17 @@ image:https://www.cloudbees.com/sites/default/files/styles/large/public/Button-P
 
 == Getting started with the new API
 
-For samples, documentation, and usage information, please see http://ehcache.github.io.
+For samples, documentation, and usage information, please see http://ehcache.org.
 
 == Current release
 
-We released the Milestone 2 on August 11, 2015. In addition to the JSR-107 compatibility,
-it introduces up to 3 level tiering, offering offheap as well as a new disk persistence option; write-behind, ...
+We released 3.0.2 on June 6th 2016.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m2[release notes] contain the links to the documentation
-to help you get started
+The https://github.com/ehcache/ehcache3/releases/tag/v3.0.1[release notes] contain the links to the artifacts and the documentation to help you get started.
 
 == Current development & next release
 
-We are now working on the next milestone :
-All missing features from the existing Ehcache 2.x line, exposed using the new API, but Automatic Resource Control (planned for M4).
+We are now working on the clustering tier of Ehcache 3 which will be included in the 3.1.0 release.
+You can also expect bug fix releases on the 3.0.x line.
 
 See the https://github.com/ehcache/ehcache3/milestones[milestones on GitHub] for more details on the current status.

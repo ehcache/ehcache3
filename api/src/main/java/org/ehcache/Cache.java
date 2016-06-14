@@ -16,78 +16,88 @@
 package org.ehcache;
 
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheLoadingException;
-import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Basic interface to a cache, defines all operational methods to create, access,
- * update or delete mappings of key to value
+ * Defines all operational methods to create, access, update and delete mappings of key to value.
+ * <P>
+ *   In order to function, cache keys must respect the {@link Object#hashCode() hash code} and
+ *   {@link Object#equals(Object) equals} contracts. This contract is what will be used to lookup values based on key.
+ * </P>
+ * <P>
+ *   A {@code Cache} is not a map, mostly because it has the following two concepts linked to mappings:
+ *   <UL>
+ *     <LI>Eviction: A {@code Cache} has a capacity constraint and in order to honor it, a {@code Cache} can
+ *     evict (remove) a mapping at any point in time. Note that eviction may occur before maximum capacity is
+ *     reached.</LI>
+ *     <LI>Expiry: Data in a {@code Cache} can be configured to expire after some time. There is no way for a
+ *     {@code Cache} user to differentiate from the API between a mapping being absent or expired.</LI>
+ *   </UL>
+ * </P>
  *
- * @param <K> the type of the keys used to access data within this cache
- * @param <V> the type of the values held within this cache
+ * @param <K> the key type for the cache
+ * @param <V> the value type for the cache
  */
 public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
-   * Retrieve the value currently mapped to the provided key
+   * Retrieves the value currently mapped to the provided key.
    *
-   * @param key the key to query the value for
-   * @return the value mapped to the key, null if none
+   * @param key the key, may not be {@code null}
+   * @return the value mapped to the key, {@code null} if none
    *
-   * @throws java.lang.NullPointerException if the provided key is null
-   * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@link Exception}
+   * @throws NullPointerException if the provided key is {@code null}
+   * @throws CacheLoadingException if the {@link CacheLoaderWriter} associated with this cache was
+   * invoked and threw an {@code Exception}
    */
   V get(K key) throws CacheLoadingException;
 
   /**
-   * Associates the provided value to the given key
+   * Associates the given value to the given key in this {@code Cache}.
    *
-   * @param key the key, may not be null
-   * @param value the value, may not be null
+   * @param key the key, may not be {@code null}
+   * @param value the value, may not be {@code null}
    *
-   * @throws java.lang.NullPointerException if either key or value is null
-   * @throws CacheWritingException if the {@link CacheLoaderWriter} 
-   * associated with this cache threw an {@link Exception}
-   * while writing the value for the given key to underlying system of record.
+   * @throws NullPointerException if either key or value is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated with this cache threw an
+   * {@link Exception} while writing the value for the given key to the underlying system of record.
    */
   void put(K key, V value) throws CacheWritingException;
 
   /**
-   * Checks whether a mapping for the given key is present, without retrieving the associated value
+   * Checks whether a mapping for the given key is present, without retrieving the associated value.
    *
-   * @param key the key
-   * @return true if a mapping is present, false otherwise
+   * @param key the key, may not be {@code null}
+   * @return {@code true} if a mapping is present, {@code false} otherwise
    *
-   * @throws java.lang.NullPointerException if the provided key is null
+   * @throws NullPointerException if the provided key is {@code null}
    */
   boolean containsKey(K key);
 
   /**
-   * Removes the value, if any, associated with the provided key
+   * Removes the value, if any, associated with the provided key.
    *
-   * @param key the key to remove the value for
+   * @param key the key to remove the value for, may not be {@code null}
    *
-   * @throws java.lang.NullPointerException if the provided key is null
-   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
-   * with this cache threw an {@link Exception} while removing the value for the
-   * given key from the underlying system of record.
+   * @throws NullPointerException if the provided key is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated with this cache threw an
+   * {@link Exception} while removing the value for the given key from the underlying system of record.
    */
   void remove(K key) throws CacheWritingException;
 
   /**
-   * Retrieves all values associated with the given keys.
-   * 
-   * @param keys keys to query for
+   * Retrieves all values associated with the given key set.
+   *
+   * @param keys keys to query for, may not contain {@code null}
    * @return a map from keys to values or {@code null} if the key was not mapped
-   * 
+   *
    * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
    * @throws BulkCacheLoadingException if loading some or all values failed
    */
@@ -95,98 +105,156 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
 
   /**
    * Associates all the provided key:value pairs.
-   * 
-   * @param entries key:value pairs to associate
+   *
+   * @param entries key:value pairs to associate, keys or values may not be {@code null}
    *
    * @throws NullPointerException if the {@code Map} or any of the contained keys or values are {@code null}.
-   * @throws BulkCacheWritingException if the {@link CacheLoaderWriter}
-   * associated with this cache threw an {@link Exception}
-   * while writing given key:value pairs to underlying system of record.
+   * @throws BulkCacheWritingException if the {@link CacheLoaderWriter} associated with this cache threw an
+   * {@link Exception} while writing given key:value pairs to the underlying system of record.
    */
   void putAll(Map<? extends K, ? extends V> entries) throws BulkCacheWritingException;
 
   /**
-   * Removes any associates for the given keys.
-   * 
-   * @param keys keys to remove values for
+   * Removes any associated value for the given key set.
+   *
+   * @param keys keys to remove values for, may not be {@code null}
    *
    * @throws NullPointerException if the {@code Set} or any of the contained keys are {@code null}.
-   * @throws BulkCacheWritingException if the {@link CacheLoaderWriter}
-   * associated with this cache threw an {@link Exception}
-   * while removing mappings for given keys from underlying system of record.
+   * @throws BulkCacheWritingException if the {@link CacheLoaderWriter} associated with this cache threw an
+   * {@link Exception} while removing mappings for given keys from the underlying system of record.
    */
   void removeAll(Set<? extends K> keys) throws BulkCacheWritingException;
-  
+
   /**
-   * Removes all mapping currently present in the Cache without invoking the {@link CacheLoaderWriter} or any
-   * registered {@link org.ehcache.event.CacheEventListener} instances
-   * This is not an atomic operation and can potentially be very expensive
+   * Removes all mappings currently present in the {@code Cache}.
+   * <P>
+   * It does so without invoking the {@link CacheLoaderWriter} or any registered
+   * {@link org.ehcache.event.CacheEventListener} instances.
+   * <em>This is not an atomic operation and can potentially be very expensive.</em>
+   * </P>
    */
   void clear();
 
   /**
-   * If the provided key is not associated with a value, then associate it with the provided value.
-   * 
-   * @param key the key to be associated with
-   * @param value the value to associate
-   * @return the value that was associated with the key, or {@code null} if none
-   * 
-   * @throws NullPointerException if either key or value is null
+   * Maps the specified key to the specified value in this cache, unless a non-expired mapping
+   * already exists.
+   * <P>
+   * This is equivalent to
+   * <pre>
+   *   if (!cache.containsKey(key))
+   *       cache.put(key, value);
+   *       return null;
+   *   else
+   *       return cache.get(key);
+   * </pre>
+   * except that the action is performed atomically.
+   * </P>
+   * <P>
+   * The value can be retrieved by calling the {@code get} method
+   * with a key that is equal to the original key.
+   * </P>
+   * Neither the key nor the value can be {@code null}.
+   *
+   * @param key key with which the specified value is to be associated
+   * @param value value to be associated with the specified key
+   * @return the value to which the specified key was previously mapped,
+   * or {@code null} if no such mapping existed or the mapping was expired
+   *
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while writing the value for the
+   * given key to the underlying system of record.
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@link Exception} while loading
-   * the value for the key
-   * @throws CacheWritingException if the {@link CacheLoaderWriter} 
-   * associated with this cache threw an {@link Exception}
-   * while writing the value for the given key to underlying system of record.
+   * associated with this cache was invoked and threw an {@link Exception}
    */
   V putIfAbsent(K key, V value) throws CacheLoadingException, CacheWritingException;
 
   /**
-   * If the provided key is associated with the provided value then remove the entry.
-   * 
-   * @param key the key to remove
-   * @param value the value to check against
-   * @return {@code true} if the entry was removed
-   * 
-   * @throws NullPointerException if either key or value is null
-   * @throws CacheWritingException if the {@link CacheLoaderWriter}
-   * associated with this cache threw an {@link Exception} while removing the given key:value mapping
+   * Removes the entry for a key only if currently mapped to the given value
+   * and the entry is not expired.
+   * <P>
+   * This is equivalent to
+   * <pre>
+   *   if (cache.containsKey(key) &amp;&amp; cache.get(key).equals(value)) {
+   *       cache.remove(key);
+   *       return true;
+   *   } else return false;
+   * </pre>
+   * except that the action is performed atomically.
+   * </P>
+   * <P>
+   * The key cannot be {@code null}.
+   * </P>
+   *
+   * @param key key with which the specified value is associated
+   * @param value value expected to be removed
+   * @return true if the value was successfully removed
+   *
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while removing the value for the
+   * given key from the underlying system of record.
    */
   boolean remove(K key, V value) throws CacheWritingException;
 
   /**
-   * If the provided key is associated with a value, then replace that value with the provided value.
-   * 
-   * @param key the key to be associated with
-   * @param value the value to associate
-   * @return the value that was associated with the key, or {@code null} if none
-   * 
-   * @throws NullPointerException if either key or value is null
+   * Replaces the entry for a key only if currently mapped to some value and the entry is not expired.
+   * <P>
+   * This is equivalent to
+   * <pre>
+   *   V oldValue = cache.get(key);
+   *   if (oldValue != null) {
+   *     cache.put(key, value);
+   *   }
+   *   return oldValue; </pre>
+   * except that the action is performed atomically.
+   * </P>
+   * <P>
+   * Neither the key nor the value can be {@code null}.
+   * </P>
+   *
+   * @param key of the value to be replaced
+   * @param value the new value
+   * @return the existing value that was associated with the key, or {@code null} if
+   * no such mapping existed or the mapping was expired
+   *
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while writing the value for the
+   * given key to the underlying system of record.
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@link Exception} while loading
-   * the value for the key
-   * @throws CacheWritingException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception}
-   * while replacing value for given key on underlying system of record.
    */
   V replace(K key, V value) throws CacheLoadingException, CacheWritingException;
-  
-  /**
-   * If the provided key is associated with {@code oldValue}, then replace that value with {@code newValue}.
-   * 
-   * @param key the key to be associated with
-   * @param oldValue the value to check against
-   * @param newValue the value to associate
-   * @return {@code true} if the value was replaced
-   * 
-   * @throws NullPointerException if any of the values, or the key is null
+
+    /**
+   * Replaces the entry for a key only if currently mapped to the given value
+   * and the entry is not expired.
+   * <P>
+   * This is equivalent to
+   * <pre>
+   *   if (cache.containsKey(key) &amp;&amp; cache.get(key).equals(oldValue)) {
+   *       cache.put(key, newValue);
+   *       return true;
+   *   } else return false;</pre>
+   * except that the action is performed atomically.
+   * </P>
+   * <P>
+   * Neither the key nor the value can be {@code null}.
+   * </P>
+   *
+   * @param key key with which the specified value is associated
+   * @param oldValue value expected to be associated with the specified key
+   * @param newValue value to be associated with the specified key
+   * @return true if the oldValue was successfully replaced by the newValue
+   *
+   * @throws NullPointerException if any of the arguments is {@code null}
+   * @throws CacheWritingException if the {@link CacheLoaderWriter} associated
+   * with this cache threw an {@link Exception} while writing the value for the
+   * given key to the underlying system of record.
    * @throws CacheLoadingException if the {@link CacheLoaderWriter}
-   * associated with this cache was invoked and threw an {@link Exception} while loading
-   * the value for the key
-   * @throws CacheWritingException if the {@link CacheLoaderWriter}
    * associated with this cache was invoked and threw an {@link Exception}
-   * while replacing value for given key on underlying system of record.
-  */
+   */
   boolean replace(K key, V oldValue, V newValue) throws CacheLoadingException, CacheWritingException;
 
   /**
@@ -196,9 +264,9 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
    */
   CacheRuntimeConfiguration<K, V> getRuntimeConfiguration();
 
-  
+
   /**
-   * Represent a mapping of key to value held in a Cache
+   * A mapping of key to value held in a {@link Cache}.
    *
    * @param <K> the key type
    * @param <V> the value type
@@ -206,41 +274,17 @@ public interface Cache<K, V> extends Iterable<Cache.Entry<K,V>> {
   interface Entry<K, V> {
 
     /**
-     * Accessor to the key of this mapping
+     * Returns the key of this mapping
      *
-     * @return the key, not null
+     * @return the key, not {@code null}
      */
     K getKey();
 
     /**
-     * Accessor to the value of this mapping
+     * Returns the value of this mapping
      *
-     * @return the value, not null
+     * @return the value, not {@code null}
      */
     V getValue();
-
-    /**
-     * Accessor to the creation time of this mapping.
-     *
-     * @param unit the timeUnit to return the creation time in
-     * @return the creation time in the specified unit
-     */
-    long getCreationTime(TimeUnit unit);
-
-    /**
-     * Accessor to the last access time of this mapping.
-     *
-     * @param unit the timeUnit to return the last access time in
-     * @return the last access time in the specified unit
-     */
-    long getLastAccessTime(TimeUnit unit);
-
-    /**
-     * Accessor to the hit rate of this mapping.
-     *
-     * @param unit the time unit to return the rate in
-     * @return the hit rate in the specified unit
-     */
-    float getHitRate(TimeUnit unit);
   }
 }

@@ -38,12 +38,6 @@ public abstract class StoreSPITest<K, V> {
   }
 
   @Test
-  public void testComputeIfPresent() throws Exception {
-    StoreComputeIfPresentTest<K, V> testSuite = new StoreComputeIfPresentTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
   public void testGet() throws Exception {
     StoreGetTest<K, V> testSuite = new StoreGetTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
@@ -176,6 +170,24 @@ public abstract class StoreSPITest<K, V> {
   public void testStoreExpiryEventListener() throws Exception {
     StoreExpiryEventListenerTest<K, V> testSuite =
         new StoreExpiryEventListenerTest<K, V>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testStoreCreationEventListener() throws Exception {
+    StoreCreationEventListenerTest<K, V> testSuite = new StoreCreationEventListenerTest<K, V>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testStoreUpdateEventListener() throws Exception {
+    StoreUpdateEventListenerTest<K, V> testSuite = new StoreUpdateEventListenerTest<K, V>(getStoreFactory());
+    testSuite.runTestSuite().reportAndThrow();
+  }
+
+  @Test
+  public void testStoreRemovalEventListener() throws Exception {
+    StoreRemovalEventListenerTest<K, V> testSuite = new StoreRemovalEventListenerTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();
   }
 }

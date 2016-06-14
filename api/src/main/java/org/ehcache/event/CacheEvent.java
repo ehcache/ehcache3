@@ -21,31 +21,30 @@ import org.ehcache.Cache;
 /**
  * An event resulting from a mutative {@link Cache} operation.
  *
- * @param <K> the type of the keys used to access data within the cache
- * @param <V> the type of the values held within the cache
- *
- * @author Alex Snaps
+ * @param <K> the key type of the source cache
+ * @param <V> the value type of the source cache
  */
 public interface CacheEvent<K, V> {
 
   /**
-   * The type of mutative event
+   * Gets the {@link EventType} of this event.
    *
-   * @return the @{link EventType}
+   * @return the {@code EventType}
    */
   EventType getType();
 
   /**
-   * The key of the mapping affected by the mutative event
+   * The key of the mapping affected by this event.
    *
-   * @return the mutated key
+   * @return the key of the mutated mapping
    */
   K getKey();
-  
+
   /**
    * The mapped value immediately after the mutative event occurred.
-   * <p>
-   * If the mutative event removes the mapping then {@code null} is returned.
+   * <P>
+   *  If the mutative event removes the mapping then {@code null} is returned.
+   * </P>
    *
    * @return the mapped value after the mutation
    */
@@ -53,19 +52,22 @@ public interface CacheEvent<K, V> {
 
   /**
    * The mapped value immediately before the mutative event occurred.
-   * <p>
-   * If the mutative event created the mapping then {@code null} is returned.
+   * <P>
+   *  If the mutative event created the mapping then {@code null} is returned.
+   * </P>
    *
    * @return the mapped value before the mutation
    */
   V getOldValue();
 
   /**
-   * The cache originating this event
-   * <p>
-   * Don't ever call back into this cache to perform any further operations!
+   * The source cache for this event
+   * <P>
+   *  Calling back into the cache to perform operations is not supported. It is only provided as a way to identify the
+   *  event source.
+   * </P>
    *
-   * @return the cache you should only use to identify the source, not to use it!
+   * @return the source cache
    */
   @Deprecated
   Cache<K, V> getSource();

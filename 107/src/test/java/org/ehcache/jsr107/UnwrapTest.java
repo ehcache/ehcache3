@@ -15,9 +15,7 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.EhcacheManager;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.core.EhcacheManager;
 import org.ehcache.event.CacheEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -51,7 +49,7 @@ public class UnwrapTest {
   public void tearDown() {
     cacheManager.close();
   }
-  
+
   @Test
   public void testCacheUnwrap() {
     MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
@@ -67,7 +65,7 @@ public class UnwrapTest {
     assertThat(cacheManager.unwrap(org.ehcache.CacheManager.class), is(instanceOf(EhcacheManager.class)));
     assertThat(cacheManager.unwrap(cacheManager.getClass()), is(instanceOf(Eh107CacheManager.class)));
   }
-  
+
   @Test
   public void testCacheEntryEventUnwrap() {
     MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
@@ -100,7 +98,7 @@ public class UnwrapTest {
     public String getOldValue() {
       throw new UnsupportedOperationException("Implement me!");
     }
-    
+
     @Override
     public org.ehcache.Cache getSource() {
       throw new UnsupportedOperationException("Implement me!");

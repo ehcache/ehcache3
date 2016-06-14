@@ -15,9 +15,6 @@
  */
 package com.pany.ehcache.serializer;
 
-import org.ehcache.spi.serialization.Serializer;
-
-@Serializer.Transient
 public class TestSerializer4<T> extends TestSerializer<T> {
   public TestSerializer4(ClassLoader classLoader) {
     super(classLoader);
