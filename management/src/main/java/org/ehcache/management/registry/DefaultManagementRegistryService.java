@@ -27,6 +27,7 @@ import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
+import org.ehcache.management.providers.settings.EhcacheSettingsProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
@@ -68,12 +69,10 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
     // initialize management capabilities (stats, action calls, etc)
-    addManagementProvider(new EhcacheActionProvider(getConfiguration().getContext()));
-    addManagementProvider(new EhcacheStatisticsProvider(
-        getConfiguration().getContext(),
-        getConfiguration().getConfigurationFor(EhcacheStatisticsProvider.class),
-        statisticsExecutor));
+    addManagementProvider(new EhcacheActionProvider(getConfiguration()));
+    addManagementProvider(new EhcacheStatisticsProvider(getConfiguration(), statisticsExecutor));
     addManagementProvider(new EhcacheStatisticCollectorProvider(getConfiguration().getContext()));
+    addManagementProvider(new EhcacheSettingsProvider(cacheManager, getConfiguration()));
 
     this.cacheManager.registerListener(this);
   }

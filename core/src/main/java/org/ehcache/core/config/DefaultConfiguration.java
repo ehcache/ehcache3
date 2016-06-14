@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import static java.util.Collections.unmodifiableCollection;
@@ -77,7 +78,7 @@ public final class DefaultConfiguration implements Configuration {
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceCreationConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(caches);
-    this.classLoader = classLoader;
+    this.classLoader = classLoader == null ? ClassLoading.getDefaultClassLoader() : classLoader;
   }
 
   /**

@@ -15,46 +15,41 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
+import org.ehcache.management.providers.CacheBindingManagementProvider;
+import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.StatisticsCapability;
-import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.AbstractManagementProvider;
+import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.model.stats.Statistic;
 
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * @author Ludovic Orban
  */
 @Named("StatisticsCapability")
-@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
-public class EhcacheStatisticsProvider extends AbstractManagementProvider<CacheBinding> {
+public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private final StatisticsProviderConfiguration configuration;
+  private final StatisticsProviderConfiguration statisticsProviderConfiguration;
   private final ScheduledExecutorService executor;
-  private final Context cmContex;
 
-  public EhcacheStatisticsProvider(Context cmContex, StatisticsProviderConfiguration statisticsProviderConfiguration, ScheduledExecutorService executor) {
-    super(CacheBinding.class);
-    this.cmContex = cmContex;
-    this.configuration = statisticsProviderConfiguration;
+  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, ScheduledExecutorService executor) {
+    super(configuration);
+    this.statisticsProviderConfiguration = configuration.getConfigurationFor(EhcacheStatisticsProvider.class);
     this.executor = executor;
   }
 
   @Override
-  protected ExposedObject<CacheBinding> wrap(CacheBinding cacheBinding) {
-    return new EhcacheStatistics(cmContex.with("cacheName", cacheBinding.getAlias()), cacheBinding, configuration, executor);
+  protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
+    return new EhcacheStatistics(registryConfiguration, cacheBinding, statisticsProviderConfiguration, executor);
   }
 
   @Override
@@ -64,19 +59,10 @@ public class EhcacheStatisticsProvider extends AbstractManagementProvider<CacheB
 
   @Override
   public Capability getCapability() {
-    StatisticsCapability.Properties properties = new StatisticsCapability.Properties(configuration.averageWindowDuration(),
-        configuration.averageWindowUnit(), configuration.historySize(), configuration.historyInterval(),
-        configuration.historyIntervalUnit(), configuration.timeToDisable(), configuration.timeToDisableUnit());
+    StatisticsCapability.Properties properties = new StatisticsCapability.Properties(statisticsProviderConfiguration.averageWindowDuration(),
+        statisticsProviderConfiguration.averageWindowUnit(), statisticsProviderConfiguration.historySize(), statisticsProviderConfiguration.historyInterval(),
+        statisticsProviderConfiguration.historyIntervalUnit(), statisticsProviderConfiguration.timeToDisable(), statisticsProviderConfiguration.timeToDisableUnit());
     return new StatisticsCapability(getCapabilityName(), properties, getDescriptors(), getCapabilityContext());
-  }
-
-  @Override
-  public Set<Descriptor> getDescriptors() {
-    Set<Descriptor> capabilities = new HashSet<Descriptor>();
-    for (ExposedObject ehcacheStatistics : managedObjects) {
-      capabilities.addAll(((EhcacheStatistics) ehcacheStatistics).getDescriptors());
-    }
-    return capabilities;
   }
 
   @Override

@@ -13,15 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.management.providers.settings;
 
-apply plugin: EhDeploy
+/**
+ * @author Mathieu Carbou
+ */
+class Reflect {
 
-dependencies {
-  compile project(':api'), project(':core'), project(':impl')
-  compile group: 'org.terracotta.management', name: 'management-registry', version: parent.managementVersion
-  testCompile "com.fasterxml.jackson.core:jackson-databind:2.6.3"
-}
+  static boolean isInstance(Object o, String interfaceClassName) {
+    try {
+      Class<?> type = Reflect.class.getClassLoader().loadClass(interfaceClassName);
+      return type.isInstance(o);
+    } catch (ClassNotFoundException e) {
+      return false;
+    }
+  }
 
-repositories {
-  maven { url "http://snapshots.terracotta.org/" }
+  static <T> T invoke(Object o, String methodName, Class<T> returnType) {
+    try {
+      return returnType.cast(o.getClass().getMethod(methodName).invoke(o));
+    } catch (Exception e) {
+      throw new AssertionError(e);
+    }
+  }
+
 }
