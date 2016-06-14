@@ -22,28 +22,28 @@
   <ehcache:cache alias="bar">
     <ehcache:key-type>java.lang.Number</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
-    <ehcache:integration>
+    <ehcache:listeners>
       <ehcache:listener>
         <ehcache:class>com.pany.ehcache.integration.TestCacheEventListener</ehcache:class>
-        <ehcache:eventFiringMode>SYNCHRONOUS</ehcache:eventFiringMode>
-        <ehcache:eventOrderingMode>UNORDERED</ehcache:eventOrderingMode>
-        <ehcache:eventsToFireOn>CREATED</ehcache:eventsToFireOn>
-        <ehcache:eventsToFireOn>REMOVED</ehcache:eventsToFireOn>
-        <ehcache:eventsToFireOn>EXPIRED</ehcache:eventsToFireOn>
-        <ehcache:eventsToFireOn>EVICTED</ehcache:eventsToFireOn>
-        <ehcache:eventsToFireOn>UPDATED</ehcache:eventsToFireOn>
+        <ehcache:event-firing-mode>SYNCHRONOUS</ehcache:event-firing-mode>
+        <ehcache:event-ordering-mode>UNORDERED</ehcache:event-ordering-mode>
+        <ehcache:events-to-fire-on>CREATED</ehcache:events-to-fire-on>
+        <ehcache:events-to-fire-on>REMOVED</ehcache:events-to-fire-on>
+        <ehcache:events-to-fire-on>EXPIRED</ehcache:events-to-fire-on>
+        <ehcache:events-to-fire-on>EVICTED</ehcache:events-to-fire-on>
+        <ehcache:events-to-fire-on>UPDATED</ehcache:events-to-fire-on>
       </ehcache:listener>
       <ehcache:listener>
         <ehcache:class>com.pany.ehcache.integration.TestSecondCacheEventListener</ehcache:class>
-        <ehcache:eventFiringMode>SYNCHRONOUS</ehcache:eventFiringMode>
-        <ehcache:eventOrderingMode>UNORDERED</ehcache:eventOrderingMode>
-        <ehcache:eventsToFireOn>UPDATED</ehcache:eventsToFireOn>
-        <ehcache:eventsToFireOn>REMOVED</ehcache:eventsToFireOn>
-        <ehcache:eventsToFireOn>EXPIRED</ehcache:eventsToFireOn>
+        <ehcache:event-firing-mode>SYNCHRONOUS</ehcache:event-firing-mode>
+        <ehcache:event-ordering-mode>UNORDERED</ehcache:event-ordering-mode>
+        <ehcache:events-to-fire-on>UPDATED</ehcache:events-to-fire-on>
+        <ehcache:events-to-fire-on>REMOVED</ehcache:events-to-fire-on>
+        <ehcache:events-to-fire-on>EXPIRED</ehcache:events-to-fire-on>
       </ehcache:listener>
-    </ehcache:integration>
+    </ehcache:listeners>
     <ehcache:resources>
-      <ehcache:heap size="10"/>
+      <ehcache:heap>10</ehcache:heap>
     </ehcache:resources>
   </ehcache:cache>
 </ehcache:config>

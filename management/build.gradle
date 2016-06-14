@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
+apply plugin: EhDeploy
+
 dependencies {
   compile project(':api'), project(':core'), project(':impl')
-  compile group: 'org.terracotta', name: 'management-model', version: '0.1.0'
+  compile group: 'org.terracotta', name: 'management-registry', version: parent.managementVersion
 }

@@ -15,77 +15,30 @@
  */
 package org.ehcache.management.providers.actions;
 
-import org.ehcache.Ehcache;
-import org.ehcache.management.providers.AbstractActionProvider;
-import org.ehcache.management.utils.ClassLoadingHelper;
-import org.ehcache.management.utils.ContextHelper;
-import org.terracotta.management.capabilities.context.CapabilityContext;
-
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Map;
+import org.ehcache.management.providers.CacheBinding;
+import org.terracotta.management.context.Context;
+import org.terracotta.management.registry.action.AbstractActionManagementProvider;
+import org.terracotta.management.registry.action.ExposedObject;
+import org.terracotta.management.registry.action.Named;
+import org.terracotta.management.registry.action.RequiredContext;
 
 /**
  * @author Ludovic Orban
  */
-public class EhcacheActionProvider extends AbstractActionProvider<Ehcache, EhcacheActionWrapper> {
+@Named("ActionsCapability")
+@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
+public class EhcacheActionProvider extends AbstractActionManagementProvider<CacheBinding> {
 
-  @Override
-  public Class<Ehcache> managedType() {
-    return Ehcache.class;
+  private final Context cmContext;
+
+  public EhcacheActionProvider(Context cmContext) {
+    super(CacheBinding.class);
+    this.cmContext = cmContext;
   }
 
   @Override
-  protected EhcacheActionWrapper createActionWrapper(Ehcache ehcache) {
-    return new EhcacheActionWrapper(ehcache);
-  }
-
-  @Override
-  public CapabilityContext capabilityContext() {
-    return new CapabilityContext(Arrays.asList(new CapabilityContext.Attribute("cacheManagerName", true), new CapabilityContext.Attribute("cacheName", true)));
-  }
-
-  @Override
-  public Object callAction(Map<String, String> context, String methodName, String[] argClassNames, Object[] args) {
-    String cacheManagerName = context.get("cacheManagerName");
-    if (cacheManagerName == null) {
-      throw new IllegalArgumentException("Missing cache manager name from context");
-    }
-    String cacheName = context.get("cacheName");
-    if (cacheName == null) {
-      throw new IllegalArgumentException("Missing cache name from context");
-    }
-
-    for (Map.Entry<Ehcache, EhcacheActionWrapper> entry : actions.entrySet()) {
-      if (!findCacheManagerName(entry).equals(cacheManagerName) ||
-          !findCacheName(entry).equals(cacheName)) {
-        continue;
-      }
-
-      try {
-        EhcacheActionWrapper ehcacheActionWrapper = entry.getValue();
-        ClassLoader classLoader = entry.getKey().getRuntimeConfiguration().getClassLoader();
-        Method method = ehcacheActionWrapper.getClass().getMethod(methodName, ClassLoadingHelper.toClasses(classLoader, argClassNames));
-        return method.invoke(ehcacheActionWrapper, args);
-      } catch (NoSuchMethodException e) {
-        throw new IllegalArgumentException("No such method : " + methodName + " with arg(s) " + Arrays.toString(argClassNames), e);
-      } catch (IllegalAccessException e) {
-        throw new RuntimeException(e);
-      } catch (InvocationTargetException e) {
-        throw new RuntimeException(e);
-      }
-    }
-
-    throw new IllegalArgumentException("No such cache manager / cache pair : [" + cacheManagerName + " / " + cacheName + "]");
-  }
-
-  String findCacheName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-    return ContextHelper.findCacheName(entry.getKey());
-  }
-
-  String findCacheManagerName(Map.Entry<Ehcache, EhcacheActionWrapper> entry) {
-    return ContextHelper.findCacheManagerName(entry.getKey());
+  protected ExposedObject<CacheBinding> wrap(CacheBinding managedObject) {
+    return new EhcacheActionWrapper(cmContext.with("cacheName", managedObject.getAlias()), managedObject);
   }
 
 }

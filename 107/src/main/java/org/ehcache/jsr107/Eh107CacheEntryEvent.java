@@ -27,11 +27,11 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
 
   private static final long serialVersionUID = 8460535666272347345L;
 
-  private final org.ehcache.event.CacheEvent<K, V> ehEvent;
+  private final CacheEvent<K, V> ehEvent;
 
   private final boolean hasOldValue;
 
-  Eh107CacheEntryEvent(Cache<K, V> source, EventType eventType, org.ehcache.event.CacheEvent<K, V> ehEvent,
+  Eh107CacheEntryEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent,
       boolean hasOldValue) {
     super(source, eventType);
     this.ehEvent = ehEvent;
@@ -72,7 +72,7 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
       return super.ehEvent.getNewValue();
     }
   }
-  
+
   static class RemovingEvent<K, V> extends Eh107CacheEntryEvent<K, V> {
 
     public RemovingEvent(Cache<K, V> source, EventType eventType, CacheEvent<K, V> ehEvent, boolean hasOldValue) {
@@ -83,6 +83,6 @@ abstract class Eh107CacheEntryEvent<K, V> extends CacheEntryEvent<K, V> {
     public V getValue() {
       return super.ehEvent.getOldValue();
     }
-    
+
   }
 }

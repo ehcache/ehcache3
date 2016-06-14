@@ -17,7 +17,7 @@
 package org.ehcache.spi.service;
 
 /**
- * Interface regrouping configuration types to be used when creating a {@link Service}.
+ * A configuration type used when creating a {@link Service}.
  *
  * @param <T> the service type this configuration works with
  *

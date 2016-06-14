@@ -16,13 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.config.EvictionPrioritizer;
-import org.ehcache.config.EvictionVeto;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.internal.TimeSource;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.spi.cache.Store;
-import org.ehcache.spi.cache.tiering.CachingTier;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -44,7 +41,7 @@ public interface CachingTierFactory<K, V> {
 
   ServiceConfiguration<?>[] getServiceConfigurations();
 
-  ServiceProvider getServiceProvider();
+  ServiceProvider<Service> getServiceProvider();
 
   K createKey(long seed);
 

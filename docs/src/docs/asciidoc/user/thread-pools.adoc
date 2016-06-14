@@ -1,0 +1,134 @@
+---
+---
+= Thread Pools
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Introduction
+
+Some services work asynchronously, hence they require thread pools to perform their tasks. All thread pooling
+facilities are centralized behind the `ExecutionService` interface.
+
+== Let's start with a bit of theory
+
+=== What `ExecutionService` provides
+
+`ExecutionService` is an interface providing:
+
+ * `ScheduledExecutorService` to schedule tasks, i.e.: tasks that happen repeatedly after a configurable
+   delay.
+ * Unordered `ExecutorService` to execute tasks as soon as a thread is available.
+ * Ordered `ExecutorService` to execute tasks as soon as a thread is available, with the guarantee that tasks
+   are going to be executed in the order they were submitted.
+
+=== Available `ExecutionService` implementations
+
+There currently are two bundled implementations:
+
+ * `OnDemandExecutionService` creates a new pool each time an executor service (scheduled or not) is requested.
+   This implementation is the default one and requires no configuration at all.
+ * `PooledExecutionService` keeps a configurable set of thread pools and divides them to handle all executor service
+   requests. This implementation must be configured with a `PooledExecutionServiceConfiguration` when used.
+
+=== Configuring `PooledExecutionService`
+
+When you want total control of the threads used by a cache manager and its caches, you have to use a
+`PooledExecutionService` that itself must be configured as it does not have any defaults.
+
+The `PooledExecutionServiceConfigurationBuilder` can be used for this purpose, and the resulting configuration it builds
+can simply be added to a `CacheManagerBuilder` to switch the `ExecutionService` implementation to a
+`PooledExecutionService`.
+
+The builder has two interesting methods:
+
+ * `defaultPool` that is used to set the default pool. There can be only one default pool, its name does not matter,
+ and if thread-using services do not specify a thread pool, this is the one that will be used.
+ * `pool` that is used to add a thread pool. There can be as many pools as you wish but services must explicitly be
+ configured to make use of them.
+
+=== Using the configured thread pools
+
+Following is the list of services making use of `ExecutionService`:
+
+ * Disk store: disk writes are performed asynchronously.
+   `OffHeapDiskStoreConfiguration` is used to configure what thread pool to use at the cache level, while
+   `OffHeapDiskStoreProviderConfiguration` is used to configure what thread pool to use at the cache manager level.
+ * Write Behind: `CacheLoaderWriter` write tasks happen asynchronously.
+   `DefaultWriteBehindConfiguration` is used to configure what thread pool to use at the cache level, while
+   `WriteBehindProviderConfiguration` is used to configure what thread pool to use at the cache manager level.
+ * Eventing: produced events are queued and sent to the listeners by a thread pool.
+   `DefaultCacheEventDispatcherConfiguration` is used to configure what thread pool to use at the cache level, while
+   `CacheEventDispatcherFactoryConfiguration` is used to configure what thread pool to use at the cache manager level.
+
+The different builders will make use of the right configuration class, you do not have to use those classes directly.
+For instance, calling `CacheManagerBuilder.withDefaultDiskStoreThreadPool(String threadPoolAlias)` actually is identical
+to calling `CacheManagerBuilder.using(new OffHeapDiskStoreProviderConfiguration(threadPoolAlias))`.
+
+The thread pool can be assigned to a service with the builders by passing to the ad-hoc method a
+`threadPoolAlias` parameter. When a service isn't told anything about what thread pool to use, the default thread pool
+is used.
+
+
+== In practice
+
+Following are examples of describing how to configure the thread pools the different services will use.
+
+=== Configuring with code
+
+==== Disk store
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=diskStore]
+----
+
+<1> Configure the thread pools. Note that the default one (`dflt`) is required for the events even when no event
+    listener is configured.
+<2> Tell the `CacheManagerBuilder` to use a default thread pool for all disk stores that don't explicitly specify one.
+<3> Tell the cache to use a specific thread pool for its disk store.
+
+==== Write Behind
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=writeBehind]
+----
+
+<1> Configure the thread pools. Note that the default one (`dflt`) is required for the events even when no event
+    listener is configured.
+<2> Tell the `CacheManagerBuilder` to use a default thread pool for all write-behind caches that don't explicitly
+    specify one.
+<3> Tell the `WriteBehindConfigurationBuilder` to use a specific thread pool for its write-behind work.
+
+==== Events
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=events]
+----
+
+<1> Configure the thread pools. Note that there is no default one so all thread-using services must be configured
+    with explicit defaults.
+<2> Tell the `CacheManagerBuilder` to use a default thread pool to manage events of all caches that don't explicitly
+    specify one.
+<3> Tell the `CacheEventListenerConfigurationBuilder` to use a specific thread pool for sending its events.
+
+=== Configuring with XML
+
+[source,xml]
+----
+include::{sourcedir}/xml/src/test/resources/configs/docs/thread-pools.xml[tags=threadPools]
+----
+
+<1> Configure the thread pools. Note that there is no default one.
+<2> Configure the default thread pool this cache manager will use to send events.
+<3> Configure the default thread pool this cache manager will use for write-behind work.
+<4> Configure the default thread pool this cache manager will use for disk stores.
+<5> Configure a specific write-behind thread pool for this cache.
+<6> Configure a specific thread pool for this cache to send its events.
+<7> Configure a specific thread pool for this cache's disk store.

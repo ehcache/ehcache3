@@ -17,44 +17,46 @@
 package org.ehcache;
 
 /**
- * Represents a Cache that is not managed by a {@link org.ehcache.CacheManager}, as such that needs to
- * have {@link #close()} invoked in order to release all its resources.
+ * Represents a {@link Cache} that is not managed by a {@link org.ehcache.CacheManager CacheManager}.
+ * <P>
+ *   These caches must be {@link #close() closed} in order to release all their resources.
+ * </P>
  *
- * @param <K> the type of the keys used to access data within this cache
- * @param <V> the type of the values held within this cache
- *
- * @author Alex Snaps
+ * @param <K> the key type for the cache
+ * @param <V> the value type for the cache
  */
 public interface UserManagedCache<K, V> extends Cache<K, V> {
 
   /**
-   * Attempts at having this UserManagedCache go to {@link org.ehcache.Status#AVAILABLE}.
-   * <p>
-   * Should this throw, while the UserManagedCache isn't yet {@link org.ehcache.Status#AVAILABLE}, it will try to go back
-   * to {@link org.ehcache.Status#UNINITIALIZED} properly.
+   * Transitions this {@code UserManagedCache} to {@link org.ehcache.Status#AVAILABLE AVAILABLE}.
+   * <P>
+   * If an error occurs before the {@code UserManagedCache} is {@code AVAILABLE}, it will revert to
+   * {@link org.ehcache.Status#UNINITIALIZED UNINITIALIZED} and attempt to properly release all resources.
+   * </P>
    *
-   * @throws java.lang.IllegalStateException if the UserManagedCache isn't in {@link org.ehcache.Status#UNINITIALIZED} state
-   * @throws org.ehcache.exceptions.StateTransitionException if the UserManagedCache couldn't be made {@link org.ehcache.Status#AVAILABLE}
-   * @throws java.lang.RuntimeException if any exception is thrown, but still results in the UserManagedCache transitioning to {@link org.ehcache.Status#AVAILABLE}
+   * @throws IllegalStateException if the {@code UserManagedCache} is not {@code UNINITIALIZED}
+   * @throws StateTransitionException if the {@code UserManagedCache} could not be made {@code AVAILABLE}
    */
-  void init();
+  void init() throws StateTransitionException;
 
   /**
-   * Releases all data held in this UserManagedCache.
-   * <p>
-   * Should this throw, while the UserManagedCache isn't yet {@link org.ehcache.Status#UNINITIALIZED}, it will keep on
-   * trying to go to {@link org.ehcache.Status#UNINITIALIZED} properly.
+   * Transitions this {@code UserManagedCache} to {@link Status#UNINITIALIZED UNINITIALIZED}.
+   * <P>
+   *   This will release all resources held by this cache.
+   * </P>
+   * <P>
+   *   Failure to release a resource will not prevent other resources from being released.
+   * </P>
    *
-   * @throws org.ehcache.exceptions.StateTransitionException if the UserManagedCache couldn't be cleanly made
-   *                                                         {@link org.ehcache.Status#UNINITIALIZED},
-   *                                                         wrapping the first exception encountered
-   * @throws java.lang.RuntimeException if any exception is thrown, like from Listeners
+   * @throws StateTransitionException if the {@code UserManagedCache} could not reach {@code UNINITIALIZED} cleanly
+   * @throws IllegalStateException if the {@code UserManagedCache} is not {@code AVAILABLE}
    */
-  void close();
+  void close() throws StateTransitionException;
 
   /**
-   * Returns the current {@link org.ehcache.Status} for this CacheManager
-   * @return the current {@link org.ehcache.Status}
+   * Returns the current {@link org.ehcache.Status Status} of this {@code UserManagedCache}.
+   *
+   * @return the current {@code Status}
    */
   Status getStatus();
 

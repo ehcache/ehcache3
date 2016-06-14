@@ -16,9 +16,12 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.config.Eviction;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.ValueSupplier;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
@@ -30,8 +33,8 @@ import static org.hamcrest.Matchers.nullValue;
 
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store#putIfAbsent(Object, Object)} contract of the
- * {@link org.ehcache.spi.cache.Store Store} interface.
+ * Test the {@link Store#putIfAbsent(Object, Object)} contract of the
+ * {@link Store Store} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
@@ -49,11 +52,11 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
     if (kvStore2 != null) {
-//      kvStore2.close();
+      factory.close(kvStore2);
       kvStore2 = null;
     }
   }
@@ -61,14 +64,14 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void mapsKeyToValueWhenMappingDoesntExist()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
     try {
       assertThat(kvStore.putIfAbsent(key, value), is(nullValue()));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -76,14 +79,14 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
   @SPITest
   public void doesntMapKeyToValueWhenMappingExists()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
-    kvStore = factory.newStoreWithEvictionVeto(Eviction.<K, V>all());
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
     try {
       kvStore.put(key, value);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
@@ -91,14 +94,14 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
     try {
       assertThat(kvStore.putIfAbsent(key, updatedValue).value(), is(equalTo(value)));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void nullKeyThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws StoreAccessException, IllegalAccessException, InstantiationException {
     kvStore = factory.newStore();
 
     K key = null;
@@ -114,7 +117,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void nullValueThrowsException()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws StoreAccessException, IllegalAccessException, InstantiationException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
@@ -145,7 +148,7 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -167,7 +170,39 @@ public class StorePutIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+  }
+
+  @SPITest
+  public void testPutIfAbsentValuePresentExpiresOnAccess() throws LegalSPITesterException {
+    TestTimeSource timeSource = new TestTimeSource(10043L);
+    kvStore = factory.newStoreWithExpiry(new Expiry<K, V>() {
+      @Override
+      public Duration getExpiryForCreation(K key, V value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+        return Duration.INFINITE;
+      }
+    }, timeSource);
+
+    K key = factory.createKey(250928L);
+    V value = factory.createValue(2059820L);
+    V newValue = factory.createValue(205982025L);
+
+    try {
+      kvStore.put(key, value);
+      assertThat(kvStore.putIfAbsent(key, newValue).value(), is(value));
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
