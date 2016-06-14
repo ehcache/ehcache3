@@ -71,6 +71,9 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
       if (writeLookup.putIfAbsent(new SerializableDataKey(disconnectedOsc, true), encoding) != null) {
         throw new AssertionError("Corrupted data " + mappings.toString());
       }
+      if (nextStreamIndex.get() < encoding + 1) {
+        nextStreamIndex.set(encoding + 1);
+      }
     }
   }
   
