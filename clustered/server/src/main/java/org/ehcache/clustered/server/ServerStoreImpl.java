@@ -30,12 +30,16 @@ class ServerStoreImpl implements ServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;
-  private final ServerStore store;
+  private final OffHeapServerStore store;
 
   ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
     this.store = new OffHeapServerStore(pageSource, OFFHEAP_CHAIN_SEGMENTS);
+  }
+
+  public void setEvictionListener(ServerStoreEvictionListener listener) {
+    store.setEvictionListener(listener);
   }
 
   /**

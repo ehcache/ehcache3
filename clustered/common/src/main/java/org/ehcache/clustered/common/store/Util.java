@@ -59,6 +59,35 @@ public class Util {
     return byteBuffer.asReadOnlyBuffer();
   }
 
+  public static ByteBuffer createPayload(long key, int payloadSize) {
+    if (payloadSize < 8) {
+      throw new IllegalArgumentException("payload must be at least 8 bytes long");
+    }
+    ByteBuffer byteBuffer = ByteBuffer.allocate(payloadSize);
+    byteBuffer.putLong(key);
+    for (int i = 0; i < payloadSize - 8; i++) {
+      byteBuffer.put((byte) 0);
+    }
+    byteBuffer.flip();
+    return byteBuffer.asReadOnlyBuffer();
+  }
+
+  public static boolean chainsEqual(Chain chain1, Chain chain2) {
+    Iterator<Element> it1 = chain1.iterator();
+    Iterator<Element> it2 = chain2.iterator();
+
+    while (it1.hasNext() && it2.hasNext()) {
+      Element next1 = it1.next();
+      Element next2 = it2.next();
+
+      if (!next1.getPayload().equals(next2.getPayload())) {
+        return false;
+      }
+    }
+
+    return !it1.hasNext() && !it2.hasNext();
+  }
+
   public static Element getElement(final ByteBuffer payload) {
     return new Element() {
       @Override

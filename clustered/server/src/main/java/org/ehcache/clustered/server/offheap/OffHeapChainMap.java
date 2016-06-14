@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 
 import org.ehcache.clustered.common.store.Chain;
@@ -28,17 +30,44 @@ import org.ehcache.clustered.common.store.Util;
 import org.terracotta.offheapstore.MapInternals;
 
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
+import org.terracotta.offheapstore.eviction.EvictionListener;
+import org.terracotta.offheapstore.eviction.EvictionListeningReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
 
 class OffHeapChainMap<K> implements MapInternals {
 
+  interface ChainMapEvictionListener<K> {
+    void onEviction(K key);
+  }
+
   private final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
   private final OffHeapChainStorageEngine chainStorage;
+  private volatile ChainMapEvictionListener<K> evictionListener;;
 
   public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean shareByThieving) {
     this.chainStorage = new OffHeapChainStorageEngine(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving);
-    this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, shareByThieving, chainStorage);
+    EvictionListener<K, InternalChain> listener = new EvictionListener<K, InternalChain>() {
+      @Override
+      public void evicting(Callable<Map.Entry<K, InternalChain>> callable) {
+        try {
+          Map.Entry<K, InternalChain> entry = callable.call();
+          if (evictionListener != null) {
+            evictionListener.onEviction(entry.getKey());
+          }
+        } catch (Exception e) {
+          throw new AssertionError(e);
+        }
+      }
+    };
+
+    //TODO: EvictionListeningReadWriteLockedOffHeapClockCache lacks ctor that takes shareByThieving
+    // this.heads = new ReadWriteLockedOffHeapClockCache<K, InternalChain>(source, shareByThieving, chainStorage);
+    this.heads = new EvictionListeningReadWriteLockedOffHeapClockCache<K, InternalChain>(listener, source, chainStorage);
+  }
+
+  void setEvictionListener(ChainMapEvictionListener<K> listener) {
+    evictionListener = listener;
   }
 
   public Chain get(K key) {

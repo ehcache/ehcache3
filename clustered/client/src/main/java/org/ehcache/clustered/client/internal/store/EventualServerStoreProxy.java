@@ -36,8 +36,22 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
   private final ServerStoreProxy delegate;
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
 
-  public EventualServerStoreProxy(ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
+  public EventualServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
     this.delegate = new NoInvalidationServerStoreProxy(messageFactory, entity);
+    entity.addResponseListener(EhcacheEntityResponse.ServerInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
+      @Override
+      public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
+        if (response.getCacheId().equals(messageFactory.getCacheId())) {
+          long key = response.getKey();
+          LOGGER.debug("CLIENT: on cache {}, server requesting hash {} to be invalidated", messageFactory.getCacheId(), key);
+          for (InvalidationListener listener : invalidationListeners) {
+            listener.onInvalidateHash(key);
+          }
+        } else {
+          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
+        }
+      }
+    });
     entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
@@ -45,9 +59,13 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
         final long key = response.getKey();
         final int invalidationId = response.getInvalidationId();
 
-        LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateHash(key);
+        if (cacheId.equals(messageFactory.getCacheId())) {
+          LOGGER.debug("CLIENT: doing work to invalidate hash {} from cache {} (ID {})", key, cacheId, invalidationId);
+          for (InvalidationListener listener : invalidationListeners) {
+            listener.onInvalidateHash(key);
+          }
+        } else {
+          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
         }
       }
     });
@@ -57,9 +75,13 @@ public class EventualServerStoreProxy implements ServerStoreProxy {
         final String cacheId = response.getCacheId();
         final int invalidationId = response.getInvalidationId();
 
-        LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
-        for (InvalidationListener listener : invalidationListeners) {
-          listener.onInvalidateAll();
+        if (cacheId.equals(messageFactory.getCacheId())) {
+          LOGGER.debug("CLIENT: doing work to invalidate all from cache {} (ID {})", cacheId, invalidationId);
+          for (InvalidationListener listener : invalidationListeners) {
+            listener.onInvalidateAll();
+          }
+        } else {
+          LOGGER.debug("CLIENT: on cache {}, ignoring invalidation on unrelated cache : {}", messageFactory.getCacheId(), response.getCacheId());
         }
       }
     });
