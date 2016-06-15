@@ -397,4 +397,33 @@ public class ServerStoreCompatibilityTest {
     serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
   }
 
+  @Test
+  public void testPoolResourceTypeMismatch() {
+    ServerStoreConfiguration serverConfiguration = new ServerStoreConfiguration(FIXED_POOL_ALLOCATION,
+                                                                                STORED_KEY_TYPE,
+                                                                                STORED_VALUE_TYPE,
+                                                                                ACTUAL_KEY_TYPE,
+                                                                                ACTUAL_VALUE_TYPE,
+                                                                                KEY_SERIALIZER_TYPE,
+                                                                                VALUE_SERIALIZER_TYPE,
+                                                                                Consistency.STRONG);
+
+    ServerStoreConfiguration clientConfiguration = new ServerStoreConfiguration(SHARED_POOL_ALLOCATION,
+                                                                                STORED_KEY_TYPE,
+                                                                                STORED_VALUE_TYPE,
+                                                                                ACTUAL_KEY_TYPE,
+                                                                                ACTUAL_VALUE_TYPE,
+                                                                                KEY_SERIALIZER_TYPE,
+                                                                                VALUE_SERIALIZER_TYPE,
+                                                                                Consistency.STRONG);
+
+    ServerStoreCompatibility serverStoreCompatibility = new ServerStoreCompatibility();
+
+    try {
+      serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
+      fail("Expected ClusteredStoreValidationException");
+    } catch(ClusteredStoreValidationException e) {
+      assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolType existing: " + serverConfiguration.getPoolAllocation().getClass().getName() + ", desired: " + clientConfiguration.getPoolAllocation().getClass().getName()),is(true));
+    }
+  }
 }

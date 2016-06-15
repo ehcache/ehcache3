@@ -45,25 +45,26 @@ public class ServerStoreCompatibility {
     isCompatible = compareField(sb, "resourcePoolType",
         serverPoolAllocation.getClass().getName(),
         clientPoolAllocation.getClass().getName());
-    if (serverPoolAllocation instanceof PoolAllocation.Fixed) {
-      PoolAllocation.Fixed serverFixedAllocation = (PoolAllocation.Fixed)serverPoolAllocation;
-      PoolAllocation.Fixed clientFixedAllocation = (PoolAllocation.Fixed)clientPoolAllocation;
-      if (compareField(sb, "resourcePoolFixedResourceName",
-          serverFixedAllocation.getResourceName(),
-          clientFixedAllocation.getResourceName())) {
-        if (clientFixedAllocation.getSize() != serverFixedAllocation.getSize()) {
-          appendFault(sb, "resourcePoolFixedSize", serverFixedAllocation.getSize(), clientFixedAllocation.getSize());
+    if(isCompatible) {
+      if (serverPoolAllocation instanceof PoolAllocation.Fixed) {
+        PoolAllocation.Fixed serverFixedAllocation = (PoolAllocation.Fixed)serverPoolAllocation;
+        PoolAllocation.Fixed clientFixedAllocation = (PoolAllocation.Fixed)clientPoolAllocation;
+        if (compareField(sb, "resourcePoolFixedResourceName",
+            serverFixedAllocation.getResourceName(),
+            clientFixedAllocation.getResourceName())) {
+          if (clientFixedAllocation.getSize() != serverFixedAllocation.getSize()) {
+            appendFault(sb, "resourcePoolFixedSize", serverFixedAllocation.getSize(), clientFixedAllocation.getSize());
+            isCompatible &= false;
+          }
+        } else {
           isCompatible &= false;
         }
-      } else {
-        isCompatible &= false;
+      } else if (serverPoolAllocation instanceof PoolAllocation.Shared) {
+        isCompatible &= compareField(sb, "resourcePoolSharedPoolName",
+            ((PoolAllocation.Shared)serverPoolAllocation).getResourcePoolName(),
+            ((PoolAllocation.Shared)clientPoolAllocation).getResourcePoolName());
       }
-    } else if (serverPoolAllocation instanceof PoolAllocation.Shared) {
-      isCompatible &= compareField(sb, "resourcePoolSharedPoolName",
-          ((PoolAllocation.Shared)serverPoolAllocation).getResourcePoolName(),
-          ((PoolAllocation.Shared)clientPoolAllocation).getResourcePoolName());
     }
-
     isCompatible &= compareField(sb, "storedKeyType", serverConfiguration.getStoredKeyType(), clientConfiguration.getStoredKeyType());
     isCompatible &= compareField(sb, "storedValueType", serverConfiguration.getStoredValueType(), clientConfiguration.getStoredValueType());
     isCompatible &= compareField(sb, "actualKeyType", serverConfiguration.getActualKeyType(), clientConfiguration.getActualKeyType());
