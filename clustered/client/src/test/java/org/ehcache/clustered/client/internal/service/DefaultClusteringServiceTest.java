@@ -1382,12 +1382,7 @@ public class DefaultClusteringServiceTest {
         .build();
     DefaultClusteringService creationServiceGood = new DefaultClusteringService(creationConfigGood);
 
-    try {
-      creationServiceGood.start(null);
-    } catch (Exception e) {
-      fail("There should not be an error on start");
-    }
-
+    creationServiceGood.start(null);
   }
 
   @Test

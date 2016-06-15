@@ -77,8 +77,7 @@ public class ServerStoreCompatibility {
     }
   }
 
-  private static boolean compareConsistencyField(StringBuilder sb, Consistency serverConsistencyValue, Consistency clientConsistencyValue)
-  {
+  private static boolean compareConsistencyField(StringBuilder sb, Consistency serverConsistencyValue, Consistency clientConsistencyValue) {
     if((serverConsistencyValue == null && clientConsistencyValue == null)
         || (serverConsistencyValue != null && serverConsistencyValue.equals(clientConsistencyValue))) {
       return true;
