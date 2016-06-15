@@ -1,1 +1,2 @@
 org.ehcache.clustered.server.EhcacheServerEntityService
+org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService
