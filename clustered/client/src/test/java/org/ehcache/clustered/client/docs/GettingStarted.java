@@ -47,8 +47,8 @@ public class GettingStarted {
   public void resetPassthroughServer() throws Exception {
     UnitTestConnectionService.add("terracotta://localhost:9510/my-application",
         new UnitTestConnectionService.PassthroughServerBuilder()
-            .resource("primary-server-resource", 64, MemoryUnit.MB)
-            .resource("secondary-server-resource", 64, MemoryUnit.MB)
+            .resource("primary-server-resource", 128, MemoryUnit.MB)
+            .resource("secondary-server-resource", 96, MemoryUnit.MB)
             .build());
   }
 
@@ -74,17 +74,23 @@ public class GettingStarted {
   public void clusteredCacheManagerWithServerSideConfigExample() throws Exception {
     // tag::clusteredCacheManagerWithServerSideConfigExample[]
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        CacheManagerBuilder.newCacheManagerBuilder() // <1>
-            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")).autoCreate(true) // <2>
-                .defaultServerResource("primary-server-resource") // <3>
-                .resourcePool("resource-pool-a", 128, MemoryUnit.B, "secondary-server-resource") // <4>
-                .resourcePool("resource-pool-b", 128, MemoryUnit.B)) // <5>
-            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <6>
+        CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")).autoCreate(true)
+                .defaultServerResource("primary-server-resource") // <1>
+                .resourcePool("resource-pool-a", 28, MemoryUnit.MB, "secondary-server-resource") // <2>
+                .resourcePool("resource-pool-b", 32, MemoryUnit.MB)) // <3>
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <4>
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.KB)))); // <7>
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.MB)))) // <5>
+            .withCache("shared-cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .with(ClusteredResourcePoolBuilder.shared("resource-pool-a")))) // <6>
+            .withCache("shared-cache-2", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .with(ClusteredResourcePoolBuilder.shared("resource-pool-a")))); // <7>
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true); // <8>
 
-    cacheManager.close(); // <9>
+    cacheManager.close();
     // end::clusteredCacheManagerWithServerSideConfigExample[]
   }
 
