@@ -79,7 +79,7 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
-    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(PlainJavaSerializer.class));
+    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
     try {
       dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
       fail("expected UnsupportedTypeException");
@@ -108,7 +108,7 @@ public class DefaultSerializationProviderTest {
     dsp.start(providerContaining());
 
     assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(PlainJavaSerializer.class));
+    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
   }
 
   @Test
@@ -120,7 +120,7 @@ public class DefaultSerializationProviderTest {
     dsp.start(providerContaining());
 
     assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(PlainJavaSerializer.class));
+    assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
     assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(IntegerSerializer.class));
   }
 
@@ -215,10 +215,10 @@ public class DefaultSerializationProviderTest {
   public void testDefaultSerializableSerializer() throws Exception {
     DefaultSerializationProvider provider = getStartedProvider();
     Serializer<Serializable> keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(PlainJavaSerializer.class));
+    assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
 
     keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
+    assertThat(keySerializer, instanceOf(PlainJavaSerializer.class));
   }
 
   @Test

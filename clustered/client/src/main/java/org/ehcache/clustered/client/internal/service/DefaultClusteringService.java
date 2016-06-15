@@ -52,6 +52,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
@@ -224,19 +225,19 @@ class DefaultClusteringService implements ClusteringService {
   }
 
   @Override
-  public Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException {
-    return Collections.<ServiceConfiguration<?>>singleton(new DefaultClusterCacheIdentifier(alias));
+  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    return new DefaultClusterCacheIdentifier(name);
   }
 
   @Override
-  public PersistenceSpaceIdentifier create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    throw new UnsupportedOperationException("create() not supported for clustered caches");
+  public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) {
+    // no-op
   }
 
   @Override
   public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
-    // Here we will have to return a StateRepository that exposes clustered datastructures
-    throw new UnsupportedOperationException("TODO Implement me!");
+    // TODO proper StateRepository support through clustered maps
+    return null;
   }
 
   @Override

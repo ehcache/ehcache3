@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -72,6 +73,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test the {@link TieredStore} compliance to the
@@ -135,8 +137,10 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, timeSource, noOpEventDispatcher, offheapSize);
 
         try {
+          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);

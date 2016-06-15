@@ -416,12 +416,18 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     final Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
     for (ResourceType<?> resourceType : resourceTypes) {
       if (resourceType.isPersistable()) {
-        PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
+        final PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
 
         try {
-          Collection<ServiceConfiguration<?>> serviceConfig = persistableResourceService
-              .additionalConfigurationsForPool(alias, config.getResourcePools().getPoolForResource(resourceType));
-          serviceConfigs.addAll(serviceConfig);
+          final PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableResourceService
+              .getPersistenceSpaceIdentifier(alias, config);
+          serviceConfigs.add(spaceIdentifier);
+          lifeCycledList.add(new LifeCycledAdapter() {
+            @Override
+            public void close() throws Exception {
+              persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
+            }
+          });
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Unable to handle persistence", e);
         }

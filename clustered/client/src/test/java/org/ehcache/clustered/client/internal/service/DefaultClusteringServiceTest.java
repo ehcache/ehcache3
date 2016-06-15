@@ -47,6 +47,7 @@ import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.After;
@@ -146,18 +147,15 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
-  public void testAdditionalConfigurationForPool() throws Exception {
+  public void testGetPersistenceSpaceIdentifier() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
-    Collection<ServiceConfiguration<?>> actual =
-        service.additionalConfigurationsForPool("cacheAlias", ClusteredResourcePoolBuilder.shared("primary"));
-    assertThat(actual.size(), is(1));
-    ServiceConfiguration<?> serviceConfiguration = actual.iterator().next();
-    assertThat(serviceConfiguration, is(instanceOf(ClusteredCacheIdentifier.class)));
-    assertThat(((ClusteredCacheIdentifier)serviceConfiguration).getId(), is("cacheAlias"));
+    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", null);
+    assertThat(spaceIdentifier, is(instanceOf(ClusteredCacheIdentifier.class)));
+    assertThat(((ClusteredCacheIdentifier)spaceIdentifier).getId(), is("cacheAlias"));
   }
 
   @Test
@@ -171,12 +169,10 @@ public class DefaultClusteringServiceTest {
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
-    try {
-      service.create("cacheAlias", configBuilder.build());
-      fail("Expecting UnsupportedOperationException");
-    } catch (UnsupportedOperationException e) {
-      // Expected
-    }
+    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", configBuilder
+        .build());
+    assertThat(spaceIdentifier, instanceOf(ClusteredCacheIdentifier.class));
+    assertThat(((ClusteredCacheIdentifier) spaceIdentifier).getId(), is("cacheAlias"));
   }
 
   @Test
@@ -1839,7 +1835,7 @@ public class DefaultClusteringServiceTest {
       if (resourcePool != null) {
         ClusteredCacheIdentifier clusteredCacheIdentifier =
             ServiceLocator.findSingletonAmongst(ClusteredCacheIdentifier.class,
-                service.additionalConfigurationsForPool(cacheAlias, resourcePool));
+                service.getPersistenceSpaceIdentifier(cacheAlias, null));
         if (clusteredCacheIdentifier != null) {
           return clusteredCacheIdentifier;
         }

@@ -42,26 +42,33 @@ public interface PersistableResourceService extends MaintainableService {
   boolean handlesResourceType(ResourceType<?> resourceType);
 
   /**
-   * Enables this service to add configurations to support the resource pool.
-   *
-   * @param alias the alias context
-   * @param pool the resource pool
-   * @return a {@link Collection} of {@link ServiceConfiguration}
-   * @throws CachePersistenceException in case of a persistence related problem
-   * @throws IllegalArgumentException if {@code handlesResourceType(pool.getType)} is {@code false}
-   */
-  Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException;
-
-  /**
-   * Create the persistence space with the given name.
+   * Returns a {@link PersistenceSpaceIdentifier} for the space associated to the provided arguments.
+   * <P>
+   *   This method may create a new persistence space or load one. The returned identifier is the only way to interact
+   *   with the persistence space.
+   * </P>
    *
    * @param name the name of the persistence context
    * @param config the configuration for the associated cache
    * @throws CachePersistenceException if the persistence space cannot be created
    *
-   * @return an identifier for the created persistence space
+   * @return an identifier for the persistence space
+   *
+   * @see #getStateRepositoryWithin(PersistenceSpaceIdentifier, String)
    */
-  PersistenceSpaceIdentifier<?> create(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
+  PersistenceSpaceIdentifier<?> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException;
+
+  /**
+   * Releases a previously obtained {@link PersistenceSpaceIdentifier}.
+   * <P>
+   *   This indicates to the persistence space that resource linked to the given identifier are no longer needed and thus
+   *   enables cleaning up any transient state left.
+   * </P>
+   *
+   * @param identifier the {@code PersistenceSpaceIdentifier} to release
+   * @throws CachePersistenceException If the identifier is not known
+   */
+  void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException;
 
   /**
    * Returns a named {@link StateRepository state repository} in the context of the given

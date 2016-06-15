@@ -98,7 +98,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
       if (!getRuntimeConfiguration().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
         destroy();
       }
-      localPersistenceService.getOrCreatePersistenceSpace(id);
+      localPersistenceService.getPersistenceSpaceIdentifier(id, cache.getRuntimeConfiguration());
     } catch (CachePersistenceException e) {
       throw new RuntimeException("Unable to create persistence space for user managed cache " + id, e);
     }

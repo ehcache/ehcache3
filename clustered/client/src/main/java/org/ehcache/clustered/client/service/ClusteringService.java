@@ -53,9 +53,18 @@ public interface ClusteringService extends PersistableResourceService {
   void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy);
 
   /**
-   * Identifies a client-side cache to server-based components.
+   * A {@link org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier PersistenceSpaceIdentifier}
+   * that can provide an id.
    */
-  interface ClusteredCacheIdentifier extends ServiceConfiguration<ClusteringService> {
+  interface ClusteredCacheIdentifier extends PersistenceSpaceIdentifier<ClusteringService> {
+
+    /**
+     * The id associated with this identifier.
+     *
+     * @return an id
+     */
     String getId();
   }
+
+
 }

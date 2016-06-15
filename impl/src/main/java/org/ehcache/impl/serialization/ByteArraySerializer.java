@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -58,11 +58,11 @@ public class ByteArraySerializer implements Serializer<byte[]> {
    * </P>
    *
    * @param classLoader the classloader to use
-   * @param persistenceContext the persistence context
+   * @param stateRepository the state repository
    *
    * @see Serializer
    */
-  public ByteArraySerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+  public ByteArraySerializer(ClassLoader classLoader, StateRepository stateRepository) {
 
   }
 

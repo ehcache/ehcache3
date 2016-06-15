@@ -20,7 +20,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 
@@ -56,11 +56,11 @@ public class StringSerializer implements Serializer<String> {
    * </P>
    *
    * @param classLoader the classloader to use
-   * @param persistenceContext the persistence context
+   * @param stateRepository the state repository
    *
    * @see Serializer
    */
-  public StringSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+  public StringSerializer(ClassLoader classLoader, StateRepository stateRepository) {
   }
 
   /**

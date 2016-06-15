@@ -198,6 +198,9 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
     }
 
+    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
+        classLoader, expiry, resourcePools);
+
     Set<ResourceType<?>> resources = resourcePools.getResourceTypeSet();
     boolean persistent = resources.contains(DISK);
     if (persistent) {
@@ -213,7 +216,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         }
       }
       try {
-        serviceConfigsList.add(persistenceService.getOrCreatePersistenceSpace(id));
+        serviceConfigsList.add(persistenceService.getPersistenceSpaceIdentifier(id, cacheConfig));
       } catch (CachePersistenceException cpex) {
         throw new RuntimeException("Unable to create persistence space for cache " + id, cpex);
       }
@@ -274,9 +277,6 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionAdvisor, classLoader,
             expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
-
-    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
-        classLoader, expiry, resourcePools);
 
     lifeCycledList.add(new LifeCycled() {
       @Override

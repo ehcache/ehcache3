@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.disk;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
@@ -54,6 +55,9 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * OffHeapStoreSPITest
@@ -101,8 +105,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
 
         try {
+          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           ResourcePools resourcePools = getDiskResourcePool(capacity);
           SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
@@ -127,7 +133,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         if (capacityConstraint == null) {
           capacityConstraint = 10L;
         }
-        return ResourcePoolsBuilder.newResourcePoolsBuilder().disk((Long) capacityConstraint, MemoryUnit.MB).build();
+        return newResourcePoolsBuilder().disk((Long) capacityConstraint, MemoryUnit.MB).build();
       }
 
       @Override
@@ -148,8 +154,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
         try {
+          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           return new ServiceConfiguration[] {space};
         } catch (CachePersistenceException e) {
           throw new RuntimeException(e);

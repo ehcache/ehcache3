@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -74,6 +75,8 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -117,14 +120,16 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     serviceLocator.addService(provider);
     serviceLocator.startAllServices();
 
-    PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace("cache");
+    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
+    PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
       Store.Configuration<Long, String> storeConfig1 = mock(Store.Configuration.class);
       when(storeConfig1.getKeyType()).thenReturn(Long.class);
       when(storeConfig1.getValueType()).thenReturn(String.class);
       when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .disk(10, MemoryUnit.MB)
+          .disk(10, MB)
           .build());
       when(storeConfig1.getDispatcherConcurrency()).thenReturn(1);
 
@@ -139,7 +144,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       when(storeConfig2.getKeyType()).thenReturn(Long.class);
       when(storeConfig2.getValueType()).thenReturn(Serializable.class);
       when(storeConfig2.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .disk(10, MemoryUnit.MB)
+          .disk(10, MB)
           .build());
       when(storeConfig2.getDispatcherConcurrency()).thenReturn(1);
       when(storeConfig2.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
@@ -165,14 +170,16 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     serviceLocator.addService(provider);
     serviceLocator.startAllServices();
 
-    PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace("cache");
+    CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+    when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
+    PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
       Store.Configuration<Long, Object[]> storeConfig1 = mock(Store.Configuration.class);
       when(storeConfig1.getKeyType()).thenReturn(Long.class);
       when(storeConfig1.getValueType()).thenReturn(Object[].class);
       when(storeConfig1.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .disk(10, MemoryUnit.MB)
+          .disk(10, MB)
           .build());
       when(storeConfig1.getDispatcherConcurrency()).thenReturn(1);
 
@@ -187,7 +194,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       when(storeConfig2.getKeyType()).thenReturn(Long.class);
       when(storeConfig2.getValueType()).thenReturn(Object[].class);
       when(storeConfig2.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
-          .disk(10, MemoryUnit.MB)
+          .disk(10, MB)
           .build());
       when(storeConfig2.getDispatcherConcurrency()).thenReturn(1);
       when(storeConfig2.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
@@ -215,7 +222,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
               new OnDemandExecutionService(), null, 1,
               storeConfiguration, timeSource,
               new TestStoreEventDispatcher<String, String>(),
-              MemoryUnit.MB.toBytes(1));
+              MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -238,7 +245,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
               new OnDemandExecutionService(), null, 1,
               storeConfiguration, timeSource,
               new TestStoreEventDispatcher<String, byte[]>(),
-              MemoryUnit.MB.toBytes(1));
+              MB.toBytes(1));
       OffHeapDiskStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
@@ -265,7 +272,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     when(storeConfig.getKeyType()).thenReturn(String.class);
     when(storeConfig.getValueType()).thenReturn(String.class);
     when(storeConfig.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
-        .disk(10, MemoryUnit.MB)
+        .disk(10, MB)
         .build());
     when(storeConfig.getDispatcherConcurrency()).thenReturn(1);
     try {
@@ -308,7 +315,9 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
 
   private FileBasedPersistenceContext getPersistenceContext() {
     try {
-      PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace("cache");
+      CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+      when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
+      PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
       return persistenceService.createPersistenceContextWithin(space, "store");
     } catch (CachePersistenceException e) {
       throw new AssertionError(e);
@@ -323,7 +332,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
             .build(true);
 
     final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
-            heap(1000).offheap(20, MemoryUnit.MB).disk(30, MemoryUnit.MB))
+            heap(1000).offheap(20, MB).disk(30, MB))
     .withLoaderWriter(new CacheLoaderWriter<Long, CacheValue>() {
       @Override
       public CacheValue load(Long key) throws Exception {
