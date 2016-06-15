@@ -232,7 +232,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } else {
       boolean deleteSuccessful = true;
       for (File f : contents) {
-        deleteSuccessful |= tryRecursiveDelete(f);
+        deleteSuccessful &= tryRecursiveDelete(f);
       }
       return deleteSuccessful;
     }
