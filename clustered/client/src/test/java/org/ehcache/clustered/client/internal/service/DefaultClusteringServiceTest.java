@@ -55,6 +55,7 @@ import org.junit.Test;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.consensus.entity.CoordinationServerEntityService;
 import org.terracotta.consensus.entity.client.ClientCoordinationEntityService;
+import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.exception.EntityNotFoundException;
 
 import java.net.URI;
@@ -67,6 +68,7 @@ import java.util.Set;
 import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.FIXED;
 import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.SHARED;
 import static org.ehcache.clustered.client.internal.service.TestServiceProvider.providerContaining;
+import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
@@ -1348,6 +1350,463 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+  }
+
+  @Test
+  public void testStartNoAutoCreateThenAutoCreate() throws Exception {
+    ClusteringServiceConfiguration creationConfigBad =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+    DefaultClusteringService creationServiceBad = new DefaultClusteringService(creationConfigBad);
+
+    try {
+      creationServiceBad.start(null);
+      fail("Expecting IllegalStateException");
+    } catch (IllegalStateException e) {
+      // Expected
+    }
+
+    List<ObservableEhcacheActiveEntity> activeEntitiesBad = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntitiesBad.size(), is(0));
+
+    ClusteringServiceConfiguration creationConfigGood =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+    DefaultClusteringService creationServiceGood = new DefaultClusteringService(creationConfigGood);
+
+    try {
+      creationServiceGood.start(null);
+    } catch (Exception e) {
+      fail("There should not be an error on start");
+    }
+
+  }
+
+  @Test
+  public void testStoreValidation_autoCreateConfigGood_autoCreateConfigBad() throws Exception {
+    String cacheAlias = "cacheAlias";
+    ClusteringServiceConfiguration config =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+    DefaultClusteringService creationService = new DefaultClusteringService(config);
+    creationService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+
+    Store.Configuration<Long, String> createStoreConfig =
+        getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
+
+    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, createStoreConfig);
+
+    creationService.getServerStoreProxy(clusteredCacheIdentifier, createStoreConfig, Consistency.EVENTUAL);
+
+    creationService.stop();
+
+    DefaultClusteringService accessService = new DefaultClusteringService(config);
+    accessService.start(null);
+
+    Store.Configuration<Long, Long> accessStoreConfigBad =
+        getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, Long.class);//ValueType is invalid
+
+    try {
+      accessService.getServerStoreProxy(clusteredCacheIdentifier, accessStoreConfigBad, Consistency.EVENTUAL);
+      fail("Expecting ClusteredStoreValidationException");
+    } catch(ClusteredStoreValidationException e) {
+      // Expected
+    }
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(),is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(1));
+    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+
+    accessService.stop();
+
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+  }
+
+  @Test
+  public void testStoreValidation_autoCreateConfigGood_autoCreateConfigGood() throws Exception {
+    String cacheAlias = "cacheAlias";
+    ClusteringServiceConfiguration config =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+    DefaultClusteringService creationService = new DefaultClusteringService(config);
+    creationService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+
+    Store.Configuration<Long, String> storeConfig =
+        getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
+
+    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, storeConfig);
+
+    creationService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+
+    creationService.stop();
+
+    DefaultClusteringService accessService = new DefaultClusteringService(config);
+    accessService.start(null);
+
+    accessService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(),is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(1));
+    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    accessService.stop();
+
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+  }
+
+  @Test
+  public void testStoreValidation_autoCreateConfigBad() throws Exception {
+    String cacheAlias = "cacheAlias";
+    ClusteringServiceConfiguration config =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+    DefaultClusteringService creationService = new DefaultClusteringService(config);
+    creationService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+
+    Store.Configuration<Long, String> storeConfig =
+        getSharedStoreConfig("fixedPrimary", serializationProvider, Long.class, String.class);
+
+    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, storeConfig);
+
+    try {
+      creationService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+      fail("Expecting ClusteredStoreCreationException");
+    } catch(ClusteredStoreCreationException e) {
+      //Expected
+    }
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(1));
+    assertThat(activeEntity.getStores().size(), is(0));
+    assertThat(activeEntity.getInUseStores().size(), is(0));
+
+    creationService.stop();
+
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getStores().size(), is(0));
+    assertThat(activeEntity.getInUseStores().size(), is(0));
+  }
+
+  @Test
+  public void testStoreValidation_autoCreateConfigGood_noAutoCreateConfigBad() throws Exception {
+    String cacheAlias = "cacheAlias";
+    ClusteringServiceConfiguration autoConfig =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+    DefaultClusteringService creationService = new DefaultClusteringService(autoConfig);
+    creationService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+
+    Store.Configuration<Long, String> creationStoreConfig =
+        getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
+
+    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, creationStoreConfig);
+
+    creationService.getServerStoreProxy(clusteredCacheIdentifier, creationStoreConfig, Consistency.EVENTUAL);
+
+    ClusteringServiceConfiguration noAutoConfig =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+
+    DefaultClusteringService accessService = new DefaultClusteringService(noAutoConfig);
+    accessService.start(null);
+
+    Store.Configuration<Long, Long> accessStoreConfig =
+        getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, Long.class);
+
+    try {
+      accessService.getServerStoreProxy(clusteredCacheIdentifier, accessStoreConfig, Consistency.EVENTUAL);
+      fail("Expecting ClusteredStoreValidationException");
+    } catch(ClusteredStoreValidationException e) {
+      //Expected
+    }
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds().size(), is(0));
+    assertThat(activeEntity.getConnectedClients().size(), is(2));
+    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    creationService.stop();
+    accessService.stop();
+
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds().size(), is(0));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+  }
+
+  @Test
+  public void testStoreValidation_autoCreateConfigGood_noAutoCreateConfigGood() throws Exception {
+    String cacheAlias = "cacheAlias";
+    ClusteringServiceConfiguration autoConfig =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+    DefaultClusteringService creationService = new DefaultClusteringService(autoConfig);
+    creationService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+
+    Store.Configuration<Long, String> storeConfig =
+        getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
+
+    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, storeConfig);
+
+    creationService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+
+
+    ClusteringServiceConfiguration noAutoConfig =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+
+    DefaultClusteringService accessService = new DefaultClusteringService(noAutoConfig);
+    accessService.start(null);
+
+    accessService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds().size(), is(0));
+    assertThat(activeEntity.getConnectedClients().size(), is(2));
+    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(2));//2 clients connected
+
+    creationService.stop();
+    accessService.stop();
+
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds().size(), is(0));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+  }
+
+  @Test
+  public void testStoreValidation_MismatchedPoolTypes_ConfiguredFixedValidateShared() throws Exception {
+    String cacheAlias = "cacheAlias";
+    ClusteringServiceConfiguration creationConfig =
+    ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+        .defaultServerResource("defaultResource")
+        .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+        .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+        .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+        .build();
+    DefaultClusteringService creationService = new DefaultClusteringService(creationConfig);
+    creationService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+    Store.Configuration<Long, String> createStoreConfig =
+        getFixedStoreConfig("serverResource1", serializationProvider, Long.class, String.class);
+
+    creationService.getServerStoreProxy(
+        getClusteredCacheIdentifier(creationService, "cacheAlias", createStoreConfig), createStoreConfig, Consistency.EVENTUAL);
+
+    creationService.stop();
+
+    ClusteringServiceConfiguration accessConfig =
+        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+            .defaultServerResource("defaultResource")
+            .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+            .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+            .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+            .build();
+    DefaultClusteringService accessService = new DefaultClusteringService(accessConfig);
+    accessService.start(null);
+
+    Store.Configuration accessStoreConfig =
+        getSharedStoreConfig("serverResource1", serializationProvider, Long.class, String.class);
+
+    try {
+      accessService.getServerStoreProxy(
+          getClusteredCacheIdentifier(accessService, cacheAlias, accessStoreConfig), accessStoreConfig, Consistency.EVENTUAL);
+      fail("Expecting ClusteredStoreValidationException");
+    } catch (ClusteredStoreValidationException e) {
+      // Expected
+    }
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
+    assertThat(activeEntity.getConnectedClients().size(), is(1));
+    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+
+    accessService.stop();
+
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+  }
+
+  @Test
+  public void testStoreValidation_MismatchedPoolTypes_ConfiguredSharedValidateFixed() throws Exception {
+    String cacheAlias = "cacheAlias";
+    ClusteringServiceConfiguration creationConfig =
+        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+            .defaultServerResource("defaultResource")
+            .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+            .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+            .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+            .build();
+    DefaultClusteringService creationService = new DefaultClusteringService(creationConfig);
+    creationService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+    Store.Configuration<Long, String> createStoreConfig =
+        getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
+
+    creationService.getServerStoreProxy(
+        getClusteredCacheIdentifier(creationService, cacheAlias, createStoreConfig), createStoreConfig, Consistency.EVENTUAL);
+
+    creationService.stop();
+
+    ClusteringServiceConfiguration accessConfig =
+        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application?auto-create"))
+            .defaultServerResource("defaultResource")
+            .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
+            .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
+            .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+            .build();
+    DefaultClusteringService accessService = new DefaultClusteringService(accessConfig);
+    accessService.start(null);
+
+    Store.Configuration<Long, String> accessStoreConfig =
+        getFixedStoreConfig("defaultResource", serializationProvider, Long.class, String.class);
+
+    try {
+      accessService.getServerStoreProxy(
+          getClusteredCacheIdentifier(accessService, cacheAlias, accessStoreConfig), accessStoreConfig, Consistency.EVENTUAL);
+      fail("Expecting ClusteredStoreValidationException");
+    } catch (ClusteredStoreValidationException e) {
+      e.printStackTrace();
+      // Expected
+    }
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    assertThat(activeEntities.size(), is(1));
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(1));
+    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+
+    accessService.stop();
+
+    assertThat(activeEntity.getDefaultServerResource(), is("defaultResource"));
+    assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
+    assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getConnectedClients().size(), is(0));
+    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
+    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
   }
 
   private <K, V> Store.Configuration<K, V> getSharedStoreConfig(

@@ -42,6 +42,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Fixed;
 
 import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type.FAILURE;
 import static org.ehcache.clustered.common.store.Util.createPayload;
@@ -1684,9 +1685,9 @@ public class EhcacheActiveEntityTest {
                                     "\n\t" +
                                     "resourcePoolFixedSize existing: " +
                                     ((PoolAllocation.Fixed)fixedStoreConfig1.getPoolAllocation()).getSize() +
-                                    " desired: " +
+                                    ", desired: " +
                                     ((PoolAllocation.Fixed)fixedStoreConfig2.getPoolAllocation()).getSize();
-    
+
     assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),ClusteredStoreValidationException.class,expectedMessageContent);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -1765,7 +1766,11 @@ public class EhcacheActiveEntityTest {
     assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
     String expectedMessageContent = "Existing ServerStore configuration is not compatible with the desired configuration: " +
                                     "\n\t" +
-                                    "resourcePoolFixedResourceName existing: serverResource1 desired: serverResource2";
+                                    "resourcePoolFixedResourceName existing: " +
+                                    ((Fixed)fixedStoreConfig1.getPoolAllocation()).getResourceName() +
+                                    ", desired: " +
+                                    ((Fixed)fixedStoreConfig2.getPoolAllocation()).getResourceName();
+
     assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),ClusteredStoreValidationException.class,expectedMessageContent);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));

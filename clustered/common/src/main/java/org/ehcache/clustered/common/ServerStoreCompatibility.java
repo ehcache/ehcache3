@@ -70,10 +70,22 @@ public class ServerStoreCompatibility {
     isCompatible &= compareField(sb, "actualValueType", serverConfiguration.getActualValueType(), clientConfiguration.getActualValueType());
     isCompatible &= compareField(sb, "keySerializerType", serverConfiguration.getKeySerializerType(), clientConfiguration.getKeySerializerType());
     isCompatible &= compareField(sb, "valueSerializerType", serverConfiguration.getValueSerializerType(), clientConfiguration.getValueSerializerType());
+    isCompatible &= compareConsistencyField(sb, serverConfiguration.getConsistency(), clientConfiguration.getConsistency());
 
     if (!isCompatible) {
       throw new ClusteredStoreValidationException(sb.toString());
     }
+  }
+
+  private static boolean compareConsistencyField(StringBuilder sb, Consistency serverConsistencyValue, Consistency clientConsistencyValue)
+  {
+    if((serverConsistencyValue == null && clientConsistencyValue == null)
+        || (serverConsistencyValue != null && serverConsistencyValue.equals(clientConsistencyValue))) {
+      return true;
+    }
+
+    appendFault(sb, "consistencyType", serverConsistencyValue, clientConsistencyValue);
+    return false;
   }
 
   private static boolean compareField(StringBuilder sb, String fieldName, String serverConfigValue, String clientConfigValue) {
@@ -89,6 +101,6 @@ public class ServerStoreCompatibility {
   private static void appendFault(StringBuilder sb, String fieldName, Object serverConfigValue, Object clientConfigValue) {
     sb.append("\n\t").append(fieldName)
         .append(" existing: ").append(serverConfigValue)
-        .append(" desired: ").append(clientConfigValue);
+        .append(", desired: ").append(clientConfigValue);
   }
 }
