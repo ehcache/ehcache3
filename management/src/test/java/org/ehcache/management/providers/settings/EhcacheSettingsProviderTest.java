@@ -56,10 +56,10 @@ import static org.junit.Assert.assertEquals;
  * @author Mathieu Carbou
  */
 @RunWith(JUnit4.class)
-public class EhcacheSettingsProviderTestTest {
+public class EhcacheSettingsProviderTest {
 
   @ClassRule
-  public static TemporaryFolder ROOT = new TemporaryFolder(new File("build"));
+  public static TemporaryFolder ROOT = new TemporaryFolder();
 
   CacheManager cacheManager;
   SharedManagementService sharedManagementService = new DefaultSharedManagementService();
@@ -67,7 +67,6 @@ public class EhcacheSettingsProviderTestTest {
 
   @Before
   public void before() {
-    mapper.configure(SerializationFeature.INDENT_OUTPUT, true);
     mapper.addMixIn(CapabilityContext.class, CapabilityContextMixin.class);
   }
 
@@ -114,9 +113,7 @@ public class EhcacheSettingsProviderTestTest {
 
     cacheManager.init();
 
-    System.out.println(mapper.writeValueAsString(sharedManagementService.getCapabilities()));
-
-    String expected = read("settings-capability.json");
+    String expected = read("/settings-capability.json");
     String actual = mapper.writeValueAsString(getSettingsCapability()).replaceAll("org\\.ehcache\\.core\\.EhcacheManager@[\\w]+", "<CacheManager.toString() output>");
 
     // assertThat for formatted string comparison: ide support is bad
@@ -132,10 +129,10 @@ public class EhcacheSettingsProviderTestTest {
     throw new AssertionError();
   }
 
-  private String read(String file) throws FileNotFoundException {
-    Scanner scanner = new Scanner(new File("src/test/resources", file), "UTF-8").useDelimiter("\\Z");
+  private String read(String path) throws FileNotFoundException {
+    Scanner scanner = new Scanner(getClass().getResourceAsStream(path), "UTF-8");
     try {
-      return scanner.next();
+      return scanner.nextLine();
     } finally {
       scanner.close();
     }
