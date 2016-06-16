@@ -38,14 +38,11 @@ import org.ehcache.clustered.lock.client.VoltronReadWriteLockEntityClientService
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService.ObservableEhcacheActiveEntity;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
@@ -581,7 +578,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(
-        getClusteredCacheIdentifier(service, cacheAlias, storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(service, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
 
     assertThat(serverStoreProxy.getCacheId(), is(cacheAlias));
 
@@ -641,7 +638,7 @@ public class DefaultClusteringServiceTest {
 
     try {
       accessService.getServerStoreProxy(
-          getClusteredCacheIdentifier(accessService, cacheAlias, storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+          getClusteredCacheIdentifier(accessService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
       fail("Expecting ClusteredStoreValidationException");
     } catch (ClusteredStoreValidationException e) {
       // Expected
@@ -689,7 +686,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy creationServerStoreProxy = creationService.getServerStoreProxy(
-        getClusteredCacheIdentifier(creationService, cacheAlias, creationStoreConfig), creationStoreConfig, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(creationService, cacheAlias), creationStoreConfig, Consistency.EVENTUAL);
     assertThat(creationServerStoreProxy.getCacheId(), is(cacheAlias));
 
     creationService.stop();
@@ -720,7 +717,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy accessServerStoreProxy = accessService.getServerStoreProxy(
-        getClusteredCacheIdentifier(accessService, cacheAlias, accessStoreConfiguration), accessStoreConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfiguration, Consistency.EVENTUAL);
     assertThat(accessServerStoreProxy.getCacheId(), is(cacheAlias));
 
     activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -769,7 +766,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy firstServerStoreProxy = firstService.getServerStoreProxy(
-        getClusteredCacheIdentifier(firstService, cacheAlias, firstSharedStoreConfig), firstSharedStoreConfig, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(firstService, cacheAlias), firstSharedStoreConfig, Consistency.EVENTUAL);
     assertThat(firstServerStoreProxy.getCacheId(), is(cacheAlias));
 
     DefaultClusteringService secondService = new DefaultClusteringService(configuration);
@@ -779,7 +776,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy secondServerStoreProxy = secondService.getServerStoreProxy(
-        getClusteredCacheIdentifier(firstService, cacheAlias, secondSharedStoreConfig), secondSharedStoreConfig, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(secondService, cacheAlias), secondSharedStoreConfig, Consistency.EVENTUAL);
     assertThat(secondServerStoreProxy.getCacheId(), is(cacheAlias));
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -834,7 +831,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy serverStoreProxy = creationService.getServerStoreProxy(
-        getClusteredCacheIdentifier(creationService, cacheAlias, storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(creationService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
     assertThat(serverStoreProxy.getCacheId(), is(cacheAlias));
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -884,7 +881,7 @@ public class DefaultClusteringServiceTest {
         getFixedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(
-        getClusteredCacheIdentifier(service, cacheAlias, storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(service, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
 
     assertThat(serverStoreProxy.getCacheId(), is(cacheAlias));
 
@@ -946,7 +943,7 @@ public class DefaultClusteringServiceTest {
 
     try {
       accessService.getServerStoreProxy(
-          getClusteredCacheIdentifier(accessService, cacheAlias, storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+          getClusteredCacheIdentifier(accessService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
       fail("Expecting ClusteredStoreValidationException");
     } catch (ClusteredStoreValidationException e) {
       // Expected
@@ -996,7 +993,7 @@ public class DefaultClusteringServiceTest {
         getFixedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy creationServerStoreProxy = creationService.getServerStoreProxy(
-        getClusteredCacheIdentifier(creationService, cacheAlias, creationStoreConfig), creationStoreConfig, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(creationService, cacheAlias), creationStoreConfig, Consistency.EVENTUAL);
     assertThat(creationServerStoreProxy.getCacheId(), is(cacheAlias));
 
     creationService.stop();
@@ -1027,7 +1024,7 @@ public class DefaultClusteringServiceTest {
         getFixedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy accessServerStoreProxy = accessService.getServerStoreProxy(
-        getClusteredCacheIdentifier(accessService, cacheAlias, accessStoreConfiguration), accessStoreConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfiguration, Consistency.EVENTUAL);
     assertThat(accessServerStoreProxy.getCacheId(), is(cacheAlias));
 
     activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1078,7 +1075,7 @@ public class DefaultClusteringServiceTest {
         getFixedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy firstServerStoreProxy = firstService.getServerStoreProxy(
-        getClusteredCacheIdentifier(firstService, cacheAlias, firstSharedStoreConfig), firstSharedStoreConfig, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(firstService, cacheAlias), firstSharedStoreConfig, Consistency.EVENTUAL);
     assertThat(firstServerStoreProxy.getCacheId(), is(cacheAlias));
 
     DefaultClusteringService secondService = new DefaultClusteringService(configuration);
@@ -1088,7 +1085,7 @@ public class DefaultClusteringServiceTest {
         getFixedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy secondServerStoreProxy = secondService.getServerStoreProxy(
-        getClusteredCacheIdentifier(firstService, cacheAlias, secondSharedStoreConfig), secondSharedStoreConfig, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(secondService, cacheAlias), secondSharedStoreConfig, Consistency.EVENTUAL);
     assertThat(secondServerStoreProxy.getCacheId(), is(cacheAlias));
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1148,7 +1145,7 @@ public class DefaultClusteringServiceTest {
         getFixedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy serverStoreProxy = creationService.getServerStoreProxy(
-        getClusteredCacheIdentifier(creationService, cacheAlias, storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(creationService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
     assertThat(serverStoreProxy.getCacheId(), is(cacheAlias));
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1224,7 +1221,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig(targetPool, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy serverStoreProxy = creationService.getServerStoreProxy(
-        getClusteredCacheIdentifier(creationService, cacheAlias, storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(creationService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
     assertThat(serverStoreProxy.getCacheId(), is(cacheAlias));
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1278,7 +1275,7 @@ public class DefaultClusteringServiceTest {
         getFixedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
 
     ServerStoreProxy serverStoreProxy = creationService.getServerStoreProxy(
-        getClusteredCacheIdentifier(creationService, cacheAlias, storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(creationService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
     assertThat(serverStoreProxy.getCacheId(), is(cacheAlias));
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1334,14 +1331,14 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
 
     ServerStoreProxy sharedProxy = createService.getServerStoreProxy(
-        getClusteredCacheIdentifier(createService, "sharedCache", sharedStoreConfiguration), sharedStoreConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(createService, "sharedCache"), sharedStoreConfiguration, Consistency.EVENTUAL);
     assertThat(sharedProxy.getCacheId(), is("sharedCache"));
 
     Store.Configuration<Long, String> storeConfiguration =
         getFixedStoreConfig("serverResource2", serializationProvider, Long.class, String.class);
 
     ServerStoreProxy fixedProxy = createService.getServerStoreProxy(
-        getClusteredCacheIdentifier(createService, "fixedCache", storeConfiguration), storeConfiguration, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(createService, "fixedCache"), storeConfiguration, Consistency.EVENTUAL);
     assertThat(fixedProxy.getCacheId(), is("fixedCache"));
 
     createService.stop();
@@ -1430,7 +1427,7 @@ public class DefaultClusteringServiceTest {
     Store.Configuration<Long, String> createStoreConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
 
-    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, createStoreConfig);
+    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias);
 
     creationService.getServerStoreProxy(clusteredCacheIdentifier, createStoreConfig, Consistency.EVENTUAL);
 
@@ -1443,7 +1440,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, Long.class);//ValueType is invalid
 
     try {
-      accessService.getServerStoreProxy(clusteredCacheIdentifier, accessStoreConfigBad, Consistency.EVENTUAL);
+      accessService.getServerStoreProxy(getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfigBad, Consistency.EVENTUAL);
       fail("Expecting ClusteredStoreValidationException");
     } catch(ClusteredStoreValidationException e) {
       // Expected
@@ -1491,16 +1488,14 @@ public class DefaultClusteringServiceTest {
     Store.Configuration<Long, String> storeConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
 
-    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, storeConfig);
-
-    creationService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+    creationService.getServerStoreProxy(getClusteredCacheIdentifier(creationService, cacheAlias), storeConfig, Consistency.EVENTUAL);
 
     creationService.stop();
 
     DefaultClusteringService accessService = new DefaultClusteringService(config);
     accessService.start(null);
 
-    accessService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+    accessService.getServerStoreProxy(getClusteredCacheIdentifier(accessService, cacheAlias), storeConfig, Consistency.EVENTUAL);
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     assertThat(activeEntities.size(), is(1));
@@ -1543,7 +1538,7 @@ public class DefaultClusteringServiceTest {
     Store.Configuration<Long, String> storeConfig =
         getSharedStoreConfig("fixedPrimary", serializationProvider, Long.class, String.class);
 
-    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, storeConfig);
+    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias);
 
     try {
       creationService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
@@ -1592,9 +1587,7 @@ public class DefaultClusteringServiceTest {
     Store.Configuration<Long, String> creationStoreConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
 
-    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, creationStoreConfig);
-
-    creationService.getServerStoreProxy(clusteredCacheIdentifier, creationStoreConfig, Consistency.EVENTUAL);
+    creationService.getServerStoreProxy(getClusteredCacheIdentifier(creationService, cacheAlias), creationStoreConfig, Consistency.EVENTUAL);
 
     ClusteringServiceConfiguration noAutoConfig =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
@@ -1611,7 +1604,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, Long.class);
 
     try {
-      accessService.getServerStoreProxy(clusteredCacheIdentifier, accessStoreConfig, Consistency.EVENTUAL);
+      accessService.getServerStoreProxy(getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfig, Consistency.EVENTUAL);
       fail("Expecting ClusteredStoreValidationException");
     } catch(ClusteredStoreValidationException e) {
       //Expected
@@ -1660,9 +1653,7 @@ public class DefaultClusteringServiceTest {
     Store.Configuration<Long, String> storeConfig =
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
 
-    ClusteredCacheIdentifier clusteredCacheIdentifier = getClusteredCacheIdentifier(creationService, cacheAlias, storeConfig);
-
-    creationService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+    creationService.getServerStoreProxy(getClusteredCacheIdentifier(creationService, cacheAlias), storeConfig, Consistency.EVENTUAL);
 
 
     ClusteringServiceConfiguration noAutoConfig =
@@ -1676,7 +1667,7 @@ public class DefaultClusteringServiceTest {
     DefaultClusteringService accessService = new DefaultClusteringService(noAutoConfig);
     accessService.start(null);
 
-    accessService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
+    accessService.getServerStoreProxy(getClusteredCacheIdentifier(accessService, cacheAlias), storeConfig, Consistency.EVENTUAL);
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     assertThat(activeEntities.size(), is(1));
@@ -1721,7 +1712,7 @@ public class DefaultClusteringServiceTest {
         getFixedStoreConfig("serverResource1", serializationProvider, Long.class, String.class);
 
     creationService.getServerStoreProxy(
-        getClusteredCacheIdentifier(creationService, "cacheAlias", createStoreConfig), createStoreConfig, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(creationService, "cacheAlias"), createStoreConfig, Consistency.EVENTUAL);
 
     creationService.stop();
 
@@ -1741,7 +1732,7 @@ public class DefaultClusteringServiceTest {
 
     try {
       accessService.getServerStoreProxy(
-          getClusteredCacheIdentifier(accessService, cacheAlias, accessStoreConfig), accessStoreConfig, Consistency.EVENTUAL);
+          getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfig, Consistency.EVENTUAL);
       fail("Expecting ClusteredStoreValidationException");
     } catch (ClusteredStoreValidationException e) {
       // Expected
@@ -1789,7 +1780,7 @@ public class DefaultClusteringServiceTest {
         getSharedStoreConfig("sharedPrimary", serializationProvider, Long.class, String.class);
 
     creationService.getServerStoreProxy(
-        getClusteredCacheIdentifier(creationService, cacheAlias, createStoreConfig), createStoreConfig, Consistency.EVENTUAL);
+        getClusteredCacheIdentifier(creationService, cacheAlias), createStoreConfig, Consistency.EVENTUAL);
 
     creationService.stop();
 
@@ -1809,7 +1800,7 @@ public class DefaultClusteringServiceTest {
 
     try {
       accessService.getServerStoreProxy(
-          getClusteredCacheIdentifier(accessService, cacheAlias, accessStoreConfig), accessStoreConfig, Consistency.EVENTUAL);
+          getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfig, Consistency.EVENTUAL);
       fail("Expecting ClusteredStoreValidationException");
     } catch (ClusteredStoreValidationException e) {
       e.printStackTrace();
@@ -1865,19 +1856,12 @@ public class DefaultClusteringServiceTest {
   }
 
   private ClusteredCacheIdentifier getClusteredCacheIdentifier(
-      DefaultClusteringService service, String cacheAlias, Store.Configuration<Long, String> storeConfiguration)
+      DefaultClusteringService service, String cacheAlias)
       throws CachePersistenceException {
 
-    for (ResourceType<?> resourceType : ClusteredResourceType.Types.values()) {
-      ResourcePool resourcePool = storeConfiguration.getResourcePools().getPoolForResource(resourceType);
-      if (resourcePool != null) {
-        ClusteredCacheIdentifier clusteredCacheIdentifier =
-            ServiceLocator.findSingletonAmongst(ClusteredCacheIdentifier.class,
-                service.getPersistenceSpaceIdentifier(cacheAlias, null));
-        if (clusteredCacheIdentifier != null) {
-          return clusteredCacheIdentifier;
-        }
-      }
+    ClusteredCacheIdentifier clusteredCacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier(cacheAlias, null);
+    if (clusteredCacheIdentifier != null) {
+      return clusteredCacheIdentifier;
     }
     throw new AssertionError("ClusteredCacheIdentifier not available for configuration");
   }
@@ -1894,14 +1878,14 @@ public class DefaultClusteringServiceTest {
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 
+    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
+
     ResourcePools resourcePools = mock(ResourcePools.class);
     Store.Configuration storeConfig = mock(Store.Configuration.class);
-    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = mock(ClusteringService.ClusteredCacheIdentifier.class);
     when(storeConfig.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getPoolForResource(eq(FIXED))).thenReturn(new FixedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
     when(storeConfig.getKeyType()).thenReturn(String.class);
     when(storeConfig.getValueType()).thenReturn(Object.class);
-    when(cacheIdentifier.getId()).thenReturn("my-cache");
 
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.EVENTUAL);
     assertThat(serverStoreProxy, instanceOf(EventualServerStoreProxy.class));
@@ -1919,14 +1903,14 @@ public class DefaultClusteringServiceTest {
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 
+    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
+
     ResourcePools resourcePools = mock(ResourcePools.class);
     Store.Configuration storeConfig = mock(Store.Configuration.class);
-    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = mock(ClusteringService.ClusteredCacheIdentifier.class);
     when(storeConfig.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getPoolForResource(eq(FIXED))).thenReturn(new FixedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
     when(storeConfig.getKeyType()).thenReturn(String.class);
     when(storeConfig.getValueType()).thenReturn(Object.class);
-    when(cacheIdentifier.getId()).thenReturn("my-cache");
 
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.EVENTUAL);
     assertThat(serverStoreProxy, instanceOf(EventualServerStoreProxy.class));
@@ -1944,14 +1928,14 @@ public class DefaultClusteringServiceTest {
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 
+    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
+
     ResourcePools resourcePools = mock(ResourcePools.class);
     Store.Configuration storeConfig = mock(Store.Configuration.class);
-    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = mock(ClusteringService.ClusteredCacheIdentifier.class);
     when(storeConfig.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getPoolForResource(eq(FIXED))).thenReturn(new FixedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
     when(storeConfig.getKeyType()).thenReturn(String.class);
     when(storeConfig.getValueType()).thenReturn(Object.class);
-    when(cacheIdentifier.getId()).thenReturn("my-cache");
 
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
     assertThat(serverStoreProxy, instanceOf(StrongServerStoreProxy.class));

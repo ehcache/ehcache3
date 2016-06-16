@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
@@ -514,34 +515,38 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       final ClusteredStore clusteredStore = (ClusteredStore) resource;
-      clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
-      clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
-        @Override
-        public void onInvalidateHash(long hash) {
-          if (clusteredStore.invalidationValve != null) {
-            try {
-              LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
-              clusteredStore.invalidationValve.invalidateAllWithHash(hash);
-            } catch (StoreAccessException sae) {
-              //TODO: what should be done here? delegate to resilience strategy?
-              LOGGER.error("Error invalidating hash {}", hash, sae);
+      try {
+        clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
+        clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
+          @Override
+          public void onInvalidateHash(long hash) {
+            if (clusteredStore.invalidationValve != null) {
+              try {
+                LOGGER.debug("CLIENT: calling invalidation valve for hash {}", hash);
+                clusteredStore.invalidationValve.invalidateAllWithHash(hash);
+              } catch (StoreAccessException sae) {
+                //TODO: what should be done here? delegate to resilience strategy?
+                LOGGER.error("Error invalidating hash {}", hash, sae);
+              }
             }
           }
-        }
 
-        @Override
-        public void onInvalidateAll() {
-          if (clusteredStore.invalidationValve != null) {
-            try {
-              LOGGER.debug("CLIENT: calling invalidation valve for all");
-              clusteredStore.invalidationValve.invalidateAll();
-            } catch (StoreAccessException sae) {
-              //TODO: what should be done here? delegate to resilience strategy?
-              LOGGER.error("Error invalidating all", sae);
+          @Override
+          public void onInvalidateAll() {
+            if (clusteredStore.invalidationValve != null) {
+              try {
+                LOGGER.debug("CLIENT: calling invalidation valve for all");
+                clusteredStore.invalidationValve.invalidateAll();
+              } catch (StoreAccessException sae) {
+                //TODO: what should be done here? delegate to resilience strategy?
+                LOGGER.error("Error invalidating all", sae);
+              }
             }
           }
-        }
-      });
+        });
+      } catch (CachePersistenceException e) {
+        throw new RuntimeException("Unable to create server store proxy - " + storeConfig.getCacheIdentifier(), e);
+      }
     }
 
     @Override

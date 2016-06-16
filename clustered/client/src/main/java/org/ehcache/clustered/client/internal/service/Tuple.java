@@ -14,17 +14,17 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+package org.ehcache.clustered.client.internal.service;
 
-dependencies {
-  compile project(':api')
-  compile project(':xml')
-  compile project(':clustered:common')
-  compile "org.terracotta.entities:clustered-map-client:$parent.clusteredMapVersion"
-  compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
+/**
+ * Tuple
+ */
+class Tuple<K, V> {
+  final K first;
+  final V second;
 
-  testCompile(project(':clustered:server')) {
-    exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
+  Tuple(K first, V second) {
+    this.first = first;
+    this.second = second;
   }
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
 }
