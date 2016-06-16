@@ -292,7 +292,7 @@ class DefaultClusteringService implements ClusteringService {
     if (autoCreate) {
       try {
         this.entity.validateCache(cacheId, clientStoreConfiguration);
-      } catch (CachePersistenceException e) {
+      } catch (IllegalStateException e) {
         try {
           this.entity.createCache(cacheId, clientStoreConfiguration);
         } catch (CachePersistenceException ex) {
@@ -302,7 +302,7 @@ class DefaultClusteringService implements ClusteringService {
     } else {
       try {
         this.entity.validateCache(cacheId, clientStoreConfiguration);
-      } catch (CachePersistenceException e) {
+      } catch (IllegalStateException e) {
         throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, e);
       }
     }

@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
@@ -158,11 +159,11 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
+  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusteredStoreValidationException {
     try {
       invokeInternal(messageFactory.validateServerStore(name , serverStoreConfiguration), false);
     } catch (Exception e) {
-      throw convert(e, CachePersistenceException.class, CACHE_PERSISTENCE_EXCEPTION_CTOR);
+      throw convert(e, ClusteredStoreValidationException.class, CLUSTERED_STORE_VALIDATION_EXCEPTION_CTOR);
     }
   }
 
@@ -317,6 +318,13 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
+  private static final Ctor<ClusteredStoreValidationException> CLUSTERED_STORE_VALIDATION_EXCEPTION_CTOR =
+      new Ctor<ClusteredStoreValidationException>() {
+        @Override
+        public ClusteredStoreValidationException create(String msg, Throwable cause) {
+          return new ClusteredStoreValidationException(cause);
+        }
+      };
   private static final Ctor<CachePersistenceException> CACHE_PERSISTENCE_EXCEPTION_CTOR =
       new Ctor<CachePersistenceException>() {
         @Override

@@ -45,35 +45,47 @@ public class ServerStoreCompatibility {
     isCompatible = compareField(sb, "resourcePoolType",
         serverPoolAllocation.getClass().getName(),
         clientPoolAllocation.getClass().getName());
-    if (serverPoolAllocation instanceof PoolAllocation.Fixed) {
-      PoolAllocation.Fixed serverFixedAllocation = (PoolAllocation.Fixed)serverPoolAllocation;
-      PoolAllocation.Fixed clientFixedAllocation = (PoolAllocation.Fixed)clientPoolAllocation;
-      if (compareField(sb, "resourcePoolFixedResourceName",
-          serverFixedAllocation.getResourceName(),
-          clientFixedAllocation.getResourceName())) {
-        if (clientFixedAllocation.getSize() > serverFixedAllocation.getSize()) {
-          appendFault(sb, "resourcePoolFixedSize", serverFixedAllocation.getSize(), clientFixedAllocation.getSize());
+    if(isCompatible) {
+      if (serverPoolAllocation instanceof PoolAllocation.Fixed) {
+        PoolAllocation.Fixed serverFixedAllocation = (PoolAllocation.Fixed)serverPoolAllocation;
+        PoolAllocation.Fixed clientFixedAllocation = (PoolAllocation.Fixed)clientPoolAllocation;
+        if (compareField(sb, "resourcePoolFixedResourceName",
+            serverFixedAllocation.getResourceName(),
+            clientFixedAllocation.getResourceName())) {
+          if (clientFixedAllocation.getSize() != serverFixedAllocation.getSize()) {
+            appendFault(sb, "resourcePoolFixedSize", serverFixedAllocation.getSize(), clientFixedAllocation.getSize());
+            isCompatible &= false;
+          }
+        } else {
           isCompatible &= false;
         }
-      } else {
-        isCompatible &= false;
+      } else if (serverPoolAllocation instanceof PoolAllocation.Shared) {
+        isCompatible &= compareField(sb, "resourcePoolSharedPoolName",
+            ((PoolAllocation.Shared)serverPoolAllocation).getResourcePoolName(),
+            ((PoolAllocation.Shared)clientPoolAllocation).getResourcePoolName());
       }
-    } else if (serverPoolAllocation instanceof PoolAllocation.Shared) {
-      isCompatible &= compareField(sb, "resourcePoolSharedPoolName",
-          ((PoolAllocation.Shared)serverPoolAllocation).getResourcePoolName(),
-          ((PoolAllocation.Shared)clientPoolAllocation).getResourcePoolName());
     }
-
     isCompatible &= compareField(sb, "storedKeyType", serverConfiguration.getStoredKeyType(), clientConfiguration.getStoredKeyType());
     isCompatible &= compareField(sb, "storedValueType", serverConfiguration.getStoredValueType(), clientConfiguration.getStoredValueType());
     isCompatible &= compareField(sb, "actualKeyType", serverConfiguration.getActualKeyType(), clientConfiguration.getActualKeyType());
     isCompatible &= compareField(sb, "actualValueType", serverConfiguration.getActualValueType(), clientConfiguration.getActualValueType());
     isCompatible &= compareField(sb, "keySerializerType", serverConfiguration.getKeySerializerType(), clientConfiguration.getKeySerializerType());
     isCompatible &= compareField(sb, "valueSerializerType", serverConfiguration.getValueSerializerType(), clientConfiguration.getValueSerializerType());
+    isCompatible &= compareConsistencyField(sb, serverConfiguration.getConsistency(), clientConfiguration.getConsistency());
 
     if (!isCompatible) {
       throw new ClusteredStoreValidationException(sb.toString());
     }
+  }
+
+  private static boolean compareConsistencyField(StringBuilder sb, Consistency serverConsistencyValue, Consistency clientConsistencyValue) {
+    if((serverConsistencyValue == null && clientConsistencyValue == null)
+        || (serverConsistencyValue != null && serverConsistencyValue.equals(clientConsistencyValue))) {
+      return true;
+    }
+
+    appendFault(sb, "consistencyType", serverConsistencyValue, clientConsistencyValue);
+    return false;
   }
 
   private static boolean compareField(StringBuilder sb, String fieldName, String serverConfigValue, String clientConfigValue) {
@@ -89,6 +101,6 @@ public class ServerStoreCompatibility {
   private static void appendFault(StringBuilder sb, String fieldName, Object serverConfigValue, Object clientConfigValue) {
     sb.append("\n\t").append(fieldName)
         .append(" existing: ").append(serverConfigValue)
-        .append(" desired: ").append(clientConfigValue);
+        .append(", desired: ").append(clientConfigValue);
   }
 }
