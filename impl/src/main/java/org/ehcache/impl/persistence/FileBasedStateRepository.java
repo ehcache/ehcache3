@@ -33,15 +33,20 @@ import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.ehcache.impl.persistence.DefaultLocalPersistenceService.safeIdentifier;
 
 /**
  * FileBasedStateRepository
  */
 class FileBasedStateRepository implements StateRepository, Closeable {
 
-  public static final String MAP_FILE_SUFFIX = "-map.bin";
+  private static final String MAP_FILE_PREFIX = "map-";
+  private static final String MAP_FILE_SUFFIX = ".bin";
   private final File dataDirectory;
-  private final ConcurrentMap<String, ConcurrentMap<?, ?>> knownMaps;
+  private final ConcurrentMap<String, Tuple> knownMaps;
+  private final AtomicInteger nextIndex = new AtomicInteger();
 
   FileBasedStateRepository(File directory) throws CachePersistenceException {
     if (directory == null) {
@@ -51,7 +56,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
       throw new IllegalArgumentException(directory + " is not a directory");
     }
     this.dataDirectory = directory;
-    knownMaps = new ConcurrentHashMap<String, ConcurrentMap<?, ?>>();
+    knownMaps = new ConcurrentHashMap<String, Tuple>();
     loadMaps();
   }
 
@@ -68,8 +73,9 @@ class FileBasedStateRepository implements StateRepository, Closeable {
         try {
           ObjectInputStream oin = new ObjectInputStream(fis);
           try {
-            ConcurrentMap<?, ?> map = (ConcurrentMap<?, ?>) oin.readObject();
-            knownMaps.put(file.getName().replace(MAP_FILE_SUFFIX, ""), map);
+            String name = (String) oin.readObject();
+            Tuple tuple = (Tuple) oin.readObject();
+            knownMaps.put(name, tuple);
           } finally {
             oin.close();
           }
@@ -84,13 +90,14 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   }
 
   private void saveMaps() throws IOException {
-    for (Map.Entry<String, ConcurrentMap<?, ?>> mapEntry : knownMaps.entrySet()) {
-      File outFile = new File(dataDirectory, mapEntry.getKey() + MAP_FILE_SUFFIX);
+    for (Map.Entry<String, Tuple> entry : knownMaps.entrySet()) {
+      File outFile = new File(dataDirectory, createFileName(entry));
       FileOutputStream fos = new FileOutputStream(outFile);
       try {
         ObjectOutputStream oos = new ObjectOutputStream(fos);
         try {
-          oos.writeObject(mapEntry.getValue());
+          oos.writeObject(entry.getKey());
+          oos.writeObject(entry.getValue());
         } finally {
           oos.close();
         }
@@ -100,22 +107,34 @@ class FileBasedStateRepository implements StateRepository, Closeable {
     }
   }
 
+  private String createFileName(Map.Entry<String, Tuple> entry) {return MAP_FILE_PREFIX + entry.getValue().index + "-" + safeIdentifier(entry.getKey(), false) + MAP_FILE_SUFFIX;}
+
   @Override
   public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name) {
-    ConcurrentMap<K, V> result = (ConcurrentMap<K, V>) knownMaps.get(name);
+    Tuple result = knownMaps.get(name);
     if (result == null) {
-      ConcurrentHashMap newMap = new ConcurrentHashMap();
-      result = (ConcurrentMap<K, V>) knownMaps.putIfAbsent(name, newMap);
+      ConcurrentHashMap<K, V> newMap = new ConcurrentHashMap<K, V>();
+      result = knownMaps.putIfAbsent(name, new Tuple(nextIndex.getAndIncrement(), newMap));
 
       if (result == null) {
         return newMap;
       }
     }
-    return result;
+    return (ConcurrentMap<K, V>) result.map;
   }
 
   @Override
   public void close() throws IOException {
     saveMaps();
+  }
+
+  static class Tuple implements Serializable {
+    final int index;
+    final ConcurrentMap<?, ?> map;
+
+    Tuple(int index, ConcurrentMap<?, ?> map) {
+      this.index = index;
+      this.map = map;
+    }
   }
 }

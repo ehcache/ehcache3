@@ -18,11 +18,9 @@ package org.ehcache.impl.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
@@ -30,7 +28,6 @@ import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,8 +39,6 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Locale;
@@ -54,6 +49,7 @@ import static java.lang.Integer.toHexString;
 import static java.nio.charset.Charset.forName;
 
 import java.util.concurrent.ConcurrentMap;
+
 import org.ehcache.config.CacheConfiguration;
 
 /**
@@ -271,7 +267,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
     PersistenceSpace persistenceSpace = getPersistenceSpace(identifier);
     if (persistenceSpace != null) {
-      File directory = new File(((DefaultPersistenceSpaceIdentifier) identifier).getDirectory(), safeIdentifier(name, false));
+      validateName(name);
+      File directory = new File(((DefaultPersistenceSpaceIdentifier) identifier).getDirectory(), name);
       if (!directory.mkdirs()) {
         if (!directory.exists()) {
           throw new CachePersistenceException("Unable to create directory " + directory);
@@ -303,6 +300,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   @Override
   public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
     if (containsSpace(identifier)) {
+      validateName(name);
       File directory = new File(((DefaultPersistenceSpaceIdentifier) identifier).getDirectory(), name);
       try {
         create(directory);
@@ -312,6 +310,12 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       return new DefaultFileBasedPersistenceContext(directory);
     } else {
       throw new CachePersistenceException("Unknown space: " + identifier);
+    }
+  }
+
+  private void validateName(String name) {
+    if (!name.matches("[a-zA-Z0-9\\-_]+")) {
+      throw new IllegalArgumentException("Name is invalid for persistence context: " + name);
     }
   }
 
@@ -434,7 +438,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     return safeIdentifier(name, true);
   }
 
-  private static String safeIdentifier(String name, boolean withSha1) {
+  static String safeIdentifier(String name, boolean withSha1) {
     int len = name.length();
     StringBuilder sb = new StringBuilder(len);
     for (int i = 0; i < len; i++) {

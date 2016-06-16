@@ -36,6 +36,8 @@ import static org.junit.Assert.*;
  */
 public class FileBasedStateRepositoryTest {
 
+  private static String MAP_FILE_NAME = "map-0-myMap.bin";
+
   @Rule
   public TemporaryFolder folder = new TemporaryFolder();
 
@@ -43,18 +45,22 @@ public class FileBasedStateRepositoryTest {
   public void testMapSave() throws Exception {
     File directory = folder.newFolder("testSave");
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
-    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap("myMap");
+    String mapName = "myMap";
+    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName);
 
     myMap.put(42L, "TheAnswer!");
 
     stateRepository.close();
 
-    FileInputStream fis = new FileInputStream(new File(directory, "myMap-map.bin"));
+    FileInputStream fis = new FileInputStream(new File(directory, MAP_FILE_NAME));
     try {
       ObjectInputStream ois = new ObjectInputStream(fis);
       try {
-        ConcurrentMap<Long, String> loadedMap = (ConcurrentMap<Long, String>) ois.readObject();
-        assertThat(loadedMap, is(myMap));
+        String name = (String) ois.readObject();
+        assertThat(name, is(mapName));
+        FileBasedStateRepository.Tuple loadedTuple = (FileBasedStateRepository.Tuple) ois.readObject();
+        assertThat(loadedTuple.index, is(0));
+        assertThat((ConcurrentMap<Long, String>)loadedTuple.map, is(myMap));
       } finally {
         ois.close();
       }
@@ -66,14 +72,16 @@ public class FileBasedStateRepositoryTest {
   @Test
   public void testMapLoad() throws Exception {
     File directory = folder.newFolder("testLoad");
+    String mapName = "myMap";
     ConcurrentMap<Long, String> map = new ConcurrentHashMap<Long, String>();
     map.put(42L, "Again? That's not even funny anymore!!");
 
-    FileOutputStream fos = new FileOutputStream(new File(directory, "myMap-map.bin"));
+    FileOutputStream fos = new FileOutputStream(new File(directory, MAP_FILE_NAME));
     try {
       ObjectOutputStream oos = new ObjectOutputStream(fos);
       try {
-        oos.writeObject(map);
+        oos.writeObject(mapName);
+        oos.writeObject(new FileBasedStateRepository.Tuple(0, map));
       } finally {
         oos.close();
       }
@@ -82,7 +90,7 @@ public class FileBasedStateRepositoryTest {
     }
 
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
-    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap("myMap");
+    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName);
 
     assertThat(myMap, is(map));
   }
