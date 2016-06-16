@@ -38,7 +38,12 @@ import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
@@ -132,5 +137,42 @@ public class BasicClusteredCacheOpsTest {
     assertThat(cache1.remove(1L, "yet another one"), is(true));
     assertThat(cache2.replace(1L, "one"), nullValue());
     assertThat(cache1.replace(1L, "another one", "yet another one"), is(false));
+  }
+
+  @Test
+  public void basicClusteredBulk() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
+        newCacheManagerBuilder()
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager?auto-create")))
+            .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
+        ;
+
+    final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
+    final PersistentCacheManager cacheManager2 = clusteredCacheManagerBuilder.build(true);
+
+    final Cache<Long, String> cache1 = cacheManager1.getCache("clustered-cache", Long.class, String.class);
+    final Cache<Long, String> cache2 = cacheManager2.getCache("clustered-cache", Long.class, String.class);
+
+    Map<Long, String> entriesMap = new HashMap<Long, String>();
+    entriesMap.put(1L, "one");
+    entriesMap.put(2L, "two");
+    entriesMap.put(3L, "three");
+    cache1.putAll(entriesMap);
+
+    Set<Long> keySet  = new HashSet<Long>(Arrays.asList(1L, 2L, 3L));
+    Map<Long, String> all = cache2.getAll(keySet);
+    assertThat(all.get(1L), is("one"));
+    assertThat(all.get(2L), is("two"));
+    assertThat(all.get(3L), is("three"));
+
+    cache2.removeAll(keySet);
+
+    all = cache1.getAll(keySet);
+    assertThat(all.get(1L), nullValue());
+    assertThat(all.get(2L), nullValue());
+    assertThat(all.get(3L), nullValue());
   }
 }
