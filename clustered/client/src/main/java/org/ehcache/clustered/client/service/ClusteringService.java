@@ -20,7 +20,7 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.service.PersistableResourceService;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
@@ -53,9 +53,18 @@ public interface ClusteringService extends PersistableResourceService {
   void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy);
 
   /**
-   * Identifies a client-side cache to server-based components.
+   * A {@link org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier PersistenceSpaceIdentifier}
+   * that can provide an id.
    */
-  interface ClusteredCacheIdentifier extends ServiceConfiguration<ClusteringService> {
+  interface ClusteredCacheIdentifier extends PersistenceSpaceIdentifier<ClusteringService> {
+
+    /**
+     * The id associated with this identifier.
+     *
+     * @return an id
+     */
     String getId();
   }
+
+
 }

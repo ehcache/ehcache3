@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -68,7 +69,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test the {@link TieredStore} compliance to the
@@ -126,8 +129,10 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
         final Copier defaultCopier = new IdentityCopier();
         OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher());
         try {
+          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
@@ -323,7 +328,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
     if (capacityConstraint == null) {
       capacityConstraint = 16L;
     }
-    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).disk((Long)capacityConstraint, MemoryUnit.MB).build();
+    return newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).disk((Long)capacityConstraint, MB).build();
   }
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {

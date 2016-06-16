@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
@@ -53,11 +53,11 @@ public class IntegerSerializer implements Serializer<Integer> {
    * </P>
    *
    * @param classLoader the classloader to use
-   * @param persistenceContext the persistence context
+   * @param stateRepository the state repository
    *
    * @see Serializer
    */
-  public IntegerSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+  public IntegerSerializer(ClassLoader classLoader, StateRepository stateRepository) {
 
   }
 

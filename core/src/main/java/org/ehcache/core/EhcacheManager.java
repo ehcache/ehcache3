@@ -52,7 +52,7 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.MaintainableService;
-import org.ehcache.spi.service.PersistableResourceService;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -416,12 +416,18 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     final Set<ResourceType<?>> resourceTypes = config.getResourcePools().getResourceTypeSet();
     for (ResourceType<?> resourceType : resourceTypes) {
       if (resourceType.isPersistable()) {
-        PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
+        final PersistableResourceService persistableResourceService = getPersistableResourceService(resourceType);
 
         try {
-          Collection<ServiceConfiguration<?>> serviceConfig = persistableResourceService
-              .additionalConfigurationsForPool(alias, config.getResourcePools().getPoolForResource(resourceType));
-          serviceConfigs.addAll(serviceConfig);
+          final PersistableResourceService.PersistenceSpaceIdentifier<?> spaceIdentifier = persistableResourceService
+              .getPersistenceSpaceIdentifier(alias, config);
+          serviceConfigs.add(spaceIdentifier);
+          lifeCycledList.add(new LifeCycledAdapter() {
+            @Override
+            public void close() throws Exception {
+              persistableResourceService.releasePersistenceSpaceIdentifier(spaceIdentifier);
+            }
+          });
         } catch (CachePersistenceException e) {
           throw new RuntimeException("Unable to handle persistence", e);
         }

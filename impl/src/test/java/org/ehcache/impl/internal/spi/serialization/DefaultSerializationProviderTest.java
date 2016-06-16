@@ -20,15 +20,19 @@ import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.serialization.ByteArraySerializer;
 import org.ehcache.impl.serialization.CharSerializer;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
+import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.impl.serialization.DoubleSerializer;
 import org.ehcache.impl.serialization.FloatSerializer;
 import org.ehcache.impl.serialization.IntegerSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.PlainJavaSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -75,7 +79,7 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider dsp = new DefaultSerializationProvider(dspfConfig);
     dsp.start(providerContaining());
 
-    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(PlainJavaSerializer.class));
+    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
     try {
       dsp.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader());
       fail("expected UnsupportedTypeException");
@@ -104,7 +108,7 @@ public class DefaultSerializationProviderTest {
     dsp.start(providerContaining());
 
     assertThat(dsp.createValueSerializer(Long.class, ClassLoader.getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(PlainJavaSerializer.class));
+    assertThat(dsp.createValueSerializer(HashMap.class, ClassLoader.getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
   }
 
   @Test
@@ -116,7 +120,7 @@ public class DefaultSerializationProviderTest {
     dsp.start(providerContaining());
 
     assertThat(dsp.createKeySerializer(String.class, getSystemClassLoader()), instanceOf(TestSerializer.class));
-    assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(PlainJavaSerializer.class));
+    assertThat(dsp.createKeySerializer(Serializable.class, getSystemClassLoader()), instanceOf(CompactJavaSerializer.class));
     assertThat(dsp.createKeySerializer(Integer.class, getSystemClassLoader()), instanceOf(IntegerSerializer.class));
   }
 
@@ -148,11 +152,11 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testReleaseSerializerWithProvidedCloseableSerializerDoesNotClose() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
-    provider.providedVsCount.put(serializer, new AtomicInteger(1));
+    CloseableSerializer closeableSerializer = new CloseableSerializer();
+    provider.providedVsCount.put(closeableSerializer, new AtomicInteger(1));
 
-    provider.releaseSerializer(serializer);
-    verify(serializer, times(0)).close();
+    provider.releaseSerializer(closeableSerializer);
+    assertThat(closeableSerializer.closed, is(false));
   }
 
   @Test
@@ -211,9 +215,9 @@ public class DefaultSerializationProviderTest {
   public void testDefaultSerializableSerializer() throws Exception {
     DefaultSerializationProvider provider = getStartedProvider();
     Serializer<Serializable> keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader());
-    assertThat(keySerializer, instanceOf(PlainJavaSerializer.class));
+    assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
     assertThat(keySerializer, instanceOf(PlainJavaSerializer.class));
   }
 
@@ -223,7 +227,7 @@ public class DefaultSerializationProviderTest {
     Serializer<String> keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader());
     assertThat(keySerializer, instanceOf(StringSerializer.class));
 
-    keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
     assertThat(keySerializer, instanceOf(StringSerializer.class));
   }
 
@@ -233,7 +237,7 @@ public class DefaultSerializationProviderTest {
     Serializer<Integer> keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader());
     assertThat(keySerializer, instanceOf(IntegerSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
     assertThat(keySerializer, instanceOf(IntegerSerializer.class));
   }
 
@@ -243,7 +247,7 @@ public class DefaultSerializationProviderTest {
     Serializer<Long> keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader());
     assertThat(keySerializer, instanceOf(LongSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
     assertThat(keySerializer, instanceOf(LongSerializer.class));
   }
 
@@ -253,7 +257,7 @@ public class DefaultSerializationProviderTest {
     Serializer<Character> keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader());
     assertThat(keySerializer, instanceOf(CharSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
     assertThat(keySerializer, instanceOf(CharSerializer.class));
   }
 
@@ -263,7 +267,7 @@ public class DefaultSerializationProviderTest {
     Serializer<Double> keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader());
     assertThat(keySerializer, instanceOf(DoubleSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
     assertThat(keySerializer, instanceOf(DoubleSerializer.class));
   }
 
@@ -273,7 +277,7 @@ public class DefaultSerializationProviderTest {
     Serializer<Float> keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader());
     assertThat(keySerializer, instanceOf(FloatSerializer.class));
 
-    keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
     assertThat(keySerializer, instanceOf(FloatSerializer.class));
   }
 
@@ -283,15 +287,25 @@ public class DefaultSerializationProviderTest {
     Serializer<byte[]> keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader());
     assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
 
-    keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader(), mock(LocalPersistenceService.PersistenceSpaceIdentifier.class));
+    keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
     assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
+  }
+
+  private PersistableResourceService.PersistenceSpaceIdentifier getPersistenceSpaceIdentifierMock() {
+    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = mock(LocalPersistenceService.PersistenceSpaceIdentifier.class);
+    when(spaceIdentifier.getServiceType()).thenReturn(LocalPersistenceService.class);
+    return spaceIdentifier;
   }
 
   private DefaultSerializationProvider getStartedProvider() throws CachePersistenceException {
     DefaultSerializationProvider defaultProvider = new DefaultSerializationProvider(null);
+
     ServiceProvider serviceProvider = mock(ServiceProvider.class);
     LocalPersistenceService persistenceService = mock(LocalPersistenceService.class);
-    when(persistenceService.createPersistenceContextWithin(any(LocalPersistenceService.PersistenceSpaceIdentifier.class), anyString()))
+    StateRepository stateRepository = mock(StateRepository.class);
+    when(stateRepository.getPersistentConcurrentMap(any(String.class))).thenReturn(new ConcurrentHashMap());
+    when(persistenceService.getStateRepositoryWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), any(String.class))).thenReturn(stateRepository);
+    when(persistenceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
           .thenReturn(new FileBasedPersistenceContext() {
             @Override
             public File getDirectory() {
