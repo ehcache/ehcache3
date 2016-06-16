@@ -26,7 +26,6 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
-import org.hamcrest.Matchers;
 import org.hamcrest.collection.IsIterableContainingInOrder;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -35,6 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -232,8 +232,8 @@ public class ChainResolverTest {
 
     Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
 
-    assertThat(operation.isExpiryAvailable(), Matchers.is(true));
-    assertThat(operation.expirationTime(), Matchers.is(Long.MIN_VALUE));
+    assertThat(operation.isExpiryAvailable(), is(true));
+    assertThat(operation.expirationTime(), is(Long.MIN_VALUE));
   }
 
   @Test
@@ -255,13 +255,13 @@ public class ChainResolverTest {
 
     Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
 
-    assertThat(operation.isExpiryAvailable(), Matchers.is(true));
-    assertThat(operation.expirationTime(), Matchers.is(Long.MIN_VALUE));
+    assertThat(operation.isExpiryAvailable(), is(true));
+    assertThat(operation.expirationTime(), is(Long.MIN_VALUE));
     try {
       operation.timeStamp();
       fail();
     } catch (Exception ex) {
-      assertThat(ex.getMessage(), Matchers.is("Timestamp not available"));
+      assertThat(ex.getMessage(), is("Timestamp not available"));
     }
   }
 
@@ -284,14 +284,14 @@ public class ChainResolverTest {
 
     Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
 
-    assertThat(operation.isExpiryAvailable(), Matchers.is(true));
-    assertThat(operation.expirationTime(), Matchers.is(4L));
+    assertThat(operation.isExpiryAvailable(), is(true));
+    assertThat(operation.expirationTime(), is(4L));
 
     try {
       operation.timeStamp();
       fail();
     } catch (Exception ex) {
-      assertThat(ex.getMessage(), Matchers.is("Timestamp not available"));
+      assertThat(ex.getMessage(), is("Timestamp not available"));
     }
 
   }

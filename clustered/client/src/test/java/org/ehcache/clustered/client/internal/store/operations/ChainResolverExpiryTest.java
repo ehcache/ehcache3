@@ -19,8 +19,10 @@ package org.ehcache.clustered.client.internal.store.operations;
 import org.ehcache.ValueSupplier;
 import org.ehcache.clustered.client.TestTimeSource;
 import org.ehcache.clustered.client.internal.store.ChainBuilder;
+import org.ehcache.clustered.client.internal.store.ResolvedChain;
 import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsCodec;
 import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.store.Element;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.serialization.LongSerializer;
@@ -31,7 +33,11 @@ import org.mockito.InOrder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
@@ -41,6 +47,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.hamcrest.Matchers.is;
 
 public class ChainResolverExpiryTest {
 
@@ -166,12 +173,105 @@ public class ChainResolverExpiryTest {
 
   }
 
+  @Test
+  public void testNullGetExpiryForCreation() {
+    Expiry<Long, String> expiry = mock(Expiry.class);
+    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenReturn(null);
+
+    List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new PutOperation<Long, String>(1L, "Replaced", 10L));
+
+    Chain chain = getChainFromOperations(list);
+
+    ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertTrue(resolvedChain.getCompactedChain().isEmpty());
+
+  }
+
+  @Test
+  public void testNullGetExpiryForUpdate() {
+    Expiry<Long, String> expiry = mock(Expiry.class);
+    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+
+    when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenReturn(null);
+
+    List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new PutOperation<Long, String>(1L, "Replaced", -10L));
+    list.add(new PutOperation<Long, String>(1L, "New", timeSource.getTimeMillis()));
+    Chain chain = getChainFromOperations(list);
+
+    ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(resolvedChain.getResolvedResult(1L).getValue().toString(), is("New"));
+    assertTrue(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).isExpiryAvailable());
+    assertThat(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).expirationTime(), is(10L));
+  }
+
+  @Test
+  public void testGetExpiryForUpdateUpdatesExpirationTimeStamp() {
+    Expiry<Long, String> expiry = mock(Expiry.class);
+    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+
+    when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenReturn(new Duration(2L, TimeUnit.MILLISECONDS));
+
+    List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new PutOperation<Long, String>(1L, "Replaced", -10L));
+    list.add(new PutOperation<Long, String>(1L, "New", timeSource.getTimeMillis()));
+    Chain chain = getChainFromOperations(list);
+
+    ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(resolvedChain.getResolvedResult(1L).getValue().toString(), is("New"));
+    assertTrue(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).isExpiryAvailable());
+    assertThat(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).expirationTime(), is(2L));
+  }
+
+  @Test
+  public void testExpiryThrowsException() {
+    Expiry<Long, String> expiry = mock(Expiry.class);
+    ChainResolver<Long, String> chainResolver = new ChainResolver(codec, expiry);
+
+    when(expiry.getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString())).thenThrow(new RuntimeException("Test Update Expiry"));
+    when(expiry.getExpiryForCreation(anyLong(), anyString())).thenThrow(new RuntimeException("Test Create Expiry"));
+
+    List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new PutOperation<Long, String>(1L, "One", -10L));
+    list.add(new PutOperation<Long, String>(1L, "Two", timeSource.getTimeMillis()));
+    Chain chain = getChainFromOperations(list);
+
+    ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(resolvedChain.getResolvedResult(1L), nullValue());
+
+    list = new ArrayList<Operation<Long, String>>();
+    list.add(new PutOperation<Long, String>(1L, "One", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(1L, "Two", timeSource.getTimeMillis()));
+    chain = getChainFromOperations(list);
+
+    resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(resolvedChain.getResolvedResult(1L), nullValue());
+
+  }
+
   private Chain getChainFromOperations(List<Operation<Long, String>> operations) {
     ChainBuilder chainBuilder = new ChainBuilder();
     for(Operation<Long, String> operation: operations) {
       chainBuilder = chainBuilder.add(codec.encode(operation));
     }
     return chainBuilder.build();
+  }
+
+  private List<Operation<Long, String>> getOperationsListFromChain(Chain chain) {
+    List<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    for (Element element : chain) {
+      Operation<Long, String> operation = codec.decode(element.getPayload());
+      list.add(operation);
+    }
+    return list;
   }
 
 }
