@@ -51,6 +51,7 @@ import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceId
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Query;
 import org.terracotta.context.query.QueryBuilder;
@@ -92,6 +93,9 @@ import static org.terracotta.context.query.Matchers.context;
 import static org.terracotta.context.query.Matchers.hasAttribute;
 
 public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
+
+  @Rule
+  public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
   @Rule
   public final TestLocalPersistenceService persistenceService = new TestLocalPersistenceService();
@@ -325,11 +329,11 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void diskStoreShrinkingTest() throws InterruptedException {
+  public void diskStoreShrinkingTest() throws Exception {
 
     CacheManager manager = newCacheManagerBuilder()
-            .with(persistence("target/disk-stores"))
-            .build(true);
+        .with(persistence(temporaryFolder.newFolder("disk-stores").getAbsolutePath()))
+        .build(true);
 
     final Cache<Long, CacheValue> cache = manager.createCache("test", newCacheConfigurationBuilder(Long.class, CacheValue.class,
             heap(1000).offheap(20, MB).disk(30, MB))
