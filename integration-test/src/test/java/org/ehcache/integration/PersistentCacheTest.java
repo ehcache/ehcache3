@@ -21,9 +21,13 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.StateTransitionException;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 
@@ -35,11 +39,20 @@ import static org.hamcrest.Matchers.instanceOf;
 
 public class PersistentCacheTest {
 
+  @Rule
+  public TemporaryFolder temporaryFolder = new TemporaryFolder();
+  private File folder;
+
+  @Before
+  public void setUp() throws IOException {
+    folder = temporaryFolder.newFolder("persistent-cache-test");
+  }
+
   @Test
   public void testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass() throws Exception {
     {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass")))
+          .with(new CacheManagerPersistenceConfiguration(new File(folder, "testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass")))
           .withCache("persistentCache",
               CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                   newResourcePoolsBuilder()
@@ -55,7 +68,7 @@ public class PersistentCacheTest {
 
     {
         PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-            .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass")))
+            .with(new CacheManagerPersistenceConfiguration(new File(folder, "testRecoverPersistentCacheFailsWhenConfiguringIncompatibleClass")))
             .withCache("persistentCache",
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, Serializable.class,
                     newResourcePoolsBuilder()
@@ -88,7 +101,7 @@ public class PersistentCacheTest {
   public void testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass() throws Exception {
     {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass")))
+          .with(new CacheManagerPersistenceConfiguration(new File(folder, "testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass")))
           .withCache("persistentCache",
               CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, byte[].class,
                   newResourcePoolsBuilder()
@@ -104,7 +117,7 @@ public class PersistentCacheTest {
 
     {
       PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-          .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass")))
+          .with(new CacheManagerPersistenceConfiguration(new File(folder, "testRecoverPersistentCacheSucceedsWhenConfiguringArrayClass")))
           .withCache("persistentCache",
               CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, byte[].class,
                   newResourcePoolsBuilder()
@@ -118,9 +131,4 @@ public class PersistentCacheTest {
       cacheManager.close();
     }
   }
-
-  private String getStoragePath() throws URISyntaxException {
-    return getClass().getClassLoader().getResource(".").toURI().getPath();
-  }
-
 }
