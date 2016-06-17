@@ -150,7 +150,6 @@ include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client
 <1> Configuring heap tier for cache.
 <2> Configuring clustered tier of fixed size from server resource.
 
-
 === Specifying consistency level
 
 Ehcache offers two level of consistency:
@@ -180,3 +179,9 @@ include::{sourcedir}/clustered/client/src/test/resources/configs/docs/ehcache-cl
 ----
 
 <1> Specify the consistency level through a custom service configuration from the `clustered` namespace.
+
+=== Clustered Cache Expiry
+
+Expiry in clustered caches work with an exception that `Expiry#getExpiryForAccess` is ignored in clustered tier, though the same
+is honored in on-heap tiers. Thus no entry gets expired in clustered storage tier based on `getExpiryForAccess`.
+
