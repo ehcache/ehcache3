@@ -137,7 +137,19 @@ include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client
 
 == Clustered caches
 
-IMPORTANT: Content needed here!
+Distributed Caching can be enabled on a cache by adding Clustered storage as a tier to the cache.
+This allows users to harness additional benefits of horizontal scale-out, without loosing on latency offered by local on-heap tiers.
+
+=== Clustered Storage Tier
+
+[source,java,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheTieredExample]
+----
+
+<1> Configuring heap tier for cache.
+<2> Configuring clustered tier of fixed size from server resource.
+
 
 === Specifying consistency level
 

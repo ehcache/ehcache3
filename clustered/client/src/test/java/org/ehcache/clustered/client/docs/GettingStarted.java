@@ -39,7 +39,7 @@ import org.junit.Before;
 /**
  * Samples demonstrating use of a clustered cache.
  *
- * @see org.ehcache.docs.GettingStarted
+ * @see org.ehcache.docs.Getting
  */
 public class GettingStarted {
 
@@ -102,7 +102,7 @@ public class GettingStarted {
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
                     .autoCreate(true)
                     .defaultServerResource("primary-server-resource")
-                    .resourcePool("resource-pool-a", 128, MemoryUnit.B));
+                    .resourcePool("resource-pool-a", 28, MemoryUnit.MB));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -126,7 +126,7 @@ public class GettingStarted {
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
                     .autoCreate(true)
                     .defaultServerResource("primary-server-resource")
-                    .resourcePool("resource-pool-a", 128, MemoryUnit.B));
+                    .resourcePool("resource-pool-a", 32, MemoryUnit.MB));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -142,6 +142,34 @@ public class GettingStarted {
       cache.put(42L, "All you need to know!"); // <2>
 
       // end::clusteredCacheConsistency[]
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Test
+  public void clusteredCacheTieredExample() throws Exception {
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
+        = CacheManagerBuilder.newCacheManagerBuilder()
+        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application?auto-create"))
+            .defaultServerResource("primary-server-resource")
+            .resourcePool("resource-pool-a", 32, MemoryUnit.MB));
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
+    cacheManager.init();
+
+    try {
+      // tag::clusteredCacheTieredExample[]
+      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+          ResourcePoolsBuilder.newResourcePoolsBuilder()
+              .heap(2, MemoryUnit.MB) // <1>
+              .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 8, MemoryUnit.MB))) // <2>
+          .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+          .build();
+
+      Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+      cache.put(42L, "All you need to know!");
+
+      // end::clusteredCacheTieredExample[]
     } finally {
       cacheManager.close();
     }
