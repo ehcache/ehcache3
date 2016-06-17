@@ -20,7 +20,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -48,17 +47,14 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -77,7 +73,6 @@ class DefaultClusteringService implements ClusteringService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
 
-  private static final String AUTO_CREATE_QUERY = "auto-create";
   static final String CONNECTION_PREFIX = "Ehcache:";
 
   private final ClusteringServiceConfiguration configuration;
@@ -99,7 +94,7 @@ class DefaultClusteringService implements ClusteringService {
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
     this.serverConfiguration =
         new ServerSideConfiguration(configuration.getDefaultServerResource(), extractResourcePools(configuration));
-    this.autoCreate = AUTO_CREATE_QUERY.equalsIgnoreCase(ehcacheUri.getQuery());
+    this.autoCreate = configuration.isAutoCreate();
   }
 
   private static URI extractClusterUri(URI uri) {

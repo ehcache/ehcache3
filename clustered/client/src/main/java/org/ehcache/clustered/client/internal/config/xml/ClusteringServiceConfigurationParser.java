@@ -101,6 +101,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
       Map<String, PoolDefinition> sharedPools = null;
       String defaultServerResource = null;
       URI connectionUri = null;
+      boolean autoCreate = false;
       final NodeList childNodes = fragment.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
         final Node item = childNodes.item(i);
@@ -126,13 +127,14 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
              * <server-side-config> is an optional element
              */
             ServerSideConfig config = processServerSideConfig(item);
+            autoCreate = config.autoCreate;
             defaultServerResource = config.defaultServerResource;
             sharedPools = config.pools;
           }
         }
       }
       try {
-        return new ClusteringServiceConfiguration(connectionUri, defaultServerResource, sharedPools);
+        return new ClusteringServiceConfiguration(connectionUri, autoCreate, defaultServerResource, sharedPools);
       } catch (IllegalArgumentException e) {
         throw new XmlConfigurationException(e);
       }
@@ -143,6 +145,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
   private ServerSideConfig processServerSideConfig(Node serverSideConfigElement) {
     ServerSideConfig serverSideConfig = new ServerSideConfig();
+    serverSideConfig.autoCreate = Boolean.parseBoolean(((Element) serverSideConfigElement).getAttribute("auto-create"));
     final NodeList serverSideNodes = serverSideConfigElement.getChildNodes();
     for (int i = 0; i < serverSideNodes.getLength(); i++) {
       final Node item = serverSideNodes.item(i);
@@ -190,6 +193,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   }
 
   private static final class ServerSideConfig {
+    private boolean autoCreate;
     private String defaultServerResource;
     private Map<String, PoolDefinition> pools;
   }

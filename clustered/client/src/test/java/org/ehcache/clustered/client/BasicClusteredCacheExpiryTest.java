@@ -47,10 +47,10 @@ import static org.junit.Assert.assertThat;
  */
 public class BasicClusteredCacheExpiryTest {
 
-  private static final URI CLUSTER_URI = URI.create("http://example.com:9540/my-application?auto-create");
+  private static final URI CLUSTER_URI = URI.create("http://example.com:9540/my-application");
   private static final CacheManagerBuilder<PersistentCacheManager> commonClusteredCacheManagerBuilder =
       newCacheManagerBuilder()
-          .with(cluster(CLUSTER_URI))
+          .with(cluster(CLUSTER_URI).autoCreate(true))
           .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))

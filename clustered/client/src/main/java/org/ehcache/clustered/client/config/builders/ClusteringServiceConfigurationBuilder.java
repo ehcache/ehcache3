@@ -32,6 +32,7 @@ import static java.util.Collections.unmodifiableMap;
 public final class ClusteringServiceConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
   private final URI clusterUri;
+  private final boolean autoCreate;
   private final String defaultServerResource;
   private final Map<String, PoolDefinition> pools;
 
@@ -48,12 +49,14 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   private ClusteringServiceConfigurationBuilder(URI clusterUri) {
     this.clusterUri = clusterUri;
+    this.autoCreate = false;
     this.defaultServerResource = null;
     this.pools = emptyMap();
   }
 
   private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, String poolName, PoolDefinition poolDefinition) {
     this.clusterUri = original.clusterUri;
+    this.autoCreate = original.autoCreate;
     this.defaultServerResource = original.defaultServerResource;
     Map<String, PoolDefinition> pools = new HashMap<String, PoolDefinition>(original.pools);
     if (pools.put(poolName, poolDefinition) != null) {
@@ -64,8 +67,27 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, String defaultServerResource) {
     this.clusterUri = original.clusterUri;
+    this.autoCreate = original.autoCreate;
     this.defaultServerResource = defaultServerResource;
     this.pools = original.pools;
+  }
+
+  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, boolean autoCreate) {
+    this.clusterUri = original.clusterUri;
+    this.autoCreate = autoCreate;
+    this.defaultServerResource = original.defaultServerResource;
+    this.pools = original.pools;
+  }
+
+  /**
+   * Sets the auto-create behavior.
+   *
+   * @param autoCreate auto create behavior
+   *
+   * @return a clustering service configuration builder
+   */
+  public ClusteringServiceConfigurationBuilder autoCreate(boolean autoCreate) {
+    return new ClusteringServiceConfigurationBuilder(this, autoCreate);
   }
 
   /**
@@ -120,6 +142,6 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   @Override
   public ClusteringServiceConfiguration build() {
-    return new ClusteringServiceConfiguration(clusterUri, defaultServerResource, pools);
+    return new ClusteringServiceConfiguration(clusterUri, autoCreate, defaultServerResource, pools);
   }
 }

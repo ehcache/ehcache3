@@ -90,6 +90,13 @@
         </xs:annotation>
       </xs:element>
     </xs:sequence>
+    <xs:attribute name="auto-create" type="xs:boolean" use="optional" default="false">
+      <xs:annotation>
+        <xs:documentation> xml:lang="en">
+          True if server side components should be automatically created if they are absent.
+        </xs:documentation> 
+      </xs:annotation>
+    </xs:attribute>
   </xs:complexType>
 
 

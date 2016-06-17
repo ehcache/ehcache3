@@ -65,8 +65,8 @@ public class TerminatedServerTest {
   public void testTerminationBeforeCacheManagerClose() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName?auto-create"))
-            .defaultServerResource("primary-server-resource"));
+        .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
+            .autoCreate(true).defaultServerResource("primary-server-resource"));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 

@@ -41,6 +41,7 @@ public final class ClusteringServiceConfiguration
     CacheManagerConfiguration<PersistentCacheManager> {
 
   private final URI clusterUri;
+  private final boolean autoCreate;
   private final String defaultServerResource;
   private final Map<String, PoolDefinition> pools;
 
@@ -48,6 +49,7 @@ public final class ClusteringServiceConfiguration
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
    * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param autoCreate {@code true} if server components should be auto created
    * @param defaultServerResource the server resource to use for pools not identifying a resource;
    *                              may be {@code null} only when no {@code pools} item omits a resource
    * @param pools the map of shared resource pool identifier to {@link PoolDefinition}; may be {@code null}
@@ -58,7 +60,7 @@ public final class ClusteringServiceConfiguration
    * @throws IllegalArgumentException if {@code pools} contains a {@code PoolDefinition} which omits the
    *            resource identifier and {@code defaultServerResource} is {@code null}
    */
-  public ClusteringServiceConfiguration(final URI clusterUri, String defaultServerResource, Map<String, PoolDefinition> pools) {
+  public ClusteringServiceConfiguration(final URI clusterUri, boolean autoCreate, String defaultServerResource, Map<String, PoolDefinition> pools) {
     if (clusterUri == null) {
       throw new NullPointerException("Cluster URI cannot be null");
     }
@@ -78,6 +80,7 @@ public final class ClusteringServiceConfiguration
     }
 
     this.clusterUri = clusterUri;
+    this.autoCreate = autoCreate;
     this.defaultServerResource = defaultServerResource;
     this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
   }
@@ -89,6 +92,15 @@ public final class ClusteringServiceConfiguration
    */
   public URI getClusterUri() {
     return clusterUri;
+  }
+
+  /**
+   * Returns {@code true} is server side components should be automatically created.
+   *
+   * @return {@code true} is auto-create is enabled
+   */
+  public boolean isAutoCreate() {
+    return autoCreate;
   }
 
   /**
