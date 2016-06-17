@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.ehcache.util.ClassLoading;
 
 import static java.util.Collections.*;
 import static java.util.Collections.unmodifiableCollection;
@@ -37,6 +38,9 @@ public final class DefaultConfiguration implements Configuration, RuntimeConfigu
   private final ClassLoader classLoader;
 
   public DefaultConfiguration(Configuration cfg) {
+    if (cfg.getClassLoader() == null) {
+      throw new NullPointerException();
+    }
     this.caches = unmodifiableMap(new HashMap<String, CacheConfiguration<?, ?>>(cfg.getCacheConfigurations()));
     this.services = unmodifiableCollection(cfg.getServiceCreationConfigurations());
     this.classLoader = cfg.getClassLoader();
@@ -49,7 +53,7 @@ public final class DefaultConfiguration implements Configuration, RuntimeConfigu
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceCreationConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = unmodifiableMap(new HashMap<String,CacheConfiguration<?, ?>>(caches));
-    this.classLoader = classLoader;
+    this.classLoader = classLoader == null ? ClassLoading.getDefaultClassLoader() : classLoader;
   }
 
   @Override
