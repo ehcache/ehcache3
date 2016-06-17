@@ -38,4 +38,14 @@
     <tc:clustered-store consistency="strong"/> <!--1-->
   </cache>
   <!-- end::consistencySample[] -->
+
+  <!-- tag::tieringSample[] -->
+  <cache alias="clustered-cache">
+    <resources>
+      <heap unit="MB">10</heap> <!--1-->
+      <tc:cluster-fixed unit="MB">50</tc:cluster-fixed> <!--2-->
+    </resources>
+    <tc:clustered-store consistency="strong"/>
+  </cache>
+  <!-- end::tieringSample[] -->
 </config>

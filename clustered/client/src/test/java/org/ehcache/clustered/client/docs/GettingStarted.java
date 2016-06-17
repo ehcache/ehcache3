@@ -38,8 +38,6 @@ import org.junit.Before;
 
 /**
  * Samples demonstrating use of a clustered cache.
- *
- * @see org.ehcache.docs.Getting
  */
 public class GettingStarted {
 
@@ -151,7 +149,8 @@ public class GettingStarted {
   public void clusteredCacheTieredExample() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application?auto-create"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+            .autoCreate(true)
             .defaultServerResource("primary-server-resource")
             .resourcePool("resource-pool-a", 32, MemoryUnit.MB));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
