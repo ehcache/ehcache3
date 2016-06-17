@@ -47,6 +47,9 @@ public final class DefaultConfiguration implements Configuration {
    * @param cfg the configuration to copy
    */
   public DefaultConfiguration(Configuration cfg) {
+    if (cfg.getClassLoader() == null) {
+      throw new NullPointerException();
+    }
     this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(cfg.getCacheConfigurations());
     this.services = unmodifiableCollection(cfg.getServiceCreationConfigurations());
     this.classLoader = cfg.getClassLoader();
