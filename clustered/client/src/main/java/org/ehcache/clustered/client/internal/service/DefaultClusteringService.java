@@ -365,7 +365,7 @@ class DefaultClusteringService implements ClusteringService {
     }
   }
 
-  <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getConcurrentMap(ClusteredCacheIdentifier identifier, String name) {
+  <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getConcurrentMap(ClusteredCacheIdentifier identifier, String name, Class<K> keyClass, Class<V> valueClass) {
     Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository> tuple = knownPersistenceSpaces.get(identifier.getId());
     if (tuple == null) {
       throw new AssertionError("Lost a space?? " + identifier);
@@ -374,14 +374,14 @@ class DefaultClusteringService implements ClusteringService {
     while (true) {
       ConcurrentClusteredMap map = mapRepository.getMap(name);
       if (map == null) {
-        mapRepository.addNewMap(name, createConcurrentClusteredMap(name));
+        mapRepository.addNewMap(name, createConcurrentClusteredMap(name, keyClass, valueClass));
       } else {
         return map;
       }
     }
   }
 
-  private Tuple<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap> createConcurrentClusteredMap(String name) {
+  private ConcurrentClusteredMap createConcurrentClusteredMap(String name, Class<?> keyClass, Class<?> valueClass) {
     try {
       EntityRef<ConcurrentClusteredMap, Object> clusteredMapRef = clusterConnection.getEntityRef(ConcurrentClusteredMap.class, ConcurrentClusteredMap.VERSION, name);
       ConcurrentClusteredMap clusteredMap;
@@ -391,7 +391,8 @@ class DefaultClusteringService implements ClusteringService {
         clusteredMapRef.create(null);
         clusteredMap = clusteredMapRef.fetchEntity();
       }
-      return new Tuple<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap>(clusteredMapRef, clusteredMap);
+      clusteredMap.setTypes(keyClass, valueClass);
+      return clusteredMap;
     } catch (EntityNotFoundException e) {
       throw new AssertionError("Should not happen");
     } catch (EntityException e) {
@@ -431,4 +432,16 @@ class DefaultClusteringService implements ClusteringService {
     }
   }
 
+  /**
+   * Tuple
+   */
+  static class Tuple<K, V> {
+    final K first;
+    final V second;
+
+    Tuple(K first, V second) {
+      this.first = first;
+      this.second = second;
+    }
+  }
 }

@@ -24,30 +24,26 @@ import java.util.concurrent.ConcurrentMap;
 
 class ClusteredMapRepository {
 
-  private final ConcurrentMap<String, Tuple<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap>> knownMaps;
+  private final ConcurrentMap<String, ConcurrentClusteredMap> knownMaps;
 
   ClusteredMapRepository() {
-    knownMaps = new ConcurrentHashMap<String, Tuple<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap>>();
+    knownMaps = new ConcurrentHashMap<String, ConcurrentClusteredMap>();
   }
 
   ConcurrentClusteredMap getMap(String name) {
-    Tuple<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap> tuple = knownMaps.get(name);
-    if (tuple != null) {
-      return tuple.second;
-    }
-    return null;
+    return knownMaps.get(name);
   }
 
-  void addNewMap(String name, Tuple<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap> tuple) {
-    Tuple<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap> previous = knownMaps.putIfAbsent(name, tuple);
+  void addNewMap(String name, ConcurrentClusteredMap map) {
+    ConcurrentClusteredMap previous = knownMaps.putIfAbsent(name, map);
     if (previous != null) {
-      tuple.second.close();
+      map.close();
     }
   }
 
   void clear() {
-    for (Tuple<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap> tuple : knownMaps.values()) {
-      tuple.second.close();
+    for (ConcurrentClusteredMap map : knownMaps.values()) {
+      map.close();
     }
     knownMaps.clear();
   }

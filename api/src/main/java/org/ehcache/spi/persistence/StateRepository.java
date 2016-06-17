@@ -35,5 +35,5 @@ public interface StateRepository {
    * @param <V> the map value type, must be {@code Serializable}
    * @return a map
    */
-  <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name);
+  <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass);
 }

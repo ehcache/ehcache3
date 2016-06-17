@@ -26,5 +26,6 @@ dependencies {
   testCompile(project(':clustered:server')) {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
+  testCompile "org.terracotta.entities:clustered-map-server:$parent.clusteredMapVersion"
   testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
 }

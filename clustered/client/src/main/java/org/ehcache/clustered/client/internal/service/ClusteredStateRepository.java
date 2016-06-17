@@ -38,7 +38,7 @@ class ClusteredStateRepository implements StateRepository {
   }
 
   @Override
-  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name) {
-    return defaultClusteringService.getConcurrentMap(clusterCacheIdentifier, composedId + "-" + name);
+  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
+    return defaultClusteringService.getConcurrentMap(clusterCacheIdentifier, composedId + "-" + name, keyClass, valueClass);
   }
 }

@@ -32,10 +32,10 @@ public class TransientStateRepositoryTest {
   @Test
   public void testRemembersCreatedMaps() throws Exception {
     TransientStateRepository repository = new TransientStateRepository();
-    ConcurrentMap<Long, String> test = repository.getPersistentConcurrentMap("test");
+    ConcurrentMap<Long, String> test = repository.getPersistentConcurrentMap("test", Long.class, String.class);
     test.put(42L, "Again??");
 
-    test = repository.getPersistentConcurrentMap("test");
+    test = repository.getPersistentConcurrentMap("test", Long.class, String.class);
     assertThat(test.get(42L), is("Again??"));
   }
 

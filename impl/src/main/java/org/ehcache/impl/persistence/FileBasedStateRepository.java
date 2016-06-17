@@ -110,7 +110,7 @@ class FileBasedStateRepository implements StateRepository, Closeable {
   private String createFileName(Map.Entry<String, Tuple> entry) {return MAP_FILE_PREFIX + entry.getValue().index + "-" + safeIdentifier(entry.getKey(), false) + MAP_FILE_SUFFIX;}
 
   @Override
-  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name) {
+  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
     Tuple result = knownMaps.get(name);
     if (result == null) {
       ConcurrentHashMap<K, V> newMap = new ConcurrentHashMap<K, V>();

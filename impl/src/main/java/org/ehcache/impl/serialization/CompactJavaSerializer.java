@@ -77,7 +77,7 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
 
   public CompactJavaSerializer(ClassLoader loader, StateRepository stateRepository) {
     this.loader = loader;
-    this.readLookup = stateRepository.getPersistentConcurrentMap("CompactJavaSerializer-ObjectStreamClassIndex");
+    this.readLookup = stateRepository.getPersistentConcurrentMap("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
     loadMappingsInWriteContext(readLookup.entrySet(), true);
   }
 
@@ -182,10 +182,12 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
       ObjectStreamClass existingOsc = readLookup.putIfAbsent(rep, disconnected);
       if (existingOsc == null) {
         writeLookup.put(key, rep);
+        readLookupLocalCache.put(rep, disconnected);
         return rep;
       } else {
-        // StateRepository map updated somewhere else - reload
-        loadMappingsInWriteContext(readLookup.entrySet(), false);
+        ObjectStreamClass discOsc = disconnect(existingOsc);
+        writeLookup.put(new SerializableDataKey(discOsc, true), rep);
+        readLookupLocalCache.put(rep, discOsc);
       }
     }
   }

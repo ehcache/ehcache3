@@ -30,7 +30,7 @@ class TransientStateRepository implements StateRepository {
   private ConcurrentMap<String, ConcurrentMap> knownMaps = new ConcurrentHashMap<String, ConcurrentMap>();
 
   @Override
-  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name) {
+  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
     ConcurrentMap concurrentMap = knownMaps.get(name);
     if (concurrentMap != null) {
       return concurrentMap;
