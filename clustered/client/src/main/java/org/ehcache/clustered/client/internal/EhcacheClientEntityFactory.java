@@ -16,21 +16,21 @@
 
 package org.ehcache.clustered.client.internal;
 
+import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.ehcache.clustered.lock.client.VoltronReadWriteLock;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.lock.client.VoltronReadWriteLock.Hold;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
-import org.terracotta.consensus.CoordinationService;
-import org.terracotta.consensus.CoordinationService.ElectionTask;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
-
-import static org.ehcache.clustered.common.Util.unwrapException;
 
 public class EhcacheClientEntityFactory {
 
@@ -39,43 +39,31 @@ public class EhcacheClientEntityFactory {
   private static final long ENTITY_VERSION = 1L;
 
   private final Connection connection;
-  private final CoordinationService coordinator;
+  private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
 
   public EhcacheClientEntityFactory(Connection connection) {
-    this(connection, new CoordinationService(connection));
-  }
-
-  EhcacheClientEntityFactory(Connection connection, CoordinationService coordinator) {
     this.connection = connection;
-    this.coordinator = coordinator;
-  }
-
-  public void close() {
-    if (coordinator != null) {
-      coordinator.close();
-    }
   }
 
   public boolean acquireLeadership(String entityIdentifier) {
-    try {
-      if (asLeaderOf(entityIdentifier, new ElectionTask<Boolean>() {
-        @Override
-        public Boolean call(boolean clean) throws Exception {
-          return true;
-        }
-      }) == null) {
-        return false;
-      } else {
-        return true;
-      }
-    } catch (ExecutionException ex) {
-      LOGGER.error("Unable to acquire cluster leadership cluster id {}", entityIdentifier, ex);
-      throw new AssertionError(ex.getCause());
+    VoltronReadWriteLock lock = createAccessLockFor(entityIdentifier);
+
+    Hold hold = lock.tryWriteLock();
+    if (hold == null) {
+      return false;
+    } else {
+      maintenanceHolds.put(entityIdentifier, hold);
+      return true;
     }
   }
 
   public void abandonLeadership(String entityIdentifier) {
-    coordinator.delist(EhcacheClientEntity.class, entityIdentifier);
+    Hold hold = maintenanceHolds.remove(entityIdentifier);
+    if (hold == null) {
+      throw new IllegalMonitorStateException("Leadership was never held");
+    } else {
+      hold.unlock();
+    }
   }
 
   /**
@@ -91,58 +79,70 @@ public class EhcacheClientEntityFactory {
    */
   public void create(final String identifier, final ServerSideConfiguration config)
       throws EntityAlreadyExistsException, EhcacheEntityCreationException {
-    try {
-      Boolean created = asLeaderOf(identifier, new ElectionTask<Boolean>() {
-        @Override
-        public Boolean call(boolean clean) throws EntityAlreadyExistsException {
-          EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
-          try {
-            while (true) {
-              ref.create(UUID.randomUUID());
-              EhcacheClientEntity entity = null;
+    Hold existingMaintenance = maintenanceHolds.get(identifier);
+    Hold localMaintenance = null;
+    if (existingMaintenance == null) {
+      localMaintenance = createAccessLockFor(identifier).tryWriteLock();
+    }
+    if (existingMaintenance == null && localMaintenance == null) {
+      throw new EhcacheEntityCreationException("Unable to create entity for cluster id "
+              + identifier + ": another client owns the maintenance lease");
+    } else {
+      try {
+        EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
+        try {
+          while (true) {
+            ref.create(UUID.randomUUID());
+            try {
+              EhcacheClientEntity entity = ref.fetchEntity();
               try {
-                entity = ref.fetchEntity();
                 configure(entity, config);
-                return true;
-              } catch (EntityNotFoundException e) {
-                //continue;
+                return;
               } finally {
-                if (entity != null) {
-                  entity.close();
-                }
+                entity.close();
               }
+            } catch (EntityNotFoundException e) {
+                //continue;
             }
-          } catch (EntityNotProvidedException e) {
-            LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
-            throw new AssertionError(e);
-          } catch (EntityVersionMismatchException e) {
-            LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
-            throw new AssertionError(e);
           }
+        } catch (EntityNotProvidedException e) {
+          LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
+          throw new AssertionError(e);
+        } catch (EntityVersionMismatchException e) {
+          LOGGER.error("Unable to create entity for cluster id {}", identifier, e);
+          throw new AssertionError(e);
         }
-      });
-      if (created == null || !created) {
-        String message = "Unable to create entity for cluster id " + identifier
-            + ": unable to obtain cluster leadership";
-        LOGGER.error(message);
-        throw new EhcacheEntityCreationException(message);
+      } finally {
+        if (localMaintenance != null) {
+          localMaintenance.unlock();
+        }
       }
-    } catch (ExecutionException ex) {
-      throw unwrapException(ex, EntityAlreadyExistsException.class);
     }
   }
 
-  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config) throws EntityNotFoundException, IllegalArgumentException {
+  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config) throws EntityNotFoundException, IllegalArgumentException, EhcacheEntityBusyException {
     try {
-      EhcacheClientEntity entity = getEntityRef(identifier).fetchEntity();
-      boolean validated = false;
-      try {
-        validate(entity, config);
-        validated = true;
-        return entity;
-      } finally {
-        if (!validated) {
-          entity.close();
+      Hold fetchHold = createAccessLockFor(identifier).tryReadLock();
+      if (fetchHold == null) {
+        throw new EhcacheEntityBusyException("Unable to retrieve entity for cluster id "
+                + identifier + ": another client owns the maintenance lease");
+      } else {
+        EhcacheClientEntity entity = getEntityRef(identifier).fetchEntity();
+        /*
+         * Currently entities are never closed as doing so can stall the client
+         * when the server is dead.  Instead the connection is forcibly closed,
+         * which suits our purposes since that will unlock the fetchHold too.
+         */
+        boolean validated = false;
+        try {
+          validate(entity, config);
+          validated = true;
+          return entity;
+        } finally {
+          if (!validated) {
+            entity.close();
+            fetchHold.unlock();
+          }
         }
       }
     } catch (EntityVersionMismatchException e) {
@@ -152,48 +152,38 @@ public class EhcacheClientEntityFactory {
   }
 
   public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EhcacheEntityBusyException {
-    try {
-      while (true) {
-        Boolean success = asLeaderOf(identifier, new ElectionTask<Boolean>() {
-          @Override
-          public Boolean call(boolean clean) throws EntityNotFoundException, EhcacheEntityBusyException {
-            EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
-            try {
-              if (ref.tryDestroy()) {
-                return Boolean.TRUE;
-              } else {
-                throw new EhcacheEntityBusyException("Destroy operation failed; " + identifier + " caches in use by other clients");
-              }
-            } catch (EntityNotProvidedException e) {
-              LOGGER.error("Unable to delete entity for cluster id {}", identifier, e);
-              throw new AssertionError(e);
-            }
+    Hold existingMaintenance = maintenanceHolds.get(identifier);
+    Hold localMaintenance = null;
+    if (existingMaintenance == null) {
+      localMaintenance = createAccessLockFor(identifier).tryWriteLock();
+    }
+    if (existingMaintenance == null && localMaintenance == null) {
+      throw new EhcacheEntityBusyException("Destroy operation failed; " + identifier + " maintenance lease held");
+    } else {
+      try {
+        EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
+        try {
+          if (!ref.tryDestroy()) {
+            throw new EhcacheEntityBusyException("Destroy operation failed; " + identifier + " caches in use by other clients");
           }
-        });
-        if (Boolean.TRUE.equals(success)) {
-          return;
+        } catch (EntityNotProvidedException e) {
+          LOGGER.error("Unable to delete entity for cluster id {}", identifier, e);
+          throw new AssertionError(e);
+        } catch (EntityNotFoundException e) {
+          throw new EhcacheEntityNotFoundException(e);
+        } catch (EhcacheEntityBusyException e) {
+          throw new EhcacheEntityBusyException(e);
         }
-      }
-    } catch (ExecutionException ex) {
-      Throwable cause = (ex.getCause() == null ? ex : ex.getCause());
-      if (cause instanceof Error) {
-        throw new Error(cause);
-      } else if (cause instanceof EntityNotFoundException) {
-        throw new EhcacheEntityNotFoundException(cause);
-      } else if (cause instanceof EhcacheEntityBusyException) {
-        throw new EhcacheEntityBusyException(cause);
-      } else if (cause instanceof IllegalArgumentException) {
-        throw new IllegalArgumentException(cause);
-      } else if (cause instanceof IllegalStateException) {
-        throw new IllegalStateException(cause);
-      } else {
-        throw new RuntimeException(cause);
+      } finally {
+        if (localMaintenance != null) {
+          localMaintenance.unlock();
+        }
       }
     }
   }
 
-  private <T> T asLeaderOf(String identifier, final ElectionTask<T> task) throws ExecutionException {
-    return coordinator.executeIfLeader(EhcacheClientEntity.class, identifier, task);
+  private VoltronReadWriteLock createAccessLockFor(String entityIdentifier) {
+    return new VoltronReadWriteLock(connection, "EhcacheClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
   private EntityRef<EhcacheClientEntity, UUID> getEntityRef(String identifier) {

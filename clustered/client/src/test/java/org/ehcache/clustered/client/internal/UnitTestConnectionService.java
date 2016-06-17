@@ -34,14 +34,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import org.ehcache.clustered.lock.client.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionService;
-import org.terracotta.consensus.entity.CoordinationServerEntityService;
-import org.terracotta.consensus.entity.client.ClientCoordinationEntityService;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.EntityMessage;
 import org.terracotta.entity.EntityResponse;
@@ -276,8 +277,8 @@ public class UnitTestConnectionService implements ConnectionService {
       if (serverEntityServices.isEmpty() && clientEntityServices.isEmpty()) {
         newServer.registerServerEntityService(new EhcacheServerEntityService());
         newServer.registerClientEntityService(new EhcacheClientEntityService());
-        newServer.registerServerEntityService(new CoordinationServerEntityService());
-        newServer.registerClientEntityService(new ClientCoordinationEntityService());
+        newServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
+        newServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
       }
 
       for (ServerEntityService<?, ?> service : serverEntityServices) {

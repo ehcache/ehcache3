@@ -78,7 +78,7 @@ public class VoltronReadWriteLockClient implements Entity {
     endpoint.close();
   }
 
-  boolean tryLock(HoldType type) {
+  public boolean tryLock(HoldType type) {
     LockTransition transition = invoke(LockMessaging.tryLock(type));
     if (transition.isAcquired()) {
       currentState = LockMessaging.lock(type);
@@ -88,7 +88,7 @@ public class VoltronReadWriteLockClient implements Entity {
     }
   }
 
-  void lock(HoldType type) {
+  public void lock(HoldType type) {
     while (true) {
       LockTransition transition = invoke(LockMessaging.lock(type));
       if (transition.isAcquired()) {
@@ -100,7 +100,7 @@ public class VoltronReadWriteLockClient implements Entity {
     }
   }
 
-  void unlock(HoldType type) {
+  public void unlock(HoldType type) {
     LockTransition transition = invoke(LockMessaging.unlock(type));
     if (transition.isReleased()) {
       currentState = null;
@@ -109,11 +109,11 @@ public class VoltronReadWriteLockClient implements Entity {
     }
   }
 
-  LockOperation getCurrentState() {
+  private LockOperation getCurrentState() {
     return currentState;
   }
 
-  LockTransition invoke(LockOperation operation) {
+  private LockTransition invoke(LockOperation operation) {
     try {
       InvokeFuture<LockTransition> result = endpoint.beginInvoke().message(operation).replicate(false).invoke();
       boolean interrupted = false;
