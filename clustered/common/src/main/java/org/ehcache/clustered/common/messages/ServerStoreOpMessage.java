@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 
 /**
  */
-public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
+public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implements ConcurrentEntityMessage {
   public enum ServerStoreOp {
 
     GET((byte) 10),
@@ -74,6 +74,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   }
 
   @Override
+  public int concurrencyKey() {
+    return cacheId.hashCode();
+  }
+
+  @Override
   public Type getType() {
     return Type.SERVER_STORE_OP;
   }
@@ -85,7 +90,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     return operation().getStoreOpCode();
   }
 
-  private static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage {
+  static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage {
 
     private final long key;
 
@@ -96,6 +101,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
     public long getKey() {
       return key;
+    }
+
+    @Override
+    public int concurrencyKey() {
+      return (int) (super.concurrencyKey() + key);
     }
   }
 
