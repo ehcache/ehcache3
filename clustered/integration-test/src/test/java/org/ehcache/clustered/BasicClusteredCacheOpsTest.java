@@ -80,7 +80,8 @@ public class BasicClusteredCacheOpsTest {
   public void basicCacheCRUD() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
-        .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager?auto-create"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager"))
+            .autoCreate(true)
             .defaultServerResource("primary-server-resource"));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
@@ -116,7 +117,7 @@ public class BasicClusteredCacheOpsTest {
   public void basicCacheCAS() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager?auto-create")))
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager")).autoCreate(true))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
@@ -143,7 +144,7 @@ public class BasicClusteredCacheOpsTest {
   public void basicClusteredBulk() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager?auto-create")))
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/myCacheManager")).autoCreate(true))
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
