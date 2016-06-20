@@ -34,6 +34,8 @@ import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.lock.client.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService.ObservableEhcacheActiveEntity;
 import org.ehcache.config.ResourcePool;
@@ -53,8 +55,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.connection.ConnectionPropertyNames;
-import org.terracotta.consensus.entity.CoordinationServerEntityService;
-import org.terracotta.consensus.entity.client.ClientCoordinationEntityService;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.exception.EntityNotFoundException;
 
@@ -96,8 +96,8 @@ public class DefaultClusteringServiceTest {
         new PassthroughServerBuilder()
             .serverEntityService(observableEhcacheServerEntityService)
             .clientEntityService(new EhcacheClientEntityService())
-            .serverEntityService(new CoordinationServerEntityService())
-            .clientEntityService(new ClientCoordinationEntityService())
+            .serverEntityService(new VoltronReadWriteLockServerEntityService())
+            .clientEntityService(new VoltronReadWriteLockEntityClientService())
             .resource("defaultResource", 128, MemoryUnit.MB)
             .resource("serverResource1", 32, MemoryUnit.MB)
             .resource("serverResource2", 32, MemoryUnit.MB)

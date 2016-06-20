@@ -141,7 +141,12 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   @Test
   public void testAbandonLeadershipWhenNotOwning() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.abandonLeadership("testAbandonLeadershipWhenNotOwning");
+    try {
+      factory.abandonLeadership("testAbandonLeadershipWhenNotOwning");
+      fail("Expected IllegalMonitorStateException");
+    } catch (IllegalMonitorStateException e) {
+      //expected
+    }
   }
 
   @Test

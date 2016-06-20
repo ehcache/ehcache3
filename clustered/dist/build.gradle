@@ -42,7 +42,6 @@ dependencies {
     exclude group: 'org.terracotta', module: 'packaging-support'
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
-  serverLibs "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion" changing true
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip" changing true
 }

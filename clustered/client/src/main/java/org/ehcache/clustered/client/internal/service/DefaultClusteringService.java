@@ -138,6 +138,8 @@ class DefaultClusteringService implements ClusteringService {
          * If the connection failed because of a creation failure, re-throw the creation failure.
          */
         throw new IllegalStateException(failure == null ? e : failure);
+      } catch (EhcacheEntityBusyException e) {
+        throw new IllegalStateException(failure == null ? e : failure);
       }
     } catch (RuntimeException e) {
       entityFactory = null;

@@ -17,7 +17,6 @@
 dependencies {
   testCompile project(':clustered:dist')
 
-  testCompile group:'org.terracotta', name:'coordinator-entity-server', version:parent.coordinatorVersion changing true
   testCompile group:'org.terracotta', name:'galvan-support', version:'1.0.0-SNAPSHOT' changing true
 }
 
