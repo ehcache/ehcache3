@@ -560,7 +560,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
 
       try {
-        this.sharedResourcePools = createPools(configuration.getResourcePools());
+        this.sharedResourcePools = createPools(resolveResourcePools(configuration, configuration.getDefaultServerResource()));
       } catch (RuntimeException e) {
         return responseFactory.failure(e);
       }
@@ -597,16 +597,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
     ServerSideConfiguration serverSideConfiguration = message.getConfiguration();
 
-    if(isInheritedConfig(serverSideConfiguration)) {
-      clientState.attach();
-      return responseFactory.success();
-    }
-
     StringBuilder sb = new StringBuilder();
 
-    if (!nullSafeEquals(this.defaultServerResource, serverSideConfiguration.getDefaultServerResource())) {
+    if (!defaultResourceCompatible(serverSideConfiguration.getDefaultServerResource())) {
       return responseFactory.failure(new IllegalArgumentException("Default resource not aligned"));
-    } else if(!sharedResourcePoolsEqual(serverSideConfiguration, sb)) {
+    } else if(!sharedResourcePoolsCompatible(serverSideConfiguration, sb)) {
       return responseFactory.failure(new IllegalArgumentException("SharedPoolResources aren't valid. " + sb.toString()));
     } else {
       clientState.attach();
@@ -614,52 +609,38 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
-  /**
-   * This function checks to see if the client sent an empty {@link ServerSideConfiguration} which will inherit
-   * from an already configured ServerSideConfiguration.
-   * @param serverSideConfiguration the ServerSideConfiguration sent by the client to be validated.
-   * @return returns true if the ServerSideConfiguration is to be inherited, otherwise false
-   */
-  private boolean isInheritedConfig(ServerSideConfiguration serverSideConfiguration) {
-    return this.defaultServerResource != null &&
-            serverSideConfiguration.getDefaultServerResource() == null &&
-            serverSideConfiguration.getResourcePools().isEmpty();
+  private boolean defaultResourceCompatible(String incomingDefaultResource) {
+    if (incomingDefaultResource == null) {
+      return true;
+    } else if (incomingDefaultResource.equals(defaultServerResource)) {
+      return true;
+    } else {
+      return false;
+    }
   }
 
   /**
    * Checks whether the {@link ServerSideConfiguration} sent from the client is equal with the ServerSideConfiguration
    * that is already configured on the server.
-   * @param serverSideConfiguration the ServerSideConfiguration to be validated.  This is sent from a client
+   * @param incomingConfiguration the ServerSideConfiguration to be validated.  This is sent from a client
    * @param errorMsg
    * @return
    */
-  private boolean sharedResourcePoolsEqual(ServerSideConfiguration serverSideConfiguration, StringBuilder errorMsg) {
-    //validate that both ServerSideConfiguration's have the same keyset and thus the same pool names and the same number of pools.
-    if(!this.sharedResourcePools.keySet().equals(serverSideConfiguration.getResourcePools().keySet())) {
-      errorMsg.append("pool names not equal. Client sent pool names: ");
-      errorMsg.append(serverSideConfiguration.getResourcePools().keySet().toString());
-      errorMsg.append(" Server pool names: ");
-      errorMsg.append(this.sharedResourcePools.keySet().toString());
-      return false;
-    }
+  private boolean sharedResourcePoolsCompatible(ServerSideConfiguration incomingConfiguration, StringBuilder errorMsg) {
+    for(Entry<String, Pool> pool : resolveResourcePools(incomingConfiguration, defaultServerResource).entrySet()) {
+      ResourcePageSource resourcePageSource = this.sharedResourcePools.get(pool.getKey());
 
-    //verify client ServerSideConfiguration sent contains the same Pools as the configured ServerSideConfiguration.
-    for(String poolName : serverSideConfiguration.getResourcePools().keySet()) {
-      //already validated that keySets are equal so no need to check if null
-      ResourcePageSource resourcePageSource = this.sharedResourcePools.get(poolName);
-
-      if( (!resourcePageSource.pool.source().equalsIgnoreCase(serverSideConfiguration.getResourcePools().get(poolName).source())) ||
-          (resourcePageSource.pool.size() != serverSideConfiguration.getResourcePools().get(poolName).size()) ) {
+      if (resourcePageSource == null) {
+          errorMsg.append("ServerSideConfiguration pool sent by client does not exist on the server.");
+          return false;
+      } else if (!resourcePageSource.pool.source().equals(pool.getValue().source()) ||
+              (resourcePageSource.pool.size() != pool.getValue().size())) {
           errorMsg.append("ServerSideConfiguration pool sent by client is different than server ServerSideConfiguration pool.");
           return false;
       }
     }
 
     return true;
-  }
-
-  private static boolean nullSafeEquals(String s1, String s2) {
-    return (s1 == null ? s2 == null : s1.equals(s2));
   }
 
   /**
@@ -895,6 +876,23 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       storeClientMap.remove(name);
       return responseFactory.success();
     }
+  }
+
+  private static Map<String, Pool> resolveResourcePools(ServerSideConfiguration configuration, String defaultServerResource) {
+    Map<String, Pool> pools = new HashMap<String, Pool>();
+    for (Map.Entry<String, Pool> e : configuration.getResourcePools().entrySet()) {
+      Pool poolDef = e.getValue();
+      if (poolDef.source() == null) {
+        if (defaultServerResource == null) {
+          throw new IllegalArgumentException("Pool '" + e.getKey() + "' has no defined server resource, and no default value was available");
+        } else {
+          pools.put(e.getKey(), new Pool(defaultServerResource, poolDef.size()));
+        }
+      } else {
+        pools.put(e.getKey(), poolDef);
+      }
+    }
+    return Collections.unmodifiableMap(pools);
   }
 
   private Map<String, ResourcePageSource> createPools(Map<String, Pool> resourcePools) {
