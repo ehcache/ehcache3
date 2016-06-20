@@ -49,6 +49,17 @@ public final class ClusteringServiceConfiguration
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
    * @param clusterUri the non-{@code null} URI identifying the cluster server
+   *
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
+   */
+  public ClusteringServiceConfiguration(final URI clusterUri) {
+    this(clusterUri, false, null, null);
+  }
+
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
    * @param autoCreate {@code true} if server components should be auto created
    * @param defaultServerResource the server resource to use for pools not identifying a resource;
    *                              may be {@code null} only when no {@code pools} item omits a resource
@@ -66,17 +77,6 @@ public final class ClusteringServiceConfiguration
     }
     if (pools == null) {
       pools = Collections.emptyMap();
-    }
-    if (defaultServerResource == null) {
-      StringBuilder issues = new StringBuilder();
-      for (Entry<String, PoolDefinition> e : pools.entrySet()) {
-        if (e.getValue().getServerResource() == null) {
-          issues.append("Pool '").append(e.getKey()).append("' has no defined server resource, and no default value was supplied").append("\n");
-        }
-      }
-      if (issues.length() > 0) {
-        throw new IllegalArgumentException(issues.toString());
-      }
     }
 
     this.clusterUri = clusterUri;

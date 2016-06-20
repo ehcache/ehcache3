@@ -71,7 +71,7 @@ public class ServerSideConfiguration implements Serializable {
 
     @Override
     public String toString() {
-      return "[" + size() + " bytes from '" + source() + "']";
+      return "[" + size() + " bytes from '" + ((source() == null) ? "<default>" : source()) + "']";
     }
   }
 }

@@ -78,7 +78,6 @@ class DefaultClusteringService implements ClusteringService {
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
   private final String entityIdentifier;
-  private final ServerSideConfiguration serverConfiguration;
   private final boolean autoCreate;
 
   private Connection clusterConnection;
@@ -92,8 +91,6 @@ class DefaultClusteringService implements ClusteringService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
-    this.serverConfiguration =
-        new ServerSideConfiguration(configuration.getDefaultServerResource(), extractResourcePools(configuration));
     this.autoCreate = configuration.isAutoCreate();
   }
 
@@ -124,7 +121,8 @@ class DefaultClusteringService implements ClusteringService {
       EhcacheEntityCreationException failure = null;
       if (autoCreate) {
         try {
-          entityFactory.create(entityIdentifier, serverConfiguration);
+          entityFactory.create(entityIdentifier,
+                  new ServerSideConfiguration(configuration.getDefaultServerResource(), convertResourcePools(configuration)));
         } catch (EhcacheEntityCreationException e) {
           failure = e;
         } catch (EntityAlreadyExistsException e) {
@@ -132,7 +130,8 @@ class DefaultClusteringService implements ClusteringService {
         }
       }
       try {
-        entity = entityFactory.retrieve(entityIdentifier, serverConfiguration);
+        entity = entityFactory.retrieve(entityIdentifier,
+                new ServerSideConfiguration(configuration.getDefaultServerResource(), convertResourcePools(configuration)));
       } catch (EntityNotFoundException e) {
         /*
          * If the connection failed because of a creation failure, re-throw the creation failure.
@@ -240,16 +239,12 @@ class DefaultClusteringService implements ClusteringService {
     entity.destroyCache(name);
   }
 
-  private Map<String, ServerSideConfiguration.Pool> extractResourcePools(ClusteringServiceConfiguration configuration) {
+  private static Map<String, ServerSideConfiguration.Pool> convertResourcePools(ClusteringServiceConfiguration configuration) {
     Map<String, ServerSideConfiguration.Pool> pools = new HashMap<String, ServerSideConfiguration.Pool>();
     for (Map.Entry<String, PoolDefinition> e : configuration.getPools().entrySet()) {
       PoolDefinition poolDef = e.getValue();
       long size = poolDef.getUnit().toBytes(poolDef.getSize());
-      if (poolDef.getServerResource() == null) {
-        pools.put(e.getKey(), new ServerSideConfiguration.Pool(configuration.getDefaultServerResource(), size));
-      } else {
-        pools.put(e.getKey(), new ServerSideConfiguration.Pool(poolDef.getServerResource(), size));
-      }
+      pools.put(e.getKey(), new ServerSideConfiguration.Pool(poolDef.getServerResource(), size));
     }
     return Collections.unmodifiableMap(pools);
   }

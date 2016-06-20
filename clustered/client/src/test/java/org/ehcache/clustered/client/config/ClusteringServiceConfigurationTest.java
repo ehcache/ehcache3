@@ -27,12 +27,11 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
 
 public class ClusteringServiceConfigurationTest {
 
@@ -69,7 +68,7 @@ public class ClusteringServiceConfigurationTest {
     assertThat(actualPools.size(), is(1));
     Map.Entry<String, PoolDefinition> actualPool = actualPools.entrySet().iterator().next();
     assertThat(actualPool.getKey(), is("sharedPool"));
-    assertThat(actualPool.getValue().getServerResource(), is(nullValue()));     // resource set in DefaultClusteringService.extractResourcePools()
+    assertThat(actualPool.getValue().getServerResource(), is(nullValue()));
     assertThat(actualPool.getValue().getSize(), is(8L));
     assertThat(actualPool.getValue().getUnit(), is(MemoryUnit.MB));
   }
@@ -78,12 +77,15 @@ public class ClusteringServiceConfigurationTest {
   public void testCtorPoolsWithoutDefault() throws Exception {
     Map<String, PoolDefinition> poolDefinitionMap = new HashMap<String, PoolDefinition>();
     poolDefinitionMap.put("sharedPool", new PoolDefinition(8L, MemoryUnit.MB));
-    try {
-      new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"), false, null, poolDefinitionMap);
-      fail("Expecting IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), containsString(" no default value "));
-    }
+    ClusteringServiceConfiguration configuration = new ClusteringServiceConfiguration(
+            URI.create("terracotta://localhost:9450"), false, null, poolDefinitionMap);
+    Map<String, PoolDefinition> actualPools = configuration.getPools();
+    assertThat(actualPools.size(), is(1));
+    Map.Entry<String, PoolDefinition> actualPool = actualPools.entrySet().iterator().next();
+    assertThat(actualPool.getKey(), is("sharedPool"));
+    assertThat(actualPool.getValue().getServerResource(), is(nullValue()));
+    assertThat(actualPool.getValue().getSize(), is(8L));
+    assertThat(actualPool.getValue().getUnit(), is(MemoryUnit.MB));
   }
 
   @Test
