@@ -560,7 +560,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
 
       try {
-        this.sharedResourcePools = createPools(configuration.getResourcePools());
+        this.sharedResourcePools = createPools(resolveResourcePools(configuration));
       } catch (RuntimeException e) {
         return responseFactory.failure(e);
       }
@@ -595,70 +595,48 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!isConfigured()) {
       return responseFactory.failure(new IllegalStateException("Clustered Store Manager is not configured"));
     }
-    ServerSideConfiguration serverSideConfiguration = message.getConfiguration();
+    ServerSideConfiguration incomingConfig = message.getConfiguration();
 
-    if(isInheritedConfig(serverSideConfiguration)) {
-      clientState.attach();
-      return responseFactory.success();
+    if(incomingConfig != null) {
+      try {
+        checkConfigurationCompatibility(incomingConfig);
+      } catch (IllegalArgumentException e) {
+        return responseFactory.failure(e);
+      }
     }
-
-    StringBuilder sb = new StringBuilder();
-
-    if (!nullSafeEquals(this.defaultServerResource, serverSideConfiguration.getDefaultServerResource())) {
-      return responseFactory.failure(new IllegalArgumentException("Default resource not aligned"));
-    } else if(!sharedResourcePoolsEqual(serverSideConfiguration, sb)) {
-      return responseFactory.failure(new IllegalArgumentException("SharedPoolResources aren't valid. " + sb.toString()));
-    } else {
-      clientState.attach();
-      return responseFactory.success();
-    }
-  }
-
-  /**
-   * This function checks to see if the client sent an empty {@link ServerSideConfiguration} which will inherit
-   * from an already configured ServerSideConfiguration.
-   * @param serverSideConfiguration the ServerSideConfiguration sent by the client to be validated.
-   * @return returns true if the ServerSideConfiguration is to be inherited, otherwise false
-   */
-  private boolean isInheritedConfig(ServerSideConfiguration serverSideConfiguration) {
-    return this.defaultServerResource != null &&
-            serverSideConfiguration.getDefaultServerResource() == null &&
-            serverSideConfiguration.getResourcePools().isEmpty();
+    clientState.attach();
+    return responseFactory.success();
   }
 
   /**
    * Checks whether the {@link ServerSideConfiguration} sent from the client is equal with the ServerSideConfiguration
    * that is already configured on the server.
    * @param serverSideConfiguration the ServerSideConfiguration to be validated.  This is sent from a client
-   * @param errorMsg
-   * @return
+   * @throws IllegalArgumentException if configurations do not match
    */
-  private boolean sharedResourcePoolsEqual(ServerSideConfiguration serverSideConfiguration, StringBuilder errorMsg) {
-    //validate that both ServerSideConfiguration's have the same keyset and thus the same pool names and the same number of pools.
-    if(!this.sharedResourcePools.keySet().equals(serverSideConfiguration.getResourcePools().keySet())) {
-      errorMsg.append("pool names not equal. Client sent pool names: ");
-      errorMsg.append(serverSideConfiguration.getResourcePools().keySet().toString());
-      errorMsg.append(" Server pool names: ");
-      errorMsg.append(this.sharedResourcePools.keySet().toString());
-      return false;
+  private void checkConfigurationCompatibility(ServerSideConfiguration incomingConfig) throws IllegalArgumentException {
+    if (!nullSafeEquals(this.defaultServerResource, incomingConfig.getDefaultServerResource())) {
+      throw new IllegalArgumentException("Default resource not aligned. "
+              + "Client: " + incomingConfig.getDefaultServerResource() + " "
+              + "Server: " + defaultServerResource);
+    } else if(!sharedResourcePools.keySet().equals(incomingConfig.getResourcePools().keySet())) {
+      throw new IllegalArgumentException("Pool names not equal. "
+              + "Client: " + incomingConfig.getResourcePools().keySet() + " "
+              + "Server: " + sharedResourcePools.keySet().toString());
     }
 
-    //verify client ServerSideConfiguration sent contains the same Pools as the configured ServerSideConfiguration.
-    for(String poolName : serverSideConfiguration.getResourcePools().keySet()) {
-      //already validated that keySets are equal so no need to check if null
-      ResourcePageSource resourcePageSource = this.sharedResourcePools.get(poolName);
+    for(Entry<String, Pool> pool : resolveResourcePools(incomingConfig).entrySet()) {
+      Pool serverPool = this.sharedResourcePools.get(pool.getKey()).getPool();
 
-      if( (!resourcePageSource.pool.source().equalsIgnoreCase(serverSideConfiguration.getResourcePools().get(poolName).source())) ||
-          (resourcePageSource.pool.size() != serverSideConfiguration.getResourcePools().get(poolName).size()) ) {
-          errorMsg.append("ServerSideConfiguration pool sent by client is different than server ServerSideConfiguration pool.");
-          return false;
+      if(!serverPool.equals(pool.getValue())) {
+        throw new IllegalArgumentException("Pool '" + pool.getKey() + "' not equal. "
+                + "Client: " + pool.getValue() + " "
+                + "Server: " + serverPool);
       }
     }
-
-    return true;
   }
 
-  private static boolean nullSafeEquals(String s1, String s2) {
+  private static boolean nullSafeEquals(Object s1, Object s2) {
     return (s1 == null ? s2 == null : s1.equals(s2));
   }
 
@@ -725,7 +703,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
               resourceName = defaultServerResource;
             }
           }
-          resourcePageSource = createPageSource(name, new Pool(resourceName, fixedAllocation.getSize()));
+          resourcePageSource = createPageSource(name, new Pool(fixedAllocation.getSize(), resourceName));
         } catch (RuntimeException e) {
           return responseFactory.failure(e);
         }
@@ -897,6 +875,23 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
+  private static Map<String, Pool> resolveResourcePools(ServerSideConfiguration configuration) {
+    Map<String, Pool> pools = new HashMap<String, Pool>();
+    for (Map.Entry<String, Pool> e : configuration.getResourcePools().entrySet()) {
+      Pool pool = e.getValue();
+      if (pool.getServerResource() == null) {
+        if (configuration.getDefaultServerResource() == null) {
+          throw new IllegalArgumentException("Pool '" + e.getKey() + "' has no defined server resource, and no default value was available");
+        } else {
+          pools.put(e.getKey(), new Pool(pool.getSize(), configuration.getDefaultServerResource()));
+        }
+      } else {
+        pools.put(e.getKey(), pool);
+      }
+    }
+    return Collections.unmodifiableMap(pools);
+  }
+
   private Map<String, ResourcePageSource> createPools(Map<String, Pool> resourcePools) {
     Map<String, ResourcePageSource> pools = new HashMap<String, ResourcePageSource>();
     try {
@@ -918,17 +913,17 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   private ResourcePageSource createPageSource(String poolName, Pool pool) {
     ResourcePageSource pageSource;
-    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.source()));
+    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
     if (source == null) {
-      throw new IllegalArgumentException("Non-existent server side resource '" + pool.source() + "'");
-    } else if (source.reserve(pool.size())) {
+      throw new IllegalArgumentException("Non-existent server side resource '" + pool.getServerResource() + "'");
+    } else if (source.reserve(pool.getSize())) {
       try {
         pageSource = new ResourcePageSource(pool);
       } catch (RuntimeException t) {
-        source.release(pool.size());
+        source.release(pool.getSize());
         throw new IllegalArgumentException("Failure allocating pool " + pool, t);
       }
-      LOGGER.info("Reserved {} bytes from resource '{}' for pool '{}'", pool.size(), pool.source(), poolName);
+      LOGGER.info("Reserved {} bytes from resource '{}' for pool '{}'", pool.getSize(), pool.getServerResource(), poolName);
     } else {
       throw new IllegalArgumentException("Insufficient defined resources to allocate pool " + poolName + "=" + pool);
     }
@@ -949,10 +944,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   private void releasePool(String poolType, String poolName, ResourcePageSource resourcePageSource) {
     Pool pool = resourcePageSource.getPool();
-    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.source()));
+    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
     if (source != null) {
-      source.release(pool.size());
-      LOGGER.info("Released {} bytes from resource '{}' for {} pool '{}'", pool.size(), pool.source(), poolType, poolName);
+      source.release(pool.getSize());
+      LOGGER.info("Released {} bytes from resource '{}' for {} pool '{}'", pool.getSize(), pool.getServerResource(), poolType, poolName);
     }
   }
 
@@ -1077,7 +1072,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     private ResourcePageSource(Pool pool) {
       this.pool = pool;
-      this.delegatePageSource = new UpfrontAllocatingPageSource(new OffHeapBufferSource(), pool.size(), GIGABYTES.toBytes(1), MEGABYTES.toBytes(128));
+      this.delegatePageSource = new UpfrontAllocatingPageSource(new OffHeapBufferSource(), pool.getSize(), GIGABYTES.toBytes(1), MEGABYTES.toBytes(128));
     }
 
     private Pool getPool() {

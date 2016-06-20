@@ -21,16 +21,11 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.CacheManagerConfiguration;
-import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 
-import static java.util.Collections.unmodifiableMap;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 
 /**
  * Specifies the configuration for a {@link ClusteringService}.
@@ -44,45 +39,39 @@ public final class ClusteringServiceConfiguration
 
   private final URI clusterUri;
   private final boolean autoCreate;
-  private final String defaultServerResource;
-  private final Map<String, PoolDefinition> pools;
+  private final ServerSideConfiguration serverConfiguration;
+
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   *
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
+   */
+  public ClusteringServiceConfiguration(final URI clusterUri) {
+    validateClusterUri(clusterUri);
+    this.clusterUri = clusterUri;
+    this.autoCreate = false;
+    this.serverConfiguration = null;
+  }
 
   /**
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
    * @param clusterUri the non-{@code null} URI identifying the cluster server
    * @param autoCreate {@code true} if server components should be auto created
-   * @param defaultServerResource the server resource to use for pools not identifying a resource;
-   *                              may be {@code null} only when no {@code pools} item omits a resource
-   * @param pools the map of shared resource pool identifier to {@link PoolDefinition}; may be {@code null}
-   *              or empty; if any {@code PoolDefinition} omits its server resource identifier,
-   *              {@code defaultServerResource} must not be {@code null}
+   * @param serverConfig  the server side entity configuration required
    *
-   * @throws NullPointerException if {@code clusterUri} is {@code null}
-   * @throws IllegalArgumentException if {@code pools} contains a {@code PoolDefinition} which omits the
-   *            resource identifier and {@code defaultServerResource} is {@code null}
+   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
    */
-  public ClusteringServiceConfiguration(final URI clusterUri, boolean autoCreate, String defaultServerResource, Map<String, PoolDefinition> pools) {
+  public ClusteringServiceConfiguration(final URI clusterUri, boolean autoCreate, ServerSideConfiguration serverConfig) {
     validateClusterUri(clusterUri);
-    if (pools == null) {
-      pools = Collections.emptyMap();
+    if (serverConfig == null) {
+      throw new NullPointerException("Server configuration cannot be null");
     }
-    if (defaultServerResource == null) {
-      StringBuilder issues = new StringBuilder();
-      for (Entry<String, PoolDefinition> e : pools.entrySet()) {
-        if (e.getValue().getServerResource() == null) {
-          issues.append("Pool '").append(e.getKey()).append("' has no defined server resource, and no default value was supplied").append("\n");
-        }
-      }
-      if (issues.length() > 0) {
-        throw new IllegalArgumentException(issues.toString());
-      }
-    }
-
     this.clusterUri = clusterUri;
     this.autoCreate = autoCreate;
-    this.defaultServerResource = defaultServerResource;
-    this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
+    this.serverConfiguration = serverConfig;
   }
 
   private static void validateClusterUri(URI clusterUri) {
@@ -118,17 +107,8 @@ public final class ClusteringServiceConfiguration
    *
    * @return the default server resource
    */
-  public String getDefaultServerResource() {
-    return defaultServerResource;
-  }
-
-  /**
-   * The map of pool definitions that can be used for clustered caches.
-   *
-   * @return the set of pools
-   */
-  public Map<String, PoolDefinition> getPools() {
-    return pools;
+  public ServerSideConfiguration getServerConfiguration() {
+    return serverConfiguration;
   }
 
   @Override
@@ -140,82 +120,5 @@ public final class ClusteringServiceConfiguration
   @Override
   public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
     return (CacheManagerBuilder<PersistentCacheManager>) other.using(this);   // unchecked
-  }
-
-  /**
-   * The definition of a pool that can be shared by multiple caches.
-   */
-  public static final class PoolDefinition {
-
-    private final long size;
-    private final MemoryUnit unit;
-    private final String serverResource;
-
-    /**
-     * Creates a new pool definition with the given size, consuming the given server resource.
-     *
-     * @param size pool size
-     * @param unit pool size unit
-     * @param serverResource the server resource to consume
-     */
-    public PoolDefinition(long size, MemoryUnit unit, String serverResource) {
-      if (unit == null) {
-        throw new NullPointerException("Unit cannot be null");
-      }
-      if (size <= 0) {
-        throw new IllegalArgumentException("Pool must have a positive size");
-      }
-      if (serverResource == null) {
-        throw new NullPointerException("Source resource cannot be null");
-      }
-      this.size = size;
-      this.unit = unit;
-      this.serverResource = serverResource;
-    }
-
-    /**
-     * Creates a new pool definition with the given size, consuming the default server resource.
-     *
-     * @param size pool size
-     * @param unit pool size unit
-     */
-    public PoolDefinition(long size, MemoryUnit unit) {
-      if (unit == null) {
-        throw new NullPointerException("Unit cannot be null");
-      }
-      if (size <= 0) {
-        throw new IllegalArgumentException("Pool must have a positive size");
-      }
-      this.size = size;
-      this.unit = unit;
-      this.serverResource = null;
-    }
-
-    /**
-     * Returns the size of the pool.
-     *
-     * @return pool size
-     */
-    public long getSize() {
-      return size;
-    }
-
-    /**
-     * Returns the memory unit used for size.
-     *
-     * @return pool size unit
-     */
-    public MemoryUnit getUnit() {
-      return unit;
-    }
-
-    /**
-     * Returns the server resource consumed by this pool, or {@code null} if the default pool will be used.
-     *
-     * @return the server resource to consume
-     */
-    public String getServerResource() {
-      return serverResource;
-    }
   }
 }

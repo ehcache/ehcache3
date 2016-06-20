@@ -16,15 +16,10 @@
 package org.ehcache.clustered.client.config.builders;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
-import org.ehcache.config.Builder;
-import org.ehcache.config.units.MemoryUnit;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.config.Builder;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 
 /**
  * A builder of ClusteringService configurations.
@@ -32,9 +27,6 @@ import static java.util.Collections.unmodifiableMap;
 public final class ClusteringServiceConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
   private final URI clusterUri;
-  private final boolean autoCreate;
-  private final String defaultServerResource;
-  private final Map<String, PoolDefinition> pools;
 
   /**
    * Creates a new builder connecting to the given cluster.
@@ -49,99 +41,28 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   private ClusteringServiceConfigurationBuilder(URI clusterUri) {
     this.clusterUri = clusterUri;
-    this.autoCreate = false;
-    this.defaultServerResource = null;
-    this.pools = emptyMap();
-  }
-
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, String poolName, PoolDefinition poolDefinition) {
-    this.clusterUri = original.clusterUri;
-    this.autoCreate = original.autoCreate;
-    this.defaultServerResource = original.defaultServerResource;
-    Map<String, PoolDefinition> pools = new HashMap<String, PoolDefinition>(original.pools);
-    if (pools.put(poolName, poolDefinition) != null) {
-      throw new IllegalArgumentException("Pool '" + poolName + "' already defined");
-    }
-    this.pools = unmodifiableMap(pools);
-  }
-
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, String defaultServerResource) {
-    this.clusterUri = original.clusterUri;
-    this.autoCreate = original.autoCreate;
-    this.defaultServerResource = defaultServerResource;
-    this.pools = original.pools;
-  }
-
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, boolean autoCreate) {
-    this.clusterUri = original.clusterUri;
-    this.autoCreate = autoCreate;
-    this.defaultServerResource = original.defaultServerResource;
-    this.pools = original.pools;
   }
 
   /**
-   * Sets the auto-create behavior.
-   *
-   * @param autoCreate auto create behavior
+   * Support connection to an existing entity or create if the entity if absent.
    *
    * @return a clustering service configuration builder
    */
-  public ClusteringServiceConfigurationBuilder autoCreate(boolean autoCreate) {
-    return new ClusteringServiceConfigurationBuilder(this, autoCreate);
+  public ServerSideConfigurationBuilder autoCreate() {
+    return new ServerSideConfigurationBuilder(clusterUri, true);
   }
 
   /**
-   * Sets the default server resource for pools and caches.
-   *
-   * @param defaultServerResource default server resource
+   * Only support connection to an existing entity.
    *
    * @return a clustering service configuration builder
    */
-  public ClusteringServiceConfigurationBuilder defaultServerResource(String defaultServerResource) {
-    return new ClusteringServiceConfigurationBuilder(this, defaultServerResource);
-  }
-
-  /**
-   * Adds a resource pool with the given name and size and consuming the given server resource.
-   *
-   * @param name pool name
-   * @param size pool size
-   * @param unit pool size unit
-   * @param serverResource server resource to consume
-   *
-   * @return a clustering service configuration builder
-   */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, long size, MemoryUnit unit, String serverResource) {
-    return resourcePool(name, new PoolDefinition(size, unit, serverResource));
-  }
-
-  /**
-   * Adds a resource pool with the given name and size and consuming the default server resource.
-   *
-   * @param name pool name
-   * @param size pool size
-   * @param unit pool size unit
-   *
-   * @return a clustering service configuration builder
-   */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, long size, MemoryUnit unit) {
-    return resourcePool(name, new PoolDefinition(size, unit));
-  }
-
-  /**
-   * Adds a resource pool with the given name and definition
-   *
-   * @param name pool name
-   * @param definition pool definition
-   *
-   * @return a clustering service configuration builder
-   */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, PoolDefinition definition) {
-    return new ClusteringServiceConfigurationBuilder(this, name, definition);
+  public ServerSideConfigurationBuilder expecting() {
+    return new ServerSideConfigurationBuilder(clusterUri, false);
   }
 
   @Override
   public ClusteringServiceConfiguration build() {
-    return new ClusteringServiceConfiguration(clusterUri, autoCreate, defaultServerResource, pools);
+    return new ClusteringServiceConfiguration(clusterUri);
   }
 }

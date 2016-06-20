@@ -69,7 +69,7 @@ public class BasicClusteredCacheTest {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(true))
+            .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .with(fixed("primary-server-resource", 2, MemoryUnit.MB))));
@@ -87,7 +87,7 @@ public class BasicClusteredCacheTest {
   public void testClusteredCacheTwoClients() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(true))
+            .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(fixed("primary-server-resource", 2, MemoryUnit.MB)))
@@ -116,7 +116,7 @@ public class BasicClusteredCacheTest {
   public void testClustered3TierCacheTwoClients() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(true))
+            .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
                     .with(fixed("primary-server-resource", 2, MemoryUnit.MB)))
@@ -169,7 +169,7 @@ public class BasicClusteredCacheTest {
   public void testTieredClusteredCache() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER_URI).autoCreate(true))
+            .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                     heap(2)
                     .with(fixed("primary-server-resource", 2, MemoryUnit.MB))));
@@ -186,7 +186,7 @@ public class BasicClusteredCacheTest {
   @Test
   public void testClusteredCacheWithSerializableValue() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
-        newCacheManagerBuilder().with(cluster(CLUSTER_URI).autoCreate(true))
+        newCacheManagerBuilder().with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, Person.class,
                     newResourcePoolsBuilder().with(fixed("primary-server-resource", 2, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
