@@ -18,10 +18,11 @@ package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -44,6 +45,7 @@ import javax.xml.transform.Source;
 import javax.xml.transform.stream.StreamSource;
 
 import static org.ehcache.clustered.client.internal.config.xml.ClusteredCacheConstants.*;
+import static java.util.Collections.emptyMap;
 
 /**
  * Provides parsing support for the {@code <service>} elements representing a {@link ClusteringService ClusteringService}.
@@ -98,10 +100,8 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
      */
     if ("cluster".equals(fragment.getLocalName())) {
 
-      Map<String, PoolDefinition> sharedPools = null;
-      String defaultServerResource = null;
+      ServerSideConfig serverConfig = null;
       URI connectionUri = null;
-      boolean autoCreate = false;
       final NodeList childNodes = fragment.getChildNodes();
       for (int i = 0; i < childNodes.getLength(); i++) {
         final Node item = childNodes.item(i);
@@ -126,15 +126,20 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             /*
              * <server-side-config> is an optional element
              */
-            ServerSideConfig config = processServerSideConfig(item);
-            autoCreate = config.autoCreate;
-            defaultServerResource = config.defaultServerResource;
-            sharedPools = config.pools;
+            serverConfig = processServerSideConfig(item);
           }
         }
       }
       try {
-        return new ClusteringServiceConfiguration(connectionUri, autoCreate, defaultServerResource, sharedPools);
+        if (serverConfig == null) {
+          return new ClusteringServiceConfiguration(connectionUri);
+        } else if (serverConfig.defaultServerResource == null) {
+          return new ClusteringServiceConfiguration(connectionUri, serverConfig.autoCreate,
+                  new ServerSideConfiguration(serverConfig.pools));
+        } else {
+          return new ClusteringServiceConfiguration(connectionUri, serverConfig.autoCreate,
+                  new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools));
+        }
       } catch (IllegalArgumentException e) {
         throw new XmlConfigurationException(e);
       }
@@ -173,14 +178,14 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
           }
 
           if (serverSideConfig.pools == null) {
-            serverSideConfig.pools = new HashMap<String, PoolDefinition>();
+            serverSideConfig.pools = new HashMap<String, Pool>();
           }
 
-          PoolDefinition poolDefinition;
+          Pool poolDefinition;
           if (fromResource == null) {
-            poolDefinition = new PoolDefinition(quantity, memoryUnit);
+            poolDefinition = new Pool(memoryUnit.toBytes(quantity));
           } else {
-            poolDefinition = new PoolDefinition(quantity, memoryUnit, fromResource);
+            poolDefinition = new Pool(memoryUnit.toBytes(quantity), fromResource);
           }
 
           if (serverSideConfig.pools.put(poolName, poolDefinition) != null) {
@@ -195,6 +200,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   private static final class ServerSideConfig {
     private boolean autoCreate;
     private String defaultServerResource;
-    private Map<String, PoolDefinition> pools;
+    private Map<String, Pool> pools = emptyMap();
   }
 }

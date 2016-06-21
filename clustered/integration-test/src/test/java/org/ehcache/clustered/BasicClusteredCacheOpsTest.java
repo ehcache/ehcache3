@@ -28,8 +28,6 @@ import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Test;
@@ -37,7 +35,6 @@ import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
-import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,12 +43,12 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
-import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 
 public class BasicClusteredCacheOpsTest {
 
@@ -76,7 +73,7 @@ public class BasicClusteredCacheOpsTest {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
         = CacheManagerBuilder.newCacheManagerBuilder()
         .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("primary-server-resource"));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
@@ -112,7 +109,7 @@ public class BasicClusteredCacheOpsTest {
   public void basicCacheCAS() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER.getConnectionURI().resolve("/cas-cm")).autoCreate(true))
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/cas-cm")).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
@@ -146,7 +143,7 @@ public class BasicClusteredCacheOpsTest {
   public void basicClusteredBulk() throws Exception {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder()
-            .with(cluster(CLUSTER.getConnectionURI().resolve("/bulk-cm")).autoCreate(true))
+            .with(cluster(CLUSTER.getConnectionURI().resolve("/bulk-cm")).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))

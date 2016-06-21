@@ -32,8 +32,11 @@ import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
+import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.lock.client.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
@@ -65,7 +68,6 @@ import java.util.Set;
 import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.FIXED;
 import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.SHARED;
 import static org.ehcache.clustered.client.internal.service.TestServiceProvider.providerContaining;
-import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
@@ -111,7 +113,7 @@ public class DefaultClusteringServiceTest {
   public void testHandlesResourceType() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
@@ -147,7 +149,7 @@ public class DefaultClusteringServiceTest {
   public void testGetPersistenceSpaceIdentifier() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
@@ -164,7 +166,7 @@ public class DefaultClusteringServiceTest {
                 .with(ClusteredResourcePoolBuilder.shared("primary")));
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
 
@@ -180,9 +182,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(
             URI.create(CLUSTER_URI_BASE + entityIdentifier),
-            true,
-            null,
-            Collections.<String, ClusteringServiceConfiguration.PoolDefinition>emptyMap());
+            true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 
@@ -200,7 +200,7 @@ public class DefaultClusteringServiceTest {
     URI clusterUri = URI.create(CLUSTER_URI_BASE + "my-application");
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(clusterUri)
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
@@ -250,7 +250,7 @@ public class DefaultClusteringServiceTest {
   public void testStartStopAutoCreateTwiceA() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService firstService = new DefaultClusteringService(configuration);
     firstService.start(null);
@@ -281,7 +281,7 @@ public class DefaultClusteringServiceTest {
   public void testStartStopAutoCreateTwiceB() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService firstService = new DefaultClusteringService(configuration);
     firstService.start(null);
@@ -310,7 +310,7 @@ public class DefaultClusteringServiceTest {
     URI clusterUri = URI.create(CLUSTER_URI_BASE + "my-application");
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(clusterUri)
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.startForMaintenance(null);
@@ -330,7 +330,7 @@ public class DefaultClusteringServiceTest {
   public void testStartForMaintenanceOtherAutoCreate() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService createService = new DefaultClusteringService(configuration);
     createService.start(null);
@@ -362,7 +362,7 @@ public class DefaultClusteringServiceTest {
   public void testStartForMaintenanceOtherCreated() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService createService = new DefaultClusteringService(configuration);
     createService.start(null);
@@ -399,7 +399,7 @@ public class DefaultClusteringServiceTest {
   public void testStartForMaintenanceCreateInterlock() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService maintenanceService = new DefaultClusteringService(configuration);
     maintenanceService.startForMaintenance(null);
@@ -438,7 +438,7 @@ public class DefaultClusteringServiceTest {
   public void testStartForMaintenanceInterlock() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService maintenanceService1 = new DefaultClusteringService(configuration);
     maintenanceService1.startForMaintenance(null);
@@ -461,7 +461,7 @@ public class DefaultClusteringServiceTest {
   public void testStartForMaintenanceSequence() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .build();
     DefaultClusteringService maintenanceService1 = new DefaultClusteringService(configuration);
     maintenanceService1.startForMaintenance(null);
@@ -482,7 +482,7 @@ public class DefaultClusteringServiceTest {
   public void testBasicConfiguration() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -517,7 +517,7 @@ public class DefaultClusteringServiceTest {
   public void testBasicDestroyAll() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -563,7 +563,7 @@ public class DefaultClusteringServiceTest {
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -611,7 +611,7 @@ public class DefaultClusteringServiceTest {
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration creationConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -623,6 +623,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+            .expecting()
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -671,7 +672,7 @@ public class DefaultClusteringServiceTest {
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration creationConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -705,6 +706,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+            .expecting()
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -751,7 +753,7 @@ public class DefaultClusteringServiceTest {
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -816,7 +818,7 @@ public class DefaultClusteringServiceTest {
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -866,7 +868,7 @@ public class DefaultClusteringServiceTest {
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -916,7 +918,7 @@ public class DefaultClusteringServiceTest {
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration creationConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -928,6 +930,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+            .expecting()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -978,7 +981,7 @@ public class DefaultClusteringServiceTest {
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration creationConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1012,6 +1015,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+            .expecting()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1060,7 +1064,7 @@ public class DefaultClusteringServiceTest {
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1130,7 +1134,7 @@ public class DefaultClusteringServiceTest {
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1181,7 +1185,7 @@ public class DefaultClusteringServiceTest {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1206,7 +1210,7 @@ public class DefaultClusteringServiceTest {
     String targetPool = "sharedPrimary";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool(targetPool, 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1260,7 +1264,7 @@ public class DefaultClusteringServiceTest {
     String targetResource = "serverResource2";
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1315,7 +1319,7 @@ public class DefaultClusteringServiceTest {
   public void testFullDestroyAll() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1377,6 +1381,7 @@ public class DefaultClusteringServiceTest {
   public void testStartNoAutoCreateThenAutoCreate() throws Exception {
     ClusteringServiceConfiguration creationConfigBad =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        .expecting()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1396,7 +1401,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration creationConfigGood =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-        .autoCreate(true)
+        .autoCreate()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1412,7 +1417,7 @@ public class DefaultClusteringServiceTest {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration config =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-        .autoCreate(true)
+        .autoCreate()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1473,7 +1478,7 @@ public class DefaultClusteringServiceTest {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration config =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-        .autoCreate(true)
+        .autoCreate()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1523,7 +1528,7 @@ public class DefaultClusteringServiceTest {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration config =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-        .autoCreate(true)
+        .autoCreate()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1572,7 +1577,7 @@ public class DefaultClusteringServiceTest {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration autoConfig =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-        .autoCreate(true)
+        .autoCreate()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1591,6 +1596,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration noAutoConfig =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        .expecting()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1638,7 +1644,7 @@ public class DefaultClusteringServiceTest {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration autoConfig =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-        .autoCreate(true)
+        .autoCreate()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1658,6 +1664,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration noAutoConfig =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        .expecting()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1697,7 +1704,7 @@ public class DefaultClusteringServiceTest {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration creationConfig =
     ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-        .autoCreate(true)
+        .autoCreate()
         .defaultServerResource("defaultResource")
         .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
         .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1718,7 +1725,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1765,7 +1772,7 @@ public class DefaultClusteringServiceTest {
     String cacheAlias = "cacheAlias";
     ClusteringServiceConfiguration creationConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1786,7 +1793,7 @@ public class DefaultClusteringServiceTest {
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate(true)
+            .autoCreate()
             .defaultServerResource("defaultResource")
             .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
             .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
@@ -1872,9 +1879,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(
             URI.create(CLUSTER_URI_BASE + entityIdentifier),
-            true,
-            null,
-            Collections.<String, ClusteringServiceConfiguration.PoolDefinition>emptyMap());
+            true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 
@@ -1897,9 +1902,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(
             URI.create(CLUSTER_URI_BASE + entityIdentifier),
-            true,
-            null,
-            Collections.<String, ClusteringServiceConfiguration.PoolDefinition>emptyMap());
+            true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 
@@ -1922,9 +1925,7 @@ public class DefaultClusteringServiceTest {
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(
             URI.create(CLUSTER_URI_BASE + entityIdentifier),
-            true,
-            null,
-            Collections.<String, ClusteringServiceConfiguration.PoolDefinition>emptyMap());
+            true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
     service.start(null);
 

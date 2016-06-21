@@ -70,16 +70,16 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   public void testCreate() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
 
-    factory.create("testCreate", new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP));
+    factory.create("testCreate", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
   }
 
   @Test
   public void testCreateWhenExisting() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testCreateWhenExisting", new ServerSideConfiguration(null, EMPTY_RESOURCE_MAP));
+    factory.create("testCreateWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
     try {
       factory.create("testCreateWhenExisting",
-          new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("bar", 42L))));
+          new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "bar"))));
       fail("Expected EntityAlreadyExistsException");
     } catch (EntityAlreadyExistsException e) {
       //expected
@@ -90,19 +90,19 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   public void testRetrieveWithGoodConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithGoodConfig",
-        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 43L))));
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary"))));
     assertThat(factory.retrieve("testRetrieveWithGoodConfig",
-        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 43L)))), notNullValue());
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary")))), notNullValue());
   }
 
   @Test
   public void testRetrieveWithBadConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithBadConfig",
-        new ServerSideConfiguration(null, Collections.singletonMap("foo", new Pool("primary", 42L))));
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "primary"))));
     try {
       factory.retrieve("testRetrieveWithBadConfig",
-          new ServerSideConfiguration(null, Collections.singletonMap("bar", new Pool("primary", 42L))));
+          new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, "primary"))));
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -123,7 +123,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   @Test
   public void testDestroy() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
-    factory.create("testDestroy", new ServerSideConfiguration(null, Collections.<String, Pool>emptyMap()));
+    factory.create("testDestroy", new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     factory.destroy("testDestroy");
   }
 

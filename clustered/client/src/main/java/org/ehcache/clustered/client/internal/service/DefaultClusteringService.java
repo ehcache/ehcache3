@@ -21,14 +21,10 @@ import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentMap;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.client.internal.EhcacheEntityBusyException;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
@@ -40,7 +36,6 @@ import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.common.ClusteredStoreCreationException;
 import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
@@ -84,8 +79,6 @@ class DefaultClusteringService implements ClusteringService {
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
   private final String entityIdentifier;
-  private final ServerSideConfiguration serverConfiguration;
-  private final boolean autoCreate;
   private final ConcurrentMap<String, Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository>> knownPersistenceSpaces =
       new ConcurrentHashMap<String, Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository>>();
 
@@ -100,9 +93,6 @@ class DefaultClusteringService implements ClusteringService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
-    this.serverConfiguration =
-        new ServerSideConfiguration(configuration.getDefaultServerResource(), extractResourcePools(configuration));
-    this.autoCreate = configuration.isAutoCreate();
   }
 
   private static URI extractClusterUri(URI uri) {
@@ -130,9 +120,9 @@ class DefaultClusteringService implements ClusteringService {
     entityFactory = new EhcacheClientEntityFactory(clusterConnection);
     try {
       EhcacheEntityCreationException failure = null;
-      if (autoCreate) {
+      if (configuration.isAutoCreate()) {
         try {
-          entityFactory.create(entityIdentifier, serverConfiguration);
+          entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
         } catch (EhcacheEntityCreationException e) {
           failure = e;
         } catch (EntityAlreadyExistsException e) {
@@ -140,7 +130,7 @@ class DefaultClusteringService implements ClusteringService {
         }
       }
       try {
-        entity = entityFactory.retrieve(entityIdentifier, serverConfiguration);
+        entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
       } catch (EntityNotFoundException e) {
         /*
          * If the connection failed because of a creation failure, re-throw the creation failure.
@@ -268,20 +258,6 @@ class DefaultClusteringService implements ClusteringService {
     entity.destroyCache(name);
   }
 
-  private Map<String, ServerSideConfiguration.Pool> extractResourcePools(ClusteringServiceConfiguration configuration) {
-    Map<String, ServerSideConfiguration.Pool> pools = new HashMap<String, ServerSideConfiguration.Pool>();
-    for (Map.Entry<String, PoolDefinition> e : configuration.getPools().entrySet()) {
-      PoolDefinition poolDef = e.getValue();
-      long size = poolDef.getUnit().toBytes(poolDef.getSize());
-      if (poolDef.getServerResource() == null) {
-        pools.put(e.getKey(), new ServerSideConfiguration.Pool(configuration.getDefaultServerResource(), size));
-      } else {
-        pools.put(e.getKey(), new ServerSideConfiguration.Pool(poolDef.getServerResource(), size));
-      }
-    }
-    return Collections.unmodifiableMap(pools);
-  }
-
   @Override
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                      final Store.Configuration<K, V> storeConfig,
@@ -324,7 +300,7 @@ class DefaultClusteringService implements ClusteringService {
         configuredConsistency
     );
 
-    if (autoCreate) {
+    if (configuration.isAutoCreate()) {
       try {
         this.entity.validateCache(cacheId, clientStoreConfiguration);
       } catch (IllegalStateException e) {

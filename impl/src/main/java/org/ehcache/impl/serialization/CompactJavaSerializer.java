@@ -196,7 +196,7 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
     for (Entry<Integer, ObjectStreamClass> entry : entries) {
       Integer index = entry.getKey();
       ObjectStreamClass discOsc = disconnect(entry.getValue());
-      readLookupLocalCache.putIfAbsent(index, discOsc);
+      readLookupLocalCache.put(index, discOsc);
       if (writeLookup.putIfAbsent(new SerializableDataKey(discOsc, true), index) != null && throwOnFailedPutIfAbsent) {
         throw new AssertionError("Corrupted data " + readLookup);
       }
@@ -236,7 +236,7 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
       }
       objectStreamClass = readLookup.get(key);
       ObjectStreamClass discOsc = disconnect(objectStreamClass);
-      readLookupLocalCache.putIfAbsent(key, discOsc);
+      readLookupLocalCache.put(key, discOsc);
       writeLookup.putIfAbsent(new SerializableDataKey(discOsc, true), key);
       return objectStreamClass;
     }

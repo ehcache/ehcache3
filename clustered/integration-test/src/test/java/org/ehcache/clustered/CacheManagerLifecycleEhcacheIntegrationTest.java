@@ -62,7 +62,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
   public void testAutoCreatedCacheManager() throws Exception {
     assertEntityNotExists(EhcacheClientEntity.class, "testAutoCreatedCacheManager");
     PersistentCacheManager manager = newCacheManagerBuilder()
-            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate(true).build())
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testAutoCreatedCacheManager")).autoCreate().build())
             .build();
     assertEntityNotExists(EhcacheClientEntity.class, "testAutoCreatedCacheManager");
     manager.init();

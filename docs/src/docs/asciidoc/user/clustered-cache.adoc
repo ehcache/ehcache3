@@ -15,7 +15,7 @@ endif::notBuildingForSite[]
 
 Distributed Caching allows users to harness additional benefits of horizontal scale-out, without loosing on latency offered by local on-heap tiers.
 You need a cache manager with clustering capabilities so that the caches can consume the clustered storage.
-And then add a Clustered storage as a tier to the cache which enables distributed caching.
+And then add a clustered storage as a tier to the cache which enables distributed caching.
 To enable Clustering with Terracotta, you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.
 
 
@@ -196,3 +196,17 @@ include::{sourcedir}/clustered/client/src/test/resources/configs/docs/ehcache-cl
 Expiry in clustered caches work with an exception that `Expiry#getExpiryForAccess` is handled on a best effort basis for clustered tiers,
 it may not be as accurate as in the case of local tiers. Though the same is honored accurately in on-heap tiers.
 
+== Ehcache Clustered Entity Lifecycle
+
+When configuring a cache manager to connect to a clustered entity there are three possible connection modes:
+[source,java,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
+----
+<1> In auto-create mode if no entity exists then one is created with the supplied configuration.
+If an entity exists and its configuration matches the supplied configuration then a connection is established.
+If the supplied configuration does not match then the cache manager will fail to initialize.
+<2> In expected mode if an entity exists and its configuration matches the supplied configuration then a connection is established.
+If the supplied configuration does not match or the entity does not exist then the cache manager will fail to initialize.
+<3> In config-less mode if an entity exists then a connection is established without regard to the configuration of that entity.
+If the entity does not exist then the cache manager will fail to initialize.

@@ -32,7 +32,15 @@ public class ServerSideConfiguration implements Serializable {
   private final String defaultServerResource;
   private final Map<String, Pool> resourcePools;
 
+  public ServerSideConfiguration(Map<String, Pool> resourcePools) {
+    this.defaultServerResource = null;
+    this.resourcePools = new HashMap<String, Pool>(resourcePools);
+  }
+
   public ServerSideConfiguration(String defaultServerResource, Map<String, Pool> resourcePools) {
+    if (defaultServerResource == null) {
+      throw new NullPointerException("Default server resource cannot be null");
+    }
     this.defaultServerResource = defaultServerResource;
     this.resourcePools = new HashMap<String, Pool>(resourcePools);
   }
@@ -50,28 +58,89 @@ public class ServerSideConfiguration implements Serializable {
     return unmodifiableMap(resourcePools);
   }
 
+  /**
+   * The definition of a pool that can be shared by multiple caches.
+   */
   public static final class Pool implements Serializable {
     private static final long serialVersionUID = 3920576607695314256L;
 
-    private final String source;
+    private final String serverResource;
     private final long size;
 
-    public Pool(String source, long size) {
-      this.source = source;
+    /**
+     * Creates a new pool definition with the given size, consuming the given server resource.
+     *
+     * @param size pool size
+     * @param serverResource the server resource to consume
+     */
+    public Pool(long size, String serverResource) {
+      if (size <= 0) {
+        throw new IllegalArgumentException("Pool must have a positive size");
+      }
       this.size = size;
+      this.serverResource = serverResource;
     }
 
-    public long size() {
+    /**
+     * Creates a new pool definition with the given size, consuming the default server resource.
+     *
+     * @param size pool size
+     */
+    public Pool(long size) {
+      if (size <= 0) {
+        throw new IllegalArgumentException("Pool must have a positive size");
+      }
+      this.size = size;
+      this.serverResource = null;
+    }
+
+    /**
+     * Returns the size of the pool in bytes.
+     *
+     * @return pool size
+     */
+    public long getSize() {
       return size;
     }
 
-    public String source() {
-      return source;
+    /**
+     * Returns the server resource consumed by this pool, or {@code null} if the default pool will be used.
+     *
+     * @return the server resource to consume
+     */
+    public String getServerResource() {
+      return serverResource;
     }
 
     @Override
     public String toString() {
-      return "[" + size() + " bytes from '" + source() + "']";
+      return "[" + getSize()+ " bytes from '" + ((getServerResource()== null) ? "<default>" : getServerResource()) + "']";
+    }
+
+    @Override
+    public int hashCode() {
+      return (this.serverResource != null ? this.serverResource.hashCode() : 0) ^ ((int) this.size) ^ ((int) (this.size >>> 32));
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      final Pool other = (Pool) obj;
+      if (this.size != other.size) {
+        return false;
+      }
+      if ((this.serverResource == null) ? (other.serverResource != null) : !this.serverResource.equals(other.serverResource)) {
+        return false;
+      }
+      return true;
     }
   }
 }
