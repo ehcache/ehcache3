@@ -13,8 +13,11 @@ endif::notBuildingForSite[]
 
 == Introduction
 
-To enable Clustering with Terracotta, firstly you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.
-And then need a cache manager with clustering capabilities so that the caches can consume the clustered storage.
+Distributed Caching allows users to harness additional benefits of horizontal scale-out, without loosing on latency offered by local on-heap tiers.
+You need a cache manager with clustering capabilities so that the caches can consume the clustered storage.
+And then add a Clustered storage as a tier to the cache which enables distributed caching.
+To enable Clustering with Terracotta, you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.
+
 
 == Clustering concepts
 
@@ -137,7 +140,26 @@ include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client
 
 == Clustered caches
 
-IMPORTANT: Content needed here!
+
+=== Clustered Storage Tier
+
+[source,java,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheTieredExample]
+----
+
+<1> Configuring heap tier for cache.
+<2> Configuring clustered tier of fixed size from server off-heap resource using `ClusteredResourcePoolBuilder`.
+
+The equivalent XML configuration is as follows:
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=tieringSample]
+----
+
+<1> Specify the heap tier for cache.
+<2> Specify the clustered tier for cache through a custom service configuration from the `clustered` namespace.
 
 === Specifying consistency level
 
@@ -168,3 +190,9 @@ include::{sourcedir}/clustered/client/src/test/resources/configs/docs/ehcache-cl
 ----
 
 <1> Specify the consistency level through a custom service configuration from the `clustered` namespace.
+
+=== Clustered Cache Expiry
+
+Expiry in clustered caches work with an exception that `Expiry#getExpiryForAccess` is handled on a best effort basis for clustered tiers,
+it may not be as accurate as in the case of local tiers. Though the same is honored accurately in on-heap tiers.
+
