@@ -31,6 +31,8 @@ public interface StateRepository {
    * </P>
    *
    * @param name the map name
+   * @param keyClass concrete map key type
+   * @param valueClass concrete map value type
    * @param <K> the map key type, must be {@code Serializable}
    * @param <V> the map value type, must be {@code Serializable}
    * @return a map
