@@ -175,6 +175,38 @@ public class GettingStarted {
   }
 
   @Test
+  public void clusteredCacheManagerLifecycleExamples() throws Exception {
+    // tag::clusteredCacheManagerLifecycle[]
+    CacheManagerBuilder<PersistentCacheManager> autoCreate = CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+                .autoCreate() // <1>
+                .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"))
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .with(ClusteredResourcePoolBuilder.shared("resource-pool"))));
+
+    CacheManagerBuilder<PersistentCacheManager> expecting = CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+                .expecting() // <2>
+                .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"))
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .with(ClusteredResourcePoolBuilder.shared("resource-pool"))));
+
+    CacheManagerBuilder<PersistentCacheManager> configless = CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")))
+                // <3>
+            .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
+                    .with(ClusteredResourcePoolBuilder.shared("resource-pool"))));
+    // end::clusteredCacheManagerLifecycle[]
+
+    autoCreate.build(true).close();
+    expecting.build(true).close();
+    configless.build(true).close();
+  }
+
+  @Test
   public void loadDocsXml() throws Exception {
     new XmlConfiguration(getClass().getResource("/configs/docs/ehcache-clustered.xml"));
   }
