@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.service;
 
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.common.Consistency;
@@ -42,8 +43,10 @@ public interface ClusteringService extends PersistableResourceService {
    *                    is requested
    * @param consistency the store's consistency
    * @return a new {@link ServerStoreProxy}
+   *
+   * @throws CachePersistenceException if the {@code cacheIdentifier} is unknown or the {@code ServerStoreProxy} cannot be created
    */
-  <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier, final Store.Configuration<K, V> storeConfig, Consistency consistency);
+  <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier, final Store.Configuration<K, V> storeConfig, Consistency consistency) throws CachePersistenceException;
 
   /**
    * Releases access to a {@link ServerStoreProxy} and the server-resident {@code ServerStore} it represents.

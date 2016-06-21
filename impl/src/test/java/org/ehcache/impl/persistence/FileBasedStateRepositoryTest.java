@@ -46,7 +46,7 @@ public class FileBasedStateRepositoryTest {
     File directory = folder.newFolder("testSave");
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
     String mapName = "myMap";
-    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName);
+    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName, Long.class, String.class);
 
     myMap.put(42L, "TheAnswer!");
 
@@ -90,7 +90,7 @@ public class FileBasedStateRepositoryTest {
     }
 
     FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
-    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName);
+    ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName, Long.class, String.class);
 
     assertThat(myMap, is(map));
   }

@@ -14,34 +14,31 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.serialization;
+package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Serializable;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * TransientStateRepository
+ * ClusteredStateRepository
  */
-class TransientStateRepository implements StateRepository {
+class ClusteredStateRepository implements StateRepository {
 
-  private ConcurrentMap<String, ConcurrentMap> knownMaps = new ConcurrentHashMap<String, ConcurrentMap>();
+  private final ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier;
+  private final String composedId;
+  private final DefaultClusteringService defaultClusteringService;
+
+  ClusteredStateRepository(ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier, String id, DefaultClusteringService defaultClusteringService) {
+    this.clusterCacheIdentifier = clusterCacheIdentifier;
+    this.composedId = clusterCacheIdentifier.getId() + "-" + id;
+    this.defaultClusteringService = defaultClusteringService;
+  }
 
   @Override
   public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
-    ConcurrentMap concurrentMap = knownMaps.get(name);
-    if (concurrentMap != null) {
-      return concurrentMap;
-    } else {
-      ConcurrentHashMap<K, V> newMap = new ConcurrentHashMap<K, V>();
-      concurrentMap = knownMaps.putIfAbsent(name, newMap);
-      if (concurrentMap == null) {
-        return newMap;
-      } else {
-        return concurrentMap;
-      }
-    }
+    return defaultClusteringService.getConcurrentMap(clusterCacheIdentifier, composedId + "-" + name, keyClass, valueClass);
   }
 }

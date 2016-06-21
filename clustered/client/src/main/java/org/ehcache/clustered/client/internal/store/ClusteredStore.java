@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.Cache;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
 import org.ehcache.clustered.client.internal.store.operations.ChainResolver;
@@ -514,7 +515,11 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       final ClusteredStore clusteredStore = (ClusteredStore) resource;
-      clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
+      try {
+        clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
+      } catch (CachePersistenceException e) {
+        throw new RuntimeException("Unable to create server store proxy - " + storeConfig.getCacheIdentifier(), e);
+      }
       clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
         @Override
         public void onInvalidateHash(long hash) {

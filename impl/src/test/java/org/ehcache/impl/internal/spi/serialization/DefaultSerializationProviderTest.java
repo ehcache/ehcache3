@@ -218,7 +218,7 @@ public class DefaultSerializationProviderTest {
     assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
 
     keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
-    assertThat(keySerializer, instanceOf(PlainJavaSerializer.class));
+    assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
   }
 
   @Test
@@ -303,7 +303,7 @@ public class DefaultSerializationProviderTest {
     ServiceProvider serviceProvider = mock(ServiceProvider.class);
     LocalPersistenceService persistenceService = mock(LocalPersistenceService.class);
     StateRepository stateRepository = mock(StateRepository.class);
-    when(stateRepository.getPersistentConcurrentMap(any(String.class))).thenReturn(new ConcurrentHashMap());
+    when(stateRepository.getPersistentConcurrentMap(any(String.class), any(Class.class), any(Class.class))).thenReturn(new ConcurrentHashMap());
     when(persistenceService.getStateRepositoryWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), any(String.class))).thenReturn(stateRepository);
     when(persistenceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
           .thenReturn(new FileBasedPersistenceContext() {

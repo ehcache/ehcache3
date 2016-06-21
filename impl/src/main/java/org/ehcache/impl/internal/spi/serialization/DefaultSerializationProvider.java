@@ -224,7 +224,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
-      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) PlainJavaSerializer.class);
+      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) CompactJavaSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Integer.class, IntegerSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Float.class, FloatSerializer.class);
