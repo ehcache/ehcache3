@@ -47,7 +47,7 @@ import static org.junit.Assert.assertThat;
  */
 public class BasicClusteredCacheExpiryTest {
 
-  private static final URI CLUSTER_URI = URI.create("http://example.com:9540/my-application");
+  private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
   private static final CacheManagerBuilder<PersistentCacheManager> commonClusteredCacheManagerBuilder =
       newCacheManagerBuilder()
           .with(cluster(CLUSTER_URI).autoCreate(true))

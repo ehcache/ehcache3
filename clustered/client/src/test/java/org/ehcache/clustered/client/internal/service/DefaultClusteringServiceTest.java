@@ -86,7 +86,7 @@ import static org.mockito.Mockito.when;
 
 public class DefaultClusteringServiceTest {
 
-  private static final String CLUSTER_URI_BASE = "http://example.com:9540/";
+  private static final String CLUSTER_URI_BASE = "terracotta://example.com:9540/";
   private ObservableEhcacheServerEntityService observableEhcacheServerEntityService;
 
   @Before

@@ -40,6 +40,8 @@ public final class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<PersistentCacheManager> {
 
+  private static final String CLUSTER_SCEHEME = "terracotta";
+
   private final URI clusterUri;
   private final boolean autoCreate;
   private final String defaultServerResource;
@@ -61,9 +63,7 @@ public final class ClusteringServiceConfiguration
    *            resource identifier and {@code defaultServerResource} is {@code null}
    */
   public ClusteringServiceConfiguration(final URI clusterUri, boolean autoCreate, String defaultServerResource, Map<String, PoolDefinition> pools) {
-    if (clusterUri == null) {
-      throw new NullPointerException("Cluster URI cannot be null");
-    }
+    validateClusterUri(clusterUri);
     if (pools == null) {
       pools = Collections.emptyMap();
     }
@@ -83,6 +83,16 @@ public final class ClusteringServiceConfiguration
     this.autoCreate = autoCreate;
     this.defaultServerResource = defaultServerResource;
     this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
+  }
+
+  private static void validateClusterUri(URI clusterUri) {
+    if (clusterUri == null) {
+      throw new IllegalArgumentException("Cluster URI cannot be null.");
+    }
+
+    if (!CLUSTER_SCEHEME.equals(clusterUri.getScheme())) {
+      throw new IllegalArgumentException("Cluster Uri is not valid, clusterUri : " + clusterUri.toString());
+    }
   }
 
   /**

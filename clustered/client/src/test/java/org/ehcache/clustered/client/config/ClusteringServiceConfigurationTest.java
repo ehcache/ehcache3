@@ -36,26 +36,26 @@ import static org.junit.Assert.*;
 
 public class ClusteringServiceConfigurationTest {
 
-  @Test(expected = NullPointerException.class)
+  @Test(expected = IllegalArgumentException.class)
   public void testGetConnectionUrlNull() throws Exception {
     new ClusteringServiceConfiguration(null, false, null, Collections.<String, PoolDefinition>emptyMap());
   }
 
   @Test
   public void testGetConnectionUrl() throws Exception {
-    final URI connectionUrl = URI.create("http://localhost:9450");
+    final URI connectionUrl = URI.create("terracotta://localhost:9450");
     assertThat(new ClusteringServiceConfiguration(connectionUrl, false, null, Collections.<String, PoolDefinition>emptyMap()).getClusterUri(), is(connectionUrl));
   }
 
   @Test
   public void testGetServiceType() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), false, null, Collections.<String, PoolDefinition>emptyMap()).getServiceType(),
+    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"), false, null, Collections.<String, PoolDefinition>emptyMap()).getServiceType(),
         is(equalTo(ClusteringService.class)));
   }
 
   @Test
   public void testGetAutoCreate() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), true, null, Collections.<String, PoolDefinition>emptyMap()).isAutoCreate(),
+    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"), true, null, Collections.<String, PoolDefinition>emptyMap()).isAutoCreate(),
         is(true));
   }
 
@@ -88,7 +88,27 @@ public class ClusteringServiceConfigurationTest {
 
   @Test
   public void testBuilder() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), false, null, Collections.<String, PoolDefinition>emptyMap())
+    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"), false, null, Collections.<String, PoolDefinition>emptyMap())
         .builder(CacheManagerBuilder.newCacheManagerBuilder()), is(instanceOf(CacheManagerBuilder.class)));
+  }
+
+  @Test
+  public void testInvalidURI() {
+
+    URI uri = URI.create("http://localhost:9540");
+    try {
+      new ClusteringServiceConfiguration(uri, true, "default", null);
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("Cluster Uri is not valid, clusterUri : http://localhost:9540"));
+    }
+  }
+
+  @Test
+  public void testValidURI() {
+    URI uri = URI.create("terracotta://localhost:9540");
+    ClusteringServiceConfiguration serviceConfiguration = new ClusteringServiceConfiguration(uri, true, "default", null);;
+
+    assertThat(serviceConfiguration.getClusterUri(), is(uri));
   }
 }
