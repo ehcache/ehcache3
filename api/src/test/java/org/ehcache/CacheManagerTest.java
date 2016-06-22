@@ -17,17 +17,14 @@
 package org.ehcache;
 
 import java.io.Closeable;
-import org.ehcache.config.CacheConfiguration;
+import org.junit.Test;
 
-/**
- * @author Alex Snaps
- */
-public interface CacheManager extends Closeable {
+import static org.junit.Assert.assertTrue;
 
-  <K, V> Cache<K, V> createCache(final String alias, final CacheConfiguration<K, V> config);
+public class CacheManagerTest {
 
-  <K, V> Cache<K, V> getCache(final String s);
-
-  @Override
-  void close();
+  @Test
+  public void testCacheManagerIsCloseable() {
+    assertTrue(Closeable.class.isAssignableFrom(CacheManager.class));
+  }
 }
