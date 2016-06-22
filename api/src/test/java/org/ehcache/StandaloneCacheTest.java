@@ -17,15 +17,14 @@
 package org.ehcache;
 
 import java.io.Closeable;
+import org.junit.Test;
 
-/**
- * Represents a Cache that is not managed by a CacheManager
- *
- * @author Alex Snaps
- */
-public interface StandaloneCache<K, V> extends Cache<K, V>, Closeable {
+import static org.junit.Assert.assertTrue;
 
-  @Override
-  void close();
+public class StandaloneCacheTest {
 
+  @Test
+  public void testStandaloneCacheIsCloseable() {
+    assertTrue(Closeable.class.isAssignableFrom(StandaloneCache.class));
+  }
 }
