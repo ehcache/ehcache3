@@ -50,6 +50,7 @@ import org.ehcache.statistics.StoreOperationOutcomes;
 import org.ehcache.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
@@ -59,11 +60,14 @@ import org.terracotta.offheapstore.storage.OffHeapBufferStorageEngine;
 import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
+import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,6 +104,8 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.RemoveOutcome> removeOperationObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).of(this).named("remove").tag("local-offheap").build();
   private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag("local-offheap").build();
 
+  private final OffHeapStoreStatsSettings offHeapStoreStatsSettings;
+
   private volatile Callable<Void> valve;
   private volatile StoreEventListener<K, V> eventListener = CacheEvents.nullStoreEventListener();
   private BackingMapEvictionListener<K, V> mapEvictionListener;
@@ -127,6 +133,9 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     this.keySerializer = keySerializer;
     this.valueSerializer = valueSerializer;
     this.sizeInBytes = sizeInBytes;
+
+    offHeapStoreStatsSettings = new OffHeapStoreStatsSettings(this);
+    StatisticsManager.associate(offHeapStoreStatsSettings).withParent(this);
   }
 
   @Override
@@ -925,6 +934,15 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void onEviction(K key, OffHeapValueHolder<V> value) {
       storeEventListener.onEviction(key, value);
+    }
+  }
+
+  private static final class OffHeapStoreStatsSettings {
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("store"));
+    @ContextAttribute("authoritativeTier") private final OffHeapStore<?, ?> authoritativeTier;
+
+    OffHeapStoreStatsSettings(OffHeapStore<?, ?> store) {
+      this.authoritativeTier = store;
     }
   }
 }
