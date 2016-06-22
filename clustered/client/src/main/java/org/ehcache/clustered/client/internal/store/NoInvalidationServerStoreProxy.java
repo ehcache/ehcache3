@@ -96,7 +96,7 @@ class NoInvalidationServerStoreProxy implements ServerStoreProxy {
   public void replaceAtHead(long key, Chain expect, Chain update) {
     // TODO: Optimize this method to just send sequences for expect Chain
     try {
-      entity.invoke(messageFactory.replaceAtHeadOperation(key, expect, update), true);
+      entity.invokeAsync(messageFactory.replaceAtHeadOperation(key, expect, update), true);
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }

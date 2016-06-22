@@ -145,7 +145,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void configure(ServerSideConfiguration config) throws IllegalStateException {
     try {
-      invokeInternal(messageFactory.configureStoreManager(config), false);
+      invokeInternal(messageFactory.configureStoreManager(config), true);
     } catch (Exception e) {
       throw convert(e, IllegalStateException.class, ILLEGAL_STATE_EXCEPTION_CTOR);
     }
@@ -153,7 +153,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws CachePersistenceException {
     try {
-      invokeInternal(messageFactory.createServerStore(name, serverStoreConfiguration), false);
+      invokeInternal(messageFactory.createServerStore(name, serverStoreConfiguration), true);
     } catch (Exception e) {
       throw convert(e, CachePersistenceException.class, CACHE_PERSISTENCE_EXCEPTION_CTOR);
     }
@@ -177,7 +177,7 @@ public class EhcacheClientEntity implements Entity {
 
   public void destroyCache(String name) throws CachePersistenceException {
     try {
-      invokeInternal(messageFactory.destroyServerStore(name), false);
+      invokeInternal(messageFactory.destroyServerStore(name), true);
     } catch (Exception e) {
       throw convert(e, CachePersistenceException.class, CACHE_PERSISTENCE_EXCEPTION_CTOR);
     }
@@ -188,8 +188,7 @@ public class EhcacheClientEntity implements Entity {
    * awaits a response.
    *
    * @param message the {@code EhcacheEntityMessage} to send
-   * @param waitUntilReplicated if {@code true}, indicates that the message should be replicated to
-   *                            passive servers before the response for {@code message} is returned
+   * @param replicate if {@code true}, indicates that the message should be replicated to passive servers
    *
    * @return an {@code EhcacheEntityResponse} holding a successful response from the server for {@code message}
    *
@@ -202,41 +201,47 @@ public class EhcacheClientEntity implements Entity {
    * @throws RuntimeException thrown when a message system support method throws a {@code RuntimeException}
    *          or a checked exception
    */
-  public EhcacheEntityResponse invoke(EhcacheEntityMessage message, boolean waitUntilReplicated)
+  public EhcacheEntityResponse invoke(EhcacheEntityMessage message, boolean replicate)
       throws EhcacheEntityOperationException, IllegalArgumentException, IllegalStateException {
     try {
-      return invokeInternal(message, waitUntilReplicated);
+      return invokeInternal(message, replicate);
     } catch (Exception e) {
       throw convert(e, EhcacheEntityOperationException.class, EHCACHE_ENTITY_OPERATION_EXCEPTION_CTOR);
     }
   }
 
-  private EhcacheEntityResponse invokeInternal(EhcacheEntityMessage message, boolean waitUntilReplicated)
+  private EhcacheEntityResponse invokeInternal(EhcacheEntityMessage message, boolean replicate)
       throws CachePersistenceException, MessageCodecException, EntityException {
 
-    InvokeFuture<EhcacheEntityResponse> result;
-    if (waitUntilReplicated) {
-      result = endpoint.beginInvoke().message(message).replicate(true).ackCompleted().invoke();
+    EhcacheEntityResponse response = waitFor(invokeAsync(message, replicate));
+    if (Type.FAILURE.equals(response.getType())) {
+      /*
+       * The FAILURE cause is a server-side exception lacking client-side stack trace
+       * elements.  The server-side exception must be wrapped in a client-side exception
+       * to provide proper stack trace for analysis.
+       */
+      Exception cause = ((Failure)response).getCause();
+      throw new CachePersistenceException(message.getType() + " error: " + cause.toString(), cause);
     } else {
-      result = endpoint.beginInvoke().message(message).invoke();
+      return response;
     }
+  }
 
+  public InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
+          throws MessageCodecException {
+    if (replicate) {
+      return endpoint.beginInvoke().message(message).replicate(true).ackCompleted().invoke();
+    } else {
+      return endpoint.beginInvoke().message(message).invoke();
+    }
+  }
+
+  private static <T> T waitFor(InvokeFuture<T> future) throws EntityException {
     boolean interrupted = false;
     try {
       while (true) {
         try {
-          EhcacheEntityResponse response = result.get();
-          if (Type.FAILURE.equals(response.getType())) {
-            /*
-             * The FAILURE cause is a server-side exception lacking client-side stack trace
-             * elements.  The server-side exception must be wrapped in a client-side exception
-             * to provide proper stack trace for analysis.
-             */
-            Exception cause = ((Failure)response).getCause();
-            throw new CachePersistenceException(message.getType() + " error: " + cause.toString(), cause);
-          } else {
-            return response;
-          }
+          return future.get();
         } catch (InterruptedException e) {
           interrupted = true;
         }
@@ -267,7 +272,7 @@ public class EhcacheClientEntity implements Entity {
    * @throws RuntimeException if {@code e} is a {@code RuntimeException} and {@code e} is not of
    *        type {@code targetException}, or {@code e} is otherwise not a {@code RuntimeException}
    */
-  private <E extends Exception> E convert(Exception e, Class<E> targetException, Ctor<E> targetExceptionBuilder) {
+  private static <E extends Exception> E convert(Exception e, Class<E> targetException, Ctor<E> targetExceptionBuilder) {
     if (targetException.isInstance(e)) {
       return targetException.cast(e);
     }
