@@ -18,7 +18,9 @@ package org.ehcache.clustered.common;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static java.util.Collections.unmodifiableMap;
 
@@ -33,6 +35,16 @@ public class ServerSideConfiguration implements Serializable {
   private final Map<String, Pool> resourcePools;
 
   public ServerSideConfiguration(Map<String, Pool> resourcePools) {
+    Set<String> badPools = new HashSet<String>();
+    for (Map.Entry<String, Pool> e : resourcePools.entrySet()) {
+      if (e.getValue().getServerResource() == null) {
+        badPools.add(e.getKey());
+      }
+    }
+    if (!badPools.isEmpty()) {
+      throw new IllegalArgumentException("Pools " + badPools + " define no explicit server resource, and no default server resource was specified");
+    }
+
     this.defaultServerResource = null;
     this.resourcePools = new HashMap<String, Pool>(resourcePools);
   }
@@ -41,6 +53,7 @@ public class ServerSideConfiguration implements Serializable {
     if (defaultServerResource == null) {
       throw new NullPointerException("Default server resource cannot be null");
     }
+
     this.defaultServerResource = defaultServerResource;
     this.resourcePools = new HashMap<String, Pool>(resourcePools);
   }
