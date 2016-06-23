@@ -61,7 +61,7 @@ distributions {
       into ('') {
         from configurations.kit.files.collect { zipTree(it) }
       }
-      into ("terracotta-$terracottaCoreVersion/plugins/lib") {
+      into ("terracotta-$terracottaCoreVersion/server/plugins/lib") {
         from configurations.serverLibs
       }
       into ('client') {
