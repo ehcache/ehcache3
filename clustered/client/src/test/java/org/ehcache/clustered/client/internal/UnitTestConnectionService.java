@@ -133,7 +133,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     SERVERS.put(keyURI, new ServerDescriptor(server));
-    server.start();
+    server.start(true, false);
     LOGGER.info("Started PassthroughServer at {}", keyURI);
   }
 
@@ -273,7 +273,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     public PassthroughServer build() {
-      PassthroughServer newServer = new PassthroughServer(true);
+      PassthroughServer newServer = new PassthroughServer();
 
       /*
        * If services have been specified, don't establish the "defaults".
