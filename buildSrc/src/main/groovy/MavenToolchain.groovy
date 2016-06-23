@@ -1,6 +1,16 @@
-import org.gradle.api.JavaVersion;
+import org.gradle.api.JavaVersion
+import org.gradle.api.resources.MissingResourceException;
 import org.gradle.internal.os.OperatingSystem;
 
+/**
+ * Emulates maven toolchains support by looking at the user's
+ *    ~/.m2/toolchains.xml
+ *
+ * Throws if this file is not found
+ *
+ * Provides a closure to use to find the correct jvm's executable, eg:
+ *  MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+ */
 class MavenToolchain {
 
   static def mavenToolchainDefinitions = {
@@ -10,7 +20,7 @@ class MavenToolchain {
       def xmlSlurper = new XmlSlurper()
       return new XmlSlurper().parse(toolchain)
     } else {
-      throw new Exception("toolchain file not found!!! " + toolchain);
+      throw new MissingResourceException("toolchain file not found at ${toolchain}" );
     }
   }
 
@@ -30,7 +40,7 @@ class MavenToolchain {
     def jdk = toolchains.get(v);
     if (jdk == null) {
 
-      throw new RuntimeException("JDK $v not available - check your toolchains.xml")
+      throw new MissingResourceException("JDK $v not available - check your toolchains.xml")
     } else {
       return jdk;
     }

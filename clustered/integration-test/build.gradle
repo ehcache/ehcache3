@@ -15,14 +15,15 @@
  */
 
 dependencies {
-  testCompile project(':clustered:dist')
+  testCompile project(':dist')
+  testCompile project(':clustered:clustered-dist')
 
   testCompile group:'org.terracotta', name:'galvan-support', version:'1.0.0-SNAPSHOT' changing true
 }
 
 task unzipKit(type: Copy) {
-  dependsOn project(':clustered:dist').distZip
-  from zipTree(project(':clustered:dist').distZip.archivePath)
+  dependsOn project(':clustered:clustered-dist').distZip
+  from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
   into 'build/ehcache-kit'
 }
 
@@ -40,7 +41,8 @@ test {
   executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
   environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
-  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/ehcache-clustered-$project.version-kit/terracotta-$parent.terracottaCoreVersion"
+  //If this directory does not exist, tests will fail with a cryptic assert failure
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }
