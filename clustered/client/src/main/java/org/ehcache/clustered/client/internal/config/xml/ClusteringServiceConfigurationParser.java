@@ -177,10 +177,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
                 + poolName + "\"> is too large");
           }
 
-          if (serverSideConfig.pools == null) {
-            serverSideConfig.pools = new HashMap<String, Pool>();
-          }
-
           Pool poolDefinition;
           if (fromResource == null) {
             poolDefinition = new Pool(memoryUnit.toBytes(quantity));
@@ -198,8 +194,8 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   }
 
   private static final class ServerSideConfig {
-    private boolean autoCreate;
-    private String defaultServerResource;
-    private Map<String, Pool> pools = emptyMap();
+    private boolean autoCreate = false;
+    private String defaultServerResource = null;
+    private final Map<String, Pool> pools = new HashMap<String, Pool>();
   }
 }
