@@ -14,10 +14,18 @@
  * limitations under the License.
  */
 
+/**
+ * NOTE: this directory had to be named clustered-dist instead of just dist
+ * because gradle creatively substitutes :dist for :clustered:dist or vice versa
+ * if groups are the same
+ * https://discuss.gradle.org/t/dependency-substitution-wrong-with-more-than-one-sub-project-with-same-name/7253/6
+ */
+
 group = 'org.ehcache'
 archivesBaseName = 'ehcache-clustered'
 
 apply plugin: 'distribution'
+apply plugin: EhDistribute
 
 configurations {
   kit
@@ -25,13 +33,6 @@ configurations {
 }
 
 dependencies {
-  compile project(':api')
-  compile project(':core')
-  compile project(':impl')
-  compile project(':management')
-  compile project(':107')
-  compile project(':xml')
-  compile project(':transactions')
   compile project(':clustered:client')
   compile project(':clustered:common')
   compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion" changing true
@@ -45,27 +46,40 @@ dependencies {
   serverLibs "org.terracotta.entities:clustered-map-server:$parent.clusteredMapVersion" changing true
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip" changing true
-}
 
-apply plugin: EhDistribute
-
-dependencies {
   shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
+  pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
 }
 
 distributions {
   main {
     baseName = archivesBaseName
     contents {
+      //tc kit
       into ('') {
         from configurations.kit.files.collect { zipTree(it) }
+        eachFile { f ->
+          // remove top level directory from the kit
+          f.path = f.path.replace("terracotta-$terracottaCoreVersion/", "")
+        }
+        exclude { f ->
+          // Exclude tc's client subdir
+          f.path.contains('client/')
+        }
+        includeEmptyDirs = false
       }
-      into ("terracotta-$terracottaCoreVersion/server/plugins/lib") {
+      into ("server/plugins/lib") {
         from configurations.serverLibs
       }
-      into ('client') {
+      into ('client/ehcache') {
         from jar
+        from project(':dist').jar.archivePath.getPath()
+        exclude { f ->
+          !f.path.contains('ehcache') // do not add any transitives in this directory
+        }
+      }
+      into ('client/lib') {
+        from configurations.shadow
       }
     }
   }
