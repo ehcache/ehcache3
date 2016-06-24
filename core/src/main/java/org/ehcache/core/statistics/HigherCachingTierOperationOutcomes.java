@@ -24,7 +24,13 @@ public interface HigherCachingTierOperationOutcomes {
    * the silentInvalidate outcomes
    */
   enum SilentInvalidateOutcome implements HigherCachingTierOperationOutcomes {
+    /**
+     * mapping removed
+     */
     REMOVED,
+    /**
+     * miss
+     */
     MISS
   }
 }

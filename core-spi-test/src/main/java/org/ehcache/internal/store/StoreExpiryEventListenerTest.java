@@ -16,14 +16,16 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.RemoveStatus;
+import org.ehcache.core.spi.store.Store.ReplaceStatus;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
@@ -59,7 +61,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   @Before
   public void setUp() {
     timeSource = new TestTimeSource();
-    kvStore = factory.newStoreWithExpiry(Expirations.<K, V>timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
+    kvStore = factory.newStoreWithExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
   }
 
   @SPITest
@@ -94,7 +96,16 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    assertThat(kvStore.remove(k, v), is(false));
+    assertThat(kvStore.remove(k), is(false));
+    verifyListenerInteractions(listener);
+  }
+
+  @SPITest
+  public void testConditionalRemoveOnExpiration() throws Exception {
+    kvStore.put(k, v);
+    StoreEventListener<K, V> listener = addListener(kvStore);
+    timeSource.advanceTime(1);
+    assertThat(kvStore.remove(k, v), is(RemoveStatus.KEY_MISSING));
     verifyListenerInteractions(listener);
   }
 
@@ -112,7 +123,7 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
     kvStore.put(k, v);
     StoreEventListener<K, V> listener = addListener(kvStore);
     timeSource.advanceTime(1);
-    assertThat(kvStore.replace(k, v, v2), is(false));
+    assertThat(kvStore.replace(k, v, v2), is(ReplaceStatus.MISS_NOT_PRESENT));
     verifyListenerInteractions(listener);
   }
 
@@ -142,21 +153,6 @@ public class StoreExpiryEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         return v2;
       }
     }).value(), is(v2));
-    verifyListenerInteractions(listener);
-  }
-
-  @SPITest
-  public void testComputeIfPresentOnExpiration() throws Exception {
-    kvStore.put(k, v);
-    StoreEventListener<K, V> listener = addListener(kvStore);
-    timeSource.advanceTime(1);
-
-    assertThat(kvStore.computeIfPresent(k, new BiFunction<K, V, V>() {
-      @Override
-      public V apply(K mappedKey, V mappedValue) {
-        throw new AssertionError();
-      }
-    }), nullValue());
     verifyListenerInteractions(listener);
   }
 

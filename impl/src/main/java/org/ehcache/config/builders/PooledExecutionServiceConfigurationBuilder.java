@@ -16,13 +16,19 @@
 
 package org.ehcache.config.builders;
 
+import org.ehcache.config.Builder;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 
 import java.util.HashSet;
 import java.util.Set;
 
 /**
- * @author Ludovic Orban
+ * The {@code PooledExecutionServiceConfigurationBuilder} enables building configurations for an
+ * {@link org.ehcache.core.spi.service.ExecutionService} that is pool based using a fluent style.
+ * <P>
+ * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
+ * instance without modifying the one on which the method was called.
+ * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
  */
 public class PooledExecutionServiceConfigurationBuilder implements Builder<PooledExecutionServiceConfiguration> {
 
@@ -37,22 +43,48 @@ public class PooledExecutionServiceConfigurationBuilder implements Builder<Poole
     this.pools.addAll(other.pools);
   }
 
+  /**
+   * Creates a new instance of {@code PooledExecutionServiceConfigurationBuilder}
+   *
+   * @return the builder
+   */
   public static PooledExecutionServiceConfigurationBuilder newPooledExecutionServiceConfigurationBuilder() {
     return new PooledExecutionServiceConfigurationBuilder();
   }
 
+  /**
+   * Adds a default pool configuration to the returned builder.
+   *
+   * @param alias the pool alias
+   * @param minSize the minimum number of threads in the pool
+   * @param maxSize the maximum number of threads in the pool
+   * @return a new builder with the added default pool
+   */
   public PooledExecutionServiceConfigurationBuilder defaultPool(String alias, int minSize, int maxSize) {
     PooledExecutionServiceConfigurationBuilder other = new PooledExecutionServiceConfigurationBuilder(this);
     other.defaultPool = new Pool(alias, minSize, maxSize);
     return other;
   }
 
+  /**
+   * Adds a pool configuration to the returned builder.
+   *
+   * @param alias the pool alias
+   * @param minSize the minimum number of threads in the pool
+   * @param maxSize the maximum number of threads in the pool
+   * @return a new builder with the added default pool
+   */
   public PooledExecutionServiceConfigurationBuilder pool(String alias, int minSize, int maxSize) {
     PooledExecutionServiceConfigurationBuilder other = new PooledExecutionServiceConfigurationBuilder(this);
     other.pools.add(new Pool(alias, minSize, maxSize));
     return other;
   }
 
+  /**
+   * Builds the {@link PooledExecutionServiceConfiguration}
+   *
+   * @return the built configuration
+   */
   @Override
   public PooledExecutionServiceConfiguration build() {
     PooledExecutionServiceConfiguration config = new PooledExecutionServiceConfiguration();
@@ -71,7 +103,7 @@ public class PooledExecutionServiceConfigurationBuilder implements Builder<Poole
     private int minSize;
     private int maxSize;
 
-    public Pool(String alias, int minSize, int maxSize) {
+    Pool(String alias, int minSize, int maxSize) {
       this.alias = alias;
       this.minSize = minSize;
       this.maxSize = maxSize;

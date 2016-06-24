@@ -1,0 +1,86 @@
+---
+---
+= Expiry
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Introduction
+
+As conveyed in the <<caching-concepts.adoc#data-freshness-and-expiration,_Data Freshness and Expiration_>> documentation, this is one of the key aspects of caching.
+In Ehcache 3 this is addressed with the `Expiry` interface and its use in controlling the age of cache mappings.
+
+== Configuration
+
+Expiry is configured at the cache level, in Java or in XML:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
+----
+
+<1> Expiry is configured at the cache level, so start by defining a cache configuration,
+<2> then add to it an `Expiry`, here using the predefined _time-to-live_ one, configured with the required `Duration`.
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/xml/src/test/resources/configs/docs/getting-started.xml[tags=expiry]
+----
+
+<1> At the cache level, using the predefined _time-to-live_ again.
+
+Both Java and XML offer direct support for three types of expiry:
+
+[horizontal]
+no expiry:: this means cache mappings will never expire,
+time-to-live:: this means cache mappings will expire after a fixed duration following their creation,
+time-to-idle:: this means cache mappings will expire after a fixed duration following their last access time.
+
+For Java, see `org.ehcache.expiry.Expirations` and the XSD for XML.
+
+Read on to implement your own expiration scheme.
+
+== Custom expiry
+
+Support your own expiration scheme simply means implementing the `Expiry` interface:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/expiry/Expiry.java[lines=21..-1]
+----
+
+The main points to remember on the return value from these methods:
+
+[horizontal]
+some `Duration`:: indicates that the mapping will expire after that duration,
+`Duration.ZERO`:: indicates that the mapping is immediately expired,
+`Duration.INFINITE`:: indicates that the mapping will never expire,
+`null` `Duration`:: indicates that the previous expiration time is to be left unchanged, illegal at mapping creation time.
+
+Note that you can access the details of the mapping, thus providing expiration times that are different per mapping.
+
+Also when used from XML, Ehcache expects your expiry implementation to have a _no-arg_ constructor.
+
+Once you have implemented your own expiry, simply configure it.
+
+In Java:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=customExpiry]
+----
+
+<1> Simply pass your custom expiry instance into the cache builder.
+
+In XML:
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/xml/src/test/resources/configs/docs/getting-started.xml[tags=customExpiry]
+----
+
+<1> Simply pass the fully qualified class name of your custom expiry.

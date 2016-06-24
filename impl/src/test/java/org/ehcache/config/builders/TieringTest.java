@@ -20,9 +20,6 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
@@ -41,8 +38,8 @@ public class TieringTest {
 
   @Test
   public void testTieredStore() throws Exception {
-    CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(10L, MemoryUnit.MB))
+    CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(10L, MemoryUnit.MB))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -61,8 +58,8 @@ public class TieringTest {
 
   @Test
   public void testTieredOffHeapStore() throws Exception {
-    CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+    CacheConfiguration<Long, String> tieredCacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("tieredCache", tieredCacheConfiguration).build(true);
@@ -79,8 +76,8 @@ public class TieringTest {
 
   @Test
   public void testPersistentDiskCache() throws Exception {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(10L, MemoryUnit.MB, true))
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).disk(10L, MemoryUnit.MB, true))
         .build();
 
     PersistentCacheManager persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()

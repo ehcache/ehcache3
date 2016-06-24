@@ -15,16 +15,16 @@
  */
 package org.ehcache.impl.internal.executor;
 
+import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.core.spi.service.ExecutionServiceFactory;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
  *
  * @author cdennis
  */
-public class DefaultExecutionServiceFactory implements ExecutionServiceFactory {
+public class DefaultExecutionServiceFactory implements ServiceFactory<ExecutionService> {
 
   @Override
   public ExecutionService create(ServiceCreationConfiguration<ExecutionService> configuration) {

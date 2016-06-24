@@ -15,6 +15,6 @@
  */
 
 /**
- * Package for API related to {@link org.ehcache.CacheManager} services
+ * {@link org.ehcache.spi.service.Service Service} SPI related in Ehcache.
  */
 package org.ehcache.spi.service;

@@ -15,19 +15,21 @@
  */
 package org.ehcache.impl.internal.store.heap.bytesized;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.core.exceptions.LimitExceededException;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
@@ -38,12 +40,12 @@ import org.ehcache.internal.TestTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.sizeof.SizeOf;
 import org.ehcache.sizeof.SizeOfFilterSource;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
@@ -78,22 +80,22 @@ public class ByteAccountingTest {
 
 
   <K, V> OnHeapStoreForTests<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none());
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice());
   }
 
   <K, V> OnHeapStoreForTests<K, V> newStore(int capacity) {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none(), capacity);
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice(), capacity);
   }
 
   <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry) {
-    return newStore(timeSource, expiry, Eviction.none());
+    return newStore(timeSource, expiry, Eviction.noAdvice());
   }
 
-  <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry, EvictionVeto<? super K, ? super V> veto) {
-    return newStore(timeSource, expiry, veto, 100);
+  <K, V> OnHeapStoreForTests<K, V> newStore(TimeSource timeSource, Expiry<? super K, ? super V> expiry, EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
+    return newStore(timeSource, expiry, evictionAdvisor, 100);
   }
 
-  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
+  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
       final int capacity) {
 
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
@@ -110,8 +112,8 @@ public class ByteAccountingTest {
       }
 
       @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
+      public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+        return evictionAdvisor;
       }
 
       @Override
@@ -140,14 +142,14 @@ public class ByteAccountingTest {
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 0;
       }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE), new TestStoreEventDispatcher<K, V>());
   }
 
   @Test
-  public void testPut() throws CacheAccessException {
+  public void testPut() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -156,7 +158,71 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testRemove() throws CacheAccessException {
+  public void testPutUpdate() throws StoreAccessException {
+    OnHeapStoreForTests<String, String> store = newStore();
+
+    store.put(KEY, VALUE);
+    String otherValue = "otherValue";
+    store.put(KEY, otherValue);
+
+    long delta = SIZEOF.deepSizeOf(otherValue) - SIZEOF.deepSizeOf(VALUE);
+
+    assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR + delta));
+  }
+
+  @Test
+  public void testPutExpiryOnCreate() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testPutExpiryOnUpdate() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.put(KEY, "otherValue");
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testRemove() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -164,11 +230,37 @@ public class ByteAccountingTest {
     store.remove("Another Key");
     assertThat(store.getCurrentUsageInBytes(), is(beforeRemove));
     store.remove(KEY);
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
-  public void testRemoveTwoArg() throws CacheAccessException {
+  public void testRemoveExpired() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return new Duration(600L, TimeUnit.MILLISECONDS);
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    timeSource.advanceTime(1000L);
+    store.remove(KEY);
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testRemoveTwoArg() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -176,11 +268,62 @@ public class ByteAccountingTest {
     store.remove(KEY, "Another value");
     assertThat(store.getCurrentUsageInBytes(), is(beforeRemove));
     store.remove(KEY, VALUE);
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
-  public void testReplace() throws CacheAccessException {
+  public void testRemoveTwoArgExpired() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return new Duration(600L, TimeUnit.MILLISECONDS);
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    timeSource.advanceTime(1000L);
+    store.remove(KEY, "whatever value, it is expired anyway");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testRemoveTwoArgExpiresOnAccess() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.remove(KEY, "whatever value, it expires on access");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testReplace() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -201,7 +344,58 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testReplaceThreeArg() throws CacheAccessException {
+  public void testReplaceTwoArgExpired() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return new Duration(600L, TimeUnit.MILLISECONDS);
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    timeSource.advanceTime(1000L);
+    store.replace(KEY, "whatever value, it is expired anyway");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testReplaceTwoArgExpiresOnUpdate() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.replace(KEY, "whatever value, it expires on update");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testReplaceThreeArg() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -222,19 +416,145 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testPutIfAbsent() throws CacheAccessException {
-    OnHeapStoreForTests<String, String> store = newStore();
+  public void testReplaceThreeArgExpired() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return new Duration(600L, TimeUnit.MILLISECONDS);
+      }
 
-    store.putIfAbsent(KEY, VALUE);
-    long curent = 0l;
-    assertThat(curent = store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
 
-    store.putIfAbsent(KEY, "New Value to Put");
-    assertThat(store.getCurrentUsageInBytes(), is(curent));
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    timeSource.advanceTime(1000L);
+    store.replace(KEY, VALUE, "whatever value, it is expired anyway");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
-  public void testComputeRemove() throws CacheAccessException {
+  public void testReplaceThreeArgExpiresOnUpdate() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.replace(KEY, VALUE, "whatever value, it expires on update");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testPutIfAbsent() throws StoreAccessException {
+    OnHeapStoreForTests<String, String> store = newStore();
+
+    store.putIfAbsent(KEY, VALUE);
+    long current = store.getCurrentUsageInBytes();
+    assertThat(current, is(SIZE_OF_KEY_VALUE_PAIR));
+
+    store.putIfAbsent(KEY, "New Value to Put");
+    assertThat(store.getCurrentUsageInBytes(), is(current));
+  }
+
+  @Test
+  public void testPutIfAbsentOverExpired() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return new Duration(600L, TimeUnit.MILLISECONDS);
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, "an expired value");
+    timeSource.advanceTime(1000L);
+    store.putIfAbsent(KEY, VALUE);
+    assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
+  }
+
+  @Test
+  public void testPutIfAbsentExpiresOnAccess() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.putIfAbsent(KEY, "another value ... whatever");
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testInvalidate() throws StoreAccessException {
+    OnHeapStoreForTests<Object, Object> store = newStore();
+    store.put(KEY, VALUE);
+    store.invalidate(KEY);
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testSilentInvalidate() throws StoreAccessException {
+    OnHeapStoreForTests<Object, Object> store = newStore();
+    store.put(KEY, VALUE);
+    store.silentInvalidate(KEY, new Function<Store.ValueHolder<Object>, Void>() {
+      @Override
+      public Void apply(Store.ValueHolder<Object> objectValueHolder) {
+        // Nothing to do
+        return null;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testComputeRemove() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.put(KEY, VALUE);
@@ -262,7 +582,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testCompute() throws CacheAccessException {
+  public void testCompute() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.compute(KEY, new BiFunction<String, String, String>() {
@@ -290,7 +610,74 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testComputeIfAbsent() throws CacheAccessException {
+  public void testComputeExpiryOnAccess() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.compute(KEY, new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String s, String s2) {
+        return s2;
+      }
+    }, new NullaryFunction<Boolean>() {
+      @Override
+      public Boolean apply() {
+        return false;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testComputeExpiryOnUpdate() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.ZERO;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.compute(KEY, new BiFunction<String, String, String>() {
+      @Override
+      public String apply(String s, String s2) {
+        return s2;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testComputeIfAbsent() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore();
 
     store.computeIfAbsent(KEY, new Function<String, String>() {
@@ -312,80 +699,72 @@ public class ByteAccountingTest {
     });
 
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
-
   }
 
   @Test
-  public void testComputeIfPresentRemove() throws CacheAccessException {
-    OnHeapStoreForTests<String, String> store = newStore();
-
-    store.put(KEY, VALUE);
-
-    store.computeIfPresent("another", new BiFunction<String, String, String>() {
+  public void testComputeIfAbsentExpireOnCreate() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.ZERO;
+      }
 
       @Override
-      public String apply(String a, String b) {
-        return null;
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
       }
     });
 
-    assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
-
-    store.computeIfPresent(KEY, new BiFunction<String, String, String>() {
-
+    store.computeIfAbsent(KEY, new Function<String, String>() {
       @Override
-      public String apply(String a, String b) {
-        return null;
-      }
-    });
-
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
-
-  }
-
-  @Test
-  public void testComputeIfPresent() throws CacheAccessException {
-    OnHeapStoreForTests<String, String> store = newStore();
-
-    store.computeIfPresent(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
+      public String apply(String s) {
         return VALUE;
       }
     });
 
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
-
-    store.put(KEY, VALUE);
-
-    store.computeIfPresent(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return VALUE;
-      }
-    });
-
-    assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
-
-    final String replace = "Replace the original value";
-    long delta = SIZEOF.deepSizeOf(replace) - SIZEOF.deepSizeOf(VALUE);
-
-    store.compute(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return replace;
-      }
-    });
-
-    assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR + delta));
-
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
-  public void testExpiry() throws CacheAccessException {
+  public void testComputeIfAbsentExpiryOnAccess() throws StoreAccessException {
+    TestTimeSource timeSource = new TestTimeSource(100L);
+    OnHeapStoreForTests<String, String> store = newStore(timeSource, new Expiry<String, String>() {
+      @Override
+      public Duration getExpiryForCreation(String key, String value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(String key, ValueSupplier<? extends String> value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(String key, ValueSupplier<? extends String> oldValue, String newValue) {
+        return Duration.INFINITE;
+      }
+    });
+
+    store.put(KEY, VALUE);
+    store.computeIfAbsent(KEY, new Function<String, String>() {
+      @Override
+      public String apply(String s) {
+        fail("should not be called");
+        return s;
+      }
+    });
+
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
+  }
+
+  @Test
+  public void testExpiry() throws StoreAccessException {
     TestTimeSource timeSource = new TestTimeSource();
     OnHeapStoreForTests<String, String> store = newStore(timeSource, Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.MILLISECONDS)));
 
@@ -398,7 +777,7 @@ public class ByteAccountingTest {
   }
 
   @Test
-  public void testEviction() throws CacheAccessException {
+  public void testEviction() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore(1);
     StoreEventListener listener = mock(StoreEventListener.class);
     store.getStoreEventSource().addEventListener(listener);
@@ -433,18 +812,17 @@ public class ByteAccountingTest {
     return size;
   }
 
-  public static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
+  static class OnHeapStoreForTests<K, V> extends OnHeapStore<K, V> {
 
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
-    public OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
-                               final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
+    OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
+                        final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, eventDispatcher);
     }
 
-    @Override
-    public long getCurrentUsageInBytes() {
-      return super.getCurrentUsageInBytes();
+    long getCurrentUsageInBytes() {
+      return super.byteSized();
     }
 
   }

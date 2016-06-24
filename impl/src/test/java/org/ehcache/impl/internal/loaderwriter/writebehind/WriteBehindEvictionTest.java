@@ -19,11 +19,10 @@ import java.util.concurrent.TimeUnit;
 
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 
@@ -35,8 +34,7 @@ public class WriteBehindEvictionTest extends AbstractWriteBehindTestBase {
 
   @Override
   protected CacheConfigurationBuilder<String, String> configurationBuilder() {
-    return newCacheConfigurationBuilder(String.class, String.class)
-            .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
+    return newCacheConfigurationBuilder(String.class, String.class, heap(10))
             .withExpiry(Expirations.timeToLiveExpiration(new Duration(100, TimeUnit.MILLISECONDS)));
   }
 

@@ -18,15 +18,13 @@ package org.ehcache.jsr107;
 import org.ehcache.config.Configuration;
 import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.config.DefaultConfiguration;
-import org.ehcache.core.spi.ServiceLocator;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
-import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.jsr107.internal.DefaultJsr107Service;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.xml.XmlConfiguration;
 
 import java.net.URI;
@@ -44,7 +42,7 @@ import javax.cache.configuration.OptionalFeature;
 import javax.cache.spi.CachingProvider;
 
 /**
- * @author teck
+ * {@link CachingProvider} implementation for Ehcache.
  */
 public class EhcacheCachingProvider implements CachingProvider {
 
@@ -62,6 +60,9 @@ public class EhcacheCachingProvider implements CachingProvider {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheManager getCacheManager(URI uri, ClassLoader classLoader, Properties properties) {
     uri = uri == null ? getDefaultURI() : uri;
@@ -75,8 +76,46 @@ public class EhcacheCachingProvider implements CachingProvider {
       }
     }
 
+    Configuration config;
+    try {
+      if (URI_DEFAULT.equals(uri)) {
+        config = new DefaultConfiguration(classLoader);
+      } else {
+        config = new XmlConfiguration(uri.toURL(), classLoader);
+      }
+    } catch (Exception e) {
+      throw new javax.cache.CacheException(e);
+    }
+
+    return getCacheManager(uri, config, properties);
+  }
+
+  /**
+   * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration}.
+   *
+   * @param uri the URI identifying this cache manager
+   * @param config the Ehcache configuration to use
+   *
+   * @return a cache manager
+   */
+  public Eh107CacheManager getCacheManager(URI uri, Configuration config) {
+    return getCacheManager(uri, config, new Properties());
+  }
+
+  /**
+   * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration} with the
+   * provided {@Link Properties}.
+   *
+   * @param uri the URI identifying this cache manager
+   * @param config the Ehcache configuration to use
+   * @param properties extra properties
+   *
+   * @return a cache manager
+   */
+  public Eh107CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
     Eh107CacheManager cacheManager;
     ConcurrentMap<URI, Eh107CacheManager> byURI;
+    ClassLoader classLoader = config.getClassLoader();
 
     synchronized (cacheManagers) {
       byURI = cacheManagers.get(classLoader);
@@ -92,33 +131,7 @@ public class EhcacheCachingProvider implements CachingProvider {
           byURI.remove(uri, cacheManager);
         }
 
-        Configuration config;
-        try {
-          if (URI_DEFAULT.equals(uri)) {
-            config = new DefaultConfiguration(classLoader);
-          } else {
-            config = new XmlConfiguration(uri.toURL(), classLoader);
-          }
-        } catch (Exception e) {
-          throw new javax.cache.CacheException(e);
-        }
-
-        Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
-        Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
-        ManagementRegistryCollectorService managementRegistryCollectorService = new ManagementRegistryCollectorService();
-
-        Collection<Service> services = new ArrayList<Service>();
-        services.add(cacheLoaderWriterFactory);
-        services.add(jsr107Service);
-        if(ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
-          services.add(new DefaultJsr107SerializationProvider());
-        }
-        services.add(managementRegistryCollectorService);
-
-        EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
-        ehcacheManager.init();
-        cacheManager = new Eh107CacheManager(this, ehcacheManager, properties, classLoader, uri,
-            managementRegistryCollectorService.managementRegistry, new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
+        cacheManager = createCacheManager(uri, config, properties);
         byURI.put(uri, cacheManager);
       }
     }
@@ -126,48 +139,67 @@ public class EhcacheCachingProvider implements CachingProvider {
     return cacheManager;
   }
 
-  @ServiceDependencies(ManagementRegistryService.class)
-  static class ManagementRegistryCollectorService implements Service {
+  private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
+    Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
+    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
 
-    public volatile ManagementRegistryService managementRegistry;
-
-    @Override
-    public void start(ServiceProvider serviceProvider) {
-      managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
+    Collection<Service> services = new ArrayList<Service>();
+    services.add(cacheLoaderWriterFactory);
+    services.add(jsr107Service);
+    if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
+      services.add(new DefaultJsr107SerializationProvider());
     }
 
-    @Override
-    public void stop() {
-      managementRegistry = null;
-    }
+    EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
+    ehcacheManager.init();
 
+    return new Eh107CacheManager(this, ehcacheManager, properties, config.getClassLoader(), uri,
+            new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ClassLoader getDefaultClassLoader() {
     return ClassLoading.getDefaultClassLoader();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public URI getDefaultURI() {
     return URI_DEFAULT;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Properties getDefaultProperties() {
     return new Properties();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheManager getCacheManager(final URI uri, final ClassLoader classLoader) {
     return getCacheManager(uri, classLoader, null);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public CacheManager getCacheManager() {
     return getCacheManager(getDefaultURI(), getDefaultClassLoader());
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close() {
     synchronized (cacheManagers) {
@@ -180,6 +212,9 @@ public class EhcacheCachingProvider implements CachingProvider {
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close(final ClassLoader classLoader) {
     if (classLoader == null) {
@@ -199,6 +234,9 @@ public class EhcacheCachingProvider implements CachingProvider {
     closeException.throwIfNotEmpty();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public void close(final URI uri, final ClassLoader classLoader) {
     if (uri == null || classLoader == null) {
@@ -218,6 +256,9 @@ public class EhcacheCachingProvider implements CachingProvider {
     closeException.throwIfNotEmpty();
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean isSupported(final OptionalFeature optionalFeature) {
     if (optionalFeature == null) {

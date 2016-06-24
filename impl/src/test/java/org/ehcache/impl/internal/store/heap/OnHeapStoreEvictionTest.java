@@ -16,26 +16,25 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
-import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.Store.ValueHolder;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.junit.Test;
 
 import java.io.Serializable;
@@ -75,7 +74,6 @@ public class OnHeapStoreEvictionTest {
   public void testComputeIfAbsentCalledEnforceCapacity() throws Exception {
     OnHeapStoreForTests<String, String> store = newStore();
 
-    store.put("key", "value");
     store.computeIfAbsent("key", new Function<String, String>() {
       @Override
       public String apply(String mappedKey) {
@@ -87,10 +85,10 @@ public class OnHeapStoreEvictionTest {
   }
 
   @Test
-  public void testFaultsDoNotGetToEvictionVeto() throws CacheAccessException {
+  public void testFaultsDoNotGetToEvictionAdvisor() throws StoreAccessException {
     final Semaphore semaphore = new Semaphore(0);
 
-    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, Eviction.none());
+    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, Eviction.noAdvice());
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
@@ -121,7 +119,7 @@ public class OnHeapStoreEvictionTest {
   }
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
-      final EvictionVeto<? super K, ? super V> veto) {
+      final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
@@ -136,8 +134,8 @@ public class OnHeapStoreEvictionTest {
       }
 
       @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
+      public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+        return evictionAdvisor;
       }
 
       @Override
@@ -166,7 +164,7 @@ public class OnHeapStoreEvictionTest {
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 1;
       }
     }, timeSource);
@@ -187,9 +185,9 @@ public class OnHeapStoreEvictionTest {
     private boolean enforceCapacityWasCalled = false;
 
     @Override
-    protected void enforceCapacity(long delta, StoreEventSink<K, V> eventSink) {
+    protected void enforceCapacity() {
       enforceCapacityWasCalled = true;
-      super.enforceCapacity(delta, eventSink);
+      super.enforceCapacity();
     }
 
     boolean enforceCapacityWasCalled() {

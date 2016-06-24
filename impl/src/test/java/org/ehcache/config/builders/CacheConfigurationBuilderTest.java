@@ -17,22 +17,22 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
-import org.ehcache.core.config.serializer.SerializerConfiguration;
-import org.ehcache.core.config.copy.CopierConfiguration;
-import org.ehcache.core.config.loaderwriter.CacheLoaderWriterConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
+import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.Serializer;
@@ -43,6 +43,7 @@ import org.junit.Test;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.notNullValue;
@@ -52,19 +53,19 @@ import static org.junit.Assert.assertEquals;
 public class CacheConfigurationBuilderTest {
 
   @Test
-  public void testEvictionVeto() throws Exception {
-    EvictionVeto<Object, Object> veto = new EvictionVeto<Object, Object>() {
+  public void testEvictionAdvisor() throws Exception {
+    EvictionAdvisor<Object, Object> evictionAdvisor = new EvictionAdvisor<Object, Object>() {
       @Override
-      public boolean vetoes(Object key, Object value) {
+      public boolean adviseAgainstEviction(Object key, Object value) {
         return false;
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
-        .withEvictionVeto(veto)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
+        .withEvictionAdvisor(evictionAdvisor)
         .build();
 
-    assertThat(veto, (Matcher)sameInstance(cacheConfiguration.getEvictionVeto()));
+    assertThat(evictionAdvisor, (Matcher)sameInstance(cacheConfiguration.getEvictionAdvisor()));
   }
 
   @Test
@@ -101,11 +102,11 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withLoaderWriter(loaderWriter)
         .build();
 
-    CacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceLocator.findSingletonAmongst(CacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    DefaultCacheLoaderWriterConfiguration cacheLoaderWriterConfiguration = ServiceLocator.findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, cacheConfiguration.getServiceConfigurations());
     Object instance = ((ClassInstanceConfiguration) cacheLoaderWriterConfiguration).getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(loaderWriter));
   }
@@ -129,14 +130,14 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withKeySerializer(keySerializer)
         .build();
 
 
-    SerializerConfiguration serializerConfiguration = ServiceLocator.findSingletonAmongst(SerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
-    assertThat(serializerConfiguration.getType(), is(SerializerConfiguration.Type.KEY));
-    Object instance = ((ClassInstanceConfiguration) serializerConfiguration).getInstance();
+    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceLocator.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.KEY));
+    Object instance = serializerConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(keySerializer));
   }
 
@@ -159,13 +160,13 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withValueSerializer(valueSerializer)
         .build();
 
 
-    SerializerConfiguration serializerConfiguration = ServiceLocator.findSingletonAmongst(SerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
-    assertThat(serializerConfiguration.getType(), is(SerializerConfiguration.Type.VALUE));
+    DefaultSerializerConfiguration<?> serializerConfiguration = ServiceLocator.findSingletonAmongst(DefaultSerializerConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(serializerConfiguration.getType(), is(DefaultSerializerConfiguration.Type.VALUE));
     Object instance = ((ClassInstanceConfiguration) serializerConfiguration).getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(valueSerializer));
   }
@@ -184,14 +185,14 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withKeyCopier(keyCopier)
         .build();
 
 
-    CopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
-    assertThat(copierConfiguration.getType(), is(CopierConfiguration.Type.KEY));
-    Object instance = ((ClassInstanceConfiguration) copierConfiguration).getInstance();
+    DefaultCopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.KEY));
+    Object instance = copierConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(keyCopier));
   }
 
@@ -209,28 +210,28 @@ public class CacheConfigurationBuilderTest {
       }
     };
 
-    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class)
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Object.class, Object.class, heap(10))
         .withValueCopier(valueCopier)
         .build();
 
 
-    CopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(CopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
-    assertThat(copierConfiguration.getType(), is(CopierConfiguration.Type.VALUE));
-    Object instance = ((ClassInstanceConfiguration) copierConfiguration).getInstance();
+    DefaultCopierConfiguration copierConfiguration = ServiceLocator.findSingletonAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+    assertThat(copierConfiguration.getType(), is(DefaultCopierConfiguration.Type.VALUE));
+    Object instance = copierConfiguration.getInstance();
     assertThat(instance, Matchers.<Object>sameInstance(valueCopier));
   }
 
   @Test
   public void testNothing() {
-    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class);
+    final CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class, heap(10));
 
-    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
+    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.INFINITE);
 
     builder
-        .withEvictionVeto(new EvictionVeto<Long, String>() {
+        .withEvictionAdvisor(new EvictionAdvisor<Long, CharSequence>() {
           @Override
-          public boolean vetoes(Long key, String value) {
-            return value.startsWith("A");
+          public boolean adviseAgainstEviction(Long key, CharSequence value) {
+            return value.charAt(0) == 'A';
           }
         })
         .withExpiry(expiry)
@@ -239,17 +240,17 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testOffheapGetsAddedToCacheConfiguration() {
-    CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class);
+    CacheConfigurationBuilder<Long, CharSequence> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, CharSequence.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
+            .offheap(10, MemoryUnit.MB));
 
-    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.FOREVER);
+    final Expiry<Object, Object> expiry = Expirations.timeToIdleExpiration(Duration.INFINITE);
 
-    builder = builder.withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES)
-        .offheap(10, MemoryUnit.MB));
     CacheConfiguration config = builder
-        .withEvictionVeto(new EvictionVeto<Long, String>() {
+        .withEvictionAdvisor(new EvictionAdvisor<Long, CharSequence>() {
           @Override
-          public boolean vetoes(Long key, String value) {
-            return value.startsWith("A");
+          public boolean adviseAgainstEviction(Long key, CharSequence value) {
+            return value.charAt(0) == 'A';
           }
         })
         .withExpiry(expiry)
@@ -260,12 +261,12 @@ public class CacheConfigurationBuilderTest {
 
   @Test
   public void testSizeOf() {
-    CacheConfigurationBuilder<String, String> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class);
+    CacheConfigurationBuilder<String, String> builder = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class, heap(10));
 
     builder = builder.withSizeOfMaxObjectSize(10, MemoryUnit.B).withSizeOfMaxObjectGraph(100);
     CacheConfiguration<String, String> configuration = builder.build();
 
-    SizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertThat(sizeOfEngineConfiguration, notNullValue());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectSize(), 10);
     assertEquals(sizeOfEngineConfiguration.getUnit(), MemoryUnit.B);
@@ -274,7 +275,7 @@ public class CacheConfigurationBuilderTest {
     builder = builder.withSizeOfMaxObjectGraph(1000);
     configuration = builder.build();
 
-    sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
+    sizeOfEngineConfiguration = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, configuration.getServiceConfigurations());
     assertEquals(sizeOfEngineConfiguration.getMaxObjectGraphSize(), 1000);
 
   }

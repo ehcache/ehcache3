@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
-import org.ehcache.core.spi.cache.AbstractValueHolder;
+import org.ehcache.impl.internal.store.AbstractValueHolder;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -48,7 +48,7 @@ public class OffHeapValueHolderPortabilityTest {
     valueHolderPortability = new OffHeapValueHolderPortability<String>(provider
         .createValueSerializer(String.class, getClass().getClassLoader()));
 
-    originalValue = new OffHeapValueHolder<String>(-1, "aValue", 1L, 2L, 3L, 0, null);
+    originalValue = new BasicOffHeapValueHolder<String>(-1, "aValue", 1L, 2L, 3L, 0);
 
   }
 

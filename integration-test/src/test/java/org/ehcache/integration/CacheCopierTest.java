@@ -19,15 +19,11 @@ package org.ehcache.integration;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
-import org.ehcache.config.units.EntryUnit;
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.copy.ReadWriteCopier;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
@@ -40,6 +36,8 @@ import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -51,8 +49,7 @@ import static org.junit.Assert.assertThat;
 public class CacheCopierTest {
 
   CacheManager cacheManager;
-  CacheConfigurationBuilder<Long, Person> baseConfig = CacheConfigurationBuilder.<Long, Person>newCacheConfigurationBuilder(Long.class, Person.class)
-      .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES).build());
+  CacheConfigurationBuilder<Long, Person> baseConfig = newCacheConfigurationBuilder(Long.class, Person.class, heap(5));
 
 
   @Before
@@ -69,7 +66,7 @@ public class CacheCopierTest {
   @Test
   public void testCopyValueOnRead() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>(PersonOnReadCopier.class, CopierConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>(PersonOnReadCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
@@ -92,7 +89,7 @@ public class CacheCopierTest {
   @Test
   public void testCopyValueOnWrite() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>(PersonOnWriteCopier.class, CopierConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>(PersonOnWriteCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
@@ -134,8 +131,8 @@ public class CacheCopierTest {
   @Test
   public void testSerializingCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class, CopierConfiguration.Type.VALUE))
-        .add(new DefaultSerializerConfiguration<Person>(PersonSerializer.class, SerializerConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
+        .add(new DefaultSerializerConfiguration<Person>(PersonSerializer.class, DefaultSerializerConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);
@@ -158,7 +155,7 @@ public class CacheCopierTest {
   @Test
   public void testReadWriteCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>(PersonCopier.class, CopierConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>(PersonCopier.class, DefaultCopierConfiguration.Type.VALUE))
         .build();
 
     Cache<Long, Person> cache = cacheManager.createCache("cache", cacheConfiguration);

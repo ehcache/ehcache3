@@ -22,14 +22,14 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * Annotation that enables a {@link Service} implementation to declare a dependency on other {@code Service}s.
+ * Annotation that allows a {@link Service} implementation to declare a dependency on other {@code Service}s.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.TYPE)
 public @interface ServiceDependencies {
 
   /**
-   * Array of {@link Service} classes the annotated type requires in order to function.
+   * Array of {@link Service} dependency classes
    */
   Class[] value();
 }

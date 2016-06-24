@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;

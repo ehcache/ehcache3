@@ -19,7 +19,8 @@ package org.ehcache.impl.internal;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.spi.service.Service;
 
 /**
  * DefaultTimeSourceService
@@ -42,7 +43,7 @@ public class DefaultTimeSourceService implements TimeSourceService {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     // no-op
   }
 

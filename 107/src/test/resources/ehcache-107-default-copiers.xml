@@ -20,10 +20,10 @@
     xmlns:jsr107='http://www.ehcache.org/v3/jsr107'>
 
   <ehcache:service>
-      <jsr107:defaults>
-        <jsr107:cache name="bar" template="bartemplate"/>
-      </jsr107:defaults>
-    </ehcache:service>
+    <jsr107:defaults>
+      <jsr107:cache name="bar" template="bartemplate"/>
+    </jsr107:defaults>
+  </ehcache:service>
 
   <ehcache:default-copiers>
     <ehcache:copier type="com.pany.domain.Client">com.pany.ehcache.ClientCopier</ehcache:copier>

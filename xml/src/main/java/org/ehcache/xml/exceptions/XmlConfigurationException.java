@@ -18,8 +18,6 @@ package org.ehcache.xml.exceptions;
 
 /**
  * Thrown to reflect an error in an XML configuration.
- *
- * @author Clifford W. Johnson
  */
 public class XmlConfigurationException extends RuntimeException {
   private static final long serialVersionUID = 4797841652996371653L;
@@ -30,5 +28,9 @@ public class XmlConfigurationException extends RuntimeException {
 
   public XmlConfigurationException(final String message, final Throwable cause) {
     super(message, cause);
+  }
+
+  public XmlConfigurationException(final Throwable cause) {
+    super(cause);
   }
 }

@@ -18,7 +18,7 @@ package org.ehcache.impl.internal.store.heap.holders;
 
 import org.ehcache.expiry.Duration;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
 
 /**
@@ -29,8 +29,8 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
   @IgnoreSizeOf
   private final Copier<V> valueCopier;
 
-  protected CopiedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean veto, Copier<V> valueCopier) {
-    super(id, creationTime, expirationTime, veto);
+  protected CopiedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean evictionAdvice, Copier<V> valueCopier) {
+    super(id, creationTime, expirationTime, evictionAdvice);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -51,8 +51,8 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
    * @param now timestamp in millis
    * @param expiration computed expiration duration
    */
-  public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean veto, Copier<V> valueCopier, long now, Duration expiration) {
-    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), veto);
+  public CopiedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Copier<V> valueCopier, long now, Duration expiration) {
+    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -65,12 +65,12 @@ public class CopiedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     this.accessed(now, expiration);
   }
 
-  public CopiedOnHeapValueHolder(V value, long creationTime, boolean veto, Copier<V> valueCopier) {
-    this(value, creationTime, NO_EXPIRE, veto, valueCopier);
+  public CopiedOnHeapValueHolder(V value, long creationTime, boolean evictionAdvice, Copier<V> valueCopier) {
+    this(value, creationTime, NO_EXPIRE, evictionAdvice, valueCopier);
   }
 
-  public CopiedOnHeapValueHolder(V value, long creationTime, long expirationTime, boolean veto, Copier<V> valueCopier) {
-    this(-1, value, creationTime, expirationTime, veto, valueCopier);
+  public CopiedOnHeapValueHolder(V value, long creationTime, long expirationTime, boolean evictionAdvice, Copier<V> valueCopier) {
+    this(-1, value, creationTime, expirationTime, evictionAdvice, valueCopier);
   }
 
   @Override

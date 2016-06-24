@@ -16,14 +16,15 @@
 
 package org.ehcache.core.spi.services;
 
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.spi.service.Service;
 
 /**
  * DefaultTestService
  */
 public class DefaultTestService implements TestService {
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     throw new UnsupportedOperationException("TODO Implement me!");
   }
 

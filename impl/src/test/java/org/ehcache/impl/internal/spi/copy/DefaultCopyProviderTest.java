@@ -16,15 +16,20 @@
 
 package org.ehcache.impl.internal.spi.copy;
 
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.ReadWriteCopier;
 import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
+import java.io.Closeable;
+import java.io.IOException;
+
 import static org.hamcrest.Matchers.instanceOf;
+import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -38,7 +43,7 @@ public class DefaultCopyProviderTest {
     DefaultCopyProvider provider = new DefaultCopyProvider(null);
 
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)TestCopier.class, CopierConfiguration.Type.KEY);
+        (Class)TestCopier.class, DefaultCopierConfiguration.Type.KEY);
 
     assertThat(provider.createKeyCopier(Long.class, null, config), instanceOf(TestCopier.class));
   }
@@ -54,7 +59,7 @@ public class DefaultCopyProviderTest {
   public void testCreateKeyCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)SerializingCopier.class, CopierConfiguration.Type.KEY);
+        (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.KEY);
 
     assertThat(copyProvider.createKeyCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
   }
@@ -64,7 +69,7 @@ public class DefaultCopyProviderTest {
     DefaultCopyProvider provider = new DefaultCopyProvider(null);
 
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)TestCopier.class, CopierConfiguration.Type.VALUE);
+        (Class)TestCopier.class, DefaultCopierConfiguration.Type.VALUE);
 
     assertThat(provider.createValueCopier(Long.class, null, config), instanceOf(TestCopier.class));
   }
@@ -80,9 +85,42 @@ public class DefaultCopyProviderTest {
   public void testCreateValueCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)SerializingCopier.class, CopierConfiguration.Type.VALUE);
+        (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
 
     assertThat(copyProvider.createValueCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
+  }
+
+  @Test
+  public void testUserProvidedCloseableCopierInstanceDoesNotCloseOnRelease() throws Exception {
+    DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
+    TestCloseableCopier<Long> testCloseableCopier = new TestCloseableCopier<Long>();
+    DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(testCloseableCopier, DefaultCopierConfiguration.Type.KEY);
+
+    assertThat(copyProvider.createKeyCopier(Long.class, mock(Serializer.class), config), sameInstance((Copier)testCloseableCopier));
+
+    copyProvider.releaseCopier(testCloseableCopier);
+
+    assertFalse(testCloseableCopier.isInvoked());
+
+  }
+
+  private static class TestCloseableCopier<T> extends ReadWriteCopier<T> implements Closeable {
+
+    private boolean invoked = false;
+
+    @Override
+    public T copy(final T obj) {
+      return obj;
+    }
+
+    @Override
+    public void close() throws IOException {
+      invoked = true;
+    }
+
+    boolean isInvoked() {
+      return invoked;
+    }
   }
 
   public static class TestCopier<T> extends ReadWriteCopier<T> {

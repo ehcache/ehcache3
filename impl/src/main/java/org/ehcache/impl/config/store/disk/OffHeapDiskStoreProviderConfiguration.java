@@ -20,21 +20,37 @@ import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
- *
- * @author cdennis
+ * {@link ServiceCreationConfiguration} for the default {@link org.ehcache.core.spi.store.Store off heap disk store}.
  */
 public class OffHeapDiskStoreProviderConfiguration implements ServiceCreationConfiguration<OffHeapDiskStore.Provider> {
 
   private final String threadPoolAlias;
 
+  /**
+   * Creates a new configuration instance using the provided parameter.
+   *
+   * @param threadPoolAlias the thread pool alias
+   *
+   * @see org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration
+   */
   public OffHeapDiskStoreProviderConfiguration(String threadPoolAlias) {
     this.threadPoolAlias = threadPoolAlias;
   }
 
+  /**
+   * Returns the configured thread pool alias.
+   *
+   * @return the thread pool alias
+   *
+   * @see org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration
+   */
   public String getThreadPoolAlias() {
     return threadPoolAlias;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<OffHeapDiskStore.Provider> getServiceType() {
     return OffHeapDiskStore.Provider.class;

@@ -15,17 +15,20 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
-import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
-import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.core.spi.store.tiering.HigherCachingTier;
+import org.ehcache.core.spi.store.tiering.LowerCachingTier;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.SupplementaryService;
-import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.StatisticsManager;
@@ -36,10 +39,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
- * @author Ludovic Orban
+ * A {@link CachingTier} implementation supporting a cache hierarchy.
  */
 public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
 
@@ -62,7 +65,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
               return valueHolder;
             }
           });
-        } catch (CacheAccessException cae) {
+        } catch (StoreAccessException cae) {
           notifyInvalidation(key, valueHolder);
           LOGGER.warn("Error overflowing '{}' into lower caching tier {}", key, lower, cae);
         }
@@ -81,12 +84,12 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
   static class ComputationException extends RuntimeException {
-    public ComputationException(CacheAccessException cause) {
+    public ComputationException(StoreAccessException cause) {
       super(cause);
     }
 
-    public CacheAccessException getCacheAccessException() {
-      return (CacheAccessException) getCause();
+    public StoreAccessException getStoreAccessException() {
+      return (StoreAccessException) getCause();
     }
 
     @Override
@@ -97,7 +100,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
 
 
   @Override
-  public Store.ValueHolder<V> getOrComputeIfAbsent(K key, final Function<K, Store.ValueHolder<V>> source) throws CacheAccessException {
+  public Store.ValueHolder<V> getOrComputeIfAbsent(K key, final Function<K, Store.ValueHolder<V>> source) throws StoreAccessException {
     try {
       return higher.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
         @Override
@@ -109,18 +112,18 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
             }
 
             return source.apply(k);
-          } catch (CacheAccessException cae) {
+          } catch (StoreAccessException cae) {
             throw new ComputationException(cae);
           }
         }
       });
     } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
+      throw ce.getStoreAccessException();
     }
   }
 
   @Override
-  public void invalidate(final K key) throws CacheAccessException {
+  public void invalidate(final K key) throws StoreAccessException {
     try {
       higher.silentInvalidate(key, new Function<Store.ValueHolder<V>, Void>() {
         @Override
@@ -131,19 +134,38 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
             }  else {
               lower.invalidate(key);
             }
-          } catch (CacheAccessException cae) {
+          } catch (StoreAccessException cae) {
             throw new ComputationException(cae);
           }
           return null;
         }
       });
     } catch (ComputationException ce) {
-      throw ce.getCacheAccessException();
+      throw ce.getStoreAccessException();
+    }
+  }
+
+  public void invalidate() {
+    // Fix for 919 introduced this ugly method
+    // After the 3.0 line, this is done through proper abstractions
+    if (higher instanceof OnHeapStore) {
+      ((OnHeapStore) higher).invalidate();
+    }
+    if (lower instanceof AbstractOffHeapStore) {
+      AbstractOffHeapStore<K, V> offHeapStore = (AbstractOffHeapStore) lower;
+      Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = offHeapStore.iterator();
+      while (iterator.hasNext()) {
+        try {
+          offHeapStore.invalidate(iterator.next().getKey());
+        } catch (StoreAccessException e) {
+          LOGGER.warn("Error during invalidation", e);
+        }
+      }
     }
   }
 
   @Override
-  public void clear() throws CacheAccessException {
+  public void clear() throws StoreAccessException {
     try {
       higher.clear();
     } finally {
@@ -166,9 +188,8 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
 
-  @SupplementaryService
   public static class Provider implements CachingTier.Provider {
-    private volatile ServiceProvider serviceProvider;
+    private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>>();
 
     @Override
@@ -218,7 +239,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

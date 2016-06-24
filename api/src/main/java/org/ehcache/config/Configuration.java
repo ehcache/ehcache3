@@ -22,30 +22,46 @@ import java.util.Collection;
 import java.util.Map;
 
 /**
- * @author Alex Snaps
+ * Represents the configuration for a {@link org.ehcache.CacheManager CacheManager}.
+ * <P>
+ *   <EM>Implementations are expected to be read-only.</EM>
+ * </P>
  */
 public interface Configuration {
 
   /**
-   * Mapping of names to {@link CacheConfiguration}, used to create the named {@link org.ehcache.Cache}
-   * managed by a {@link org.ehcache.CacheManager}
+   * Mapping of aliases to {@link CacheConfiguration}s, used to configure the {@link org.ehcache.Cache Cache}s
+   * managed by the {@link org.ehcache.CacheManager CacheManager}.
+   * <P>
+   *   The map must not be {@code null} but can be empty. It must be unmodifiable.
+   * </P>
    *
-   * @return the map of names to configs
+   * @return a map of aliases to cache configurations
    */
   Map<String, CacheConfiguration<?, ?>> getCacheConfigurations();
 
   /**
-   * All services initially used to bootstrap the {@link org.ehcache.CacheManager} and
-   * its {@link org.ehcache.Cache} instances
+   * {@link ServiceCreationConfiguration} initially used to bootstrap the {@link org.ehcache.CacheManager CacheManager}
+   * and its {@link org.ehcache.Cache Cache}s.
+   * <P>
+   *   The collection must not be null but can be empty. Also it must be unmodifiable.
+   * </P>
    *
-   * @return the collection of said configs
+   * @return a collection of service creations configurations
    */
   Collection<ServiceCreationConfiguration<?>> getServiceCreationConfigurations();
 
   /**
-   * The {@link ClassLoader} to be associated with the {@link org.ehcache.CacheManager}
+   * The {@link ClassLoader} for the {@link org.ehcache.CacheManager CacheManager}.
+   * <P>
+   *   This {@code ClassLoader} will be used to instantiate cache manager level services
+   *   and for {@link org.ehcache.Cache Cache}s that do not have a specific {@code ClassLoader}.
+   * </P>
+   * <P>
+   *   The {@code ClassLoader} must not be null.
+   * </P>
    *
-   * @return The classloader
+   * @return the cache manager {@code ClassLoader}
    */
   ClassLoader getClassLoader();
 }
