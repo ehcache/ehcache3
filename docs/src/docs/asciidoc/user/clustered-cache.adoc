@@ -9,15 +9,12 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
-:imagesdir: ../../../../images/design/clustered
-
 == Introduction
 
 Distributed Caching allows users to harness additional benefits of horizontal scale-out, without loosing on latency offered by local on-heap tiers.
 You need a cache manager with clustering capabilities so that the caches can consume the clustered storage.
 And then add a clustered storage as a tier to the cache which enables distributed caching.
 To enable Clustering with Terracotta, you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.
-
 
 == Clustering concepts
 
@@ -52,7 +49,7 @@ and when one tries to expand, it could expand by shrinking others' storage resou
 
 Here is a pictorial representation of the concepts explained above:
 
-image::storagePools.png[]
+image::design/clustered/storagePools.png[]
 
 [[start-server]]
 == Starting Terracotta server
