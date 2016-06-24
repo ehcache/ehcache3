@@ -101,8 +101,15 @@ public class EhcacheClientEntityFactory {
               } finally {
                 entity.close();
               }
+            } catch (RuntimeException e) {
+              try {
+                ref.tryDestroy();
+              } catch (EntityNotFoundException f) {
+                //ignore
+              }
+              throw e;
             } catch (EntityNotFoundException e) {
-                //continue;
+              //continue;
             }
           }
         } catch (EntityNotProvidedException e) {

@@ -87,6 +87,23 @@ public class EhcacheClientEntityFactoryIntegrationTest {
   }
 
   @Test
+  public void testCreateWithBadConfigCleansUp() throws Exception {
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+
+    try {
+      factory.create("testCreateWithBadConfigCleansUp", new ServerSideConfiguration("flargle", EMPTY_RESOURCE_MAP));
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      try {
+        factory.retrieve("testCreateWithBadConfigCleansUp", null);
+        fail("Expected EntityNotFoundException");
+      } catch (EntityNotFoundException f) {
+        //expected
+      }
+    }
+  }
+
+  @Test
   public void testRetrieveWithGoodConfig() throws Exception {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithGoodConfig",
