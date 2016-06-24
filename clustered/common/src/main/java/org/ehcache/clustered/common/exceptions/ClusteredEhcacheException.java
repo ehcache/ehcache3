@@ -13,24 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.ehcache.clustered.common;
+package org.ehcache.clustered.common.exceptions;
 
 /**
- * Thrown to indicate a failure when creating a {@code ClusteredStore}.
+ * @author Ludovic Orban
  */
-public class ClusteredStoreCreationException extends RuntimeException {
-  private static final long serialVersionUID = 8161642579437544726L;
+public abstract class ClusteredEhcacheException extends Exception {
 
-  public ClusteredStoreCreationException(String message) {
+  public ClusteredEhcacheException(String message) {
     super(message);
   }
 
-  public ClusteredStoreCreationException(String message, Throwable cause) {
+  public ClusteredEhcacheException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public ClusteredStoreCreationException(Throwable cause) {
+  public ClusteredEhcacheException(Throwable cause) {
     super(cause);
   }
 }

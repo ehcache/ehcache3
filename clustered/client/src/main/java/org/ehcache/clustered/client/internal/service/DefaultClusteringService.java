@@ -33,8 +33,6 @@ import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
-import org.ehcache.clustered.common.ClusteredStoreCreationException;
-import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 
@@ -42,6 +40,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
@@ -309,12 +308,16 @@ class DefaultClusteringService implements ClusteringService {
         } catch (CachePersistenceException ex) {
           throw new ClusteredStoreCreationException("Error creating server-side cache for " + cacheId, ex);
         }
+      } catch (InvalidServerStoreConfigurationException ex) {
+        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, ex);
       }
     } else {
       try {
         this.entity.validateCache(cacheId, clientStoreConfiguration);
-      } catch (IllegalStateException e) {
-        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, e);
+      } catch (IllegalStateException ex) {
+        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, ex);
+      } catch (InvalidServerStoreConfigurationException ex) {
+        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, ex);
       }
     }
 

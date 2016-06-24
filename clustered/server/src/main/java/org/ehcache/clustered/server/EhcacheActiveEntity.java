@@ -27,7 +27,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreCompatibility;
@@ -35,6 +34,7 @@ import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
@@ -273,10 +273,15 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
-    switch (message.getType()) {
-      case LIFECYCLE_OP: return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
-      case SERVER_STORE_OP: return invokeServerStoreOperation(clientDescriptor, (ServerStoreOpMessage) message);
-      default: throw new IllegalArgumentException("Unknown message " + message);
+    try {
+      switch (message.getType()) {
+        case LIFECYCLE_OP: return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
+        case SERVER_STORE_OP: return invokeServerStoreOperation(clientDescriptor, (ServerStoreOpMessage) message);
+        default: throw new IllegalArgumentException("Unknown message " + message);
+      }
+    } catch (Exception e) {
+      LOGGER.error("Unexpected exception raised during operation: " + message, e);
+      return responseFactory.failure(e);
     }
   }
 
@@ -301,23 +306,18 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) {
-    try {
-      switch (message.operation()) {
-        case CONFIGURE: return configure(clientDescriptor, (ConfigureStoreManager) message);
-        case VALIDATE: return validate(clientDescriptor, (ValidateStoreManager) message);
-        case CREATE_SERVER_STORE: return createServerStore(clientDescriptor, (CreateServerStore) message);
-        case VALIDATE_SERVER_STORE: return validateServerStore(clientDescriptor, (ValidateServerStore) message);
-        case RELEASE_SERVER_STORE: return releaseServerStore(clientDescriptor, (ReleaseServerStore) message);
-        case DESTROY_SERVER_STORE: return destroyServerStore(clientDescriptor, (DestroyServerStore) message);
-        default:
-          String msg = "Unknown LifeCycle operation " + message;
-          IllegalArgumentException cause = new IllegalArgumentException(msg);
-          LOGGER.error(msg, cause);
-          return responseFactory.failure(cause);
-      }
-    } catch (Exception e) {
-      LOGGER.error("Unexpected exception raised during LifeCycle operation: " + e, e);
-      return responseFactory.failure(e);
+    switch (message.operation()) {
+      case CONFIGURE: return configure(clientDescriptor, (ConfigureStoreManager) message);
+      case VALIDATE: return validate(clientDescriptor, (ValidateStoreManager) message);
+      case CREATE_SERVER_STORE: return createServerStore(clientDescriptor, (CreateServerStore) message);
+      case VALIDATE_SERVER_STORE: return validateServerStore(clientDescriptor, (ValidateServerStore) message);
+      case RELEASE_SERVER_STORE: return releaseServerStore(clientDescriptor, (ReleaseServerStore) message);
+      case DESTROY_SERVER_STORE: return destroyServerStore(clientDescriptor, (DestroyServerStore) message);
+      default:
+        String msg = "Unknown LifeCycle operation " + message;
+        IllegalArgumentException cause = new IllegalArgumentException(msg);
+        LOGGER.error(msg, cause);
+        return responseFactory.failure(cause);
     }
   }
 
@@ -347,51 +347,47 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       return responseFactory.failure(cause);
     }
 
-    try {
-      switch (message.operation()) {
-        case GET:
-          ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage)message;
-          return responseFactory.response(cacheStore.get(getMessage.getKey()));
-        case APPEND: {
-          ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
-          cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
-          invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
-          return responseFactory.success();
-        }
-        case GET_AND_APPEND: {
-          ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
-          EhcacheEntityResponse response =
-              responseFactory.response(cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload()));
-          invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
-          return response;
-        }
-        case REPLACE: {
-          ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
-          cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
-          return responseFactory.success();
-        }
-        case CLIENT_INVALIDATION_ACK: {
-          ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck = (ServerStoreOpMessage.ClientInvalidationAck) message;
-          String cacheId = message.getCacheId();
-          int invalidationId = clientInvalidationAck.getInvalidationId();
-          LOGGER.debug("SERVER: got notification of invalidation ack in cache {} from {} (ID {})", cacheId, clientDescriptor, invalidationId);
-          clientInvalidated(clientDescriptor, invalidationId);
-          return responseFactory.success();
-        }
-        case CLEAR: {
-          String cacheId = message.getCacheId();
-          cacheStore.clear();
-          invalidateAll(clientDescriptor, cacheId);
-          return responseFactory.success();
-        }
-        default:
-          String msg = "Unknown Server Store operation " + message;
-          IllegalArgumentException cause = new IllegalArgumentException(msg);
-          LOGGER.error(msg, cause);
-          return responseFactory.failure(cause);
+    switch (message.operation()) {
+      case GET:
+        ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage)message;
+        return responseFactory.response(cacheStore.get(getMessage.getKey()));
+      case APPEND: {
+        ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
+        cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
+        invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
+        return responseFactory.success();
       }
-    } catch (Exception e) {
-      return responseFactory.failure(e);
+      case GET_AND_APPEND: {
+        ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
+        EhcacheEntityResponse response =
+            responseFactory.response(cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload()));
+        invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
+        return response;
+      }
+      case REPLACE: {
+        ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
+        cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
+        return responseFactory.success();
+      }
+      case CLIENT_INVALIDATION_ACK: {
+        ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck = (ServerStoreOpMessage.ClientInvalidationAck) message;
+        String cacheId = message.getCacheId();
+        int invalidationId = clientInvalidationAck.getInvalidationId();
+        LOGGER.debug("SERVER: got notification of invalidation ack in cache {} from {} (ID {})", cacheId, clientDescriptor, invalidationId);
+        clientInvalidated(clientDescriptor, invalidationId);
+        return responseFactory.success();
+      }
+      case CLEAR: {
+        String cacheId = message.getCacheId();
+        cacheStore.clear();
+        invalidateAll(clientDescriptor, cacheId);
+        return responseFactory.success();
+      }
+      default:
+        String msg = "Unknown Server Store operation " + message;
+        IllegalArgumentException cause = new IllegalArgumentException(msg);
+        LOGGER.error(msg, cause);
+        return responseFactory.failure(cause);
     }
   }
 
@@ -611,7 +607,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   /**
    * Checks whether the {@link ServerSideConfiguration} sent from the client is equal with the ServerSideConfiguration
    * that is already configured on the server.
-   * @param serverSideConfiguration the ServerSideConfiguration to be validated.  This is sent from a client
+   * @param incomingConfig the ServerSideConfiguration to be validated.  This is sent from a client
    * @throws IllegalArgumentException if configurations do not match
    */
   private void checkConfigurationCompatibility(ServerSideConfiguration incomingConfig) throws IllegalArgumentException {
@@ -773,7 +769,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (store != null) {
       try {
         storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
-      } catch (ClusteredStoreValidationException e) {
+      } catch (InvalidServerStoreConfigurationException e) {
         return responseFactory.failure(e);
       }
       attachStore(clientDescriptor, name);

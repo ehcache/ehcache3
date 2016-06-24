@@ -16,12 +16,12 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
@@ -1458,7 +1458,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 8, MemoryUnit.MEGABYTES)
                 .build())),
-        ClusteredStoreValidationException.class);
+        InvalidServerStoreConfigurationException.class);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -1689,7 +1689,7 @@ public class EhcacheActiveEntityTest {
                                     ", desired: " +
                                     ((PoolAllocation.Fixed)fixedStoreConfig2.getPoolAllocation()).getSize();
 
-    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),ClusteredStoreValidationException.class,expectedMessageContent);
+    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),InvalidServerStoreConfigurationException.class,expectedMessageContent);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -1772,7 +1772,7 @@ public class EhcacheActiveEntityTest {
                                     ", desired: " +
                                     ((Fixed)fixedStoreConfig2.getPoolAllocation()).getResourceName();
 
-    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),ClusteredStoreValidationException.class,expectedMessageContent);
+    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),InvalidServerStoreConfigurationException.class,expectedMessageContent);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -1897,7 +1897,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .shared("secondary")
                 .build())),
-        ClusteredStoreValidationException.class);
+        InvalidServerStoreConfigurationException.class);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));

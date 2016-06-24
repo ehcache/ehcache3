@@ -17,6 +17,7 @@
 package org.ehcache.clustered.common;
 
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
 
 /**
  * Provides configuration compatibility checks for {@link ServerStoreConfiguration}
@@ -31,11 +32,11 @@ public class ServerStoreCompatibility {
    * @param serverConfiguration the existing server-side {@code ServerStoreConfiguration}
    * @param clientConfiguration the desired client-side {@code ServerStoreConfiguration}
    *
-   * @throws ClusteredStoreValidationException if {@code clientConfiguration} is not compatible with
+   * @throws InvalidServerStoreConfigurationException if {@code clientConfiguration} is not compatible with
    *          {@code serverConfiguration}
    */
   public void verify(ServerStoreConfiguration serverConfiguration, ServerStoreConfiguration clientConfiguration)
-      throws ClusteredStoreValidationException {
+      throws InvalidServerStoreConfigurationException {
     StringBuilder sb = new StringBuilder("Existing ServerStore configuration is not compatible with the desired configuration: ");
 
     boolean isCompatible;
@@ -74,7 +75,7 @@ public class ServerStoreCompatibility {
     isCompatible &= compareConsistencyField(sb, serverConfiguration.getConsistency(), clientConfiguration.getConsistency());
 
     if (!isCompatible) {
-      throw new ClusteredStoreValidationException(sb.toString());
+      throw new InvalidServerStoreConfigurationException(sb.toString());
     }
   }
 

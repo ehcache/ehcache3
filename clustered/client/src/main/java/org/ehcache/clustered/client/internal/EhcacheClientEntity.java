@@ -18,14 +18,14 @@ package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
+import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
@@ -159,11 +159,11 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusteredStoreValidationException {
+  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws InvalidServerStoreConfigurationException {
     try {
       invokeInternal(messageFactory.validateServerStore(name , serverStoreConfiguration), false);
     } catch (Exception e) {
-      throw convert(e, ClusteredStoreValidationException.class, CLUSTERED_STORE_VALIDATION_EXCEPTION_CTOR);
+      throw convert(e, InvalidServerStoreConfigurationException.class, INVALID_SERVER_STORE_CONFIGURATION_EXCEPTION_CTOR);
     }
   }
 
@@ -323,11 +323,11 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  private static final Ctor<ClusteredStoreValidationException> CLUSTERED_STORE_VALIDATION_EXCEPTION_CTOR =
-      new Ctor<ClusteredStoreValidationException>() {
+  private static final Ctor<InvalidServerStoreConfigurationException> INVALID_SERVER_STORE_CONFIGURATION_EXCEPTION_CTOR =
+      new Ctor<InvalidServerStoreConfigurationException>() {
         @Override
-        public ClusteredStoreValidationException create(String msg, Throwable cause) {
-          return new ClusteredStoreValidationException(cause);
+        public InvalidServerStoreConfigurationException create(String msg, Throwable cause) {
+          return new InvalidServerStoreConfigurationException(cause);
         }
       };
   private static final Ctor<CachePersistenceException> CACHE_PERSISTENCE_EXCEPTION_CTOR =
