@@ -35,7 +35,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static org.ehcache.impl.persistence.DefaultLocalPersistenceService.safeIdentifier;
+import static org.ehcache.impl.persistence.FileUtils.safeIdentifier;
 
 /**
  * FileBasedStateRepository

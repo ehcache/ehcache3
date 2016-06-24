@@ -28,12 +28,12 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.docs.plugs.LongCopier;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringCopier;
 import org.ehcache.impl.serialization.StringSerializer;
-import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.junit.Test;
 

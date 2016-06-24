@@ -16,29 +16,30 @@
 package org.ehcache.impl.internal.persistence;
 
 import org.ehcache.Cache;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.CachePersistenceException;
+import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Test;
 
 import java.io.File;
 import java.net.URISyntaxException;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.hamcrest.core.Is.is;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistNoOwner;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistsOwnerOpen;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 /**
- * @author rism
+ *
  */
 public class CacheManagerDestroyRemovesPersistenceTest {
 
-  PersistentCacheManager persistentCacheManager;
+  private PersistentCacheManager persistentCacheManager;
 
   @Test
   public void testDestroyRemovesPersistenceData () throws URISyntaxException, CachePersistenceException {
@@ -50,7 +51,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
     persistentCacheManager.close();
     persistentCacheManager.destroy();
 
-    assertThat(file.list().length, is(0));
+    assertThat(file, fileExistNoOwner());
   }
 
   @Test
@@ -60,7 +61,7 @@ public class CacheManagerDestroyRemovesPersistenceTest {
 
     persistentCacheManager.destroyCache("persistent-cache");
 
-    assertThat(file.list().length, is(1));
+    assertThat(file, fileExistsOwnerOpen(0));
   }
 
   @Test
@@ -97,12 +98,10 @@ public class CacheManagerDestroyRemovesPersistenceTest {
 
     anotherPersistentCacheManager.destroyCache("persistent-cache");
 
-    assertThat(file.list().length, is(1));
-
+    assertThat(file, fileExistsOwnerOpen(0));
   }
 
-
-  public void initCacheManager(File file) throws URISyntaxException {
+  private void initCacheManager(File file) throws URISyntaxException {
     persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(file))
         .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -116,10 +115,11 @@ public class CacheManagerDestroyRemovesPersistenceTest {
   private void putValuesInCacheAndCloseCacheManager() {
     Cache<Long, String> preConfigured =
         persistentCacheManager.getCache("persistent-cache", Long.class, String.class);
-    preConfigured.put(1l, "foo");
+    preConfigured.put(1L, "foo");
     persistentCacheManager.close();
   }
 
+  @SuppressWarnings("ConstantConditions")
   private String getStoragePath() throws URISyntaxException {
     return getClass().getClassLoader().getResource(".").toURI().getPath();
   }

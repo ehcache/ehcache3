@@ -29,6 +29,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.core.internal.store.StoreSupport;
@@ -58,7 +59,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -210,20 +210,20 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       if (id == null) {
         throw new IllegalStateException("Persistent user managed caches must have an id set");
       }
-      final LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+      final DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
       if (!resourcePools.getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
         try {
-          persistenceService.destroy(id);
+          diskResourceService.destroy(id);
         } catch (CachePersistenceException cpex) {
           throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + id, cpex);
         }
       }
       try {
-        final PersistableResourceService.PersistenceSpaceIdentifier<?> identifier = persistenceService.getPersistenceSpaceIdentifier(id, cacheConfig);
+        final PersistableResourceService.PersistenceSpaceIdentifier<?> identifier = diskResourceService.getPersistenceSpaceIdentifier(id, cacheConfig);
         lifeCycledList.add(new LifeCycledAdapter() {
           @Override
           public void close() throws Exception {
-            persistenceService.releasePersistenceSpaceIdentifier(identifier);
+            diskResourceService.releasePersistenceSpaceIdentifier(identifier);
           }
         });
         serviceConfigsList.add(identifier);
@@ -304,13 +304,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     eventDispatcher.setStoreEventSource(store.getStoreEventSource());
 
     if (persistent) {
-      LocalPersistenceService persistenceService = serviceLocator
-          .getService(LocalPersistenceService.class);
-      if (persistenceService == null) {
+      DiskResourceService diskResourceService = serviceLocator
+          .getService(DiskResourceService.class);
+      if (diskResourceService == null) {
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, persistenceService, cacheLoaderWriter, eventDispatcher, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, diskResourceService, cacheLoaderWriter, eventDispatcher, id);
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);

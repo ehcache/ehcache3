@@ -21,25 +21,27 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
 
-import static junit.framework.TestCase.assertNotNull;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.junit.Assert.assertNull;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistOwnerClosedExpected;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistsOwnerOpenExpected;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * @author Alex Snaps
  */
 public class PersistentCacheManagerTest {
+
+  private static final String TEST_CACHE_ALIAS = "test123";
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -52,7 +54,7 @@ public class PersistentCacheManagerTest {
 
   @Before
   public void setup() throws IOException {
-    rootDirectory = folder.newFolder("testInitializesLocalPersistenceService");
+    rootDirectory = folder.newFolder("testInitializesDiskResourceService");
     assertTrue(rootDirectory.delete());
     builder = newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(rootDirectory));
   }
@@ -74,47 +76,54 @@ public class PersistentCacheManagerTest {
   @Test
   public void testDestroyCache_UnexistingCacheDoesNothing() throws CachePersistenceException {
     PersistentCacheManager manager = builder.build(true);
-    manager.destroyCache("test");
+    manager.destroyCache(TEST_CACHE_ALIAS);
   }
 
   @Test
   public void testDestroyCache_Initialized_DestroyExistingCache() throws CachePersistenceException {
     PersistentCacheManager manager = builder
-      .withCache("test",
+      .withCache(TEST_CACHE_ALIAS,
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
       .build(true);
-    assertNotNull(getCacheDirectory());
-    manager.destroyCache("test");
-    assertNull(getCacheDirectory());
+    assertThat(rootDirectory, fileExistsOwnerOpenExpected(1, TEST_CACHE_ALIAS));
+    manager.destroyCache(TEST_CACHE_ALIAS);
+    assertThat(rootDirectory, fileExistsOwnerOpenExpected(0, TEST_CACHE_ALIAS));
   }
 
+  @Ignore("Ignoring as currently no support for destroying cache on a closed cache manager")
   @Test
   public void testDestroyCache_Uninitialized_DestroyExistingCache() throws CachePersistenceException {
     PersistentCacheManager manager = builder
-      .withCache("test",
+      .withCache(TEST_CACHE_ALIAS,
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
       .build(true);
-    assertNotNull(getCacheDirectory());
+    assertThat(rootDirectory, fileExistsOwnerOpenExpected(1, TEST_CACHE_ALIAS));
     manager.close(); // pass it to uninitialized
-    manager.destroyCache("test");
-    assertNull(getCacheDirectory());
+    assertThat(rootDirectory, fileExistOwnerClosedExpected(1, TEST_CACHE_ALIAS));
+    manager.destroyCache(TEST_CACHE_ALIAS);
+    assertThat(rootDirectory, fileExistOwnerClosedExpected(0, TEST_CACHE_ALIAS));
   }
 
-  private File getCacheDirectory() {
-    File[] files =  rootDirectory.listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(final File dir, final String name) {
-        return name.startsWith("test");
-      }
-    });
-    if(files == null || files.length == 0) {
-      return null;
+  @Ignore("Ignoring as currently no support for destroying cache on a closed cache manager")
+  @Test
+  public void testDestroyCache_CacheManagerUninitialized() throws CachePersistenceException {
+    {
+      PersistentCacheManager manager = builder
+        .withCache(TEST_CACHE_ALIAS,
+          CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
+        .build(true);
+      assertThat(rootDirectory, fileExistsOwnerOpenExpected(1, TEST_CACHE_ALIAS));
+      manager.close(); // pass it to uninitialized
+      assertThat(rootDirectory, fileExistOwnerClosedExpected(1, TEST_CACHE_ALIAS));
     }
-    if(files.length > 1) {
-      fail("Too many cache directories");
+    {
+      PersistentCacheManager manager = builder.build(false);
+      assertThat(rootDirectory, fileExistOwnerClosedExpected(1, TEST_CACHE_ALIAS));
+      manager.destroyCache(TEST_CACHE_ALIAS);
+      assertThat(rootDirectory, fileExistOwnerClosedExpected(0, TEST_CACHE_ALIAS));
     }
-    return files[0];
   }
 }

@@ -22,7 +22,7 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
@@ -33,7 +33,7 @@ import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
-import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
+import org.ehcache.impl.internal.persistence.TestDiskResourceService;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStoreSPITest;
@@ -52,7 +52,6 @@ import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.After;
@@ -83,10 +82,12 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
   private StoreFactory<String, String> storeFactory;
   private final TieredStore.Provider provider = new TieredStore.Provider();
   private final Map<Store<String, String>, String> createdStores = new ConcurrentHashMap<Store<String, String>, String>();
-  private LocalPersistenceService persistenceService;
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
+
+  @Rule
+  public TestDiskResourceService diskResourceService = new TestDiskResourceService();
 
   @Override
   protected StoreFactory<String, String> getStoreFactory() {
@@ -95,7 +96,6 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
   @Before
   public void setUp() throws IOException {
-    persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
 
     storeFactory = new StoreFactory<String, String>() {
       final AtomicInteger aliasCounter = new AtomicInteger();
@@ -132,8 +132,8 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
           CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
           when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
-          FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
+          DiskResourceService.PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
+          FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
           MemoryUnit unit = (MemoryUnit) diskPool.getUnit();
@@ -294,7 +294,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
         String spaceName = createdStores.get(store);
         provider.releaseStore(store);
         try {
-          persistenceService.destroy(spaceName);
+          diskResourceService.destroy(spaceName);
         } catch (CachePersistenceException e) {
           throw new AssertionError(e);
         } finally {
@@ -314,13 +314,9 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
 
   @After
   public void tearDown() throws CachePersistenceException {
-    try {
-      for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
-        provider.releaseStore(entry.getKey());
-        persistenceService.destroy(entry.getValue());
-      }
-    } finally {
-      persistenceService.stop();
+    for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
+      provider.releaseStore(entry.getKey());
+      diskResourceService.destroy(entry.getValue());
     }
   }
 

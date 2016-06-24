@@ -25,7 +25,7 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -62,8 +62,7 @@ public class OffHeapDiskStoreProviderTest {
    public void testStatisticsAssociations() throws Exception {
      OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
 
-    ServiceLocator serviceLocator = new ServiceLocator(mock(SerializationProvider.class), new DefaultTimeSourceService(null), mock(LocalPersistenceService.class));
-
+    ServiceLocator serviceLocator = new ServiceLocator(mock(SerializationProvider.class), new DefaultTimeSourceService(null), mock(DiskResourceService.class));
     provider.start(serviceLocator);
 
     OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
