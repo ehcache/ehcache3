@@ -82,7 +82,7 @@ public class ClusteredStoreTest {
     entityFactory.create("TestCacheManager", serverConfig);
 
     EhcacheClientEntity clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig);
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.fixed(4, MemoryUnit.MB);
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration =
         new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
             Long.class.getName(), String.class.getName(),

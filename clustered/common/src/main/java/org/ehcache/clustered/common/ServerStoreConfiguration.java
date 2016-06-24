@@ -88,34 +88,117 @@ public class ServerStoreConfiguration implements Serializable {
     return consistency;
   }
 
+  public boolean isCompatible(ServerStoreConfiguration otherConfiguration, StringBuilder sb) {
+
+    boolean isCompatible;
+    PoolAllocation otherPoolAllocation = otherConfiguration.getPoolAllocation();
+
+    isCompatible = comparePoolAllocationType(sb, otherPoolAllocation);
+    if(isCompatible) {
+      if( !(otherPoolAllocation instanceof PoolAllocation.Unknown) ) {
+        if (poolAllocation instanceof PoolAllocation.Dedicated) {
+          PoolAllocation.Dedicated serverDedicatedAllocation = (PoolAllocation.Dedicated)poolAllocation;
+          PoolAllocation.Dedicated clientDedicatedAllocation = (PoolAllocation.Dedicated)otherPoolAllocation;
+          if (compareField(sb, "resourcePoolDedicatedResourceName",
+              serverDedicatedAllocation.getResourceName(),
+              clientDedicatedAllocation.getResourceName())) {
+            if (clientDedicatedAllocation.getSize() != serverDedicatedAllocation.getSize()) {
+              appendFault(sb, "resourcePoolDedicatedSize", serverDedicatedAllocation.getSize(), clientDedicatedAllocation.getSize());
+              isCompatible &= false;
+            }
+          } else {
+            isCompatible &= false;
+          }
+        } else if (poolAllocation instanceof PoolAllocation.Shared) {
+          isCompatible &= compareField(sb, "resourcePoolSharedPoolName",
+              ((PoolAllocation.Shared)poolAllocation).getResourcePoolName(),
+              ((PoolAllocation.Shared)otherPoolAllocation).getResourcePoolName());
+        }
+      }
+    }
+    isCompatible &= compareField(sb, "storedKeyType", storedKeyType, otherConfiguration.getStoredKeyType());
+    isCompatible &= compareField(sb, "storedValueType", storedValueType, otherConfiguration.getStoredValueType());
+    isCompatible &= compareField(sb, "actualKeyType", actualKeyType, otherConfiguration.getActualKeyType());
+    isCompatible &= compareField(sb, "actualValueType", actualValueType, otherConfiguration.getActualValueType());
+    isCompatible &= compareField(sb, "keySerializerType", keySerializerType, otherConfiguration.getKeySerializerType());
+    isCompatible &= compareField(sb, "valueSerializerType", valueSerializerType, otherConfiguration.getValueSerializerType());
+    isCompatible &= compareConsistencyField(sb, consistency, otherConfiguration.getConsistency());
+
+    return isCompatible;
+  }
+
+    private boolean comparePoolAllocationType(StringBuilder sb, PoolAllocation clientPoolAllocation) {
+
+    if (clientPoolAllocation instanceof PoolAllocation.Unknown || poolAllocation.getClass().getName().equals(clientPoolAllocation.getClass().getName())) {
+      return true;
+    }
+
+    appendFault(sb, "resourcePoolType", getClassName(poolAllocation), getClassName(clientPoolAllocation));
+    return false;
+  }
+
+    private String getClassName(Object obj) {
+    if(obj != null) {
+      return obj.getClass().getName();
+    } else {
+      return null;
+    }
+  }
+
+    private boolean compareConsistencyField(StringBuilder sb, Consistency serverConsistencyValue, Consistency clientConsistencyValue) {
+    if((serverConsistencyValue == null && clientConsistencyValue == null)
+        || (serverConsistencyValue != null && serverConsistencyValue.equals(clientConsistencyValue))) {
+      return true;
+    }
+
+    appendFault(sb, "consistencyType", serverConsistencyValue, clientConsistencyValue);
+    return false;
+  }
+
+  private boolean compareField(StringBuilder sb, String fieldName, String serverConfigValue, String clientConfigValue) {
+    if ((serverConfigValue == null && clientConfigValue == null)
+        || (serverConfigValue != null && serverConfigValue.equals(clientConfigValue))) {
+      return true;
+    }
+
+    appendFault(sb, fieldName, serverConfigValue, clientConfigValue);
+    return false;
+  }
+
+  private void appendFault(StringBuilder sb, String fieldName, Object serverConfigValue, Object clientConfigValue) {
+    sb.append("\n\t").append(fieldName)
+        .append(" existing: ").append(serverConfigValue)
+        .append(", desired: ").append(clientConfigValue);
+  }
+
   public interface PoolAllocation extends Serializable {
 
     /**
-     * Describes a fixed-size allocation for clustered storage.  When using a fixed allocation,
+     * Describes a dedicated-size allocation for clustered storage.  When using a dedicated allocation,
      * storage is allocated from the server-based resource specified.
      */
-    final class Fixed implements PoolAllocation {
+    final static class Dedicated implements PoolAllocation {
       private static final long serialVersionUID = -2249181124582282204L;
       private final long size;
       private final String resourceName;
 
       /**
-       * Create a new fixed {@code PoolAllocation}.
+       * Create a new dedicated {@code PoolAllocation}.
        *
-       * @param resourceName the server-side resource from a fixed-size allocation is made; if {@code null},
+       * @param resourceName the server-side resource from a dedicated-size allocation is made; if {@code null},
        *                     the allocation is made from the default resource
        * @param size the size, in bytes, of the allocation
        */
-      public Fixed(String resourceName, long size) {
+      public Dedicated(String resourceName, long size) {
         this.resourceName = resourceName;
         this.size = size;
       }
 
       /**
-       * Gets the size, in bytes, for the fixed allocation to make from the server-side storage resource for
+       * Gets the size, in bytes, for the dedicated allocation to make from the server-side storage resource for
        * a store configured with this {@code PoolAllocation}.
        *
-       * @return the fixed allocation size
+       * @return the dedicated allocation size
        */
       public long getSize() {
         return size;
@@ -136,7 +219,7 @@ public class ServerStoreConfiguration implements Serializable {
      * Describes a shared allocation for clustered storage.  When using a shared pool,
      * allocation requests are satisfied from the server-based shared resource pool identified.
      */
-    final class Shared implements PoolAllocation {
+    final static class Shared implements PoolAllocation {
       private static final long serialVersionUID = -5111316473831788364L;
       private final String resourcePoolName;
 
@@ -158,6 +241,13 @@ public class ServerStoreConfiguration implements Serializable {
       public String getResourcePoolName() {
         return resourcePoolName;
       }
+    }
+
+    /**
+     * Creates a Pool Allocation which inherits the Shared or Dedicated Pool Allocation from a cache which is already configured on the server.
+     */
+    final static class Unknown implements PoolAllocation {
+      private static final long serialVersionUID = 3584540926973176260L;
     }
   }
 

@@ -77,7 +77,7 @@ class ExposedCacheSettings extends ExposedCacheBinding {
                   .set("size", ((SizedResourcePool) pool).getSize())
                   .set("unit", unit.toString());
               //TODO: we need to have a better way to get the cluster "link"
-              if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.FixedClusteredResourcePool")) {
+              if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.DedicatedClusteredResourcePool")) {
                 settings.set("serverResource", Reflect.invoke(pool, "getFromResource", String.class));
               }
             } else if (Reflect.isInstance(pool, "org.ehcache.clustered.client.config.SharedClusteredResourcePool")) {

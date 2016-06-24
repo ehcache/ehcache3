@@ -91,7 +91,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final ServiceRegistry services;
 
   /**
-   * The name of the resource to use for fixed resource pools not identifying a resource from which
+   * The name of the resource to use for dedicated resource pools not identifying a resource from which
    * space for the pool is obtained.  This value may be {@code null};
    */
   private String defaultServerResource;
@@ -103,10 +103,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private Map<String, ResourcePageSource> sharedResourcePools;
 
   /**
-   * The clustered fixed resource pools specified by caches defined in CacheManagers using this
+   * The clustered dedicated resource pools specified by caches defined in CacheManagers using this
    * {@code EhcacheActiveEntity}.  The index is the cache identifier (alias).
    */
-  private Map<String, ResourcePageSource> fixedResourcePools = new HashMap<String, ResourcePageSource>();
+  private Map<String, ResourcePageSource> dedicatedResourcePools = new HashMap<String, ResourcePageSource>();
 
   /**
    * The clustered stores representing the server-side of a {@code ClusterStore}.
@@ -228,13 +228,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   /**
-   * Gets the set of defined fixed resource pools.
+   * Gets the set of defined dedicated resource pools.
    *
    * @return an unmodifiable set of resource pool identifiers
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
-  Set<String> getFixedResourcePoolIds() {
-    return Collections.unmodifiableSet(new HashSet<String>(fixedResourcePools.keySet()));
+  Set<String> getDedicatedResourcePoolIds() {
+    return Collections.unmodifiableSet(new HashSet<String>(dedicatedResourcePools.keySet()));
   }
 
   @Override
@@ -532,7 +532,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
      * Remove the reservation for resource pool memory of resource pools.
      */
     releasePools("shared", this.sharedResourcePools);
-    releasePools("fixed", this.fixedResourcePools);
+    releasePools("dedicated", this.dedicatedResourcePools);
 
     this.sharedResourcePools = null;
   }
@@ -636,7 +636,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * Once created, the client is registered with the {@code ServerStore}.  The registration persists until
    * the client disconnects or explicitly releases the store.
    * <p>
-   *   If the store uses a fixed resource, this method allocates a new fixed resource pool associated
+   *   If the store uses a dedicated resource, this method allocates a new dedicated resource pool associated
    *   with the cache identifier/name.
    * </p>
    * <p>
@@ -659,6 +659,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!isConfigured()) {
       throw new LifecycleException("Clustered Store Manager is not configured");
     }
+    if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
+      throw new LifecycleException("Server Store can't be created with an Unknown resource pool");
+    }
 
     final String name = createServerStore.getName();    // client cache identifier/name
 
@@ -671,17 +674,17 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
     ResourcePageSource resourcePageSource;
     PoolAllocation allocation = storeConfiguration.getPoolAllocation();
-    if (allocation instanceof PoolAllocation.Fixed) {
+    if (allocation instanceof PoolAllocation.Dedicated) {
       /*
-       * Fixed allocation pools are taken directly from a specified resource, not a shared pool, and
+       * Dedicated allocation pools are taken directly from a specified resource, not a shared pool, and
        * identified by the cache identifier/name.
        */
-      if (fixedResourcePools.containsKey(name)) {
+//<<<<<<< HEAD
+      if (dedicatedResourcePools.containsKey(name)) {
         throw new ResourceConfigurationException("Fixed resource pool for store '" + name + "' already exists");
-
       } else {
-        PoolAllocation.Fixed fixedAllocation = (PoolAllocation.Fixed)allocation;
-        String resourceName = fixedAllocation.getResourceName();
+        PoolAllocation.Dedicated dedicatedAllocation = (PoolAllocation.Dedicated)allocation;
+        String resourceName = dedicatedAllocation.getResourceName();
         if (resourceName == null) {
           if (defaultServerResource == null) {
             throw new ResourceConfigurationException("Fixed pool for store '" + name + "' not defined; default server resource not configured");
@@ -689,10 +692,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
             resourceName = defaultServerResource;
           }
         }
-        resourcePageSource = createPageSource(name, new Pool(fixedAllocation.getSize(), resourceName));
-        fixedResourcePools.put(name, resourcePageSource);
+        resourcePageSource = createPageSource(name, new Pool(dedicatedAllocation.getSize(), resourceName));
+        dedicatedResourcePools.put(name, resourcePageSource);
       }
-
     } else if (allocation instanceof PoolAllocation.Shared) {
       /*
        * Shared allocation pools are created during EhcacheActiveEntity configuration.
@@ -824,14 +826,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       throw new InvalidStoreException("Store '" + name + "' does not exist");
     } else {
       /*
-       * A ServerStore using a fixed resource pool is the only referent to that pool.  When such a
-       * ServerStore is destroyed, the associated fixed resource pool must also be discarded.
+       * A ServerStore using a dedicated resource pool is the only referent to that pool.  When such a
+       * ServerStore is destroyed, the associated dedicated resource pool must also be discarded.
        */
-      ResourcePageSource expectedPageSource = fixedResourcePools.get(name);
+      ResourcePageSource expectedPageSource = dedicatedResourcePools.get(name);
       if (expectedPageSource != null) {
         if (store.getPageSource() == expectedPageSource) {
-          fixedResourcePools.remove(name);
-          releasePool("fixed", name, expectedPageSource);
+          dedicatedResourcePools.remove(name);
+          releasePool("dedicated", name, expectedPageSource);
         } else {
           LOGGER.error("Client {} attempting to destroy server-side store '{}' with unmatched page source", clientDescriptor, name);
         }
@@ -910,11 +912,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (resourcePools == null) {
       return;
     }
-    final Iterator<Entry<String, ResourcePageSource>> fixedPoolIterator = resourcePools.entrySet().iterator();
-    while (fixedPoolIterator.hasNext()) {
-      Entry<String, ResourcePageSource> poolEntry = fixedPoolIterator.next();
+    final Iterator<Entry<String, ResourcePageSource>> dedicatedPoolIterator = resourcePools.entrySet().iterator();
+    while (dedicatedPoolIterator.hasNext()) {
+      Entry<String, ResourcePageSource> poolEntry = dedicatedPoolIterator.next();
       releasePool(poolType, poolEntry.getKey(), poolEntry.getValue());
-      fixedPoolIterator.remove();
+      dedicatedPoolIterator.remove();
     }
   }
 

@@ -91,7 +91,7 @@ public class CacheManagerDestroyTest {
 
     Cache<Long, String> cache = persistentCacheManager2.createCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.MB))));
+            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB))));
 
     cache.put(1L, "One");
 
@@ -105,7 +105,7 @@ public class CacheManagerDestroyTest {
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = clusteredCacheManagerBuilder
         .withCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.MB))));
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB))));
 
     PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = cacheManagerBuilder.build(true);
@@ -131,7 +131,7 @@ public class CacheManagerDestroyTest {
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = clusteredCacheManagerBuilder
         .withCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.MB))));
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB))));
 
     PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
 
@@ -151,7 +151,7 @@ public class CacheManagerDestroyTest {
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = clusteredCacheManagerBuilder
         .withCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.MB))));
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB))));
 
     PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = cacheManagerBuilder.build(true);

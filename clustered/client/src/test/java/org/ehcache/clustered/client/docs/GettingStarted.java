@@ -79,13 +79,13 @@ public class GettingStarted {
                 .resourcePool("resource-pool-b", 32, MemoryUnit.MB)) // <3>
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, // <4>
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.MB)))) // <5>
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))) // <5>
             .withCache("shared-cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.shared("resource-pool-a")))) // <6>
+                    .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool-a")))) // <6>
             .withCache("shared-cache-2", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.shared("resource-pool-a")))); // <7>
+                    .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool-a")))); // <7>
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true); // <8>
 
     cacheManager.close();
@@ -107,7 +107,7 @@ public class GettingStarted {
     try {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                      .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB))).build();
+                      .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))).build();
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
 
@@ -132,7 +132,7 @@ public class GettingStarted {
       // tag::clusteredCacheConsistency[]
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                      .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                      .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
           .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)) // <1>
           .build();
 
@@ -161,7 +161,7 @@ public class GettingStarted {
       CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
           ResourcePoolsBuilder.newResourcePoolsBuilder()
               .heap(2, MemoryUnit.MB) // <1>
-              .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 8, MemoryUnit.MB))) // <2>
+              .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))) // <2>
           .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
           .build();
 
@@ -183,7 +183,7 @@ public class GettingStarted {
                 .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"))
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.shared("resource-pool"))));
+                    .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool"))));
 
     CacheManagerBuilder<PersistentCacheManager> expecting = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
@@ -191,14 +191,14 @@ public class GettingStarted {
                 .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"))
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.shared("resource-pool"))));
+                    .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool"))));
 
     CacheManagerBuilder<PersistentCacheManager> configless = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")))
                 // <3>
             .withCache("clustered-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.shared("resource-pool"))));
+                    .with(ClusteredResourcePoolBuilder.clusteredShared("resource-pool"))));
     // end::clusteredCacheManagerLifecycle[]
 
     autoCreate.build(true).close();

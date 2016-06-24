@@ -67,7 +67,7 @@ public class NoInvalidationServerStoreProxyTest {
     entityFactory.create("TestCacheManager", serverConfig);
     clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig);
 
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.fixed(16L, MemoryUnit.MB);
+    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
 
     clientEntity.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class

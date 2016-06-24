@@ -53,7 +53,7 @@ public class BasicClusteredCacheExpiryTest {
           .with(cluster(CLUSTER_URI).autoCreate())
           .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                  .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
               .withExpiry(Expirations.timeToLiveExpiration(new Duration(1L, TimeUnit.MILLISECONDS)))
               .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
