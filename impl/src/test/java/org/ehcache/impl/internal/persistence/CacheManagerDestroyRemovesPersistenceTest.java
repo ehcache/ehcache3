@@ -54,12 +54,25 @@ public class CacheManagerDestroyRemovesPersistenceTest {
 
   @Test
   public void testDestroyCacheDestroysPersistenceContext() throws URISyntaxException, CachePersistenceException {
-    File file = new File(getStoragePath(), "testDestory");
+    File file = new File(getStoragePath(), "testDestroy");
     initCacheManager(file);
 
     persistentCacheManager.destroyCache("persistent-cache");
 
     assertThat(file.list().length, is(1));
+  }
+
+  @Test
+  public void testCreateCacheWithSameAliasAfterDestroy() throws URISyntaxException, CachePersistenceException {
+    File file = new File(getStoragePath(), "testDestroy");
+    initCacheManager(file);
+
+    persistentCacheManager.destroyCache("persistent-cache");
+
+    persistentCacheManager.createCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
+            .heap(10, EntryUnit.ENTRIES)
+            .disk(10L, MemoryUnit.MB, true)));
   }
 
   public void initCacheManager(File file) throws URISyntaxException {

@@ -645,6 +645,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       if(ehcache.getStatus() == Status.AVAILABLE) {
         ehcache.close();
       }
+      configuration.removeCacheConfiguration(alias);
     }
   }
 
