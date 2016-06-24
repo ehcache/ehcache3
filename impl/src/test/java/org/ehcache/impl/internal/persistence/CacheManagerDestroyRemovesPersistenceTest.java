@@ -31,6 +31,7 @@ import java.io.File;
 import java.net.URISyntaxException;
 
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -64,6 +65,25 @@ public class CacheManagerDestroyRemovesPersistenceTest {
 
     assertThat(file.list().length, is(1));
   }
+
+  @Test
+  public void testCreateCacheWithSameAliasAfterDestroy() throws URISyntaxException, CachePersistenceException {
+    File file = new File(getStoragePath(), "testDestroy");
+    initCacheManager(file);
+
+    persistentCacheManager.destroyCache("persistent-cache");
+
+    persistentCacheManager.createCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            .heap(10, EntryUnit.ENTRIES)
+            .disk(10L, MemoryUnit.MB, true))
+        .build());
+
+    assertNotNull(persistentCacheManager.getCache("persistent-cache", Long.class, String.class));
+
+    persistentCacheManager.close();
+  }
+
 
   public void initCacheManager(File file) throws URISyntaxException {
     persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
