@@ -18,11 +18,11 @@ package org.ehcache.impl.internal.events;
 
 import org.ehcache.event.EventType;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.function.BiFunction;
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventFilter;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
+import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.ehcache.impl.internal.util.Matchers.eventOfType;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -100,7 +101,7 @@ public class ScopedStoreEventDispatcherTest {
     dispatcher.addEventFilter(filter);
 
     StoreEventSink<String, String> sink = dispatcher.eventSink();
-    sink.removed("gone", "really gone");
+    sink.removed("gone", supplierOf("really gone"));
     sink.created("new", "and shiny");
     dispatcher.releaseEventSink(sink);
 
@@ -108,8 +109,6 @@ public class ScopedStoreEventDispatcherTest {
     verify(listener).onEvent(argThat(matcher));
     verifyNoMoreInteractions(listener);
   }
-
-
 
   @Test
   public void testOrderedEventDelivery() throws Exception {

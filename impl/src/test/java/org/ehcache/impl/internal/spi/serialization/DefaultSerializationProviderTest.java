@@ -15,17 +15,36 @@
  */
 package org.ehcache.impl.internal.spi.serialization;
 
-import org.ehcache.core.config.serializer.SerializerConfiguration;
+import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.serialization.ByteArraySerializer;
+import org.ehcache.impl.serialization.CharSerializer;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
+import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
+import org.ehcache.impl.serialization.DoubleSerializer;
+import org.ehcache.impl.serialization.FloatSerializer;
 import org.ehcache.impl.serialization.IntegerSerializer;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.impl.serialization.LongSerializer;
+import org.ehcache.impl.serialization.PlainJavaSerializer;
+import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
+import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOException;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -37,14 +56,22 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Ludovic Orban
  */
 public class DefaultSerializationProviderTest {
+
+  @Rule
+  public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Test
   public void testCreateSerializerNoConfig() throws Exception {
@@ -123,13 +150,23 @@ public class DefaultSerializationProviderTest {
   }
 
   @Test
-  public void testReleaseSerializerWithCloseableSerializer() throws Exception {
+  public void testReleaseSerializerWithProvidedCloseableSerializerDoesNotClose() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
-    CompactJavaSerializer<?> serializer = mock(CompactJavaSerializer.class);
-    provider.providedVsCount.put(serializer, new AtomicInteger(1));
+    CloseableSerializer closeableSerializer = new CloseableSerializer();
+    provider.providedVsCount.put(closeableSerializer, new AtomicInteger(1));
+
+    provider.releaseSerializer(closeableSerializer);
+    assertThat(closeableSerializer.closed, is(false));
+  }
+
+  @Test
+  public void testReleaseSerializerWithInstantiatedCloseableSerializerDoesClose() throws Exception {
+    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(CloseableSerializer.class, DefaultSerializerConfiguration.Type.KEY);
+    DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
+    Serializer serializer = provider.createKeySerializer(String.class, getSystemClassLoader(), config);
 
     provider.releaseSerializer(serializer);
-    verify(serializer).close();
+    assertTrue(((CloseableSerializer)serializer).closed);
   }
 
   @Test(expected = IllegalArgumentException.class)
@@ -154,7 +191,7 @@ public class DefaultSerializationProviderTest {
   public void testCreateKeySerializerWithActualInstanceInServiceConfig() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     TestSerializer serializer = mock(TestSerializer.class);
-    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, SerializerConfiguration.Type.KEY);
+    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, DefaultSerializerConfiguration.Type.KEY);
     Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
     assertSame(serializer, created);
   }
@@ -163,7 +200,7 @@ public class DefaultSerializationProviderTest {
   public void testSameInstanceRetrievedMultipleTimesUpdatesTheProvidedCount() throws Exception {
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     TestSerializer serializer = mock(TestSerializer.class);
-    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, SerializerConfiguration.Type.KEY);
+    DefaultSerializerConfiguration config = new DefaultSerializerConfiguration(serializer, DefaultSerializerConfiguration.Type.KEY);
 
     Serializer<?> created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
     assertSame(serializer, created);
@@ -172,6 +209,117 @@ public class DefaultSerializationProviderTest {
     created = provider.createKeySerializer(TestSerializer.class, getSystemClassLoader(), config);
     assertSame(serializer, created);
     assertThat(provider.providedVsCount.get(created).get(), is(2));
+  }
+
+  @Test
+  public void testDefaultSerializableSerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<Serializable> keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
+
+    keySerializer = provider.createKeySerializer(Serializable.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+    assertThat(keySerializer, instanceOf(CompactJavaSerializer.class));
+  }
+
+  @Test
+  public void testDefaultStringSerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<String> keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(StringSerializer.class));
+
+    keySerializer = provider.createKeySerializer(String.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+    assertThat(keySerializer, instanceOf(StringSerializer.class));
+  }
+
+  @Test
+  public void testDefaultIntegerSerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<Integer> keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(IntegerSerializer.class));
+
+    keySerializer = provider.createKeySerializer(Integer.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+    assertThat(keySerializer, instanceOf(IntegerSerializer.class));
+  }
+
+  @Test
+  public void testDefaultLongSerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<Long> keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(LongSerializer.class));
+
+    keySerializer = provider.createKeySerializer(Long.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+    assertThat(keySerializer, instanceOf(LongSerializer.class));
+  }
+
+  @Test
+  public void testDefaultCharSerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<Character> keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(CharSerializer.class));
+
+    keySerializer = provider.createKeySerializer(Character.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+    assertThat(keySerializer, instanceOf(CharSerializer.class));
+  }
+
+  @Test
+  public void testDefaultDoubleSerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<Double> keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(DoubleSerializer.class));
+
+    keySerializer = provider.createKeySerializer(Double.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+    assertThat(keySerializer, instanceOf(DoubleSerializer.class));
+  }
+
+  @Test
+  public void testDefaultFloatSerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<Float> keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(FloatSerializer.class));
+
+    keySerializer = provider.createKeySerializer(Float.class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+    assertThat(keySerializer, instanceOf(FloatSerializer.class));
+  }
+
+  @Test
+  public void testDefaultByteArraySerializer() throws Exception {
+    DefaultSerializationProvider provider = getStartedProvider();
+    Serializer<byte[]> keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader());
+    assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
+
+    keySerializer = provider.createKeySerializer(byte[].class, getSystemClassLoader(), getPersistenceSpaceIdentifierMock());
+    assertThat(keySerializer, instanceOf(ByteArraySerializer.class));
+  }
+
+  private PersistableResourceService.PersistenceSpaceIdentifier getPersistenceSpaceIdentifierMock() {
+    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = mock(LocalPersistenceService.PersistenceSpaceIdentifier.class);
+    when(spaceIdentifier.getServiceType()).thenReturn(LocalPersistenceService.class);
+    return spaceIdentifier;
+  }
+
+  private DefaultSerializationProvider getStartedProvider() throws CachePersistenceException {
+    DefaultSerializationProvider defaultProvider = new DefaultSerializationProvider(null);
+
+    ServiceProvider serviceProvider = mock(ServiceProvider.class);
+    LocalPersistenceService persistenceService = mock(LocalPersistenceService.class);
+    StateRepository stateRepository = mock(StateRepository.class);
+    when(stateRepository.getPersistentConcurrentMap(any(String.class), any(Class.class), any(Class.class))).thenReturn(new ConcurrentHashMap());
+    when(persistenceService.getStateRepositoryWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), any(String.class))).thenReturn(stateRepository);
+    when(persistenceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
+          .thenReturn(new FileBasedPersistenceContext() {
+            @Override
+            public File getDirectory() {
+              try {
+                return tempFolder.newFolder();
+              } catch (IOException e) {
+                fail("unable to create persistence ");
+                return null;
+              }
+            }
+          });
+    when(serviceProvider.getService(LocalPersistenceService.class)).thenReturn(persistenceService);
+    defaultProvider.start(serviceProvider);
+    return defaultProvider;
   }
 
   public static class TestSerializer<T> implements Serializer<T> {
@@ -191,4 +339,36 @@ public class DefaultSerializationProviderTest {
     }
   }
 
+  public static class CloseableSerializer<T> implements Serializer, Closeable {
+
+    boolean closed = false;
+
+    public CloseableSerializer() {
+
+    }
+
+    public CloseableSerializer(ClassLoader classLoader) {
+
+    }
+
+    @Override
+    public void close() throws IOException {
+      closed = true;
+    }
+
+    @Override
+    public ByteBuffer serialize(Object object) throws SerializerException {
+      return null;
+    }
+
+    @Override
+    public Object read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+      return null;
+    }
+
+    @Override
+    public boolean equals(Object object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
+      return false;
+    }
+  }
 }

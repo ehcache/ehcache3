@@ -16,18 +16,31 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.config.EvictionVeto;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourceType;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.impl.internal.util.UnmatchedResourceType;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.junit.Test;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+
+import static java.util.Collections.EMPTY_LIST;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 
 public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
 
@@ -50,7 +63,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Override
-  protected OffHeapStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionVeto<? super String, ? super byte[]> evictionVeto) {
+  protected OffHeapStore<String, byte[]> createAndInitStore(TimeSource timeSource, Expiry<? super String, ? super byte[]> expiry, EvictionAdvisor<? super String, ? super byte[]> evictionAdvisor) {
     try {
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
       serializationProvider.start(providerContaining());
@@ -58,13 +71,44 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
       Serializer<String> keySerializer = serializationProvider.createValueSerializer(String.class, classLoader);
       Serializer<byte[]> valueSerializer = serializationProvider.createValueSerializer(byte[].class, classLoader);
       StoreConfigurationImpl<String, byte[]> storeConfiguration = new StoreConfigurationImpl<String, byte[]>(String.class, byte[].class,
-          evictionVeto, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
+          evictionAdvisor, getClass().getClassLoader(), expiry, null, 0, keySerializer, valueSerializer);
       OffHeapStore<String, byte[]> offHeapStore = new OffHeapStore<String, byte[]>(storeConfiguration, timeSource, new TestStoreEventDispatcher<String, byte[]>(),MemoryUnit.MB.toBytes(1));
       OffHeapStore.Provider.init(offHeapStore);
       return offHeapStore;
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }
+  }
+
+  @Test
+  public void testRankAuthority() throws Exception {
+    OffHeapStore.Provider provider = new OffHeapStore.Provider();
+
+    assertThat(provider.rankAuthority(ResourceType.Core.OFFHEAP, EMPTY_LIST), is(1));
+    assertThat(provider.rankAuthority(new UnmatchedResourceType(), EMPTY_LIST), is(0));
+  }
+
+  @Test
+  public void testRank() throws Exception {
+    OffHeapStore.Provider provider = new OffHeapStore.Provider();
+
+    assertRank(provider, 1, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK);
+    assertRank(provider, 0, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    assertRank(provider, 0, new UnmatchedResourceType());
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP, new UnmatchedResourceType());
+  }
+
+  private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
+    assertThat(provider.rank(
+        new HashSet<ResourceType<?>>(Arrays.asList(resources)),
+        Collections.<ServiceConfiguration<?>>emptyList()),
+        is(expectedRank));
   }
 
   @Override

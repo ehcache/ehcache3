@@ -16,10 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -30,7 +30,6 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -83,7 +82,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
       });
 
       assertThat(valueHolder.value(), is(equalTo(value)));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -97,7 +96,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     when(computedValueHolder.value()).thenReturn(value);
     when(computedValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(Store.ValueHolder.NO_EXPIRE);
 
-    tier = factory.newCachingTier(1L);
+    tier = factory.newCachingTier();
 
     try {
       tier.getOrComputeIfAbsent(key, new Function() {   // actually put mapping in tier
@@ -115,7 +114,7 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
       });
 
       assertThat(valueHolder.value(), is(equalTo(value)));
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

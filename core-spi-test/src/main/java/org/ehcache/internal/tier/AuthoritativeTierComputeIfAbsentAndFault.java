@@ -16,9 +16,9 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.Function;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -62,7 +62,7 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
    * will be evicted with the default behaviour of the tier.
    */
   @SPITest
-  public void nonMarkedMappingIsEvictable() throws CacheAccessException {
+  public void nonMarkedMappingIsEvictable() throws StoreAccessException {
     K key = factory.createKey(1);
 
     tier = factory.newStoreWithCapacity(1L);
@@ -102,12 +102,12 @@ public class AuthoritativeTierComputeIfAbsentAndFault<K, V> extends SPIAuthorita
       fillTierOverCapacity(tier, factory);
       assertThat(tier.get(key).value(), is(equalTo(value)));
 
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
-  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws CacheAccessException {
+  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws StoreAccessException {
     for (long seed = 2L; seed < 10; seed++) {
       tier.put(factory.createKey(seed), factory.createValue(seed));
     }

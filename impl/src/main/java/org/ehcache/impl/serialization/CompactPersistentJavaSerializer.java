@@ -27,19 +27,31 @@ import java.io.ObjectStreamClass;
 import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.Map;
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 
 /**
- *
- * @author cdennis
+ * A trivially compressed Java serialization based serializer with persistent mappings.
+ * <p>
+ * Class descriptors in the resultant bytes are encoded as integers.  Mappings
+ * between the integer representation and the {@link ObjectStreamClass}, and the
+ * {@code Class} and the integer representation are stored in a single on-heap
+ * map.
  */
 public class CompactPersistentJavaSerializer<T> implements Serializer<T>, Closeable {
 
   private final File stateFile;
   private final CompactJavaSerializer<T> serializer;
 
+  /**
+   * Constructor to enable this serializer as a persistent one.
+   *
+   * @param classLoader the classloader to use
+   * @param persistence the persistence context to use
+   *
+   * @see Serializer
+   */
   public CompactPersistentJavaSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistence) throws IOException, ClassNotFoundException {
     this.stateFile = new File(persistence.getDirectory(), "CompactPersistentJavaSerializer.state");
     if (stateFile.exists()) {
@@ -49,13 +61,14 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T>, Closea
     }
   }
 
+  /**
+   * Closes this serializer instance, causing mappings to be persisted.
+   *
+   * @throws IOException in case mappings cannot be persisted.
+   */
   @Override
   public final void close() throws IOException {
-    try {
-      writeSerializationMappings(stateFile, serializer.getSerializationMappings());
-    } finally {
-      serializer.close();
-    }
+    writeSerializationMappings(stateFile, serializer.getSerializationMappings());
   }
 
   private static Map<Integer, ObjectStreamClass> readSerializationMappings(File stateFile) throws IOException, ClassNotFoundException {
@@ -86,16 +99,25 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T>, Closea
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ByteBuffer serialize(T object) throws SerializerException {
     return serializer.serialize(object);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public T read(ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     return serializer.read(binary);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean equals(T object, ByteBuffer binary) throws ClassNotFoundException, SerializerException {
     return serializer.equals(object, binary);

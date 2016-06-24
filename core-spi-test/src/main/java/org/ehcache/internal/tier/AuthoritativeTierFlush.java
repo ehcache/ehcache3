@@ -16,9 +16,9 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -75,7 +75,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
       tier.put(key, value);
       final Store.ValueHolder<V> fault = tier.getAndFault(key);
       when(valueHolder.getId()).thenReturn(fault.getId());
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
@@ -94,7 +94,7 @@ public class AuthoritativeTierFlush<K, V> extends SPIAuthoritativeTierTester<K, 
 
     try {
       tier.put(key, value);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 

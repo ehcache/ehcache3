@@ -28,6 +28,9 @@ import org.ehcache.event.CacheEventListener;
  */
 public abstract class CacheEventAdapter<K, V> implements CacheEventListener<K, V> {
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public final void onEvent(CacheEvent<K, V> event) {
     switch (event.getType()) {
@@ -51,22 +54,53 @@ public abstract class CacheEventAdapter<K, V> implements CacheEventListener<K, V
     }
   }
 
+  /**
+   * Invoked when a {@link CacheEvent} for an {@link org.ehcache.event.EventType#EVICTED eviction} is received.
+   *
+   * @param key the evicted key
+   * @param evictedValue the evicted value
+   */
   protected void onEviction(K key, V evictedValue) {
     // Do nothing by default
   }
 
+  /**
+   * Invoked when a {@link CacheEvent} for an {@link org.ehcache.event.EventType#EXPIRED expiration} is received.
+   *
+   * @param key the expired key
+   * @param expiredValue the expired value
+   */
   protected void onExpiry(K key, V expiredValue) {
     // Do nothing by default
   }
 
+  /**
+   * Invoked when a {@link CacheEvent} for a {@link org.ehcache.event.EventType#REMOVED removal} is received.
+   *
+   * @param key the removed key
+   * @param removedValue the removed value
+   */
   protected void onRemoval(K key, V removedValue) {
     // Do nothing by default
   }
 
+  /**
+   * Invoked when a {@link CacheEvent} for an {@link org.ehcache.event.EventType#UPDATED update} is received.
+   *
+   * @param key the updated key
+   * @param oldValue the previous value
+   * @param newValue the updated value
+   */
   protected void onUpdate(K key, V oldValue, V newValue) {
     // Do nothing by default
   }
 
+  /**
+   * Invoked when a {@link CacheEvent} for a {@link org.ehcache.event.EventType#CREATED creation} is received.
+   *
+   * @param key the created key
+   * @param newValue the created value
+   */
   protected void onCreation(K key, V newValue) {
     // Do nothing by default
   }

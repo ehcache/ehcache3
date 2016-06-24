@@ -20,25 +20,22 @@ import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.InternalCacheManager;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.context.ContextContainer;
-import org.terracotta.management.message.DefaultMessage;
-import org.terracotta.management.notification.ContextualNotification;
-import org.terracotta.management.registry.MessageConsumer;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.context.ContextContainer;
+import org.terracotta.management.model.notification.ContextualNotification;
+import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.StatisticQuery;
-import org.terracotta.management.stats.ContextualStatistics;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,7 +53,7 @@ import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 /**
  * @author Mathieu Carbou
  */
-@ServiceDependencies({CacheManagerProviderService.class, ManagementRegistryService.class, ExecutionService.class, TimeSourceService.class})
+@ServiceDependencies({CacheManagerProviderService.class, ManagementRegistryService.class, ExecutionService.class})
 public class DefaultCollectorService implements CollectorService, CacheManagerListener {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultCollectorService.class);
@@ -64,21 +61,19 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   private ScheduledFuture<?> task;
 
   private final ConcurrentMap<String, StatisticQuery.Builder> selectedStatsPerCapability = new ConcurrentHashMap<String, StatisticQuery.Builder>();
-  private final MessageConsumer messageConsumer;
+  private final EventListener eventListener;
 
-  private volatile TimeSource timeSource;
   private volatile ManagementRegistryService managementRegistry;
   private volatile ScheduledExecutorService scheduledExecutorService;
   private volatile InternalCacheManager cacheManager;
   private volatile ManagementRegistryServiceConfiguration configuration;
 
-  public DefaultCollectorService(MessageConsumer messageConsumer) {
-    this.messageConsumer = messageConsumer;
+  public DefaultCollectorService(EventListener eventListener) {
+    this.eventListener = eventListener;
   }
 
   @Override
-  public synchronized void start(ServiceProvider serviceProvider) {
-    timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
+  public synchronized void start(ServiceProvider<Service> serviceProvider) {
     managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     configuration = managementRegistry.getConfiguration();
     cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
@@ -95,20 +90,20 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
 
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
-    messageConsumer.accept(new DefaultMessage(
-        timeSource.getTimeMillis(),
+    eventListener.onEvent(
+        "NOTIFICATION",
         new ContextualNotification(
             configuration.getContext().with("cacheName", alias),
-            EhcacheNotification.CACHE_ADDED.name())));
+            EhcacheNotification.CACHE_ADDED.name()));
   }
 
   @Override
   public void cacheRemoved(String alias, Cache<?, ?> cache) {
-    messageConsumer.accept(new DefaultMessage(
-        timeSource.getTimeMillis(),
+    eventListener.onEvent(
+        "NOTIFICATION",
         new ContextualNotification(
             configuration.getContext().with("cacheName", alias),
-            EhcacheNotification.CACHE_REMOVED.name())));
+            EhcacheNotification.CACHE_REMOVED.name()));
   }
 
   @Override
@@ -118,27 +113,27 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
       case AVAILABLE:
         managementRegistry.register(this);
 
-        messageConsumer.accept(new DefaultMessage(
-            timeSource.getTimeMillis(),
+        eventListener.onEvent(
+            "NOTIFICATION",
             new ContextualNotification(
                 configuration.getContext(),
-                EhcacheNotification.CACHE_MANAGER_AVAILABLE.name())));
+                EhcacheNotification.CACHE_MANAGER_AVAILABLE.name()));
         break;
 
       case MAINTENANCE:
-        messageConsumer.accept(new DefaultMessage(
-            timeSource.getTimeMillis(),
+        eventListener.onEvent(
+            "NOTIFICATION",
             new ContextualNotification(
                 configuration.getContext(),
-                EhcacheNotification.CACHE_MANAGER_MAINTENANCE.name())));
+                EhcacheNotification.CACHE_MANAGER_MAINTENANCE.name()));
         break;
 
       case UNINITIALIZED:
-        messageConsumer.accept(new DefaultMessage(
-            timeSource.getTimeMillis(),
+        eventListener.onEvent(
+            "NOTIFICATION",
             new ContextualNotification(
                 configuration.getContext(),
-                EhcacheNotification.CACHE_MANAGER_CLOSED.name())));
+                EhcacheNotification.CACHE_MANAGER_CLOSED.name()));
 
         // deregister me
         cacheManager.deregisterListener(this);
@@ -171,7 +166,6 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
                 cacheContexts.add(configuration.getContext().with(cacheContext.getName(), cacheContext.getValue()));
               }
 
-              long now = timeSource.getTimeMillis();
               Collection<ContextualStatistics> statistics = new ArrayList<ContextualStatistics>();
 
               // for each capability, call the management registry
@@ -185,11 +179,11 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
               lastPoll.set(System.currentTimeMillis());
 
               if (!statistics.isEmpty()) {
-                messageConsumer.accept(new DefaultMessage(now, statistics.toArray(new ContextualStatistics[statistics.size()])));
+                eventListener.onEvent("STATISTICS", statistics);
               }
             }
           } catch (RuntimeException e) {
-            LOGGER.error(e.getMessage(), e);
+            LOGGER.error("StatisticCollector: " + e.getMessage(), e);
           }
         }
       }, pollingIntervalMs, pollingIntervalMs, TimeUnit.MILLISECONDS);

@@ -16,9 +16,9 @@
 
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.config.EvictionVeto;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.function.BiFunction;
+import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapKey;
 import org.ehcache.impl.internal.store.heap.holders.LookupOnlyOnHeapKey;
@@ -28,9 +28,11 @@ import org.ehcache.spi.copy.Copier;
 
 import java.util.AbstractMap;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Backend dealing with a key copier and storing keys as {@code OnHeapKey<K>}
@@ -41,9 +43,12 @@ import java.util.Random;
 class KeyCopyBackend<K, V> implements Backend<K, V> {
 
   private final ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>> keyCopyMap;
+  private final boolean byteSized;
   private final Copier<K> keyCopier;
+  private final AtomicLong byteSize = new AtomicLong(0L);
 
-  KeyCopyBackend(Copier<K> keyCopier) {
+  KeyCopyBackend(boolean byteSized, Copier<K> keyCopier) {
+    this.byteSized = byteSized;
     this.keyCopier = keyCopier;
     keyCopyMap = new ConcurrentHashMap<OnHeapKey<K>, OnHeapValueHolder<V>>();
   }
@@ -54,8 +59,8 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionVeto<Object, OnHeapValueHolder<?>> evictionVeto) {
-    Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> candidate = keyCopyMap.getEvictionCandidate(random, size, prioritizer, evictionVeto);
+  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, OnHeapValueHolder<?>> evictionAdvisor) {
+    Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> candidate = keyCopyMap.getEvictionCandidate(random, size, prioritizer, evictionAdvisor);
 
     if (candidate == null) {
       return null;
@@ -65,9 +70,36 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public int size() {
-    return keyCopyMap.size();
+  public long mappingCount() {
+    return keyCopyMap.mappingCount();
   }
+
+  @Override
+  public long byteSize() {
+    if (byteSized) {
+      return byteSize.get();
+    } else {
+      throw new IllegalStateException("This store is not byte sized");
+    }
+  }
+
+  @Override
+  public long naturalSize() {
+    if (byteSized) {
+      return byteSize.get();
+    } else {
+      return mappingCount();
+    }
+  }
+
+  @Override
+  public void updateUsageInBytesIfRequired(long delta) {
+    if (byteSized) {
+      byteSize.addAndGet(delta);
+    }
+  }
+
+
 
   @Override
   public Iterable<K> keySet() {
@@ -130,8 +162,21 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public void clear() {
-    keyCopyMap.clear();
+  public Backend<K, V> clear() {
+    return new KeyCopyBackend<K, V>(byteSized, keyCopier);
+  }
+
+  @Override
+  public Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash) {
+    Map<K, OnHeapValueHolder<V>> result = new HashMap<K, OnHeapValueHolder<V>>();
+    Map<OnHeapKey<K>, OnHeapValueHolder<V>> removed = keyCopyMap.removeAllWithHash(hash);
+    long delta = 0L;
+    for (Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+      delta -= entry.getValue().size();
+      result.put(entry.getKey().getActualKeyObject(), entry.getValue());
+    }
+    updateUsageInBytesIfRequired(delta);
+    return result;
   }
 
   @Override

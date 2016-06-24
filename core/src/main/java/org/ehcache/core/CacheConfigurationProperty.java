@@ -16,6 +16,9 @@
 
 package org.ehcache.core;
 
+/**
+ * Enumeration of the properties that can change on a live cache.
+ */
 public enum CacheConfigurationProperty {
   /**
    * used to update size of ResourcePool in RuntimeConfig

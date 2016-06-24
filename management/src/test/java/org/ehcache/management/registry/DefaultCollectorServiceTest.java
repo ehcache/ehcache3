@@ -20,7 +20,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.CollectorService;
@@ -28,12 +27,9 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.junit.Test;
-import org.terracotta.management.call.Parameter;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.message.Message;
-import org.terracotta.management.message.MessageType;
-import org.terracotta.management.notification.ContextualNotification;
-import org.terracotta.management.registry.MessageConsumer;
+import org.terracotta.management.model.call.Parameter;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.notification.ContextualNotification;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -45,6 +41,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
@@ -55,15 +52,14 @@ public class DefaultCollectorServiceTest {
 
   @Test(timeout = 6000)
   public void test_collector() throws Exception {
-    final Queue<Message> messages = new ConcurrentLinkedQueue<Message>();
+    final Queue<Object> messages = new ConcurrentLinkedQueue<Object>();
     final List<String> notifs = new ArrayList<String>(6);
     final CountDownLatch num = new CountDownLatch(5);
 
-    CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfiguration<String, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(String.class, String.class,
+        newResourcePoolsBuilder()
             .heap(10, EntryUnit.ENTRIES)
-            .offheap(1, MemoryUnit.MB)
-            .build())
+            .offheap(1, MemoryUnit.MB))
         .build();
 
     StatisticsProviderConfiguration statisticsProviderConfiguration = new EhcacheStatisticsProviderConfiguration(
@@ -75,13 +71,13 @@ public class DefaultCollectorServiceTest {
         .addConfiguration(statisticsProviderConfiguration)
         .setCacheManagerAlias("my-cm-1"));
 
-    CollectorService collectorService = new DefaultCollectorService(new MessageConsumer() {
+    CollectorService collectorService = new DefaultCollectorService(new CollectorService.EventListener() {
       @Override
-      public void accept(Message message) {
-        System.out.println(message);
-        messages.offer(message);
-        if (message.getType().equals(MessageType.NOTIFICATION.name())) {
-          notifs.add(message.unwrap(ContextualNotification.class).getType());
+      public void onEvent(String type, Object event) {
+        System.out.println(type + " - " + event);
+        messages.offer(event);
+        if (type.equals("NOTIFICATION")) {
+          notifs.add(((ContextualNotification) event).getType());
         }
         num.countDown();
       }

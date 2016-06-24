@@ -16,12 +16,15 @@
 package org.ehcache.management.providers;
 
 import org.ehcache.Cache;
+import org.terracotta.management.registry.action.Named;
+import org.terracotta.management.registry.action.RequiredContext;
 
 /**
  * Class representing an association between an object and an alias, name, identifier
  *
  * @author Mathieu Carbou
  */
+@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
 public final class CacheBinding {
 
   private final String alias;

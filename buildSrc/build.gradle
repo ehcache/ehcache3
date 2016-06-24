@@ -14,7 +14,11 @@
  * limitations under the License.
  */
 
+apply plugin: 'groovy'
+
 repositories { jcenter() }
 dependencies {
-  compile 'com.github.jengelman.gradle.plugins:shadow:1.2.2'
+  compile gradleApi()
+  compile localGroovy()
+  compile 'com.github.jengelman.gradle.plugins:shadow:1.2.3'
 }

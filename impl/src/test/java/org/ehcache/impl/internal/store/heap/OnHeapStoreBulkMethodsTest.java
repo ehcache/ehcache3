@@ -18,13 +18,13 @@ package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.core.spi.time.SystemTimeSource;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.copy.Copier;
 import org.hamcrest.Matchers;
 import org.junit.Test;

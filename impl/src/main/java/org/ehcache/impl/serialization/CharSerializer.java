@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
@@ -27,16 +27,43 @@ import java.nio.ByteBuffer;
  */
 public class CharSerializer implements Serializer<Character> {
 
+  /**
+   * No arg constructor
+   */
   public CharSerializer() {
   }
 
+  /**
+   * Constructor to enable this serializer as a transient one.
+   * <P>
+   *   Parameter is ignored as {@link Character} is a base java type.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   *
+   * @see Serializer
+   */
   public CharSerializer(ClassLoader classLoader) {
   }
 
-  public CharSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+  /**
+   * Constructor to enable this serializer as a persistent one.
+   * <P>
+   *   Parameters are ignored as {@link Character} is a base java type and this implementation requires no state.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   * @param stateRepository the state repository
+   *
+   * @see Serializer
+   */
+  public CharSerializer(ClassLoader classLoader, StateRepository stateRepository) {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ByteBuffer serialize(Character object) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(2);
@@ -44,12 +71,18 @@ public class CharSerializer implements Serializer<Character> {
     return byteBuffer;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Character read(ByteBuffer binary) throws ClassNotFoundException {
     char c = binary.getChar();
     return c;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean equals(Character object, ByteBuffer binary) throws ClassNotFoundException {
     return object.equals(read(binary));

@@ -22,17 +22,14 @@
 
   <!-- tag::gettingStarted[] -->
   <service>
-    <tx:xa-store-provider/> <!--1-->
-  </service>
-  <service>
-    <tx:jta-tm transaction-manager-provider-class="com.pany.BitronixProvider"/> <!--2-->
+    <tx:jta-tm transaction-manager-lookup-class="org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup"/> <!--1-->
   </service>
 
-  <cache alias="xaCache"> <!--3-->
+  <cache alias="xaCache"> <!--2-->
     <key-type>java.lang.String</key-type>
     <value-type>java.lang.String</value-type>
     <heap unit="entries">20</heap>
-    <tx:xa-store unique-XAResource-id="xaCache" /> <!--4-->
+    <tx:xa-store unique-XAResource-id="xaCache" /> <!--3-->
   </cache>
   <!-- end::gettingStarted[] -->
 

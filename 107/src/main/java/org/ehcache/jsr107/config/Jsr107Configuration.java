@@ -22,35 +22,86 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * @author Alex Snaps
+ * {@link ServiceCreationConfiguration} for default {@link Jsr107Service} implementation.
  */
 public class Jsr107Configuration implements ServiceCreationConfiguration<Jsr107Service> {
 
   private final String defaultTemplate;
   private final boolean jsr107CompliantAtomics;
+  private final ConfigurationElementState enableManagementAll;
+  private final ConfigurationElementState enableStatisticsAll;
   private final Map<String, String> templates;
 
-  public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates, boolean jsr107CompliantAtomics) {
+  /**
+   * Creates a new configuration with the provided parameters.
+   *  @param defaultTemplate the default template
+   * @param templates cache alias to template name map
+   * @param jsr107CompliantAtomics behaviour of loader writer in atomic operations
+   * @param enableManagementAll
+   * @param enableStatisticsAll
+   */
+  public Jsr107Configuration(final String defaultTemplate, final Map<String, String> templates,
+                             boolean jsr107CompliantAtomics, ConfigurationElementState enableManagementAll, ConfigurationElementState enableStatisticsAll) {
     this.defaultTemplate = defaultTemplate;
     this.jsr107CompliantAtomics = jsr107CompliantAtomics;
+    this.enableManagementAll = enableManagementAll;
+    this.enableStatisticsAll = enableStatisticsAll;
     this.templates = new ConcurrentHashMap<String, String>(templates);
   }
 
+  /**
+   * Returns the default template, or {@code null} if not configured.
+   *
+   * @return the default template or {@code null}
+   */
   public String getDefaultTemplate() {
     return defaultTemplate;
   }
 
+  /**
+   * Returns the cache alias to template name map.
+   *
+   * @return the cache alias to template name map
+   */
   public Map<String, String> getTemplates() {
     return templates;
   }
 
+  /**
+   * Indicates loader writer behaviour in atomic methods.
+   * <P>
+   *   If {@code true} then loader writer will <EM>NOT</EM> be used in atomic methods, if {@code false} it will be.
+   * </P>
+   *
+   * @return {@code true} or {@code false} depending on configuration
+   */
   public boolean isJsr107CompliantAtomics() {
     return jsr107CompliantAtomics;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<Jsr107Service> getServiceType() {
     return Jsr107Service.class;
   }
 
+  /**
+   * Indicates if all created caches should have management enabled.
+   *
+   * @return {@code true} to enable management on all caches, {@code false} otherwise
+   */
+  public ConfigurationElementState isEnableManagementAll() {
+    return enableManagementAll;
+  }
+
+  /**
+   * Indicates if all created caches should have statistics enabled.
+   *
+   * @return {@code true} to enable management on all caches, {@code false} otherwise
+   */
+  public ConfigurationElementState isEnableStatisticsAll() {
+    return enableStatisticsAll;
+  }
 }

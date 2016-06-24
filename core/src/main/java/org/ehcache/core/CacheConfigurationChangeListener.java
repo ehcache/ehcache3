@@ -16,11 +16,15 @@
 
 package org.ehcache.core;
 
-import org.ehcache.core.CacheConfigurationChangeEvent;
-
 /**
- * @author rism
+ * Interface allowing types to declare their interest in {@link CacheConfigurationChangeEvent}s.
  */
 public interface CacheConfigurationChangeListener {
+
+  /**
+   * Method invoked on a cache configuration change.
+   *
+   * @param event the event describing the change
+   */
   void cacheConfigurationChange(CacheConfigurationChangeEvent event);
 }

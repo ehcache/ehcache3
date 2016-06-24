@@ -18,10 +18,9 @@ package org.ehcache.impl.internal.loaderwriter.writebehind;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 
-import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.impl.internal.loaderwriter.writebehind.WriteBehind;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.DeleteOperation;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.SingleOperation;
 import org.ehcache.impl.internal.loaderwriter.writebehind.operations.WriteOperation;

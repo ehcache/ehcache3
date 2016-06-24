@@ -18,11 +18,9 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.event.CacheEvent;
@@ -47,6 +45,9 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -61,9 +62,7 @@ public class EventNotificationTest {
 
   @Test
   public void testNotificationForCacheOperations() throws InterruptedException {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(5L, EntryUnit.ENTRIES).build()).build();
+    CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder(Long.class, String.class, heap(5)).build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .build(true);
@@ -221,8 +220,8 @@ public class EventNotificationTest {
 
   @Test
   public void testEventOrderForUpdateThatTriggersEviction () {
-    CacheConfiguration<Long, SerializableObject> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, SerializableObject.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfiguration<Long, SerializableObject> cacheConfiguration = newCacheConfigurationBuilder(Long.class, SerializableObject.class,
+        newResourcePoolsBuilder()
             .heap(1L, EntryUnit.ENTRIES).offheap(1l, MemoryUnit.MB).build()).build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
@@ -242,11 +241,12 @@ public class EventNotificationTest {
 
   @Test
   public void testEventFiringInCacheIterator() {
-    Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+    Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
+    CacheConfiguration<Long, String> cacheConfiguration = newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
+            .heap(5L, EntryUnit.ENTRIES).build())
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(5L, EntryUnit.ENTRIES).build()).build();
+        .build();
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
         .using(new TimeSourceConfiguration(testTimeSource))
         .build(true);
@@ -280,11 +280,9 @@ public class EventNotificationTest {
     AsynchronousListener asyncListener = new AsynchronousListener();
     asyncListener.resetLatchCount(100);
 
-    CacheConfiguration<Number, Number> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, Number.class)
+    CacheConfiguration<Number, Number> cacheConfiguration = newCacheConfigurationBuilder(Number.class, Number.class,
+        newResourcePoolsBuilder().heap(10L, EntryUnit.ENTRIES))
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10L, EntryUnit.ENTRIES)
-        )
         .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().withCache("cache", cacheConfiguration)
@@ -334,8 +332,8 @@ public class EventNotificationTest {
     AsynchronousListener asyncListener = new AsynchronousListener();
     asyncListener.resetLatchCount(100);
 
-    CacheConfiguration<Number, Number> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, Number.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfiguration<Number, Number> cacheConfiguration = newCacheConfigurationBuilder(Number.class, Number.class,
+        newResourcePoolsBuilder()
                 .heap(10L, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
         .build();
 
@@ -364,8 +362,8 @@ public class EventNotificationTest {
 
   @Test
   public void testMultiThreadedSyncNotifications() throws InterruptedException {
-    CacheConfiguration<Number, Number> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, Number.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfiguration<Number, Number> cacheConfiguration = newCacheConfigurationBuilder(Number.class, Number.class,
+        newResourcePoolsBuilder()
             .heap(10L, EntryUnit.ENTRIES))
         .build();
 
@@ -407,7 +405,7 @@ public class EventNotificationTest {
 
     @Override
     public void onEvent(CacheEvent<Object, Object> event) {
-      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "EventNotificationTest");
+      Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EventNotificationTest");
       logger.info(event.getType().toString());
       eventTypeHashMap.put(event.getType(), eventCounter.get());
       eventCounter.getAndIncrement();

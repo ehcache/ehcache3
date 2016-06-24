@@ -20,7 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.config.ResourcePoolsHelper;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.After;
 import org.junit.Before;
@@ -45,7 +45,7 @@ public class CacheConfigurationChangeListenerTest {
   private CacheEventDispatcher<Object, Object> eventNotifier;
   private EhcacheRuntimeConfiguration<Object, Object> runtimeConfiguration;
   private CacheConfiguration<Object, Object> config;
-  private Ehcache<Object, Object> cache;
+  private EhcacheWithLoaderWriter<Object, Object> cache;
 
   @SuppressWarnings({ "unchecked"})
   @Before
@@ -54,8 +54,8 @@ public class CacheConfigurationChangeListenerTest {
     this.eventNotifier = mock(CacheEventDispatcher.class);
     CacheLoaderWriter<Object, Object> loaderWriter = mock(CacheLoaderWriter.class);
     this.config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null, null, null, ResourcePoolsHelper.createHeapDiskPools(2, 10));
-    this.cache = new Ehcache<Object, Object>(config, store, loaderWriter, eventNotifier,
-        LoggerFactory.getLogger(Ehcache.class + "-" + "CacheConfigurationListenerTest"));
+    this.cache = new EhcacheWithLoaderWriter<Object, Object>(config, store, loaderWriter, eventNotifier,
+        LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "CacheConfigurationListenerTest"));
     cache.init();
     this.runtimeConfiguration = (EhcacheRuntimeConfiguration<Object, Object>)cache.getRuntimeConfiguration();
   }
@@ -96,7 +96,7 @@ public class CacheConfigurationChangeListenerTest {
     @Override
     public void cacheConfigurationChange(CacheConfigurationChangeEvent event) {
       this.eventSet.add(event);
-      Logger logger = LoggerFactory.getLogger(Ehcache.class + "-" + "GettingStarted");
+      Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "GettingStarted");
       logger.info("Setting size: "+event.getNewValue().toString());
     }
   }

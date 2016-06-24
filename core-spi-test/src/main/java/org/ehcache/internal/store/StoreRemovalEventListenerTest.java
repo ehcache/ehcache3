@@ -17,11 +17,11 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.function.BiFunction;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.LegalSPITesterException;
@@ -66,7 +66,7 @@ public class StoreRemovalEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       StoreEventListener<K, V> listener = addListener(store);
       store.remove(key);
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -80,7 +80,7 @@ public class StoreRemovalEventListenerTest<K, V> extends SPIStoreTester<K, V> {
       StoreEventListener<K, V> listener = addListener(store);
       store.remove(key, value);
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -99,26 +99,7 @@ public class StoreRemovalEventListenerTest<K, V> extends SPIStoreTester<K, V> {
         }
       });
       verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
-      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
-    }
-  }
-
-  @SPITest
-  public void testComputeIfPresentRemoves() throws LegalSPITesterException {
-
-    try {
-      K key = factory.createKey(125L);
-      store.put(key, factory.createValue(125L));
-      StoreEventListener<K, V> listener = addListener(store);
-      store.computeIfPresent(key, new BiFunction<K, V, V>() {
-        @Override
-        public V apply(K k, V v) {
-          return null;
-        }
-      });
-      verifyListenerInteractions(listener);
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

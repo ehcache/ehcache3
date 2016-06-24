@@ -16,9 +16,9 @@
 package org.ehcache.management;
 
 import org.ehcache.spi.service.Service;
-import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.model.capabilities.Capability;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.CapabilityManagementSupport;
 
 import java.util.Collection;

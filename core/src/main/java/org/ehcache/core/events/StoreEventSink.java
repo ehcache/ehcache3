@@ -16,17 +16,51 @@
 
 package org.ehcache.core.events;
 
+import org.ehcache.ValueSupplier;
+
 /**
- * StoreEventSink
+ * Interface on which {@link org.ehcache.core.spi.store.Store} operations are to record events.
  */
 public interface StoreEventSink<K, V> {
-  void removed(K key, V value);
 
-  void updated(K key, V oldValue, V newValue);
+  /**
+   * Indicates the mapping was removed.
+   *
+   * @param key removed key
+   * @param value value supplier of removed value
+   */
+  void removed(K key, ValueSupplier<V> value);
 
-  void expired(K key, V value);
+  /**
+   * Indicates the mapping was updated.
+   *
+   * @param key the updated key
+   * @param oldValue value supplier of old value
+   * @param newValue the new value
+   */
+  void updated(K key, ValueSupplier<V> oldValue, V newValue);
 
+  /**
+   * Indicates the mapping was expired.
+   *
+   * @param key the expired key
+   * @param value value supplier of expired value
+   */
+  void expired(K key, ValueSupplier<V> value);
+
+  /**
+   * Indicates a mapping was created.
+   *
+   * @param key the created key
+   * @param value the created value
+   */
   void created(K key, V value);
 
-  void evicted(K key, V value);
+  /**
+   * Indicates a mapping was evicted.
+   *
+   * @param key the evicted key
+   * @param value value supplier of evicted value
+   */
+  void evicted(K key, ValueSupplier<V> value);
 }

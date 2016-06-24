@@ -4,14 +4,28 @@
 
   <ehcache:service>
     <tc:cluster>
-      <tc:connection url="http://localhost:9540"/>
+      <tc:connection url="terracotta://example.com:9540/cachemanager"/>
+      <tc:server-side-config auto-create="true">
+        <tc:shared-pool name="shared-pool" from="primary-server-resource" unit="MB">8</tc:shared-pool>
+      </tc:server-side-config>
     </tc:cluster>
   </ehcache:service>
 
   <ehcache:cache alias="simple-cache">
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
-    <ehcache:heap unit="entries">10</ehcache:heap>
+    <ehcache:resources>
+      <tc:cluster-fixed from="primary-server-resource" unit="MB">16</tc:cluster-fixed>
+    </ehcache:resources>
+  </ehcache:cache>
+
+  <ehcache:cache alias="tiered-cache">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+    <ehcache:resources>
+      <ehcache:heap>10</ehcache:heap>
+      <tc:cluster-fixed from="primary-server-resource" unit="MB">4</tc:cluster-fixed>
+    </ehcache:resources>
   </ehcache:cache>
 
 </ehcache:config>

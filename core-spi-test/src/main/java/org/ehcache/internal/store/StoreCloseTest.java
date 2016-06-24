@@ -16,8 +16,8 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.SPITest;
@@ -55,7 +55,7 @@ public class StoreCloseTest<K, V> extends SPIStoreTester<K, V> {
 
   @SPITest
   public void closedStoreCantBeUsed()
-      throws CacheAccessException, IllegalAccessException, InstantiationException {
+      throws StoreAccessException, IllegalAccessException, InstantiationException {
     K key = factory.createKey(42);
     V value = factory.createValue(42);
 

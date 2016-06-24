@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers;
 
-import org.terracotta.management.context.Context;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
 import org.terracotta.management.registry.collect.StatisticCollector;

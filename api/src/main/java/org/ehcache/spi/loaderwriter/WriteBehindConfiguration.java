@@ -20,22 +20,28 @@ import java.util.concurrent.TimeUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * WriteBehindConfiguration
+ * {@link ServiceConfiguration} for the {@link WriteBehindProvider}.
+ * <P>
+ *   The {@code WriteBehindProvider} provides write-behind services to a
+ *   {@link org.ehcache.Cache Cache}.
+ * </P>
  */
 public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindProvider> {
+
   /**
-   * A number of bucket/thread pairs configured for this cache's write behind.
+   * The concurrency of the write behind engines queues.
    *
-   * @return Retrieves the amount of bucket/thread pairs configured for this cache's write behind
+   * @return the write behind concurrency
    */
   int getConcurrency();
 
   /**
-   * The maximum number of operations allowed on the write behind queue.
+   * The maximum number of operations allowed on each write behind queue.
+   * <P>
+   *   Only positive values are legal.
+   * </P>
    *
-   * Only positive values are legal.
-   *
-   * @return Retrieves the maximum amount of operations allowed on the write behind queue
+   * @return the maximum queue size
    */
   int getMaxQueueSize();
 
@@ -54,24 +60,26 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
   String getThreadPoolAlias();
 
   /**
-   * BatchingConfiguration
+   * The batching specific part of {@link WriteBehindConfiguration}.
    */
-  public interface BatchingConfiguration {
+  interface BatchingConfiguration {
+
     /**
      * The recommended size of a batch of operations.
+     * <P>
+     *   Only positive values are legal. A value of 1 indicates that no batching
+     *   should happen. Real batch size will be influenced by the write rate and
+     *   the max write delay.
+     * </P>
      *
-     * Only positive values are legal. A value of 1 indicates that no batching should happen.
-     *
-     * Real batch size will be influenced by arrival frequency of operations and max write delay.
-     *
-     * @return Retrieves the size of the batch operation.
+     * @return the batch size
      */
     int getBatchSize();
 
     /**
      * The maximum time to wait before writing behind.
      *
-     * @return Retrieves the maximum time to wait before writing behind
+     * @return the maximum write delay
      */
     long getMaxDelay();
 
@@ -84,8 +92,12 @@ public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehi
 
     /**
      * Whether write operations can be coalesced.
+     * <P>
+     *   Write coalescing ensure that operations within a batch for the same key
+     *   will be coalesced in to a single write operation.
+     * </P>
      *
-     * @return Retrieves the write coalescing behavior is enabled or not
+     * @return {@code true} if write coalescing enabled
      */
     boolean isCoalescing();
   }

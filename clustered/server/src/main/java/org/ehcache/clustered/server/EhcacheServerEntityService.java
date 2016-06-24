@@ -15,32 +15,36 @@
  */
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.messages.EhcacheCodec;
-import org.ehcache.clustered.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.messages.EhcacheCodec;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServerEntityService;
 import org.terracotta.entity.ServiceRegistry;
 
-import static org.ehcache.clustered.server.ConcurrencyStrategies.noConcurrency;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
+import org.terracotta.entity.SyncMessageCodec;
 
 public class EhcacheServerEntityService implements ServerEntityService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
+  private static final long ENTITY_VERSION = 1L;
+  private static final int DEFAULT_CONCURRENCY = 1024;
+
   @Override
   public long getVersion() {
-    return 0L;
+    return ENTITY_VERSION;
   }
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return "org.ehcache.clustered.client.EhcacheClientEntity".equals(typeName);
+    return "org.ehcache.clustered.client.internal.EhcacheClientEntity".equals(typeName);
   }
 
   @Override
   public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcacheActiveEntity(configuration);
+    return new EhcacheActiveEntity(registry, configuration);
   }
 
   @Override
@@ -50,11 +54,16 @@ public class EhcacheServerEntityService implements ServerEntityService<EhcacheEn
 
   @Override
   public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
-    return noConcurrency();
+    return defaultConcurrency(DEFAULT_CONCURRENCY);
   }
 
   @Override
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
-    return EhcacheCodec.serverMessageCodec();
+    return EhcacheCodec.messageCodec();
+  }
+
+  @Override
+  public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
+    return null;
   }
 }

@@ -19,17 +19,18 @@ import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
 import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.core.events.CacheEventDispatcherImpl;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.impl.events.CacheEventDispatcherImpl;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * {@link CacheEventDispatcher} implementation that shares a single {@link ExecutorService} for unordered firing
@@ -51,7 +52,7 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     executionService = serviceProvider.getService(ExecutionService.class);
   }
 
@@ -74,9 +75,9 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   }
 
   @Override
-  public <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> cenlService) {
-    if (cenlService != null) {
-      cenlService.shutdown();
+  public <K, V> void releaseCacheEventDispatcher(CacheEventDispatcher<K, V> eventDispatcher) {
+    if (eventDispatcher != null) {
+      eventDispatcher.shutdown();
     }
   }
 

@@ -20,8 +20,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
@@ -42,6 +40,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -62,17 +62,14 @@ public class StoreStatisticsTest {
   public void test1TierStoreStatsAvailableInContextManager() throws Exception {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("threeTieredCache",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(1, MemoryUnit.MB)
-                )
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
         ).build(true);
 
     Cache<Long, String> cache = cacheManager.getCache("threeTieredCache", Long.class, String.class);
 
     assertNull(cache.get(0L));
 
-    long onHeapMisses = findStat(cache, "computeIfAbsent", "onheap-store").count(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP);
+    long onHeapMisses = findStat(cache, "get", "onheap-store").count(StoreOperationOutcomes.GetOutcome.MISS);
     assertThat(onHeapMisses, equalTo(1L));
 
     cacheManager.close();
@@ -82,8 +79,8 @@ public class StoreStatisticsTest {
   public void test2TiersStoreStatsAvailableInContextManager() throws Exception {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("threeTieredCache",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                newResourcePoolsBuilder()
                     .heap(1, MemoryUnit.MB)
                     .offheap(2, MemoryUnit.MB)
                 )
@@ -95,7 +92,7 @@ public class StoreStatisticsTest {
 
     long onHeapMisses = findStat(cache, "getOrComputeIfAbsent", "onheap-store").count(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
     assertThat(onHeapMisses, equalTo(1L));
-    long offheapMisses = findStat(cache, "computeIfAbsentAndFault", "local-offheap").count(AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.NOOP);
+    long offheapMisses = findStat(cache, "getAndFault", "local-offheap").count(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.MISS);
     assertThat(offheapMisses, equalTo(1L));
 
     cacheManager.close();
@@ -106,8 +103,8 @@ public class StoreStatisticsTest {
     PersistentCacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "StoreStatisticsTest")))
         .withCache("threeTieredCache",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                newResourcePoolsBuilder()
                     .heap(1, MemoryUnit.MB)
                     .offheap(2, MemoryUnit.MB)
                     .disk(5, MemoryUnit.MB)
@@ -122,7 +119,7 @@ public class StoreStatisticsTest {
     assertThat(onHeapMisses, equalTo(1L));
     long offHeapMisses = findStat(cache, "getAndRemove", "local-offheap").count(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.MISS);
     assertThat(offHeapMisses, equalTo(1L));
-    long diskMisses = findStat(cache, "computeIfAbsentAndFault", "local-disk").count(AuthoritativeTierOperationOutcomes.ComputeIfAbsentAndFaultOutcome.NOOP);
+    long diskMisses = findStat(cache, "getAndFault", "local-disk").count(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.MISS);
     assertThat(diskMisses, equalTo(1L));
 
     cacheManager.close();
