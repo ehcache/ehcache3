@@ -32,6 +32,7 @@ import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
 import org.terracotta.offheapstore.eviction.EvictionListener;
 import org.terracotta.offheapstore.eviction.EvictionListeningReadWriteLockedOffHeapClockCache;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
 
@@ -93,19 +94,22 @@ class OffHeapChainMap<K> implements MapInternals {
     final Lock lock = heads.writeLock();
     lock.lock();
     try {
-      InternalChain chain = heads.get(key);
-      if (chain == null) {
-        heads.put(key, chainStorage.newChain(element));
-        return EMPTY_CHAIN;
-      } else {
-        try {
-          Chain current = chain.detach();
-          if (!chain.append(element)) {
-            heads.remove(key).close();
+      while (true) {
+        InternalChain chain = heads.get(key);
+        if (chain == null) {
+          heads.put(key, chainStorage.newChain(element));
+          return EMPTY_CHAIN;
+        } else {
+          try {
+            Chain current = chain.detach();
+            if (chain.append(element)) {
+              return current;
+            } else {
+              evict();
+            }
+          } finally {
+            chain.close();
           }
-          return current;
-        } finally {
-          chain.close();
         }
       }
     } finally {
@@ -117,16 +121,21 @@ class OffHeapChainMap<K> implements MapInternals {
     final Lock lock = heads.writeLock();
     lock.lock();
     try {
-      InternalChain chain = heads.get(key);
-      if (chain == null) {
-        heads.put(key, chainStorage.newChain(element));
-      } else {
-        try {
-          if (!chain.append(element)) {
-            heads.remove(key).close();
+      while (true) {
+        InternalChain chain = heads.get(key);
+        if (chain == null) {
+          heads.put(key, chainStorage.newChain(element));
+          return;
+        } else {
+          try {
+            if (chain.append(element)) {
+              return;
+            } else {
+              evict();
+            }
+          } finally {
+            chain.close();
           }
-        } finally {
-          chain.close();
         }
       }
     } finally {
@@ -135,22 +144,28 @@ class OffHeapChainMap<K> implements MapInternals {
 
   }
 
-  public boolean replaceAtHead(K key, Chain expected, Chain replacement) {
+  public void replaceAtHead(K key, Chain expected, Chain replacement) {
     final Lock lock = heads.writeLock();
     lock.lock();
     try {
-      InternalChain chain = heads.get(key);
-      if (chain == null) {
-        if (expected.iterator().hasNext()) {
-          return false;
+      while (true) {
+        InternalChain chain = heads.get(key);
+        if (chain == null) {
+          if (expected.isEmpty()) {
+            throw new IllegalArgumentException("Empty expected sequence");
+          } else {
+            return;
+          }
         } else {
-          throw new IllegalArgumentException("Empty expected sequence");
-        }
-      } else {
-        try {
-          return chain.replace(expected, replacement);
-        } finally {
-          chain.close();
+          try {
+            if (chain.replace(expected, replacement)) {
+              return;
+            } else {
+              evict();
+            }
+          } finally {
+            chain.close();
+          }
         }
       }
     } finally {
@@ -164,6 +179,17 @@ class OffHeapChainMap<K> implements MapInternals {
       this.heads.clear();
     } finally {
       heads.writeLock().unlock();
+    }
+  }
+
+  private void evict() {
+    int evictionIndex = heads.getEvictionIndex();
+    if (evictionIndex < 0) {
+      StringBuilder sb = new StringBuilder("Storage Engine and Eviction Failed - Everything Pinned (");
+      sb.append(getSize()).append(" mappings) \n").append("Storage Engine : ").append(chainStorage);
+      throw new OversizeMappingException(sb.toString());
+    } else {
+      heads.evict(evictionIndex, false);
     }
   }
 
@@ -287,4 +313,8 @@ class OffHeapChainMap<K> implements MapInternals {
   Lock writeLock() {
     return heads.writeLock();
   }
+
+  protected void storageEngineFailure(Object failure) {
+  }
+
 }
