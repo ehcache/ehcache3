@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common;
+package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Fixed;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Shared;

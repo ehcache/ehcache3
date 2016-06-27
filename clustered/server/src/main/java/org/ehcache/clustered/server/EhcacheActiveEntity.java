@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.ServerStoreCompatibility;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
