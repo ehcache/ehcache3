@@ -16,6 +16,8 @@
 
 package org.ehcache;
 
+import java.io.Closeable;
+
 /**
  * Represents a {@link Cache} that is not managed by a {@link org.ehcache.CacheManager CacheManager}.
  * <P>
@@ -25,7 +27,7 @@ package org.ehcache;
  * @param <K> the key type for the cache
  * @param <V> the value type for the cache
  */
-public interface UserManagedCache<K, V> extends Cache<K, V> {
+public interface UserManagedCache<K, V> extends Cache<K, V>, Closeable {
 
   /**
    * Transitions this {@code UserManagedCache} to {@link org.ehcache.Status#AVAILABLE AVAILABLE}.
@@ -51,6 +53,7 @@ public interface UserManagedCache<K, V> extends Cache<K, V> {
    * @throws StateTransitionException if the {@code UserManagedCache} could not reach {@code UNINITIALIZED} cleanly
    * @throws IllegalStateException if the {@code UserManagedCache} is not {@code AVAILABLE}
    */
+  @Override
   void close() throws StateTransitionException;
 
   /**
