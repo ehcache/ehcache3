@@ -81,6 +81,7 @@ public class EhcacheClientEntityFactoryTest {
     verify(entityRef).create(any(UUID.class));
     verify(entity).configure(any(ServerSideConfiguration.class));
     verify(entity).close();
+    verify(entityRef).tryDestroy();
   }
 
   @Test
