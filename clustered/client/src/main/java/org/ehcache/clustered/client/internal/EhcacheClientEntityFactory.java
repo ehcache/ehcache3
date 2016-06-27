@@ -100,18 +100,16 @@ public class EhcacheClientEntityFactory {
               try {
                 entity.configure(config);
                 return;
-              } catch (ClusteredStoreManagerConfigurationException e) {
-                throw new EhcacheEntityCreationException("Unable to configure entity for cluster id " + identifier, e);
               } finally {
                 entity.close();
               }
-            } catch (RuntimeException e) {
+            } catch (ClusteredStoreManagerConfigurationException e) {
               try {
                 ref.tryDestroy();
               } catch (EntityNotFoundException f) {
                 //ignore
               }
-              throw e;
+              throw new EhcacheEntityCreationException("Unable to configure entity for cluster id " + identifier, e);
             } catch (EntityNotFoundException e) {
               //continue;
             }

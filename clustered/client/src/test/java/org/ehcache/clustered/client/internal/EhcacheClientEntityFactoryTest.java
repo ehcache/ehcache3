@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal;
 
 import java.util.UUID;
 
+import org.ehcache.clustered.client.internal.service.ClusteredStoreManagerConfigurationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.lock.common.LockMessaging.HoldType;
 import org.ehcache.clustered.lock.client.VoltronReadWriteLockClient;
@@ -65,7 +66,7 @@ public class EhcacheClientEntityFactoryTest {
     EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(entity);
-    doThrow(IllegalStateException.class).when(entity).configure(any(ServerSideConfiguration.class));
+    doThrow(ClusteredStoreManagerConfigurationException.class).when(entity).configure(any(ServerSideConfiguration.class));
     Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
@@ -74,8 +75,8 @@ public class EhcacheClientEntityFactoryTest {
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
       factory.create("test", null);
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
+      fail("Expecting EhcacheEntityCreationException");
+    } catch (EhcacheEntityCreationException e) {
       // expected
     }
     verify(entityRef).create(any(UUID.class));
