@@ -9,8 +9,6 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
-:imagesdir: ../../../../images/design/clustered
-
 == Introduction
 
 Distributed Caching allows users to harness additional benefits of horizontal scale-out, without loosing on latency offered by local on-heap tiers.
