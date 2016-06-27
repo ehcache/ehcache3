@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.service;
+package org.ehcache.clustered.client.internal;
 
 /**
- * Thrown to indicate a failure when creating a {@code ClusteredStore}.
+ * Thrown to indicate a failure in validating an {@code Entity} supporting clustered operations.
  */
-public class ClusteredStoreCreationException extends ClusteredStoreException {
+public class EhcacheEntityValidationException extends RuntimeException {
 
-  public ClusteredStoreCreationException(String message, Throwable cause) {
+  public EhcacheEntityValidationException(String message) {
+    super(message);
+  }
+
+  public EhcacheEntityValidationException(String message, Throwable cause) {
     super(message, cause);
   }
 
+  public EhcacheEntityValidationException(Throwable cause) {
+    super(cause);
+  }
 }

@@ -16,43 +16,33 @@
 
 package org.ehcache.clustered.client.internal.service;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.concurrent.ConcurrentMap;
-
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
+import org.ehcache.clustered.client.config.ClusteredResourceType;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.EhcacheEntityBusyException;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
-import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
+import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
-
-import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
-import org.ehcache.clustered.client.config.ClusteredResourceType;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
+import org.ehcache.clustered.common.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
-import org.ehcache.CachePersistenceException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
-
+import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -64,6 +54,14 @@ import org.terracotta.entity.map.common.ConcurrentClusteredMap;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityException;
 import org.terracotta.exception.EntityNotFoundException;
+
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.Arrays;
+import java.util.Properties;
+import java.util.concurrent.ConcurrentMap;
 
 /**
  * Provides support for accessing server-based cluster services.
@@ -254,7 +252,11 @@ class DefaultClusteringService implements ClusteringService {
 
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    entity.destroyCache(name);
+    try {
+      entity.destroyCache(name);
+    } catch (ClusteredStoreDestructionException e) {
+      throw new CachePersistenceException("Cannot destroy clustered cache '" + name + "' on " + clusterUri, e);
+    }
   }
 
   @Override
@@ -299,26 +301,22 @@ class DefaultClusteringService implements ClusteringService {
         configuredConsistency
     );
 
-    if (configuration.isAutoCreate()) {
-      try {
-        this.entity.validateCache(cacheId, clientStoreConfiguration);
-      } catch (IllegalStateException e) {
+    try {
+      if (configuration.isAutoCreate()) {
         try {
-          this.entity.createCache(cacheId, clientStoreConfiguration);
-        } catch (CachePersistenceException ex) {
-          throw new ClusteredStoreCreationException("Error creating server-side cache for " + cacheId, ex);
+          this.entity.validateCache(cacheId, clientStoreConfiguration);
+        } catch (ClusteredStoreValidationException ex) {
+          if (ex.getCause() instanceof InvalidStoreException) {
+            this.entity.createCache(cacheId, clientStoreConfiguration);
+          } else {
+            throw ex;
+          }
         }
-      } catch (InvalidServerStoreConfigurationException ex) {
-        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, ex);
-      }
-    } else {
-      try {
+      } else {
         this.entity.validateCache(cacheId, clientStoreConfiguration);
-      } catch (IllegalStateException ex) {
-        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, ex);
-      } catch (InvalidServerStoreConfigurationException ex) {
-        throw new ClusteredStoreValidationException("Error validating server-side cache for " + cacheId, ex);
       }
+    } catch (ClusteredStoreException e) {
+      throw new CachePersistenceException("Unable to create server store proxy for entity '" + entityIdentifier + "'", e);
     }
 
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
@@ -339,7 +337,7 @@ class DefaultClusteringService implements ClusteringService {
 
     try {
       this.entity.releaseCache(cacheId);
-    } catch (CachePersistenceException e) {
+    } catch (ClusteredStoreReleaseException e) {
       throw new IllegalStateException(e);
     }
   }
@@ -408,6 +406,11 @@ class DefaultClusteringService implements ClusteringService {
     @Override
     public Class<ClusteringService> getServiceType() {
       return ClusteringService.class;
+    }
+
+    @Override
+    public String toString() {
+      return getClass().getSimpleName() + "@" + id;
     }
   }
 

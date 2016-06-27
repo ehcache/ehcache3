@@ -36,8 +36,12 @@ import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
 import org.ehcache.clustered.common.exceptions.ClusteredEhcacheException;
 import org.ehcache.clustered.common.exceptions.IllegalMessageException;
-import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
-import org.ehcache.clustered.common.exceptions.ProtocolException;
+import org.ehcache.clustered.common.exceptions.InvalidServerSideConfigurationException;
+import org.ehcache.clustered.common.exceptions.InvalidStoreException;
+import org.ehcache.clustered.common.exceptions.InvalidStoreManagerException;
+import org.ehcache.clustered.common.exceptions.LifecycleException;
+import org.ehcache.clustered.common.exceptions.ResourceBusyException;
+import org.ehcache.clustered.common.exceptions.ResourceConfigurationException;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
@@ -343,17 +347,17 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ServerStore cacheStore = stores.get(message.getCacheId());
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
-      throw new ProtocolException("Server Store not present for cacheId : " + message.getCacheId());
+      throw new LifecycleException("Server Store not present for cacheId : " + message.getCacheId());
     }
 
     if (!clientStateMap.get(clientDescriptor).isAttached()) {
       // An operation on a store should never happen from an unattached client
-      throw new ProtocolException("Client not attached");
+      throw new LifecycleException("Client not attached");
     }
 
     if (!storeClientMap.get(message.getCacheId()).contains(clientDescriptor)) {
       // An operation on a store should never happen from client no attached onto that store
-      throw new ProtocolException("Client not attached on Server Store for cacheId : " + message.getCacheId());
+      throw new LifecycleException("Client not attached on Server Store for cacheId : " + message.getCacheId());
     }
 
     switch (message.operation()) {
@@ -544,7 +548,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
     }
     if (!isConfigured()) {
       LOGGER.info("Configuring server-side clustered store manager");
@@ -554,20 +558,16 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       if (this.defaultServerResource != null) {
         OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(this.defaultServerResource));
         if (source == null) {
-          throw new IllegalArgumentException("Default server resource '" + this.defaultServerResource + "' is not defined");
+          throw new ResourceConfigurationException("Default server resource '" + this.defaultServerResource + "' is not defined");
         }
       }
 
-      try {
-        this.sharedResourcePools = createPools(resolveResourcePools(configuration));
-      } catch (RuntimeException e) {
-        throw e;
-      }
+      this.sharedResourcePools = createPools(resolveResourcePools(configuration));
       this.stores = new HashMap<String, ServerStoreImpl>();
 
       clientState.attach();
     } else {
-      throw new IllegalStateException("Clustered Store Manager already configured");
+      throw new InvalidStoreManagerException("Clustered Store Manager already configured");
     }
   }
 
@@ -586,19 +586,15 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
     }
     if (!isConfigured()) {
-      throw new ProtocolException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Store Manager is not configured");
     }
     ServerSideConfiguration incomingConfig = message.getConfiguration();
 
     if(incomingConfig != null) {
-      try {
-        checkConfigurationCompatibility(incomingConfig);
-      } catch (IllegalArgumentException e) {
-        throw e;
-      }
+      checkConfigurationCompatibility(incomingConfig);
     }
     clientState.attach();
   }
@@ -609,13 +605,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * @param incomingConfig the ServerSideConfiguration to be validated.  This is sent from a client
    * @throws IllegalArgumentException if configurations do not match
    */
-  private void checkConfigurationCompatibility(ServerSideConfiguration incomingConfig) throws IllegalArgumentException {
+  private void checkConfigurationCompatibility(ServerSideConfiguration incomingConfig) throws InvalidServerSideConfigurationException {
     if (!nullSafeEquals(this.defaultServerResource, incomingConfig.getDefaultServerResource())) {
-      throw new IllegalArgumentException("Default resource not aligned. "
+      throw new InvalidServerSideConfigurationException("Default resource not aligned. "
               + "Client: " + incomingConfig.getDefaultServerResource() + " "
               + "Server: " + defaultServerResource);
     } else if(!sharedResourcePools.keySet().equals(incomingConfig.getResourcePools().keySet())) {
-      throw new IllegalArgumentException("Pool names not equal. "
+      throw new InvalidServerSideConfigurationException("Pool names not equal. "
               + "Client: " + incomingConfig.getResourcePools().keySet() + " "
               + "Server: " + sharedResourcePools.keySet().toString());
     }
@@ -624,7 +620,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       Pool serverPool = this.sharedResourcePools.get(pool.getKey()).getPool();
 
       if(!serverPool.equals(pool.getValue())) {
-        throw new IllegalArgumentException("Pool '" + pool.getKey() + "' not equal. "
+        throw new InvalidServerSideConfigurationException("Pool '" + pool.getKey() + "' not equal. "
                 + "Client: " + pool.getValue() + " "
                 + "Server: " + serverPool);
       }
@@ -656,13 +652,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void createServerStore(ClientDescriptor clientDescriptor, CreateServerStore createServerStore) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
     }
     if (!clientState.isAttached()) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
     }
     if (!isConfigured()) {
-      throw new ProtocolException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Store Manager is not configured");
     }
 
     final String name = createServerStore.getName();    // client cache identifier/name
@@ -670,7 +666,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     LOGGER.info("Client {} creating new server-side store '{}'", clientDescriptor, name);
 
     if (stores.containsKey(name)) {
-      throw new IllegalStateException("Store '" + name + "' already exists");
+      throw new InvalidStoreException("Store '" + name + "' already exists");
     }
 
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
@@ -682,23 +678,19 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
        * identified by the cache identifier/name.
        */
       if (fixedResourcePools.containsKey(name)) {
-        throw new IllegalStateException("Fixed resource pool for store '" + name + "' already exists");
+        throw new ResourceConfigurationException("Fixed resource pool for store '" + name + "' already exists");
 
       } else {
         PoolAllocation.Fixed fixedAllocation = (PoolAllocation.Fixed)allocation;
-        try {
-          String resourceName = fixedAllocation.getResourceName();
-          if (resourceName == null) {
-            if (defaultServerResource == null) {
-              throw new IllegalStateException("Fixed pool for store '" + name + "' not defined; default server resource not configured");
-            } else {
-              resourceName = defaultServerResource;
-            }
+        String resourceName = fixedAllocation.getResourceName();
+        if (resourceName == null) {
+          if (defaultServerResource == null) {
+            throw new ResourceConfigurationException("Fixed pool for store '" + name + "' not defined; default server resource not configured");
+          } else {
+            resourceName = defaultServerResource;
           }
-          resourcePageSource = createPageSource(name, new Pool(fixedAllocation.getSize(), resourceName));
-        } catch (RuntimeException e) {
-          throw e;
         }
+        resourcePageSource = createPageSource(name, new Pool(fixedAllocation.getSize(), resourceName));
         fixedResourcePools.put(name, resourcePageSource);
       }
 
@@ -709,12 +701,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       PoolAllocation.Shared sharedAllocation = (PoolAllocation.Shared)allocation;
       resourcePageSource = sharedResourcePools.get(sharedAllocation.getResourcePoolName());
       if(resourcePageSource == null) {
-        return responseFactory.failure(
-            new IllegalArgumentException("Shared pool named '" + sharedAllocation.getResourcePoolName() + "' undefined."));
+        throw new ResourceConfigurationException("Shared pool named '" + sharedAllocation.getResourcePoolName() + "' undefined.");
       }
 
     } else {
-      throw new IllegalStateException("Unexpected PoolAllocation type: " + allocation.getClass().getName());
+      throw new IllegalMessageException("Unexpected PoolAllocation type: " + allocation.getClass().getName());
     }
 
     ServerStoreImpl serverStore = new ServerStoreImpl(storeConfiguration, resourcePageSource);
@@ -742,13 +733,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void validateServerStore(ClientDescriptor clientDescriptor, ValidateServerStore validateServerStore) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
     }
     if (!clientState.isAttached()) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
     }
     if (!isConfigured()) {
-      throw new ProtocolException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Store Manager is not configured");
     }
 
     String name = validateServerStore.getName();
@@ -757,14 +748,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     LOGGER.info("Client {} validating server-side store '{}'", clientDescriptor, name);
     ServerStoreImpl store = stores.get(name);
     if (store != null) {
-      try {
-        storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
-      } catch (InvalidServerStoreConfigurationException e) {
-        throw e;
-      }
+      storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
       attachStore(clientDescriptor, name);
     } else {
-      throw new IllegalStateException("Store '" + name + "' does not exist");
+      throw new InvalidStoreException("Store '" + name + "' does not exist");
     }
   }
 
@@ -779,13 +766,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void releaseServerStore(ClientDescriptor clientDescriptor, ReleaseServerStore releaseServerStore) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
     }
     if (!clientState.isAttached()) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
     }
     if (!isConfigured()) {
-      throw new ProtocolException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Store Manager is not configured");
     }
 
     String name = releaseServerStore.getName();
@@ -798,10 +785,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       removedFromClient |= detachStore(clientDescriptor, name);
 
       if (!removedFromClient) {
-        throw new IllegalStateException("Store '" + name + "' is not in use by client");
+        throw new InvalidStoreException("Store '" + name + "' is not in use by client");
       }
     } else {
-      throw new IllegalStateException("Store '" + name + "' does not exist");
+      throw new InvalidStoreException("Store '" + name + "' does not exist");
     }
   }
 
@@ -816,26 +803,26 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void destroyServerStore(ClientDescriptor clientDescriptor, DestroyServerStore destroyServerStore) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
     }
     if (!clientState.isAttached()) {
-      throw new ProtocolException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
     }
     if (!isConfigured()) {
-      throw new ProtocolException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Store Manager is not configured");
     }
 
     String name = destroyServerStore.getName();
 
     final Set<ClientDescriptor> clients = storeClientMap.get(name);
     if (clients != null && !clients.isEmpty()) {
-      throw new IllegalStateException("Can not destroy server-side store '" + name + "': in use by " + clients.size() + " clients");
+      throw new ResourceBusyException("Can not destroy server-side store '" + name + "': in use by " + clients.size() + " clients");
     }
 
     LOGGER.info("Client {} destroying server-side store '{}'", clientDescriptor, name);
     final ServerStoreImpl store = stores.remove(name);
     if (store == null) {
-      throw new IllegalStateException("Store '" + name + "' does not exist");
+      throw new InvalidStoreException("Store '" + name + "' does not exist");
     } else {
       /*
        * A ServerStore using a fixed resource pool is the only referent to that pool.  When such a
@@ -856,13 +843,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
-  private static Map<String, Pool> resolveResourcePools(ServerSideConfiguration configuration) {
+  private static Map<String, Pool> resolveResourcePools(ServerSideConfiguration configuration) throws InvalidServerSideConfigurationException {
     Map<String, Pool> pools = new HashMap<String, Pool>();
     for (Map.Entry<String, Pool> e : configuration.getResourcePools().entrySet()) {
       Pool pool = e.getValue();
       if (pool.getServerResource() == null) {
         if (configuration.getDefaultServerResource() == null) {
-          throw new IllegalArgumentException("Pool '" + e.getKey() + "' has no defined server resource, and no default value was available");
+          throw new InvalidServerSideConfigurationException("Pool '" + e.getKey() + "' has no defined server resource, and no default value was available");
         } else {
           pools.put(e.getKey(), new Pool(pool.getSize(), configuration.getDefaultServerResource()));
         }
@@ -873,12 +860,21 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     return Collections.unmodifiableMap(pools);
   }
 
-  private Map<String, ResourcePageSource> createPools(Map<String, Pool> resourcePools) {
+  private Map<String, ResourcePageSource> createPools(Map<String, Pool> resourcePools) throws ResourceConfigurationException {
     Map<String, ResourcePageSource> pools = new HashMap<String, ResourcePageSource>();
     try {
       for (Entry<String, Pool> e : resourcePools.entrySet()) {
         pools.put(e.getKey(), createPageSource(e.getKey(), e.getValue()));
       }
+    } catch (ResourceConfigurationException e) {
+      /*
+       * If we fail during pool creation, back out any pools successfully created during this call.
+       */
+      if (!pools.isEmpty()) {
+        LOGGER.warn("Failed to create shared resource pools; reversing reservations", e);
+        releasePools("shared", pools);
+      }
+      throw e;
     } catch (RuntimeException e) {
       /*
        * If we fail during pool creation, back out any pools successfully created during this call.
@@ -892,21 +888,21 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     return pools;
   }
 
-  private ResourcePageSource createPageSource(String poolName, Pool pool) {
+  private ResourcePageSource createPageSource(String poolName, Pool pool) throws ResourceConfigurationException {
     ResourcePageSource pageSource;
     OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
     if (source == null) {
-      throw new IllegalArgumentException("Non-existent server side resource '" + pool.getServerResource() + "'");
+      throw new ResourceConfigurationException("Non-existent server side resource '" + pool.getServerResource() + "'");
     } else if (source.reserve(pool.getSize())) {
       try {
         pageSource = new ResourcePageSource(pool);
       } catch (RuntimeException t) {
         source.release(pool.getSize());
-        throw new IllegalArgumentException("Failure allocating pool " + pool, t);
+        throw new ResourceConfigurationException("Failure allocating pool " + pool, t);
       }
       LOGGER.info("Reserved {} bytes from resource '{}' for pool '{}'", pool.getSize(), pool.getServerResource(), poolName);
     } else {
-      throw new IllegalArgumentException("Insufficient defined resources to allocate pool " + poolName + "=" + pool);
+      throw new ResourceConfigurationException("Insufficient defined resources to allocate pool " + poolName + "=" + pool);
     }
     return pageSource;
   }

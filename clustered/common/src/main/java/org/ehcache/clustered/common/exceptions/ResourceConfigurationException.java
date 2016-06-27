@@ -18,8 +18,16 @@ package org.ehcache.clustered.common.exceptions;
 /**
  * @author Ludovic Orban
  */
-public class ProtocolException extends ClusteredEhcacheException {
-  public ProtocolException(String message) {
+public class ResourceConfigurationException extends ClusteredEhcacheException {
+  public ResourceConfigurationException(String message) {
     super(message);
+  }
+
+  public ResourceConfigurationException(Throwable cause) {
+    super(cause);
+  }
+
+  public ResourceConfigurationException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

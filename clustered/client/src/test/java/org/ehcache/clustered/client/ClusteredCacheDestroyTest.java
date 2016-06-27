@@ -23,6 +23,7 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.exceptions.ResourceBusyException;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -118,8 +119,8 @@ public class ClusteredCacheDestroyTest {
       persistentCacheManager1.destroyCache("clustered-cache");
       fail();
     } catch (CachePersistenceException e) {
-      assertThat(e.getMessage(), containsString("LIFECYCLE_OP error"));
-      assertThat(e.getCause(), instanceOf(IllegalStateException.class));
+      assertThat(e.getMessage(), containsString("Cannot destroy clustered cache"));
+      assertThat(getRootCause(e), instanceOf(ResourceBusyException.class));
     }
 
     try {
@@ -135,4 +136,12 @@ public class ClusteredCacheDestroyTest {
     assertThat(cache2.get(1L), is("One"));
   }
 
+  private static Throwable getRootCause(Throwable t) {
+    if (t.getCause() == null || t.getCause() == t) {
+      return t;
+    }
+    return getRootCause(t.getCause());
+  }
+
 }
+

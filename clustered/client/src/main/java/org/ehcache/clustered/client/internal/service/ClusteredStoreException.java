@@ -17,11 +17,11 @@
 package org.ehcache.clustered.client.internal.service;
 
 /**
- * Thrown to indicate a failure when creating a {@code ClusteredStore}.
+ * Root class of all {@code ClusteredStore} failures.
  */
-public class ClusteredStoreCreationException extends ClusteredStoreException {
+public abstract class ClusteredStoreException extends Exception {
 
-  public ClusteredStoreCreationException(String message, Throwable cause) {
+  public ClusteredStoreException(String message, Throwable cause) {
     super(message, cause);
   }
 

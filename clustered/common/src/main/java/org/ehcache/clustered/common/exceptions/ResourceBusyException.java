@@ -13,16 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.ehcache.clustered.client.internal.service;
+package org.ehcache.clustered.common.exceptions;
 
 /**
- * Thrown to indicate a failure when creating a {@code ClusteredStore}.
+ * @author Ludovic Orban
  */
-public class ClusteredStoreCreationException extends ClusteredStoreException {
-
-  public ClusteredStoreCreationException(String message, Throwable cause) {
-    super(message, cause);
+public class ResourceBusyException extends ClusteredEhcacheException {
+  public ResourceBusyException(String message) {
+    super(message);
   }
 
+  public ResourceBusyException(Throwable cause) {
+    super(cause);
+  }
+
+  public ResourceBusyException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

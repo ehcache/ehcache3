@@ -19,7 +19,7 @@ package org.ehcache.clustered.client.internal.service;
 /**
  * Thrown to indicate an validation error while connecting to a clustered cache.
  */
-public class ClusteredStoreValidationException extends RuntimeException {
+public class ClusteredStoreValidationException extends ClusteredStoreException {
 
   public ClusteredStoreValidationException(String message, Throwable cause) {
     super(message, cause);
