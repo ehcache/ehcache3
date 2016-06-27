@@ -716,6 +716,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
        */
       PoolAllocation.Shared sharedAllocation = (PoolAllocation.Shared)allocation;
       resourcePageSource = sharedResourcePools.get(sharedAllocation.getResourcePoolName());
+      if(resourcePageSource == null) {
+        return responseFactory.failure(
+            new IllegalArgumentException("Shared pool named '" + sharedAllocation.getResourcePoolName() + "' undefined."));
+      }
 
     } else {
       final String msg = "Unexpected PoolAllocation type: " + allocation.getClass().getName();
