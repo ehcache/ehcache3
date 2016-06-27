@@ -286,7 +286,6 @@ public class ClusteringServiceConfigurationParserTest {
       new XmlConfiguration(makeConfig(config));
       fail("Expecting XmlConfigurationException");
     } catch (XmlConfigurationException e) {
-      e.printStackTrace();
       assertThat(e.getMessage(), containsString("Error parsing XML configuration "));
       assertThat(e.getCause().getMessage(), containsString("'' is not a valid value for 'integer'"));
     }

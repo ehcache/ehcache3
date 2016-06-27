@@ -104,8 +104,6 @@ public class TerminatedServerTest {
     overrideProperty(oldProperties, TCPropertiesConsts.TC_TRANSPORT_HANDSHAKE_TIMEOUT, "1000");
 
     OLD_PROPERTIES = oldProperties;
-
-    System.out.format("OLD TCProperties = %s%n", oldProperties);
   }
 
   @AfterClass
@@ -482,9 +480,8 @@ public class TerminatedServerTest {
 
     cluster.getClusterControl().tearDown();
 
-    String value;
     try {
-      value = new TimeLimitedTask<String>(5, TimeUnit.SECONDS) {
+      new TimeLimitedTask<String>(5, TimeUnit.SECONDS) {
         @Override
         String runTask() throws Exception {
           return cache.putIfAbsent(2L, "dos");
