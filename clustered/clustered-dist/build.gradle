@@ -24,6 +24,10 @@
 group = 'org.ehcache'
 archivesBaseName = 'ehcache-clustered'
 
+ext {
+  docsFolder = "$buildDir/docs/asciidoc"
+}
+
 apply plugin: 'distribution'
 apply plugin: EhDistribute
 
@@ -49,6 +53,12 @@ dependencies {
 
   shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
+}
+
+task copyDocs(type: Copy) {
+  dependsOn asciidocZip
+  from zipTree(asciidocZip.archivePath)
+  into docsFolder
 }
 
 distributions {
@@ -78,6 +88,9 @@ distributions {
           !f.path.contains('ehcache') // do not add any transitives in this directory
         }
       }
+      into ('client/ehcache/documentation') {
+        from "$docsFolder/user"
+      }
       into ('client/lib') {
         from configurations.shadow
       }
@@ -93,3 +106,6 @@ distTar {
 distZip {
   classifier = 'kit'
 }
+
+distTar.dependsOn copyDocs
+distZip.dependsOn copyDocs
