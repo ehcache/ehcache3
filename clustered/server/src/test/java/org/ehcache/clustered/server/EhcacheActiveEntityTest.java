@@ -2369,6 +2369,27 @@ public class EhcacheActiveEntityTest {
     assertSuccess(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(null)));
   }
 
+  @Test
+  public void testValidateNonExistentSharedPool() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+
+    ClientDescriptor configurer = new TestClientDescriptor();
+    activeEntity.connected(configurer);
+    ServerSideConfiguration configure = new ServerSideConfigBuilder().build();
+    activeEntity.invoke(configurer,MESSAGE_FACTORY.configureStoreManager(configure));
+
+    ServerStoreConfiguration sharedStoreConfig = new ServerStoreConfigBuilder()
+        .shared("non-existent-pool")
+        .build();
+
+    assertFailure(
+        activeEntity.invoke(configurer, MESSAGE_FACTORY.createServerStore("sharedCache", sharedStoreConfig)),
+        IllegalArgumentException.class,
+        "Shared pool named 'non-existent-pool' undefined."
+    );
+  }
+
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
     if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
       throw ((Failure) response).getCause();
