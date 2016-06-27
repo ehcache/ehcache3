@@ -640,6 +640,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
         ehcache.close();
       }
     }
+    configuration.removeCacheConfiguration(alias);
   }
 
   @Override
