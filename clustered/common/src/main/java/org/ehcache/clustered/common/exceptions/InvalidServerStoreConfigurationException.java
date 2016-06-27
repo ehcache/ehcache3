@@ -16,7 +16,7 @@
 package org.ehcache.clustered.common.exceptions;
 
 /**
- * @author Ludovic Orban
+ * Thrown to indicate a configuration mismatch on a clustered store.
  */
 public class InvalidServerStoreConfigurationException extends ClusteredEhcacheException {
   public InvalidServerStoreConfigurationException(String message) {

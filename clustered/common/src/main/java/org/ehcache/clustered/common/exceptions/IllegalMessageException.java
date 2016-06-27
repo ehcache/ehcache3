@@ -16,7 +16,7 @@
 package org.ehcache.clustered.common.exceptions;
 
 /**
- * @author Ludovic Orban
+ * Thrown to indicate an unexpected failure an {@code Entity} supporting clustered operations.
  */
 public class IllegalMessageException extends ClusteredEhcacheException {
   public IllegalMessageException(String message) {

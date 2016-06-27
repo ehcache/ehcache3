@@ -16,7 +16,7 @@
 package org.ehcache.clustered.common.exceptions;
 
 /**
- * @author Ludovic Orban
+ * Thrown to indicate an operation cannot be performed on a certain clustered store manager.
  */
 public class InvalidStoreManagerException extends ClusteredEhcacheException {
   public InvalidStoreManagerException(String message) {

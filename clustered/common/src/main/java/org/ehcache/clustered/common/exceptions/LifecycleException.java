@@ -16,7 +16,7 @@
 package org.ehcache.clustered.common.exceptions;
 
 /**
- * @author Ludovic Orban
+ * Thrown to indicate the lifecycle of a clustered entity hasn't been respected.
  */
 public class LifecycleException extends ClusteredEhcacheException {
   public LifecycleException(String message) {

@@ -16,7 +16,7 @@
 package org.ehcache.clustered.common.exceptions;
 
 /**
- * @author Ludovic Orban
+ * Thrown to indicate a clustered entity is busy.
  */
 public class ResourceBusyException extends ClusteredEhcacheException {
   public ResourceBusyException(String message) {

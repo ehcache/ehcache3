@@ -16,7 +16,7 @@
 package org.ehcache.clustered.common.exceptions;
 
 /**
- * @author Ludovic Orban
+ * Thrown to indicate some clustered resource being mis-configured.
  */
 public class ResourceConfigurationException extends ClusteredEhcacheException {
   public ResourceConfigurationException(String message) {

@@ -16,7 +16,7 @@
 package org.ehcache.clustered.common.exceptions;
 
 /**
- * @author Ludovic Orban
+ * Thrown to indicate a configuration mismatch on an {@code Entity} supporting clustered operations.
  */
 public class InvalidServerSideConfigurationException extends ClusteredEhcacheException {
   public InvalidServerSideConfigurationException(String message) {
