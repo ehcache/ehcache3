@@ -316,7 +316,7 @@ class DefaultClusteringService implements ClusteringService {
         this.entity.validateCache(cacheId, clientStoreConfiguration);
       }
     } catch (ClusteredStoreException e) {
-      throw new CachePersistenceException("Unable to create server store proxy for entity '" + entityIdentifier + "'", e);
+      throw new CachePersistenceException("Unable to create server store proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
     }
 
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
