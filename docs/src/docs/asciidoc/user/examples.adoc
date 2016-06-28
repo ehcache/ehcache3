@@ -1,9 +1,9 @@
 ---
 ---
 = Examples
-ifndef::sourcedir[]
+ifndef::sourcedir31[]
 include::common.adoc[]
-endif::sourcedir[]
+endif::sourcedir31[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -104,5 +104,5 @@ Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and
 
 [source,xml,indent=0]
 ----
-include::{sourcedir}/107/src/test/resources/ehcache-example.xml[]
+include::{sourcedir31}/107/src/test/resources/ehcache-example.xml[]
 ----

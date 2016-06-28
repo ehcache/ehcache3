@@ -1,9 +1,9 @@
 ---
 ---
 = Cache Event Listeners
-ifndef::sourcedir[]
+ifndef::sourcedir31[]
 include::common.adoc[]
-endif::sourcedir[]
+endif::sourcedir31[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -18,7 +18,7 @@ registered with.
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEventListener]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEventListener]
 ----
 
 <1> Create a `CacheEventListenerConfiguration` using the builder indicating the listener and the events to receive (in this case create and update events)
@@ -57,7 +57,7 @@ Cache event listeners may also be added and removed while the cache is being use
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=registerListenerAtRuntime]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=registerListenerAtRuntime]
 ----
 
 <1> Create a `CacheEventListener` implementation instance.
@@ -73,5 +73,5 @@ Advanced users may want to tune the level of concurrency which may be used for d
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=configuringEventProcessingQueues]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=configuringEventProcessingQueues]
 ----
