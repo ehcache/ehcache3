@@ -11,11 +11,11 @@ endif::notBuildingForSite[]
 
 == Introduction
 
-Distributed Caching allows users to harness additional benefits of horizontal scale-out, without loosing on latency offered by local on-heap tiers.
-You need a cache manager with clustering capabilities so that the caches can consume the clustered storage.
-And then add a clustered storage as a tier to the cache which enables distributed caching.
-To enable Clustering with Terracotta, you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.
+Distributed Caching allows users to harness additional benefits of horizontal scale-out, without losing on low latency offered by local on-heap tiers.
 
+To enable Clustering with Terracotta, you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.  For convenience, the downloadable Ehcache kit contains the Terracotta Server.
+
+You will then need a configure a cache manager to have clustering capabilities such that the caches it manages can utilize the clustered storage. Finally, any caches which should be distributed should be configured with a clustered storage tier.
 
 == Clustering concepts
 
