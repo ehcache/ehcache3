@@ -4,8 +4,21 @@
 ifndef::sourcedir31[]
 include::common.adoc[]
 endif::sourcedir31[]
-Ehcache 3.0 supports caches that work within a XA transaction's context controlled by a JTA transaction manager, fully
+Ehcache 3 supports caches that work within a XA transaction's context controlled by a JTA transaction manager, fully
 supporting the whole two-phase commit protocol, including crash recovery.
+
+[IMPORTANT]
+==========================
+Ehcache 3.1 jar no longer contains the transaction related code.
+This is now available through a different binary:
+[source,xml]
+----
+<groupId>org.ehcache</groupId>
+<artifactId>ehcache-transactions</artifactId>
+----
+==========================
+
+NOTE: Ehcache 3.1 added clustering support but this is not yet compatible with transactional caches.
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]

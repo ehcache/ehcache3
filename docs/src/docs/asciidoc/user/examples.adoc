@@ -11,7 +11,7 @@ endif::notBuildingForSite[]
 
 == Peeper - a simple message board
 
-The `demo` directory in the Ehcache 3.0 sources includes a sample applications with two (2)
+The `demo` directory in the Ehcache 3 sources includes a sample applications with two (2)
 implementations demonstrating Ehcache use.  Implemented as a simple
 browser-based web service, the sample application, Peeper, displays any messages (_peeps_)
 previously entered and accepts new peeps recording the peeps in a database.  The peeps
@@ -23,7 +23,7 @@ is not running.  While running, information about the operation of Peeper applic
 While the sample application may be run, the application is _very_ simplistic -- the code
 implementing the sample is the interesting bit. Running the sample application requires the
 use of https://gradle.org/[Gradle].  This sample may be accessed from GitHub by _cloning_
-the Ehcache 3.0 git repository:
+the Ehcache 3 git repository:
 
 [source,bash]
 ----

@@ -9,11 +9,11 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
-== Getting started with Ehcache 3.0 & JSR-107
+== Getting started with Ehcache 3 & JSR-107
 
-There is nothing special for you to do to use Ehcache 3.0 as the caching provider for your application: add the
-`ehcache-3.0.0.jar` to your application's classpath (possibly removing the previous provider's jar) and you are ready to
-go:
+There is nothing special for you to do to use Ehcache 3 as the caching provider for your application: add the
+`ehcache-3.1.0.jar`
+to your application's classpath (possibly removing the previous provider's jar) and you are ready to go:
 
 [source,java]
 ----
@@ -82,7 +82,6 @@ include::{sourcedir31}/107/src/test/java/org/ehcache/docs/EhCache107Configuratio
 NOTE: You can also use the `CachingProvider.getCacheManager()` method that takes no arguments instead.
       The `URI` and `ClassLoader` used to configure the `CacheManager` will then use the
       vendor specific values returned by `CachingProvider.getDefaultURI` and `.getDefaultClassLoader` respectively.
-      Be aware that these are not entirely specified for Ehcache 3.0 and may change in future releases!
 
 ==== Control JSR-107 MBeans from XML
 
@@ -107,9 +106,8 @@ include::{sourcedir31}/107/src/test/resources/org/ehcache/docs/ehcache-107-mbean
 [[supplement-jsr-107-configurations]]
 === Supplement JSR-107's configurations
 
-As of Ehcache 3.0, you can also create `cache-templates`.  See the
-<<xml.adoc#cache-template-elements,Cache Templates>> section of the XML Documentation for more details. The Ehcache 3.0
-JSR-107 Caching Provider comes with an extension to the regular XML configuration so you can:
+You can also create `cache-templates`, see the <<xml.adoc#cache-template-elements,Cache Templates>> section of the XML Documentation for more details.
+The Ehcache 3 JSR-107 Caching Provider comes with an extension to the regular XML configuration so you can:
 
  . Configure a default template from which all programmatically created `Cache` instances inherit, and
  . Configure a given named `Cache` to inherit from a specific template.

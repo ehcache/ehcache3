@@ -1,10 +1,10 @@
 ---
 ---
-= Ehcache 3.0 Documentation
+= Ehcache 3.1 Documentation
 ifndef::sourcedir31[]
 include::common.adoc[]
 endif::sourcedir31[]
-We feel that the Ehcache 3.0 API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
+We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -84,7 +84,7 @@ Ehcache 3 introduces the concept of `UserManagedCache`:
 include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
 ----
 
-<1> A new feature of Ehcache 3.0 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true or
+<1> A new feature of Ehcache 3 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true or
 <2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
 <3> You can use the cache exactly as a managed cache
 <4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
@@ -237,6 +237,7 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 
 == Current development
 
-For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3.0 project wiki on GitHub].
+For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3 project wiki on GitHub].
 
-The next version, 3.1, will bring back the http://terracotta.org[Terracotta clustering] option that existed in Ehcache 2.x.
+The next version, 3.2, will finalize http://terracotta.org[Terracotta clustering] support.
+Cache events, cache-through and transactional clustered caches will then be supported.

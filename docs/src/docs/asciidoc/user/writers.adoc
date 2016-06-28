@@ -9,6 +9,8 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
+NOTE: Ehcache 3.1 added clustering support but this is not yet compatible with _cache-through_.
+
 == Write-Through Cache
 
 [source,java,indent=0]

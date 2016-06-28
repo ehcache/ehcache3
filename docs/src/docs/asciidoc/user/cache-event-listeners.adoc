@@ -9,6 +9,8 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
+NOTE: Ehcache 3.1 added clustering support but this is not yet compatible with event listeners.
+
 == Introduction
 
 Cache listeners allow implementers to register callback methods that will be executed when a cache event occurs.
