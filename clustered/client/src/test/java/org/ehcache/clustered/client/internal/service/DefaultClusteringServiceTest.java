@@ -32,8 +32,6 @@ import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIdentifier;
-import org.ehcache.clustered.common.ClusteredStoreCreationException;
-import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
@@ -640,9 +638,9 @@ public class DefaultClusteringServiceTest {
     try {
       accessService.getServerStoreProxy(
           getClusteredCacheIdentifier(accessService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
-      fail("Expecting ClusteredStoreValidationException");
-    } catch (ClusteredStoreValidationException e) {
-      // Expected
+      fail("Expecting CachePersistenceException");
+    } catch (CachePersistenceException e) {
+      assertThat(getRootCause(e).getMessage(), containsString(" does not exist"));
     }
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -856,7 +854,7 @@ public class DefaultClusteringServiceTest {
       creationService.releaseServerStoreProxy(serverStoreProxy);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString(" not in use "));
+      assertThat(getRootCause(e).getMessage(), containsString(" not in use "));
     }
 
     creationService.stop();
@@ -947,9 +945,9 @@ public class DefaultClusteringServiceTest {
     try {
       accessService.getServerStoreProxy(
           getClusteredCacheIdentifier(accessService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
-      fail("Expecting ClusteredStoreValidationException");
-    } catch (ClusteredStoreValidationException e) {
-      // Expected
+      fail("Expecting CachePersistenceException");
+    } catch (CachePersistenceException e) {
+      assertThat(getRootCause(e).getMessage(), containsString(" does not exist"));
     }
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1174,7 +1172,7 @@ public class DefaultClusteringServiceTest {
       creationService.releaseServerStoreProxy(serverStoreProxy);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString(" not in use "));
+      assertThat(getRootCause(e).getMessage(), containsString(" not in use "));
     }
 
     creationService.stop();
@@ -1198,7 +1196,7 @@ public class DefaultClusteringServiceTest {
       creationService.releaseServerStoreProxy(mock(ServerStoreProxy.class));
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString(" does not exist"));
+      assertThat(getRootCause(e).getMessage(), containsString(" does not exist"));
     }
 
     creationService.stop();
@@ -1240,7 +1238,7 @@ public class DefaultClusteringServiceTest {
       creationService.destroy(cacheAlias);
       fail("Expecting CachePersistenceException");
     } catch (CachePersistenceException e) {
-      assertThat(e.getMessage(), containsString(" in use by "));
+      assertThat(getRootCause(e).getMessage(), containsString(" in use by "));
     }
 
     creationService.releaseServerStoreProxy(serverStoreProxy);
@@ -1295,7 +1293,7 @@ public class DefaultClusteringServiceTest {
       creationService.destroy(cacheAlias);
       fail("Expecting CachePersistenceException");
     } catch (CachePersistenceException e) {
-      assertThat(e.getMessage(), containsString(" in use by "));
+      assertThat(getRootCause(e).getMessage(), containsString(" in use by "));
     }
 
     creationService.releaseServerStoreProxy(serverStoreProxy);
@@ -1446,9 +1444,9 @@ public class DefaultClusteringServiceTest {
 
     try {
       accessService.getServerStoreProxy(getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfigBad, Consistency.EVENTUAL);
-      fail("Expecting ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
-      // Expected
+      fail("Expecting CachePersistenceException");
+    } catch(CachePersistenceException e) {
+      assertThat(getRootCause(e).getMessage(), containsString("Existing ServerStore configuration is not compatible with the desired configuration"));
     }
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1547,8 +1545,8 @@ public class DefaultClusteringServiceTest {
 
     try {
       creationService.getServerStoreProxy(clusteredCacheIdentifier, storeConfig, Consistency.EVENTUAL);
-      fail("Expecting ClusteredStoreCreationException");
-    } catch(ClusteredStoreCreationException e) {
+      fail("Expecting CachePersistenceException");
+    } catch(CachePersistenceException e) {
       //Expected
     }
 
@@ -1611,9 +1609,9 @@ public class DefaultClusteringServiceTest {
 
     try {
       accessService.getServerStoreProxy(getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfig, Consistency.EVENTUAL);
-      fail("Expecting ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
-      //Expected
+      fail("Expecting CachePersistenceException");
+    } catch(CachePersistenceException e) {
+      assertThat(getRootCause(e).getMessage(), containsString("Existing ServerStore configuration is not compatible with the desired configuration"));
     }
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1740,9 +1738,9 @@ public class DefaultClusteringServiceTest {
     try {
       accessService.getServerStoreProxy(
           getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfig, Consistency.EVENTUAL);
-      fail("Expecting ClusteredStoreValidationException");
-    } catch (ClusteredStoreValidationException e) {
-      // Expected
+      fail("Expecting CachePersistenceException");
+    } catch (CachePersistenceException e) {
+      assertThat(getRootCause(e).getMessage(), containsString("Existing ServerStore configuration is not compatible with the desired configuration"));
     }
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1808,10 +1806,9 @@ public class DefaultClusteringServiceTest {
     try {
       accessService.getServerStoreProxy(
           getClusteredCacheIdentifier(accessService, cacheAlias), accessStoreConfig, Consistency.EVENTUAL);
-      fail("Expecting ClusteredStoreValidationException");
-    } catch (ClusteredStoreValidationException e) {
-      e.printStackTrace();
-      // Expected
+      fail("Expecting CachePersistenceException");
+    } catch (CachePersistenceException e) {
+      assertThat(getRootCause(e).getMessage(), containsString("Existing ServerStore configuration is not compatible with the desired configuration"));
     }
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1941,4 +1938,12 @@ public class DefaultClusteringServiceTest {
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
     assertThat(serverStoreProxy, instanceOf(StrongServerStoreProxy.class));
   }
+
+  private static Throwable getRootCause(Throwable t) {
+    if (t.getCause() == null || t.getCause() == t) {
+      return t;
+    }
+    return getRootCause(t.getCause());
+  }
+
 }

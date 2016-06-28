@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common;
+package org.ehcache.clustered.server;
+
+import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Fixed;
+import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Shared;
+import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
+import org.junit.Test;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Fixed;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Shared;
-import org.junit.Test;
 
 /**
  *
@@ -65,8 +68,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedKeyType existing: " + serverConfiguration.getStoredKeyType() + ", desired: " + clientConfiguration.getStoredKeyType()),is(true));
     }
   }
@@ -95,8 +98,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "storedValueType existing: " + serverConfiguration.getStoredValueType() + ", desired: " + clientConfiguration.getStoredValueType()), is(true));
     }
   }
@@ -125,8 +128,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "actualKeyType existing: " + serverConfiguration.getActualKeyType() + ", desired: " + clientConfiguration.getActualKeyType()),is(true));
     }
   }
@@ -155,8 +158,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "actualValueType existing: " + serverConfiguration.getActualValueType() + ", desired: " + clientConfiguration.getActualValueType()),is(true));
     }
   }
@@ -185,8 +188,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "keySerializerType existing: " + serverConfiguration.getKeySerializerType() + ", desired: " + clientConfiguration.getKeySerializerType()),is(true));
     }
   }
@@ -215,8 +218,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "valueSerializerType existing: " + serverConfiguration.getValueSerializerType() + ", desired: " + clientConfiguration.getValueSerializerType()),is(true));
     }
   }
@@ -245,8 +248,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "consistencyType existing: " + serverConfiguration.getConsistency() + ", desired: " + clientConfiguration.getConsistency()),is(true));
     }
   }
@@ -275,8 +278,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolFixedSize existing: " + ((Fixed)serverConfiguration.getPoolAllocation()).getSize() + ", desired: " + ((Fixed)clientConfiguration.getPoolAllocation()).getSize()),is(true));
     }
   }
@@ -305,8 +308,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolFixedSize existing: " + ((Fixed)serverConfiguration.getPoolAllocation()).getSize() + ", desired: " + ((Fixed)clientConfiguration.getPoolAllocation()).getSize()),is(true));
     }
   }
@@ -335,8 +338,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolFixedResourceName existing: " + ((Fixed)serverConfiguration.getPoolAllocation()).getResourceName() + ", desired: " + ((Fixed)clientConfiguration.getPoolAllocation()).getResourceName()),is(true));
     }
   }
@@ -365,8 +368,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolSharedPoolName existing: " + ((Shared)serverConfiguration.getPoolAllocation()).getResourcePoolName() + ", desired: " + ((Shared)clientConfiguration.getPoolAllocation()).getResourcePoolName()),is(true));
     }
   }
@@ -421,8 +424,8 @@ public class ServerStoreCompatibilityTest {
 
     try {
       serverStoreCompatibility.verify(serverConfiguration, clientConfiguration);
-      fail("Expected ClusteredStoreValidationException");
-    } catch(ClusteredStoreValidationException e) {
+      fail("Expected InvalidServerStoreConfigurationException");
+    } catch(InvalidServerStoreConfigurationException e) {
       assertThat("test failed", e.getMessage().equals(ERROR_MESSAGE_BASE + "resourcePoolType existing: " + serverConfiguration.getPoolAllocation().getClass().getName() + ", desired: " + clientConfiguration.getPoolAllocation().getClass().getName()),is(true));
     }
   }

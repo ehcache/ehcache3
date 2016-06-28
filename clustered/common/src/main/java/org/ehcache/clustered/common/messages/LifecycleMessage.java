@@ -48,6 +48,11 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
 
   public abstract LifeCycleOp operation();
 
+  @Override
+  public String toString() {
+    return getType() + "#" + operation();
+  }
+
   public static class ValidateStoreManager extends LifecycleMessage {
     private static final long serialVersionUID = 5742152283115139745L;
 

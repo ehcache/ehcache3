@@ -14,36 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common;
+package org.ehcache.clustered.client.internal.service;
 
 /**
  * Thrown to indicate an validation error while connecting to a clustered cache.
  */
-public class ClusteredStoreValidationException extends RuntimeException {
-  private static final long serialVersionUID = -639894819407589154L;
+public class ClusteredStoreValidationException extends ClusteredStoreException {
 
-  /**
-   * {@inheritDoc}
-   * @param message {@inheritDoc}
-   */
-  public ClusteredStoreValidationException(final String message) {
-    super(message);
-  }
-
-  /**
-   * {@inheritDoc}
-   * @param message {@inheritDoc}
-   * @param cause {@inheritDoc}
-   */
-  public ClusteredStoreValidationException(final String message, final Throwable cause) {
+  public ClusteredStoreValidationException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  /**
-   * {@inheritDoc}
-   * @param cause {@inheritDoc}
-   */
-  public ClusteredStoreValidationException(final Throwable cause) {
-    super(cause);
-  }
 }

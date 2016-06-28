@@ -16,12 +16,18 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.ClusteredStoreValidationException;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.exceptions.InvalidServerSideConfigurationException;
+import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
+import org.ehcache.clustered.common.exceptions.InvalidStoreException;
+import org.ehcache.clustered.common.exceptions.InvalidStoreManagerException;
+import org.ehcache.clustered.common.exceptions.LifecycleException;
+import org.ehcache.clustered.common.exceptions.ResourceBusyException;
+import org.ehcache.clustered.common.exceptions.ResourceConfigurationException;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
@@ -264,7 +270,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
-        IllegalStateException.class, "Client not attached"
+        LifecycleException.class, "Client not attached"
     );
   }
 
@@ -802,7 +808,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
-        IllegalStateException.class, "Client not attached on Server Store for cacheId : testAttachedClientButNotStoreFailsInvokingServerStoreOperation"
+        LifecycleException.class, "Client not attached on Server Store for cacheId : testAttachedClientButNotStoreFailsInvokingServerStoreOperation"
     );
   }
 
@@ -869,7 +875,7 @@ public class EhcacheActiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())),
-        IllegalStateException.class, "not connected");
+        LifecycleException.class, "not connected");
   }
 
   @Test
@@ -901,7 +907,7 @@ public class EhcacheActiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())),
-        IllegalStateException.class, "already configured");
+        InvalidStoreManagerException.class, "already configured");
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
 
@@ -934,7 +940,7 @@ public class EhcacheActiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)    // missing on 'server'
             .build())),
-        IllegalArgumentException.class, "Non-existent server side resource");
+        ResourceConfigurationException.class, "Non-existent server side resource");
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
 
@@ -967,7 +973,7 @@ public class EhcacheActiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())),
-        IllegalArgumentException.class, "Default server resource");
+        ResourceConfigurationException.class, "Default server resource");
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
 
@@ -999,7 +1005,7 @@ public class EhcacheActiveEntityTest {
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
             .build())),
-        IllegalArgumentException.class, "Insufficient defined resources");
+        ResourceConfigurationException.class, "Insufficient defined resources");
 
     final Set<String> poolIds = activeEntity.getSharedResourcePoolIds();
     assertThat(poolIds, is(Matchers.<String>empty()));
@@ -1115,7 +1121,7 @@ public class EhcacheActiveEntityTest {
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .sharedPool("tertiary", "serverResource3", 8, MemoryUnit.MEGABYTES)   // extra
             .build())),
-        IllegalArgumentException.class, "Pool names not equal.");
+        InvalidServerSideConfigurationException.class, "Pool names not equal.");
   }
 
   @Test
@@ -1139,7 +1145,7 @@ public class EhcacheActiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build())),
-        IllegalArgumentException.class, "Default resource not aligned");
+        InvalidServerSideConfigurationException.class, "Default resource not aligned");
   }
 
   @Test
@@ -1156,7 +1162,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())),
-        IllegalStateException.class, "not attached");
+        LifecycleException.class, "not attached");
   }
 
   @Test
@@ -1186,7 +1192,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())),
-        IllegalStateException.class, "not attached");
+        LifecycleException.class, "not attached");
   }
 
   @Test
@@ -1314,7 +1320,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())),
-        IllegalStateException.class, "already exists");
+        InvalidStoreException.class, "already exists");
   }
 
   @Test
@@ -1369,7 +1375,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.releaseServerStore("cacheAlias")),
-        IllegalStateException.class, "not in use");
+        InvalidStoreException.class, "not in use");
 
     assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.releaseServerStore("secondCache")));
 
@@ -1458,7 +1464,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 8, MemoryUnit.MEGABYTES)
                 .build())),
-        ClusteredStoreValidationException.class);
+        InvalidServerStoreConfigurationException.class);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -1501,7 +1507,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .fixed("serverResource1", 4, MemoryUnit.MEGABYTES)
                 .build())),
-        IllegalStateException.class, "does not exist");
+        InvalidStoreException.class, "does not exist");
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -1600,7 +1606,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .shared("primary")
                 .build())),
-        IllegalStateException.class, "already exists");
+        InvalidStoreException.class, "already exists");
   }
 
   @Test
@@ -1689,7 +1695,7 @@ public class EhcacheActiveEntityTest {
                                     ", desired: " +
                                     ((PoolAllocation.Fixed)fixedStoreConfig2.getPoolAllocation()).getSize();
 
-    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),ClusteredStoreValidationException.class,expectedMessageContent);
+    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),InvalidServerStoreConfigurationException.class,expectedMessageContent);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -1772,7 +1778,7 @@ public class EhcacheActiveEntityTest {
                                     ", desired: " +
                                     ((Fixed)fixedStoreConfig2.getPoolAllocation()).getResourceName();
 
-    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),ClusteredStoreValidationException.class,expectedMessageContent);
+    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAlias", fixedStoreConfig2)),InvalidServerStoreConfigurationException.class,expectedMessageContent);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -1810,7 +1816,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client1, client2));
 
     assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
-    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAliasBad", fixedStoreConfig2)),IllegalStateException.class,"Store 'cacheAliasBad' does not exist");
+    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAliasBad", fixedStoreConfig2)),InvalidStoreException.class,"Store 'cacheAliasBad' does not exist");
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getFixedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -1859,7 +1865,7 @@ public class EhcacheActiveEntityTest {
         MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .shared("secondary")
-                .build())),IllegalStateException.class,"Store 'cacheAlias' already exists");
+                .build())),InvalidStoreException.class,"Store 'cacheAlias' already exists");
   }
 
 
@@ -1897,7 +1903,7 @@ public class EhcacheActiveEntityTest {
             new ServerStoreConfigBuilder()
                 .shared("secondary")
                 .build())),
-        ClusteredStoreValidationException.class);
+        InvalidServerStoreConfigurationException.class);
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(activeEntity.getFixedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -1928,7 +1934,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.releaseServerStore("cacheAlias")),
-        IllegalStateException.class, "does not exist");
+        InvalidStoreException.class, "does not exist");
   }
 
   @Test
@@ -1963,7 +1969,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.releaseServerStore("cacheAlias")),
-        IllegalStateException.class, "not in use by client");
+        InvalidStoreException.class, "not in use by client");
   }
 
   @Test
@@ -2054,7 +2060,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.destroyServerStore("cacheAlias")),
-        IllegalStateException.class, "does not exist");
+        InvalidStoreException.class, "does not exist");
   }
 
   @Test
@@ -2098,11 +2104,11 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(activeEntity.invoke(client2,
         MESSAGE_FACTORY.destroyServerStore("sharedCache")),
-        IllegalStateException.class, "in use");
+        ResourceBusyException.class, "in use");
 
     assertFailure(activeEntity.invoke(client2,
         MESSAGE_FACTORY.destroyServerStore("fixedCache")),
-        IllegalStateException.class, "in use");
+        ResourceBusyException.class, "in use");
 
     assertThat(activeEntity.getStores(), containsInAnyOrder("fixedCache", "sharedCache"));
     assertThat(activeEntity.getConnectedClients().get(client), containsInAnyOrder("fixedCache", "sharedCache"));
@@ -2299,7 +2305,7 @@ public class EhcacheActiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("ternary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
-    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)), IllegalArgumentException.class, "Pool names not equal.");
+    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)), InvalidServerSideConfigurationException.class, "Pool names not equal.");
   }
 
   @Test
@@ -2323,7 +2329,7 @@ public class EhcacheActiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
-    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)), IllegalArgumentException.class, "Default resource not aligned.");
+    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)), InvalidServerSideConfigurationException.class, "Default resource not aligned.");
   }
 
   @Test
@@ -2347,7 +2353,7 @@ public class EhcacheActiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("secondary", "serverResource2", 36, MemoryUnit.MEGABYTES)
         .build();
-    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)),IllegalArgumentException.class, "Pool 'secondary' not equal.");
+    assertFailure(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validate)),InvalidServerSideConfigurationException.class, "Pool 'secondary' not equal.");
   }
 
   @Test
@@ -2385,7 +2391,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(
         activeEntity.invoke(configurer, MESSAGE_FACTORY.createServerStore("sharedCache", sharedStoreConfig)),
-        IllegalArgumentException.class,
+        ResourceConfigurationException.class,
         "Shared pool named 'non-existent-pool' undefined."
     );
   }

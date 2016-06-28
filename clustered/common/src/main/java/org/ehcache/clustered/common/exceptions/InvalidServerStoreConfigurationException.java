@@ -13,24 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.ehcache.clustered.common;
+package org.ehcache.clustered.common.exceptions;
 
 /**
- * Thrown to indicate a failure when creating a {@code ClusteredStore}.
+ * Thrown to indicate a configuration mismatch on a clustered store.
  */
-public class ClusteredStoreCreationException extends RuntimeException {
-  private static final long serialVersionUID = 8161642579437544726L;
-
-  public ClusteredStoreCreationException(String message) {
+public class InvalidServerStoreConfigurationException extends ClusteredEhcacheException {
+  public InvalidServerStoreConfigurationException(String message) {
     super(message);
   }
 
-  public ClusteredStoreCreationException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
-  public ClusteredStoreCreationException(Throwable cause) {
+  public InvalidServerStoreConfigurationException(Throwable cause) {
     super(cause);
   }
 }

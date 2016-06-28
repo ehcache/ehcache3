@@ -21,7 +21,9 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
+import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
+import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.junit.AfterClass;
@@ -92,8 +94,8 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
     try {
       factory.create("testCreateWithBadConfigCleansUp", new ServerSideConfiguration("flargle", EMPTY_RESOURCE_MAP));
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
+      fail("Expected EhcacheEntityCreationException");
+    } catch (EhcacheEntityCreationException e) {
       try {
         factory.retrieve("testCreateWithBadConfigCleansUp", null);
         fail("Expected EntityNotFoundException");
@@ -120,8 +122,8 @@ public class EhcacheClientEntityFactoryIntegrationTest {
     try {
       factory.retrieve("testRetrieveWithBadConfig",
           new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, "primary"))));
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
+      fail("Expected EhcacheEntityValidationException");
+    } catch (EhcacheEntityValidationException e) {
       //expected
     }
   }

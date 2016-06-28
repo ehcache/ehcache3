@@ -16,12 +16,10 @@
 
 package org.ehcache.clustered.client.internal;
 
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.ehcache.clustered.lock.client.VoltronReadWriteLock;
+import org.ehcache.clustered.client.internal.service.ClusteredStoreManagerConfigurationException;
+import org.ehcache.clustered.client.internal.service.ClusteredStoreManagerValidationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.lock.client.VoltronReadWriteLock;
 import org.ehcache.clustered.lock.client.VoltronReadWriteLock.Hold;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +29,10 @@ import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class EhcacheClientEntityFactory {
 
@@ -96,18 +98,18 @@ public class EhcacheClientEntityFactory {
             try {
               EhcacheClientEntity entity = ref.fetchEntity();
               try {
-                configure(entity, config);
+                entity.configure(config);
                 return;
               } finally {
                 entity.close();
               }
-            } catch (RuntimeException e) {
+            } catch (ClusteredStoreManagerConfigurationException e) {
               try {
                 ref.tryDestroy();
               } catch (EntityNotFoundException f) {
                 //ignore
               }
-              throw e;
+              throw new EhcacheEntityCreationException("Unable to configure entity for cluster id " + identifier, e);
             } catch (EntityNotFoundException e) {
               //continue;
             }
@@ -127,7 +129,7 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config) throws EntityNotFoundException, IllegalArgumentException, EhcacheEntityBusyException {
+  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config) throws EntityNotFoundException, EhcacheEntityValidationException, EhcacheEntityBusyException {
     try {
       Hold fetchHold = createAccessLockFor(identifier).tryReadLock();
       if (fetchHold == null) {
@@ -142,9 +144,11 @@ public class EhcacheClientEntityFactory {
          */
         boolean validated = false;
         try {
-          validate(entity, config);
+          entity.validate(config);
           validated = true;
           return entity;
+        } catch (ClusteredStoreManagerValidationException e) {
+          throw new EhcacheEntityValidationException("Unable to validate entity for cluster id " + identifier, e);
         } finally {
           if (!validated) {
             entity.close();
@@ -202,11 +206,4 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  private void validate(EhcacheClientEntity entity, ServerSideConfiguration config) {
-    entity.validate(config);
-  }
-
-  private void configure(EhcacheClientEntity entity, ServerSideConfiguration config) {
-    entity.configure(config);
-  }
 }
