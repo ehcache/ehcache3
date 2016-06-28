@@ -129,12 +129,19 @@ class DefaultClusteringService implements ClusteringService {
       try {
         entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
       } catch (EntityNotFoundException e) {
-        /*
-         * If the connection failed because of a creation failure, re-throw the creation failure.
-         */
-        throw new IllegalStateException(failure == null ? e : failure);
+        if (failure == null) {
+          throw new IllegalStateException("The server-side storage manager does not exist."
+                  + " Please review your configuration.", e);
+        } else {
+          throw new IllegalStateException("Could not create the server-side storage manager.", failure);
+        }
       } catch (EhcacheEntityBusyException e) {
-        throw new IllegalStateException(failure == null ? e : failure);
+        if (failure == null) {
+          throw new IllegalStateException("The server-side storage manager is not available."
+                  + " Is another client concurrently interacting with the storage manager?", e);
+        } else {
+          throw new IllegalStateException("Could not create the server-side storage manager.", failure);
+        }
       }
     } catch (RuntimeException e) {
       entityFactory = null;
