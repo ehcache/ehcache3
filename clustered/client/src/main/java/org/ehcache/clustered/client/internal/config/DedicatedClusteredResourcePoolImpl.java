@@ -17,36 +17,36 @@
 package org.ehcache.clustered.client.internal.config;
 
 import org.ehcache.clustered.client.config.ClusteredResourceType;
-import org.ehcache.clustered.client.config.FixedClusteredResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
 
 import static org.ehcache.clustered.common.ServerStoreConfiguration.*;
+import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
 
 /**
- * Concrete implementation of a {@link FixedClusteredResourcePool}.
+ * Concrete implementation of a {@link DedicatedClusteredResourcePool}.
  */
-public class FixedClusteredResourcePoolImpl extends SizedResourcePoolImpl<FixedClusteredResourcePool>
-    implements FixedClusteredResourcePool {
+public class DedicatedClusteredResourcePoolImpl extends SizedResourcePoolImpl<DedicatedClusteredResourcePool>
+    implements DedicatedClusteredResourcePool {
 
   private final String fromResource;
 
   /**
    * Creates a new resource pool based on the provided parameters.
    *
-   * @param fromResource the name of the server-based resource from which this fixed resource pool
+   * @param fromResource the name of the server-based resource from which this dedicated resource pool
    *                     is reserved; may be {@code null}
    * @param size       the size
    * @param unit       the unit for the size
    */
-  public FixedClusteredResourcePoolImpl(final String fromResource, final long size, final MemoryUnit unit) {
-    super(ClusteredResourceType.Types.FIXED, size, unit, true);
+  public DedicatedClusteredResourcePoolImpl(final String fromResource, final long size, final MemoryUnit unit) {
+    super(ClusteredResourceType.Types.DEDICATED, size, unit, true);
     this.fromResource = fromResource;       // May be null
   }
 
   @Override
-  public ClusteredResourceType<FixedClusteredResourcePool> getType() {
-    return (ClusteredResourceType<FixedClusteredResourcePool>)super.getType();
+  public ClusteredResourceType<DedicatedClusteredResourcePool> getType() {
+    return (ClusteredResourceType<DedicatedClusteredResourcePool>)super.getType();
   }
 
   @Override
@@ -61,7 +61,7 @@ public class FixedClusteredResourcePoolImpl extends SizedResourcePoolImpl<FixedC
 
   @Override
   public PoolAllocation getPoolAllocation() {
-    return new PoolAllocation.Fixed(this.getFromResource(), this.getUnit().toBytes(this.getSize()));
+    return new PoolAllocation.Dedicated(this.getFromResource(), this.getUnit().toBytes(this.getSize()));
   }
 
   @Override

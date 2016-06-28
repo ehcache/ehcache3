@@ -23,7 +23,7 @@ import org.ehcache.config.units.MemoryUnit;
  * Specifies a {@link ClusteredResourcePool} reserving space from a server-based clustered resource.
  * A {@code FixedClusteredResourcePool} uses dedicated space on the server.
  */
-public interface FixedClusteredResourcePool extends ClusteredResourcePool, SizedResourcePool {
+public interface DedicatedClusteredResourcePool extends ClusteredResourcePool, SizedResourcePool {
 
   /**
    * {@inheritDoc}

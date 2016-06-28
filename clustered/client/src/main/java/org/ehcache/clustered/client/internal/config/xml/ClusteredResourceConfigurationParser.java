@@ -16,8 +16,9 @@
 
 package org.ehcache.clustered.client.internal.config.xml;
 
-import org.ehcache.clustered.client.internal.config.FixedClusteredResourcePoolImpl;
+import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.internal.config.SharedClusteredResourcePoolImpl;
+import org.ehcache.clustered.client.internal.config.ClusteredResourcePoolImpl;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.CacheResourceConfigurationParser;
@@ -52,12 +53,12 @@ public class ClusteredResourceConfigurationParser implements CacheResourceConfig
   @Override
   public ResourcePool parseResourceConfiguration(final Element fragment) {
     final String elementName = fragment.getLocalName();
-    if ("cluster-shared".equals(elementName)) {
+    if ("clustered-shared".equals(elementName)) {
       final String sharing = fragment.getAttribute("sharing");
       return new SharedClusteredResourcePoolImpl(sharing);
 
-    } else if ("cluster-fixed".equals(elementName)) {
-      // 'from' attribute is optional on 'cluster-fixed' element
+    } else if ("clustered-dedicated".equals(elementName)) {
+      // 'from' attribute is optional on 'clustered-dedicated' element
       final Attr fromAttr = fragment.getAttributeNode("from");
       final String from = (fromAttr == null ? null : fromAttr.getValue());
 
@@ -82,7 +83,9 @@ public class ClusteredResourceConfigurationParser implements CacheResourceConfig
         throw new XmlConfigurationException(String.format("XML configuration element <%s> value '%s' is not valid", elementName, sizeValue), e);
       }
 
-      return new FixedClusteredResourcePoolImpl(from, size, sizeUnits);
+      return new DedicatedClusteredResourcePoolImpl(from, size, sizeUnits);
+    } else if("clustered".equals(elementName)) {
+      return new ClusteredResourcePoolImpl();
     }
 
     throw new XmlConfigurationException(String.format("XML configuration element <%s> in <%s> is not supported",

@@ -53,7 +53,7 @@ public class ClusteredCacheDestroyTest {
           .with(cluster(CLUSTER_URI).autoCreate())
           .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
-                  .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 32, MemoryUnit.MB)))
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
               .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
   @Before
@@ -89,7 +89,7 @@ public class ClusteredCacheDestroyTest {
 
     CacheConfigurationBuilder<Long, String> configBuilder = newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.fixed("primary-server-resource", 34, MemoryUnit.MB)));
+            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 34, MemoryUnit.MB)));
 
     try {
       Cache<Long, String> anotherCache = persistentCacheManager.createCache("another-cache", configBuilder);

@@ -128,8 +128,8 @@ public class ObservableEhcacheServerEntityService
       return activeEntity.getSharedResourcePoolIds();
     }
 
-    public Set<String> getFixedResourcePoolIds() {
-      return activeEntity.getFixedResourcePoolIds();
+    public Set<String> getDedicatedResourcePoolIds() {
+      return activeEntity.getDedicatedResourcePoolIds();
     }
   }
 }

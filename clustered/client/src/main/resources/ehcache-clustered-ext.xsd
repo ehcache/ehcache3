@@ -94,7 +94,7 @@
       <xs:annotation>
         <xs:documentation> xml:lang="en">
           True if server side components should be automatically created if they are absent.
-        </xs:documentation> 
+        </xs:documentation>
       </xs:annotation>
     </xs:attribute>
   </xs:complexType>
@@ -119,15 +119,15 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <xs:element name="cluster-fixed" type="tc:cluster-fixed-resource-type" substitutionGroup="eh:resource">
+  <xs:element name="clustered-dedicated" type="tc:clustered-dedicated-resource-type" substitutionGroup="eh:resource">
     <xs:annotation>
       <xs:documentation>
-        Clustered cache resource with a fixed size.
+        Clustered cache resource with a dedicated size.
       </xs:documentation>
     </xs:annotation>
   </xs:element>
 
-  <xs:complexType name="cluster-fixed-resource-type">
+  <xs:complexType name="clustered-dedicated-resource-type">
     <xs:complexContent>
       <xs:extension base="eh:memory-type">
         <xs:attributeGroup ref="tc:from-optional"/>
@@ -135,7 +135,7 @@
     </xs:complexContent>
   </xs:complexType>
 
-  <xs:element name="cluster-shared" type="tc:cluster-shared-resource-type" substitutionGroup="eh:resource">
+  <xs:element name="clustered-shared" type="tc:clustered-shared-resource-type" substitutionGroup="eh:resource">
     <xs:annotation>
       <xs:documentation>
         Clustered cache resource sharing a pool with other cache resources.
@@ -143,7 +143,7 @@
     </xs:annotation>
   </xs:element>
 
-  <xs:complexType name="cluster-shared-resource-type">
+  <xs:complexType name="clustered-shared-resource-type">
     <xs:attribute name="sharing" type="xs:string" use="required">
       <xs:annotation>
         <xs:documentation>
@@ -152,6 +152,15 @@
       </xs:annotation>
     </xs:attribute>
   </xs:complexType>
+
+  <xs:element name="clustered" substitutionGroup="eh:resource">
+    <xs:annotation>
+      <xs:documentation>
+        Clustered cache resource which inherits the resource pool configured on the server.
+      </xs:documentation>
+    </xs:annotation>
+    <xs:complexType/>
+  </xs:element>
 
   <xs:attributeGroup name="from-optional">
     <xs:attribute name="from" type="xs:string" use="optional">

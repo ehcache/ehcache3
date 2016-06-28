@@ -33,7 +33,7 @@ import org.junit.Test;
 import java.io.Serializable;
 import java.net.URI;
 
-import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.fixed;
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
@@ -72,7 +72,7 @@ public class BasicClusteredCacheTest {
             .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(fixed("primary-server-resource", 2, MemoryUnit.MB))));
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
@@ -90,7 +90,7 @@ public class BasicClusteredCacheTest {
             .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
-                    .with(fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
                 .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
         ;
 
@@ -119,7 +119,7 @@ public class BasicClusteredCacheTest {
             .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
-                    .with(fixed("primary-server-resource", 2, MemoryUnit.MB)))
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
                 .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
         ;
 
@@ -172,7 +172,7 @@ public class BasicClusteredCacheTest {
             .with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                     heap(2)
-                    .with(fixed("primary-server-resource", 2, MemoryUnit.MB))));
+                    .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     final Cache<Long, String> cache = cacheManager.getCache("clustered-cache", Long.class, String.class);
@@ -188,7 +188,7 @@ public class BasicClusteredCacheTest {
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         newCacheManagerBuilder().with(cluster(CLUSTER_URI).autoCreate())
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, Person.class,
-                    newResourcePoolsBuilder().with(fixed("primary-server-resource", 2, MemoryUnit.MB))));
+                    newResourcePoolsBuilder().with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
 
     Cache<Long, Person> cache = cacheManager.getCache("clustered-cache", Long.class, Person.class);

@@ -15,7 +15,7 @@
     <ehcache:key-type>java.lang.Long</ehcache:key-type>
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
-      <tc:cluster-fixed from="primary-server-resource" unit="MB">16</tc:cluster-fixed>
+      <tc:clustered-dedicated from="primary-server-resource" unit="MB">16</tc:clustered-dedicated>
     </ehcache:resources>
   </ehcache:cache>
 
@@ -24,7 +24,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap>10</ehcache:heap>
-      <tc:cluster-fixed from="primary-server-resource" unit="MB">4</tc:cluster-fixed>
+      <tc:clustered-dedicated from="primary-server-resource" unit="MB">4</tc:clustered-dedicated>
     </ehcache:resources>
   </ehcache:cache>
 

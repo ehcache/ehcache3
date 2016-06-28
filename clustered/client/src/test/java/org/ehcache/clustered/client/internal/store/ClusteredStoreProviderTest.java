@@ -66,7 +66,7 @@ public class ClusteredStoreProviderTest {
         mock(ClusteringService.class));
     provider.start(serviceLocator);
 
-    assertRank(provider, 1, ClusteredResourceType.Types.FIXED);
+    assertRank(provider, 1, ClusteredResourceType.Types.DEDICATED);
 
     assertRank(provider, 1, ClusteredResourceType.Types.SHARED);
 
@@ -85,13 +85,13 @@ public class ClusteredStoreProviderTest {
         mock(ClusteringService.class));
     serviceLocator.startAllServices();
 
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK);
-    assertRank(provider, 2, ClusteredResourceType.Types.FIXED, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 3, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK);
+    assertRank(provider, 2, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 3, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
     assertRank(provider, 2, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
@@ -102,13 +102,13 @@ public class ClusteredStoreProviderTest {
     assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
     // Multiple clustered resources not currently supported
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
   }
 
   @Test
@@ -117,7 +117,7 @@ public class ClusteredStoreProviderTest {
     ServiceLocator serviceLocator = new ServiceLocator(mock(ClusteringService.class));
     provider.start(serviceLocator);
 
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.FIXED, Collections.EMPTY_LIST), is(1));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.EMPTY_LIST), is(1));
     assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.EMPTY_LIST), is(1));
     assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.EMPTY_LIST), is(0));
   }

@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.config.builders;
 
 import org.ehcache.clustered.client.config.ClusteredResourceType;
-import org.ehcache.clustered.client.config.FixedClusteredResourcePool;
 import org.ehcache.clustered.client.config.SharedClusteredResourcePool;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
@@ -29,24 +28,25 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.*;
+import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
 
 public class ClusteredResourcePoolBuilderTest {
 
   @Test
-  public void fixed2Arg() throws Exception {
-    ResourcePool pool = ClusteredResourcePoolBuilder.fixed(16, MemoryUnit.GB);
-    assertThat(pool, is(instanceOf(FixedClusteredResourcePool.class)));
-    assertThat(pool.getType(), Matchers.<ResourceType>is(ClusteredResourceType.Types.FIXED));
+  public void dedicated2Arg() throws Exception {
+    ResourcePool pool = ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.GB);
+    assertThat(pool, is(instanceOf(DedicatedClusteredResourcePool.class)));
+    assertThat(pool.getType(), Matchers.<ResourceType>is(ClusteredResourceType.Types.DEDICATED));
     assertThat(pool.isPersistent(), is(true));
-    assertThat(((FixedClusteredResourcePool)pool).getSize(), is(16L));
-    assertThat(((FixedClusteredResourcePool)pool).getUnit(), is(MemoryUnit.GB));
-    assertThat(((FixedClusteredResourcePool)pool).getFromResource(), is(nullValue()));
+    assertThat(((DedicatedClusteredResourcePool)pool).getSize(), is(16L));
+    assertThat(((DedicatedClusteredResourcePool)pool).getUnit(), is(MemoryUnit.GB));
+    assertThat(((DedicatedClusteredResourcePool)pool).getFromResource(), is(nullValue()));
   }
 
   @Test
-  public void fixed2ArgUnitNull() throws Exception {
+  public void dedicated2ArgUnitNull() throws Exception {
     try {
-      ClusteredResourcePoolBuilder.fixed(16, null);
+      ClusteredResourcePoolBuilder.clusteredDedicated(16, null);
       fail();
     } catch (NullPointerException e) {
       // expected
@@ -54,31 +54,31 @@ public class ClusteredResourcePoolBuilderTest {
   }
 
   @Test
-  public void fixed3Arg() throws Exception {
-    ResourcePool pool = ClusteredResourcePoolBuilder.fixed("resourceId", 16, MemoryUnit.GB);
-    assertThat(pool, is(instanceOf(FixedClusteredResourcePool.class)));
-    assertThat(pool.getType(), Matchers.<ResourceType>is(ClusteredResourceType.Types.FIXED));
+  public void dedicated3Arg() throws Exception {
+    ResourcePool pool = ClusteredResourcePoolBuilder.clusteredDedicated("resourceId", 16, MemoryUnit.GB);
+    assertThat(pool, is(instanceOf(DedicatedClusteredResourcePool.class)));
+    assertThat(pool.getType(), Matchers.<ResourceType>is(ClusteredResourceType.Types.DEDICATED));
     assertThat(pool.isPersistent(), is(true));
-    assertThat(((FixedClusteredResourcePool)pool).getSize(), is(16L));
-    assertThat(((FixedClusteredResourcePool)pool).getUnit(), is(MemoryUnit.GB));
-    assertThat(((FixedClusteredResourcePool)pool).getFromResource(), is("resourceId"));
+    assertThat(((DedicatedClusteredResourcePool)pool).getSize(), is(16L));
+    assertThat(((DedicatedClusteredResourcePool)pool).getUnit(), is(MemoryUnit.GB));
+    assertThat(((DedicatedClusteredResourcePool)pool).getFromResource(), is("resourceId"));
   }
 
   @Test
-  public void fixed3ArgFromNull() throws Exception {
-    ResourcePool pool = ClusteredResourcePoolBuilder.fixed(null, 16, MemoryUnit.GB);
-    assertThat(pool, is(instanceOf(FixedClusteredResourcePool.class)));
-    assertThat(pool.getType(), Matchers.<ResourceType>is(ClusteredResourceType.Types.FIXED));
+  public void dedicated3ArgFromNull() throws Exception {
+    ResourcePool pool = ClusteredResourcePoolBuilder.clusteredDedicated(null, 16, MemoryUnit.GB);
+    assertThat(pool, is(instanceOf(DedicatedClusteredResourcePool.class)));
+    assertThat(pool.getType(), Matchers.<ResourceType>is(ClusteredResourceType.Types.DEDICATED));
     assertThat(pool.isPersistent(), is(true));
-    assertThat(((FixedClusteredResourcePool)pool).getSize(), is(16L));
-    assertThat(((FixedClusteredResourcePool)pool).getUnit(), is(MemoryUnit.GB));
-    assertThat(((FixedClusteredResourcePool)pool).getFromResource(), is(nullValue()));
+    assertThat(((DedicatedClusteredResourcePool)pool).getSize(), is(16L));
+    assertThat(((DedicatedClusteredResourcePool)pool).getUnit(), is(MemoryUnit.GB));
+    assertThat(((DedicatedClusteredResourcePool)pool).getFromResource(), is(nullValue()));
   }
 
   @Test
-  public void fixed3ArgUnitNull() throws Exception {
+  public void dedicated3ArgUnitNull() throws Exception {
     try {
-      ClusteredResourcePoolBuilder.fixed("resourceId", 16, null);
+      ClusteredResourcePoolBuilder.clusteredDedicated("resourceId", 16, null);
       fail();
     } catch (NullPointerException e) {
       // expected
@@ -87,7 +87,7 @@ public class ClusteredResourcePoolBuilderTest {
 
   @Test
   public void shared() throws Exception {
-    ResourcePool pool = ClusteredResourcePoolBuilder.shared("resourceId");
+    ResourcePool pool = ClusteredResourcePoolBuilder.clusteredShared("resourceId");
     assertThat(pool, is(instanceOf(SharedClusteredResourcePool.class)));
     assertThat(pool.getType(), Matchers.<ResourceType>is(ClusteredResourceType.Types.SHARED));
     assertThat(pool.isPersistent(), is(true));
@@ -97,7 +97,7 @@ public class ClusteredResourcePoolBuilderTest {
   @Test
   public void sharedSharedResourceNull() throws Exception {
     try {
-      ClusteredResourcePoolBuilder.shared(null);
+      ClusteredResourcePoolBuilder.clusteredShared(null);
       fail();
     } catch (NullPointerException e) {
       // expected
