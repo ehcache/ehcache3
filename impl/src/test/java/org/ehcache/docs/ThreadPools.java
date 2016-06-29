@@ -57,13 +57,13 @@ public class ThreadPools {
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath(), "myData")))
         .withDefaultDiskStoreThreadPool("defaultDiskPool") // <2>
         .withCache("cache1",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
                     .disk(10L, MemoryUnit.MB)))
         .withCache("cache2",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                ResourcePoolsBuilder.newResourcePoolsBuilder()
                     .heap(10, EntryUnit.ENTRIES)
                     .disk(10L, MemoryUnit.MB))
                 .withDiskStoreThreadPool("cache2Pool", 2)) // <3>
@@ -90,18 +90,16 @@ public class ThreadPools {
             .build())
         .withDefaultWriteBehindThreadPool("defaultWriteBehindPool") // <2>
         .withCache("cache1",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES))
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                                          ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
                 .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero")))
                 .add(WriteBehindConfigurationBuilder
                     .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
                     .queueSize(3)
                     .concurrencyLevel(1)))
         .withCache("cache2",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES))
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                                          ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
                 .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero")))
                 .add(WriteBehindConfigurationBuilder
                     .newBatchedWriteBehindConfiguration(1, TimeUnit.SECONDS, 3)
@@ -130,15 +128,13 @@ public class ThreadPools {
             .build())
         .withDefaultEventListenersThreadPool("defaultEventPool") // <2>
         .withCache("cache1",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES))
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                                          ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
                 .add(CacheEventListenerConfigurationBuilder
                     .newEventListenerConfiguration(new ListenerObject(), EventType.CREATED, EventType.UPDATED)))
         .withCache("cache2",
-            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-                .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .heap(10, EntryUnit.ENTRIES))
+            CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+                                          ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES))
                 .add(CacheEventListenerConfigurationBuilder
                     .newEventListenerConfiguration(new ListenerObject(), EventType.CREATED, EventType.UPDATED))
                 .withEventListenersThreadPool("cache2Pool")) // <3>

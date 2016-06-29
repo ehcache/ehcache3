@@ -21,13 +21,13 @@ import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
+import org.ehcache.config.units.EntryUnit;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration.PoolConfiguration;
-import org.ehcache.core.config.persistence.PersistenceConfiguration;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
@@ -36,17 +36,16 @@ import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineConfiguration;
-import org.ehcache.impl.config.sizeof.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.core.config.sizeof.SizeOfEngineProviderConfiguration;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
@@ -85,7 +84,9 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -127,30 +128,29 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)Object.class));
 
-    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example"), notNullValue());
-    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Object.class, Object.class), notNullValue());
+    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Object.class, Object.class, heap(10)), notNullValue());
 
     //Allow the key/value to be assignable for xml configuration in case of type definition in template class
-    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, Object.class), notNullValue());
+    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, Object.class, heap(10)), notNullValue());
   }
 
   @Test
-  public void testNonExistentVetoClassInCacheThrowsException() throws Exception {
+  public void testNonExistentAdvisorClassInCacheThrowsException() throws Exception {
     try {
-      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentVeto-cache.xml"));
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentAdvisor-cache.xml"));
       fail();
-    } catch (ClassNotFoundException cnfe) {
-      // expected
+    } catch (XmlConfigurationException xce) {
+      assertThat(xce.getCause(), instanceOf(ClassNotFoundException.class));
     }
   }
 
   @Test
-  public void testNonExistentVetoClassInTemplateThrowsException() throws Exception {
+  public void testNonExistentAdvisorClassInTemplateThrowsException() throws Exception {
     try {
-      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentVeto-template.xml"));
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/nonExistentAdvisor-template.xml"));
       fail();
-    } catch (ClassNotFoundException cnfe) {
-      // expected
+    } catch (XmlConfigurationException xce) {
+      assertThat(xce.getCause(), instanceOf(ClassNotFoundException.class));
     }
   }
 
@@ -183,8 +183,8 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class) Number.class));
     assertThat(xmlConfig.getCacheConfigurations().get("bar").getValueType(), sameInstance((Class)String.class));
 
-    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("example"), notNullValue());
-    final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class);
+    final CacheConfigurationBuilder<String, String> example = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", String.class, String.class,
+        newResourcePoolsBuilder().heap(5, EntryUnit.ENTRIES));
     assertThat(example.build().getExpiry(),
         equalTo((Expiry) Expirations.timeToLiveExpiration(new Duration(30, TimeUnit.SECONDS))));
 
@@ -201,7 +201,7 @@ public class XmlConfigurationTest {
       assertThat(e.getMessage(), is("CacheTemplate 'example' declares key type of java.lang.String"));
     }
 
-    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("bar"), nullValue());
+    assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("bar", Object.class, Object.class), nullValue());
   }
 
   @SuppressWarnings("rawtypes")
@@ -234,7 +234,8 @@ public class XmlConfigurationTest {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-core.xml"));
       fail();
-    } catch (SAXParseException e) {
+    } catch (XmlConfigurationException xce) {
+      SAXParseException e = (SAXParseException) xce.getCause();
       assertThat(e.getLineNumber(), is(5));
       assertThat(e.getColumnNumber(), is(29));
     }
@@ -244,7 +245,8 @@ public class XmlConfigurationTest {
   public void testInvalidServiceConfiguration() throws Exception {
     try {
       new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/invalid-service.xml"));
-    } catch (SAXParseException e) {
+    } catch (XmlConfigurationException xce) {
+      SAXParseException e = (SAXParseException) xce.getCause();
       assertThat(e.getLineNumber(), is(6));
       assertThat(e.getColumnNumber(), is(15));
     }
@@ -292,28 +294,24 @@ public class XmlConfigurationTest {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/resources-templates.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
-    CacheConfigurationBuilder<Object, Object> tieredResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredResourceTemplate");
+    CacheConfigurationBuilder<String, String> tieredResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredResourceTemplate", String.class, String.class);
     assertThat(tieredResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
     assertThat(tieredResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.DISK).getSize(), equalTo(50L));
     assertThat(tieredResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent(), is(false));
 
-    CacheConfigurationBuilder<Object, Object> persistentTieredResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("persistentTieredResourceTemplate");
+    CacheConfigurationBuilder<String, String> persistentTieredResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("persistentTieredResourceTemplate", String.class, String.class);
     assertThat(persistentTieredResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
     assertThat(persistentTieredResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.DISK).getSize(), equalTo(50L));
     assertThat(persistentTieredResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent(), is(true));
 
-    CacheConfigurationBuilder<Object, Object> tieredOffHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredOffHeapResourceTemplate");
+    CacheConfigurationBuilder<String, String> tieredOffHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("tieredOffHeapResourceTemplate", String.class, String.class);
     assertThat(tieredOffHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
     assertThat(tieredOffHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getSize(), equalTo(50L));
     assertThat(tieredOffHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP).getUnit(), equalTo((ResourceUnit)MemoryUnit.MB));
 
-    CacheConfigurationBuilder<Object, Object> explicitHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("explicitHeapResourceTemplate");
+    CacheConfigurationBuilder<String, String> explicitHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("explicitHeapResourceTemplate", String.class, String.class);
     assertThat(explicitHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(15L));
     assertThat(explicitHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.DISK), is(nullValue()));
-
-    CacheConfigurationBuilder<Object, Object> implicitHeapResourceTemplate = xmlConfig.newCacheConfigurationBuilderFromTemplate("implicitHeapResourceTemplate");
-    assertThat(implicitHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.HEAP), is(nullValue()));
-    assertThat(implicitHeapResourceTemplate.build().getResourcePools().getPoolForResource(ResourceType.Core.DISK), is(nullValue()));
 
     CacheConfiguration<?, ?> tieredCacheConfig = xmlConfig.getCacheConfigurations().get("templatedTieredResource");
     assertThat(tieredCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(5L));
@@ -322,10 +320,6 @@ public class XmlConfigurationTest {
     CacheConfiguration<?, ?> explicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("templatedExplicitHeapResource");
     assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), equalTo(15L));
     assertThat(explicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK), is(nullValue()));
-
-    CacheConfiguration<?, ?> implicitHeapOnlyCacheConfig = xmlConfig.getCacheConfigurations().get("templatedImplicitHeapResource");
-    assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP), is(nullValue()));
-    assertThat(implicitHeapOnlyCacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.DISK), is(nullValue()));
   }
 
   @Test
@@ -450,7 +444,7 @@ public class XmlConfigurationTest {
     for(ServiceConfiguration<?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
-        if(copierConfig.getType() == CopierConfiguration.Type.KEY) {
+        if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
           assertEquals(SerializingCopier.class, copierConfig.getClazz());
         } else {
           assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
@@ -464,7 +458,7 @@ public class XmlConfigurationTest {
     for(ServiceConfiguration<?> config: configs) {
       if(config instanceof DefaultCopierConfiguration) {
         DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration) config;
-        if(copierConfig.getType() == CopierConfiguration.Type.KEY) {
+        if(copierConfig.getType() == DefaultCopierConfiguration.Type.KEY) {
           assertEquals(SerializingCopier.class, copierConfig.getClazz());
         } else {
           assertEquals(AnotherPersonCopier.class, copierConfig.getClazz());
@@ -481,9 +475,9 @@ public class XmlConfigurationTest {
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
 
     ServiceCreationConfiguration<?> serviceConfig = xmlConfig.getServiceCreationConfigurations().iterator().next();
-    assertThat(serviceConfig, instanceOf(PersistenceConfiguration.class));
+    assertThat(serviceConfig, instanceOf(DefaultPersistenceConfiguration.class));
 
-    PersistenceConfiguration persistenceConfiguration = (PersistenceConfiguration)serviceConfig;
+    DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)serviceConfig;
     assertThat(persistenceConfiguration.getRootDirectory(), is(new File("   \n\t/my/caching/persistence  directory\r\n      ")));
   }
 
@@ -511,7 +505,7 @@ public class XmlConfigurationTest {
 
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
 
-    serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example").build().getServiceConfigurations();
+    serviceConfiguration = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class).build().getServiceConfigurations();
 
     assertThat(serviceConfiguration, IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(WriteBehindConfiguration.class)));
 
@@ -546,7 +540,7 @@ public class XmlConfigurationTest {
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("template1");
     checkListenerConfigurationExists(cacheConfig.getServiceConfigurations());
 
-    CacheConfigurationBuilder<Object, Object> templateConfig = xmlConfig.newCacheConfigurationBuilderFromTemplate("example");
+    CacheConfigurationBuilder<Number, String> templateConfig = xmlConfig.newCacheConfigurationBuilderFromTemplate("example", Number.class, String.class);
     assertThat(templateConfig.getExistingServiceConfiguration(DefaultCacheEventListenerConfiguration.class), notNullValue());
   }
 
@@ -622,23 +616,68 @@ public class XmlConfigurationTest {
   public void testSizeOfEngineLimits() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine.xml");
     XmlConfiguration xmlConfig = new XmlConfiguration(resource);
-    SizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
 
     assertThat(sizeOfEngineProviderConfig, notNullValue());
     assertEquals(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), 200);
     assertEquals(sizeOfEngineProviderConfig.getMaxObjectSize(), 100000);
 
     CacheConfiguration<?, ?> cacheConfig = xmlConfig.getCacheConfigurations().get("usesDefaultSizeOfEngine");
-    SizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig, nullValue());
 
     CacheConfiguration<?, ?> cacheConfig1 = xmlConfig.getCacheConfigurations().get("usesConfiguredInCache");
-    SizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig1 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig1.getServiceConfigurations());
 
     assertThat(sizeOfEngineConfig1, notNullValue());
     assertEquals(sizeOfEngineConfig1.getMaxObjectGraphSize(), 500);
     assertEquals(sizeOfEngineConfig1.getMaxObjectSize(), 200000);
+
+    CacheConfiguration<?, ?> cacheConfig2 = xmlConfig.getCacheConfigurations().get("usesPartialOneConfiguredInCache");
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig2 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig2.getServiceConfigurations());
+
+    assertThat(sizeOfEngineConfig2, notNullValue());
+    assertThat(sizeOfEngineConfig2.getMaxObjectGraphSize(), is(500L));
+    assertThat(sizeOfEngineConfig2.getMaxObjectSize(), is(Long.MAX_VALUE));
+
+    CacheConfiguration<?, ?> cacheConfig3 = xmlConfig.getCacheConfigurations().get("usesPartialTwoConfiguredInCache");
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig3 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig3.getServiceConfigurations());
+
+    assertThat(sizeOfEngineConfig3, notNullValue());
+    assertThat(sizeOfEngineConfig3.getMaxObjectGraphSize(), is(1000L));
+    assertThat(sizeOfEngineConfig3.getMaxObjectSize(), is(200000L));
+  }
+
+  @Test
+  public void testCacheManagerDefaultObjectGraphSize() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-one.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+
+    assertThat(sizeOfEngineProviderConfig, notNullValue());
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), is(1000L));
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectSize(), is(100000L));
+  }
+
+  @Test
+  public void testCacheManagerDefaultObjectSize() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-two.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+
+    assertThat(sizeOfEngineProviderConfig, notNullValue());
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), is(200L));
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectSize(), is(Long.MAX_VALUE));
+  }
+
+  @Test
+  public void testCustomResource() throws Exception {
+    try {
+      new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/custom-resource.xml"));
+    } catch (XmlConfigurationException xce) {
+      assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
+    }
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {

@@ -16,15 +16,20 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.ValueSupplier;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.hamcrest.Matchers.nullValue;
 
 
 /**
@@ -69,7 +74,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the key is null");
     } catch (NullPointerException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -87,26 +92,27 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NullPointerException because the value is null");
     } catch (NullPointerException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
-  public void valueHolderCanBeRetrievedWithEqualKey()
-      throws IllegalAccessException, InstantiationException, CacheAccessException, LegalSPITesterException {
+  public void indicatesValuePutAndCanBeRetrievedWithEqualKey()
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
     try {
-      kvStore.put(key, value);
-    } catch (CacheAccessException e) {
+      Store.PutStatus putStatus = kvStore.put(key, value);
+      assertThat(putStatus, is(Store.PutStatus.PUT));
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
 
-    assertThat(kvStore.get(key), is(instanceOf(Store.ValueHolder.class)));
+    assertThat(kvStore.get(key), notNullValue());
   }
 
   @SPITest
@@ -126,7 +132,7 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the key is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -148,7 +154,90 @@ public class StorePutTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected ClassCastException because the value is of the wrong type");
     } catch (ClassCastException e) {
       // expected
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+  }
+
+  @SPITest
+  public void indicatesValueReplaced() throws LegalSPITesterException {
+    Store<K, V> store = factory.newStore();
+
+    K key = factory.createKey(42L);
+    V value = factory.createValue(42L);
+    V newValue = factory.createValue(256L);
+
+    try {
+      store.put(key, value);
+      Store.PutStatus putStatus = store.put(key, newValue);
+      assertThat(putStatus, is(Store.PutStatus.UPDATE));
+      assertThat(store.get(key), notNullValue());
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+  }
+
+  @SPITest
+  public void indicatesValueReplacedWhenUpdateExpires() throws LegalSPITesterException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    Store<K, V> store = factory.newStoreWithExpiry(new Expiry<K, V>() {
+      @Override
+      public Duration getExpiryForCreation(K key, V value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+        return Duration.ZERO;
+      }
+    }, timeSource);
+
+    K key = factory.createKey(42L);
+    V value = factory.createValue(42L);
+    V newValue = factory.createValue(256L);
+
+    try {
+      store.put(key, value);
+      Store.PutStatus putStatus = store.put(key, newValue);
+      assertThat(putStatus, is(Store.PutStatus.UPDATE));
+      assertThat(store.get(key), nullValue());
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
+    }
+
+  }
+
+  @SPITest
+  public void indicatesOperationNoOp() throws LegalSPITesterException {
+    TestTimeSource timeSource = new TestTimeSource(1000L);
+    Store<K, V> store = factory.newStoreWithExpiry(new Expiry<K, V>() {
+      @Override
+      public Duration getExpiryForCreation(K key, V value) {
+        return Duration.ZERO;
+      }
+
+      @Override
+      public Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
+        return Duration.INFINITE;
+      }
+
+      @Override
+      public Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
+        return Duration.INFINITE;
+      }
+    }, timeSource);
+
+    K key = factory.createKey(42L);
+    try {
+      Store.PutStatus putStatus = store.put(key, factory.createValue(42L));
+      assertThat(putStatus, is(Store.PutStatus.NOOP));
+      assertThat(store.get(key), nullValue());
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }

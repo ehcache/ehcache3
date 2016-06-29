@@ -15,21 +15,22 @@
  */
 package org.ehcache.impl.internal.store.heap.holders;
 
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
 
-public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
+public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> implements BinaryValueHolder {
   private final ByteBuffer buffer;
   @IgnoreSizeOf
   private final Serializer<V> serializer;
 
-  protected SerializedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean veto, Serializer<V> serializer) {
-    super(id, creationTime, expirationTime, veto);
+  protected SerializedOnHeapValueHolder(long id, V value, long creationTime, long expirationTime, boolean evictionAdvice, Serializer<V> serializer) {
+    super(id, creationTime, expirationTime, evictionAdvice);
     if (value == null) {
       throw new NullPointerException("null value");
     }
@@ -40,16 +41,24 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     this.buffer = serializer.serialize(value).asReadOnlyBuffer();
   }
 
-  public SerializedOnHeapValueHolder(V value, long creationTime, boolean veto, Serializer<V> serializer) {
-    this(value, creationTime, NO_EXPIRE, veto, serializer);
+  public SerializedOnHeapValueHolder(V value, long creationTime, boolean evictionAdvice, Serializer<V> serializer) {
+    this(value, creationTime, NO_EXPIRE, evictionAdvice, serializer);
   }
 
-  public SerializedOnHeapValueHolder(V value, long creationTime, long expirationTime, boolean veto, Serializer<V> serializer) {
-    this(-1, value, creationTime, expirationTime, veto, serializer);
+  public SerializedOnHeapValueHolder(V value, long creationTime, long expirationTime, boolean evictionAdvice, Serializer<V> serializer) {
+    this(-1, value, creationTime, expirationTime, evictionAdvice, serializer);
   }
 
-  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean veto, Serializer<V> serializer, long now, Duration expiration) {
-    this(valueHolder.getId(), value, valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), veto, serializer);
+  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, V value, boolean evictionAdvice, Serializer<V> serializer, long now, Duration expiration) {
+    this(valueHolder.getId(), value, valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice, serializer);
+    this.setHits(valueHolder.hits());
+    this.accessed(now, expiration);
+  }
+
+  public SerializedOnHeapValueHolder(Store.ValueHolder<V> valueHolder, ByteBuffer binaryValue, boolean evictionAdvice, Serializer<V> serializer, long now, Duration expiration) {
+    super(valueHolder.getId(), valueHolder.creationTime(TIME_UNIT), valueHolder.expirationTime(TIME_UNIT), evictionAdvice);
+    this.buffer = binaryValue;
+    this.serializer = serializer;
     this.setHits(valueHolder.hits());
     this.accessed(now, expiration);
   }
@@ -61,6 +70,16 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> {
     } catch (ClassNotFoundException cnfe) {
       throw new SerializerException(cnfe);
     }
+  }
+
+  @Override
+  public ByteBuffer getBinaryValue() throws IllegalStateException {
+    return buffer.duplicate();
+  }
+
+  @Override
+  public boolean isBinaryValueAvailable() {
+    return true;
   }
 
   @Override

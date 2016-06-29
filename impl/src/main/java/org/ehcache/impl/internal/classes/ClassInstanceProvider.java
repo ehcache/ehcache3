@@ -17,9 +17,10 @@
 package org.ehcache.impl.internal.classes;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -28,11 +29,12 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.impl.internal.classes.commonslang.reflect.ConstructorUtils.invokeConstructor;
-import static org.ehcache.core.spi.ServiceLocator.findAmongst;
-import static org.ehcache.core.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * @author Alex Snaps
@@ -48,6 +50,7 @@ public class ClassInstanceProvider<K, T> {
    * Instances provided by this provider vs their counts.
    */
   protected final ConcurrentWeakIdentityHashMap<T, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<T, AtomicInteger>();
+  protected final Set<T> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<T, Boolean>());
 
   private final Class<? extends ClassInstanceConfiguration<T>> cacheLevelConfig;
   private final boolean uniqueClassLevelConfig;
@@ -108,6 +111,7 @@ public class ClassInstanceProvider<K, T> {
     } else {
       try {
         instance = invokeConstructor(config.getClazz(), config.getArguments());
+        instantiated.add(instance);
       } catch (InstantiationException e) {
         throw new RuntimeException(e);
       } catch (IllegalAccessException e) {
@@ -126,6 +130,10 @@ public class ClassInstanceProvider<K, T> {
     return instance;
   }
 
+  /**
+   * If the instance is provided by the user, {@link Closeable#close()}
+   * will not be invoked.
+   */
   protected void releaseInstance(T instance) throws IOException {
     AtomicInteger currentCount = providedVsCount.get(instance);
     if(currentCount != null) {
@@ -137,12 +145,12 @@ public class ClassInstanceProvider<K, T> {
       throw new IllegalArgumentException("Given instance of " + instance.getClass().getName() + " is not managed by this provider");
     }
 
-    if(instance instanceof Closeable) {
+    if(instantiated.remove(instance) && instance instanceof Closeable) {
       ((Closeable)instance).close();
     }
   }
 
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     // default no-op
   }
 

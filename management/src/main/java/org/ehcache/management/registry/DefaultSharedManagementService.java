@@ -18,12 +18,13 @@ package org.ehcache.management.registry;
 import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
-import org.ehcache.core.spi.cache.InternalCacheManager;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.capabilities.Capability;
 import org.terracotta.management.context.Context;
@@ -50,7 +51,7 @@ public class DefaultSharedManagementService implements SharedManagementService {
   private final ConcurrentMap<Context, ManagementRegistryService> delegates = new ConcurrentHashMap<Context, ManagementRegistryService>();
 
   @Override
-  public void start(final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider<Service> serviceProvider) {
     final ManagementRegistryService managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     final Context cmContext = managementRegistry.getConfiguration().getContext();
     final InternalCacheManager cacheManager =

@@ -26,8 +26,9 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.ehcache.impl.internal.util.ThreadFactoryUtil;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.spi.service.Service;
 
 /**
  *
@@ -77,7 +78,7 @@ public class OnDemandExecutionService implements ExecutionService {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     //no-op
   }
 

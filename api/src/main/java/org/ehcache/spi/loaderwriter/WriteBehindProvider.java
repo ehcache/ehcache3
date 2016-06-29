@@ -18,26 +18,33 @@ package org.ehcache.spi.loaderwriter;
 import org.ehcache.spi.service.Service;
 
 /**
- * @author Abhilash
- *
+ * A {@link Service} that provides write-behind functionality.
+ * <P>
+ *   A {@code CacheManager} will use the {@link #createWriteBehindLoaderWriter(org.ehcache.spi.loaderwriter.CacheLoaderWriter, org.ehcache.spi.loaderwriter.WriteBehindConfiguration)}
+ *   method to create write-behind instances for each {@code Cache} it manages
+ *   that carries a write-behind configuration.
+ * </P>
  */
 public interface WriteBehindProvider extends Service {
 
   /**
-   * Provider Interface for decorator loaderwriter
+   * Creates write-behind decorated {@link CacheLoaderWriter} according to the
+   * given configuration.
    *
-   * @param cacheLoaderWriter loaderwriter
-   * @param configuration     configuration
-   * @param <K> the key type for the associated {@link org.ehcache.Cache}
-   * @param <V> the value type for the associated {@link org.ehcache.Cache}
-   * @return loaderwriter
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to decorate
+   * @param configuration     the write-behind configuration
+   * @param <K> the key type for the loader writer
+   * @param <V> the value type for the loader writer
+   *
+   * @return the write-behind decorated loader writer
    */
   <K, V> CacheLoaderWriter<K, V> createWriteBehindLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter, WriteBehindConfiguration configuration);
 
   /**
-   * Invoked by {@link org.ehcache.CacheManager} when a {@link org.ehcache.Cache} is being removed from it.
-   * @param cacheLoaderWriter the {@link CacheLoaderWriter} that was initially associated with
-   *                    the {@link org.ehcache.Cache} being removed
+   * Releases a write-behind decorator when the associated {@link org.ehcache.Cache Cache}
+   * is finished with it.
+   *
+   * @param cacheLoaderWriter the {@code CacheLoaderWriter} to release
    */
   void releaseWriteBehindLoaderWriter(CacheLoaderWriter<?, ?> cacheLoaderWriter);
 

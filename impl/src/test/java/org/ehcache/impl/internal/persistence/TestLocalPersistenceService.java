@@ -22,11 +22,13 @@ import java.util.Collection;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.MaintainableService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
@@ -69,7 +71,7 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public boolean handlesResourceType(ResourceType resourceType) {
+  public boolean handlesResourceType(ResourceType<?> resourceType) {
     return persistenceService.handlesResourceType(resourceType);
   }
 
@@ -84,8 +86,8 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void destroyPersistenceSpace(String name) throws CachePersistenceException {
-    persistenceService.destroyPersistenceSpace(name);
+  public void destroy(String name) throws CachePersistenceException {
+    persistenceService.destroy(name);
   }
 
   @Override
@@ -94,12 +96,22 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void destroyAllPersistenceSpaces() {
-    persistenceService.destroyAllPersistenceSpaces();
+  public void create() throws CachePersistenceException {
+    persistenceService.create();
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void destroyAll() {
+    persistenceService.destroyAll();
+  }
+
+  @Override
+  public void start(ServiceProvider<Service> serviceProvider) {
+    //ignore
+  }
+
+  @Override
+  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
     //ignore
   }
 

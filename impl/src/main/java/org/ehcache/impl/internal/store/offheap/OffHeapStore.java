@@ -16,14 +16,14 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
-import org.ehcache.config.ResourcePool;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
@@ -31,15 +31,16 @@ import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPor
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.LowerCachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.paging.PageSource;
@@ -50,6 +51,7 @@ import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -61,7 +63,7 @@ import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBuffe
  */
 public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
-  private final EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto;
+  private final EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Serializer<K> keySerializer;
   private final Serializer<V> valueSerializer;
   private final long sizeInBytes;
@@ -70,11 +72,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
   public OffHeapStore(final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
     super("local-offheap", config, timeSource, eventDispatcher);
-    EvictionVeto<? super K, ? super V> veto = config.getEvictionVeto();
-    if (veto != null) {
-      evictionVeto = wrap(veto);
+    EvictionAdvisor<? super K, ? super V> evictionAdvisor = config.getEvictionAdvisor();
+    if (evictionAdvisor != null) {
+      this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      evictionVeto = Eviction.none();
+      this.evictionAdvisor = Eviction.noAdvice();
     }
     this.keySerializer = config.getKeySerializer();
     this.valueSerializer = config.getValueSerializer();
@@ -86,7 +88,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     return Collections.emptyList();
   }
 
-  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionVeto<K, OffHeapValueHolder<V>> evictionVeto) {
+  private EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
     HeuristicConfiguration config = new HeuristicConfiguration(size);
     PageSource source = new UpfrontAllocatingPageSource(getBufferSource(), config.getMaximumSize(), config.getMaximumChunkSize(), config.getMinimumChunkSize());
     Portability<K> keyPortability = new SerializerPortability<K>(keySerializer);
@@ -98,9 +100,9 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
                                                                                                          source,
                                                                                                          storageEngineFactory,
                                                                                                          config.getInitialSegmentTableSize(),
-                                                                                                         evictionVeto,
+                                                                                                         evictionAdvisor,
                                                                                                          mapEvictionListener);
-    return new EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(segmentFactory, config.getConcurrency());
+    return new EhcacheConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, segmentFactory, config.getConcurrency());
 
   }
 
@@ -114,12 +116,17 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
-    private volatile ServiceProvider serviceProvider;
+    private volatile ServiceProvider<Service> serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
 
     @Override
+    public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+      return resourceTypes.equals(Collections.singleton(ResourceType.Core.OFFHEAP)) ? 1 : 0;
+    }
+
+    @Override
     public <K, V> OffHeapStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getOrderedEventParallelism()), serviceConfigs);
+      return createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
     }
 
     private <K, V> OffHeapStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
@@ -128,7 +135,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       }
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
-      ResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
+      SizedResourcePool offHeapPool = storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.OFFHEAP);
       if (!(offHeapPool.getUnit() instanceof MemoryUnit)) {
         throw new IllegalArgumentException("OffHeapStore only supports resources with memory unit");
       }
@@ -164,11 +171,11 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     static <K, V> void init(final OffHeapStore<K, V> resource) {
-      resource.map = resource.createBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionVeto);
+      resource.map = resource.createBackingMap(resource.sizeInBytes, resource.keySerializer, resource.valueSerializer, resource.evictionAdvisor);
     }
 
     @Override
-    public void start(ServiceProvider serviceProvider) {
+    public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 
@@ -208,14 +215,14 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     private void flushToLowerTier(OffHeapStore<Object, ?> resource) {
-      CacheAccessException lastFailure = null;
+      StoreAccessException lastFailure = null;
       int failureCount = 0;
       OffHeapStore<Object, ?> offheapStore = resource;
       Set<Object> keys = offheapStore.backingMap().keySet();
       for (Object key : keys) {
         try {
           offheapStore.invalidate(key);
-        } catch (CacheAccessException cae) {
+        } catch (StoreAccessException cae) {
           lastFailure = cae;
           failureCount++;
           LOGGER.warn("Error flushing '{}' to lower tier", key, cae);

@@ -16,28 +16,39 @@
 
 package org.ehcache.impl.config.event;
 
-import org.ehcache.core.config.events.StoreEventSourceConfiguration;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.config.store.StoreEventSourceConfiguration;
+import org.ehcache.core.spi.store.Store;
 
 /**
- * DefaultEventSourceConfiguration
+ * {@link org.ehcache.spi.service.ServiceConfiguration} for a {@link org.ehcache.core.spi.store.Store.Provider}
+ * related to {@link org.ehcache.core.spi.store.events.StoreEvent}s.
  */
 public class DefaultEventSourceConfiguration implements StoreEventSourceConfiguration {
 
-  private final int orderedEventParallelism;
+  private final int dispatcherConcurrency;
 
-  public DefaultEventSourceConfiguration(int orderedEventParallelism) {
-    if (orderedEventParallelism <= 0) {
-      throw new IllegalArgumentException("Event parallelism must be a value bigger than 0");
+  /**
+   * Creates a new configuration with the provided dispatcher concurrency for ordered events.
+   *
+   * @param dispatcherConcurrency  the dispatcher concurrency for ordered events
+   */
+  public DefaultEventSourceConfiguration(int dispatcherConcurrency) {
+    if (dispatcherConcurrency <= 0) {
+      throw new IllegalArgumentException("Dispatcher concurrency must be a value bigger than 0");
     }
-    this.orderedEventParallelism = orderedEventParallelism;
+    this.dispatcherConcurrency = dispatcherConcurrency;
   }
 
-  @Override
-  public int getOrderedEventParallelism() {
-    return orderedEventParallelism;
+  /**
+   * {@inheritDoc}
+   */
+  public int getDispatcherConcurrency() {
+    return dispatcherConcurrency;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<Store.Provider> getServiceType() {
     return Store.Provider.class;

@@ -16,7 +16,7 @@
 package org.ehcache.transactions.xa;
 
 /**
- * The payload exception thrown by the cache when {@link XACacheAccessException} is thrown.
+ * The payload exception thrown by the cache when {@link XAStoreAccessException} is thrown.
  *
  * @author Ludovic Orban
  */

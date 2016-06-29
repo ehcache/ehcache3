@@ -20,6 +20,7 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -34,11 +35,11 @@ public class FromTemplateCacheConfigurationBuilderDefaultTest {
   @Before
   public void setUp() throws Exception {
     xmlConfiguration = new XmlConfiguration(getClass().getResource("/configs/template-defaults.xml"));
-    minimalTemplateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate("minimal-template");
+    minimalTemplateBuilder = xmlConfiguration.newCacheConfigurationBuilderFromTemplate("minimal-template", Object.class, Object.class, heap(10));
   }
 
   @Test
-  public void testDefaultExpiry() throws Exception {
-    assertThat(minimalTemplateBuilder.hasDefaultExpiry(), is(true));
+  public void testNoConfiguredExpiry() throws Exception {
+    assertThat(minimalTemplateBuilder.hasConfiguredExpiry(), is(false));
   }
 }

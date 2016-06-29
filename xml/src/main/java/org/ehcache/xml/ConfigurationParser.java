@@ -18,21 +18,28 @@ package org.ehcache.xml;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceUnit;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.config.SizedResourcePoolImpl;
+import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.ehcache.xml.model.BaseCacheType;
 import org.ehcache.xml.model.CacheLoaderWriterType;
 import org.ehcache.xml.model.CacheTemplateType;
 import org.ehcache.xml.model.CacheType;
 import org.ehcache.xml.model.ConfigType;
 import org.ehcache.xml.model.CopierType;
+import org.ehcache.xml.model.Disk;
 import org.ehcache.xml.model.DiskStoreSettingsType;
 import org.ehcache.xml.model.EventFiringType;
 import org.ehcache.xml.model.EventOrderingType;
 import org.ehcache.xml.model.EventType;
 import org.ehcache.xml.model.ExpiryType;
+import org.ehcache.xml.model.Heap;
 import org.ehcache.xml.model.ListenersType;
 import org.ehcache.xml.model.MemoryType;
+import org.ehcache.xml.model.ObjectFactory;
+import org.ehcache.xml.model.Offheap;
 import org.ehcache.xml.model.PersistableMemoryType;
 import org.ehcache.xml.model.PersistenceType;
 import org.ehcache.xml.model.ResourceType;
@@ -43,7 +50,7 @@ import org.ehcache.xml.model.SizeofType;
 import org.ehcache.xml.model.TimeType;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.util.ClassLoading;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.w3c.dom.Element;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
@@ -61,6 +68,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -76,19 +84,31 @@ import java.util.concurrent.TimeUnit;
 import org.ehcache.xml.model.ThreadPoolReferenceType;
 import org.ehcache.xml.model.ThreadPoolsType;
 
+import static java.util.Collections.emptySet;
+import static java.util.Collections.singleton;
+
 /**
- * @author Alex Snaps
+ * Provides support for parsing a cache configuration expressed in XML.
  */
 class ConfigurationParser {
 
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
+  private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
+  private static final String CORE_SCHEMA_NAMESPACE = "http://www.ehcache.org/v3";
+  private static final String CORE_SCHEMA_ROOT_ELEMENT = "config";
+  private static final String CORE_SCHEMA_JAXB_MODEL_PACKAGE = ConfigType.class.getPackage().getName();
+
   private final Map<URI, CacheManagerServiceConfigurationParser<?>> xmlParsers = new HashMap<URI, CacheManagerServiceConfigurationParser<?>>();
   private final Map<URI, CacheServiceConfigurationParser<?>> cacheXmlParsers = new HashMap<URI, CacheServiceConfigurationParser<?>>();
+  private final Unmarshaller unmarshaller;
+  private final Map<URI, CacheResourceConfigurationParser> resourceXmlParsers = new HashMap<URI, CacheResourceConfigurationParser>();
   private final ConfigType config;
 
-  public ConfigurationParser(String xml, URL... sources) throws IOException, SAXException {
+  public ConfigurationParser(String xml) throws IOException, SAXException, JAXBException, ParserConfigurationException {
     Collection<Source> schemaSources = new ArrayList<Source>();
+    schemaSources.add(new StreamSource(CORE_SCHEMA_URL.openStream()));
+
     for (CacheManagerServiceConfigurationParser<?> parser : ClassLoading.libraryServiceLoaderFor(CacheManagerServiceConfigurationParser.class)) {
       schemaSources.add(parser.getXmlSchema());
       xmlParsers.put(parser.getNamespace(), parser);
@@ -97,8 +117,10 @@ class ConfigurationParser {
       schemaSources.add(parser.getXmlSchema());
       cacheXmlParsers.put(parser.getNamespace(), parser);
     }
-    for (URL source : sources) {
-      schemaSources.add(new StreamSource(source.openStream()));
+    // Parsers for /config/cache/resources extensions
+    for (CacheResourceConfigurationParser parser : ClassLoading.libraryServiceLoaderFor(CacheResourceConfigurationParser.class)) {
+      schemaSources.add(parser.getXmlSchema());
+      resourceXmlParsers.put(parser.getNamespace(), parser);
     }
 
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -107,24 +129,18 @@ class ConfigurationParser {
     factory.setIgnoringElementContentWhitespace(true);
     factory.setSchema(XSD_SCHEMA_FACTORY.newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
 
-    final DocumentBuilder domBuilder;
-    try {
-      domBuilder = factory.newDocumentBuilder();
-    } catch (ParserConfigurationException e) {
-      throw new AssertionError(e);
-    }
+    DocumentBuilder domBuilder = factory.newDocumentBuilder();
     domBuilder.setErrorHandler(new FatalErrorHandler());
-    final Element config = domBuilder.parse(xml).getDocumentElement();
-
-    try {
-      Class<ConfigType> configTypeClass = ConfigType.class;
-      JAXBContext jc = JAXBContext.newInstance("org.ehcache.xml.model", configTypeClass.getClassLoader());
-      Unmarshaller u = jc.createUnmarshaller();
-      this.config = u.unmarshal(config, configTypeClass).getValue();
-    } catch (JAXBException e) {
-      throw new RuntimeException(e);
+    Element dom = domBuilder.parse(xml).getDocumentElement();
+    if (!CORE_SCHEMA_ROOT_ELEMENT.equals(dom.getLocalName()) || !CORE_SCHEMA_NAMESPACE.equals(dom.getNamespaceURI())) {
+      throw new XmlConfigurationException("Expecting {" + CORE_SCHEMA_NAMESPACE + "}" + CORE_SCHEMA_ROOT_ELEMENT
+          + " element; found {" + dom.getNamespaceURI() + "}" + dom.getLocalName());
     }
 
+    Class<ConfigType> configTypeClass = ConfigType.class;
+    JAXBContext jc = JAXBContext.newInstance(CORE_SCHEMA_JAXB_MODEL_PACKAGE, configTypeClass.getClassLoader());
+    this.unmarshaller = jc.createUnmarshaller();
+    this.config = unmarshaller.unmarshal(dom, configTypeClass).getValue();
   }
 
   public Iterable<ServiceType> getServiceElements() {
@@ -159,8 +175,9 @@ class ConfigurationParser {
     return config.getThreadPools();
   }
 
-  public SizeofType getHeapStore() {
-    return config.getHeapStore();
+  public SizeOfEngineLimits getHeapStore() {
+    SizeofType type = config.getHeapStore();
+    return type == null ? null : new XmlSizeOfEngineLimits(type);
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -259,10 +276,10 @@ class ConfigurationParser {
           }
 
           @Override
-          public String evictionVeto() {
+          public String evictionAdvisor() {
             String value = null;
             for (BaseCacheType source : sources) {
-              value = source.getEvictionVeto();
+              value = source.getEvictionAdvisor();
               if (value != null) break;
             }
             return value;
@@ -314,46 +331,33 @@ class ConfigurationParser {
 
           @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
-            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
+            Map<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>> configsMap =
+                new HashMap<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>>();
             for (BaseCacheType source : sources) {
-              for (Object child : source.getAny()) {
-                configs.add(parseCacheExtension((Element) child));
-              }
-            }
-            return configs;
-          }
-
-          @Override
-          public Iterable<ResourcePool> resourcePools() {
-            Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
-            for (BaseCacheType source : sources) {
-              ResourceType directHeapResource = source.getHeap();
-              if (directHeapResource != null) {
-                resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getValue()
-                    .longValue(), parseUnit(directHeapResource), false));
-              } else {
-                ResourcesType resources = source.getResources();
-                if (resources != null) {
-                  ResourceType heapResource = resources.getHeap();
-                  if (heapResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getValue()
-                        .longValue(), parseUnit(heapResource), false));
-                  }
-                  MemoryType offheapResource = resources.getOffheap();
-                  if (offheapResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource
-                        .getValue()
-                        .longValue(), parseMemory(offheapResource), false));
-                  }
-                  PersistableMemoryType diskResource = resources.getDisk();
-                  if (diskResource != null) {
-                    resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getValue()
-                        .longValue(), parseMemory(diskResource), diskResource.isPersistent()));
-                  }
+              for (Element child : source.getServiceConfiguration()) {
+                ServiceConfiguration<?> serviceConfiguration = parseCacheExtension(child);
+                if (!configsMap.containsKey(serviceConfiguration.getClass())) {
+                  configsMap.put(serviceConfiguration.getClass(), serviceConfiguration);
                 }
               }
             }
-            return resourcePools;
+            return configsMap.values();
+          }
+
+          @Override
+          public Collection<ResourcePool> resourcePools() {
+            for (BaseCacheType source : sources) {
+              Heap heapResource = source.getHeap();
+              if (heapResource != null) {
+                return singleton(parseResource(heapResource));
+              } else {
+                ResourcesType resources = source.getResources();
+                if (resources != null) {
+                  return parseResources(resources);
+                }
+              }
+            }
+            return emptySet();
           }
 
           @Override
@@ -396,37 +400,6 @@ class ConfigurationParser {
     }
 
     return Collections.unmodifiableList(cacheCfgs);
-  }
-
-  private static final class ResourcePoolImpl implements ResourcePool {
-    private final org.ehcache.config.ResourceType type;
-    private final long size;
-    private final ResourceUnit unit;
-    private final boolean persistent;
-
-    public ResourcePoolImpl(org.ehcache.config.ResourceType type, long size, ResourceUnit unit, boolean persistent) {
-      this.type = type;
-      this.size = size;
-      this.unit = unit;
-      this.persistent = persistent;
-    }
-
-    public org.ehcache.config.ResourceType getType() {
-      return type;
-    }
-
-    public long getSize() {
-      return size;
-    }
-
-    public ResourceUnit getUnit() {
-      return unit;
-    }
-
-    @Override
-    public boolean isPersistent() {
-      return persistent;
-    }
   }
 
   public Map<String, CacheTemplate> getTemplates() {
@@ -476,8 +449,8 @@ class ConfigurationParser {
           }
 
           @Override
-          public String evictionVeto() {
-            return cacheTemplate.getEvictionVeto();
+          public String evictionAdvisor() {
+            return cacheTemplate.getEvictionAdvisor();
           }
 
           @Override
@@ -505,39 +478,25 @@ class ConfigurationParser {
           @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
             Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
-            for (Object child : cacheTemplate.getAny()) {
-              configs.add((ServiceConfiguration<?>) parseExtension((Element)child));
-              configs.add(parseCacheExtension((Element) child));
+            for (Element child : cacheTemplate.getServiceConfiguration()) {
+              configs.add(parseCacheExtension(child));
             }
             return configs;
           }
 
           @Override
-          public Iterable<ResourcePool> resourcePools() {
-            Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
-
-            ResourceType directHeapResource = cacheTemplate.getHeap();
-            if (directHeapResource != null) {
-              resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, directHeapResource.getValue().longValue(), parseUnit(directHeapResource), false));
+          public Collection<ResourcePool> resourcePools() {
+            Heap heapResource = cacheTemplate.getHeap();
+            if (heapResource != null) {
+              return singleton(parseResource(heapResource));
             } else {
               ResourcesType resources = cacheTemplate.getResources();
               if (resources != null) {
-                ResourceType heapResource = resources.getHeap();
-                if (heapResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.HEAP, heapResource.getValue().longValue(), parseUnit(heapResource), false));
-                }
-                MemoryType offheapResource = resources.getOffheap();
-                if (offheapResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.OFFHEAP, offheapResource.getValue().longValue(), parseMemory(offheapResource), false));
-                }
-                PersistableMemoryType diskResource = resources.getDisk();
-                if (diskResource != null) {
-                  resourcePools.add(new ResourcePoolImpl(org.ehcache.config.ResourceType.Core.DISK, diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent()));
-                }
+                return parseResources(resources);
               }
             }
 
-            return resourcePools;
+            return emptySet();
           }
 
           @Override
@@ -564,7 +523,48 @@ class ConfigurationParser {
     return Collections.unmodifiableMap(templates);
   }
 
-  private ResourceUnit parseUnit(ResourceType resourceType) {
+  private Collection<ResourcePool> parseResources(ResourcesType resources) {
+    Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
+    for (Element resource : resources.getResource()) {
+      resourcePools.add(parseResource(resource));
+    }
+    return resourcePools;
+  }
+
+  private ResourcePool parseResource(Heap resource) {
+    ResourceType heapResource = resource.getValue();
+    return new SizedResourcePoolImpl<SizedResourcePool>(org.ehcache.config.ResourceType.Core.HEAP,
+            heapResource.getValue().longValue(), parseUnit(heapResource), false);
+  }
+
+  private ResourcePool parseResource(Element element) {
+    if (!CORE_SCHEMA_NAMESPACE.equals(element.getNamespaceURI())) {
+      return parseResourceExtension(element);
+    }
+    try {
+      Object resource = unmarshaller.unmarshal(element);
+      if (resource instanceof Heap) {
+        ResourceType heapResource = ((Heap) resource).getValue();
+        return new SizedResourcePoolImpl<SizedResourcePool>(org.ehcache.config.ResourceType.Core.HEAP,
+                heapResource.getValue().longValue(), parseUnit(heapResource), false);
+      } else if (resource instanceof Offheap) {
+        MemoryType offheapResource = ((Offheap) resource).getValue();
+        return new SizedResourcePoolImpl<SizedResourcePool>(org.ehcache.config.ResourceType.Core.OFFHEAP,
+                offheapResource.getValue().longValue(), parseMemory(offheapResource), false);
+      } else if (resource instanceof Disk) {
+        PersistableMemoryType diskResource = ((Disk) resource).getValue();
+        return new SizedResourcePoolImpl<SizedResourcePool>(org.ehcache.config.ResourceType.Core.DISK,
+                diskResource.getValue().longValue(), parseMemory(diskResource), diskResource.isPersistent());
+      } else {
+        // Someone updated the core resources without updating *this* code ...
+        throw new AssertionError("Unrecognized resource: " + element + " / " + resource.getClass().getName());
+      }
+    } catch (JAXBException e) {
+      throw new IllegalArgumentException("Can't find parser for resource: " + element, e);
+    }
+  }
+
+  private static ResourceUnit parseUnit(ResourceType resourceType) {
     if (resourceType.getUnit().value().equalsIgnoreCase("entries")) {
       return EntryUnit.ENTRIES;
     } else {
@@ -572,7 +572,7 @@ class ConfigurationParser {
     }
   }
 
-  private MemoryUnit parseMemory(MemoryType memoryType) {
+  private static MemoryUnit parseMemory(MemoryType memoryType) {
     return MemoryUnit.valueOf(memoryType.getUnit().value().toUpperCase());
   }
 
@@ -592,6 +592,15 @@ class ConfigurationParser {
       throw new IllegalArgumentException("Can't find parser for namespace: " + namespace);
     }
     return xmlConfigurationParser.parseServiceConfiguration(element);
+  }
+
+  ResourcePool parseResourceExtension(final Element element) {
+    URI namespace = URI.create(element.getNamespaceURI());
+    final CacheResourceConfigurationParser xmlConfigurationParser = resourceXmlParsers.get(namespace);
+    if (xmlConfigurationParser == null) {
+      throw new XmlConfigurationException("Can't find parser for namespace: " + namespace);
+    }
+    return xmlConfigurationParser.parseResourceConfiguration(element);
   }
 
   static class FatalErrorHandler implements ErrorHandler {
@@ -626,7 +635,7 @@ class ConfigurationParser {
 
     String valueCopier();
 
-    String evictionVeto();
+    String evictionAdvisor();
 
     Expiry expiry();
 
@@ -636,7 +645,7 @@ class ConfigurationParser {
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 
-    Iterable<ResourcePool> resourcePools();
+    Collection<ResourcePool> resourcePools();
 
     WriteBehind writeBehind();
 
@@ -654,7 +663,7 @@ class ConfigurationParser {
 
   interface ListenersConfig {
 
-    int parallelismLevel();
+    int dispatcherConcurrency();
 
     String threadPool();
 
@@ -730,20 +739,20 @@ class ConfigurationParser {
 
   private static class XmlListenersConfig implements ListenersConfig {
 
-    final int parallelismLevel;
+    final int dispatcherConcurrency;
     final String threadPool;
     final Iterable<Listener> listeners;
 
     private XmlListenersConfig(final ListenersType type, final ListenersType... others) {
-      this.parallelismLevel = type.getParallelismLevel().intValue();
-      String threadPool = type.getThreadPool();
+      this.dispatcherConcurrency = type.getDispatcherConcurrency().intValue();
+      String threadPool = type.getDispatcherThreadPool();
       Set<Listener> listenerSet = new HashSet<Listener>();
       final List<ListenersType.Listener> xmlListeners = type.getListener();
       extractListeners(listenerSet, xmlListeners);
 
       for (ListenersType other : others) {
-        if (threadPool == null && other.getThreadPool() != null) {
-          threadPool = other.getThreadPool();
+        if (threadPool == null && other.getDispatcherThreadPool() != null) {
+          threadPool = other.getDispatcherThreadPool();
         }
         extractListeners(listenerSet, other.getListener());
       }
@@ -781,8 +790,8 @@ class ConfigurationParser {
     }
 
     @Override
-    public int parallelismLevel() {
-      return parallelismLevel;
+    public int dispatcherConcurrency() {
+      return dispatcherConcurrency;
     }
 
     @Override
@@ -861,17 +870,32 @@ class ConfigurationParser {
 
     @Override
     public long getMaxObjectGraphSize() {
-      return sizeoflimits.getMaxObjectGraphSize().getValue().longValue();
+      SizeofType.MaxObjectGraphSize value = sizeoflimits.getMaxObjectGraphSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectGraphSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public long getMaxObjectSize() {
-      return sizeoflimits.getMaxObjectSize().getValue().longValue();
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public MemoryUnit getUnit() {
-      return MemoryUnit.valueOf(sizeoflimits.getMaxObjectSize().getUnit().value().toUpperCase());
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return MemoryUnit.valueOf(new ObjectFactory().createMemoryType().getUnit().value().toUpperCase());
+      } else {
+        return MemoryUnit.valueOf(value.getUnit().value().toUpperCase());
+      }
     }
 
   }
@@ -951,7 +975,7 @@ class ConfigurationParser {
 
     @Override
     public int writerConcurrency() {
-      return this.diskStoreSettings.getWriterThreads().intValue();
+      return this.diskStoreSettings.getWriterConcurrency().intValue();
     }
 
     @Override

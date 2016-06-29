@@ -16,23 +16,40 @@
 
 package org.ehcache.impl.config.copy;
 
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Albin Suresh
+ * {@link ServiceConfiguration} for the default {@link CopyProvider} implementation.
+ * <P>
+ *   Enables configuring a {@link Copier} for the key or value of a given cache.
+ * </P>
+ *
+ * @param <T> the type which the configured copier can handle
  */
-public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Copier<T>> implements CopierConfiguration {
+public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Copier<T>> implements ServiceConfiguration<CopyProvider> {
 
   private final Type type;
 
+  /**
+   * Creates a new configuration with the given {@link Copier} class of the provided {@link Type}.
+   *
+   * @param clazz the copier class
+   * @param type the copier type - key or value
+   */
   public DefaultCopierConfiguration(Class<? extends Copier<T>> clazz, Type type) {
     super(clazz);
     this.type = type;
   }
 
+  /**
+   * Creates a new configuration with the given {@link Copier} instance of the provided {@link Type}.
+   *
+   * @param instance the copier instance
+   * @param type the copier type - key or value
+   */
   public DefaultCopierConfiguration(Copier<T> instance, Type type) {
     super(instance);
     this.type = type;
@@ -43,13 +60,34 @@ public class DefaultCopierConfiguration<T> extends ClassInstanceConfiguration<Co
     this.type = null;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<CopyProvider> getServiceType() {
     return CopyProvider.class;
   }
 
+  /**
+   * Returns the {@link Type} of this configuration
+   *
+   * @return the copier type - key or value
+   */
   public Type getType() {
     return type;
   }
 
+  /**
+   * Copy provider types
+   */
+  public enum Type {
+    /**
+     * Indicates a key copier configuration
+     */
+    KEY,
+    /**
+     * Indicates a value copier configuration
+     */
+    VALUE,
+  }
 }

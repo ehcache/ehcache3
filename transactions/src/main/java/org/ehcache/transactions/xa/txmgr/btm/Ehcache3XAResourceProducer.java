@@ -41,7 +41,7 @@ import javax.transaction.xa.XAResource;
 /**
  * @author Ludovic Orban
  */
-public class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProducer {
+class Ehcache3XAResourceProducer extends ResourceBean implements XAResourceProducer {
 
   private static final long serialVersionUID = -6421881731950504009L;
 
@@ -49,16 +49,16 @@ public class Ehcache3XAResourceProducer extends ResourceBean implements XAResour
   private final Map<XAResource, Ehcache3XAResourceHolder> xaResourceHolders = new ConcurrentHashMap<XAResource, Ehcache3XAResourceHolder>();
   private volatile transient RecoveryXAResourceHolder recoveryXAResourceHolder;
 
-  public Ehcache3XAResourceProducer() {
+  Ehcache3XAResourceProducer() {
     setApplyTransactionTimeout(true);
   }
 
-  protected void addXAResource(XAResource xaResource) {
+  void addXAResource(XAResource xaResource) {
     Ehcache3XAResourceHolder xaResourceHolder = new Ehcache3XAResourceHolder(xaResource, this);
     xaResourceHolders.put(xaResource, xaResourceHolder);
   }
 
-  protected boolean removeXAResource(XAResource xaResource) {
+  boolean removeXAResource(XAResource xaResource) {
     return xaResourceHolders.remove(xaResource) != null;
   }
 
@@ -75,7 +75,7 @@ public class Ehcache3XAResourceProducer extends ResourceBean implements XAResour
     return new XAResourceHolderState(recoveryXAResourceHolder, this);
   }
 
-  protected boolean isEmpty() {
+  boolean isEmpty() {
     return xaResourceHolders.isEmpty();
   }
 

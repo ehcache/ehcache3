@@ -17,11 +17,12 @@ package org.ehcache.jsr107;
 
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.core.Ehcache;
 import org.ehcache.core.EhcacheManager;
+import org.ehcache.core.InternalCache;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
@@ -39,6 +40,7 @@ import java.util.concurrent.ConcurrentMap;
 import javax.cache.Cache;
 import javax.cache.CacheException;
 import javax.cache.CacheManager;
+import javax.cache.configuration.CompleteConfiguration;
 import javax.cache.configuration.Configuration;
 import javax.cache.spi.CachingProvider;
 import javax.management.InstanceAlreadyExistsException;
@@ -61,18 +63,15 @@ class Eh107CacheManager implements CacheManager {
   private final ClassLoader classLoader;
   private final URI uri;
   private final Properties props;
-  private final ManagementRegistryService managementRegistry;
   private final ConfigurationMerger configurationMerger;
 
   Eh107CacheManager(EhcacheCachingProvider cachingProvider, EhcacheManager ehCacheManager, Properties props,
-                    ClassLoader classLoader, URI uri,
-                    ManagementRegistryService managementRegistry, final ConfigurationMerger configurationMerger) {
+                    ClassLoader classLoader, URI uri, ConfigurationMerger configurationMerger) {
     this.cachingProvider = cachingProvider;
     this.ehCacheManager = ehCacheManager;
     this.props = props;
     this.classLoader = classLoader;
     this.uri = uri;
-    this.managementRegistry = managementRegistry;
     this.configurationMerger = configurationMerger;
 
     refreshAllCaches();
@@ -89,17 +88,26 @@ class Eh107CacheManager implements CacheManager {
       caches.putIfAbsent(name, wrapEhcacheCache(name, config));
     }
     for (Map.Entry<String, Eh107Cache<?, ?>> namedCacheEntry : caches.entrySet()) {
-      namedCacheEntry.getValue().isClosed();
+      Eh107Cache<?, ?> cache = namedCacheEntry.getValue();
+      if (!cache.isClosed()) {
+        Eh107Configuration<?, ?> configuration = cache.getConfiguration(Eh107Configuration.class);
+        if (configuration.isManagementEnabled()) {
+          enableManagement(cache, true);
+        }
+        if (configuration.isStatisticsEnabled()) {
+          enableStatistics(cache, true);
+        }
+      }
     }
   }
 
   private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, CacheConfiguration<K, V> ehConfig) {
     org.ehcache.Cache<K, V> cache = ehCacheManager.getCache(alias, ehConfig.getKeyType(), ehConfig.getValueType());
-    return wrapEhcacheCache(alias, cache);
+    return wrapEhcacheCache(alias, (InternalCache<K, V>)cache);
   }
 
-  private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, org.ehcache.Cache<K, V> cache) {
-    CacheLoaderWriter<? super K, V> cacheLoaderWriter = ((Ehcache<K, V>)cache).getCacheLoaderWriter();
+  private <K, V> Eh107Cache<K, V> wrapEhcacheCache(String alias, InternalCache<K, V> cache) {
+    CacheLoaderWriter<? super K, V> cacheLoaderWriter = cache.getCacheLoaderWriter();
 
     boolean storeByValueOnHeap = false;
     for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
@@ -111,9 +119,10 @@ class Eh107CacheManager implements CacheManager {
       }
     }
     Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoaderWriter != null, cacheLoaderWriter != null, storeByValueOnHeap);
+    configurationMerger.setUpManagementAndStats(cache, config);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<K, V>(cache.getRuntimeConfiguration().getExpiry());
     CacheResources<K, V> resources = new CacheResources<K, V>(alias, cacheLoaderWriter, expiry);
-    return new Eh107Cache<K, V>(alias, config, resources, cache, this, managementRegistry);
+    return new Eh107Cache<K, V>(alias, config, resources, cache, this);
   }
 
   @Override
@@ -158,7 +167,7 @@ class Eh107CacheManager implements CacheManager {
         } catch (IllegalArgumentException e) {
           throw new CacheException("A Cache named [" + cacheName + "] already exists");
         }
-        Eh107Cache<K, V> cache = wrapEhcacheCache(cacheName, ehcache);
+        Eh107Cache<K, V> cache = wrapEhcacheCache(cacheName, (InternalCache<K, V>)ehcache);
         assert safeCacheRetrieval(cacheName) == null;
         caches.put(cacheName, cache);
 
@@ -167,9 +176,9 @@ class Eh107CacheManager implements CacheManager {
 
       ConfigurationMerger.ConfigHolder<K, V> configHolder = configurationMerger.mergeConfigurations(cacheName, config);
 
-      final org.ehcache.Cache<K, V> ehCache;
+      final InternalCache<K, V> ehCache;
       try {
-        ehCache = ehCacheManager.createCache(cacheName, configHolder.cacheConfiguration);
+        ehCache = (InternalCache<K, V>)ehCacheManager.createCache(cacheName, configHolder.cacheConfiguration);
       } catch (IllegalArgumentException e) {
         MultiCacheException mce = new MultiCacheException(e);
         configHolder.cacheResources.closeResources(mce);
@@ -185,11 +194,11 @@ class Eh107CacheManager implements CacheManager {
       CacheResources<K, V> cacheResources = configHolder.cacheResources;
       try {
         if (configHolder.useEhcacheLoaderWriter) {
-          cacheResources = new CacheResources<K, V>(cacheName, ((Ehcache<K, V>) ehCache).getCacheLoaderWriter(),
+          cacheResources = new CacheResources<K, V>(cacheName, ehCache.getCacheLoaderWriter(),
               cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
         }
         cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(configHolder.jsr107Configuration, ehCache
-            .getRuntimeConfiguration()), cacheResources, ehCache, this, managementRegistry);
+            .getRuntimeConfiguration()), cacheResources, ehCache, this);
 
         caches.put(cacheName, cache);
 
@@ -376,6 +385,7 @@ class Eh107CacheManager implements CacheManager {
 
   private void registerObject(Eh107MXBean bean) {
     try {
+      LOG.info("Registering Ehcache MBean {}", bean.getObjectName());
       MBEAN_SERVER.registerMBean(bean, bean.getObjectName());
     } catch (InstanceAlreadyExistsException e) {
       // ignore

@@ -17,17 +17,17 @@
 package org.ehcache.event;
 
 /**
- * @author Alex Snaps
+ * The supported event ordering modes.
  */
 public enum EventOrdering {
 
   /**
-   * No ordering requirement necessary
+   * Events may be observed out of order.
    */
   UNORDERED(false),
 
   /**
-   * Events for a given key will always fire in the same order they actually occurred
+   * Ordering of events is guaranteed on a per-key basis.
    */
   ORDERED(true);
 
@@ -36,9 +36,9 @@ public enum EventOrdering {
   EventOrdering(boolean ordered) {this.ordered = ordered;}
 
   /**
-   * Indicates if the value obeys ordering
+   * Indicates if the mode obeys ordering.
    *
-   * @return {@link true} in case it does, {@link false} otherwise
+   * @return {@code true} in case it does, {@code false} otherwise
    */
   public boolean isOrdered() {
     return ordered;

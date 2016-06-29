@@ -27,16 +27,43 @@ import java.nio.ByteBuffer;
  */
 public class FloatSerializer implements Serializer<Float> {
 
+  /**
+   * No arg constructor
+   */
   public FloatSerializer() {
   }
 
+  /**
+   * Constructor to enable this serializer as a transient one.
+   * <P>
+   *   Parameter is ignored as {@link Float} is a base java type.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   *
+   * @see Serializer
+   */
   public FloatSerializer(ClassLoader classLoader) {
   }
 
+  /**
+   * Constructor to enable this serializer as a persistent one.
+   * <P>
+   *   Parameters are ignored as {@link Float} is a base java type and this implementation requires no state.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   * @param persistenceContext the persistence context
+   *
+   * @see Serializer
+   */
   public FloatSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ByteBuffer serialize(Float object) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(4);
@@ -44,12 +71,18 @@ public class FloatSerializer implements Serializer<Float> {
     return byteBuffer;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Float read(ByteBuffer binary) throws ClassNotFoundException {
     float f = binary.getFloat();
     return f;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean equals(Float object, ByteBuffer binary) throws ClassNotFoundException {
     return object.equals(read(binary));

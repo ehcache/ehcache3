@@ -15,22 +15,24 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.core.Ehcache;
+import org.ehcache.core.InternalCache;
 import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.Jsr107Cache;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
-import org.ehcache.core.exceptions.CachePassThroughException;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
-import org.ehcache.function.NullaryFunction;
+import org.ehcache.core.exceptions.StorePassThroughException;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
-import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,7 +54,7 @@ import javax.cache.processor.EntryProcessorResult;
  */
 class Eh107Cache<K, V> implements Cache<K, V> {
 
-  private final org.ehcache.Cache<K, V> ehCache;
+  private final InternalCache<K, V> ehCache;
   private final Jsr107Cache<K, V> jsr107Cache;
   private final Eh107CacheManager cacheManager;
   private final String name;
@@ -64,7 +66,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
-      org.ehcache.Cache<K, V> ehCache, Eh107CacheManager cacheManager, ManagementRegistryService managementRegistry) {
+      InternalCache<K, V> ehCache, Eh107CacheManager cacheManager) {
     this.cacheLoaderWriter = cacheResources.getCacheLoaderWriter();
     this.config = config;
     this.ehCache = ehCache;
@@ -72,14 +74,14 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     this.name = name;
     this.cacheResources = cacheResources;
     this.managementBean = new Eh107CacheMXBean(name, cacheManager, config);
-    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager, ehCache, managementRegistry);
+    this.statisticsBean = new Eh107CacheStatisticsMXBean(name, cacheManager, ehCache);
 
     for (Map.Entry<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> entry : cacheResources
         .getListenerResources().entrySet()) {
       registerEhcacheListeners(entry.getKey(), entry.getValue());
     }
 
-    this.jsr107Cache = ((Ehcache<K, V>) ehCache).getJsr107Cache();
+    this.jsr107Cache = ehCache.getJsr107Cache();
   }
 
   @Override
@@ -87,7 +89,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return ehCache.get(key);
-    } catch (org.ehcache.exceptions.CacheLoadingException e) {
+    } catch (CacheLoadingException e) {
       throw jsr107CacheLoaderException(e);
     }
   }
@@ -97,7 +99,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return jsr107Cache.getAll(keys);
-    } catch (org.ehcache.exceptions.CacheLoadingException e) {
+    } catch (CacheLoadingException e) {
       throw jsr107CacheLoaderException(e);
     }
   }
@@ -110,7 +112,6 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
   @Override
   public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, CompletionListener completionListener) {
-    // TODO: this method is allowed to be async. Hand it off to some thread(s)?
     checkClosed();
 
     if (keys == null) {
@@ -177,7 +178,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       ehCache.put(key, value);
-    } catch (org.ehcache.exceptions.CacheWritingException cwe) {
+    } catch (CacheWritingException cwe) {
       throw jsr107CacheWriterException(cwe);
     }
   }
@@ -192,7 +193,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     try {
       return jsr107Cache.getAndPut(key, value);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -202,7 +203,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       ehCache.putAll(map);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -213,7 +214,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     try {
       cacheResources.getExpiryPolicy().enableShortCircuitAccessCalls();
       return ehCache.putIfAbsent(key, value) == null;
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     } finally {
       cacheResources.getExpiryPolicy().disableShortCircuitAccessCalls();
@@ -230,7 +231,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     try {
       return jsr107Cache.remove(key);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -240,7 +241,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return ehCache.remove(key, oldValue);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -255,7 +256,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
 
     try {
       return jsr107Cache.getAndRemove(key);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -265,7 +266,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return ehCache.replace(key, oldValue, newValue);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -275,7 +276,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       return ehCache.replace(key, value) != null;
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -285,7 +286,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     try {
       checkClosed();
       return ehCache.replace(key, value);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -295,7 +296,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       ehCache.removeAll(keys);
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -305,7 +306,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     checkClosed();
     try {
       jsr107Cache.removeAll();
-    } catch (org.ehcache.exceptions.CacheWritingException e) {
+    } catch (CacheWritingException e) {
       throw jsr107CacheWriterException(e);
     }
   }
@@ -352,9 +353,9 @@ class Eh107Cache<K, V> implements Cache<K, V> {
           processResult = entryProcessor.process(mutableEntry, arguments);
         } catch (Exception e) {
           if (e instanceof EntryProcessorException) {
-            throw new CachePassThroughException(e);
+            throw new StorePassThroughException(e);
           }
-          throw new CachePassThroughException(new EntryProcessorException(e));
+          throw new StorePassThroughException(new EntryProcessorException(e));
         }
 
         invokeResult.set(processResult);
@@ -399,7 +400,6 @@ class Eh107Cache<K, V> implements Cache<K, V> {
       }
     }
 
-    // TODO: maybe hand off to threads for parallel execution?
     Map<K, EntryProcessorResult<T>> results = new HashMap<K, EntryProcessorResult<T>>(keys.size());
     for (K key : keys) {
       EntryProcessorResult<T> result = null;
@@ -524,8 +524,30 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   }
 
   @Override
-  public java.util.Iterator<Cache.Entry<K, V>> iterator() {
-    return new Iterator<K, V>(ehCache);
+  public Iterator<Entry<K, V>> iterator() {
+    checkClosed();
+
+    final Iterator<org.ehcache.Cache.Entry<K, V>> specIterator = jsr107Cache.specIterator();
+    return new Iterator<Entry<K, V>>() {
+      @Override
+      public boolean hasNext() {
+        checkClosed();
+        return specIterator.hasNext();
+      }
+
+      @Override
+      public Entry<K, V> next() {
+        checkClosed();
+        org.ehcache.Cache.Entry<K, V> next = specIterator.next();
+        return next == null ? null : new WrappedEhcacheEntry<K, V>(next);
+      }
+
+      @Override
+      public void remove() {
+        checkClosed();
+        specIterator.remove();
+      }
+    };
   }
 
   private void checkClosed() {
@@ -555,14 +577,14 @@ class Eh107Cache<K, V> implements Cache<K, V> {
     config.setManagementEnabled(enabled);
   }
 
-  private static CacheLoaderException jsr107CacheLoaderException(org.ehcache.exceptions.CacheLoadingException e) {
+  private static CacheLoaderException jsr107CacheLoaderException(CacheLoadingException e) {
     if (e.getCause() instanceof CacheLoaderException) {
       return (CacheLoaderException) e.getCause();
     }
     return new CacheLoaderException(e);
   }
 
-  private static CacheWriterException jsr107CacheWriterException(org.ehcache.exceptions.CacheWritingException e) {
+  private static CacheWriterException jsr107CacheWriterException(CacheWritingException e) {
     if (e.getCause() instanceof CacheWriterException) {
       return (CacheWriterException) e.getCause();
     }
@@ -592,42 +614,6 @@ class Eh107Cache<K, V> implements Cache<K, V> {
         throw new EntryProcessorException(e);
       }
     };
-  }
-
-  private static class Iterator<K, V> implements java.util.Iterator<javax.cache.Cache.Entry<K, V>> {
-
-    private final java.util.Iterator<org.ehcache.Cache.Entry<K, V>> ehIterator;
-    private final org.ehcache.Cache<K, V> ehCache;
-    private org.ehcache.Cache.Entry<K, V> current = null;
-
-    Iterator(org.ehcache.Cache<K, V> ehCache) {
-      this.ehCache = ehCache;
-      this.ehIterator = ehCache.iterator();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return ehIterator.hasNext();
-    }
-
-    @Override
-    public javax.cache.Cache.Entry<K, V> next() {
-      current = ehIterator.next();
-      return new WrappedEhcacheEntry<K, V>(current);
-    }
-
-    @Override
-    public void remove() {
-      if (current == null) {
-        throw new IllegalStateException();
-      }
-
-      // XXX: Not using iter.remove() on the ehcache iterator since it
-      // does 2-arg remove and will add cache hits that 107 txk doesn't expect
-      ehCache.remove(current.getKey());
-
-      current = null;
-    }
   }
 
   private static class WrappedEhcacheEntry<K, V> implements javax.cache.Cache.Entry<K, V> {

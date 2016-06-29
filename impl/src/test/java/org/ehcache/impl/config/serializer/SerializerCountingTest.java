@@ -18,12 +18,11 @@ package org.ehcache.impl.config.serializer;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
@@ -41,6 +40,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static java.lang.String.format;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -69,6 +69,7 @@ public class SerializerCountingTest {
 
   @After
   public void tearDown() {
+    clearCounters();
     if (cacheManager != null) {
       cacheManager.close();
     }
@@ -77,27 +78,27 @@ public class SerializerCountingTest {
   @Test
   public void testOnHeapPutGet() {
 
-    Cache<Long, String> cache = cacheManager.createCache("onHeap", newCacheConfigurationBuilder(Long.class, String.class)
-                .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.KEY))
-                .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.VALUE))
+    Cache<Long, String> cache = cacheManager.createCache("onHeap", newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+                .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.KEY))
+                .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
                 .build());
 
     cache.put(42L, "TheAnswer!");
     assertCounters(2, 2, 0, 1, 0, 0);
     printSerializationCounters("Put OnHeap (create)");
     cache.get(42L);
-    assertCounters(2, 2, 0, 0, 2, 0);
+    assertCounters(0, 0, 0, 0, 1, 0);
     printSerializationCounters("Get OnHeap");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(2, 2, 0, 1, 1, 0);
+    assertCounters(2, 2, 0, 1, 0, 0);
     printSerializationCounters("Put OnHeap (update)");
   }
 
   @Test
   public void testOffHeapPutGet() {
-    Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class)
-            .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+    Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class,
+                                          newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
             .build()
     );
 
@@ -105,23 +106,23 @@ public class SerializerCountingTest {
     assertCounters(1, 0, 0, 1, 0, 0);
     printSerializationCounters("Put Offheap");
     cache.get(42L);
-    assertCounters(0, 0, 2, 0, 1, 0);
+    assertCounters(0, 0, 1, 0, 1, 0);
     printSerializationCounters("Get Offheap fault");
     cache.get(42L);
     assertCounters(0, 0, 0, 0, 0, 0);
     printSerializationCounters("Get Offheap faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(1, 0, 3, 1, 2, 0);
+    assertCounters(1, 0, 2, 1, 0, 0);
     printSerializationCounters("Put OffHeap (update faulted)");
   }
 
   @Test
   public void testOffHeapOnHeapCopyPutGet() {
-    Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class)
-            .withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
-            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.VALUE))
+    Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class,
+                                          newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build()
     );
 
@@ -129,23 +130,23 @@ public class SerializerCountingTest {
     assertCounters(2, 1, 0, 1, 0, 0);
     printSerializationCounters("Put OffheapOnHeapCopy");
     cache.get(42L);
-    assertCounters(1, 1, 2, 1, 2, 0);
+    assertCounters(1, 1, 1, 0, 2, 0);
     printSerializationCounters("Get OffheapOnHeapCopy fault");
     cache.get(42L);
-    assertCounters(0, 0, 0, 0, 2, 0);
+    assertCounters(0, 0, 0, 0, 1, 0);
     printSerializationCounters("Get OffheapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 3, 1, 2, 0);
+    assertCounters(3, 2, 2, 1, 0, 0);
     printSerializationCounters("Put OffheapOnHeapCopy (update faulted)");
   }
 
   @Test
   public void testDiskOffHeapOnHeapCopyPutGet() {
-    Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class)
-            .withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).disk(100, MemoryUnit.MB))
-            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.KEY))
-            .add(new DefaultCopierConfiguration(SerializingCopier.class, CopierConfiguration.Type.VALUE))
+    Cache<Long, String> cache = cacheManager.createCache("offHeap", newCacheConfigurationBuilder(Long.class, String.class,
+                  newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB).disk(100, MemoryUnit.MB))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.KEY))
+            .add(new DefaultCopierConfiguration(SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build()
     );
 
@@ -154,14 +155,14 @@ public class SerializerCountingTest {
     assertCounters(3, 2, 0, 1, 0, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy");
     cache.get(42L);
-    assertCounters(1, 1, 2, 1, 2, 0);
+    assertCounters(1, 1, 1, 0, 2, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy fault");
     cache.get(42L);
-    assertCounters(0, 0, 0, 0, 2, 0);
+    assertCounters(0, 0, 0, 0, 1, 0);
     printSerializationCounters("Get DiskOffHeapOnHeapCopy faulted");
 
     cache.put(42L, "Wrong ...");
-    assertCounters(3, 2, 3, 1, 2, 0);
+    assertCounters(3, 2, 2, 1, 0, 0);
     printSerializationCounters("Put DiskOffHeapOnHeapCopy (update faulted)");
   }
 
@@ -169,6 +170,10 @@ public class SerializerCountingTest {
     System.out.println("Operation " + operation);
     System.out.println(format("Key Serialization - %d / Deserialization - %d / Equals - %d", CountingSerializer.keySerializeCounter.get(), CountingSerializer.keyDeserializeCounter.get(), CountingSerializer.keyEqualsCounter.get()));
     System.out.println(format("Value Serialization - %d / Deserialization - %d / Equals - %d", CountingSerializer.serializeCounter.get(), CountingSerializer.deserializeCounter.get(), CountingSerializer.equalsCounter.get()));
+    clearCounters();
+  }
+
+  private void clearCounters() {
     CountingSerializer.serializeCounter.set(0);
     CountingSerializer.deserializeCounter.set(0);
     CountingSerializer.equalsCounter.set(0);
@@ -178,12 +183,12 @@ public class SerializerCountingTest {
   }
 
   private void assertCounters(int keySerialization, int keyDeserialization, int keyEquals, int valueSerialization, int valueDeserialization, int valueEquals) {
-    assertThat(CountingSerializer.keySerializeCounter.get(), is(keySerialization));
-    assertThat(CountingSerializer.keyDeserializeCounter.get(), is(keyDeserialization));
-    assertThat(CountingSerializer.keyEqualsCounter.get(), is(keyEquals));
-    assertThat(CountingSerializer.serializeCounter.get(), is(valueSerialization));
-    assertThat(CountingSerializer.deserializeCounter.get(), is(valueDeserialization));
-    assertThat(CountingSerializer.equalsCounter.get(), is(valueEquals));
+    assertThat("Key Serialize", CountingSerializer.keySerializeCounter.get(), is(keySerialization));
+    assertThat("Key Deserialize", CountingSerializer.keyDeserializeCounter.get(), is(keyDeserialization));
+    assertThat("Key Equals", CountingSerializer.keyEqualsCounter.get(), is(keyEquals));
+    assertThat("Value Serialize", CountingSerializer.serializeCounter.get(), is(valueSerialization));
+    assertThat("Value Deserialize", CountingSerializer.deserializeCounter.get(), is(valueDeserialization));
+    assertThat("Value Equals", CountingSerializer.equalsCounter.get(), is(valueEquals));
   }
 
   public static class CountingSerializer<T> implements Serializer<T> {

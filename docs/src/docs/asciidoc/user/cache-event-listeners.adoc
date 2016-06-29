@@ -1,0 +1,77 @@
+---
+---
+= Cache Event Listeners
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== Introduction
+
+Cache listeners allow implementers to register callback methods that will be executed when a cache event occurs.
+
+Listeners are registered at the cache level - and therefore only receive events for caches that they have been
+registered with.
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cacheEventListener]
+----
+
+<1> Create a `CacheEventListenerConfiguration` using the builder indicating the listener and the events to receive (in this case create and update events)
+<2> Optionally indicate the delivery mode - defaults are _asynchronous_ and _un-ordered_ (for performance reasons)
+<3> Pass the configuration of the listener into the cache configuration
+<4> You will be notified on creation
+<5> And on update
+<6> But not on removal, because it wasn't included at step 1
+
+Created, updated, and removed events are triggered by user execution of mutative methods as outlined in the table below.
+Eviction and expiration events can be triggered by both internal processes and by user execution of methods targeting both related and unrelated keys within the cache.
+
+.Cache entry event firing behaviors for mutative methods
+[frame="topbot",cols="^1m,<4m,^1m,<4m",options="header"]
+|=================================================================================================
+| input   | operation                                | output  | event {key, old-value, new-value}
+| {}      | put(K, V)                                | {K, V}  | created {K, null, V}
+| {K, V1} | put(K, V2)                               | {K, V2} | updated {K, V1, V2}
+| {}      | put(K, V) [immediately expired]          | {}      | none
+| {K, V1} | put(K, V2) [immediately expired]         | {}      | none
+|{}       | putIfAbsent(K, V)                        | {K, V}  | created {K, null, V}
+|{}       | putIfAbsent(K, V) [immediately expired]  | {}      | none
+|{K, V1}  | replace(K, V2)                           | {K, V2} | updated {K, V1, V2}
+|{K, V1}  | replace(K, V2) [immediately expired]     | {}      | none
+|{K, V1}  | replace(K, V1, V2)                       | {K, V2} | updated {K, V1, V2}
+|{K, V1}  | replace(K, V1, V2) [immediately expired] | {}      | no events
+|{K, V}   | remove(K)                                | {}      | removed {K, V, null}
+|=================================================================================================
+
+NOTE: Ehcache provides an abstract class `CacheEventAdapter` for convenient implementation of event listeners when you are interested only on specific events.
+
+== Registering Event Listeners during runtime
+
+Cache event listeners may also be added and removed while the cache is being used.
+
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=registerListenerAtRuntime]
+----
+
+<1> Create a `CacheEventListener` implementation instance.
+<2> Register it on the `RuntimeConfiguration`, indicating the delivery mode and events of interest.
+    The following `put()` and `remove()` cache calls will make the listener receive events.
+<3> Unregister the previously registered `CacheEventListener` instance.
+    The following `put()` and `remove()` cache calls will have no effect on the listener anymore.
+
+
+== Event Processing Queues
+
+Advanced users may want to tune the level of concurrency which may be used for delivery of events.
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=configuringEventProcessingQueues]
+----

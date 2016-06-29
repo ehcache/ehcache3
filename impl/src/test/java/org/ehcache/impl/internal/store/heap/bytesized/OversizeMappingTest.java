@@ -17,20 +17,20 @@
 package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.bytesized.ByteAccountingTest.OnHeapStoreForTests;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
@@ -50,10 +50,10 @@ public class OversizeMappingTest {
   private static final String OVER_SIZED_VALUE = new String(new byte[1000]);
 
   <K, V> OnHeapStoreForTests<K, V> newStore() {
-    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.none(), 100);
+    return newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice(), 100);
   }
 
-  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionVeto<? super K, ? super V> veto,
+  private <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource, final Expiry<? super K, ? super V> expiry, final EvictionAdvisor<? super K, ? super V> evictionAdvisor,
       final int capacity) {
 
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
@@ -70,8 +70,8 @@ public class OversizeMappingTest {
       }
 
       @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
+      public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+        return evictionAdvisor;
       }
 
       @Override
@@ -100,7 +100,7 @@ public class OversizeMappingTest {
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 0;
       }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, 1000), new TestStoreEventDispatcher<K, V>());
@@ -183,33 +183,6 @@ public class OversizeMappingTest {
     });
 
     assertNullMapping(store);
-  }
-
-  @Test
-  public void testComputeIfPresent() throws Exception {
-    OnHeapStore<String, String> store = newStore();
-
-    store.computeIfPresent(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return OVER_SIZED_VALUE;
-      }
-    });
-    assertNullMapping(store);
-
-    store.put(KEY, VALUE);
-    assertNotNullMapping(store);
-
-    store.computeIfPresent(KEY, new BiFunction<String, String, String>() {
-
-      @Override
-      public String apply(String a, String b) {
-        return OVER_SIZED_VALUE;
-      }
-    });
-    assertNullMapping(store);
-
   }
 
   @Test

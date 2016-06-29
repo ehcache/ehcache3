@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap.portability;
 
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
 import org.terracotta.offheapstore.storage.portability.Portability;
@@ -51,7 +51,6 @@ public class SerializerPortability<T> implements Portability<T> {
   @Override
   public boolean equals(Object o, ByteBuffer byteBuffer) {
     try {
-      // TODO can we get rid of blind cast?
       return serializer.equals((T)o, byteBuffer);
     } catch (ClassNotFoundException e) {
       throw new SerializerException(e);

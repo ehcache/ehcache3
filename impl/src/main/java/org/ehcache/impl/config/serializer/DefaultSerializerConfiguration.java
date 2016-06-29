@@ -16,35 +16,68 @@
 
 package org.ehcache.impl.config.serializer;
 
-import org.ehcache.core.config.serializer.SerializerConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Ludovic Orban
+ * {@link ServiceConfiguration} for the default {@link SerializationProvider}.
  */
-public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguration<Serializer<T>> implements SerializerConfiguration<SerializationProvider> {
+public class DefaultSerializerConfiguration<T> extends ClassInstanceConfiguration<Serializer<T>> implements ServiceConfiguration<SerializationProvider> {
 
   private final Type type;
 
+  /**
+   * Creates a new serializer configuration with the given {@link Serializer} class and {@link Type type}.
+   *
+   * @param clazz the serializer class
+   * @param type the serializer type
+   */
   public DefaultSerializerConfiguration(Class<? extends Serializer<T>> clazz, Type type) {
     super(clazz);
     this.type = type;
   }
 
+  /**
+   * Creates a new serializer configuration with the given {@link Serializer} instance and {@link Type type}.
+   *
+   * @param serializer the serializer instance
+   * @param type the serializer type
+   */
   public DefaultSerializerConfiguration(Serializer<T> serializer, Type type) {
     super(serializer);
     this.type = type;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<SerializationProvider> getServiceType() {
     return SerializationProvider.class;
   }
 
+  /**
+   * Get the type of the serializer configured
+   *
+   * @return the type
+   */
   public Type getType() {
     return type;
   }
 
+  /**
+   * Serialization provider types
+   */
+  public enum Type {
+    /**
+     * Serializer type for the key
+     */
+    KEY,
+    /**
+     * Serializer type for the value
+     */
+    VALUE,
+  }
 }

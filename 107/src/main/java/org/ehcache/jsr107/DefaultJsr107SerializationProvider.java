@@ -23,9 +23,9 @@ import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 /**
  * @author Ludovic Orban
  */
-public class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
+class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
 
-  public DefaultJsr107SerializationProvider() {
+  DefaultJsr107SerializationProvider() {
     super(new DefaultSerializationProviderConfiguration()
             .addSerializerFor(Object.class, (Class) CompactJavaSerializer.class)
             .addSerializerFor(Object.class, (Class) CompactPersistentJavaSerializer.class));

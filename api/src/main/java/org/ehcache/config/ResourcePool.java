@@ -16,35 +16,38 @@
 package org.ehcache.config;
 
 /**
- * @author Ludovic Orban
+ * A resource providing capacity to be used by {@link org.ehcache.Cache Cache}s.
+ * <P>
+ *  <EM>Implementations must be immutable.</EM>
+ * </P>
  */
 public interface ResourcePool {
 
   /**
-   * Get the type of the tracked resource.
+   * Get the {@link ResourceType}.
    *
-   * @return the type.
+   * @return the resource type
    */
-  ResourceType getType();
+  ResourceType<?> getType();
 
   /**
-   * Get the value measuring the pool size.
+   * Indicates whether the underlying resource is persistent.
+   * <P>
+   *   Persistence in this context means that data stored will survive a JVM restart, unless destroyed.
+   * </P>
    *
-   * @return the value.
-   */
-  long getSize();
-
-  /**
-   * Get the unit in which the resource is measured.
-   *
-   * @return the unit.
-   */
-  ResourceUnit getUnit();
-
-  /**
-   * Whether the underlying resource is persistent
-   * @return <code>true</code>, if persistent
+   * @return {@code true} if persistent, {@code false} otherwise
    */
   boolean isPersistent();
+
+  /**
+   * Validates whether or not a new {@code ResourcePool} can replace this {@code ResourcePool} on a running
+   * {@link org.ehcache.Cache Cache}.
+   *
+   * @param newPool the pool which is the candidate for replacing this {@code ResourcePool}
+   *
+   * @throws IllegalArgumentException if {@code newPool} is not a valid replacement for this {@code ResourcePool}
+   */
+  void validateUpdate(ResourcePool newPool);
 
 }

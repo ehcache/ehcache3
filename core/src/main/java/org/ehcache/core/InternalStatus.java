@@ -22,7 +22,7 @@ import org.ehcache.Status;
 /**
  * @author Alex Snaps
  */
-public enum InternalStatus {
+enum InternalStatus {
 
   UNINITIALIZED {
     @Override

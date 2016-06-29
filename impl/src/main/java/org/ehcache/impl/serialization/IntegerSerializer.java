@@ -27,16 +27,43 @@ import java.nio.ByteBuffer;
  */
 public class IntegerSerializer implements Serializer<Integer> {
 
+  /**
+   * No arg constructor
+   */
   public IntegerSerializer() {
   }
 
+  /**
+   * Constructor to enable this serializer as a transient one.
+   * <P>
+   *   Parameter is ignored as {@link Integer} is a base java type.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   *
+   * @see Serializer
+   */
   public IntegerSerializer(ClassLoader classLoader) {
   }
 
+  /**
+   * Constructor to enable this serializer as a persistent one.
+   * <P>
+   *   Parameters are ignored as {@link Integer} is a base java type and this implementation requires no state.
+   * </P>
+   *
+   * @param classLoader the classloader to use
+   * @param persistenceContext the persistence context
+   *
+   * @see Serializer
+   */
   public IntegerSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
 
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public ByteBuffer serialize(Integer object) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(4);
@@ -44,12 +71,18 @@ public class IntegerSerializer implements Serializer<Integer> {
     return byteBuffer;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Integer read(ByteBuffer binary) throws ClassNotFoundException {
     int i = binary.getInt();
     return i;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean equals(Integer object, ByteBuffer binary) throws ClassNotFoundException {
     return object.equals(read(binary));

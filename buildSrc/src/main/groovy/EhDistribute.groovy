@@ -8,8 +8,9 @@ import org.gradle.api.artifacts.maven.MavenDeployment
 import org.gradle.api.internal.file.FileResolver
 import org.gradle.api.plugins.MavenPlugin
 import org.gradle.api.plugins.osgi.OsgiPluginConvention
+import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.bundling.Zip
-import org.gradle.plugins.signing.Sign
+import org.gradle.api.tasks.javadoc.Javadoc
 import scripts.Utils
 
 /*
@@ -35,7 +36,7 @@ class EhDistribute implements Plugin<Project> {
 
   @Override
   void apply(Project project) {
-    def utils = new Utils(version: project.baseVersion)
+    def utils = new Utils(project.baseVersion, project.logger)
     def hashsetOfProjects = project.configurations.compile.dependencies.withType(ProjectDependency).dependencyProject
 
     project.plugins.apply 'java'
@@ -61,8 +62,10 @@ class EhDistribute implements Plugin<Project> {
     project.jar {
       dependsOn project.shadowJar
       from(project.zipTree(project.shadowJar.archivePath.getPath())) {
-        exclude("META-INF/MANIFEST.MF")
+        exclude 'META-INF/MANIFEST.MF', 'LICENSE', 'NOTICE'
       }
+      // LICENSE is included in root gradle build
+      from "$project.rootDir/NOTICE"
     }
 
     project.jar.doFirst {
@@ -114,6 +117,22 @@ class EhDistribute implements Plugin<Project> {
       title "$project.archivesBaseName $project.version API"
       source hashsetOfProjects.javadoc.source
       classpath = project.files(hashsetOfProjects.javadoc.classpath)
+      project.ext.properties.javadocExclude.tokenize(',').each {
+        exclude it.trim()
+      }
+    }
+
+    project.task('spiJavadoc', type: Javadoc) {
+      title "$project.archivesBaseName $project.version API & SPI"
+      source hashsetOfProjects.javadoc.source
+      classpath = project.files(hashsetOfProjects.javadoc.classpath)
+      exclude '**/internal/**'
+      destinationDir = project.file("$project.docsDir/spi-javadoc")
+    }
+
+    project.task('spiJavadocJar', type: Jar, dependsOn: 'spiJavadoc') {
+      classifier = 'spi-javadoc'
+      from project.tasks.getByPath('spiJavadoc').destinationDir
     }
 
     project.task('asciidocZip', type: Zip, dependsOn: ':docs:asciidoctor') {
@@ -123,11 +142,12 @@ class EhDistribute implements Plugin<Project> {
 
     project.artifacts {
       archives project.asciidocZip
+      archives project.spiJavadocJar
     }
 
     project.signing {
-      required { project.isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives")}
-      Sign archives
+      required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
+      sign project.configurations.getByName('archives')
     }
 
     def artifactFiltering = {

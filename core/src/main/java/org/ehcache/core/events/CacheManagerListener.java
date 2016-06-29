@@ -19,7 +19,8 @@ package org.ehcache.core.events;
 import org.ehcache.Cache;
 
 /**
- * @author Alex Snaps
+ * Interface for listeners interested in {@link org.ehcache.CacheManager} {@link Cache} related events, such as
+ * addition and removal.
  */
 public interface CacheManagerListener extends StateChangeListener {
 
