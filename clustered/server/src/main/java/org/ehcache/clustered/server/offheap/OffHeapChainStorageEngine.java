@@ -285,7 +285,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       Iterator<Element> iterator = header.iterator();
       do {
         if (!compare(iterator.next(), suffixHead)) {
-          return false;
+          return true;
         }
         prefixTail = suffixHead;
         suffixHead = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
@@ -293,7 +293,10 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
       if (suffixHead == chain) {
         //whole chain removed
-        evict();
+        int slot = owner.getSlotForHashAndEncoding(readKeyHash(chain), chain, ~0);
+        if (!owner.evict(slot, true)) {
+          throw new AssertionError("Unexpected failure to evict slot " + slot);
+        }
         return true;
       } else {
         int hash = readKeyHash(chain);
@@ -301,8 +304,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
         ByteBuffer elemBuffer = storage.readBuffer(suffixHead + ELEMENT_HEADER_SIZE, elemSize);
         Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, elemBuffer);
         if (newChainAddress == null) {
-          evict();
-          return true;
+          return false;
         } else {
           AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress);
           try {
@@ -335,7 +337,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       Iterator<Element> expectedIt = expected.iterator();
       do {
         if (!compare(expectedIt.next(), suffixHead)) {
-          return false;
+          return true;
         }
         prefixTail = suffixHead;
         suffixHead = storage.readLong(suffixHead + ELEMENT_HEADER_NEXT_OFFSET);
@@ -344,8 +346,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
       int hash = readKeyHash(chain);
       Long newChainAddress = createAttachedChain(readKeyBuffer(chain), hash, replacement);
       if (newChainAddress == null) {
-        evict();
-        return true;
+        return false;
       } else {
         AttachedInternalChain newChain = new AttachedInternalChain(newChainAddress);
         try {
@@ -429,13 +430,6 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
     private long readElementSequenceNumber(long address) {
       return storage.readLong(address + ELEMENT_HEADER_SEQUENCE_OFFSET);
-    }
-
-    private void evict() {
-      int slot = owner.getSlotForHashAndEncoding(readKeyHash(chain), chain, ~0);
-      if (!owner.evict(slot, true)) {
-        throw new AssertionError();
-      }
     }
 
     public void moved(long from, long to) {
