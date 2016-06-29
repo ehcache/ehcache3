@@ -17,9 +17,12 @@
 package org.ehcache.spi.serialization;
 
 /**
- * Exception thrown to indicate a {@link Serializer} could not be created for a given type.
+ * Exception thrown by the {@link SerializationProvider} to indicate a {@link Serializer} could not be created for a
+ * given type.
  */
 public class UnsupportedTypeException extends Exception {
+
+  private static final long serialVersionUID = 4521659617291359368L;
 
   /**
    * Constructs a new exception with the specified detail message.

@@ -1,0 +1,44 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.ehcache.clustered.client.internal.service;
+
+import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.spi.persistence.StateRepository;
+
+import java.io.Serializable;
+import java.util.concurrent.ConcurrentMap;
+
+/**
+ * ClusteredStateRepository
+ */
+class ClusteredStateRepository implements StateRepository {
+
+  private final ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier;
+  private final String composedId;
+  private final DefaultClusteringService defaultClusteringService;
+
+  ClusteredStateRepository(ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier, String id, DefaultClusteringService defaultClusteringService) {
+    this.clusterCacheIdentifier = clusterCacheIdentifier;
+    this.composedId = clusterCacheIdentifier.getId() + "-" + id;
+    this.defaultClusteringService = defaultClusteringService;
+  }
+
+  @Override
+  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
+    return defaultClusteringService.getConcurrentMap(clusterCacheIdentifier, composedId + "-" + name, keyClass, valueClass);
+  }
+}

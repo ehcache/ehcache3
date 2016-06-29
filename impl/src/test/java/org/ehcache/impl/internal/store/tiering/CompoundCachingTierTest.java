@@ -15,22 +15,25 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
-import org.ehcache.function.Function;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
-import org.ehcache.core.spi.cache.tiering.HigherCachingTier;
-import org.ehcache.core.spi.cache.tiering.LowerCachingTier;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.core.spi.store.tiering.HigherCachingTier;
+import org.ehcache.core.spi.store.tiering.LowerCachingTier;
+import org.ehcache.impl.internal.util.UnmatchedResourceType;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Collections.EMPTY_LIST;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
@@ -330,72 +333,27 @@ public class CompoundCachingTierTest {
   }
 
   @Test
-  public void testProviderPassesServiceConfigs() {
+  public void testInvalidateAllCoversBothTiers() throws Exception {
+    HigherCachingTier<String, String> higherTier = mock(HigherCachingTier.class);
+    LowerCachingTier<String, String> lowerTier = mock(LowerCachingTier.class);
+
+    CompoundCachingTier<String, String> compoundCachingTier = new CompoundCachingTier<String, String>(higherTier, lowerTier);
+
+    compoundCachingTier.invalidateAll();
+
+    verify(higherTier).silentInvalidateAll(any(BiFunction.class));
+    verify(lowerTier).invalidateAll();
+  }
+
+  @Test
+  public void testRankCachingTier() throws Exception {
     CompoundCachingTier.Provider provider = new CompoundCachingTier.Provider();
-    ServiceProvider serviceProvider = mock(ServiceProvider.class);
-    when(serviceProvider.getService(FakeProvider.class)).thenReturn(new FakeProvider());
-    when(serviceProvider.getService(FakeLowerProvider.class)).thenReturn(new FakeLowerProvider());
-    provider.start(serviceProvider);
+    HashSet<ResourceType<?>> resourceTypes = new HashSet<ResourceType<?>>();
+    resourceTypes.addAll(EnumSet.of(ResourceType.Core.HEAP, ResourceType.Core.OFFHEAP));
+    assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(2));
 
-    CompoundCachingTierServiceConfiguration cachingTierServiceConfiguration = new CompoundCachingTierServiceConfiguration();
-    cachingTierServiceConfiguration.higherProvider(FakeProvider.class);
-    cachingTierServiceConfiguration.lowerProvider(FakeLowerProvider.class);
-    provider.createCachingTier(mock(Store.Configuration.class), cachingTierServiceConfiguration, new ServiceConfiguration<Service>() {
-      @Override
-      public Class<Service> getServiceType() {
-        return Service.class;
-      }
-    });
+    resourceTypes.clear();
+    resourceTypes.add(new UnmatchedResourceType());
+    assertThat(provider.rankCachingTier(resourceTypes, EMPTY_LIST), is(0));
   }
-
-  static class FakeLowerProvider implements LowerCachingTier.Provider {
-
-    @Override
-    public <K, V> LowerCachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      assertThat(serviceConfigs.length, is(2));
-      return mock(LowerCachingTier.class);
-    }
-
-    @Override
-    public void releaseCachingTier(LowerCachingTier<?, ?> resource) {
-    }
-
-    @Override
-    public void initCachingTier(LowerCachingTier<?, ?> resource) {
-    }
-
-    @Override
-    public void start(ServiceProvider serviceProvider) {
-    }
-
-    @Override
-    public void stop() {
-    }
-  }
-
-  static class FakeProvider implements HigherCachingTier.Provider {
-
-    @Override
-    public void start(ServiceProvider serviceProvider) {
-    }
-
-    @Override
-    public void stop() {
-    }
-
-    @Override
-    public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      assertThat(serviceConfigs.length, is(2));
-      return mock(HigherCachingTier.class);
-    }
-
-    @Override
-    public void releaseHigherCachingTier(HigherCachingTier<?, ?> resource) {
-    }
-
-    @Override
-    public void initHigherCachingTier(HigherCachingTier<?, ?> resource) {
-    }
-  }
-
 }

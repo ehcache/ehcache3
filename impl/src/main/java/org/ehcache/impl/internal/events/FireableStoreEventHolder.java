@@ -16,8 +16,8 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.core.spi.cache.events.StoreEvent;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Condition;
@@ -99,5 +99,10 @@ class FireableStoreEventHolder<K, V> {
 
   StoreEvent<K, V> getEvent() {
     return event;
+  }
+
+  @Override
+  public String toString() {
+    return "FireableStoreEventHolder in state " + status.get() + " of " + event + (failed ? " (failed)":" (not failed)");
   }
 }

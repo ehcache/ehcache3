@@ -19,7 +19,7 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.terracotta.management.context.Context;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.HashMap;

@@ -16,14 +16,12 @@
 
 package org.ehcache.core;
 
-import org.ehcache.core.CacheConfigurationChangeListener;
-
 import java.util.List;
 
 /**
  * @author rism
  */
-public interface InternalRuntimeConfiguration {
+interface InternalRuntimeConfiguration {
 
   /**
    * adds listeners for cache configuration changes

@@ -16,7 +16,7 @@
 package org.ehcache.transactions.xa.configuration;
 
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.transactions.xa.XAStore;
+import org.ehcache.transactions.xa.internal.XAStore;
 
 /**
  * @author Ludovic Orban
@@ -25,7 +25,6 @@ public class XAStoreConfiguration implements ServiceConfiguration<XAStore.Provid
 
   private final String uniqueXAResourceId;
 
-  //TODO: ideally, the uniqueXAResourceId should be the cache alias, injected by the CM
   public XAStoreConfiguration(String uniqueXAResourceId) {
     this.uniqueXAResourceId = uniqueXAResourceId;
   }

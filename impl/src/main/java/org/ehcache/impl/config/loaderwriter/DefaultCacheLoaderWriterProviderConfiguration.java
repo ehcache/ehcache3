@@ -22,15 +22,28 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
- * @author Alex Snaps
+ * {@link ServiceCreationConfiguration} for the default {@link CacheLoaderWriterProvider}.
  */
 public class DefaultCacheLoaderWriterProviderConfiguration extends ClassInstanceProviderConfiguration<String, CacheLoaderWriter<?, ?>> implements ServiceCreationConfiguration<CacheLoaderWriterProvider> {
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<CacheLoaderWriterProvider> getServiceType() {
     return CacheLoaderWriterProvider.class;
   }
 
+  /**
+   * Adds a default {@link CacheLoaderWriter} class and associated constuctor arguments to be used with a cache matching
+   * the provided alias.
+   *
+   * @param alias the cache alias
+   * @param clazz the cache loader writer class
+   * @param arguments the constructor arguments
+   *
+   * @return this configuration instance
+   */
   public DefaultCacheLoaderWriterProviderConfiguration addLoaderFor(String alias, Class<? extends CacheLoaderWriter<?, ?>> clazz, Object... arguments) {
     getDefaults().put(alias, new DefaultCacheLoaderWriterConfiguration(clazz, arguments));
     return this;

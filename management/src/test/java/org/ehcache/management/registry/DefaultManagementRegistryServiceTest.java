@@ -18,28 +18,28 @@ package org.ehcache.management.registry;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.management.ManagementRegistryService;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.terracotta.management.call.ContextualReturn;
-import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.stats.ContextualStatistics;
-import org.terracotta.management.stats.Sample;
-import org.terracotta.management.stats.history.CounterHistory;
-import org.terracotta.management.stats.primitive.Counter;
+import org.terracotta.management.model.call.ContextualReturn;
+import org.terracotta.management.model.capabilities.Capability;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.model.stats.Sample;
+import org.terracotta.management.model.stats.history.CounterHistory;
+import org.terracotta.management.model.stats.primitive.Counter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.everyItem;
 import static org.hamcrest.CoreMatchers.instanceOf;
@@ -57,8 +57,7 @@ public class DefaultManagementRegistryServiceTest {
 
   @Test
   public void testCanGetContext() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -79,8 +78,7 @@ public class DefaultManagementRegistryServiceTest {
 
   @Test
   public void testCanGetCapabilities() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -90,12 +88,14 @@ public class DefaultManagementRegistryServiceTest {
         .using(managementRegistry)
         .build(true);
 
-    assertThat(managementRegistry.getCapabilities(), hasSize(3));
+    assertThat(managementRegistry.getCapabilities(), hasSize(4));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("StatisticsCapability"));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("SettingsCapability"));
 
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors(), hasSize(15));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors(), hasSize(14));
 
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getCapabilityContext().getAttributes(), hasSize(2));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getCapabilityContext().getAttributes(), hasSize(2));
@@ -105,8 +105,7 @@ public class DefaultManagementRegistryServiceTest {
 
   @Test
   public void testCanGetStats() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -159,8 +158,7 @@ public class DefaultManagementRegistryServiceTest {
 
   @Test
   public void testCanGetStatsSinceTime() throws InterruptedException {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration()
@@ -243,8 +241,7 @@ public class DefaultManagementRegistryServiceTest {
 
   @Test
   public void testCall() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -280,8 +277,7 @@ public class DefaultManagementRegistryServiceTest {
 
   @Test
   public void testCallOnInexistignContext() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
@@ -296,7 +292,7 @@ public class DefaultManagementRegistryServiceTest {
         .with("cacheManagerName", "myCM2")
         .with("cacheName", "aCache2");
 
-    ResultSet<ContextualReturn<Void>> results = managementRegistry.withCapability("ActionsCapability")
+    ResultSet<ContextualReturn<Serializable>> results = managementRegistry.withCapability("ActionsCapability")
         .call("clear")
         .on(inexisting)
         .build()

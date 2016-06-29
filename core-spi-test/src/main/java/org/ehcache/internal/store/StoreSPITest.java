@@ -38,12 +38,6 @@ public abstract class StoreSPITest<K, V> {
   }
 
   @Test
-  public void testComputeIfPresent() throws Exception {
-    StoreComputeIfPresentTest<K, V> testSuite = new StoreComputeIfPresentTest<K, V>(getStoreFactory());
-    testSuite.runTestSuite().reportAndThrow();
-  }
-
-  @Test
   public void testGet() throws Exception {
     StoreGetTest<K, V> testSuite = new StoreGetTest<K, V>(getStoreFactory());
     testSuite.runTestSuite().reportAndThrow();

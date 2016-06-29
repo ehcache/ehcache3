@@ -24,15 +24,51 @@ public interface LowerCachingTierOperationsOutcome {
    * the invalidate outcomes
    */
   enum InvalidateOutcome implements LowerCachingTierOperationsOutcome {
+    /**
+     * mapping removed
+     */
     REMOVED,
+    /**
+     * miss
+     */
     MISS
+  }
+
+  /**
+   * the invalidateAll outcomes
+   */
+  enum InvalidateAllOutcome implements LowerCachingTierOperationsOutcome {
+    /**
+     * entries invalidated, without errors
+     */
+    SUCCESS,
+    /**
+     * entries invalidated, with errors
+     */
+    FAILURE
+  }
+
+  /**
+   * the invalidateAllWithHash outcomes
+   */
+  enum InvalidateAllWithHashOutcome implements LowerCachingTierOperationsOutcome {
+    /**
+     * entries invalidated, without errors
+     */
+    SUCCESS,
   }
 
   /**
    * the getAndRemove outcomes
    */
   enum GetAndRemoveOutcome implements LowerCachingTierOperationsOutcome {
+    /**
+     * hit and removed
+     */
     HIT_REMOVED,
+    /**
+     * miss
+     */
     MISS
   }
 
@@ -40,7 +76,13 @@ public interface LowerCachingTierOperationsOutcome {
    * the installMapping outcomes
    */
   enum InstallMappingOutcome implements LowerCachingTierOperationsOutcome {
+    /**
+     * mapping installed
+     */
     PUT,
+    /**
+     * no-op
+     */
     NOOP
   }
 }

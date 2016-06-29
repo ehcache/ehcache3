@@ -1,1 +1,2 @@
 org.ehcache.xml.FooParser
+org.ehcache.xml.FancyParser

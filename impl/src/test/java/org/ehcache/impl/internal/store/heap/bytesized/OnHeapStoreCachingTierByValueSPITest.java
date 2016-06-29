@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -29,14 +29,17 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
-import org.ehcache.core.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
+
+import java.util.Arrays;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -89,10 +92,9 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       private ResourcePools buildResourcePools(Comparable<Long> capacityConstraint) {
         if (capacityConstraint == null) {
-          return newResourcePoolsBuilder().heap(10l, MemoryUnit.MB).build();
-        } else {
-          return newResourcePoolsBuilder().heap((Long)capacityConstraint, MemoryUnit.MB).build();
+          capacityConstraint = 10L;
         }
+        return newResourcePoolsBuilder().heap((Long)capacityConstraint, MemoryUnit.MB).build();
       }
 
       @Override
@@ -112,12 +114,14 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
 
       @Override
       public String createKey(long seed) {
-        return new String("" + seed);
+        return Long.toString(seed);
       }
 
       @Override
       public String createValue(long seed) {
-        return new String("" + seed);
+        char[] chars = new char[600 * 1024];
+        Arrays.fill(chars, (char) (0x1 + (seed & 0x7e)));
+        return new String(chars);
       }
 
       @Override
@@ -125,7 +129,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceProvider<Service> getServiceProvider() {
         return new ServiceLocator();
       }
 

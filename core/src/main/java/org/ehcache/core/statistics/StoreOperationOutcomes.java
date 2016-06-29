@@ -17,15 +17,20 @@
 package org.ehcache.core.statistics;
 
 /**
- * @author Hung Huynh
- *
+ * StoreOperationOutcomes
  */
 public interface StoreOperationOutcomes {
   /**
    * The get outcomes
    */
   enum GetOutcome implements StoreOperationOutcomes {
+    /**
+     * hit
+     */
     HIT,
+    /**
+     * miss
+     */
     MISS
   }
 
@@ -33,15 +38,31 @@ public interface StoreOperationOutcomes {
    * The put outcomes
    */
   enum PutOutcome implements StoreOperationOutcomes {
+    /**
+     * put
+     */
     PUT,
-    REPLACED
+    /**
+     * replaced
+     */
+    REPLACED,
+    /**
+     * no-op
+     */
+    NOOP
   }
 
   /**
    * The remove outcomes
    */
   enum RemoveOutcome implements StoreOperationOutcomes {
+    /**
+     * removed
+     */
     REMOVED,
+    /**
+     * miss
+     */
     MISS
   }
 
@@ -49,7 +70,13 @@ public interface StoreOperationOutcomes {
    * the putIfAbsent outcomes
    */
   enum PutIfAbsentOutcome implements StoreOperationOutcomes {
+    /**
+     * put
+     */
     PUT,
+    /**
+     * hit
+     */
     HIT
   }
 
@@ -57,7 +84,13 @@ public interface StoreOperationOutcomes {
    * the conditional remove outcomes
    */
   enum ConditionalRemoveOutcome implements StoreOperationOutcomes {
+    /**
+     * removed
+     */
     REMOVED,
+    /**
+     * miss
+     */
     MISS
   }
 
@@ -65,7 +98,13 @@ public interface StoreOperationOutcomes {
    * the replace outcomes
    */
   enum ReplaceOutcome implements StoreOperationOutcomes {
+    /**
+     * replaced
+     */
     REPLACED,
+    /**
+     * miss
+     */
     MISS
   }
 
@@ -73,7 +112,13 @@ public interface StoreOperationOutcomes {
    * the conditional replace outcomes
    */
   enum ConditionalReplaceOutcome implements StoreOperationOutcomes {
+    /**
+     * replaced
+     */
     REPLACED,
+    /**
+     * miss
+     */
     MISS
   }
 
@@ -81,9 +126,21 @@ public interface StoreOperationOutcomes {
    * the compute outcomes
    */
   enum ComputeOutcome implements StoreOperationOutcomes {
+    /**
+     * hit
+     */
     HIT,
+    /**
+     * miss
+     */
     MISS,
+    /**
+     * put
+     */
     PUT,
+    /**
+     * removed
+     */
     REMOVED
   }
 
@@ -91,19 +148,18 @@ public interface StoreOperationOutcomes {
    * the computeIfAbsent outcomes
    */
   enum ComputeIfAbsentOutcome implements StoreOperationOutcomes {
+    /**
+     * hit
+     */
     HIT,
+    /**
+     * put
+     */
     PUT,
+    /**
+     * no-op
+     */
     NOOP
-  }
-
-  /**
-   * the computeIfPresent outcomes
-   */
-  enum ComputeIfPresentOutcome implements StoreOperationOutcomes {
-    MISS,
-    HIT,
-    PUT,
-    REMOVED
   }
 
   /**
@@ -120,6 +176,9 @@ public interface StoreOperationOutcomes {
    * Outcomes for expiration
    */
   enum ExpirationOutcome implements StoreOperationOutcomes {
+    /**
+     * success
+     */
     SUCCESS
   }
 

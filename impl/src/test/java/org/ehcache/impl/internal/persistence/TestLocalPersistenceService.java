@@ -18,15 +18,20 @@ package org.ehcache.impl.internal.persistence;
 
 import java.io.File;
 import java.util.Collection;
+import org.ehcache.config.CacheConfiguration;
 
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.spi.service.MaintainableService;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
@@ -69,37 +74,47 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public boolean handlesResourceType(ResourceType resourceType) {
+  public boolean handlesResourceType(ResourceType<?> resourceType) {
     return persistenceService.handlesResourceType(resourceType);
   }
 
   @Override
-  public Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException {
-    return persistenceService.additionalConfigurationsForPool(alias, pool);
+  public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    return persistenceService.getPersistenceSpaceIdentifier(name, config);
   }
 
   @Override
-  public PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException {
-    return persistenceService.getOrCreatePersistenceSpace(name);
+  public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
+    persistenceService.releasePersistenceSpaceIdentifier(identifier);
   }
 
   @Override
-  public void destroyPersistenceSpace(String name) throws CachePersistenceException {
-    persistenceService.destroyPersistenceSpace(name);
+  public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
+    return persistenceService.getStateRepositoryWithin(identifier, name);
   }
 
   @Override
-  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier space, String name) throws CachePersistenceException {
-    return persistenceService.createPersistenceContextWithin(space, name);
+  public void destroy(String name) throws CachePersistenceException {
+    persistenceService.destroy(name);
   }
 
   @Override
-  public void destroyAllPersistenceSpaces() {
-    persistenceService.destroyAllPersistenceSpaces();
+  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier identifier, String name) throws CachePersistenceException {
+    return persistenceService.createPersistenceContextWithin(identifier, name);
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void destroyAll() throws CachePersistenceException {
+    persistenceService.destroyAll();
+  }
+
+  @Override
+  public void start(ServiceProvider<Service> serviceProvider) {
+    //ignore
+  }
+
+  @Override
+  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
     //ignore
   }
 

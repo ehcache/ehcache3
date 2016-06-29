@@ -21,7 +21,6 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
-import org.ehcache.core.config.copy.CopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
@@ -47,6 +46,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 
@@ -59,12 +59,12 @@ public class ExpiryEventsTest {
       ResourcePoolsBuilder.newResourcePoolsBuilder().heap(3, EntryUnit.ENTRIES);
 
   private static final CacheConfigurationBuilder<Long, String> byRefCacheConfigBuilder =
-      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+      CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
           .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));;
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
       byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<String>(
-          (Class)SerializingCopier.class, CopierConfiguration.Type.VALUE));;
+          (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));;
 
   private static final TestTimeSource testTimeSource = new TestTimeSource();
 

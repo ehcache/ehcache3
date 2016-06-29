@@ -60,7 +60,7 @@ public class OffHeapOsgiTest {
   @Test
   public void testOffHeapInOsgi() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(10, MemoryUnit.MB))
             .build())
         .build(true);
 
@@ -75,7 +75,7 @@ public class OffHeapOsgiTest {
   public void testOffHeapClientClass() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withClassLoader(getClass().getClassLoader())
-        .withCache("myCache", newCacheConfigurationBuilder(Long.class, Order.class).withResourcePools(newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB))
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, Order.class, newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).offheap(2, MemoryUnit.MB))
             .build())
         .build(true);
 

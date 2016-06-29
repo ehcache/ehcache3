@@ -36,7 +36,7 @@
 
     <resources>
       <heap unit="entries">10</heap>
-      <disk unit="mb">10</disk>
+      <disk unit="MB">10</disk>
     </resources>
   </cache>
 
@@ -52,12 +52,12 @@
         </batching>
       </write-behind>
     </loader-writer>
-    <listeners thread-pool="cache2Pool"/> <!--6-->
+    <listeners dispatcher-thread-pool="cache2Pool"/> <!--6-->
     <resources>
       <heap unit="entries">10</heap>
-      <disk unit="mb">10</disk>
+      <disk unit="MB">10</disk>
     </resources>
-    <disk-store-settings thread-pool="cache2Pool" writer-threads="2"/> <!--7-->
+    <disk-store-settings thread-pool="cache2Pool" writer-concurrency="2"/> <!--7-->
   </cache>
   <!-- end::threadPools[] -->
 

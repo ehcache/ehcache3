@@ -26,8 +26,8 @@ public class ThreadLocalStoreEventDispatcher<K, V> extends AbstractStoreEventDis
   private final ThreadLocal<StoreEventSink<K, V>> tlEventSink = new ThreadLocal<StoreEventSink<K, V>>();
   private final ThreadLocal<Integer> usageDepth = new ThreadLocal<Integer>();
 
-  public ThreadLocalStoreEventDispatcher(int orderedEventParallelism) {
-    super(orderedEventParallelism);
+  public ThreadLocalStoreEventDispatcher(int dispatcherConcurrency) {
+    super(dispatcherConcurrency);
   }
 
   @Override

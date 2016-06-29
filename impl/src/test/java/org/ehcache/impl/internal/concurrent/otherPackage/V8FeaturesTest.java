@@ -16,8 +16,8 @@
 
 package org.ehcache.impl.internal.concurrent.otherPackage;
 
-import org.ehcache.function.BiFunction;
-import org.ehcache.function.Function;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.concurrent.JSR166Helper;
 import org.junit.Test;

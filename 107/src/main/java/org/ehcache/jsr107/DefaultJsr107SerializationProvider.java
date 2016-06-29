@@ -16,18 +16,16 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
-import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.serialization.PlainJavaSerializer;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
+class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
 
-  public DefaultJsr107SerializationProvider() {
+  DefaultJsr107SerializationProvider() {
     super(new DefaultSerializationProviderConfiguration()
-            .addSerializerFor(Object.class, (Class) CompactJavaSerializer.class)
-            .addSerializerFor(Object.class, (Class) CompactPersistentJavaSerializer.class));
+            .addSerializerFor(Object.class, (Class) PlainJavaSerializer.class));
   }
 }

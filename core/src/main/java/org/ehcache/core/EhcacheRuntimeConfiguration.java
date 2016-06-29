@@ -18,9 +18,9 @@ package org.ehcache.core;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.events.EventListenerWrapper;
+import org.ehcache.core.internal.events.EventListenerWrapper;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
@@ -42,7 +42,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   private final CacheConfiguration<? super K, ? super V> config;
   private final Class<K> keyType;
   private final Class<V> valueType;
-  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
   private volatile ResourcePools resourcePools;
@@ -55,7 +55,7 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
     this.serviceConfigurations = copy(config.getServiceConfigurations());
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
-    this.evictionVeto = config.getEvictionVeto();
+    this.evictionAdvisor = config.getEvictionAdvisor();
     this.classLoader = config.getClassLoader();
     this.expiry = config.getExpiry();
     this.resourcePools = config.getResourcePools();
@@ -89,8 +89,8 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   }
 
   @Override
-  public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-    return this.evictionVeto;
+  public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+    return this.evictionAdvisor;
   }
 
   @Override

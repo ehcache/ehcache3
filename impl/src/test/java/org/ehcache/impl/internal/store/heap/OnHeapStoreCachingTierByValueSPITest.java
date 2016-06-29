@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.config.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.copy.SerializingCopier;
@@ -28,12 +28,13 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
-import org.ehcache.core.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
@@ -129,7 +130,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       @Override
-      public ServiceProvider getServiceProvider() {
+      public ServiceProvider<Service> getServiceProvider() {
         return new ServiceLocator();
       }
 

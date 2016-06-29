@@ -16,10 +16,11 @@
 
 package org.ehcache.impl.internal.events;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.cache.events.StoreEventFilter;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 
 /**
  * NullStoreEventDispatcher
@@ -32,12 +33,12 @@ public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
 
   private final StoreEventSink<K, V> storeEventSink = new StoreEventSink<K, V>() {
     @Override
-    public void evicted(K key, V value) {
+    public void evicted(K key, ValueSupplier<V> value) {
       // Do nothing
     }
 
     @Override
-    public void expired(K key, V value) {
+    public void expired(K key, ValueSupplier<V> value) {
       // Do nothing
     }
 
@@ -47,12 +48,12 @@ public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
     }
 
     @Override
-    public void updated(K key, V previousValue, V newValue) {
+    public void updated(K key, ValueSupplier<V> previousValue, V newValue) {
       // Do nothing
     }
 
     @Override
-    public void removed(K key, V removed) {
+    public void removed(K key, ValueSupplier<V> removed) {
       // Do nothing
     }
   };
@@ -69,6 +70,11 @@ public class NullStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V
 
   @Override
   public void releaseEventSinkAfterFailure(StoreEventSink<K, V> eventSink, Throwable throwable) {
+    // Do nothing
+  }
+
+  @Override
+  public void reset(StoreEventSink<K, V> eventSink) {
     // Do nothing
   }
 

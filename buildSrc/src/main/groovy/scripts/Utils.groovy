@@ -19,12 +19,31 @@ package scripts;
 class Utils {
 
   String version
+  String revision
+
+  Utils(version, logger) {
+    this.version = version
+    def tmp = System.getenv("GIT_COMMIT")
+    if(tmp != null) {
+      revision = tmp
+    } else {
+      logger.debug('Revision not found in system properties, trying command line')
+      def cmd = 'git rev-parse HEAD'
+      try {
+        def proc = cmd.execute()
+        revision = proc.text.trim()
+      } catch (IOException ioex) {
+        revision = 'Unknown'
+      }
+    }
+    logger.debug(revision)
+  }
 
   def fillManifest(manifest, title) {
     manifest.attributes(
             'provider': 'gradle',
             'Implementation-Title': title,
-            'Implementation-Version': version,
+            'Implementation-Version': "$version $revision",
             'Built-By': System.getProperty('user.name'),
             'Built-JDK': System.getProperty('java.version'),
             'Build-Time': new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")

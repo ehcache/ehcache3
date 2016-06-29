@@ -16,10 +16,12 @@
 
 package com.pany.domain;
 
+import java.io.Serializable;
+
 /**
  * Client
  */
-public class Client {
+public class Client implements Serializable {
 
   private final String name;
   private final long creditLine;

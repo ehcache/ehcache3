@@ -28,33 +28,39 @@ import java.util.concurrent.ScheduledExecutorService;
  * <p>
  * Shutdown of these derived executors shuts down the derived executors but does
  * nothing to the underlying thread pool.
- *
- * @author Ludovic Orban
  */
 public interface ExecutionService extends Service {
 
   /**
    * Get a pre-configured {@link ScheduledExecutorService} instance.
+   *
    * @param poolAlias the requested pool alias.
    * @return the {@link ScheduledExecutorService} instance.
+   *
    * @throws IllegalArgumentException if the requested pool alias does not exist.
    */
   ScheduledExecutorService getScheduledExecutor(String poolAlias) throws IllegalArgumentException;
 
   /**
    * Get a pre-configured {@link ExecutorService} instance that guarantees execution in submission order.
+   *
    * @param poolAlias the requested pool alias.
    * @param queue the queue in which pending tasks are to be queued.
+   *
    * @return the {@link ExecutorService} instance.
+   *
    * @throws IllegalArgumentException if the requested pool alias does not exist.
    */
   ExecutorService getOrderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) throws IllegalArgumentException;
 
   /**
    * Get a pre-configured {@link ExecutorService} instance.
+   *
    * @param poolAlias the requested pool alias.
    * @param queue the queue in which pending tasks are to be queued.
+   *
    * @return the {@link ExecutorService} instance.
+   *
    * @throws IllegalArgumentException if the requested pool alias does not exist.
    */
   ExecutorService getUnorderedExecutor(String poolAlias, BlockingQueue<Runnable> queue) throws IllegalArgumentException;

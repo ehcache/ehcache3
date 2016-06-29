@@ -22,18 +22,33 @@ import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 /**
- * @author Albin Suresh
+ * {@link ServiceCreationConfiguration} for the default {@link CopyProvider} implementation.
+ * <P>
+ *   Enables configuring {@link Class} - {@link Copier} pairs that will be selected unless cache level configurations
+ *   are provided.
+ * </P>
  */
 public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfiguration<Class<?>, Copier<?>> implements ServiceCreationConfiguration<CopyProvider> {
 
+  /**
+   * Default constructor.
+   */
   public DefaultCopyProviderConfiguration() {
     // Default constructor
   }
 
+  /**
+   * Copy constructor
+   *
+   * @param other the instance to copy
+   */
   public DefaultCopyProviderConfiguration(DefaultCopyProviderConfiguration other) {
     getDefaults().putAll(other.getDefaults());
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<CopyProvider> getServiceType() {
     return CopyProvider.class;

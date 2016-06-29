@@ -18,9 +18,7 @@ package org.ehcache.management.registry;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.SharedManagementService;
 import org.hamcrest.Matchers;
@@ -29,20 +27,22 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.terracotta.management.call.ContextualReturn;
-import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.model.call.ContextualReturn;
+import org.terracotta.management.model.capabilities.Capability;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.ResultSet;
-import org.terracotta.management.stats.ContextualStatistics;
-import org.terracotta.management.stats.primitive.Counter;
+import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.model.stats.primitive.Counter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
@@ -69,8 +69,7 @@ public class DefaultSharedManagementServiceTest {
 
   @Before
   public void init() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
     service = new DefaultSharedManagementService();
@@ -136,13 +135,17 @@ public class DefaultSharedManagementServiceTest {
     Collection<Capability> capabilities1 = service.getCapabilities().get(config1.getContext());
     Collection<Capability> capabilities2 = service.getCapabilities().get(config2.getContext());
 
-    assertThat(capabilities1, hasSize(3));
+    assertThat(capabilities1, hasSize(4));
     assertThat(new ArrayList<Capability>(capabilities1).get(0).getName(), equalTo("ActionsCapability"));
     assertThat(new ArrayList<Capability>(capabilities1).get(1).getName(), equalTo("StatisticsCapability"));
+    assertThat(new ArrayList<Capability>(capabilities1).get(2).getName(), equalTo("StatisticCollectorCapability"));
+    assertThat(new ArrayList<Capability>(capabilities1).get(3).getName(), equalTo("SettingsCapability"));
 
-    assertThat(capabilities2, hasSize(3));
+    assertThat(capabilities2, hasSize(4));
     assertThat(new ArrayList<Capability>(capabilities2).get(0).getName(), equalTo("ActionsCapability"));
     assertThat(new ArrayList<Capability>(capabilities2).get(1).getName(), equalTo("StatisticsCapability"));
+    assertThat(new ArrayList<Capability>(capabilities2).get(2).getName(), equalTo("StatisticCollectorCapability"));
+    assertThat(new ArrayList<Capability>(capabilities2).get(3).getName(), equalTo("SettingsCapability"));
   }
 
   @Test
@@ -201,15 +204,14 @@ public class DefaultSharedManagementServiceTest {
     assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), equalTo("1"));
     assertThat(cacheManager2.getCache("aCache2", Long.class, String.class).get(2L), equalTo("2"));
 
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build())
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
     cacheManager1.createCache("aCache4", cacheConfiguration);
 
     cacheManager1.getCache("aCache4", Long.class, String.class).put(4L, "4");
     assertThat(cacheManager1.getCache("aCache4", Long.class, String.class).get(4L), equalTo("4"));
 
-    ResultSet<ContextualReturn<Void>> results = service.withCapability("ActionsCapability")
+    ResultSet<ContextualReturn<Serializable>> results = service.withCapability("ActionsCapability")
         .call("clear")
         .on(contextList)
         .build()

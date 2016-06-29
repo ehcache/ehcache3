@@ -15,7 +15,7 @@
  */
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
 
@@ -24,12 +24,12 @@ public abstract class OnHeapStoreByRefTest extends BaseOnHeapStoreTest {
   @Override
   protected <K, V> OnHeapStore<K, V> newStore(final TimeSource timeSource,
       final Expiry<? super K, ? super V> expiry,
-      final EvictionVeto<? super K, ? super V> veto) {
-    return newStore(timeSource, expiry, veto, 100);
+      final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
+    return newStore(timeSource, expiry, evictionAdvisor, 100);
   }
 
   protected abstract <K, V> OnHeapStore<K, V> newStore(TimeSource timeSource,
       Expiry<? super K, ? super V> expiry,
-      EvictionVeto<? super K, ? super V> veto, int capacity);
+      EvictionAdvisor<? super K, ? super V> evictionAdvisor, int capacity);
 
 }

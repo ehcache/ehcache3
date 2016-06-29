@@ -16,18 +16,19 @@
 
 package org.ehcache.core.spi;
 
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
-import org.ehcache.core.spi.cache.tiering.CachingTier;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import static org.junit.Assert.assertThat;
 
 /**
- * @author Alex Snaps
+ *
  */
 public class ServiceProviderTest {
 
@@ -40,17 +41,17 @@ public class ServiceProviderTest {
     OffHeapStore.Provider authoritativeTierProvider = new OffHeapStore.Provider();
     OffHeapDiskStore.Provider diskStoreProvider = new OffHeapDiskStore.Provider();
 
-    serviceLocator.addService(cachingTierProvider, true);
-    serviceLocator.addService(authoritativeTierProvider, true);
-    serviceLocator.addService(diskStoreProvider, true);
+    serviceLocator.addService(cachingTierProvider);
+    serviceLocator.addService(authoritativeTierProvider);
+    serviceLocator.addService(diskStoreProvider);
 
     serviceLocator.startAllServices();
 
-    assertThat(serviceLocator.getService(CachingTier.Provider.class),
+    assertThat(serviceLocator.getServicesOfType(CachingTier.Provider.class).iterator().next(),
         IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider));
-    assertThat(serviceLocator.getService(AuthoritativeTier.Provider.class),
+    assertThat(serviceLocator.getServicesOfType(AuthoritativeTier.Provider.class).iterator().next(),
         IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider));
-    assertThat(serviceLocator.getService(diskStoreProvider.getClass()),
+    assertThat(serviceLocator.getServicesOfType(diskStoreProvider.getClass()).iterator().next(),
         IsSame.sameInstance(diskStoreProvider));
   }
 }
