@@ -221,7 +221,6 @@ public class TerminatedServerTest {
     }
   }
 
-  @Ignore("Pending correction to https://github.com/ehcache/ehcache3/issues/1219")
   @Test
   public void testTerminationBeforeCacheManagerDestroyCache() throws Exception {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
