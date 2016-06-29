@@ -62,6 +62,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -754,13 +755,23 @@ public class XAStore<K, V> implements Store<K, V> {
 
     @Override
     public <K, V> Store<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
+      Set<ResourceType.Core> supportedTypes = EnumSet.allOf(ResourceType.Core.class);
+
+      Set<ResourceType<?>> configuredTypes = storeConfig.getResourcePools().getResourceTypeSet();
+
+      for (ResourceType<?> type: configuredTypes) {
+        if (!supportedTypes.contains(type)) {
+          throw new IllegalStateException("Unsupported resource type : " + type.getResourcePoolClass());
+        }
+      }
+
       XAStoreConfiguration xaServiceConfiguration = findSingletonAmongst(XAStoreConfiguration.class, (Object[]) serviceConfigs);
       if (xaServiceConfiguration == null) {
         throw new IllegalStateException("XAStore.Provider.createStore called without XAStoreConfiguration");
       }
 
       final Store.Provider underlyingStoreProvider =
-          selectProvider(storeConfig.getResourcePools().getResourceTypeSet(), Arrays.asList(serviceConfigs), xaServiceConfiguration);
+          selectProvider(configuredTypes, Arrays.asList(serviceConfigs), xaServiceConfiguration);
 
       String uniqueXAResourceId = xaServiceConfiguration.getUniqueXAResourceId();
       List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
