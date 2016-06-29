@@ -21,12 +21,18 @@ package org.ehcache.core.spi.time;
  */
 public class SystemTimeSource implements TimeSource {
 
+  /**
+   * Singleton instance of this {@link TimeSource}
+   */
   public static final TimeSource INSTANCE = new SystemTimeSource();
 
   private SystemTimeSource() {
     //
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public long getTimeMillis() {
     return System.currentTimeMillis();

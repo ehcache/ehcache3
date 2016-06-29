@@ -15,14 +15,14 @@
  */
 package org.ehcache.impl.internal.store.heap.bytesized;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
-import org.ehcache.core.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.io.Serializable;
@@ -32,7 +32,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.heap.OnHeapStoreEvictionTest {
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
-      final EvictionVeto<? super K, ? super V> veto) {
+      final EvictionAdvisor<? super K, ? super V> evictionAdvisor) {
     return new OnHeapStoreForTests<K, V>(new Store.Configuration<K, V>() {
       @SuppressWarnings("unchecked")
       @Override
@@ -47,8 +47,8 @@ public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.hea
       }
 
       @Override
-      public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-        return veto;
+      public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+        return evictionAdvisor;
       }
 
       @Override
@@ -77,7 +77,7 @@ public class OnHeapStoreEvictionTest extends org.ehcache.impl.internal.store.hea
       }
 
       @Override
-      public int getOrderedEventParallelism() {
+      public int getDispatcherConcurrency() {
         return 0;
       }
     }, timeSource, new DefaultSizeOfEngine(Long.MAX_VALUE, Long.MAX_VALUE));

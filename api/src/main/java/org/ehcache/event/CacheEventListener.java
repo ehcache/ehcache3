@@ -17,21 +17,26 @@
 package org.ehcache.event;
 
 /**
- * Contract for users that want to listen on {@link CacheEvent}s.
+ * Definition of the contract for implementing listeners to receive {@link CacheEvent}s from a
+ * {@link org.ehcache.Cache Cache}.
  *
- * @param <K> the type of the keys used to access data within the cache
- * @param <V> the type of the values held within the cache
- *
- * @author Alex Snaps
+ * @param <K> the key type for the observed cache
+ * @param <V> the value type for the observed cache
  */
 public interface CacheEventListener<K, V> {
 
   /**
-   * Invoked on any {@link org.ehcache.event.CacheEvent} matching the {@link org.ehcache.event.EventType} constrain used
-   * when the listener was registered. This method is invoked according to the {@link org.ehcache.event.EventOrdering}
-   * and {@link org.ehcache.event.EventFiring} requirement desired at registration time.
+   * Invoked on {@link org.ehcache.event.CacheEvent CacheEvent} firing.
    *
-   * @param event the actual {@link org.ehcache.event.CacheEvent}
+   * <P>
+   *   This method is invoked according to the {@link EventOrdering}, {@link EventFiring} and
+   *   {@link EventType} requirements provided at listener registration time.
+   * </P>
+   * <P>
+   *   Any exception thrown from this listener will be swallowed and logged but will not prevent other listeners to run.
+   * </P>
+   *
+   * @param event the actual {@code CacheEvent}
    */
   void onEvent(CacheEvent<K, V> event);
 

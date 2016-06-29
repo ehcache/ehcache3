@@ -17,7 +17,7 @@
 package org.ehcache.impl.internal.events;
 
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEvent;
 
 import static java.lang.String.format;
 

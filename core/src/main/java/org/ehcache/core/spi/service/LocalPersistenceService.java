@@ -16,17 +16,15 @@
 
 package org.ehcache.core.spi.service;
 
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.service.PersistableResourceService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
  * Service to provide persistence context to caches requiring it.
- *
+ * <P>
  * Will be used by caches with a disk store, whether or not the data should survive a program restart.
- *
- * @author Alex Snaps
+ * <P/>
  */
 public interface LocalPersistenceService extends PersistableResourceService {
 
@@ -57,7 +55,7 @@ public interface LocalPersistenceService extends PersistableResourceService {
    * It will nonetheless try to delete any persistent data associated with the root directory provided
    * in the service.
    */
-  void destroyAllPersistenceSpaces();
+  void destroyAll();
 
   /**
    * An identifier for an existing persistence space.

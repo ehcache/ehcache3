@@ -17,32 +17,32 @@
 package org.ehcache.event;
 
 /**
- * @author Alex Snaps
+ * The different event types.
  */
 public enum EventType {
 
   /**
-   * Represents a {@link org.ehcache.Cache.Entry} being evicted
+   * Represents a {@link org.ehcache.Cache.Entry cache entry} being evicted
    */
   EVICTED,
 
   /**
-   * Represents a {@link org.ehcache.Cache.Entry} expiring
+   * Represents a {@link org.ehcache.Cache.Entry cache entry} expiring
    */
   EXPIRED,
 
   /**
-   * Represents a {@link org.ehcache.Cache.Entry} being removed
+   * Represents a {@link org.ehcache.Cache.Entry cache entry} being removed
    */
   REMOVED,
 
   /**
-   * Represents a new {@link org.ehcache.Cache.Entry} being installed for a given key
+   * Represents a new {@link org.ehcache.Cache.Entry cache entry} being installed for a given key
    */
   CREATED,
 
   /**
-   * Represents an existing {@link org.ehcache.Cache.Entry} being updated for a given key
+   * Represents an existing {@link org.ehcache.Cache.Entry cache entry} being updated for a given key
    */
   UPDATED,
 

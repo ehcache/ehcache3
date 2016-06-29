@@ -1,11 +1,9 @@
 ---
 ---
+= Management and Monitoring
 ifndef::sourcedir[]
 include::common.adoc[]
 endif::sourcedir[]
-
-= Management and Monitoring
-
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]

@@ -16,10 +16,10 @@
 
 package org.ehcache.impl.internal.sizeof;
 
-import org.ehcache.core.exceptions.LimitExceededException;
+import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;

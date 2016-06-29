@@ -16,11 +16,11 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.core.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.Ignore;
@@ -68,7 +68,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
    * will be evicted with the default behaviour of the tier.
    */
   @SPITest
-  public void nonMarkedMappingIsEvictable() throws CacheAccessException {
+  public void nonMarkedMappingIsEvictable() throws StoreAccessException {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
@@ -100,7 +100,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
 
       assertThat(tier.get(key).value(), is(equalTo(value)));
 
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
@@ -109,7 +109,7 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
   @Ignore
   public void marksTheMappingAsNotExpirable() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource();
-    tier = factory.newStoreWithExpiry(Expirations.<K, V>timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
+    tier = factory.newStoreWithExpiry(Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -121,12 +121,12 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
       timeSource.advanceTime(1);
       assertThat(tier.get(key), is(not(nullValue())));
 
-    } catch (CacheAccessException e) {
+    } catch (StoreAccessException e) {
       throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
-  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws CacheAccessException {
+  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws StoreAccessException {
     for (long seed = 2L; seed < 10; seed++) {
       tier.put(factory.createKey(seed), factory.createValue(seed));
     }

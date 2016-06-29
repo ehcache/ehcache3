@@ -16,10 +16,11 @@
 
 package org.ehcache.impl.internal.events;
 
+import org.ehcache.ValueSupplier;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.cache.events.StoreEventFilter;
-import org.ehcache.core.spi.cache.events.StoreEventListener;
+import org.ehcache.core.spi.store.events.StoreEventFilter;
+import org.ehcache.core.spi.store.events.StoreEventListener;
 
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -43,17 +44,22 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void removed(Object key, Object value) {
+    public void reset() {
       // Do nothing
     }
 
     @Override
-    public void updated(Object key, Object oldValue, Object newValue) {
+    public void removed(Object key, ValueSupplier value) {
       // Do nothing
     }
 
     @Override
-    public void expired(Object key, Object value) {
+    public void updated(Object key, ValueSupplier oldValue, Object newValue) {
+      // Do nothing
+    }
+
+    @Override
+    public void expired(Object key, ValueSupplier value) {
       // Do nothing
     }
 
@@ -63,7 +69,7 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void evicted(Object key, Object value) {
+    public void evicted(Object key, ValueSupplier value) {
       // Do nothing
     }
   };
@@ -73,11 +79,11 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
   private final BlockingQueue<FireableStoreEventHolder<K, V>>[] orderedQueues;
   private volatile boolean ordered = false;
 
-  protected AbstractStoreEventDispatcher(int orderedEventParallelism) {
-    if (orderedEventParallelism <= 0) {
-      throw new IllegalArgumentException("Ordered event parallelism must be an integer greater than 0");
+  protected AbstractStoreEventDispatcher(int dispatcherConcurrency) {
+    if (dispatcherConcurrency <= 0) {
+      throw new IllegalArgumentException("Dispatcher concurrency must be an integer greater than 0");
     }
-    orderedQueues = new LinkedBlockingQueue[orderedEventParallelism];
+    orderedQueues = new LinkedBlockingQueue[dispatcherConcurrency];
     for (int i = 0; i < orderedQueues.length; i++) {
       orderedQueues[i] = new LinkedBlockingQueue<FireableStoreEventHolder<K, V>>(10000);
     }
@@ -128,5 +134,10 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
   @Override
   public void releaseEventSinkAfterFailure(StoreEventSink<K, V> eventSink, Throwable throwable) {
     ((CloseableStoreEventSink) eventSink).closeOnFailure();
+  }
+
+  @Override
+  public void reset(StoreEventSink<K, V> eventSink) {
+    ((CloseableStoreEventSink) eventSink).reset();
   }
 }

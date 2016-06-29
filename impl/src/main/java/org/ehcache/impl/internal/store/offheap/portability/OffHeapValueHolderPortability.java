@@ -16,7 +16,8 @@
 
 package org.ehcache.impl.internal.store.offheap.portability;
 
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.impl.internal.store.BinaryValueHolder;
+import org.ehcache.impl.internal.store.offheap.LazyOffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.spi.serialization.Serializer;
 import org.terracotta.offheapstore.storage.portability.WriteBackPortability;
@@ -44,7 +45,12 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
 
   @Override
   public ByteBuffer encode(OffHeapValueHolder<V> valueHolder) {
-    ByteBuffer serialized = serializer.serialize(valueHolder.value());
+    ByteBuffer serialized;
+    if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder)valueHolder).isBinaryValueAvailable()) {
+      serialized = ((BinaryValueHolder)valueHolder).getBinaryValue();
+    } else {
+      serialized = serializer.serialize(valueHolder.value());
+    }
     ByteBuffer byteBuffer = ByteBuffer.allocate(serialized.remaining() + FIELDS_OVERHEAD);
     byteBuffer.putLong(valueHolder.getId());
     byteBuffer.putLong(valueHolder.creationTime(OffHeapValueHolder.TIME_UNIT));
@@ -68,16 +74,12 @@ public class OffHeapValueHolderPortability<V> implements WriteBackPortability<Of
 
   @Override
   public OffHeapValueHolder<V> decode(ByteBuffer byteBuffer, WriteContext writeContext) {
-    try {
-      long id = byteBuffer.getLong();
-      long creationTime = byteBuffer.getLong();
-      long lastAccessTime = byteBuffer.getLong();
-      long expireTime = byteBuffer.getLong();
-      long hits = byteBuffer.getLong();
-      OffHeapValueHolder<V> valueHolder = new OffHeapValueHolder<V>(id, serializer.read(byteBuffer), creationTime, expireTime, lastAccessTime, hits, writeContext);
-      return valueHolder;
-    } catch (ClassNotFoundException e) {
-      throw new SerializerException(e);
-    }
+    long id = byteBuffer.getLong();
+    long creationTime = byteBuffer.getLong();
+    long lastAccessTime = byteBuffer.getLong();
+    long expireTime = byteBuffer.getLong();
+    long hits = byteBuffer.getLong();
+    return new LazyOffHeapValueHolder<V>(id, byteBuffer.slice(), serializer,
+        creationTime, expireTime, lastAccessTime, hits, writeContext);
   }
 }

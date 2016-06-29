@@ -24,7 +24,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap>5</ehcache:heap>
-      <ehcache:disk unit="mb">50</ehcache:disk>
+      <ehcache:disk unit="MB">50</ehcache:disk>
     </ehcache:resources>
   </ehcache:cache-template>
 
@@ -36,7 +36,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap>5</ehcache:heap>
-      <ehcache:disk unit="mb" persistent="true">50</ehcache:disk>
+      <ehcache:disk unit="MB" persistent="true">50</ehcache:disk>
     </ehcache:resources>
   </ehcache:cache-template>
 
@@ -48,7 +48,7 @@
     <ehcache:value-type>java.lang.String</ehcache:value-type>
     <ehcache:resources>
       <ehcache:heap>5</ehcache:heap>
-      <ehcache:offheap unit="mb">50</ehcache:offheap>
+      <ehcache:offheap unit="MB">50</ehcache:offheap>
     </ehcache:resources>
   </ehcache:cache-template>
 
@@ -64,14 +64,6 @@
   </ehcache:cache-template>
 
   <ehcache:cache alias="templatedExplicitHeapResource" uses-template="explicitHeapResourceTemplate">
-  </ehcache:cache>
-
-  <ehcache:cache-template name="implicitHeapResourceTemplate">
-    <ehcache:key-type>java.lang.String</ehcache:key-type>
-    <ehcache:value-type>java.lang.String</ehcache:value-type>
-  </ehcache:cache-template>
-
-  <ehcache:cache alias="templatedImplicitHeapResource" uses-template="implicitHeapResourceTemplate">
   </ehcache:cache>
 
 </ehcache:config>

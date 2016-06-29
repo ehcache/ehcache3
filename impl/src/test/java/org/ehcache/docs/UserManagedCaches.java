@@ -21,7 +21,7 @@ import org.ehcache.UserManagedCache;
 import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.UserManagedCacheBuilder;
-import org.ehcache.core.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.config.persistence.UserManagedPersistenceContext;
 import org.ehcache.config.units.EntryUnit;
@@ -29,7 +29,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
 import org.ehcache.docs.plugs.LongCopier;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.ehcache.docs.plugs.OddKeysEvictionVeto;
+import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
 import org.ehcache.docs.plugs.SampleLoaderWriter;
 import org.ehcache.docs.plugs.StringCopier;
 import org.ehcache.impl.serialization.StringSerializer;
@@ -80,7 +80,7 @@ public class UserManagedCaches {
     assertThat(cache.get(42L), is("The Answer!"));
 
     cache.close(); // <4>
-    cache.toMaintenance().destroy(); // <5>
+    cache.destroy(); // <5>
     // end::persistentUserManagedCache[]
   }
 
@@ -173,10 +173,10 @@ public class UserManagedCaches {
   }
 
   @Test
-  public void userManagedEvictionVetoCache() throws Exception {
-    // tag::userManagedEvictionVetoCache[]
+  public void userManagedEvictionAdvisorCache() throws Exception {
+    // tag::userManagedEvictionAdvisorCache[]
     UserManagedCache<Long, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(Long.class, String.class)
-        .withEvictionVeto(new OddKeysEvictionVeto<Long, String>()) // <1>
+        .withEvictionAdvisor(new OddKeysEvictionAdvisor<Long, String>()) // <1>
         .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(2L, EntryUnit.ENTRIES)) // <2>
         .build(true);
@@ -187,7 +187,7 @@ public class UserManagedCaches {
     cache.put(39L, "The other wrong Answer!");
 
     cache.close(); // <3>
-    // end::userManagedEvictionVetoCache[]
+    // end::userManagedEvictionAdvisorCache[]
   }
 
   @Test

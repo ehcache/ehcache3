@@ -16,6 +16,7 @@
   -->
 
 <xs:schema version="1.0" xmlns:ehcache="http://www.ehcache.org/v3" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:jaxb="http://java.sun.com/xml/ns/jaxb" jaxb:version="2.0"
            elementFormDefault="qualified" targetNamespace="http://www.ehcache.org/v3">
   <xs:element name="config" type="ehcache:config-type"/>
 
@@ -110,10 +111,17 @@
   </xs:complexType>
 
   <xs:complexType name="service-type">
-    <xs:choice>
-      <xs:any namespace="##other" minOccurs="0" maxOccurs="1"/>
-    </xs:choice>
+    <xs:sequence>
+      <xs:element ref="ehcache:service-creation-configuration" minOccurs="1" maxOccurs="1"/>
+    </xs:sequence>
   </xs:complexType>
+  <xs:element name="service-creation-configuration" abstract="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:dom/>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
 
   <xs:complexType name="persistence-type">
     <xs:attribute name="directory" type="xs:string" use="required"/>
@@ -237,11 +245,11 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:element name="eviction-veto" type="ehcache:fqcn-type" minOccurs="0" maxOccurs="1">
+      <xs:element name="eviction-advisor" type="ehcache:fqcn-type" minOccurs="0" maxOccurs="1">
         <xs:annotation>
           <xs:documentation xml:lang="en">
             A fully qualified class name to a concrete type that implements
-            org.ehcache.config.EvictionVeto and has a public default no argument constructor.
+            org.ehcache.config.EvictionAdvisor and has a public default no argument constructor.
           </xs:documentation>
         </xs:annotation>
       </xs:element>
@@ -260,10 +268,10 @@
         </xs:annotation>
       </xs:element>
       <xs:choice minOccurs="0" maxOccurs="1">
-        <xs:element name="heap" type="ehcache:resource-type" minOccurs="1" maxOccurs="1">
+        <xs:element ref="ehcache:heap" minOccurs="1" maxOccurs="1">
           <xs:annotation>
             <xs:documentation xml:lang="en">
-              Shortcut for configuring a heap-only Cache.
+              Shortcut for configuring a heap Cache.
             </xs:documentation>
           </xs:annotation>
         </xs:element>
@@ -289,9 +297,16 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
-      <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element ref="ehcache:service-configuration" minOccurs="0" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
+  <xs:element name="service-configuration" abstract="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:dom/>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
 
   <xs:complexType name="listeners-type">
     <xs:sequence>
@@ -328,13 +343,12 @@
                 </xs:documentation>
               </xs:annotation>
             </xs:element>
-            <xs:any namespace="##other" minOccurs="0" maxOccurs="unbounded"/>
           </xs:sequence>
         </xs:complexType>
       </xs:element>
     </xs:sequence>
-    <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="parallelism-level" type="xs:positiveInteger" use="optional" default="8"/>
+    <xs:attribute name="dispatcher-thread-pool" type="xs:string" use="optional"/>
+    <xs:attribute name="dispatcher-concurrency" type="xs:positiveInteger" use="optional" default="8"/>
   </xs:complexType>
 
   <xs:complexType name="cache-loader-writer-type">
@@ -445,7 +459,7 @@
   <xs:complexType name="memory-type">
     <xs:simpleContent>
       <xs:extension base="xs:positiveInteger">
-        <xs:attribute name="unit" type="ehcache:memory-unit" default="b" use="optional">
+        <xs:attribute name="unit" type="ehcache:memory-unit" default="B" use="optional">
           <xs:annotation>
             <xs:documentation xml:lang="en">
               The memory unit (see org.ehcache.config.units.MemoryUnit) this value is expressed in.
@@ -478,18 +492,45 @@
     </xs:complexContent>
   </xs:complexType>
 
+  <xs:element name="resource" abstract="true">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:dom/>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:element name="heap" type="ehcache:resource-type" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+  <xs:element name="offheap" type="ehcache:memory-type" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+  <xs:element name="disk" type="ehcache:persistable-memory-type" substitutionGroup="ehcache:resource">
+    <xs:annotation>
+      <xs:appinfo>
+        <jaxb:class/>
+      </xs:appinfo>
+    </xs:annotation>
+  </xs:element>
+
   <xs:complexType name="resources-type">
     <xs:sequence>
-      <xs:element name="heap" type="ehcache:resource-type" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="offheap" type="ehcache:memory-type" minOccurs="0" maxOccurs="1"/>
-      <xs:element name="disk" type="ehcache:persistable-memory-type" minOccurs="0" maxOccurs="1"/>
-      <xs:any namespace="##other" minOccurs="0"/>
+      <xs:element ref="ehcache:resource" minOccurs="1" maxOccurs="unbounded"/>
     </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="disk-store-settings-type">
     <xs:attribute name="thread-pool" type="xs:string" use="optional"/>
-    <xs:attribute name="writer-threads" type="xs:positiveInteger" use="optional" default="1"/>
+    <xs:attribute name="writer-concurrency" type="xs:positiveInteger" use="optional" default="1"/>
   </xs:complexType>
 
   <xs:simpleType name="time-unit">
@@ -505,24 +546,24 @@
   </xs:simpleType>
   <xs:simpleType name="memory-unit">
     <xs:restriction base="xs:string">
-      <xs:enumeration value="b"/>
-      <xs:enumeration value="kb"/>
-      <xs:enumeration value="mb"/>
-      <xs:enumeration value="gb"/>
-      <xs:enumeration value="tb"/>
-      <xs:enumeration value="pb"/>
+      <xs:enumeration value="B"/>
+      <xs:enumeration value="kB"/>
+      <xs:enumeration value="MB"/>
+      <xs:enumeration value="GB"/>
+      <xs:enumeration value="TB"/>
+      <xs:enumeration value="PB"/>
     </xs:restriction>
   </xs:simpleType>
   <!-- Keeping the below explicit instead of union with the above to ease auto complete -->
   <xs:simpleType name="resource-unit">
     <xs:restriction base="xs:string">
       <xs:enumeration value="entries"/>
-      <xs:enumeration value="b"/>
-      <xs:enumeration value="kb"/>
-      <xs:enumeration value="mb"/>
-      <xs:enumeration value="gb"/>
-      <xs:enumeration value="tb"/>
-      <xs:enumeration value="pb"/>
+      <xs:enumeration value="B"/>
+      <xs:enumeration value="kB"/>
+      <xs:enumeration value="MB"/>
+      <xs:enumeration value="GB"/>
+      <xs:enumeration value="TB"/>
+      <xs:enumeration value="PB"/>
     </xs:restriction>
   </xs:simpleType>
   <xs:simpleType name="event-firing-type">

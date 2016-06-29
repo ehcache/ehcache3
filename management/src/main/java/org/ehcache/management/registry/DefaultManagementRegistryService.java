@@ -19,7 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheManagerListener;
-import org.ehcache.core.spi.cache.InternalCacheManager;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.management.ManagementRegistryService;
@@ -28,7 +28,8 @@ import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.context.ContextContainer;
 import org.terracotta.management.registry.AbstractManagementRegistry;
@@ -62,7 +63,7 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
   }
 
   @Override
-  public void start(final ServiceProvider serviceProvider) {
+  public void start(final ServiceProvider<Service> serviceProvider) {
     this.statisticsExecutor = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getStatisticsExecutorAlias());
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 

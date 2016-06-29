@@ -44,6 +44,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.WriteBehindConfigurationBuilder.newUnBatchedWriteBehindConfiguration;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -76,7 +77,7 @@ public class IntegrationConfigurationTest {
     baz.put("1", "one");
     assertThat(baz.get("1"), equalTo("one"));
 
-    Cache<String, Object> bam = cacheManager.createCache("bam", newCacheConfigurationBuilder(String.class, Object.class).build());
+    Cache<String, Object> bam = cacheManager.createCache("bam", newCacheConfigurationBuilder(String.class, Object.class, heap(10)).build());
     bam.put("1", "one");
     assertThat(bam.get("1"), equalTo((Object)"one"));
 
@@ -223,7 +224,7 @@ public class IntegrationConfigurationTest {
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     cacheManager.init();
     try {
-      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder(String.class, String.class)
+      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder(String.class, String.class, heap(10))
               .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
               .add(newUnBatchedWriteBehindConfiguration().useThreadPool("small"))
               .build());
@@ -244,7 +245,7 @@ public class IntegrationConfigurationTest {
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManager(configuration);
     cacheManager.init();
     try {
-      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder(String.class, String.class)
+      Cache<String, String> cache = cacheManager.createCache("testThreadPools", newCacheConfigurationBuilder(String.class, String.class, heap(10))
               .add(new DefaultCacheLoaderWriterConfiguration(ThreadRememberingLoaderWriter.class))
               .add(newUnBatchedWriteBehindConfiguration())
               .build());
@@ -279,16 +280,16 @@ public class IntegrationConfigurationTest {
         usesDefaultSizeOfEngine.getRuntimeConfiguration().updateResourcePools(pools);
         fail();
       } catch (Exception ex) {
-        assertThat(ex, instanceOf(UnsupportedOperationException.class));
-        assertThat(ex.getMessage(), equalTo("Modifying ResourceUnit type is not supported"));
+        assertThat(ex, instanceOf(IllegalArgumentException.class));
+        assertThat(ex.getMessage(), equalTo("ResourcePool for heap with ResourceUnit 'entries' can not replace 'kB'"));
       }
 
       try {
         usesConfiguredInCache.getRuntimeConfiguration().updateResourcePools(pools);
         fail();
       } catch (Exception ex) {
-        assertThat(ex, instanceOf(UnsupportedOperationException.class));
-        assertThat(ex.getMessage(), equalTo("Modifying ResourceUnit type is not supported"));
+        assertThat(ex, instanceOf(IllegalArgumentException.class));
+        assertThat(ex.getMessage(), equalTo("ResourcePool for heap with ResourceUnit 'entries' can not replace 'kB'"));
       }
 
     } finally {

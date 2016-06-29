@@ -24,7 +24,13 @@ public interface AuthoritativeTierOperationOutcomes {
    * the getAndFault outcomes
    */
   enum GetAndFaultOutcome implements AuthoritativeTierOperationOutcomes {
+    /**
+     * hit
+     */
     HIT,
+    /**
+     * miss
+     */
     MISS
   }
 
@@ -32,8 +38,17 @@ public interface AuthoritativeTierOperationOutcomes {
    * the computeIfAbsentAndFault outcomes
    */
   enum ComputeIfAbsentAndFaultOutcome implements AuthoritativeTierOperationOutcomes {
+    /**
+     * hit
+     */
     HIT,
+    /**
+     * mapping installed
+     */
     PUT,
+    /**
+     * no-op
+     */
     NOOP
   }
 
@@ -41,7 +56,13 @@ public interface AuthoritativeTierOperationOutcomes {
    * the flush outcomes
    */
   enum FlushOutcome implements AuthoritativeTierOperationOutcomes {
+    /**
+     * flush succeeded
+     */
     HIT,
+    /**
+     * missed flush
+     */
     MISS
   }
 }

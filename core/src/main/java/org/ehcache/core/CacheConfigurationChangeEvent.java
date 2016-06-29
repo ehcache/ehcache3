@@ -17,13 +17,20 @@
 package org.ehcache.core;
 
 /**
- * @author rism
+ * Class representing a configuration change on a live cache.
  */
 public class CacheConfigurationChangeEvent {
   private final CacheConfigurationProperty property;
   private final Object newValue;
   private final Object oldValue;
 
+  /**
+   * Creates a new configuration change event based on the provided parameters.
+   *
+   * @param property the property changing
+   * @param oldValue the old value
+   * @param newValue the new value
+   */
   public CacheConfigurationChangeEvent(CacheConfigurationProperty property, Object oldValue, Object newValue) {
 
     this.property = property;
@@ -31,14 +38,29 @@ public class CacheConfigurationChangeEvent {
     this.oldValue = oldValue;
   }
 
+  /**
+   * Indicates the property this event concerns
+   *
+   * @return the changing property
+   */
   public CacheConfigurationProperty getProperty() {
     return this.property;
   }
 
+  /**
+   * Gets the new value of the property.
+   *
+   * @return the new value
+   */
   public Object getNewValue() {
     return this.newValue;
   }
 
+  /**
+   * Gets the old value of the property.
+   *
+   * @return the old value
+   */
   public Object getOldValue() {
     return this.oldValue;
   }

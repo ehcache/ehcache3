@@ -25,10 +25,25 @@ public interface CachingTierOperationOutcomes {
    * the getOrComputeIfAbsent outcomes
    */
   enum GetOrComputeIfAbsentOutcome implements CachingTierOperationOutcomes {
+    /**
+     * hit in the tier
+     */
     HIT,
+    /**
+     * fault from lower tier
+     */
     FAULTED,
+    /**
+     * fault failed
+     */
     FAULT_FAILED,
+    /**
+     * fault missed
+     */
     FAULT_FAILED_MISS,
+    /**
+     * miss
+     */
     MISS
   }
 
@@ -36,7 +51,13 @@ public interface CachingTierOperationOutcomes {
    * the invalidate outcomes
    */
   enum InvalidateOutcome implements CachingTierOperationOutcomes {
+    /**
+     * entry invalidated
+     */
     REMOVED,
+    /**
+     * miss
+     */
     MISS
   }
 }

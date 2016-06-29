@@ -27,8 +27,8 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.xml.XmlConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.jsr107.DefaultJsr107Service;
-import org.ehcache.core.spi.ServiceLocator;
+import org.ehcache.jsr107.internal.DefaultJsr107Service;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.service.Service;
 import org.junit.Test;
 import org.xml.sax.SAXException;
@@ -38,6 +38,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.not;
@@ -86,7 +87,7 @@ public class ParsesConfigurationExtensionTest {
         assertThat(expiry.getClass().getName(), equalTo("org.ehcache.expiry.Expirations$TimeToIdleExpiry"));
         assertThat(expiry.getExpiryForAccess(42L, null), equalTo(new Duration(2, TimeUnit.MINUTES)));
 
-        assertThat(runtimeConfiguration.getEvictionVeto(), instanceOf(com.pany.ehcache.MyEvictionVeto.class));
+        assertThat(runtimeConfiguration.getEvictionAdvisor(), instanceOf(com.pany.ehcache.MyEvictionAdvisor.class));
       }
 
       // test copies
@@ -118,7 +119,7 @@ public class ParsesConfigurationExtensionTest {
 
     // Test template
     {
-      final CacheConfigurationBuilder<Object, Object> myDefaultTemplate = config.newCacheConfigurationBuilderFromTemplate("myDefaultTemplate");
+      final CacheConfigurationBuilder<Object, Object> myDefaultTemplate = config.newCacheConfigurationBuilderFromTemplate("myDefaultTemplate", Object.class, Object.class, heap(10));
       assertThat(myDefaultTemplate, notNullValue());
     }
 

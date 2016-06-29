@@ -17,22 +17,22 @@
 
 <xs:schema version="1.0"
            xmlns:tx="http://www.ehcache.org/v3/tx"
+           xmlns:eh="http://www.ehcache.org/v3"
            xmlns:xs="http://www.w3.org/2001/XMLSchema"
            elementFormDefault="qualified"
            targetNamespace="http://www.ehcache.org/v3/tx">
+  <xs:import namespace="http://www.ehcache.org/v3"/>
 
-  <xs:element name="xa-store-provider"/>
+  <xs:element name="xa-store" type="tx:xa-store-config-type" substitutionGroup="eh:service-configuration"/>
 
-  <xs:element name="xa-store" type="tx:xa-store-config-type"/>
-
-  <xs:element name="jta-tm" type="tx:jta-tm-type"/>
+  <xs:element name="jta-tm" type="tx:jta-tm-type" substitutionGroup="eh:service-creation-configuration"/>
 
   <xs:complexType name="xa-store-config-type">
     <xs:attribute name="unique-XAResource-id" type="xs:string" use="required"/>
   </xs:complexType>
 
   <xs:complexType name="jta-tm-type">
-    <xs:attribute name="transaction-manager-provider-class" type="xs:string" use="required"/>
+    <xs:attribute name="transaction-manager-lookup-class" type="xs:string" use="required"/>
   </xs:complexType>
 
 </xs:schema>

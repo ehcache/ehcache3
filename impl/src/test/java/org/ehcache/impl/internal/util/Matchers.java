@@ -17,9 +17,10 @@
 package org.ehcache.impl.internal.util;
 
 import org.ehcache.Cache;
+import org.ehcache.ValueSupplier;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.events.StoreEvent;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEvent;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -70,6 +71,20 @@ public class Matchers {
       @Override
       public void describeTo(Description description) {
         description.appendText("value holder containing value '").appendValue(value).appendText("'");
+      }
+    };
+  }
+
+  public static <V> Matcher<ValueSupplier<V>> holding(final V value) {
+    return new TypeSafeMatcher<ValueSupplier<V>>() {
+      @Override
+      protected boolean matchesSafely(ValueSupplier<V> item) {
+        return item.value().equals(value);
+      }
+
+      @Override
+      public void describeTo(Description description) {
+        description.appendText("holder containing value '").appendValue(value).appendText("'");
       }
     };
   }

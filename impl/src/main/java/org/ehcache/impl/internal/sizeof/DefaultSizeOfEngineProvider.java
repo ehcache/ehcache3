@@ -17,12 +17,13 @@ package org.ehcache.impl.internal.sizeof;
 
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.config.sizeof.SizeOfEngineConfiguration;
-import org.ehcache.core.spi.ServiceLocator;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.spi.sizeof.SizeOfEngine;
-import org.ehcache.core.spi.sizeof.SizeOfEngineProvider;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
+import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 
 /**
  * @author Abhilash
@@ -39,7 +40,7 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
   }
 
   @Override
-  public void start(ServiceProvider serviceProvider) {
+  public void start(ServiceProvider<Service> serviceProvider) {
     //no op
   }
 
@@ -54,7 +55,7 @@ public class DefaultSizeOfEngineProvider implements SizeOfEngineProvider {
     if(!isByteSized) {
       return new NoopSizeOfEngine(); // Noop Size of Engine
     }
-    SizeOfEngineConfiguration config = ServiceLocator.findSingletonAmongst(SizeOfEngineConfiguration.class, serviceConfigs);
+    DefaultSizeOfEngineConfiguration config = ServiceLocator.findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, serviceConfigs);
     if(config != null) {
       long maxSize = config.getUnit().toBytes(config.getMaxObjectSize());
       return new DefaultSizeOfEngine(config.getMaxObjectGraphSize(), maxSize);

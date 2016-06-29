@@ -39,8 +39,8 @@ public class EhcacheRuntimeConfigurationTest {
 
   @Test
   public void testUpdateResources() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10L, EntryUnit.ENTRIES).disk(10, MemoryUnit.MB).build()).build();
 
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
@@ -64,8 +64,8 @@ public class EhcacheRuntimeConfigurationTest {
 
   @Test
   public void testUpdateFailureDoesNotUpdate() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder()
             .heap(10L, EntryUnit.ENTRIES).build()).build();
 
     final CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()

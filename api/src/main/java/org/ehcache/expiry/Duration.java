@@ -18,47 +18,57 @@ package org.ehcache.expiry;
 import java.util.concurrent.TimeUnit;
 
 /**
- * A unit of time in a given {@link TimeUnit}
- *
- * @author teck
+ * A time duration in a given {@link TimeUnit}.
  */
 public final class Duration {
 
   /**
-   * Special Duration value that indicates an infinite amount of time. This
-   * constant should be used to express a lack of a concrete expiration time
-   * (ie. "eternal").
+   * The infinite {@code Duration}.
+   * <P>
+   *   This constant should be used to express a lack of a concrete expiration time (ie. "eternal").
+   * </P>
    */
-  public static final Duration FOREVER = new Duration(0, null, true);
+  public static final Duration INFINITE = new Duration(0, null, true);
 
   /**
-   * Special Duration value to represent a zero length duration
+   * The zero {@code Duration}.
    */
   public static final Duration ZERO = new Duration(0, TimeUnit.NANOSECONDS, false);
 
-  private final TimeUnit timeUnit;
-  private final long amount;
-
   /**
-   * Construct a {@link Duration} instance
+   * Convenience method to create a {@code Duration} with the specified values.
    *
-   * @throws IllegalArgumentException
-   *           if the given amount is less than zero
-   * @throws NullPointerException
-   *           if the given time unit is null
-   * @param amount
-   *          the amount of the given time unit
-   * @param timeUnit
-   *          the time unit
+   * @param length the duration length
+   * @param timeUnit the time unit
+
+   * @return a new {@code Duration}
+   *
+   * @see #Duration(long, TimeUnit)
    */
-  public Duration(long amount, TimeUnit timeUnit) {
-    this(amount, timeUnit, false);
+  public static Duration of(long length, TimeUnit timeUnit) {
+    return new Duration(length, timeUnit);
   }
 
-  private Duration(long amount, TimeUnit timeUnit, boolean forever) {
+  private final TimeUnit timeUnit;
+  private final long length;
+
+  /**
+   * Instantiates a new {@code Duration} of the given length and {@link TimeUnit}.
+   *
+   * @param length the duration length
+   * @param timeUnit the time unit
+   *
+   * @throws NullPointerException if the given time unit is null
+   * @throws IllegalArgumentException if the given length is less than zero
+   */
+  public Duration(long length, TimeUnit timeUnit) {
+    this(length, timeUnit, false);
+  }
+
+  private Duration(long length, TimeUnit timeUnit, boolean forever) {
     if (!forever) {
-      if (amount < 0) {
-        throw new IllegalArgumentException("amount must be greater than or equal to zero: " + amount);
+      if (length < 0) {
+        throw new IllegalArgumentException("length must be greater than or equal to zero: " + length);
       }
 
       if (timeUnit == null) {
@@ -66,57 +76,62 @@ public final class Duration {
       }
     }
 
-    this.amount = amount;
+    this.length = length;
     this.timeUnit = timeUnit;
   }
 
   /**
-   * Get the amount of {@link Duration#getTimeUnit()} this instance represents
+   * Gets the length of time this {@code Duration} represents.
    *
-   * @throws IllegalStateException
-   *           if this instance is {@link Duration#FOREVER}
-   * @return the amount of this instance
+   * @return the length of this instance
+   * @throws IllegalStateException if this instance is {@link #INFINITE}
+   *
+   * @see #getTimeUnit()
    */
-  public long getAmount() {
-    checkForever();
-    return amount;
+  public long getLength() {
+    checkInfinite();
+    return length;
   }
 
   /**
-   * Get the {@link TimeUnit} of this instance
+   * Gets the {@link TimeUnit} of this {@code Duration}.
    *
-   * @throws IllegalStateException
-   *           if this instance is {@link Duration#FOREVER}
-   * @return timeunit the {@link TimeUnit} of this instance
+   * @return the {@link TimeUnit} of this instance
+   * @throws IllegalStateException if this instance is {@link #INFINITE}
+   *
+   * @see #getLength()
    */
   public TimeUnit getTimeUnit() {
-    checkForever();
+    checkInfinite();
     return timeUnit;
   }
 
-  private void checkForever() {
-    if (isForever()) {
+  private void checkInfinite() {
+    if (isInfinite()) {
       throw new IllegalStateException(
-          "The calling code should be checking explicitly for Duration#FOREVER or isForever()");
+          "The calling code should be checking explicitly for Duration#INFINITE or isInfinite()");
     }
   }
 
   /**
-   * Is this duration "forever" / infinite
+   * Indicates if this duration represents {@link Duration#INFINITE} or an <i>infinite</i> {@code Duration}.
    *
-   * @return true if this instance is the special value {@link Duration#FOREVER}
+   * @return {@code true} if this instance is the special {@code Forever} value
    */
-  public boolean isForever() {
+  public boolean isInfinite() {
     return timeUnit == null;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = 1;
-    result = prime * result + (int) (amount ^ (amount >>> 32));
+    result = prime * result + (int) (length ^ (length >>> 32));
 
-    if (amount != 0) {
+    if (length != 0) {
       result = prime * result + ((timeUnit == null) ? 0 : timeUnit.hashCode());
     } else {
       // Differentiate zero from forever
@@ -126,6 +141,9 @@ public final class Duration {
     return result;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean equals(Object obj) {
     if (this == obj) {
@@ -141,7 +159,7 @@ public final class Duration {
     }
 
     Duration other = (Duration) obj;
-    if (amount != other.amount) {
+    if (length != other.length) {
       return false;
     }
 
@@ -150,7 +168,7 @@ public final class Duration {
     }
 
     if (timeUnit != other.timeUnit) {
-      if (amount == 0) {
+      if (length == 0) {
         return true;
       }
       return false;
@@ -159,16 +177,19 @@ public final class Duration {
     return true;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String toString() {
-    if (isForever()) {
-      return "Duration[FOREVER]";
+    if (isInfinite()) {
+      return "Duration[INFINITE]";
     }
 
-    if (amount == 0) {
+    if (length == 0) {
       return "Duration[ZERO]";
     }
 
-    return "Duration[amount=" + amount + ", timeUnit=" + timeUnit.name() + "]";
+    return "Duration[length=" + length + ", timeUnit=" + timeUnit.name() + "]";
   }
 }

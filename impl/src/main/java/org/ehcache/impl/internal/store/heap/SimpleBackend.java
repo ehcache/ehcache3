@@ -16,15 +16,16 @@
 
 package org.ehcache.impl.internal.store.heap;
 
-import org.ehcache.config.EvictionVeto;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.function.BiFunction;
+import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
 import java.util.Comparator;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Simple passthrough backend, no key translation
@@ -32,8 +33,11 @@ import java.util.Random;
 class SimpleBackend<K, V> implements Backend<K, V> {
 
   private final ConcurrentHashMap<K, OnHeapValueHolder<V>> realMap;
+  private final boolean byteSized;
+  private final AtomicLong byteSize = new AtomicLong(0L);
 
-  SimpleBackend() {
+  SimpleBackend(boolean byteSized) {
+    this.byteSized = byteSized;
     realMap = new ConcurrentHashMap<K, OnHeapValueHolder<V>>();
   }
 
@@ -43,13 +47,38 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionVeto<Object, OnHeapValueHolder<?>> evictionVeto) {
-    return realMap.getEvictionCandidate(random, size, prioritizer, evictionVeto);
+  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, OnHeapValueHolder<?>> evictionAdvisor) {
+    return realMap.getEvictionCandidate(random, size, prioritizer, evictionAdvisor);
   }
 
   @Override
-  public int size() {
-    return realMap.size();
+  public long mappingCount() {
+    return realMap.mappingCount();
+  }
+
+  @Override
+  public long byteSize() {
+    if (byteSized) {
+      return byteSize.get();
+    } else {
+      throw new IllegalStateException("This store is not byte sized");
+    }
+  }
+
+  @Override
+  public long naturalSize() {
+    if (byteSized) {
+      return byteSize.get();
+    } else {
+      return mappingCount();
+    }
+  }
+
+  @Override
+  public void updateUsageInBytesIfRequired(long delta) {
+    if (byteSized) {
+      byteSize.addAndGet(delta);
+    }
   }
 
   @Override
@@ -68,8 +97,8 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public void clear() {
-    realMap.clear();
+  public Backend<K, V> clear() {
+    return new SimpleBackend<K, V>(byteSized);
   }
 
   @Override

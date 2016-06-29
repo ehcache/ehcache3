@@ -17,14 +17,14 @@
 package org.ehcache.core.events;
 
 import org.ehcache.Cache;
-import org.ehcache.core.spi.cache.Store;
-import org.ehcache.core.spi.cache.events.StoreEventSource;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.event.CacheEvent;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
 import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
-import org.ehcache.core.spi.cache.ConfigurationChangeSupport;
+import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 
 import java.util.EnumSet;
 
@@ -38,13 +38,39 @@ import java.util.EnumSet;
  */
 public interface CacheEventDispatcher<K, V> extends ConfigurationChangeSupport {
 
+  /**
+   * Registers a new cache event listener in this dispatcher.
+   *
+   * @param listener the listener to register
+   * @param ordering event ordering
+   * @param firing event firing
+   * @param eventTypes event types this listener wants
+   */
   void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EnumSet<EventType> eventTypes);
 
+  /**
+   * De-registers a cache event listener from this dispatcher.
+   *
+   * @param listener the listener to remove
+   */
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
 
+  /**
+   * Shuts down this dispatcher
+   */
   void shutdown();
 
+  /**
+   * Injects the cache acting as the event source
+   *
+   * @param source the cache this dispatcher works with
+   */
   void setListenerSource(Cache<K, V> source);
 
+  /**
+   * Injects the store event source providing events to the listeners.
+   *
+   * @param eventSource the store event source
+   */
   void setStoreEventSource(StoreEventSource<K, V> eventSource);
 }
