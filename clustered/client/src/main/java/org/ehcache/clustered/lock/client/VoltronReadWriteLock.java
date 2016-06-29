@@ -116,13 +116,14 @@ public class VoltronReadWriteLock {
     try {
       while (true) {
         try {
+          reference.create(null);
+        } catch (EntityAlreadyExistsException f) {
+          //ignore
+        }
+        try {
           return reference.fetchEntity();
         } catch (EntityNotFoundException e) {
-          try {
-            reference.create(null);
-          } catch (EntityAlreadyExistsException f) {
-            //ignore
-          }
+          //ignore
         }
       }
     } catch (EntityVersionMismatchException e) {
