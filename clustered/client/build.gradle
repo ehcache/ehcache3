@@ -25,6 +25,7 @@ dependencies {
 
   testCompile project(':api')
   testCompile project(':xml')
+  testCompile project(':transactions')
   testCompile(project(':clustered:server')) {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }

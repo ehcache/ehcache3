@@ -16,7 +16,11 @@
 
 package org.ehcache.clustered.client;
 
+import bitronix.tm.BitronixTransactionManager;
+import bitronix.tm.TransactionManagerServices;
+
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.StateTransitionException;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
@@ -32,14 +36,19 @@ import org.ehcache.event.EventType;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.hamcrest.Matchers;
+import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
+import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
 import java.util.Map;
+
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * This class should be removed as and when following features are done.
@@ -77,9 +86,9 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
           .build();
 
       cacheManager.createCache("test", config);
-      Assert.fail("IllegalStateException expected");
+      fail("IllegalStateException expected");
     } catch (IllegalStateException e){
-      Assert.assertThat(e.getCause().getMessage(), Matchers.is("CacheLoaderWriter is not supported with Clustered Caches"));
+      assertThat(e.getCause().getMessage(), is("CacheLoaderWriter is not supported with Clustered Caches"));
     }
     cacheManager.close();
   }
@@ -105,11 +114,36 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
           .build();
 
       cacheManager.createCache("test", config);
-      Assert.fail("IllegalStateException expected");
+      fail("IllegalStateException expected");
     } catch (IllegalStateException e){
-      Assert.assertThat(e.getCause().getMessage(), Matchers.is("CacheEventListener is not supported with Clustered Caches"));
+      assertThat(e.getCause().getMessage(), is("CacheEventListener is not supported with Clustered Caches"));
     }
     cacheManager.close();
+  }
+
+  @Test
+  public void testClusteredCacheWithXA() throws Exception {
+    BitronixTransactionManager transactionManager =
+        TransactionManagerServices.getTransactionManager();
+
+    PersistentCacheManager persistentCacheManager = null;
+    try {
+      CacheManagerBuilder.newCacheManagerBuilder()
+          .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
+          .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application")).autoCreate())
+          .withCache("xaCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+              ResourcePoolsBuilder.newResourcePoolsBuilder()
+                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB))
+              )
+                  .add(new XAStoreConfiguration("xaCache"))
+                  .build()
+          )
+          .build(true);
+    } catch (StateTransitionException e) {
+      assertThat(e.getCause().getCause().getMessage(), is("Unsupported resource type : interface org.ehcache.clustered.client.config.DedicatedClusteredResourcePool"));
+    }
+
+    transactionManager.shutdown();
   }
 
   private static class TestLoaderWriter implements CacheLoaderWriter<Long, String> {
