@@ -75,19 +75,19 @@ public class EhcacheClientEntityFactory {
    * @param config the {@code EhcacheActiveEntity} configuration
    *
    * @throws EntityAlreadyExistsException if the {@code EhcacheActiveEntity} for {@code identifier} already exists
-   * @throws EhcacheEntityCreationException if an error preventing {@code EhcacheActiveEntity} creation was raised;
-   *        this is generally resulting from another client holding operational leadership preventing this client
+   * @throws EhcacheEntityCreationException if an error preventing {@code EhcacheActiveEntity} creation was raised
+   * @throws EhcacheEntityBusyException if another client holding operational leadership prevented this client
    *        from becoming leader and creating the {@code EhcacheActiveEntity} instance
    */
   public void create(final String identifier, final ServerSideConfiguration config)
-      throws EntityAlreadyExistsException, EhcacheEntityCreationException {
+      throws EntityAlreadyExistsException, EhcacheEntityCreationException, EhcacheEntityBusyException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
     if (existingMaintenance == null) {
       localMaintenance = createAccessLockFor(identifier).tryWriteLock();
     }
     if (existingMaintenance == null && localMaintenance == null) {
-      throw new EhcacheEntityCreationException("Unable to create entity for cluster id "
+      throw new EhcacheEntityBusyException("Unable to create entity for cluster id "
               + identifier + ": another client owns the maintenance lease");
     } else {
       try {
@@ -129,31 +129,26 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config) throws EntityNotFoundException, EhcacheEntityValidationException, EhcacheEntityBusyException {
+  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config) throws EntityNotFoundException, EhcacheEntityValidationException {
     try {
-      Hold fetchHold = createAccessLockFor(identifier).tryReadLock();
-      if (fetchHold == null) {
-        throw new EhcacheEntityBusyException("Unable to retrieve entity for cluster id "
-                + identifier + ": another client owns the maintenance lease");
-      } else {
-        EhcacheClientEntity entity = getEntityRef(identifier).fetchEntity();
-        /*
-         * Currently entities are never closed as doing so can stall the client
-         * when the server is dead.  Instead the connection is forcibly closed,
-         * which suits our purposes since that will unlock the fetchHold too.
-         */
-        boolean validated = false;
-        try {
-          entity.validate(config);
-          validated = true;
-          return entity;
-        } catch (ClusteredStoreManagerValidationException e) {
-          throw new EhcacheEntityValidationException("Unable to validate entity for cluster id " + identifier, e);
-        } finally {
-          if (!validated) {
-            entity.close();
-            fetchHold.unlock();
-          }
+      Hold fetchHold = createAccessLockFor(identifier).readLock();
+      EhcacheClientEntity entity = getEntityRef(identifier).fetchEntity();
+      /*
+       * Currently entities are never closed as doing so can stall the client
+       * when the server is dead.  Instead the connection is forcibly closed,
+       * which suits our purposes since that will unlock the fetchHold too.
+       */
+      boolean validated = false;
+      try {
+        entity.validate(config);
+        validated = true;
+        return entity;
+      } catch (ClusteredStoreManagerValidationException e) {
+        throw new EhcacheEntityValidationException("Unable to validate entity for cluster id " + identifier, e);
+      } finally {
+        if (!validated) {
+          entity.close();
+          fetchHold.unlock();
         }
       }
     } catch (EntityVersionMismatchException e) {

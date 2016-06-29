@@ -62,6 +62,7 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentMap;
+import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
 
 /**
  * Provides support for accessing server-based cluster services.
@@ -116,31 +117,14 @@ class DefaultClusteringService implements ClusteringService {
     }
     entityFactory = new EhcacheClientEntityFactory(clusterConnection);
     try {
-      EhcacheEntityCreationException failure = null;
       if (configuration.isAutoCreate()) {
+        entity = autoCreateEntity();
+      } else {
         try {
-          entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
-        } catch (EhcacheEntityCreationException e) {
-          failure = e;
-        } catch (EntityAlreadyExistsException e) {
-          //ignore - entity already exists
-        }
-      }
-      try {
-        entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
-      } catch (EntityNotFoundException e) {
-        if (failure == null) {
+          entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
+        } catch (EntityNotFoundException e) {
           throw new IllegalStateException("The server-side storage manager does not exist."
                   + " Please review your configuration.", e);
-        } else {
-          throw new IllegalStateException("Could not create the server-side storage manager.", failure);
-        }
-      } catch (EhcacheEntityBusyException e) {
-        if (failure == null) {
-          throw new IllegalStateException("The server-side storage manager is not available."
-                  + " Is another client concurrently interacting with the storage manager?", e);
-        } else {
-          throw new IllegalStateException("Could not create the server-side storage manager.", failure);
         }
       }
     } catch (RuntimeException e) {
@@ -152,6 +136,25 @@ class DefaultClusteringService implements ClusteringService {
         LOGGER.warn("Error closing cluster connection: " + ex);
       }
       throw e;
+    }
+  }
+
+  private EhcacheClientEntity autoCreateEntity() throws EhcacheEntityValidationException, IllegalStateException {
+    while (true) {
+      try {
+        entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
+      } catch (EhcacheEntityCreationException e) {
+        throw new IllegalStateException("Could not create the server-side storage manager.", e);
+      } catch (EntityAlreadyExistsException e) {
+        //ignore - entity already exists - try to retrieve
+      } catch (EhcacheEntityBusyException e) {
+        //ignore - entity in transition - try to retrieve
+      }
+      try {
+        return entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
+      } catch (EntityNotFoundException e) {
+        //ignore - loop and try to create
+      }
     }
   }
 
