@@ -128,13 +128,9 @@ public final class DefaultConfiguration implements Configuration {
    * Removes the {@link CacheConfiguration} tied to the provided alias.
    *
    * @param alias the alias for which to remove configuration
-   *
-   * @throws IllegalStateException if the alias was not in use
    */
   public void removeCacheConfiguration(final String alias) {
-    if (caches.remove(alias) == null) {
-      throw new IllegalStateException("Cache '" + alias + "' unknown!");
-    }
+    caches.remove(alias);
   }
 
   /**
