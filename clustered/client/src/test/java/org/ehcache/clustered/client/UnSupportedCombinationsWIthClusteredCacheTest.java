@@ -123,6 +123,8 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
 
   @Test
   public void testClusteredCacheWithXA() throws Exception {
+    TransactionManagerServices.getConfiguration().setJournal("null");
+
     BitronixTransactionManager transactionManager =
         TransactionManagerServices.getTransactionManager();
 
