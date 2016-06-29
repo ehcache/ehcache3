@@ -251,9 +251,14 @@ public class EhcacheClientEntity implements Entity {
     try {
       EhcacheEntityResponse response = waitFor(timeLimit, invokeAsync(message, replicate));
       if (Type.FAILURE.equals(response.getType())) {
+        /*
+         * The FAILURE cause is a server-side exception lacking client-side stack trace
+         * elements.  The server-side exception must be wrapped in a client-side exception
+         * to provide proper stack trace for analysis.
+         */
         Exception cause = ((Failure)response).getCause();
         if (cause instanceof ClusteredEhcacheException) {
-          throw (ClusteredEhcacheException) cause;
+          throw ((ClusteredEhcacheException) cause).copyInContext();
         }
         throw new RuntimeException(message + " error: " + cause.toString(), cause);
       } else {

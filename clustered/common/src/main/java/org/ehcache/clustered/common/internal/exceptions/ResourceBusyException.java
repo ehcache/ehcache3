@@ -20,6 +20,8 @@ package org.ehcache.clustered.common.internal.exceptions;
  * Thrown to indicate a clustered entity is busy.
  */
 public class ResourceBusyException extends ClusteredEhcacheException {
+  private static final long serialVersionUID = 3830614247618106338L;
+
   public ResourceBusyException(String message) {
     super(message);
   }
@@ -30,5 +32,14 @@ public class ResourceBusyException extends ClusteredEhcacheException {
 
   public ResourceBusyException(String message, Throwable cause) {
     super(message, cause);
+  }
+
+  private ResourceBusyException(ResourceBusyException cause) {
+    super(cause.getMessage(), cause);
+  }
+
+  @Override
+  public ResourceBusyException copyInContext() {
+    return new ResourceBusyException(this);
   }
 }

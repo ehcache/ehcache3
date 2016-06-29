@@ -20,7 +20,22 @@ package org.ehcache.clustered.common.internal.exceptions;
  * Thrown to indicate the lifecycle of a clustered entity hasn't been respected.
  */
 public class LifecycleException extends ClusteredEhcacheException {
+  private static final long serialVersionUID = 8296083644864873465L;
+
   public LifecycleException(String message) {
     super(message);
+  }
+
+  private LifecycleException(Throwable cause) {
+    super(cause);
+  }
+
+  private LifecycleException(LifecycleException cause) {
+    super(cause.getMessage(), cause);
+  }
+
+  @Override
+  public LifecycleException copyInContext() {
+    return new LifecycleException(this);
   }
 }

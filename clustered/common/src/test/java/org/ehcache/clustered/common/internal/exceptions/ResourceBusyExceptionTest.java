@@ -17,25 +17,12 @@
 package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Thrown to indicate an operation cannot be performed on a certain clustered store manager.
+ * Tests {@link ResourceBusyException} functions including
+ * {@link ClusteredEhcacheException#copyInContext() copyInContext}.
  */
-public class InvalidStoreManagerException extends ClusteredEhcacheException {
-  private static final long serialVersionUID = 8706722895064395931L;
+public class ResourceBusyExceptionTest extends BaseClusteredEhcacheExceptionTest<ResourceBusyException> {
 
-  public InvalidStoreManagerException(String message) {
-    super(message);
-  }
-
-  public InvalidStoreManagerException(Throwable cause) {
-    super(cause);
-  }
-
-  private InvalidStoreManagerException(InvalidStoreManagerException cause) {
-    super(cause.getMessage(), cause);
-  }
-
-  @Override
-  public InvalidStoreManagerException copyInContext() {
-    return new InvalidStoreManagerException(this);
+  public ResourceBusyExceptionTest() {
+    super(ResourceBusyException.class);
   }
 }

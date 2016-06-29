@@ -20,6 +20,8 @@ package org.ehcache.clustered.common.internal.exceptions;
  * Thrown to indicate some clustered resource being mis-configured.
  */
 public class ResourceConfigurationException extends ClusteredEhcacheException {
+  private static final long serialVersionUID = -8886869788915700432L;
+
   public ResourceConfigurationException(String message) {
     super(message);
   }
@@ -30,5 +32,14 @@ public class ResourceConfigurationException extends ClusteredEhcacheException {
 
   public ResourceConfigurationException(String message, Throwable cause) {
     super(message, cause);
+  }
+
+  private ResourceConfigurationException(ResourceConfigurationException cause) {
+    super(cause.getMessage(), cause);
+  }
+
+  @Override
+  public ResourceConfigurationException copyInContext() {
+    return new ResourceConfigurationException(this);
   }
 }
