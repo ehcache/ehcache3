@@ -40,6 +40,7 @@ dependencies {
   compile project(':clustered:client')
   compile project(':clustered:common')
   compile "org.terracotta.internal:client-runtime:$terracottaCoreVersion" changing true
+  compile "org.terracotta.internal:client-logging:$terracottaCoreVersion" changing true
 
   serverLibs(project(':clustered:server')) {
     exclude group: 'org.terracotta', module: 'entity-server-api'
