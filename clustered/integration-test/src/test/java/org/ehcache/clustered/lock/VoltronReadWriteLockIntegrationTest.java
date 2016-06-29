@@ -16,12 +16,15 @@
 package org.ehcache.clustered.lock;
 
 import java.io.File;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.ehcache.clustered.lock.client.VoltronReadWriteLock;
 import org.ehcache.clustered.lock.client.VoltronReadWriteLock.Hold;
 import org.junit.BeforeClass;
@@ -31,6 +34,8 @@ import org.terracotta.connection.Connection;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class VoltronReadWriteLockIntegrationTest {
@@ -117,6 +122,39 @@ public class VoltronReadWriteLockIntegrationTest {
       }
     } finally {
       clientA.close();
+    }
+  }
+
+  @Test
+  public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
+    final AtomicBoolean condition = new AtomicBoolean(true);
+    Callable<Void> task = new Callable<Void>() {
+      @Override
+      public Void call() throws Exception {
+        Connection client = CLUSTER.newConnection();
+        VoltronReadWriteLock lock = new VoltronReadWriteLock(client, "testMultipleClientsAutoCreatingCacheManager");
+
+        while (condition.get()) {
+          Hold hold = lock.tryWriteLock();
+          if (hold == null) {
+            lock.readLock().unlock();
+          } else {
+            condition.set(false);
+            hold.unlock();
+          }
+        }
+        return null;
+      }
+    };
+
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      List<Future<Void>> results = executor.invokeAll(Collections.nCopies(4, task), 10, TimeUnit.SECONDS);
+      for (Future<Void> result : results) {
+        assertThat(result.isDone(), is(true));
+      }
+    } finally {
+      executor.shutdown();
     }
   }
 

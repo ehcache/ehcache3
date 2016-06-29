@@ -23,9 +23,18 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.StateTransitionException;
 import org.ehcache.xml.XmlConfiguration;
 import org.junit.AfterClass;
@@ -44,6 +53,8 @@ import org.terracotta.testing.rules.Cluster;
 
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManager;
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class CacheManagerLifecycleEhcacheIntegrationTest {
@@ -85,6 +96,39 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
       assertEntityExists(EhcacheClientEntity.class, "testAutoCreatedCacheManagerUsingXml");
     } finally {
       manager.close();
+    }
+  }
+
+  @Test
+  public void testMultipleClientsAutoCreatingCacheManager() throws Exception {
+    assertEntityNotExists(EhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+
+    final CacheManagerBuilder<PersistentCacheManager> managerBuilder = newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/testMultipleClientsAutoCreatingCacheManager")).autoCreate().build());
+
+    Callable<PersistentCacheManager> task = new Callable<PersistentCacheManager>() {
+      @Override
+      public PersistentCacheManager call() throws Exception {
+        PersistentCacheManager manager = managerBuilder.build();
+        manager.init();
+        return manager;
+      }
+    };
+
+    assertEntityNotExists(EhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+
+    ExecutorService executor = Executors.newCachedThreadPool();
+    try {
+      List<Future<PersistentCacheManager>> results = executor.invokeAll(Collections.nCopies(4, task), 30, TimeUnit.SECONDS);
+      for (Future<PersistentCacheManager> result : results) {
+        assertThat(result.isDone(), is(true));
+      }
+      for (Future<PersistentCacheManager> result : results) {
+        result.get().close();
+      }
+      assertEntityExists(EhcacheClientEntity.class, "testMultipleClientsAutoCreatingCacheManager");
+    } finally {
+      executor.shutdown();
     }
   }
 

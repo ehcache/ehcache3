@@ -62,6 +62,12 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.SHARED;
 import static org.ehcache.clustered.client.internal.service.TestServiceProvider.providerContaining;
@@ -389,47 +395,34 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getConnectedClients().size(), is(0));
   }
 
-  /**
-   * This test ensures that an auto-create client can't perform an auto-creation while a startForMaintenance client
-   * is active.
-   */
   @Test
-  public void testStartForMaintenanceCreateInterlock() throws Exception {
-    ClusteringServiceConfiguration configuration =
+  public void testMultipleAutoCreateClientsRunConcurrently() throws InterruptedException, ExecutionException {
+    final ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
             .autoCreate()
             .build();
-    DefaultClusteringService maintenanceService = new DefaultClusteringService(configuration);
-    maintenanceService.startForMaintenance(null);
 
-    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
-    assertThat(activeEntities.size(), is(0));
+    Callable<DefaultClusteringService> task = new Callable<DefaultClusteringService>() {
+      @Override
+      public DefaultClusteringService call() throws Exception {
+        DefaultClusteringService service = new DefaultClusteringService(configuration);
+        service.start(null);
+        return service;
+      }
+    };
 
-    DefaultClusteringService createService = new DefaultClusteringService(configuration);
+    ExecutorService executor = Executors.newCachedThreadPool();
     try {
-      createService.start(null);
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      assertThat(e.getCause(), is(instanceOf(EhcacheEntityCreationException.class)));
+      List<Future<DefaultClusteringService>> results = executor.invokeAll(Collections.nCopies(4, task), 5, TimeUnit.MINUTES);
+      for (Future<DefaultClusteringService> result : results) {
+        assertThat(result.isDone(), is(true));
+      }
+      for (Future<DefaultClusteringService> result : results) {
+        result.get().stop();
+      }
+    } finally {
+      executor.shutdown();
     }
-
-    activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
-    assertThat(activeEntities.size(), is(0));
-
-    maintenanceService.stop();
-
-    createService.start(null);
-
-    activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
-    assertThat(activeEntities.size(), is(1));
-    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
-    assertThat(activeEntity.getDefaultServerResource(), is(nullValue()));
-    assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getConnectedClients().size(), is(1));
-
-    createService.stop();
-    assertThat(activeEntity.getConnectedClients().size(), is(0));
   }
 
   @Test
