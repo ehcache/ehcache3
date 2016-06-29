@@ -18,7 +18,6 @@ package org.ehcache.clustered.client.config.builders;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.ehcache.clustered.client.config.ClusteringServiceClientSideConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
@@ -27,6 +26,7 @@ import org.ehcache.config.units.MemoryUnit;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
+import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.*;
 
 /**
  * Constructs the server-side portion of a {@link ClusteringServiceConfiguration}.  An instance of this
@@ -37,27 +37,23 @@ import static java.util.Collections.unmodifiableMap;
 public class ServerSideConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
   private final ClusteringServiceClientSideConfiguration clientSideConfiguration;
-  private final boolean autoCreate;
   private final String defaultServerResource;
   private final Map<String, Pool> pools;
 
-  ServerSideConfigurationBuilder(ClusteringServiceClientSideConfiguration clientSideConfiguration, boolean autoCreate) {
+  ServerSideConfigurationBuilder(ClusteringServiceClientSideConfiguration clientSideConfiguration) {
     this.clientSideConfiguration = clientSideConfiguration;
-    this.autoCreate = autoCreate;
     this.defaultServerResource = null;
     this.pools = emptyMap();
   }
 
   private ServerSideConfigurationBuilder(ServerSideConfigurationBuilder original, String defaultServerResource) {
     this.clientSideConfiguration = original.clientSideConfiguration;
-    this.autoCreate = original.autoCreate;
     this.pools = original.pools;
     this.defaultServerResource = defaultServerResource;
   }
 
   private ServerSideConfigurationBuilder(ServerSideConfigurationBuilder original, String poolName, Pool poolDefinition) {
     this.clientSideConfiguration = original.clientSideConfiguration;
-    this.autoCreate = original.autoCreate;
     this.defaultServerResource = original.defaultServerResource;
     Map<String, Pool> pools = new HashMap<String, Pool>(original.pools);
     if (pools.put(poolName, poolDefinition) != null) {
@@ -118,7 +114,7 @@ public class ServerSideConfigurationBuilder implements Builder<ClusteringService
 
   @Override
   public ClusteringServiceConfiguration build() {
-    return new ClusteringServiceConfiguration(clientSideConfiguration, autoCreate, buildServerSideConfiguration());
+    return ClusteringServiceConfigurationBuilder.build(clientSideConfiguration, buildServerSideConfiguration());
   }
 
   private ServerSideConfiguration buildServerSideConfiguration() {

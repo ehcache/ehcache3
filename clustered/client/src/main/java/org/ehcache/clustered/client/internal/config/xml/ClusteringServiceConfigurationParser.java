@@ -17,7 +17,6 @@
 package org.ehcache.clustered.client.internal.config.xml;
 
 import org.ehcache.clustered.client.config.ClusteredStoreConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceClientSideConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
@@ -152,8 +151,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
             serverSideConfiguration = new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools);
           }
           return new ClusteringServiceConfiguration(
-              new ClientSideConfig(connectionUri, getTimeout),
-              serverConfig.autoCreate, serverSideConfiguration);
+              connectionUri, getTimeout, serverConfig.autoCreate, serverSideConfiguration);
         }
       } catch (IllegalArgumentException e) {
         throw new XmlConfigurationException(e);
@@ -229,26 +227,6 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
       }
     }
     return serverSideConfig;
-  }
-
-  private static final class ClientSideConfig implements ClusteringServiceClientSideConfiguration {
-    private final URI clusterUri;
-    private final TimeoutDuration readOperationTimeout;
-
-    private ClientSideConfig(URI clusterUri, TimeoutDuration readOperationTimeout) {
-      this.clusterUri = clusterUri;
-      this.readOperationTimeout = readOperationTimeout;
-    }
-
-    @Override
-    public URI getClusterUri() {
-      return this.clusterUri;
-    }
-
-    @Override
-    public TimeoutDuration getReadOperationTimeout() {
-      return this.readOperationTimeout;
-    }
   }
 
   private static final class ServerSideConfig {

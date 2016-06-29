@@ -17,10 +17,10 @@ package org.ehcache.clustered.client.config.builders;
 
 import java.net.URI;
 
-import org.ehcache.clustered.client.config.ClusteringServiceClientSideConfiguration;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import java.util.concurrent.TimeUnit;
 import org.ehcache.clustered.client.config.TimeoutDuration;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.config.Builder;
 
 /**
@@ -58,7 +58,7 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ServerSideConfigurationBuilder autoCreate() {
-    return new ServerSideConfigurationBuilder(getClientSideConfiguration(), true);
+    return new ServerSideConfigurationBuilder(getClientSideConfiguration(true));
   }
 
   /**
@@ -67,11 +67,11 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
    * @return a clustering service configuration builder
    */
   public ServerSideConfigurationBuilder expecting() {
-    return new ServerSideConfigurationBuilder(getClientSideConfiguration(), false);
+    return new ServerSideConfigurationBuilder(getClientSideConfiguration(false));
   }
 
-  private ClusteringServiceClientSideConfiguration getClientSideConfiguration() {
-    return new ClusteringServiceClientSideConfigurationImpl(clusterUri, readOperationTimeout);
+  private ClusteringServiceClientSideConfiguration getClientSideConfiguration(boolean autoCreate) {
+    return new ClusteringServiceClientSideConfigurationImpl(clusterUri, autoCreate, readOperationTimeout);
   }
 
   /**
@@ -93,5 +93,84 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
   @Override
   public ClusteringServiceConfiguration build() {
     return new ClusteringServiceConfiguration(clusterUri, readOperationTimeout);
+  }
+
+  /**
+   * Internal method to build a new {@link ClusteringServiceConfiguration} from the {@link ServerSideConfigurationBuilder}.
+   *
+   * @param clientSideConfiguration the {@code ClusteringServiceClientSideConfiguration} passed to the
+   *                                {@link ServerSideConfigurationBuilder#ServerSideConfigurationBuilder(ClusteringServiceClientSideConfiguration)
+   *                                ServerSideConfigurationBuilder(ClusteringServiceClientSideConfiguration)}
+   *                                constructor
+   * @param serverSideConfiguration the {@code ServerSideConfiguration} to use
+   *
+   * @return a new {@code ClusteringServiceConfiguration} instance built from {@code clientSideConfiguration} and
+   *        {@code serverSideConfiguration}
+   */
+  static ClusteringServiceConfiguration build(ClusteringServiceClientSideConfiguration clientSideConfiguration,
+                                              ServerSideConfiguration serverSideConfiguration) {
+    return new ClusteringServiceConfiguration(
+        clientSideConfiguration.getClusterUri(),
+        clientSideConfiguration.getReadOperationTimeout(),
+        clientSideConfiguration.isAutoCreate(),
+        serverSideConfiguration);
+  }
+
+  /**
+   * The client-side portion of the {@link ClusteringServiceConfiguration} used during
+   * configuration building.
+   */
+  private static class ClusteringServiceClientSideConfigurationImpl implements ClusteringServiceClientSideConfiguration {
+    private final URI clusterUri;
+    private final boolean autoCreate;
+    private final TimeoutDuration readOperationTimeout;
+
+    ClusteringServiceClientSideConfigurationImpl(URI clusterUri, boolean autoCreate, TimeoutDuration readOperationTimeout) {
+      this.clusterUri = clusterUri;
+      this.autoCreate = autoCreate;
+      this.readOperationTimeout = readOperationTimeout;
+    }
+
+    @Override
+    public URI getClusterUri() {
+      return clusterUri;
+    }
+
+    @Override
+    public boolean isAutoCreate() {
+      return autoCreate;
+    }
+
+    @Override
+    public TimeoutDuration getReadOperationTimeout() {
+      return readOperationTimeout;
+    }
+  }
+
+  /**
+   * The client-side portion of the {@link ClusteringServiceConfiguration} used during
+   * configuration building.
+   */
+  interface ClusteringServiceClientSideConfiguration {
+    /**
+     * Gets the URI of the clustering server.
+     *
+     * @return the configured URI
+     */
+    URI getClusterUri();
+
+    /**
+     * Indicates if auto-create is enabled for the clustering server and the caches it serves.
+     *
+     * @return {@code true} if auto-create is enabled; {@code false} otherwise
+     */
+    boolean isAutoCreate();
+
+    /**
+     * Gets the timeout to use for cache read operations for a clustered store.
+     *
+     * @return the timeout to use for clustered read operations
+     */
+    TimeoutDuration getReadOperationTimeout();
   }
 }

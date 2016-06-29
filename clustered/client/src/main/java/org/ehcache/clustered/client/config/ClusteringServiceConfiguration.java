@@ -101,26 +101,24 @@ public class ClusteringServiceConfiguration
   /**
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
-   * @param clientSideConfig the {@code ClusteringServiceClientSideConfiguration} to include in this
-   *                         {@code ClusteringServiceConfiguration}
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
+   *                            read operations; if {@code null}, the default value is used
    * @param autoCreate {@code true} if server components should be auto created
    * @param serverConfig  the server side entity configuration required
    *
-   * @throws NullPointerException if {@code clientSideConfig} or {@code serverConfig} is {@code null}
+   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(ClusteringServiceClientSideConfiguration clientSideConfig, boolean autoCreate, ServerSideConfiguration serverConfig) {
-    if (clientSideConfig == null) {
-      throw new NullPointerException("Client-side configuration cannot be null");
-    }
+  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout, boolean autoCreate, ServerSideConfiguration serverConfig) {
+    validateClusterUri(clusterUri);
     if (serverConfig == null) {
       throw new NullPointerException("Server configuration cannot be null");
     }
-
-    this.clusterUri = clientSideConfig.getClusterUri();
-    this.readOperationTimeout = clientSideConfig.getReadOperationTimeout();
+    this.clusterUri = clusterUri;
     this.autoCreate = autoCreate;
     this.serverConfiguration = serverConfig;
+    this.readOperationTimeout = readOperationTimeout;
   }
 
   protected ClusteringServiceConfiguration(ClusteringServiceConfiguration baseConfig) {
