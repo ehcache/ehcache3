@@ -41,6 +41,7 @@ import org.ehcache.clustered.common.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.exceptions.LifecycleException;
 import org.ehcache.clustered.common.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.exceptions.ResourceConfigurationException;
+import org.ehcache.clustered.common.exceptions.ServerMisconfigurationException;
 import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 
@@ -60,6 +61,7 @@ import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
+import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.paging.OffHeapStorageArea;
 import org.terracotta.offheapstore.paging.Page;
@@ -89,6 +91,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   private final UUID identity;
   private final ServiceRegistry services;
+  private final Set<String> offHeapResourceIdentifiers;
 
   /**
    * The name of the resource to use for dedicated resource pools not identifying a resource from which
@@ -158,11 +161,24 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
+  private static class OffHeapResourcesServiceConfiguration implements ServiceConfiguration<OffHeapResources> {
+    @Override
+    public Class<OffHeapResources> getServiceType() {
+      return OffHeapResources.class;
+    }
+  }
+
   EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
     this.services = services;
     this.responseFactory = new EhcacheEntityResponseFactory();
     this.clientCommunicator = services.getService(new CommunicatorServiceConfiguration());
+    OffHeapResources offHeapResources = services.getService(new OffHeapResourcesServiceConfiguration());
+    if (offHeapResources == null) {
+      this.offHeapResourceIdentifiers = Collections.emptySet();
+    } else {
+      this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
+    }
   }
 
   /**
@@ -280,6 +296,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   @Override
   public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
     try {
+      if (this.offHeapResourceIdentifiers.isEmpty()) {
+        throw new ServerMisconfigurationException("Server started without any offheap resources defined." +
+                                                  " Check your server configuration and define at least one offheap resource.");
+      }
+
       switch (message.getType()) {
         case LIFECYCLE_OP:
           return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
@@ -555,9 +576,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
       this.defaultServerResource = configuration.getDefaultServerResource();
       if (this.defaultServerResource != null) {
-        OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(this.defaultServerResource));
-        if (source == null) {
-          throw new ResourceConfigurationException("Default server resource '" + this.defaultServerResource + "' is not defined");
+        if (!offHeapResourceIdentifiers.contains(this.defaultServerResource)) {
+          throw new ResourceConfigurationException("Default server resource '" + this.defaultServerResource
+              + "' is not defined. Available resources are: " + offHeapResourceIdentifiers);
         }
       }
 
@@ -893,7 +914,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ResourcePageSource pageSource;
     OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
     if (source == null) {
-      throw new ResourceConfigurationException("Non-existent server side resource '" + pool.getServerResource() + "'");
+      throw new ResourceConfigurationException("Non-existent server side resource '" + pool.getServerResource() +
+                                               "'. Available resources are: " + offHeapResourceIdentifiers);
     } else if (source.reserve(pool.getSize())) {
       try {
         pageSource = new ResourcePageSource(pool);

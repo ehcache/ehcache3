@@ -28,6 +28,8 @@ import org.ehcache.clustered.common.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.exceptions.LifecycleException;
 import org.ehcache.clustered.common.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.exceptions.ResourceConfigurationException;
+import org.ehcache.clustered.common.exceptions.ServerMisconfigurationException;
+import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
@@ -40,10 +42,12 @@ import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
+import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -108,7 +112,7 @@ public class EhcacheActiveEntityTest {
    */
   @Test
   public void testConnected() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(new OffHeapIdentifierRegistry(), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -122,7 +126,7 @@ public class EhcacheActiveEntityTest {
 
   @Test
   public void testConnectedAgain() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(new OffHeapIdentifierRegistry(), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -139,7 +143,7 @@ public class EhcacheActiveEntityTest {
 
   @Test
   public void testConnectedSecond() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(new OffHeapIdentifierRegistry(), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -161,7 +165,7 @@ public class EhcacheActiveEntityTest {
    */
   @Test
   public void testDisconnectedNotConnected() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(new OffHeapIdentifierRegistry(), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.disconnected(client);
@@ -173,7 +177,7 @@ public class EhcacheActiveEntityTest {
    */
   @Test
   public void testDisconnected() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(new OffHeapIdentifierRegistry(), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -190,7 +194,7 @@ public class EhcacheActiveEntityTest {
    */
   @Test
   public void testDisconnectedSecond() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(new OffHeapIdentifierRegistry(), ENTITY_ID);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -206,12 +210,29 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getInUseStores().isEmpty(), is(true));
   }
 
+  @Test
+  public void testInteractionWithServerWithoutResources() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    String expectedErrorMessage = "Server started without any offheap resources defined.";
+    assertFailure(
+        activeEntity.invoke(client, mock(EhcacheEntityMessage.class)),
+        ServerMisconfigurationException.class, expectedErrorMessage
+    );
+  }
+
   /**
    * Ensures basic shared resource pool configuration.
    */
   @Test
   public void testConfigure() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -239,6 +260,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testNoAttachementFailsToInvokeServerStoreOperation() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -277,6 +301,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testAppendInvalidationAcksTakenIntoAccount() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client1 = new TestClientDescriptor();
@@ -365,6 +392,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testClearInvalidationAcksTakenIntoAccount() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client1 = new TestClientDescriptor();
@@ -453,6 +483,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testAppendInvalidationDisconnectionOfInvalidatingClientsTakenIntoAccount() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client1 = new TestClientDescriptor();
@@ -537,6 +570,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testClearInvalidationDisconnectionOfInvalidatingClientsTakenIntoAccount() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client1 = new TestClientDescriptor();
@@ -621,6 +657,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testAppendInvalidationDisconnectionOfBlockingClientTakenIntoAccount() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client1 = new TestClientDescriptor();
@@ -695,6 +734,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testClearInvalidationDisconnectionOfBlockingClientTakenIntoAccount() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client1 = new TestClientDescriptor();
@@ -769,6 +811,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testAttachedClientButNotStoreFailsInvokingServerStoreOperation() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -815,6 +860,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testWithAttachmentSucceedsInvokingServerStoreOperation() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -865,6 +913,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testConfigureBeforeConnect() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -881,6 +932,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testConfigureAfterConfigure() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1027,6 +1081,9 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1055,6 +1112,9 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1084,6 +1144,9 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1101,6 +1164,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testValidateExtraResource() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1127,6 +1193,8 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testValidateNoDefaultResource() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1151,6 +1219,7 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testCreateDedicatedServerStoreBeforeConfigure() throws Exception {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1168,6 +1237,8 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testCreateDedicatedServerStoreBeforeValidate() throws Exception {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1287,6 +1358,8 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testCreateDedicatedServerStoreExisting() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1918,6 +1991,8 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testReleaseServerStoreBeforeAttach() throws Exception {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1938,6 +2013,8 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testReleaseServerStoreAfterRelease() throws Exception {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -1973,6 +2050,8 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testDestroyServerStore() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -2044,6 +2123,8 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testDestroyServerStoreBeforeAttach() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -2064,6 +2145,9 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testDestroyServerStoreInUse() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
+
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
@@ -2192,13 +2276,15 @@ public class EhcacheActiveEntityTest {
 
   @Test
   public void testDestroyEmpty() throws Exception {
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(mock(ServiceRegistry.class), ENTITY_ID);
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(new OffHeapIdentifierRegistry() , ENTITY_ID);
     activeEntity.destroy();
   }
 
   @Test
   public void testDestroyWithStores() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor client = new TestClientDescriptor();
@@ -2271,6 +2357,9 @@ public class EhcacheActiveEntityTest {
         .build();
 
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("primary-server-resource", 16, MemoryUnit.MEGABYTES);
+    registry.addResource("secondary-server-resource", 16, MemoryUnit.MEGABYTES);
+
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
     ClientDescriptor configurer = new TestClientDescriptor();
     activeEntity.connected(configurer);
@@ -2285,6 +2374,10 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testValidateSharedPoolNamesDifferent() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 64, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
 
     ClientDescriptor configurer = new TestClientDescriptor();
@@ -2309,6 +2402,10 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testValidateDefaultResourceNameDifferent() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
+
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
 
     ClientDescriptor configurer = new TestClientDescriptor();
@@ -2332,7 +2429,11 @@ public class EhcacheActiveEntityTest {
 
   @Test
   public void testValidateClientSharedPoolSizeTooBig() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(64, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
 
     ClientDescriptor configurer = new TestClientDescriptor();
@@ -2357,6 +2458,10 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testValidateSecondClientInheritsFirstClientConfig() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
+
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
 
     ClientDescriptor configurer = new TestClientDescriptor();
@@ -2376,12 +2481,14 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testValidateNonExistentSharedPool() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
+    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
+
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
 
     ClientDescriptor configurer = new TestClientDescriptor();
     activeEntity.connected(configurer);
     ServerSideConfiguration configure = new ServerSideConfigBuilder().build();
-    activeEntity.invoke(configurer,MESSAGE_FACTORY.configureStoreManager(configure));
+    assertSuccess(activeEntity.invoke(configurer,MESSAGE_FACTORY.configureStoreManager(configure)));
 
     ServerStoreConfiguration sharedStoreConfig = new ServerStoreConfigBuilder()
         .shared("non-existent-pool")
@@ -2597,14 +2704,21 @@ public class EhcacheActiveEntityTest {
     public <T> T getService(ServiceConfiguration<T> serviceConfiguration) {
       if (serviceConfiguration instanceof OffHeapResourceIdentifier) {
         final OffHeapResourceIdentifier resourceIdentifier = (OffHeapResourceIdentifier) serviceConfiguration;
-        TestOffHeapResource offHeapResource = this.pools.get(resourceIdentifier);
-        if (offHeapResource == null && offHeapSize != 0) {
-          offHeapResource = new TestOffHeapResource(offHeapSize);
-          this.pools.put(resourceIdentifier, offHeapResource);
-        }
-        return (T) offHeapResource;    // unchecked
+        return (T) this.pools.get(resourceIdentifier);
       } else if (serviceConfiguration.getServiceType().equals(ClientCommunicator.class)) {
         return (T) mock(ClientCommunicator.class);
+      } else if(serviceConfiguration.getServiceType().equals(OffHeapResources.class)) {
+        return (T) new OffHeapResources() {
+          @Override
+          public Set<String> getAllIdentifiers() {
+            Set<String> names = new HashSet<String>();
+            for (OffHeapResourceIdentifier identifier: pools.keySet()) {
+              names.add(identifier.getName());
+            }
+
+            return Collections.unmodifiableSet(names);
+          }
+        };
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
