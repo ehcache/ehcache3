@@ -17,7 +17,7 @@ image::ClusteredEhcacheTopology.png[]
 
 To enable Clustering with Terracotta, you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.  For convenience, the downloadable Ehcache kit contains the Terracotta Server.
 
-You will then need a configure a cache manager to have clustering capabilities such that the caches it manages can utilize the clustered storage. Finally, any caches which should be distributed should be configured with a clustered storage tier.
+You will then need to configure a cache manager to have clustering capabilities such that the caches it manages can utilize the clustered storage. Finally, any caches which should be distributed should be configured with a clustered storage tier.
 
 == Clustering concepts
 
@@ -33,22 +33,22 @@ Cache managers connect to such entities to get access to the server's storage re
 An Ehcache entity at the server side is identified by a unique _entity identifier_.
 Multiple cache managers can identify and connect to the same clustered entity using this unique identifier.
 
-Fixed pool::
-Fixed pools are fixed-amount storage pools allocated to the clustered tiers of caches.
-A fixed amount of storage is allocated directly from server off-heap resources to these pools.
-Caches will have exclusive access to the storage resources in the fixed pool that their clustered tiers are configured with.
+Dedicated pool::
+Dedicated pools are a fixed-amount of storage pools allocated to the clustered tiers of caches.
+A dedicated amount of storage is allocated directly from server off-heap resources to these pools.
+Caches will have exclusive access to the storage resources in the dedicated pool that their clustered tiers are configured with.
 
 Shared pool::
-Shared pools are again fixed-amount storage pools, but can be shared by the clustered tiers of multiple caches.
-As in the case of fixed pools, shared pools are also carved out from server off-heap resources.
-The storage available in these shared pools are strictly shared.
-That is, no cache can ask for a fixed amount of storage from these shared pools for its clustered tier.
-If a cache needs a fixed amount of storage for its clustered tier that it is not willing to share, then it must get a fixed pool allocated.
+Shared pools are also fixed-amount storage pools, but can be shared by the clustered tiers of multiple caches.
+As in the case of dedicated pools, shared pools are also carved out from server off-heap resources.
+The storage available in these shared pools is strictly shared.
+That is, no cache can ask for a fixed-amount of storage from these shared pools for its clustered tier.
+If a cache needs a fixed-amount of storage for its clustered tier that it is not willing to share, then it must allocate a dedicated pool.
 
-Sharing of storage using shared pools here doesn't mean that the data is shared.
+Sharing of storage via shared pools does not mean that the data is shared.
 That is, if two caches are using a shared pool as their clustered tier, the data of each cache is still isolated but the underlying storage is shared.
-What it means is that, when the clustered tier contents of these caches combined, hit the capacity of their shared resource pool,
-and when one tries to expand, it could expand by shrinking others' storage resource by evicting its entries if required.
+Consequently, when the real time clustered tier contents of these caches attempts to exceed the total capacity of their shared resource pool, some cache data may be evicted.
+For instance if two caches are already at the shared resource pool size limit, and cache1 attempts to expand, then cache2 may have entries evicted to compensate for the need for more space.
 
 Here is a pictorial representation of the concepts explained above:
 
@@ -58,7 +58,7 @@ image::storagePools.png[]
 == Starting Terracotta server
 
 You can start the server with the following configuration.
-It has the bare minimum configuration required for the samples in the rest of the document to work.
+It contains the bare minimum configuration required for the samples in the rest of the document to work.
 Detailed instructions on how to configure and start a Terracotta server array can be found elsewhere.
 
 [source,xml]
