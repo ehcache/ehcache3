@@ -44,11 +44,16 @@ As in the case of dedicated pools, shared pools are also carved out from server 
 The storage available in these shared pools is strictly shared.
 That is, no cache can ask for a fixed-amount of storage from these shared pools for its clustered tier.
 If a cache needs a fixed-amount of storage for its clustered tier that it is not willing to share, then it must allocate a dedicated pool.
-
++
 Sharing of storage via shared pools does not mean that the data is shared.
 That is, if two caches are using a shared pool as their clustered tier, the data of each cache is still isolated but the underlying storage is shared.
 Consequently, when the real time clustered tier contents of these caches attempts to exceed the total capacity of their shared resource pool, some cache data may be evicted.
 For instance if two caches are already at the shared resource pool size limit, and cache1 attempts to expand, then cache2 may have entries evicted to compensate for the need for more space.
+
+Unknown pool::
+An Unknown pool, also referred to as a Clustered pool, allows a client the ability to inherit a pre-configured resource pool from an existing cache.
+For example, if there is already a dedicated or shared resource pool configured for cache1 and a client would like to use its resource pool configuration for cache2 it may do so by specifying an Unknown pool in its cache configuration.
+Please refer to Unknown Clustered Inheritance example
 
 Here is a pictorial representation of the concepts explained above:
 
@@ -195,6 +200,32 @@ include::{sourcedir31}/clustered/client/src/test/resources/configs/docs/ehcache-
 
 Expiry in clustered caches work with an exception that `Expiry#getExpiryForAccess` is handled on a best effort basis for clustered tiers,
 it may not be as accurate as in the case of local tiers. Though the same is honored accurately in on-heap tiers.
+
+=== Clustered Unknown Inheritance
+
+We have included an option which allows a cache to be created without specifying its clustered resource pool allocation.
+In order to do so you must already have a cache created as either Shared or Dedicated.
+When you create the second cache(with the same name) in a different cache manager you must configure it with a clustered unknown resource pool.
+This second cache will then inherit the clustered resource pool of the first cache.
+
+This option provides many benefits.
+The main benefit is it simplifies clustered configuration by allowing clustered resource pool configuration to be handled by one client, then all subsequent clients can inherit this configuration.
+In addition, it also reduces clustered pool allocation configuration errors.
+More importantly, sizing calculations only need to be done by one person and updated in one location.
+Thus any programmer can use the cache without having to worry about creating the right size resource pool allocations.
+
+Please review the example code below to see how this can be implemented.
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unknownClusteredCacheExample]
+----
+<1> Configure the first cache manager with auto create
+<2> Build a cache configuration for a clustered Dedicated resource pool
+<3> Create cache "my-dedicated-cache" using the Dedicated cache configuration
+<4> Configure the second cache manager as expecting(auto create off)
+<5> Build a cache configuration for a clustered Unknown resource pool, which will use the previously configured clustered Dedicated resource pool.
+<6> Create cache with the same name "my-dedicated-cache" and use the clustered Unknown cache configuration
 
 == Ehcache Clustered Entity Lifecycle
 

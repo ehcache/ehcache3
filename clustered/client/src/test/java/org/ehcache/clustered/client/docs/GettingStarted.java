@@ -33,6 +33,10 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.net.URI;
+import org.ehcache.config.ResourceType;
+import org.junit.Assert;
+
+import static org.hamcrest.Matchers.is;
 
 import org.junit.Before;
 
@@ -209,6 +213,49 @@ public class GettingStarted {
   @Test
   public void loadDocsXml() throws Exception {
     new XmlConfiguration(getClass().getResource("/configs/docs/ehcache-clustered.xml"));
+  }
+
+  @Test
+  public void unknownClusteredCacheExample()
+  {
+    // tag::unknownClusteredCacheExample[]
+
+    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilderAutoCreate = CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+                .autoCreate()  // <1>
+                .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"));
+
+    final PersistentCacheManager cacheManager1 = cacheManagerBuilderAutoCreate.build(false);
+    cacheManager1.init();
+
+    CacheConfiguration<Long, String> cacheConfigDedicated = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+    ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 8, MemoryUnit.MB)))  // <2>
+    .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+    .build();
+
+    Cache<Long, String> cacheDedicated = cacheManager1.createCache("my-dedicated-cache", cacheConfigDedicated);  // <3>
+
+    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilderExpecting = CacheManagerBuilder.newCacheManagerBuilder()
+            .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
+                .expecting()  // <4>
+                .resourcePool("resource-pool", 32, MemoryUnit.MB, "primary-server-resource"));
+
+    final PersistentCacheManager cacheManager2 = cacheManagerBuilderExpecting.build(false);
+    cacheManager2.init();
+
+    CacheConfiguration<Long, String> cacheConfigUnknown = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+    ResourcePoolsBuilder.newResourcePoolsBuilder()
+        .with(ClusteredResourcePoolBuilder.clustered()))  // <5>
+    .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+    .build();
+
+    Cache<Long, String> cacheUnknown = cacheManager2.createCache("my-dedicated-cache", cacheConfigUnknown); // <6>
+
+    // end::unknownClusteredCacheExample[]
+
+    cacheManager1.close();
+    cacheManager2.close();
   }
 
 }
