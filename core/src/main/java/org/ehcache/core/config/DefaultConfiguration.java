@@ -83,9 +83,7 @@ public final class DefaultConfiguration implements Configuration, RuntimeConfigu
   }
 
   public void removeCacheConfiguration(final String alias) {
-    if (caches.remove(alias) == null) {
-      throw new IllegalStateException("Cache '" + alias + "' unknown!");
-    }
+    caches.remove(alias);
   }
 
   public <K, V> void replaceCacheConfiguration(final String alias, final CacheConfiguration<K, V> config, final CacheRuntimeConfiguration<K, V> runtimeConfiguration) {
