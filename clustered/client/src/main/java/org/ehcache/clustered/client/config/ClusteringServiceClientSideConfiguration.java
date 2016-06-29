@@ -31,9 +31,9 @@ public interface ClusteringServiceClientSideConfiguration {
   URI getClusterUri();
 
   /**
-   * Gets the timeout to use for cache get operations for a clustered store.
+   * Gets the timeout to use for cache read operations for a clustered store.
    *
-   * @return the timeout to use for clustered get operations
+   * @return the timeout to use for clustered read operations
    */
-  TimeoutDuration getGetOperationTimeout();
+  TimeoutDuration getReadOperationTimeout();
 }

@@ -31,7 +31,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
  * Specifies the configuration for a {@link ClusteringService}.
  */
 // TODO: Should this accept/hold a *list* of URIs?
-// TODO: Determine proper place for setting getOperationTimeout default
+// TODO: Determine proper place for setting readOperationTimeout default
 public class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<PersistentCacheManager> {
@@ -41,7 +41,7 @@ public class ClusteringServiceConfiguration
   private final URI clusterUri;
   private final boolean autoCreate;
   private final ServerSideConfiguration serverConfiguration;
-  private final TimeoutDuration getOperationTimeout;
+  private final TimeoutDuration readOperationTimeout;
 
   /**
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
@@ -56,25 +56,25 @@ public class ClusteringServiceConfiguration
     this.clusterUri = clusterUri;
     this.autoCreate = false;
     this.serverConfiguration = null;
-    this.getOperationTimeout = null;
+    this.readOperationTimeout = null;
   }
 
   /**
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
    * @param clusterUri the non-{@code null} URI identifying the cluster server
-   * @param getOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
-   *                            get operations; if {@code null}, the default value is used
+   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
+   *                            read operations; if {@code null}, the default value is used
    *
    * @throws NullPointerException if {@code clusterUri} is {@code null}
    * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
    */
-  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration getOperationTimeout) {
+  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout) {
     validateClusterUri(clusterUri);
     this.clusterUri = clusterUri;
     this.autoCreate = false;
     this.serverConfiguration = null;
-    this.getOperationTimeout = getOperationTimeout;
+    this.readOperationTimeout = readOperationTimeout;
   }
 
   /**
@@ -95,7 +95,7 @@ public class ClusteringServiceConfiguration
     this.clusterUri = clusterUri;
     this.autoCreate = autoCreate;
     this.serverConfiguration = serverConfig;
-    this.getOperationTimeout = null;
+    this.readOperationTimeout = null;
   }
 
   /**
@@ -118,7 +118,7 @@ public class ClusteringServiceConfiguration
     }
 
     this.clusterUri = clientSideConfig.getClusterUri();
-    this.getOperationTimeout = clientSideConfig.getGetOperationTimeout();
+    this.readOperationTimeout = clientSideConfig.getReadOperationTimeout();
     this.autoCreate = autoCreate;
     this.serverConfiguration = serverConfig;
   }
@@ -129,7 +129,7 @@ public class ClusteringServiceConfiguration
     }
 
     this.clusterUri = baseConfig.getClusterUri();
-    this.getOperationTimeout = baseConfig.getGetOperationTimeout();
+    this.readOperationTimeout = baseConfig.getReadOperationTimeout();
     this.autoCreate = baseConfig.isAutoCreate();
     this.serverConfiguration = baseConfig.getServerConfiguration();
   }
@@ -172,12 +172,12 @@ public class ClusteringServiceConfiguration
   }
 
   /**
-   * The timeout for cache get operations.
+   * The timeout for cache read operations.
    *
-   * @return the cache get operation timeout; may be {@code null}
+   * @return the cache read operation timeout; may be {@code null}
    */
-  public TimeoutDuration getGetOperationTimeout() {
-    return getOperationTimeout;
+  public TimeoutDuration getReadOperationTimeout() {
+    return readOperationTimeout;
   }
 
   @Override

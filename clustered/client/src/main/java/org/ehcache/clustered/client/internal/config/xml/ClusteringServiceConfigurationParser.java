@@ -126,9 +126,9 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
                       urlAttribute.getName(), item.getNodeName(), fragment.getTagName(), connectionUri), e);
             }
 
-          } else if ("get-timeout".equals(item.getLocalName())) {
+          } else if ("read-timeout".equals(item.getLocalName())) {
             /*
-             * <get-timeout> is an optional element
+             * <read-timeout> is an optional element
              */
             getTimeout = processGetTimeout(fragment, item);
 
@@ -166,7 +166,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   private TimeoutDuration processGetTimeout(Element parentElement, Node timeoutNode) {
     TimeoutDuration getTimeout;
     try {
-      // <get-timeout> is a direct subtype of ehcache:time-type; use JAXB to interpret it
+      // <read-timeout> is a direct subtype of ehcache:time-type; use JAXB to interpret it
       JAXBContext context = JAXBContext.newInstance(TimeType.class.getPackage().getName());
       Unmarshaller unmarshaller = context.createUnmarshaller();
       JAXBElement<TimeType> jaxbElement = unmarshaller.unmarshal(timeoutNode, TimeType.class);
@@ -233,11 +233,11 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
   private static final class ClientSideConfig implements ClusteringServiceClientSideConfiguration {
     private final URI clusterUri;
-    private final TimeoutDuration getOperationTimeout;
+    private final TimeoutDuration readOperationTimeout;
 
-    private ClientSideConfig(URI clusterUri, TimeoutDuration getOperationTimeout) {
+    private ClientSideConfig(URI clusterUri, TimeoutDuration readOperationTimeout) {
       this.clusterUri = clusterUri;
-      this.getOperationTimeout = getOperationTimeout;
+      this.readOperationTimeout = readOperationTimeout;
     }
 
     @Override
@@ -246,8 +246,8 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
     }
 
     @Override
-    public TimeoutDuration getGetOperationTimeout() {
-      return this.getOperationTimeout;
+    public TimeoutDuration getReadOperationTimeout() {
+      return this.readOperationTimeout;
     }
   }
 

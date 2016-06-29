@@ -50,10 +50,10 @@ public class ClusteringServiceConfigurationTest {
   public void testGetGetTimeout() throws Exception {
     final URI connectionUrl = URI.create("terracotta://localhost:9450");
     final TimeoutDuration getTimeout = TimeoutDuration.of(15, TimeUnit.SECONDS);
-    assertThat(new ClusteringServiceConfiguration(connectionUrl, getTimeout).getGetOperationTimeout(), is(getTimeout));
+    assertThat(new ClusteringServiceConfiguration(connectionUrl, getTimeout).getReadOperationTimeout(), is(getTimeout));
 
-    assertThat(new ClusteringServiceConfiguration(connectionUrl).getGetOperationTimeout(), is(nullValue()));
-    assertThat(new ClusteringServiceConfiguration(connectionUrl, null).getGetOperationTimeout(), is(nullValue()));
+    assertThat(new ClusteringServiceConfiguration(connectionUrl).getReadOperationTimeout(), is(nullValue()));
+    assertThat(new ClusteringServiceConfiguration(connectionUrl, null).getReadOperationTimeout(), is(nullValue()));
   }
 
   @Test

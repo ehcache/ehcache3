@@ -28,11 +28,11 @@ import java.net.URI;
  */
 class ClusteringServiceClientSideConfigurationImpl implements ClusteringServiceClientSideConfiguration {
   private final URI clusterUri;
-  private final TimeoutDuration getOperationTimeout;
+  private final TimeoutDuration readOperationTimeout;
 
-  ClusteringServiceClientSideConfigurationImpl(URI clusterUri, TimeoutDuration getOperationTimeout) {
+  ClusteringServiceClientSideConfigurationImpl(URI clusterUri, TimeoutDuration readOperationTimeout) {
     this.clusterUri = clusterUri;
-    this.getOperationTimeout = getOperationTimeout;
+    this.readOperationTimeout = readOperationTimeout;
   }
 
   @Override
@@ -41,7 +41,7 @@ class ClusteringServiceClientSideConfigurationImpl implements ClusteringServiceC
   }
 
   @Override
-  public TimeoutDuration getGetOperationTimeout() {
-    return getOperationTimeout;
+  public TimeoutDuration getReadOperationTimeout() {
+    return readOperationTimeout;
   }
 }

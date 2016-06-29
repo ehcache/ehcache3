@@ -236,7 +236,7 @@ public class EhcacheClientEntity implements Entity {
     TimeoutDuration timeLimit;
     if (message.getType() == EhcacheEntityMessage.Type.SERVER_STORE_OP
         && GET_STORE_OPS.contains(getServerStoreOp(message.getOpCode()))) {
-      timeLimit = timeouts.getGetOperationTimeout();
+      timeLimit = timeouts.getReadOperationTimeout();
     } else {
       timeLimit = timeouts.getMutativeOperationTimeout();
     }
@@ -325,18 +325,18 @@ public class EhcacheClientEntity implements Entity {
    * {@link #builder()} to construct an instance.
    */
   public static final class Timeouts {
-    private final TimeoutDuration getOperationTimeout;
+    private final TimeoutDuration readOperationTimeout;
     private final TimeoutDuration mutativeOperationTimeout;
     private final TimeoutDuration lifecycleOperationTimeout;
 
-    private Timeouts(TimeoutDuration getOperationTimeout, TimeoutDuration mutativeOperationTimeout, TimeoutDuration lifecycleOperationTimeout) {
-      this.getOperationTimeout = getOperationTimeout;
+    private Timeouts(TimeoutDuration readOperationTimeout, TimeoutDuration mutativeOperationTimeout, TimeoutDuration lifecycleOperationTimeout) {
+      this.readOperationTimeout = readOperationTimeout;
       this.mutativeOperationTimeout = mutativeOperationTimeout;
       this.lifecycleOperationTimeout = lifecycleOperationTimeout;
     }
 
-    public TimeoutDuration getGetOperationTimeout() {
-      return getOperationTimeout;
+    public TimeoutDuration getReadOperationTimeout() {
+      return readOperationTimeout;
     }
 
     public TimeoutDuration getMutativeOperationTimeout() {
@@ -354,7 +354,7 @@ public class EhcacheClientEntity implements Entity {
     @Override
     public String toString() {
       return "Timeouts{" +
-          "getOperationTimeout=" + getOperationTimeout +
+          "readOperationTimeout=" + readOperationTimeout +
           ", mutativeOperationTimeout=" + mutativeOperationTimeout +
           ", lifecycleOperationTimeout=" + lifecycleOperationTimeout +
           '}';
@@ -365,23 +365,23 @@ public class EhcacheClientEntity implements Entity {
      * {@link Timeouts#builder()}, the default values are pre-set.
      */
     public static final class Builder {
-      private TimeoutDuration getOperationalTimeout = TimeoutDuration.of(5, TimeUnit.SECONDS);
+      private TimeoutDuration readOperationTimeout = TimeoutDuration.of(5, TimeUnit.SECONDS);
       private TimeoutDuration mutativeOperationTimeout = TimeoutDuration.of(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
       private TimeoutDuration lifecycleOperationTimeout = TimeoutDuration.of(10, TimeUnit.SECONDS);
 
       /**
-       * Sets the timeout for {@code get} operations.  The default value for this timeout is
+       * Sets the timeout for read operations.  The default value for this timeout is
        * 5 seconds.
        *
-       * @param getOperationTimeout the {@code TimeoutDuration} to use for the {@code get} operation timeout
+       * @param readOperationTimeout the {@code TimeoutDuration} to use for the read operation timeout
        *
        * @return this {@code Builder}
        */
-      public Builder setGetOperationalTimeout(TimeoutDuration getOperationTimeout) {
-        if (getOperationTimeout == null) {
-          throw new NullPointerException("getOperationTimeout");
+      public Builder setReadOperationTimeout(TimeoutDuration readOperationTimeout) {
+        if (readOperationTimeout == null) {
+          throw new NullPointerException("readOperationTimeout");
         }
-        this.getOperationalTimeout = getOperationTimeout;
+        this.readOperationTimeout = readOperationTimeout;
         return this;
       }
 
@@ -422,7 +422,7 @@ public class EhcacheClientEntity implements Entity {
        * @return a new {@code Timeouts} instance
        */
       public Timeouts build() {
-        return new Timeouts(getOperationalTimeout, mutativeOperationTimeout, lifecycleOperationTimeout);
+        return new Timeouts(readOperationTimeout, mutativeOperationTimeout, lifecycleOperationTimeout);
       }
     }
   }

@@ -323,7 +323,7 @@ public class TerminatedServerTest {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                .getOperationTimeout(1, TimeUnit.SECONDS)
+                .readOperationTimeout(1, TimeUnit.SECONDS)
                 .autoCreate()
                 .defaultServerResource("primary-server-resource"))
         .withCache("simple-cache",
@@ -357,7 +357,7 @@ public class TerminatedServerTest {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                .getOperationTimeout(1, TimeUnit.SECONDS)
+                .readOperationTimeout(1, TimeUnit.SECONDS)
                 .autoCreate()
                 .defaultServerResource("primary-server-resource"))
         .withCache("simple-cache",
@@ -392,7 +392,7 @@ public class TerminatedServerTest {
     CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(cluster.getConnectionURI().resolve("/MyCacheManagerName"))
-                .getOperationTimeout(1, TimeUnit.SECONDS)
+                .readOperationTimeout(1, TimeUnit.SECONDS)
                 .autoCreate()
                 .defaultServerResource("primary-server-resource"))
         .withCache("simple-cache",

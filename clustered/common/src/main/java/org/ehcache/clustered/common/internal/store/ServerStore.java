@@ -45,7 +45,7 @@ public interface ServerStore {
    * @param key hashcode of the key
    * @return the {@link Chain} associated with the hash
    *
-   * @throws TimeoutException if the get exceeds the timeout configured for get operations
+   * @throws TimeoutException if the get exceeds the timeout configured for read operations
    */
   Chain get(long key) throws TimeoutException;
 
@@ -78,7 +78,7 @@ public interface ServerStore {
    * @param payLoad to be appended
    * @return the Chain associated with the key before payLoad was appended
    *
-   * @throws TimeoutException if the get exceeds the timeout configured for get operations
+   * @throws TimeoutException if the get exceeds the timeout configured for read operations
    */
   Chain getAndAppend(long key, ByteBuffer payLoad) throws TimeoutException;
 

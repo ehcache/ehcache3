@@ -122,7 +122,7 @@ public class ClusteringServiceConfigurationParserTest {
             "  <ehcache:service>",
             "    <tc:cluster>",
             "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:get-timeout unit=\"minutes\">5</tc:get-timeout>",
+            "      <tc:read-timeout unit=\"minutes\">5</tc:read-timeout>",
             "    </tc:cluster>",
             "  </ehcache:service>",
             "",
@@ -139,7 +139,7 @@ public class ClusteringServiceConfigurationParserTest {
         ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getGetOperationTimeout(), is(equalTo(TimeoutDuration.of(5, TimeUnit.MINUTES))));
+    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(equalTo(TimeoutDuration.of(5, TimeUnit.MINUTES))));
   }
 
   @Test
@@ -170,7 +170,7 @@ public class ClusteringServiceConfigurationParserTest {
         ServiceLocator.findSingletonAmongst(ClusteringServiceConfiguration.class, serviceCreationConfigurations);
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
-    assertThat(clusteringServiceConfiguration.getGetOperationTimeout(), is(nullValue()));
+    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(nullValue()));
   }
 
   @Test
@@ -185,7 +185,7 @@ public class ClusteringServiceConfigurationParserTest {
             "  <ehcache:service>",
             "    <tc:cluster>",
             "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:get-timeout>5</tc:get-timeout>",
+            "      <tc:read-timeout>5</tc:read-timeout>",
             "    </tc:cluster>",
             "  </ehcache:service>",
             "",
@@ -203,7 +203,7 @@ public class ClusteringServiceConfigurationParserTest {
     assertThat(clusteringServiceConfiguration, is(notNullValue()));
 
     TimeUnit defaultUnit = convertToJavaTimeUnit(new TimeType().getUnit());
-    assertThat(clusteringServiceConfiguration.getGetOperationTimeout(), is(equalTo(TimeoutDuration.of(5, defaultUnit))));
+    assertThat(clusteringServiceConfiguration.getReadOperationTimeout(), is(equalTo(TimeoutDuration.of(5, defaultUnit))));
   }
 
   @Test
@@ -218,7 +218,7 @@ public class ClusteringServiceConfigurationParserTest {
             "  <ehcache:service>",
             "    <tc:cluster>",
             "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:get-timeout unit=\"femtos\">5</tc:get-timeout>",
+            "      <tc:read-timeout unit=\"femtos\">5</tc:read-timeout>",
             "    </tc:cluster>",
             "  </ehcache:service>",
             "",
@@ -246,9 +246,9 @@ public class ClusteringServiceConfigurationParserTest {
             "  <ehcache:service>",
             "    <tc:cluster>",
             "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:get-timeout unit=\"seconds\">"
+            "      <tc:read-timeout unit=\"seconds\">"
                 + BigInteger.ONE.add(BigInteger.valueOf(Long.MAX_VALUE))
-                + "</tc:get-timeout>",
+                + "</tc:read-timeout>",
             "    </tc:cluster>",
             "  </ehcache:service>",
             "",
@@ -275,7 +275,7 @@ public class ClusteringServiceConfigurationParserTest {
             "  <ehcache:service>",
             "    <tc:cluster>",
             "      <tc:connection url=\"terracotta://example.com:9540/cachemanager\"/>",
-            "      <tc:get-timeout unit=\"seconds\"></tc:get-timeout>",
+            "      <tc:read-timeout unit=\"seconds\"></tc:read-timeout>",
             "    </tc:cluster>",
             "  </ehcache:service>",
             "",
