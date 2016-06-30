@@ -13,16 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+
+package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
 
 import java.io.Serializable;
 
-/**
- *
- */
 public abstract class LifecycleMessage extends EhcacheEntityMessage implements Serializable {
 
   public static final int LIFECYCLE_MSG_OP_CODE = 1;

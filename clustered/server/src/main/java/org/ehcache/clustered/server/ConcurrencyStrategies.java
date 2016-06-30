@@ -19,7 +19,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.ehcache.clustered.common.messages.ConcurrentEntityMessage;
+import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.terracotta.entity.ConcurrencyStrategy;
 
 import org.terracotta.entity.EntityMessage;

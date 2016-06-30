@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+
+package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.store.Util;
 
 import java.nio.ByteBuffer;
 
-/**
- *
- */
 class LifeCycleMessageCodec {
 
   private static final byte OPCODE_SIZE = 1;

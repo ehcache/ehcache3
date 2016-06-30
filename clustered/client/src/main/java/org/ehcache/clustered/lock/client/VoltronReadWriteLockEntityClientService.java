@@ -16,9 +16,9 @@
 
 package org.ehcache.clustered.lock.client;
 
-import org.ehcache.clustered.lock.common.LockMessaging;
-import org.ehcache.clustered.lock.common.LockMessaging.LockOperation;
-import org.ehcache.clustered.lock.common.LockMessaging.LockTransition;
+import org.ehcache.clustered.common.internal.lock.LockMessaging;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;

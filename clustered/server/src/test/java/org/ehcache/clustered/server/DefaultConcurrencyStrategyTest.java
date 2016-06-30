@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.messages.ConcurrentEntityMessage;
+import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 import org.terracotta.entity.ConcurrencyStrategy;

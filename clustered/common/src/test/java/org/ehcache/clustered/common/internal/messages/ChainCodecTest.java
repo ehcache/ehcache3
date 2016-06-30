@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+
+package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
@@ -29,9 +30,6 @@ import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.ehcache.clustered.common.store.Util.readPayLoad;
 import static org.ehcache.clustered.common.store.Util.getChain;
 
-/**
- *
- */
 public class ChainCodecTest {
 
   private static final ChainCodec CHAIN_CODEC = new ChainCodec();

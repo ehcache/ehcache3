@@ -13,22 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
 
-import org.terracotta.entity.EntityMessage;
+package org.ehcache.clustered.common.internal.messages;
 
-/**
- * {@link EntityMessage}s can implement this interface to specify which concurrency key
- * they belong to.
- */
-public interface ConcurrentEntityMessage extends EntityMessage {
+import java.nio.ByteBuffer;
 
-  /**
-   * Get the {@link org.terracotta.entity.EntityMessage}'s concurrency key.
-   *
-   * @see org.terracotta.entity.ConcurrencyStrategy#concurrencyKey(EntityMessage)
-   * @return the concurrency key
-   */
-  int concurrencyKey();
+final class CodecUtil {
+
+  private CodecUtil() {
+  }
+
+
+  public static void putStringAsCharArray(ByteBuffer byteBuffer, String s) {
+    byteBuffer.asCharBuffer().put(s);
+    byteBuffer.position(byteBuffer.position() + (s.length() * 2));
+  }
 
 }

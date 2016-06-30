@@ -42,12 +42,12 @@ import org.ehcache.clustered.common.exceptions.LifecycleException;
 import org.ehcache.clustered.common.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.exceptions.ResourceConfigurationException;
 import org.ehcache.clustered.common.exceptions.ServerMisconfigurationException;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
-import org.ehcache.clustered.common.messages.EhcacheEntityResponseFactory;
-import org.ehcache.clustered.common.messages.LifecycleMessage;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.store.ServerStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,20 +68,20 @@ import org.terracotta.offheapstore.paging.Page;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.allInvalidationDone;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.clientInvalidateAll;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.clientInvalidateHash;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.hashInvalidationDone;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.serverInvalidateHash;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.hashInvalidationDone;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
-import static org.ehcache.clustered.common.messages.LifecycleMessage.ConfigureStoreManager;
-import static org.ehcache.clustered.common.messages.LifecycleMessage.CreateServerStore;
-import static org.ehcache.clustered.common.messages.LifecycleMessage.DestroyServerStore;
-import static org.ehcache.clustered.common.messages.LifecycleMessage.ReleaseServerStore;
-import static org.ehcache.clustered.common.messages.LifecycleMessage.ValidateServerStore;
-import static org.ehcache.clustered.common.messages.LifecycleMessage.ValidateStoreManager;
+import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
+import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
+import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
+import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ReleaseServerStore;
+import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateServerStore;
+import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 
 // TODO: Provide some mechanism to report on storage utilization -- PageSource provides little visibility
 // TODO: Ensure proper operations for concurrent requests

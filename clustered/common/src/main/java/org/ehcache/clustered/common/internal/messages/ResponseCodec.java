@@ -13,21 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+
+package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.store.Util;
 
 import java.nio.ByteBuffer;
 
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.AllInvalidationDone;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ClientInvalidateAll;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ClientInvalidateHash;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.HashInvalidationDone;
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.ServerInvalidateHash;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.AllInvalidationDone;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateAll;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateHash;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.HashInvalidationDone;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ServerInvalidateHash;
 
-/**
- *
- */
 class ResponseCodec {
 
   private static final byte OP_CODE_SIZE = 1;

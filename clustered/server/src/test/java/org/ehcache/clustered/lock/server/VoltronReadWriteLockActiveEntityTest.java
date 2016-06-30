@@ -15,8 +15,8 @@
  */
 package org.ehcache.clustered.lock.server;
 
-import org.ehcache.clustered.lock.common.LockMessaging;
-import org.ehcache.clustered.lock.common.LockMessaging.LockTransition;
+import org.ehcache.clustered.common.internal.lock.LockMessaging;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 import org.hamcrest.beans.HasPropertyWithValue;
 import org.junit.Test;
 import org.mockito.Matchers;
@@ -25,8 +25,8 @@ import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.MessageCodecException;
 
-import static org.ehcache.clustered.lock.common.LockMessaging.HoldType.READ;
-import static org.ehcache.clustered.lock.common.LockMessaging.HoldType.WRITE;
+import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.READ;
+import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.eq;

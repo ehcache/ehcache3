@@ -13,22 +13,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
 
-import java.nio.ByteBuffer;
+package org.ehcache.clustered.common.internal.messages;
+
+import org.terracotta.entity.EntityMessage;
 
 /**
- * @author Ludovic Orban
+ * Defines messages for interactions with an {@code EhcacheActiveEntity}.
  */
-final class CodecUtil {
+public abstract class EhcacheEntityMessage implements EntityMessage {
 
-  private CodecUtil() {
+  public enum Type {
+    SERVER_STORE_OP,
+    LIFECYCLE_OP;
   }
 
+  public abstract Type getType();
 
-  public static void putStringAsCharArray(ByteBuffer byteBuffer, String s) {
-    byteBuffer.asCharBuffer().put(s);
-    byteBuffer.position(byteBuffer.position() + (s.length() * 2));
-  }
+  public abstract byte getOpCode();
 
 }

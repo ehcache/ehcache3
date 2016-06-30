@@ -13,23 +13,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+
+package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.store.Element;
+
+import java.util.Iterator;
+
+import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertThat;
+import static org.ehcache.clustered.common.store.Util.readPayLoad;
 
 /**
+ *
  */
-public class EhcacheEntityResponseFactory {
+public final class Util {
 
-  public EhcacheEntityResponse success() {
-    return EhcacheEntityResponse.Success.INSTANCE;
+  private Util() {
   }
 
-  public EhcacheEntityResponse failure(Exception cause) {
-    return new EhcacheEntityResponse.Failure(cause);
-  }
-
-  public EhcacheEntityResponse response(Chain chain) {
-    return new EhcacheEntityResponse.GetResponse(chain);
+  public static void assertChainHas(Chain chain, long... payLoads) {
+    Iterator<Element> elements = chain.iterator();
+    for (long payLoad : payLoads) {
+      assertThat(readPayLoad(elements.next().getPayload()), is(Long.valueOf(payLoad)));
+    }
+    assertThat(elements.hasNext(), is(false));
   }
 }

@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.lock.common;
+
+package org.ehcache.clustered.common.internal.lock;
 
 import org.terracotta.entity.EntityMessage;
 import org.terracotta.entity.EntityResponse;
@@ -21,10 +22,6 @@ import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.SyncMessageCodec;
 
-/**
- *
- * @author cdennis
- */
 public class LockMessaging {
 
   private static final MessageCodec<LockOperation, LockTransition> CODEC = new MessageCodec<LockOperation, LockTransition>() {

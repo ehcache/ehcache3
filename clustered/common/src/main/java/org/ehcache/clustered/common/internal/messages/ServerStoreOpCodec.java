@@ -13,15 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
 
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage.AppendMessage;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClearMessage;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetAndAppendMessage;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage.GetMessage;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ClientInvalidationAck;
-import org.ehcache.clustered.common.messages.ServerStoreOpMessage.ServerStoreOp;
+package org.ehcache.clustered.common.internal.messages;
+
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClearMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetAndAppendMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ReplaceAtHeadMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClientInvalidationAck;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp;
 
 import java.nio.ByteBuffer;
 

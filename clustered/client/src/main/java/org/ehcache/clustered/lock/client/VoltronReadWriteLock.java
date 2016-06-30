@@ -17,7 +17,7 @@ package org.ehcache.clustered.lock.client;
 
 import java.io.Closeable;
 
-import org.ehcache.clustered.lock.common.LockMessaging.HoldType;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;

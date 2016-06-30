@@ -16,10 +16,10 @@
 package org.ehcache.clustered.lock.client;
 
 import java.util.concurrent.Semaphore;
-import org.ehcache.clustered.lock.common.LockMessaging;
-import org.ehcache.clustered.lock.common.LockMessaging.LockOperation;
-import org.ehcache.clustered.lock.common.LockMessaging.LockTransition;
-import org.ehcache.clustered.lock.common.LockMessaging.HoldType;
+import org.ehcache.clustered.common.internal.lock.LockMessaging;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.terracotta.connection.entity.Entity;
 import org.terracotta.entity.EndpointDelegate;
 import org.terracotta.entity.EntityClientEndpoint;
