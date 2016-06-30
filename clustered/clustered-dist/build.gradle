@@ -95,6 +95,10 @@ distributions {
       into ('client/ehcache/documentation') {
         from "$docsFolder/user"
       }
+      into ('client/ehcache/javadoc') {
+        from javadocJar.archivePath.getPath()
+        from project(':dist').javadocJar.archivePath.getPath()
+      }
       into ('client/lib') {
         from configurations.shadow
       }
@@ -114,5 +118,5 @@ distZip {
   classifier = 'kit'
 }
 
-distTar.dependsOn copyDocs
-distZip.dependsOn copyDocs
+distTar.dependsOn copyDocs, javadocJar, project(':dist').javadocJar
+distZip.dependsOn copyDocs, javadocJar, project(':dist').javadocJar
