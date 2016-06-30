@@ -1,10 +1,6 @@
-import com.github.jengelman.gradle.plugins.shadow.tasks.DefaultInheritManifest
-import groovy.json.JsonSlurper
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.artifacts.ProjectDependency
-import org.gradle.api.internal.file.FileResolver
-import org.gradle.api.plugins.osgi.OsgiPluginConvention
 import org.gradle.api.tasks.bundling.Jar
 import org.gradle.api.tasks.bundling.Zip
 import org.gradle.api.tasks.javadoc.Javadoc
@@ -46,17 +42,21 @@ class EhDocs implements Plugin<Project> {
       }
     }
 
-    project.task('spiJavadoc', type: Javadoc) {
-      title "$project.archivesBaseName $project.version API & SPI"
-      source hashsetOfProjects.javadoc.source
-      classpath = project.files(hashsetOfProjects.javadoc.classpath)
-      exclude '**/internal/**'
-      destinationDir = project.file("$project.docsDir/spi-javadoc")
-    }
+    if (!project.hasProperty('spiJavadocDisable')) {
 
-    project.task('spiJavadocJar', type: Jar, dependsOn: 'spiJavadoc') {
-      classifier = 'spi-javadoc'
-      from project.tasks.getByPath('spiJavadoc').destinationDir
+      project.task('spiJavadoc', type: Javadoc) {
+        title "$project.archivesBaseName $project.version API & SPI"
+        source hashsetOfProjects.javadoc.source
+        classpath = project.files(hashsetOfProjects.javadoc.classpath)
+        exclude '**/internal/**'
+        destinationDir = project.file("$project.docsDir/spi-javadoc")
+      }
+
+      project.task('spiJavadocJar', type: Jar, dependsOn: 'spiJavadoc') {
+        classifier = 'spi-javadoc'
+        from project.tasks.getByPath('spiJavadoc').destinationDir
+      }
+
     }
 
     project.task('asciidocZip', type: Zip, dependsOn: ':docs:asciidoctor') {
@@ -66,7 +66,10 @@ class EhDocs implements Plugin<Project> {
 
     project.artifacts {
       archives project.asciidocZip
-      archives project.spiJavadocJar
+      if (!project.hasProperty('spiJavadocDisable')) {
+        archives project.spiJavadocJar
+      }
     }
+
   }
 }
