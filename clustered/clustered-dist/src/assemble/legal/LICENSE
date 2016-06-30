@@ -1,4 +1,5 @@
-Ehcache and Ehcache clustering-related components are licenced under the Apache License 2.0.
+Ehcache is licensed under the Apache License 2.0.
 
-Some Terracotta Server components are licensed under the Terracotta Public License.
+Ehcache clustering-related components and Terracotta Server include components that are licensed under the Terracotta Public License.
+
 
