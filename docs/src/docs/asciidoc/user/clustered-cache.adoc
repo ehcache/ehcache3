@@ -55,7 +55,7 @@ Consequently, when resource capacity is reached and triggers eviction, the evict
 
 Here is a pictorial representation of the concepts explained above:
 
-image::storagePools.png[]
+image::StoragePools.png[]
 
 [[start-server]]
 == Starting Terracotta server
