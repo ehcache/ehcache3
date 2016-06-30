@@ -17,9 +17,11 @@ image::ClusteredEhcacheTopology.png["Diagram depicting Terracotta Server and dis
 
 ''''
 
-To enable Clustering with Terracotta, you will have to deploy a http://terracotta.org/downloads/open-source/catalog[Terracotta server] configured with clustered cache storage.  For convenience, the downloadable Ehcache kit contains the Terracotta Server since Ehcache version 3.1.
+To enable Clustering with Terracotta, you will have to deploy a http://terracotta.org/downloads/open-source/catalog[Terracotta server] configured with clustered cache storage.
+For convenience Ehcache 3.1 introduced a downloadable kit that contains the Terracotta Server and also the required client libraries.
 
-You will then need to configure a cache manager to have clustering capabilities such that the caches it manages can utilize the clustered storage. Finally, any caches which should be distributed should be configured with a clustered storage tier.
+You will then need to configure a cache manager to have clustering capabilities such that the caches it manages can utilize the clustered storage.
+Finally, any caches which should be distributed should be configured with a clustered storage tier.
 
 == Clustering concepts
 
@@ -29,34 +31,27 @@ Server off-heap resource::
 Server off-heap resources are storage resources defined at the server.
 Caches can reserve a storage area for their clustered tiers within these server off-heap resources.
 
-Ehcache clustered entity::
-Ehcache Clustered Tier Manager::
-_Clustered Tier Manager_ is the server-side entity that gives clustering capabilities to a cache manager.
-Cache managers connect to such entities to get access to the server's storage resources so that the clustered tiers of caches defined in them can consume those resources.
-An Ehcache Clustered Tier Manager at the server side is identified by a unique identifier.
-Multiple cache managers can identify and connect to the same clustered entity using this unique identifier.
+Clustered Tier Manager::
+The Ehcache _Clustered Tier Manager_ is the server-side component that gives clustering capabilities to a cache manager.
+Cache managers connect to these to get access to the server's storage resources so that the clustered tiers of caches defined in them can consume those resources.
+Ehcache _Clustered Tier Manager_ at the server side are identified by a unique identifier.
+Using it, multiple cache managers can connect to the same clustered tier manager to share cache data.
+The clustered tier manager are also responsible for managing the storage of the clustered tier of caches, with the following different options.
 
 Dedicated pool::
 Dedicated pools are a fixed-amount of storage pools allocated to the clustered tiers of caches.
 A dedicated amount of storage is allocated directly from server off-heap resources to these pools.
-Caches will have exclusive access to the storage resources in the dedicated pool that their clustered tiers are configured with.
+And this storage space is used exclusively by a given clustered tier.
 
 Shared pool::
 Shared pools are also fixed-amount storage pools, but can be shared by the clustered tiers of multiple caches.
 As in the case of dedicated pools, shared pools are also carved out from server off-heap resources.
 The storage available in these shared pools is strictly shared.
-That is, no cache can ask for a fixed-amount of storage from these shared pools for its clustered tier.
-If a cache needs a fixed-amount of storage for its clustered tier that it is not willing to share, then it must allocate a dedicated pool.
+That is no cluster tier can ask for a fixed-amount of storage from a shared pool.
 +
 Sharing of storage via shared pools does not mean that the data is shared.
 That is, if two caches are using a shared pool as their clustered tier, the data of each cache is still isolated but the underlying storage is shared.
-Consequently, when the real time clustered tier contents of these caches attempts to exceed the total capacity of their shared resource pool, some cache data may be evicted.
-For instance if two caches are already at the shared resource pool size limit, and cache1 attempts to expand, then cache2 may have entries evicted to compensate for the need for more space.
-
-Unspecified pool::
-An Unspecified pool, also referred to as a Clustered pool, allows a client the ability to inherit a pre-configured resource pool from an existing cache.
-For example, if there is already a dedicated or shared resource pool configured for cache1 and a client would like to use its resource pool configuration for cache2 it may do so by specifying an Unspecified pool in its cache configuration.
-Please refer to Unspecified Clustered Inheritance example
+Consequently, when resource capacity is reached and triggers eviction, the evicted mapping can come from any of the clustered tiers sharing the pool.
 
 Here is a pictorial representation of the concepts explained above:
 
@@ -79,7 +74,6 @@ The above configuration defines two named _server off-heap resources_:
 <1> An off-heap resource of 128 MB size named `primary-server-resource`.
 <2> Another off-heap resource named `secondary-server-resource` with 96 MB capacity.
 
-Caches can consume storage from these named resources by configuring their cache manager accordingly.
 The rest of the document explains in detail how you can configure cache managers and caches to consume the server's off-heap resources.
 
 Assuming that you have the clustered EhCache kit available locally, start with extracting the *ehcache-clustered* kit.
@@ -146,6 +140,21 @@ include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/clie
 <7> Configures another cache (`shared-cache-2`) that shares the resource pool (`resource-pool-a`) with `shared-cache-1`.
 <8> Creates fully initialized cache manager with the clustered caches.
 
+== Ehcache Clustered Tier Manager Lifecycle
+
+When configuring a cache manager to connect to a clustered tier manager there are three possible connection modes:
+[source,java,indent=0]
+----
+include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
+----
+<1> In auto-create mode if no clustered tier manager exists then one is created with the supplied configuration.
+If it exists and its configuration matches the supplied configuration then a connection is established.
+If the supplied configuration does not match then the cache manager will fail to initialize.
+<2> In expected mode if a clustered tier manager exists and its configuration matches the supplied configuration then a connection is established.
+If the supplied configuration does not match or the clustered tier manager does not exist then the cache manager will fail to initialize.
+<3> In config-less mode if a clustered tier manager exists then a connection is established without regard to its configuration.
+If it does not exist then the cache manager will fail to initialize.
+
 == Clustered caches
 
 
@@ -201,15 +210,15 @@ include::{sourcedir31}/clustered/client/src/test/resources/configs/docs/ehcache-
 
 === Clustered Cache Expiry
 
-Expiry in clustered caches work with an exception that `Expiry#getExpiryForAccess` is handled on a best effort basis for clustered tiers,
-it may not be as accurate as in the case of local tiers. Though the same is honored accurately in on-heap tiers.
+Expiry in clustered caches work with an exception that `Expiry#getExpiryForAccess` is handled on a best effort basis for clustered tiers.
+It may not be as accurate as in the case of local tiers.
 
 === Clustered Unspecified Inheritance
 
-We have included an option which allows a cache to be created without specifying its clustered resource pool allocation.
-In order to do so you must already have a cache created with either a Shared or Dedicated resource pool.
-When you create the second cache (with the same alias) in a different cache manager you must configure it with a clustered unspecified resource pool.
-This second cache will then inherit the clustered resource pool of the first cache.
+We have included an option which allows a cache to be created without specifying its clustered tier resource pool allocation.
+In order to do so you must already have a clustered tier created with either a _shared_ or _dedicated_ resource pool.
+When you create the second cache with the same alias in a different cache manager you must configure it with a clustered _unspecified_ resource pool.
+It will then inherit the clustered resource pool as it was configured when creating the clustered tier.
 
 This option provides many benefits.
 The main benefit is it simplifies clustered configuration by allowing clustered resource pool configuration to be handled by one client, then all subsequent clients can inherit this configuration.
@@ -221,26 +230,11 @@ Please review the example code below to see how this can be implemented.
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unknownClusteredCacheExample]
+include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unspecifiedClusteredCacheExample]
 ----
 <1> Configure the first cache manager with auto create
-<2> Build a cache configuration for a clustered Dedicated resource pool
-<3> Create cache "my-dedicated-cache" using the Dedicated cache configuration
-<4> Configure the second cache manager as expecting(auto create off)
-<5> Build a cache configuration for a clustered Unspecified resource pool, which will use the previously configured clustered Dedicated resource pool.
-<6> Create cache with the same name "my-dedicated-cache" and use the clustered Unspecified cache configuration
-
-== Ehcache Clustered Entity Lifecycle
-
-When configuring a cache manager to connect to a clustered entity there are three possible connection modes:
-[source,java,indent=0]
-----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
-----
-<1> In auto-create mode if no entity exists then one is created with the supplied configuration.
-If an entity exists and its configuration matches the supplied configuration then a connection is established.
-If the supplied configuration does not match then the cache manager will fail to initialize.
-<2> In expected mode if an entity exists and its configuration matches the supplied configuration then a connection is established.
-If the supplied configuration does not match or the entity does not exist then the cache manager will fail to initialize.
-<3> In config-less mode if an entity exists then a connection is established without regard to the configuration of that entity.
-If the entity does not exist then the cache manager will fail to initialize.
+<2> Build a cache configuration for a clustered _dedicated_ resource pool
+<3> Create cache `my-dedicated-cache` using the cache configuration
+<4> Configure the second cache manager as _expecting_ (auto create off)
+<5> Build a cache configuration for a clustered _unspecified_ resource pool, which will use the previously configured clustered _dedicated_ resource pool.
+<6> Create cache with the same name `my-dedicated-cache` and use the clustered _unspecified_ cache configuration

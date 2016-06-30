@@ -56,7 +56,7 @@ image::EhcacheTerminology.png[]
 
 When a cache is configured to use more than one storage area, those areas are arranged and managed as tiers - where
 the _hottest_ (most recently accessed) data is kept in the faster (and typically less abundant) tiers, and data that
-is less hot is moved to the slower (and more abundant) tiers.
+is less hot remains in the slower (and more abundant) tiers.
 
 == Topology Types
 
@@ -79,10 +79,10 @@ It is common for many production applications to be deployed in clusters of mult
 However, without a distributed cache, application clusters exhibit a number of undesirable behaviors, such as:
 
 * Cache Drift - If each application instance maintains its own cache, updates made to one cache will not appear in the
-other instances. A distributed or replicated cache ensures that all of the cache instances are kept in sync with each
+other instances. A distributed cache ensures that all of the cache instances are kept in sync with each
 other.
 * Database Bottlenecks - In a single-instance application, a cache effectively shields a database from the overhead of
 redundant queries. However, in a distributed application environment, each instance must load and keep its own cache
 fresh. The overhead of loading and refreshing multiple caches leads to database bottlenecks as more application
-instances are added. A distributed or replicated cache eliminates the per-instance overhead of loading and refreshing
+instances are added. A distributed cache eliminates the per-instance overhead of loading and refreshing
 multiple caches from a database.
