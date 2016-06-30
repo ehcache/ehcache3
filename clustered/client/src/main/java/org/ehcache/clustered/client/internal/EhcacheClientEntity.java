@@ -387,7 +387,7 @@ public class EhcacheClientEntity implements Entity {
 
       /**
        * Sets the timeout for mutative operations like {@code put} and {@code remove}.  The default value
-       * for this timeout is {@code Long.MAX_VALUE} nanoseconds.
+       * for this timeout is {@link TimeoutDuration#NONE}.
        *
        * @param mutativeOperationTimeout the {@code TimeoutDuration} to use for a mutative operation timeout
        *

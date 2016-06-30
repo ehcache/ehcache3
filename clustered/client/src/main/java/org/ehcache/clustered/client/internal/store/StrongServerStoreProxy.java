@@ -119,10 +119,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
           try {
             LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-            entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
+            entity.invokeAsync(messageFactory.clientInvalidationAck(invalidationId), true);
           } catch (Exception e) {
             //TODO: what should be done here?
-            // TODO: TimeoutException possible -- is that significant here?
             LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
           }
         } else {
@@ -144,10 +143,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
           try {
             LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-            entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
+            entity.invokeAsync(messageFactory.clientInvalidationAck(invalidationId), true);
           } catch (Exception e) {
             //TODO: what should be done here?
-            // TODO: TimeoutException possible -- is that significant here?
             LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
           }
         } else {

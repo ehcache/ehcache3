@@ -437,6 +437,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         try {
           value = getInternal(key);
         } catch (TimeoutException e) {
+          // This timeout handling is safe **only** in the context of a get/read operation!
           value = null;
         }
         ValueHolder<V> holder = null;

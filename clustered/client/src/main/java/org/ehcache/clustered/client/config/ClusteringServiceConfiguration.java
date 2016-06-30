@@ -81,6 +81,28 @@ public class ClusteringServiceConfiguration
    * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
    *
    * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
+   *                            read operations; if {@code null}, the default value is used
+   * @param serverConfig  the server side entity configuration required
+   *
+   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
+   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
+   */
+  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout, ServerSideConfiguration serverConfig) {
+    validateClusterUri(clusterUri);
+    if (serverConfig == null) {
+      throw new NullPointerException("Server configuration cannot be null");
+    }
+    this.clusterUri = clusterUri;
+    this.autoCreate = false;
+    this.serverConfiguration = serverConfig;
+    this.readOperationTimeout = readOperationTimeout;
+  }
+
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
    * @param autoCreate {@code true} if server components should be auto created
    * @param serverConfig  the server side entity configuration required
    *
@@ -172,7 +194,7 @@ public class ClusteringServiceConfiguration
   /**
    * The timeout for cache read operations.
    *
-   * @return the cache read operation timeout; may be {@code null}
+   * @return the cache read operation timeout; may be {@code null} indicating the default timeout is used
    */
   public TimeoutDuration getReadOperationTimeout() {
     return readOperationTimeout;

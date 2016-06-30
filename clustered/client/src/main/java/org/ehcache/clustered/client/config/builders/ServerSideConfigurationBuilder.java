@@ -26,7 +26,6 @@ import org.ehcache.config.units.MemoryUnit;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.unmodifiableMap;
-import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.*;
 
 /**
  * Constructs the server-side portion of a {@link ClusteringServiceConfiguration}.  An instance of this
@@ -36,24 +35,27 @@ import static org.ehcache.clustered.client.config.builders.ClusteringServiceConf
  */
 public class ServerSideConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
-  private final ClusteringServiceClientSideConfiguration clientSideConfiguration;
+  private final ClusteringServiceConfigurationBuilder clientSideBuilder;
   private final String defaultServerResource;
   private final Map<String, Pool> pools;
 
-  ServerSideConfigurationBuilder(ClusteringServiceClientSideConfiguration clientSideConfiguration) {
-    this.clientSideConfiguration = clientSideConfiguration;
+  ServerSideConfigurationBuilder(ClusteringServiceConfigurationBuilder clientSideBuilder) {
+    if (clientSideBuilder == null) {
+      throw new NullPointerException("clientSideBuilder can not be null");
+    }
+    this.clientSideBuilder = clientSideBuilder;
     this.defaultServerResource = null;
     this.pools = emptyMap();
   }
 
   private ServerSideConfigurationBuilder(ServerSideConfigurationBuilder original, String defaultServerResource) {
-    this.clientSideConfiguration = original.clientSideConfiguration;
+    this.clientSideBuilder = original.clientSideBuilder;
     this.pools = original.pools;
     this.defaultServerResource = defaultServerResource;
   }
 
   private ServerSideConfigurationBuilder(ServerSideConfigurationBuilder original, String poolName, Pool poolDefinition) {
-    this.clientSideConfiguration = original.clientSideConfiguration;
+    this.clientSideBuilder = original.clientSideBuilder;
     this.defaultServerResource = original.defaultServerResource;
     Map<String, Pool> pools = new HashMap<String, Pool>(original.pools);
     if (pools.put(poolName, poolDefinition) != null) {
@@ -114,7 +116,7 @@ public class ServerSideConfigurationBuilder implements Builder<ClusteringService
 
   @Override
   public ClusteringServiceConfiguration build() {
-    return ClusteringServiceConfigurationBuilder.build(clientSideConfiguration, buildServerSideConfiguration());
+    return clientSideBuilder.build(buildServerSideConfiguration());
   }
 
   private ServerSideConfiguration buildServerSideConfiguration() {

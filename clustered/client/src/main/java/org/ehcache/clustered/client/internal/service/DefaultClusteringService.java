@@ -359,15 +359,19 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         configuredConsistency
     );
 
-    boolean opIsValidate = true;
     try {
       if (configuration.isAutoCreate()) {
         try {
           this.entity.validateCache(cacheId, clientStoreConfiguration);
         } catch (ClusteredTierValidationException ex) {
           if (ex.getCause() instanceof InvalidStoreException) {
-            opIsValidate = false;
-            this.entity.createCache(cacheId, clientStoreConfiguration);
+            try {
+              this.entity.createCache(cacheId, clientStoreConfiguration);
+            } catch (TimeoutException e) {
+              throw new CachePersistenceException("Unable to create clustered tier proxy '"
+                  + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
+                  + "'; create operation timed out", e);
+            }
           } else {
             throw ex;
           }
@@ -380,7 +384,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     } catch (TimeoutException e) {
       throw new CachePersistenceException("Unable to create clustered tier proxy '"
           + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
-          + "'; " + (opIsValidate ? "validate" : "create") + " operation timed out", e);
+          + "'; validate operation timed out", e);
     }
 
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
