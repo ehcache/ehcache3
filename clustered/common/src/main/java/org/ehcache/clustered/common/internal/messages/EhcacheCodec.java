@@ -13,15 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+
+package org.ehcache.clustered.common.internal.messages;
 
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.MessageCodecException;
 
-/**
- *
- * @author cdennis
- */
 public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE =

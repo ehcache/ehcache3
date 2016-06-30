@@ -19,16 +19,14 @@ import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 
-import static org.ehcache.clustered.lock.common.LockMessaging.HoldType.READ;
-import static org.ehcache.clustered.lock.common.LockMessaging.HoldType.WRITE;
+import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.READ;
+import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
-import org.mockito.Mockito;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.terracotta.exception.EntityAlreadyExistsException;

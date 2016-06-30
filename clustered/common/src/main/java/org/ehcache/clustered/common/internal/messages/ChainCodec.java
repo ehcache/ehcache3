@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+
+package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.store.Chain;
 import org.ehcache.clustered.common.store.Element;
@@ -26,9 +27,6 @@ import java.util.List;
 import static org.ehcache.clustered.common.store.Util.getElement;
 import static org.ehcache.clustered.common.store.Util.getChain;
 
-/**
- *
- */
 class ChainCodec {
 
   private static final byte NON_SEQUENCED_CHAIN = 0;

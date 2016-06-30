@@ -15,8 +15,8 @@
  */
 package org.ehcache.clustered.lock.server;
 
-import org.ehcache.clustered.lock.common.LockMessaging.LockOperation;
-import org.ehcache.clustered.lock.common.LockMessaging.LockTransition;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
+import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 import org.terracotta.entity.PassiveServerEntity;
 
 class VoltronReadWriteLockPassiveEntity implements PassiveServerEntity<LockOperation, LockTransition> {

@@ -32,8 +32,8 @@ import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityNotFoundException;
 
-import static org.ehcache.clustered.lock.common.LockMessaging.HoldType.READ;
-import static org.ehcache.clustered.lock.common.LockMessaging.HoldType.WRITE;
+import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.READ;
+import static org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType.WRITE;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;

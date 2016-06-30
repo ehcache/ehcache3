@@ -29,11 +29,12 @@ import org.ehcache.clustered.common.exceptions.LifecycleException;
 import org.ehcache.clustered.common.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.exceptions.ResourceConfigurationException;
 import org.ehcache.clustered.common.exceptions.ServerMisconfigurationException;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Failure;
-import org.ehcache.clustered.common.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.messages.ServerStoreMessageFactory;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
+import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 import org.terracotta.entity.ClientCommunicator;
@@ -53,9 +54,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Dedicated;
-import org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 
-import static org.ehcache.clustered.common.messages.EhcacheEntityResponse.Type.FAILURE;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type.FAILURE;
 import static org.ehcache.clustered.common.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -2116,8 +2117,8 @@ public class EhcacheActiveEntityTest {
 
   /**
    * Tests the destroy server store operation <b>before</b> the use of either a
-   * {@link org.ehcache.clustered.common.messages.LifecycleMessage.CreateServerStore CreateServerStore}
-   * {@link org.ehcache.clustered.common.messages.LifecycleMessage.ValidateServerStore ValidateServerStore}
+   * {@link LifecycleMessage.CreateServerStore CreateServerStore}
+   * {@link LifecycleMessage.ValidateServerStore ValidateServerStore}
    * operation.
    */
   @Test

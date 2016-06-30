@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.messages;
+
+package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.store.Chain;
 import org.junit.Test;
