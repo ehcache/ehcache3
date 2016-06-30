@@ -214,7 +214,7 @@ public class GettingStarted {
   @Test
   public void unknownClusteredCacheExample()
   {
-    // tag::unknownClusteredCacheExample[]
+    // tag::unspecifiedClusteredCacheExample[]
 
     CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilderAutoCreate = CacheManagerBuilder.newCacheManagerBuilder()
             .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("terracotta://localhost:9510/my-application"))
@@ -240,15 +240,15 @@ public class GettingStarted {
     final PersistentCacheManager cacheManager2 = cacheManagerBuilderExpecting.build(false);
     cacheManager2.init();
 
-    CacheConfiguration<Long, String> cacheConfigUnknown = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+    CacheConfiguration<Long, String> cacheConfigUnspecified = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
     ResourcePoolsBuilder.newResourcePoolsBuilder()
         .with(ClusteredResourcePoolBuilder.clustered()))  // <5>
     .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
     .build();
 
-    Cache<Long, String> cacheUnknown = cacheManager2.createCache("my-dedicated-cache", cacheConfigUnknown); // <6>
+    Cache<Long, String> cacheUnspecified = cacheManager2.createCache("my-dedicated-cache", cacheConfigUnspecified); // <6>
 
-    // end::unknownClusteredCacheExample[]
+    // end::unspecifiedClusteredCacheExample[]
 
     cacheManager1.close();
     cacheManager2.close();
