@@ -95,6 +95,9 @@ distributions {
       into ('client/lib') {
         from configurations.shadow
       }
+      into ('') {
+        from 'src/assemble'
+      }
     }
   }
 }
