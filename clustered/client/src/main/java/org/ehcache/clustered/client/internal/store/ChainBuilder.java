@@ -15,8 +15,8 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Util;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Util;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

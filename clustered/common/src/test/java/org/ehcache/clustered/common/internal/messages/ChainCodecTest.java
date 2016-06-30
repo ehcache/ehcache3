@@ -16,9 +16,9 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
-import org.ehcache.clustered.common.store.SequencedElement;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.SequencedElement;
 import org.junit.Test;
 
 import java.util.Iterator;
@@ -26,9 +26,9 @@ import java.util.Iterator;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.ehcache.clustered.common.store.Util.createPayload;
-import static org.ehcache.clustered.common.store.Util.readPayLoad;
-import static org.ehcache.clustered.common.store.Util.getChain;
+import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
+import static org.ehcache.clustered.common.internal.store.Util.getChain;
 
 public class ChainCodecTest {
 

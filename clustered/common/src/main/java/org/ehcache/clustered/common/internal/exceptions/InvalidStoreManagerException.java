@@ -14,21 +14,17 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.store;
-
-import java.nio.ByteBuffer;
+package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Building blocks of {@link Chain}
+ * Thrown to indicate an operation cannot be performed on a certain clustered store manager.
  */
-public interface Element {
+public class InvalidStoreManagerException extends ClusteredEhcacheException {
+  public InvalidStoreManagerException(String message) {
+    super(message);
+  }
 
-  /**
-   * The data payload stored as element.
-   * This is binary representation of key/value pairs
-   * or key/func(value) pairs
-   *
-   * @return the payload associated with this {@link Element}
-   */
-  ByteBuffer getPayload();
+  public InvalidStoreManagerException(Throwable cause) {
+    super(cause);
+  }
 }

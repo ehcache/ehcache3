@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
-import org.ehcache.clustered.common.store.Util;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.Util;
 import org.terracotta.offheapstore.MapInternals;
 
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;

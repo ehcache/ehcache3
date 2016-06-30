@@ -17,8 +17,8 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.ServerStore;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
 import org.terracotta.offheapstore.paging.PageSource;
 

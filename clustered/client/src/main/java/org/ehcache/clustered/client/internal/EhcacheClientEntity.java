@@ -25,7 +25,7 @@ import org.ehcache.clustered.client.internal.service.ClusteredStoreValidationExc
 import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.exceptions.ClusteredEhcacheException;
+import org.ehcache.clustered.common.internal.exceptions.ClusteredEhcacheException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;

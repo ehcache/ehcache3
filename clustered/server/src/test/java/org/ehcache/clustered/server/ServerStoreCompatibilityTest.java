@@ -21,7 +21,7 @@ import org.ehcache.clustered.common.ServerStoreConfiguration;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Dedicated;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Shared;
-import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Unknown;
 import org.junit.Test;
 import static org.hamcrest.Matchers.is;

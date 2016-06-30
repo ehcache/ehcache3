@@ -13,9 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.store;
 
-public interface SequencedElement extends Element {
+package org.ehcache.clustered.common.internal.exceptions;
 
-  long getSequenceNumber();
+/**
+ * Thrown to indicate an operation cannot be performed on a certain clustered store.
+ */
+public class InvalidStoreException extends ClusteredEhcacheException {
+  public InvalidStoreException(String message) {
+    super(message);
+  }
+
+  public InvalidStoreException(Throwable cause) {
+    super(cause);
+  }
 }

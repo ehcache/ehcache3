@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.internal.store.operations.Result;
-import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.util.Collections;
 import java.util.Map;

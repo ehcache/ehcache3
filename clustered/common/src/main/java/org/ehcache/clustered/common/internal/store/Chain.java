@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.store;
+package org.ehcache.clustered.common.internal.store;
 
 import java.util.Iterator;
 

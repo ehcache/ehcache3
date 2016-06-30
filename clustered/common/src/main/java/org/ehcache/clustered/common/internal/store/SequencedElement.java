@@ -13,17 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
 
-/**
- * Thrown to indicate a configuration mismatch on a clustered store.
- */
-public class InvalidServerStoreConfigurationException extends ClusteredEhcacheException {
-  public InvalidServerStoreConfigurationException(String message) {
-    super(message);
-  }
+package org.ehcache.clustered.common.internal.store;
 
-  public InvalidServerStoreConfigurationException(Throwable cause) {
-    super(cause);
-  }
+public interface SequencedElement extends Element {
+
+  long getSequenceNumber();
 }

@@ -16,16 +16,16 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
-import org.ehcache.clustered.common.store.SequencedElement;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.SequencedElement;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.ehcache.clustered.common.store.Util.getElement;
-import static org.ehcache.clustered.common.store.Util.getChain;
+import static org.ehcache.clustered.common.internal.store.Util.getElement;
+import static org.ehcache.clustered.common.internal.store.Util.getChain;
 
 class ChainCodec {
 

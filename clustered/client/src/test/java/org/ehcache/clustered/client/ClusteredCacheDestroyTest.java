@@ -23,7 +23,7 @@ import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.exceptions.ResourceBusyException;
+import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;

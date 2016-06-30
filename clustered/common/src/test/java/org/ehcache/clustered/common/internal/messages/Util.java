@@ -16,14 +16,14 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
 
 import java.util.Iterator;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.ehcache.clustered.common.store.Util.readPayLoad;
+import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
 
 /**
  *

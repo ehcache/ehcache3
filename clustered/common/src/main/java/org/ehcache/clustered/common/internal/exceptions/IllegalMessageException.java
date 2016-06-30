@@ -13,17 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
+
+package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Thrown to indicate an operation cannot be performed on a certain clustered store.
+ * Thrown to indicate an unexpected failure an {@code Entity} supporting clustered operations.
  */
-public class InvalidStoreException extends ClusteredEhcacheException {
-  public InvalidStoreException(String message) {
+public class IllegalMessageException extends ClusteredEhcacheException {
+  public IllegalMessageException(String message) {
     super(message);
-  }
-
-  public InvalidStoreException(Throwable cause) {
-    super(cause);
   }
 }

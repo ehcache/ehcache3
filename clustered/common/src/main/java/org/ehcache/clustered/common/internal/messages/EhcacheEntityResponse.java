@@ -17,7 +17,7 @@
 package org.ehcache.clustered.common.internal.messages;
 
 
-import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.entity.EntityResponse;
 
 public abstract class EhcacheEntityResponse implements EntityResponse {

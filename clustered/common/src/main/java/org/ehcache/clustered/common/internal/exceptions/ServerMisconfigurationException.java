@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
 
-/**
- * Thrown to indicate a configuration mismatch on an {@code Entity} supporting clustered operations.
- */
-public class InvalidServerSideConfigurationException extends ClusteredEhcacheException {
-  public InvalidServerSideConfigurationException(String message) {
+package org.ehcache.clustered.common.internal.exceptions;
+
+public class ServerMisconfigurationException extends ClusteredEhcacheException {
+
+  public ServerMisconfigurationException(final String message) {
     super(message);
   }
 
-  public InvalidServerSideConfigurationException(Throwable cause) {
-    super(cause);
+  public ServerMisconfigurationException(final String message, final Throwable cause) {
+    super(message, cause);
   }
 
-  public InvalidServerSideConfigurationException(String message, Throwable cause) {
-    super(message, cause);
+  public ServerMisconfigurationException(final Throwable cause) {
+    super(cause);
   }
 }

@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
+
+package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Thrown to indicate a clustered entity is busy.
+ * Thrown to indicate a configuration mismatch on an {@code Entity} supporting clustered operations.
  */
-public class ResourceBusyException extends ClusteredEhcacheException {
-  public ResourceBusyException(String message) {
+public class InvalidServerSideConfigurationException extends ClusteredEhcacheException {
+  public InvalidServerSideConfigurationException(String message) {
     super(message);
   }
 
-  public ResourceBusyException(Throwable cause) {
+  public InvalidServerSideConfigurationException(Throwable cause) {
     super(cause);
   }
 
-  public ResourceBusyException(String message, Throwable cause) {
+  public InvalidServerSideConfigurationException(String message, Throwable cause) {
     super(message, cause);
   }
 }

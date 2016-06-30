@@ -13,22 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
+
+package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * @author Ludovic Orban
+ * Thrown to indicate a clustered entity is busy.
  */
-public abstract class ClusteredEhcacheException extends Exception {
-
-  public ClusteredEhcacheException(String message) {
+public class ResourceBusyException extends ClusteredEhcacheException {
+  public ResourceBusyException(String message) {
     super(message);
   }
 
-  public ClusteredEhcacheException(String message, Throwable cause) {
-    super(message, cause);
+  public ResourceBusyException(Throwable cause) {
+    super(cause);
   }
 
-  public ClusteredEhcacheException(Throwable cause) {
-    super(cause);
+  public ResourceBusyException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

@@ -19,7 +19,7 @@ package org.ehcache.clustered.client.internal.store;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
-import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
 
