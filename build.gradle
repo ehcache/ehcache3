@@ -18,7 +18,7 @@ import scripts.*
 ext {
   baseVersion = '3.1.0-SNAPSHOT'
   offheapVersion = '2.2.2'
-  managementVersion = '2.6.0-SNAPSHOT'
+  managementVersion = '5.0.0.beta'
   statisticVersion = '1.1.0'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
