@@ -15,9 +15,9 @@
  */
 
 ext {
-    terracottaPlatformVersion = '1.0-SNAPSHOT'
-    terracottaApisVersion = '1.0-SNAPSHOT'
-    terracottaCoreVersion = '5.0.0-SNAPSHOT'
+    terracottaPlatformVersion = '5.0.0.beta'
+    terracottaApisVersion = '1.0.0.beta'
+    terracottaCoreVersion = '5.0.0-beta'
     coordinatorVersion = terracottaPlatformVersion
     clusteredMapVersion = terracottaPlatformVersion
     offheapResourceVersion = terracottaPlatformVersion
