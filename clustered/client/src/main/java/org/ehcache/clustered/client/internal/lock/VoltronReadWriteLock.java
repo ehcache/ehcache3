@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.lock.client;
+
+package org.ehcache.clustered.client.internal.lock;
 
 import java.io.Closeable;
 

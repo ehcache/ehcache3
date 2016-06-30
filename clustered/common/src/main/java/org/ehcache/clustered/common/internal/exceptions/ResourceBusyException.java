@@ -13,13 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
+
+package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Thrown to indicate an unexpected failure an {@code Entity} supporting clustered operations.
+ * Thrown to indicate a clustered entity is busy.
  */
-public class IllegalMessageException extends ClusteredEhcacheException {
-  public IllegalMessageException(String message) {
+public class ResourceBusyException extends ClusteredEhcacheException {
+  public ResourceBusyException(String message) {
     super(message);
+  }
+
+  public ResourceBusyException(Throwable cause) {
+    super(cause);
+  }
+
+  public ResourceBusyException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

@@ -15,20 +15,20 @@
  */
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
-import org.ehcache.clustered.common.exceptions.InvalidServerSideConfigurationException;
-import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
-import org.ehcache.clustered.common.exceptions.InvalidStoreException;
-import org.ehcache.clustered.common.exceptions.InvalidStoreManagerException;
-import org.ehcache.clustered.common.exceptions.LifecycleException;
-import org.ehcache.clustered.common.exceptions.ResourceBusyException;
-import org.ehcache.clustered.common.exceptions.ResourceConfigurationException;
-import org.ehcache.clustered.common.exceptions.ServerMisconfigurationException;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
+import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
+import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
+import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
+import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
@@ -53,11 +53,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Dedicated;
+import org.ehcache.clustered.common.PoolAllocation.Dedicated;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type.FAILURE;
-import static org.ehcache.clustered.common.store.Util.createPayload;
+import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;

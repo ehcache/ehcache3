@@ -22,10 +22,10 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.junit.AfterClass;
@@ -38,9 +38,9 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
 
-import static org.ehcache.clustered.common.store.Util.createPayload;
-import static org.ehcache.clustered.common.store.Util.getChain;
-import static org.ehcache.clustered.common.store.Util.readPayLoad;
+import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.common.internal.store.Util.getChain;
+import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 

@@ -13,21 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
+
+package org.ehcache.clustered.common.internal.store;
+
+import java.nio.ByteBuffer;
 
 /**
- * Thrown to indicate a configuration mismatch on an {@code Entity} supporting clustered operations.
+ * Building blocks of {@link Chain}
  */
-public class InvalidServerSideConfigurationException extends ClusteredEhcacheException {
-  public InvalidServerSideConfigurationException(String message) {
-    super(message);
-  }
+public interface Element {
 
-  public InvalidServerSideConfigurationException(Throwable cause) {
-    super(cause);
-  }
-
-  public InvalidServerSideConfigurationException(String message, Throwable cause) {
-    super(message, cause);
-  }
+  /**
+   * The data payload stored as element.
+   * This is binary representation of key/value pairs
+   * or key/func(value) pairs
+   *
+   * @return the payload associated with this {@link Element}
+   */
+  ByteBuffer getPayload();
 }

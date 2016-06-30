@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
+
+package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Thrown to indicate some clustered resource being mis-configured.
+ * Thrown to indicate an operation cannot be performed on a certain clustered store.
  */
-public class ResourceConfigurationException extends ClusteredEhcacheException {
-  public ResourceConfigurationException(String message) {
+public class InvalidStoreException extends ClusteredEhcacheException {
+  public InvalidStoreException(String message) {
     super(message);
   }
 
-  public ResourceConfigurationException(Throwable cause) {
+  public InvalidStoreException(Throwable cause) {
     super(cause);
-  }
-
-  public ResourceConfigurationException(String message, Throwable cause) {
-    super(message, cause);
   }
 }

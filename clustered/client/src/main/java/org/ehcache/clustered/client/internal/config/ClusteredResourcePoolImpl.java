@@ -18,8 +18,7 @@ package org.ehcache.clustered.client.internal.config;
 
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.core.config.AbstractResourcePool;
 
@@ -35,7 +34,7 @@ public class ClusteredResourcePoolImpl
   }
 
   @Override
-  public ServerStoreConfiguration.PoolAllocation getPoolAllocation() {
+  public PoolAllocation getPoolAllocation() {
     return new PoolAllocation.Unknown();
   }
 

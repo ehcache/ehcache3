@@ -13,13 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.exceptions;
+
+package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Thrown to indicate the lifecycle of a clustered entity hasn't been respected.
+ * Thrown to indicate a configuration mismatch on a clustered store.
  */
-public class LifecycleException extends ClusteredEhcacheException {
-  public LifecycleException(String message) {
+public class InvalidServerStoreConfigurationException extends ClusteredEhcacheException {
+  public InvalidServerStoreConfigurationException(String message) {
     super(message);
+  }
+
+  public InvalidServerStoreConfigurationException(Throwable cause) {
+    super(cause);
   }
 }

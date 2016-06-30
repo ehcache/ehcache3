@@ -44,7 +44,7 @@ public class VoltronReadWriteLockServerEntityService implements ServerEntityServ
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return "org.ehcache.clustered.lock.client.VoltronReadWriteLockClient".equals(typeName);
+    return "org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient".equals(typeName);
   }
 
   @Override

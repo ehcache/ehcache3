@@ -15,9 +15,9 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.common.store.Chain;
-import org.ehcache.clustered.common.store.Element;
-import org.ehcache.clustered.common.store.Util;
+import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.common.internal.store.Util;
 import org.junit.Test;
 
 import java.util.Iterator;

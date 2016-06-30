@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.internal.store.Chain;
 
 public class EhcacheEntityResponseFactory {
 

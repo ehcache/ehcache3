@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common;
+package org.ehcache.clustered.common.internal;
 
 import java.util.UUID;
 

@@ -13,9 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.common.store;
 
-public interface SequencedElement extends Element {
+package org.ehcache.clustered.common.internal.exceptions;
 
-  long getSequenceNumber();
+public abstract class ClusteredEhcacheException extends Exception {
+
+  public ClusteredEhcacheException(String message) {
+    super(message);
+  }
+
+  public ClusteredEhcacheException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public ClusteredEhcacheException(Throwable cause) {
+    super(cause);
+  }
 }

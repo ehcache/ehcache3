@@ -17,7 +17,7 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 
-import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.internal.store.Element;
 
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;

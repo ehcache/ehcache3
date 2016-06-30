@@ -17,12 +17,12 @@
 package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Dedicated;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Shared;
-import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Unknown;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.clustered.common.PoolAllocation.Dedicated;
+import org.ehcache.clustered.common.PoolAllocation.Shared;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
+import org.ehcache.clustered.common.PoolAllocation.Unknown;
 import org.junit.Test;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

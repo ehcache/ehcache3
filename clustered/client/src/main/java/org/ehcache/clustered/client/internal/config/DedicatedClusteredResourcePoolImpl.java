@@ -17,10 +17,10 @@
 package org.ehcache.clustered.client.internal.config;
 
 import org.ehcache.clustered.client.config.ClusteredResourceType;
+import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
 
-import static org.ehcache.clustered.common.ServerStoreConfiguration.*;
 import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
 
 /**

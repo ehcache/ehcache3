@@ -16,14 +16,14 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.store.Chain;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.junit.Test;
 
 
 import static org.junit.Assert.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.ehcache.clustered.common.store.Util.createPayload;
-import static org.ehcache.clustered.common.store.Util.getChain;
+import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.common.internal.store.Util.getChain;
 
 public class EhcacheEntityResponseFactoryTest {
 

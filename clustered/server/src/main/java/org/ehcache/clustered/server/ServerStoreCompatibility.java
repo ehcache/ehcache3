@@ -16,8 +16,8 @@
 
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.exceptions.InvalidServerStoreConfigurationException;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 
 /**
  * Provides configuration compatibility checks for {@link ServerStoreConfiguration}

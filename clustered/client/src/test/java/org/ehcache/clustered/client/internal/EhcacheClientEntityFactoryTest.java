@@ -21,7 +21,7 @@ import java.util.UUID;
 import org.ehcache.clustered.client.internal.service.ClusteredStoreManagerConfigurationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
-import org.ehcache.clustered.lock.client.VoltronReadWriteLockClient;
+import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 

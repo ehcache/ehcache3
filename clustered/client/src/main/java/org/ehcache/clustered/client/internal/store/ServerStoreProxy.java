@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.common.store.ServerStore;
+import org.ehcache.clustered.common.internal.store.ServerStore;
 
 /**
  * @author Ludovic Orban

@@ -14,21 +14,19 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.store;
+package org.ehcache.clustered.common.internal.exceptions;
 
-import java.nio.ByteBuffer;
+public class ServerMisconfigurationException extends ClusteredEhcacheException {
 
-/**
- * Building blocks of {@link Chain}
- */
-public interface Element {
+  public ServerMisconfigurationException(final String message) {
+    super(message);
+  }
 
-  /**
-   * The data payload stored as element.
-   * This is binary representation of key/value pairs
-   * or key/func(value) pairs
-   *
-   * @return the payload associated with this {@link Element}
-   */
-  ByteBuffer getPayload();
+  public ServerMisconfigurationException(final String message, final Throwable cause) {
+    super(message, cause);
+  }
+
+  public ServerMisconfigurationException(final Throwable cause) {
+    super(cause);
+  }
 }

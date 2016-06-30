@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered.server.store.impl;
 
-import org.ehcache.clustered.common.store.Element;
+import org.ehcache.clustered.common.internal.store.Element;
 
 import java.nio.ByteBuffer;
 

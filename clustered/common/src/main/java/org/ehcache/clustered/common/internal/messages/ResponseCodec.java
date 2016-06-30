@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.store.Util;
+import org.ehcache.clustered.common.internal.store.Util;
 
 import java.nio.ByteBuffer;
 

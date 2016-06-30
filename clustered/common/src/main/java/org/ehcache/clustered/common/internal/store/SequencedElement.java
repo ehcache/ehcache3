@@ -14,30 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common;
+package org.ehcache.clustered.common.internal.store;
 
-/**
- *
- * @author cdennis
- */
-public final class Util {
+public interface SequencedElement extends Element {
 
-  private Util() {}
-
-  public static <T extends Exception> T unwrapException(Throwable t, Class<T> aClass) {
-    Throwable cause = t.getCause();
-    if (cause != null) {
-      t = cause;
-    }
-
-    if (aClass.isInstance(t)) {
-      return aClass.cast(t);
-    } else if (t instanceof RuntimeException) {
-      throw (RuntimeException) t;
-    } else if (t instanceof Error) {
-      throw (Error) t;
-    } else {
-      throw new RuntimeException(t);
-    }
-  }
+  long getSequenceNumber();
 }
