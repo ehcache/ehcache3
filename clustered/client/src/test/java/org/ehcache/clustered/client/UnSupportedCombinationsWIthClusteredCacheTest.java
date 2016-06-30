@@ -88,7 +88,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
       cacheManager.createCache("test", config);
       fail("IllegalStateException expected");
     } catch (IllegalStateException e){
-      assertThat(e.getCause().getMessage(), is("CacheLoaderWriter is not supported with Clustered Caches"));
+      assertThat(e.getCause().getMessage(), is("CacheLoaderWriter is not supported with clustered tiers"));
     }
     cacheManager.close();
   }
@@ -116,7 +116,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
       cacheManager.createCache("test", config);
       fail("IllegalStateException expected");
     } catch (IllegalStateException e){
-      assertThat(e.getCause().getMessage(), is("CacheEventListener is not supported with Clustered Caches"));
+      assertThat(e.getCause().getMessage(), is("CacheEventListener is not supported with clustered tiers"));
     }
     cacheManager.close();
   }

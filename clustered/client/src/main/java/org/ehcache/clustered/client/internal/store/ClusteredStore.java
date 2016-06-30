@@ -472,12 +472,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
       DefaultCacheLoaderWriterConfiguration loaderWriterConfiguration = findSingletonAmongst(DefaultCacheLoaderWriterConfiguration.class, (Object[])serviceConfigs);
       if (loaderWriterConfiguration != null) {
-        throw new IllegalStateException("CacheLoaderWriter is not supported with Clustered Caches");
+        throw new IllegalStateException("CacheLoaderWriter is not supported with clustered tiers");
       }
 
       CacheEventListenerConfiguration eventListenerConfiguration = findSingletonAmongst(CacheEventListenerConfiguration.class, (Object[])serviceConfigs);
       if (eventListenerConfiguration != null) {
-        throw new IllegalStateException("CacheEventListener is not supported with Clustered Caches");
+        throw new IllegalStateException("CacheEventListener is not supported with clustered tiers");
       }
 
       if (clusteringService == null) {
@@ -492,7 +492,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore called without ClusteredResourcePools");
       }
       if (clusteredResourceTypes.size() != 1) {
-        throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore can not create store with multiple clustered resources");
+        throw new IllegalStateException(Provider.class.getCanonicalName() + ".createStore can not create clustered tier with multiple clustered resources");
       }
 
       ClusteredStoreConfiguration clusteredStoreConfiguration = findSingletonAmongst(ClusteredStoreConfiguration.class, (Object[])serviceConfigs);
@@ -515,7 +515,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     @Override
     public void releaseStore(final Store<?, ?> resource) {
       if (createdStores.remove(resource) == null) {
-        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+        throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
       }
       ClusteredStore clusteredStore = (ClusteredStore)resource;
       this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy);
@@ -525,13 +525,13 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     public void initStore(final Store<?, ?> resource) {
       StoreConfig storeConfig = createdStores.get(resource);
       if (storeConfig == null) {
-        throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
+        throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
       }
       final ClusteredStore clusteredStore = (ClusteredStore) resource;
       try {
         clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
       } catch (CachePersistenceException e) {
-        throw new RuntimeException("Unable to create server store proxy - " + storeConfig.getCacheIdentifier(), e);
+        throw new RuntimeException("Unable to create clustered tier proxy - " + storeConfig.getCacheIdentifier(), e);
       }
       clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
         @Override

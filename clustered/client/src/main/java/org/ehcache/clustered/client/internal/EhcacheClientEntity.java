@@ -16,12 +16,12 @@
 
 package org.ehcache.clustered.client.internal;
 
-import org.ehcache.clustered.client.internal.service.ClusteredStoreDestructionException;
-import org.ehcache.clustered.client.internal.service.ClusteredStoreManagerConfigurationException;
-import org.ehcache.clustered.client.internal.service.ClusteredStoreCreationException;
-import org.ehcache.clustered.client.internal.service.ClusteredStoreManagerValidationException;
-import org.ehcache.clustered.client.internal.service.ClusteredStoreReleaseException;
-import org.ehcache.clustered.client.internal.service.ClusteredStoreValidationException;
+import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
+import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
+import org.ehcache.clustered.client.internal.service.ClusteredTierCreationException;
+import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
+import org.ehcache.clustered.client.internal.service.ClusteredTierReleaseException;
+import org.ehcache.clustered.client.internal.service.ClusteredTierValidationException;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -140,51 +140,51 @@ public class EhcacheClientEntity implements Entity {
     endpoint.close();
   }
 
-  public void validate(ServerSideConfiguration config) throws ClusteredStoreManagerValidationException {
+  public void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException {
     try {
       invokeInternal(messageFactory.validateStoreManager(config), false);
     } catch (Exception e) {
-      throw new ClusteredStoreManagerValidationException("Error validating server store manager", e);
+      throw new ClusteredTierManagerValidationException("Error validating server clustered tier manager", e);
     }
   }
 
-  public void configure(ServerSideConfiguration config) throws ClusteredStoreManagerConfigurationException {
+  public void configure(ServerSideConfiguration config) throws ClusteredTierManagerConfigurationException {
     try {
       invokeInternal(messageFactory.configureStoreManager(config), true);
     } catch (Exception e) {
-      throw new ClusteredStoreManagerConfigurationException("Error configuring server store manager", e);
+      throw new ClusteredTierManagerConfigurationException("Error configuring clustered tier manager", e);
     }
   }
 
-  public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusteredStoreCreationException {
+  public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusteredTierCreationException {
     try {
       invokeInternal(messageFactory.createServerStore(name, serverStoreConfiguration), true);
     } catch (Exception e) {
-      throw new ClusteredStoreCreationException("Error creating server store '" + name + "'", e);
+      throw new ClusteredTierCreationException("Error creating clustered tier '" + name + "'", e);
     }
   }
 
-  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusteredStoreValidationException {
+  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusteredTierValidationException {
     try {
       invokeInternal(messageFactory.validateServerStore(name , serverStoreConfiguration), false);
     } catch (Exception e) {
-      throw new ClusteredStoreValidationException("Error validating server store '" + name + "'", e);
+      throw new ClusteredTierValidationException("Error validating clustered tier '" + name + "'", e);
     }
   }
 
-  public void releaseCache(String name) throws ClusteredStoreReleaseException {
+  public void releaseCache(String name) throws ClusteredTierReleaseException {
     try {
       invokeInternal(messageFactory.releaseServerStore(name), false);
     } catch (Exception e) {
-      throw new ClusteredStoreReleaseException("Error releasing server store '" + name + "'", e);
+      throw new ClusteredTierReleaseException("Error releasing clustered tier '" + name + "'", e);
     }
   }
 
-  public void destroyCache(String name) throws ClusteredStoreDestructionException {
+  public void destroyCache(String name) throws ClusteredTierDestructionException {
     try {
       invokeInternal(messageFactory.destroyServerStore(name), true);
     } catch (Exception e) {
-      throw new ClusteredStoreDestructionException("Error destroying server store '" + name + "'", e);
+      throw new ClusteredTierDestructionException("Error destroying clustered tier '" + name + "'", e);
     }
   }
 

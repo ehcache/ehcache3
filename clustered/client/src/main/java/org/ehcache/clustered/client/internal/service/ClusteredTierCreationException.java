@@ -17,11 +17,11 @@
 package org.ehcache.clustered.client.internal.service;
 
 /**
- * Thrown to indicate an error while disconnecting from a clustered cache.
+ * Thrown to indicate a failure when creating a {@code ClusteredStore}.
  */
-public class ClusteredStoreReleaseException extends ClusteredStoreException {
+public class ClusteredTierCreationException extends ClusteredTierException {
 
-  public ClusteredStoreReleaseException(String message, Throwable cause) {
+  public ClusteredTierCreationException(String message, Throwable cause) {
     super(message, cause);
   }
 

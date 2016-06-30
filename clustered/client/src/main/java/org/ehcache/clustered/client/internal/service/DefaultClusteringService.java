@@ -123,7 +123,7 @@ class DefaultClusteringService implements ClusteringService {
         try {
           entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
         } catch (EntityNotFoundException e) {
-          throw new IllegalStateException("The server-side storage manager does not exist."
+          throw new IllegalStateException("The clustered tier manager '" + entityIdentifier + "' does not exist."
                   + " Please review your configuration.", e);
         }
       }
@@ -144,7 +144,7 @@ class DefaultClusteringService implements ClusteringService {
       try {
         entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
       } catch (EhcacheEntityCreationException e) {
-        throw new IllegalStateException("Could not create the server-side storage manager.", e);
+        throw new IllegalStateException("Could not create the clustered tier manager '" + entityIdentifier + "'.", e);
       } catch (EntityAlreadyExistsException e) {
         //ignore - entity already exists - try to retrieve
       } catch (EhcacheEntityBusyException e) {
@@ -181,7 +181,7 @@ class DefaultClusteringService implements ClusteringService {
 
   @Override
   public void stop() {
-    LOGGER.info("stop called for clustered caches on {}", this.clusterUri);
+    LOGGER.info("stop called for clustered tiers on {}", this.clusterUri);
 
     /*
      * Entity close() operations must *not* be called; if the server connection is disconnected, the entity
@@ -210,14 +210,14 @@ class DefaultClusteringService implements ClusteringService {
     if (!inMaintenance) {
       throw new IllegalStateException("Maintenance mode required");
     }
-    LOGGER.info("destroyAll called for clustered caches on {}", this.clusterUri);
+    LOGGER.info("destroyAll called for clustered tiers on {}", this.clusterUri);
 
     try {
       entityFactory.destroy(entityIdentifier);
     } catch (EhcacheEntityNotFoundException e) {
-      throw new CachePersistenceException("Clustered caches on " + this.clusterUri + " not found", e);
+      throw new CachePersistenceException("Clustered tiers on " + this.clusterUri + " not found", e);
     } catch (EhcacheEntityBusyException e) {
-      throw new CachePersistenceException("Can not delete clustered caches on " + this.clusterUri + ": " + e.toString(), e);
+      throw new CachePersistenceException("Can not delete clustered tiers on " + this.clusterUri, e);
     }
   }
 
@@ -264,8 +264,8 @@ class DefaultClusteringService implements ClusteringService {
   public void destroy(String name) throws CachePersistenceException {
     try {
       entity.destroyCache(name);
-    } catch (ClusteredStoreDestructionException e) {
-      throw new CachePersistenceException("Cannot destroy clustered cache '" + name + "' on " + clusterUri, e);
+    } catch (ClusteredTierDestructionException e) {
+      throw new CachePersistenceException("Cannot destroy clustered tier '" + name + "' on " + clusterUri, e);
     }
   }
 
@@ -315,7 +315,7 @@ class DefaultClusteringService implements ClusteringService {
       if (configuration.isAutoCreate()) {
         try {
           this.entity.validateCache(cacheId, clientStoreConfiguration);
-        } catch (ClusteredStoreValidationException ex) {
+        } catch (ClusteredTierValidationException ex) {
           if (ex.getCause() instanceof InvalidStoreException) {
             this.entity.createCache(cacheId, clientStoreConfiguration);
           } else {
@@ -325,8 +325,8 @@ class DefaultClusteringService implements ClusteringService {
       } else {
         this.entity.validateCache(cacheId, clientStoreConfiguration);
       }
-    } catch (ClusteredStoreException e) {
-      throw new CachePersistenceException("Unable to create server store proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
+    } catch (ClusteredTierException e) {
+      throw new CachePersistenceException("Unable to create clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
     }
 
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
@@ -347,7 +347,7 @@ class DefaultClusteringService implements ClusteringService {
 
     try {
       this.entity.releaseCache(cacheId);
-    } catch (ClusteredStoreReleaseException e) {
+    } catch (ClusteredTierReleaseException e) {
       throw new IllegalStateException(e);
     }
   }

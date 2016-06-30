@@ -18,7 +18,7 @@ package org.ehcache.clustered.client.internal;
 
 import java.util.UUID;
 
-import org.ehcache.clustered.client.internal.service.ClusteredStoreManagerConfigurationException;
+import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
@@ -66,7 +66,7 @@ public class EhcacheClientEntityFactoryTest {
     EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(entity);
-    doThrow(ClusteredStoreManagerConfigurationException.class).when(entity).configure(any(ServerSideConfiguration.class));
+    doThrow(ClusteredTierManagerConfigurationException.class).when(entity).configure(any(ServerSideConfiguration.class));
     Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
