@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.lock.client;
+package org.ehcache.clustered.client.internal.lock;
 
+import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockOperation;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
@@ -24,10 +25,6 @@ import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.MessageCodec;
 
-/**
- *
- * @author cdennis
- */
 public class VoltronReadWriteLockEntityClientService implements EntityClientService<VoltronReadWriteLockClient, Void, LockOperation, LockTransition> {
 
   @Override

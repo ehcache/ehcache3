@@ -13,7 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.lock.client;
+
+package org.ehcache.clustered.client.internal.lock;
 
 import java.util.concurrent.Semaphore;
 import org.ehcache.clustered.common.internal.lock.LockMessaging;
@@ -28,10 +29,6 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
-/**
- *
- * @author cdennis
- */
 public class VoltronReadWriteLockClient implements Entity {
 
   private final EntityClientEndpoint<LockOperation, LockTransition> endpoint;

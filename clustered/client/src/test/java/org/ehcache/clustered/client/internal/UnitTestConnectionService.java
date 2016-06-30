@@ -34,7 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-import org.ehcache.clustered.lock.client.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
 
