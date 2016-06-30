@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link IllegalMessageException} functions including
- * {@link ClusteredEhcacheException#copyInContext() copyInContext}.
+ * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
  */
 public class IllegalMessageExceptionTest extends BaseClusteredEhcacheExceptionTest<IllegalMessageException> {
 

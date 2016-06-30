@@ -32,12 +32,12 @@ public abstract class ClusteredEhcacheException extends Exception {
   }
 
   /**
-   * Makes a copy of this {@code ClusteredEhcacheException}, retaining the type,
-   * in the current context.  This method is used to prepare exceptions originating in
-   * tbe server to be re-thrown in the client.
+   * Makes a copy of this {@code ClusteredEhcacheException}, retaining the type, in the current
+   * client context.  This method is used to prepare exceptions originating in the server to be
+   * re-thrown in the client.
    *
    * @return a new {@code ClusteredEhcacheException} of {@code this} subtype with {@code this}
    *      instance as the cause
    */
-  public abstract ClusteredEhcacheException copyInContext();
+  public abstract ClusteredEhcacheException withClientStackTrace();
 }

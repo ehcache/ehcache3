@@ -35,7 +35,7 @@ public class LifecycleException extends ClusteredEhcacheException {
   }
 
   @Override
-  public LifecycleException copyInContext() {
+  public LifecycleException withClientStackTrace() {
     return new LifecycleException(this);
   }
 }

@@ -35,7 +35,7 @@ public class InvalidServerStoreConfigurationException extends ClusteredEhcacheEx
   }
 
   @Override
-  public InvalidServerStoreConfigurationException copyInContext() {
+  public InvalidServerStoreConfigurationException withClientStackTrace() {
     return new InvalidServerStoreConfigurationException(this);
   }
 }

@@ -39,7 +39,7 @@ public class InvalidServerSideConfigurationException extends ClusteredEhcacheExc
   }
 
   @Override
-  public InvalidServerSideConfigurationException copyInContext() {
+  public InvalidServerSideConfigurationException withClientStackTrace() {
     return new InvalidServerSideConfigurationException(this);
   }
 }

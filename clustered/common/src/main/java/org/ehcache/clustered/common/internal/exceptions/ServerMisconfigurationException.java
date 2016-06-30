@@ -36,7 +36,7 @@ public class ServerMisconfigurationException extends ClusteredEhcacheException {
   }
 
   @Override
-  public ServerMisconfigurationException copyInContext() {
+  public ServerMisconfigurationException withClientStackTrace() {
     return new ServerMisconfigurationException(this);
   }
 }

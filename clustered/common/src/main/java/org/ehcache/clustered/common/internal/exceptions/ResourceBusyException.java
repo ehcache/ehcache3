@@ -39,7 +39,7 @@ public class ResourceBusyException extends ClusteredEhcacheException {
   }
 
   @Override
-  public ResourceBusyException copyInContext() {
+  public ResourceBusyException withClientStackTrace() {
     return new ResourceBusyException(this);
   }
 }

@@ -35,7 +35,7 @@ public class InvalidStoreException extends ClusteredEhcacheException {
   }
 
   @Override
-  public InvalidStoreException copyInContext() {
+  public InvalidStoreException withClientStackTrace() {
     return new InvalidStoreException(this);
   }
 }

@@ -31,7 +31,7 @@ public class IllegalMessageException extends ClusteredEhcacheException {
   }
 
   @Override
-  public IllegalMessageException copyInContext() {
+  public IllegalMessageException withClientStackTrace() {
     return new IllegalMessageException(this);
   }
 }

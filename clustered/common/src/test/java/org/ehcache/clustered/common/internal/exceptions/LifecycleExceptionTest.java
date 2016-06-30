@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link LifecycleException} functions including
- * {@link ClusteredEhcacheException#copyInContext() copyInContext}.
+ * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
  */
 public class LifecycleExceptionTest extends BaseClusteredEhcacheExceptionTest<LifecycleException> {
 

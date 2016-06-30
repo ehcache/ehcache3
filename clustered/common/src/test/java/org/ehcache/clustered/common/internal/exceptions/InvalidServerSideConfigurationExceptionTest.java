@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link InvalidServerSideConfigurationException} functions including
- * {@link ClusteredEhcacheException#copyInContext() copyInContext}.
+ * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
  */
 public class InvalidServerSideConfigurationExceptionTest extends BaseClusteredEhcacheExceptionTest<InvalidServerSideConfigurationException> {
 

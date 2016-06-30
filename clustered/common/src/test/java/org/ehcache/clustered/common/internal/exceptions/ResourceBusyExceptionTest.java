@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link ResourceBusyException} functions including
- * {@link ClusteredEhcacheException#copyInContext() copyInContext}.
+ * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
  */
 public class ResourceBusyExceptionTest extends BaseClusteredEhcacheExceptionTest<ResourceBusyException> {
 

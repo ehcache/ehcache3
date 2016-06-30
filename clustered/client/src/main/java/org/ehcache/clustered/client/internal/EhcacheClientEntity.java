@@ -258,7 +258,7 @@ public class EhcacheClientEntity implements Entity {
          */
         Exception cause = ((Failure)response).getCause();
         if (cause instanceof ClusteredEhcacheException) {
-          throw ((ClusteredEhcacheException) cause).copyInContext();
+          throw ((ClusteredEhcacheException) cause).withClientStackTrace();
         }
         throw new RuntimeException(message + " error: " + cause.toString(), cause);
       } else {

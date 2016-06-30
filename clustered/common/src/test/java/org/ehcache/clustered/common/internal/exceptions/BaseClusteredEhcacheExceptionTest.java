@@ -45,7 +45,8 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusteredEhcac
 
   /**
    * Creates a new {@code <T>} exception using the message text provided.
-   * The base implementation of this method returns a {@code null}.
+   * If {@code <T>} has no {@code T(String)} constructor, the test calling this method is
+   * skipped using with an assumption failure.
    *
    * @param message the message text to apply to the exception
    *
@@ -63,7 +64,8 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusteredEhcac
 
   /**
    * Creates a new {@code <T>} exception using the message text and cause provided.
-   * The base implementation of this method returns a {@code null}.
+   * If {@code <T>} has no {@code T(String, Throwable)} constructor, the test calling this method is
+   * skipped using with an assumption failure.
    *
    * @param message the message text to apply to the exception
    * @param cause the {@code Throwable} to apply as the cause of the new exception
@@ -82,7 +84,8 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusteredEhcac
 
   /**
    * Creates a new {@code <T>} exception using the cause provided.
-   * The base implementation of this method returns a {@code null}.
+   * If {@code <T>} has no {@code T(Throwable)} constructor, the test calling this method is
+   * skipped using with an assumption failure.
    *
    * @param cause the {@code Throwable} to apply as the cause of the new exception
    *
@@ -109,43 +112,39 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusteredEhcac
   }
 
   @Test
-  public final void copyInContextMessage() throws Exception {
+  public final void ctorMessage() throws Exception {
     T baseException = this.create("message text");
 
     assertThat(baseException.getMessage(), is("message text"));
     assertThat(baseException.getCause(), is(nullValue()));
 
-    ClusteredEhcacheException copyException = baseException.copyInContext();
-    assertThat(copyException, is(notNullValue()));
-    assertThat(copyException, is(instanceOf(testClass)));
-    assertThat(copyException.getMessage(), is(baseException.getMessage()));
-    assertThat(copyException.getCause(), Matchers.<Throwable>is(baseException));
+    checkWithClientStack(baseException);
   }
 
   @Test
-  public final void copyInContextMessageThrowable() throws Exception {
+  public final void ctorMessageThrowable() throws Exception {
     Throwable baseCause = new Throwable("base cause");
     T baseException = this.create("message text", baseCause);
 
     assertThat(baseException.getMessage(), is("message text"));
     assertThat(baseException.getCause(), is(baseCause));
 
-    ClusteredEhcacheException copyException = baseException.copyInContext();
-    assertThat(copyException, is(notNullValue()));
-    assertThat(copyException, is(instanceOf(testClass)));
-    assertThat(copyException.getMessage(), is(baseException.getMessage()));
-    assertThat(copyException.getCause(), Matchers.<Throwable>is(baseException));
+    checkWithClientStack(baseException);
   }
 
   @Test
-  public final void copyInContextThrowable() throws Exception {
+  public final void ctorThrowable() throws Exception {
     Throwable baseCause = new Throwable("base cause");
     T baseException = this.create(baseCause);
 
     assertThat(baseException.getMessage(), is(baseCause.toString()));
     assertThat(baseException.getCause(), is(baseCause));
 
-    ClusteredEhcacheException copyException = baseException.copyInContext();
+    checkWithClientStack(baseException);
+  }
+
+  private void checkWithClientStack(T baseException) {
+    ClusteredEhcacheException copyException = baseException.withClientStackTrace();
     assertThat(copyException, is(notNullValue()));
     assertThat(copyException, is(instanceOf(testClass)));
     assertThat(copyException.getMessage(), is(baseException.getMessage()));

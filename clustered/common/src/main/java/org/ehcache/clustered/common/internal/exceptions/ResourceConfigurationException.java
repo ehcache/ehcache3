@@ -39,7 +39,7 @@ public class ResourceConfigurationException extends ClusteredEhcacheException {
   }
 
   @Override
-  public ResourceConfigurationException copyInContext() {
+  public ResourceConfigurationException withClientStackTrace() {
     return new ResourceConfigurationException(this);
   }
 }
