@@ -15,12 +15,12 @@
  */
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
@@ -53,7 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation.Dedicated;
+import org.ehcache.clustered.common.PoolAllocation.Dedicated;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type.FAILURE;

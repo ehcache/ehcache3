@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.client.config;
 
-import org.ehcache.clustered.common.ServerStoreConfiguration.PoolAllocation;
+import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.config.ResourcePool;
 
 /**

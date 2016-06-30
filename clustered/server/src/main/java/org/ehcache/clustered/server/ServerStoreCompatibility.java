@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 
 /**

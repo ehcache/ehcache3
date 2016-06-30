@@ -17,7 +17,7 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 
 import java.io.Serializable;
 

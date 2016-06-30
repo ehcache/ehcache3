@@ -24,10 +24,6 @@ import java.util.Set;
 
 import static java.util.Collections.unmodifiableMap;
 
-/**
- *
- * @author cdennis
- */
 public class ServerSideConfiguration implements Serializable {
   private static final long serialVersionUID = -6203570000622687613L;
 
