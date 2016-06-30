@@ -367,7 +367,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ServerStore cacheStore = stores.get(message.getCacheId());
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
-      throw new LifecycleException("Server Store not present for cacheId : " + message.getCacheId());
+      throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
     }
 
     if (!clientStateMap.get(clientDescriptor).isAttached()) {
@@ -377,7 +377,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     if (!storeClientMap.get(message.getCacheId()).contains(clientDescriptor)) {
       // An operation on a store should never happen from client no attached onto that store
-      throw new LifecycleException("Client not attached on Server Store for cacheId : " + message.getCacheId());
+      throw new LifecycleException("Client not attached to clustered tier '" + message.getCacheId() + "'");
     }
 
     switch (message.operation()) {
@@ -417,7 +417,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         return responseFactory.success();
       }
       default:
-        throw new IllegalMessageException("Unknown Server Store operation : " + message);
+        throw new IllegalMessageException("Unknown ServerStore operation : " + message);
     }
   }
 
@@ -540,10 +540,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       final Set<ClientDescriptor> attachedClients = storeClientMap.get(storeEntry.getKey());
       if (attachedClients != null && !attachedClients.isEmpty()) {
         // This is logically an AssertionError; logging and continuing destroy
-        LOGGER.error("Store '{}' has {} clients attached during entity destroy", storeEntry.getKey());
+        LOGGER.error("Clustered tier '{}' has {} clients attached during clustered tier manager destroy", storeEntry.getKey());
       }
 
-      LOGGER.info("Destroying server-side store '{}' for entity destroy", storeEntry.getKey());
+      LOGGER.info("Destroying clustered tier '{}' for clustered tier manager destroy", storeEntry.getKey());
       // TODO: ServerStore closure here ...
       storeClientMap.remove(storeEntry.getKey());
       storeIterator.remove();
@@ -568,10 +568,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
     if (!isConfigured()) {
-      LOGGER.info("Configuring server-side clustered store manager");
+      LOGGER.info("Configuring server-side clustered tier manager");
       ServerSideConfiguration configuration = message.getConfiguration();
 
       this.defaultServerResource = configuration.getDefaultServerResource();
@@ -587,7 +587,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
       clientState.attach();
     } else {
-      throw new InvalidStoreManagerException("Clustered Store Manager already configured");
+      throw new InvalidStoreManagerException("Clustered Tier Manager already configured");
     }
   }
 
@@ -606,10 +606,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
     if (!isConfigured()) {
-      throw new LifecycleException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Tier Manager is not configured");
     }
     ServerSideConfiguration incomingConfig = message.getConfiguration();
 
@@ -672,24 +672,24 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void createServerStore(ClientDescriptor clientDescriptor, CreateServerStore createServerStore) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
     if (!clientState.isAttached()) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
     if (!isConfigured()) {
-      throw new LifecycleException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Tier Manager is not configured");
     }
     if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
-      throw new LifecycleException("Server Store can't be created with an Unknown resource pool");
+      throw new LifecycleException("Clustered tier can't be created with an Unknown resource pool");
     }
 
     final String name = createServerStore.getName();    // client cache identifier/name
 
-    LOGGER.info("Client {} creating new server-side store '{}'", clientDescriptor, name);
+    LOGGER.info("Client {} creating new clustered tier '{}'", clientDescriptor, name);
 
     if (stores.containsKey(name)) {
-      throw new InvalidStoreException("Store '" + name + "' already exists");
+      throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
     }
 
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
@@ -702,13 +702,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
        */
 //<<<<<<< HEAD
       if (dedicatedResourcePools.containsKey(name)) {
-        throw new ResourceConfigurationException("Fixed resource pool for store '" + name + "' already exists");
+        throw new ResourceConfigurationException("Fixed resource pool for clustered tier '" + name + "' already exists");
       } else {
         PoolAllocation.Dedicated dedicatedAllocation = (PoolAllocation.Dedicated)allocation;
         String resourceName = dedicatedAllocation.getResourceName();
         if (resourceName == null) {
           if (defaultServerResource == null) {
-            throw new ResourceConfigurationException("Fixed pool for store '" + name + "' not defined; default server resource not configured");
+            throw new ResourceConfigurationException("Fixed pool for clustered tier '" + name + "' not defined; default server resource not configured");
           } else {
             resourceName = defaultServerResource;
           }
@@ -755,25 +755,25 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void validateServerStore(ClientDescriptor clientDescriptor, ValidateServerStore validateServerStore) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
     if (!clientState.isAttached()) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
     if (!isConfigured()) {
-      throw new LifecycleException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
     String name = validateServerStore.getName();
     ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
 
-    LOGGER.info("Client {} validating server-side store '{}'", clientDescriptor, name);
+    LOGGER.info("Client {} validating clustered tier '{}'", clientDescriptor, name);
     ServerStoreImpl store = stores.get(name);
     if (store != null) {
       storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
       attachStore(clientDescriptor, name);
     } else {
-      throw new InvalidStoreException("Store '" + name + "' does not exist");
+      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
     }
   }
 
@@ -788,18 +788,18 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void releaseServerStore(ClientDescriptor clientDescriptor, ReleaseServerStore releaseServerStore) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
     if (!clientState.isAttached()) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
     if (!isConfigured()) {
-      throw new LifecycleException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
     String name = releaseServerStore.getName();
 
-    LOGGER.info("Client {} releasing server-side store '{}'", clientDescriptor, name);
+    LOGGER.info("Client {} releasing clustered tier '{}'", clientDescriptor, name);
     ServerStoreImpl store = stores.get(name);
     if (store != null) {
 
@@ -807,10 +807,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       removedFromClient |= detachStore(clientDescriptor, name);
 
       if (!removedFromClient) {
-        throw new InvalidStoreException("Store '" + name + "' is not in use by client");
+        throw new InvalidStoreException("Clustered tier '" + name + "' is not in use by client");
       }
     } else {
-      throw new InvalidStoreException("Store '" + name + "' does not exist");
+      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
     }
   }
 
@@ -825,26 +825,26 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void destroyServerStore(ClientDescriptor clientDescriptor, DestroyServerStore destroyServerStore) throws ClusteredEhcacheException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
     if (!clientState.isAttached()) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Store Manager");
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
     if (!isConfigured()) {
-      throw new LifecycleException("Clustered Store Manager is not configured");
+      throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
     String name = destroyServerStore.getName();
 
     final Set<ClientDescriptor> clients = storeClientMap.get(name);
     if (clients != null && !clients.isEmpty()) {
-      throw new ResourceBusyException("Can not destroy server-side store '" + name + "': in use by " + clients.size() + " clients");
+      throw new ResourceBusyException("Can not destroy clustered tier '" + name + "': in use by " + clients.size() + " clients");
     }
 
-    LOGGER.info("Client {} destroying server-side store '{}'", clientDescriptor, name);
+    LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
     final ServerStoreImpl store = stores.remove(name);
     if (store == null) {
-      throw new InvalidStoreException("Store '" + name + "' does not exist");
+      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
     } else {
       /*
        * A ServerStore using a dedicated resource pool is the only referent to that pool.  When such a
@@ -856,7 +856,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           dedicatedResourcePools.remove(name);
           releasePool("dedicated", name, expectedPageSource);
         } else {
-          LOGGER.error("Client {} attempting to destroy server-side store '{}' with unmatched page source", clientDescriptor, name);
+          LOGGER.error("Client {} attempting to destroy clustered tier '{}' with unmatched page source", clientDescriptor, name);
         }
       }
 
@@ -985,7 +985,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     final ClientState clientState = clientStateMap.get(clientDescriptor);
     clientState.addStore(storeId);
 
-    LOGGER.info("Client {} attached to store '{}'", clientDescriptor, storeId);
+    LOGGER.info("Client {} attached to clustered tier '{}'", clientDescriptor, storeId);
   }
 
   /**
@@ -1014,7 +1014,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
 
     if (wasRegistered) {
-      LOGGER.info("Client {} detached from store '{}'", clientDescriptor, storeId);
+      LOGGER.info("Client {} detached from clistered tier '{}'", clientDescriptor, storeId);
     }
 
     return wasRegistered;

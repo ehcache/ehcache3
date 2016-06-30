@@ -119,7 +119,7 @@ public class ClusteredCacheDestroyTest {
       persistentCacheManager1.destroyCache("clustered-cache");
       fail();
     } catch (CachePersistenceException e) {
-      assertThat(e.getMessage(), containsString("Cannot destroy clustered cache"));
+      assertThat(e.getMessage(), containsString("Cannot destroy clustered tier"));
       assertThat(getRootCause(e), instanceOf(ResourceBusyException.class));
     }
 

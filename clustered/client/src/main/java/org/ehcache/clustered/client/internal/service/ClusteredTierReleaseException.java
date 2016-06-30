@@ -17,11 +17,11 @@
 package org.ehcache.clustered.client.internal.service;
 
 /**
- * Thrown to indicate an validation error while connecting to a cluster.
+ * Thrown to indicate an error while disconnecting from a clustered cache.
  */
-public class ClusteredStoreManagerValidationException extends ClusteredStoreException {
+public class ClusteredTierReleaseException extends ClusteredTierException {
 
-  public ClusteredStoreManagerValidationException(String message, Throwable cause) {
+  public ClusteredTierReleaseException(String message, Throwable cause) {
     super(message, cause);
   }
 

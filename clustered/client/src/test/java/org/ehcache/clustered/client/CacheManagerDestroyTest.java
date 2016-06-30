@@ -186,7 +186,7 @@ public class CacheManagerDestroyTest {
       anotherPersistentCacheManager.destroyCache("test");
       fail("CachePersistenceException Expected");
     } catch (CachePersistenceException e) {
-      assertThat(e.getMessage(), is("Cannot destroy clustered cache 'test' on terracotta://example.com:9540"));
+      assertThat(e.getMessage(), is("Cannot destroy clustered tier 'test' on terracotta://example.com:9540"));
     }
 
     persistentCacheManager1.close();

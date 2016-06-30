@@ -854,7 +854,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
-        LifecycleException.class, "Client not attached on Server Store for cacheId : testAttachedClientButNotStoreFailsInvokingServerStoreOperation"
+        LifecycleException.class, "Client not attached to clustered tier 'testAttachedClientButNotStoreFailsInvokingServerStoreOperation'"
     );
   }
 
@@ -1888,7 +1888,7 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client1, client2));
 
     assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration)));
-    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAliasBad", dedicatedStoreConfig2)),InvalidStoreException.class,"Store 'cacheAliasBad' does not exist");
+    assertFailure(activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("cacheAliasBad", dedicatedStoreConfig2)),InvalidStoreException.class,"Clustered tier 'cacheAliasBad' does not exist");
 
     assertThat(activeEntity.getSharedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
@@ -1937,7 +1937,7 @@ public class EhcacheActiveEntityTest {
         MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .shared("secondary")
-                .build())),InvalidStoreException.class,"Store 'cacheAlias' already exists");
+                .build())),InvalidStoreException.class,"Clustered tier 'cacheAlias' already exists");
   }
 
 
