@@ -33,10 +33,6 @@ import org.junit.After;
 import org.junit.Test;
 
 import java.net.URI;
-import org.ehcache.config.ResourceType;
-import org.junit.Assert;
-
-import static org.hamcrest.Matchers.is;
 
 import org.junit.Before;
 

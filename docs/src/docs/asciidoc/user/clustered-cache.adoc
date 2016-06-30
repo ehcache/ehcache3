@@ -13,9 +13,11 @@ endif::notBuildingForSite[]
 
 Distributed Caching allows users to harness additional benefits of horizontal scale-out, without losing on low latency offered by local on-heap tiers.
 
-image::ClusteredEhcacheTopology.png[]
+image::ClusteredEhcacheTopology.png["Diagram depicting Terracotta Server and distributed Ehcache clients"]
 
-To enable Clustering with Terracotta, you will have to start the http://terracotta.org[Terracotta server] configured with clustered storage.  For convenience, the downloadable Ehcache kit contains the Terracotta Server.
+''''
+
+To enable Clustering with Terracotta, you will have to deploy a http://terracotta.org/downloads/open-source/catalog[Terracotta server] configured with clustered cache storage.  For convenience, the downloadable Ehcache kit contains the Terracotta Server since Ehcache version 3.1.
 
 You will then need to configure a cache manager to have clustering capabilities such that the caches it manages can utilize the clustered storage. Finally, any caches which should be distributed should be configured with a clustered storage tier.
 
@@ -25,12 +27,13 @@ In this section we discuss some Terracotta clustering terms and concepts that us
 
 Server off-heap resource::
 Server off-heap resources are storage resources defined at the server.
-Caches can get the storage for their clustered tiers allocated from these server off-heap resources.
+Caches can reserve a storage area for their clustered tiers within these server off-heap resources.
 
 Ehcache clustered entity::
-_Ehcache clustered entity_ is the server side entity that gives clustering capabilities to a cache manager.
+Ehcache Clustered Tier Manager::
+_Clustered Tier Manager_ is the server-side entity that gives clustering capabilities to a cache manager.
 Cache managers connect to such entities to get access to the server's storage resources so that the clustered tiers of caches defined in them can consume those resources.
-An Ehcache entity at the server side is identified by a unique _entity identifier_.
+An Ehcache Clustered Tier Manager at the server side is identified by a unique identifier.
 Multiple cache managers can identify and connect to the same clustered entity using this unique identifier.
 
 Dedicated pool::
@@ -50,10 +53,10 @@ That is, if two caches are using a shared pool as their clustered tier, the data
 Consequently, when the real time clustered tier contents of these caches attempts to exceed the total capacity of their shared resource pool, some cache data may be evicted.
 For instance if two caches are already at the shared resource pool size limit, and cache1 attempts to expand, then cache2 may have entries evicted to compensate for the need for more space.
 
-Unknown pool::
-An Unknown pool, also referred to as a Clustered pool, allows a client the ability to inherit a pre-configured resource pool from an existing cache.
-For example, if there is already a dedicated or shared resource pool configured for cache1 and a client would like to use its resource pool configuration for cache2 it may do so by specifying an Unknown pool in its cache configuration.
-Please refer to Unknown Clustered Inheritance example
+Unspecified pool::
+An Unspecified pool, also referred to as a Clustered pool, allows a client the ability to inherit a pre-configured resource pool from an existing cache.
+For example, if there is already a dedicated or shared resource pool configured for cache1 and a client would like to use its resource pool configuration for cache2 it may do so by specifying an Unspecified pool in its cache configuration.
+Please refer to Unspecified Clustered Inheritance example
 
 Here is a pictorial representation of the concepts explained above:
 
@@ -92,7 +95,7 @@ start-tc-server.bat -f <path/to/server/config>/tc-config.xml
 On Unix/Mac:
 [source,bash]
 ----
-cd terracotta-5.x.y-SNAPSHOT/server/bin
+cd <path/to/terracotta/kit>/server/bin
 ./start-tc-server.sh -f <path/to/server/config>/tc-config.xml
 ----
 
@@ -201,11 +204,11 @@ include::{sourcedir31}/clustered/client/src/test/resources/configs/docs/ehcache-
 Expiry in clustered caches work with an exception that `Expiry#getExpiryForAccess` is handled on a best effort basis for clustered tiers,
 it may not be as accurate as in the case of local tiers. Though the same is honored accurately in on-heap tiers.
 
-=== Clustered Unknown Inheritance
+=== Clustered Unspecified Inheritance
 
 We have included an option which allows a cache to be created without specifying its clustered resource pool allocation.
-In order to do so you must already have a cache created as either Shared or Dedicated.
-When you create the second cache(with the same name) in a different cache manager you must configure it with a clustered unknown resource pool.
+In order to do so you must already have a cache created with either a Shared or Dedicated resource pool.
+When you create the second cache (with the same alias) in a different cache manager you must configure it with a clustered unspecified resource pool.
 This second cache will then inherit the clustered resource pool of the first cache.
 
 This option provides many benefits.
@@ -224,8 +227,8 @@ include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/clie
 <2> Build a cache configuration for a clustered Dedicated resource pool
 <3> Create cache "my-dedicated-cache" using the Dedicated cache configuration
 <4> Configure the second cache manager as expecting(auto create off)
-<5> Build a cache configuration for a clustered Unknown resource pool, which will use the previously configured clustered Dedicated resource pool.
-<6> Create cache with the same name "my-dedicated-cache" and use the clustered Unknown cache configuration
+<5> Build a cache configuration for a clustered Unspecified resource pool, which will use the previously configured clustered Dedicated resource pool.
+<6> Create cache with the same name "my-dedicated-cache" and use the clustered Unspecified cache configuration
 
 == Ehcache Clustered Entity Lifecycle
 
