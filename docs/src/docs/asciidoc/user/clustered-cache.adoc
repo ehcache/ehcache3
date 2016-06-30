@@ -36,7 +36,7 @@ The Ehcache _Clustered Tier Manager_ is the server-side component that gives clu
 Cache managers connect to these to get access to the server's storage resources so that the clustered tiers of caches defined in them can consume those resources.
 Ehcache _Clustered Tier Manager_ at the server side are identified by a unique identifier.
 Using it, multiple cache managers can connect to the same clustered tier manager to share cache data.
-The clustered tier manager are also responsible for managing the storage of the clustered tier of caches, with the following different options.
+The clustered tier manager is also responsible for managing the storage of the clustered tier of caches, with the following different options.
 
 Dedicated pool::
 Dedicated pools are a fixed-amount of storage pools allocated to the clustered tiers of caches.
