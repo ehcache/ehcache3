@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal;
 
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
+import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
@@ -76,18 +77,18 @@ public class EhcacheClientEntityFactory {
    *
    * @throws EntityAlreadyExistsException if the {@code EhcacheActiveEntity} for {@code identifier} already exists
    * @throws EhcacheEntityCreationException if an error preventing {@code EhcacheActiveEntity} creation was raised
-   * @throws EhcacheEntityBusyException if another client holding operational leadership prevented this client
+   * @throws EntityBusyException if another client holding operational leadership prevented this client
    *        from becoming leader and creating the {@code EhcacheActiveEntity} instance
    */
   public void create(final String identifier, final ServerSideConfiguration config)
-      throws EntityAlreadyExistsException, EhcacheEntityCreationException, EhcacheEntityBusyException {
+      throws EntityAlreadyExistsException, EhcacheEntityCreationException, EntityBusyException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
     if (existingMaintenance == null) {
       localMaintenance = createAccessLockFor(identifier).tryWriteLock();
     }
     if (existingMaintenance == null && localMaintenance == null) {
-      throw new EhcacheEntityBusyException("Unable to create clustered tier manager for id "
+      throw new EntityBusyException("Unable to create clustered tier manager for id "
               + identifier + ": another client owns the maintenance lease");
     } else {
       try {
@@ -157,28 +158,26 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EhcacheEntityBusyException {
+  public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EntityBusyException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
     if (existingMaintenance == null) {
       localMaintenance = createAccessLockFor(identifier).tryWriteLock();
     }
     if (existingMaintenance == null && localMaintenance == null) {
-      throw new EhcacheEntityBusyException("Destroy operation failed; " + identifier + " clustered tier's maintenance lease held");
+      throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier's maintenance lease held");
     } else {
       try {
         EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
         try {
           if (!ref.tryDestroy()) {
-            throw new EhcacheEntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
+            throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
           }
         } catch (EntityNotProvidedException e) {
           LOGGER.error("Unable to delete clustered tier manager for id {}", identifier, e);
           throw new AssertionError(e);
         } catch (EntityNotFoundException e) {
           throw new EhcacheEntityNotFoundException(e);
-        } catch (EhcacheEntityBusyException e) {
-          throw new EhcacheEntityBusyException(e);
         }
       } finally {
         if (localMaintenance != null) {
