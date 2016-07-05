@@ -20,6 +20,8 @@ import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.ManagementProvider;
 
+import java.util.Collection;
+
 /**
  * Configuration interface for a  {@link ManagementRegistryService}.
  *
@@ -45,6 +47,11 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
    * @return The static colector executor alias
    */
   String getCollectorExecutorAlias();
+
+  /**
+   * The users tags that can be used to filter this client's management registry amongst others
+   */
+  Collection<String> getTags();
 
   /**
    * Returns the configuration of a specific {@link ManagementProvider} type.
