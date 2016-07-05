@@ -1,7 +1,7 @@
 Ehcache 3.1
 =========================
 
-Welcome to version 3.1 of Ehcache with Terrcotta-based distributed caching. 
+Welcome to version 3.1 of Ehcache with Terracotta-based distributed caching. 
 
 Contents
 ---------------
