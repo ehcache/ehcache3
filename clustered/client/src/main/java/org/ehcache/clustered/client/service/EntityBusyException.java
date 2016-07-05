@@ -13,25 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
-package org.ehcache.clustered.client.internal;
+package org.ehcache.clustered.client.service;
 
 /**
- * Thrown by {@link EhcacheClientEntity} operations requiring access to the
- * {@code EhcacheActiveEntity} when the {@code EhcacheActiveEntity} is not available.
+ * Thrown by {@link org.terracotta.connection.entity.Entity} operations requiring access to the
+ * {@code {@link org.terracotta.entity.ActiveServerEntity}} when the {@code {@link org.terracotta.entity.ActiveServerEntity}} is not available.
  */
-public class EhcacheEntityBusyException extends Exception {
+public class EntityBusyException extends Exception {
   private static final long serialVersionUID = -7706902691622092177L;
 
-  public EhcacheEntityBusyException(String message) {
+  public EntityBusyException(String message) {
     super(message);
   }
 
-  public EhcacheEntityBusyException(String message, Throwable cause) {
+  public EntityBusyException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public EhcacheEntityBusyException(Throwable cause) {
+  public EntityBusyException(Throwable cause) {
     super(cause);
   }
 }

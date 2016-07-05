@@ -22,14 +22,17 @@ import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
-import org.ehcache.clustered.client.internal.EhcacheEntityBusyException;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
+import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
+import org.ehcache.clustered.client.service.ClientEntityFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.client.service.EntityBusyException;
+import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
@@ -49,6 +52,7 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.connection.ConnectionPropertyNames;
+import org.terracotta.connection.entity.Entity;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.entity.map.common.ConcurrentClusteredMap;
 import org.terracotta.exception.EntityAlreadyExistsException;
@@ -62,13 +66,12 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentMap;
-import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
 
 /**
  * Provides support for accessing server-based cluster services.
  */
 @ServiceDependencies(ClusteredStore.Provider.class)
-class DefaultClusteringService implements ClusteringService {
+class DefaultClusteringService implements ClusteringService, EntityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);
 
@@ -104,6 +107,19 @@ class DefaultClusteringService implements ClusteringService {
   @Override
   public ClusteringServiceConfiguration getConfiguration() {
     return this.configuration;
+  }
+
+  @Override
+  public <E extends Entity, C> ClientEntityFactory<E, C> newClientEntityFactory(String entityIdentifier, Class<E> entityType, long entityVersion, C configuration) {
+    return new AbstractClientEntityFactory<E, C>(entityIdentifier, entityType, entityVersion, configuration) {
+      @Override
+      protected Connection getConnection() {
+        if (clusterConnection == null) {
+          throw new IllegalStateException(getClass().getSimpleName() + " not started.");
+        }
+        return clusterConnection;
+      }
+    };
   }
 
   @Override
@@ -147,7 +163,7 @@ class DefaultClusteringService implements ClusteringService {
         throw new IllegalStateException("Could not create the clustered tier manager '" + entityIdentifier + "'.", e);
       } catch (EntityAlreadyExistsException e) {
         //ignore - entity already exists - try to retrieve
-      } catch (EhcacheEntityBusyException e) {
+      } catch (EntityBusyException e) {
         //ignore - entity in transition - try to retrieve
       }
       try {
@@ -216,7 +232,7 @@ class DefaultClusteringService implements ClusteringService {
       entityFactory.destroy(entityIdentifier);
     } catch (EhcacheEntityNotFoundException e) {
       throw new CachePersistenceException("Clustered tiers on " + this.clusterUri + " not found", e);
-    } catch (EhcacheEntityBusyException e) {
+    } catch (EntityBusyException e) {
       throw new CachePersistenceException("Can not delete clustered tiers on " + this.clusterUri, e);
     }
   }
