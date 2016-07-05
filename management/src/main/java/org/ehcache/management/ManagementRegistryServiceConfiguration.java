@@ -48,6 +48,9 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
    */
   String getCollectorExecutorAlias();
 
+  /**
+   * The users tags that can be used to filter this client's management registry amongst others
+   */
   Collection<String> getTags();
 
   /**

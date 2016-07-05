@@ -854,7 +854,7 @@ class ConfigurationParser {
         time = type.getTtl();
       }
       if(time != null) {
-        return convertToJavaTimeUnit(time.getUnit());
+        return XmlModel.convertToJavaTimeUnit(time.getUnit());
       }
       return null;
     }
@@ -960,7 +960,7 @@ class ConfigurationParser {
 
     @Override
     public TimeUnit maxDelayUnit() {
-      return convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
+      return XmlModel.convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
     }
 
   }
@@ -985,24 +985,4 @@ class ConfigurationParser {
 
   }
 
-  private static TimeUnit convertToJavaTimeUnit(org.ehcache.xml.model.TimeUnit unit) {
-    switch (unit) {
-      case NANOS:
-        return TimeUnit.NANOSECONDS;
-      case MICROS:
-      return TimeUnit.MICROSECONDS;
-      case MILLIS:
-        return TimeUnit.MILLISECONDS;
-      case SECONDS:
-        return TimeUnit.SECONDS;
-      case MINUTES:
-        return TimeUnit.MINUTES;
-      case HOURS:
-        return TimeUnit.HOURS;
-      case DAYS:
-        return TimeUnit.DAYS;
-      default:
-        throw new IllegalArgumentException("Unknown time unit: " + unit);
-    }
-  }
 }
