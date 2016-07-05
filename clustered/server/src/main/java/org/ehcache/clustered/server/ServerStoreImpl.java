@@ -79,4 +79,8 @@ class ServerStoreImpl implements ServerStore {
   public void clear() {
     store.clear();
   }
+
+  public void close() {
+    store.close();
+  }
 }

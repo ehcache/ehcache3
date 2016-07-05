@@ -544,8 +544,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
 
       LOGGER.info("Destroying clustered tier '{}' for clustered tier manager destroy", storeEntry.getKey());
-      // TODO: ServerStore closure here ...
       storeClientMap.remove(storeEntry.getKey());
+      storeEntry.getValue().close();
       storeIterator.remove();
     }
 
@@ -860,8 +860,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         }
       }
 
-      // TODO: ServerStore closure here ...
       storeClientMap.remove(name);
+      store.close();
     }
   }
 
