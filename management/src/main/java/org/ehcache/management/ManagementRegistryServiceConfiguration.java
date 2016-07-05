@@ -24,8 +24,6 @@ import java.util.Collection;
 
 /**
  * Configuration interface for a  {@link ManagementRegistryService}.
- *
- * @author Mathieu Carbou
  */
 public interface ManagementRegistryServiceConfiguration extends ServiceCreationConfiguration<ManagementRegistryService> {
 

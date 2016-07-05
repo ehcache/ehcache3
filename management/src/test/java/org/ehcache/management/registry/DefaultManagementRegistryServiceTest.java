@@ -50,9 +50,6 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-/**
- * @author Ludovic Orban, Mathoeu Carbou
- */
 public class DefaultManagementRegistryServiceTest {
 
   @Test

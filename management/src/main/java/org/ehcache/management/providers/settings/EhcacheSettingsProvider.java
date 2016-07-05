@@ -26,9 +26,6 @@ import org.terracotta.management.registry.action.RequiredContext;
 
 import java.util.Collection;
 
-/**
- * @author Ludovic Orban
- */
 @Named("SettingsCapability")
 @RequiredContext({@Named("cacheManagerName")})
 public class EhcacheSettingsProvider extends CacheBindingManagementProvider {

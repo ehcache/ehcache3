@@ -41,10 +41,6 @@ import org.terracotta.management.model.stats.primitive.Counter;
 import java.util.Collection;
 import java.util.Iterator;
 
-
-/**
- * @author Ludovic Orban
- */
 public class ManagementTest {
 
   @Test

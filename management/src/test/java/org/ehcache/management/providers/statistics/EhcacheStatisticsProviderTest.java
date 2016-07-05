@@ -46,9 +46,6 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * @author Ludovic Orban
- */
 public class EhcacheStatisticsProviderTest {
 
   ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);

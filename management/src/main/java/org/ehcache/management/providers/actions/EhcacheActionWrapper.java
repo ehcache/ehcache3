@@ -24,9 +24,6 @@ import org.terracotta.management.registry.action.Named;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-/**
- * @author Ludovic Orban
- */
 // must be public for reflexion management calls
 public class EhcacheActionWrapper extends ExposedCacheBinding {
 

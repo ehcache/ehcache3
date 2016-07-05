@@ -15,10 +15,7 @@
  */
 package org.ehcache.management.registry;
 
-/**
- * @author Mathieu Carbou
- */
-public enum EhcacheNotification {
+enum EhcacheNotification {
   CACHE_ADDED,
   CACHE_REMOVED,
   CACHE_MANAGER_CLOSED,

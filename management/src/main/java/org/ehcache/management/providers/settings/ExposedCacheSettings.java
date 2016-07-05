@@ -35,9 +35,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author Ludovic Orban
- */
 class ExposedCacheSettings extends ExposedCacheBinding {
 
   private static final Comparator<ResourceType<?>> RESOURCE_TYPE_COMPARATOR = new Comparator<ResourceType<?>>() {

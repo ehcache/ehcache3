@@ -20,9 +20,6 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-/**
- * @author Ludovic Orban
- */
 public class DefaultManagementRegistryFactory implements ServiceFactory<ManagementRegistryService> {
 
   @Override

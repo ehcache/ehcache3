@@ -23,8 +23,6 @@ import org.terracotta.management.registry.collect.StatisticCollector;
  * Collector service installed in a cache manager
  * <p>
  * The collecting time is automatically calculated from {@link StatisticsProviderConfiguration#timeToDisable()}
- *
- * @author Mathieu Carbou
  */
 public interface CollectorService extends StatisticCollector, Service {
   interface EventListener {

@@ -32,9 +32,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
-/**
- * @author Ludovic Orban
- */
 @Named("StatisticsCapability")
 public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
