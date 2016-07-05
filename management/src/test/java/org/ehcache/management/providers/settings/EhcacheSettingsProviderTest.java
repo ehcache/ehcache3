@@ -50,9 +50,6 @@ import java.util.concurrent.TimeUnit;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.junit.Assert.assertEquals;
 
-/**
- * @author Mathieu Carbou
- */
 @RunWith(JUnit4.class)
 public class EhcacheSettingsProviderTest {
 

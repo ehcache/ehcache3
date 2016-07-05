@@ -19,9 +19,6 @@ import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author Ludovic Orban
- */
 public class EhcacheStatisticsProviderConfiguration extends DefaultStatisticsProviderConfiguration {
 
   public EhcacheStatisticsProviderConfiguration(long averageWindowDuration, TimeUnit averageWindowUnit, int historySize, long historyInterval, TimeUnit historyIntervalUnit, long timeToDisable, TimeUnit timeToDisableUnit) {

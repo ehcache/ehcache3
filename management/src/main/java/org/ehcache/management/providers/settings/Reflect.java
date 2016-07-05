@@ -15,9 +15,6 @@
  */
 package org.ehcache.management.providers.settings;
 
-/**
- * @author Mathieu Carbou
- */
 class Reflect {
 
   static boolean isInstance(Object o, String interfaceClassName) {

@@ -44,10 +44,6 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
-
-/**
- * @author Ludovic Orban
- */
 @ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class})
 public class DefaultManagementRegistryService extends AbstractManagementRegistry implements ManagementRegistryService, CacheManagerListener {
 

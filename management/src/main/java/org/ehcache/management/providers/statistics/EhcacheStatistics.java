@@ -67,9 +67,6 @@ import static org.terracotta.context.query.Matchers.identifier;
 import static org.terracotta.context.query.Matchers.subclassOf;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 
-/**
- * @author Ludovic Orban
- */
 class EhcacheStatistics extends ExposedCacheBinding {
 
   private static final Set<CacheOperationOutcomes.PutOutcome> ALL_CACHE_PUT_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.PutOutcome.class);

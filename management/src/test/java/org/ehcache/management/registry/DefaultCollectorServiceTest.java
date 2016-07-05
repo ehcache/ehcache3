@@ -45,9 +45,6 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
 
-/**
- * @author Mathieu Carbou
- */
 public class DefaultCollectorServiceTest {
 
   @Test(timeout = 6000)

@@ -19,9 +19,6 @@ import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author Ludovic Orban
- */
 public interface StatisticsProviderConfiguration<T extends ManagementProvider> {
 
   long averageWindowDuration();

@@ -29,8 +29,6 @@ import static org.terracotta.context.query.Queries.self;
 
 /**
  * The Enum OperationType.
- *
- * @author cdennis
  */
 enum StandardOperationStatistic implements OperationType {
   CACHE_LOADING(false, self(), CacheOperationOutcomes.CacheLoadingOutcome.class, "cacheLoading", "cache"),

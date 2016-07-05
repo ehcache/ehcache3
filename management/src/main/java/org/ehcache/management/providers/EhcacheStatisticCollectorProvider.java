@@ -21,9 +21,6 @@ import org.terracotta.management.registry.action.RequiredContext;
 import org.terracotta.management.registry.collect.StatisticCollector;
 import org.terracotta.management.registry.collect.StatisticCollectorProvider;
 
-/**
- * @author Mathieu Carbou
- */
 @RequiredContext(@Named("cacheManagerName"))
 public class EhcacheStatisticCollectorProvider extends StatisticCollectorProvider<StatisticCollector> {
   public EhcacheStatisticCollectorProvider(Context context) {

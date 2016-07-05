@@ -17,15 +17,11 @@ package org.ehcache.management.providers.actions;
 
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
-import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.AbstractActionManagementProvider;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
 
-/**
- * @author Ludovic Orban
- */
 @Named("ActionsCapability")
 @RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
 public class EhcacheActionProvider extends AbstractActionManagementProvider<CacheBinding> {

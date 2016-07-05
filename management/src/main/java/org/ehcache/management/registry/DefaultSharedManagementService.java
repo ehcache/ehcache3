@@ -42,8 +42,6 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * This service can be registered across several cache managers and provides a way to access per-cache manager management registry
- *
- * @author Mathieu Carbou
  */
 @ServiceDependencies({CacheManagerProviderService.class, ManagementRegistryService.class})
 public class DefaultSharedManagementService implements SharedManagementService {

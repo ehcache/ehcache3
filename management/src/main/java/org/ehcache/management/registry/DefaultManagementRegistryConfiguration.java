@@ -29,9 +29,6 @@ import java.util.Map;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * @author Ludovic Orban
- */
 public class DefaultManagementRegistryConfiguration implements ManagementRegistryServiceConfiguration {
 
   private static final AtomicLong COUNTER = new AtomicLong();

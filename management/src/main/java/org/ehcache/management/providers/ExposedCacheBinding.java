@@ -24,9 +24,6 @@ import org.terracotta.management.registry.action.ExposedObject;
 import java.util.Collection;
 import java.util.Collections;
 
-/**
- * @author Mathieu Carbou
- */
 public abstract class ExposedCacheBinding implements ExposedObject<CacheBinding> {
 
   protected final ManagementRegistryServiceConfiguration registryConfiguration;

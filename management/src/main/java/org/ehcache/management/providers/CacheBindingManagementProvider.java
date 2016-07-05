@@ -23,9 +23,6 @@ import org.terracotta.management.registry.action.ExposedObject;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 
-/**
- * @author Mathieu Carbou
- */
 public abstract class CacheBindingManagementProvider extends AbstractManagementProvider<CacheBinding> {
 
   protected final ManagementRegistryServiceConfiguration registryConfiguration;

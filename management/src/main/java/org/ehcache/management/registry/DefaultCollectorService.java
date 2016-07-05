@@ -49,10 +49,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
-
-/**
- * @author Mathieu Carbou
- */
 @ServiceDependencies({CacheManagerProviderService.class, ManagementRegistryService.class, ExecutionService.class})
 public class DefaultCollectorService implements CollectorService, CacheManagerListener {
 
