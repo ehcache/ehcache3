@@ -22,7 +22,10 @@ import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.ManagementProvider;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,6 +38,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   private static final AtomicLong COUNTER = new AtomicLong();
 
   private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
+  private final Collection<String> tags = new LinkedHashSet<String>();
   private Context context = Context.empty();
   private String statisticsExecutorAlias;
   private String collectorExecutorAlias;
@@ -72,6 +76,15 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return this;
   }
 
+  public DefaultManagementRegistryConfiguration addTags(String... tags) {
+    this.tags.addAll(Arrays.asList(tags));
+    return this;
+  }
+
+  public DefaultManagementRegistryConfiguration addTag(String tag) {
+    return addTags(tag);
+  }
+
   @Override
   public Context getContext() {
     return context;
@@ -85,6 +98,11 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   @Override
   public String getCollectorExecutorAlias() {
     return this.collectorExecutorAlias;
+  }
+
+  @Override
+  public Collection<String> getTags() {
+    return tags;
   }
 
   @Override

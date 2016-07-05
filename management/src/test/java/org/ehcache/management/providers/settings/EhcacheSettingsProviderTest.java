@@ -17,7 +17,6 @@ package org.ehcache.management.providers.settings;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
@@ -42,7 +41,6 @@ import org.junit.runners.JUnit4;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.context.CapabilityContext;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
@@ -106,7 +104,9 @@ public class EhcacheSettingsProviderTest {
         .using(new DefaultPersistenceConfiguration(ROOT.newFolder("test_standalone_ehcache")))
         .using(new DefaultManagementRegistryConfiguration()
             .addConfiguration(statisticsProviderConfiguration)
-            .setCacheManagerAlias("my-cm-1"))
+            .setCacheManagerAlias("my-cm-1")
+            .addTag("boo")
+            .addTags("foo", "baz"))
         .withCache("cache-1", cacheConfiguration1)
         .withCache("cache-2", cacheConfiguration2)
         .build(false);

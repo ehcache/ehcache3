@@ -56,7 +56,8 @@ public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
     return new Settings()
         .set("cacheManagerDescription", cacheManager.toString())
         .set("status", cacheManager.getStatus())
-        .set("managementContext", new Settings(registryConfiguration.getContext()));
+        .set("managementContext", new Settings(registryConfiguration.getContext()))
+        .set("tags", registryConfiguration.getTags().toArray(new String[registryConfiguration.getTags().size()]));
   }
 
 }
