@@ -49,6 +49,7 @@ public interface ServerStore {
   /**
    * Appends the provided binary to Chain associated with key atomically.
    * While appending, the payLoad is stored in {@link Element}.
+   * Note that the {@code payLoad}'s position and limit are left untouched.
    *
    * @param key to which the payLoad has to be appended
    * @param payLoad to be appended
@@ -66,6 +67,7 @@ public interface ServerStore {
    *    append(key, payLoad);
    *    return prevChain;
    *  }
+   * Note that the {@code payLoad}'s position and limit are left untouched.
    *
    * @param key to which the payLoad has to be appended
    * @param payLoad to be appended
@@ -103,6 +105,7 @@ public interface ServerStore {
    *    hash -> |payLoadC"| - |payLoadD|
    *
    * then replaceAtHead(hash, |payLoadA| - |payLoadB| - |payLoadC|, |payLoadC'|) will be ignored.
+   * Note that the payload's position and limit of all elements of both chains are left untouched.
    *
    * @param key for which Chain has to be replaced
    * @param expect of the original Chain which this operation intends to replaceAtHead
