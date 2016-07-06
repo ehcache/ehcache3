@@ -19,6 +19,8 @@ package org.ehcache.clustered.server.store;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.common.internal.store.ServerStore;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.core.Is;
 import org.junit.Test;
 
 import java.nio.ByteBuffer;
@@ -51,7 +53,7 @@ public abstract class ServerStoreTest {
     return byteBuffer.getLong();
   }
 
-  private static ByteBuffer createPayload(long key) {
+  protected static ByteBuffer createPayload(long key) {
     ByteBuffer byteBuffer = ByteBuffer.allocate(8).putLong(key);
     byteBuffer.flip();
     return byteBuffer;
@@ -196,6 +198,36 @@ public abstract class ServerStoreTest {
     Chain toVerify = store.get(1);
 
     assertChainAndReverseChainOnlyHave(toVerify, 111, 1111);
+  }
+
+
+  @Test
+  public void test_append_doesNotConsumeBuffer() throws Exception {
+    ServerStore store = newStore();
+    ByteBuffer payload = createPayload(1L);
+
+    store.append(1L, payload);
+    MatcherAssert.assertThat(payload.remaining(), Is.is(8));
+  }
+
+  @Test
+  public void test_getAndAppend_doesNotConsumeBuffer() throws Exception {
+    ServerStore store = newStore();
+    ByteBuffer payload = createPayload(1L);
+
+    store.getAndAppend(1L, payload);
+    MatcherAssert.assertThat(payload.remaining(), Is.is(8));
+  }
+
+  @Test
+  public void test_replaceAtHead_doesNotConsumeBuffer() throws Exception {
+    ServerStore store = newStore();
+    ByteBuffer payload = createPayload(1L);
+
+    Chain expected = newChainBuilder().build(newElementBuilder().build(payload), newElementBuilder().build(payload));
+    Chain update = newChainBuilder().build(newElementBuilder().build(payload));
+    store.replaceAtHead(1L, expected, update);
+    MatcherAssert.assertThat(payload.remaining(), Is.is(8));
   }
 
 }

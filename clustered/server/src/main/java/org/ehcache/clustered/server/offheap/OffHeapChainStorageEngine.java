@@ -447,7 +447,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
   private long writeElement(long address, ByteBuffer element) {
     storage.writeLong(address + ELEMENT_HEADER_SEQUENCE_OFFSET, nextSequenceNumber++);
     storage.writeInt(address + ELEMENT_HEADER_LENGTH_OFFSET, element.remaining());
-    storage.writeBuffer(address + ELEMENT_HEADER_SIZE, element);
+    storage.writeBuffer(address + ELEMENT_HEADER_SIZE, element.duplicate());
     return address;
   }
 

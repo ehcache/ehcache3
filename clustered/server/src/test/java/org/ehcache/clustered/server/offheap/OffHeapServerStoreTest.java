@@ -16,14 +16,29 @@
 package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
+
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.store.ServerStoreTest;
+import org.junit.Test;
+import org.mockito.Matchers;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
+import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
 
@@ -59,6 +74,91 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
         };
       }
     };
+  }
+
+  @Test
+  public void test_append_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
+    OffHeapServerStore store = (OffHeapServerStore) spy(newStore());
+    final OffHeapChainMap offHeapChainMap = mock(OffHeapChainMap.class);
+    doThrow(OversizeMappingException.class).when(offHeapChainMap).append(Matchers.any(), any(ByteBuffer.class));
+
+    when(store.segmentFor(anyLong())).then(new Answer<Object>() {
+      int invocations = 0;
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        if (invocations++ < 10) {
+          return offHeapChainMap;
+        } else {
+          return invocation.callRealMethod();
+        }
+      }
+    });
+    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+
+
+    ByteBuffer payload = createPayload(1L);
+
+    store.append(1L, payload);
+    assertThat(payload.remaining(), is(8));
+  }
+
+  @Test
+  public void test_getAndAppend_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
+    OffHeapServerStore store = (OffHeapServerStore) spy(newStore());
+    final OffHeapChainMap offHeapChainMap = mock(OffHeapChainMap.class);
+    doThrow(OversizeMappingException.class).when(offHeapChainMap).getAndAppend(Matchers.any(), any(ByteBuffer.class));
+
+    when(store.segmentFor(anyLong())).then(new Answer<Object>() {
+      int invocations = 0;
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        if (invocations++ < 10) {
+          return offHeapChainMap;
+        } else {
+          return invocation.callRealMethod();
+        }
+      }
+    });
+    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+
+
+    ByteBuffer payload = createPayload(1L);
+
+    store.getAndAppend(1L, payload);
+    assertThat(payload.remaining(), is(8));
+
+    Chain expected = newChainBuilder().build(newElementBuilder().build(payload), newElementBuilder().build(payload));
+    Chain update = newChainBuilder().build(newElementBuilder().build(payload));
+    store.replaceAtHead(1L, expected, update);
+    assertThat(payload.remaining(), is(8));
+  }
+
+  @Test
+  public void test_replaceAtHead_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
+    OffHeapServerStore store = (OffHeapServerStore) spy(newStore());
+    final OffHeapChainMap offHeapChainMap = mock(OffHeapChainMap.class);
+    doThrow(OversizeMappingException.class).when(offHeapChainMap).replaceAtHead(Matchers.any(), any(Chain.class), any(Chain.class));
+
+    when(store.segmentFor(anyLong())).then(new Answer<Object>() {
+      int invocations = 0;
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        if (invocations++ < 10) {
+          return offHeapChainMap;
+        } else {
+          return invocation.callRealMethod();
+        }
+      }
+    });
+    when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
+
+
+    ByteBuffer payload = createPayload(1L);
+
+    Chain expected = newChainBuilder().build(newElementBuilder().build(payload), newElementBuilder().build(payload));
+    Chain update = newChainBuilder().build(newElementBuilder().build(payload));
+    store.replaceAtHead(1L, expected, update);
+    assertThat(payload.remaining(), is(8));
   }
 
 }

@@ -154,7 +154,7 @@ public class OffHeapServerStore implements ServerStore {
     }
   }
 
-  private OffHeapChainMap<Long> segmentFor(long key) {
+  OffHeapChainMap<Long> segmentFor(long key) {
     return segments.get(Math.abs((int) (key % segments.size())));
   }
 
@@ -170,7 +170,7 @@ public class OffHeapServerStore implements ServerStore {
     }
   }
 
-  private boolean handleOversizeMappingException(long hash) {
+  boolean handleOversizeMappingException(long hash) {
     boolean evicted = false;
 
     OffHeapChainMap<Long> target = segmentFor(hash);
