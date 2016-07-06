@@ -77,8 +77,8 @@ distributions {
           f.path = f.path.replace("terracotta-$terracottaCoreVersion/", "")
         }
         exclude { f ->
-          // Exclude tc's client subdir
-          f.path.contains('client/')
+          // Exclude tc's client subdir and README.txt - Issue 1273
+          f.path.contains('client/') || f.path.contains('README.txt')
         }
         includeEmptyDirs = false
       }
