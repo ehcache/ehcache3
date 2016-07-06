@@ -182,4 +182,15 @@ public class OffHeapServerStore implements ServerStore {
 
     return evicted;
   }
+
+  public void close() {
+    writeLockAll();
+    try {
+      clear();
+      segments.clear();
+    } finally {
+      writeUnlockAll();
+    }
+  }
+
 }
