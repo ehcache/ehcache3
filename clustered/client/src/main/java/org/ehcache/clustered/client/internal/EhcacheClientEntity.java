@@ -160,9 +160,7 @@ public class EhcacheClientEntity implements Entity {
   public void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
-    } catch (TimeoutException e) {
-      throw e;
-    } catch (Exception e) {
+    } catch (ClusteredEhcacheException e) {
       throw new ClusteredTierManagerValidationException("Error validating server clustered tier manager", e);
     }
   }
@@ -170,9 +168,7 @@ public class EhcacheClientEntity implements Entity {
   public void configure(ServerSideConfiguration config) throws ClusteredTierManagerConfigurationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.configureStoreManager(config), true);
-    } catch (TimeoutException e) {
-      throw e;
-    } catch (Exception e) {
+    } catch (ClusteredEhcacheException e) {
       throw new ClusteredTierManagerConfigurationException("Error configuring clustered tier manager", e);
     }
   }
@@ -181,9 +177,7 @@ public class EhcacheClientEntity implements Entity {
       throws ClusteredTierCreationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.createServerStore(name, serverStoreConfiguration), true);
-    } catch (TimeoutException e) {
-      throw e;
-    } catch (Exception e) {
+    } catch (ClusteredEhcacheException e) {
       throw new ClusteredTierCreationException("Error creating clustered tier '" + name + "'", e);
     }
   }
@@ -192,9 +186,7 @@ public class EhcacheClientEntity implements Entity {
       throws ClusteredTierValidationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(name , serverStoreConfiguration), false);
-    } catch (TimeoutException e) {
-      throw e;
-    } catch (Exception e) {
+    } catch (ClusteredEhcacheException e) {
       throw new ClusteredTierValidationException("Error validating clustered tier '" + name + "'", e);
     }
   }
@@ -202,9 +194,7 @@ public class EhcacheClientEntity implements Entity {
   public void releaseCache(String name) throws ClusteredTierReleaseException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.releaseServerStore(name), false);
-    } catch (TimeoutException e) {
-      throw e;
-    } catch (Exception e) {
+    } catch (ClusteredEhcacheException e) {
       throw new ClusteredTierReleaseException("Error releasing clustered tier '" + name + "'", e);
     }
   }
@@ -212,9 +202,7 @@ public class EhcacheClientEntity implements Entity {
   public void destroyCache(String name) throws ClusteredTierDestructionException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.destroyServerStore(name), true);
-    } catch (TimeoutException e) {
-      throw e;
-    } catch (Exception e) {
+    } catch (ClusteredEhcacheException e) {
       throw new ClusteredTierDestructionException("Error destroying clustered tier '" + name + "'", e);
     }
   }
@@ -251,16 +239,7 @@ public class EhcacheClientEntity implements Entity {
     try {
       EhcacheEntityResponse response = waitFor(timeLimit, invokeAsync(message, replicate));
       if (Type.FAILURE.equals(response.getType())) {
-        /*
-         * The FAILURE cause is a server-side exception lacking client-side stack trace
-         * elements.  The server-side exception must be wrapped in a client-side exception
-         * to provide proper stack trace for analysis.
-         */
-        Exception cause = ((Failure)response).getCause();
-        if (cause instanceof ClusteredEhcacheException) {
-          throw ((ClusteredEhcacheException) cause).withClientStackTrace();
-        }
-        throw new RuntimeException(message + " error: " + cause.toString(), cause);
+        throw ((Failure)response).getCause();
       } else {
         return response;
       }

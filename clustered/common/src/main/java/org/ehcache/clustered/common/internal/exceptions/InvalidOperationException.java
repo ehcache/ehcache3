@@ -14,22 +14,25 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.internal.messages;
+package org.ehcache.clustered.common.internal.exceptions;
 
-import org.ehcache.clustered.common.internal.exceptions.ClusteredEhcacheException;
-import org.ehcache.clustered.common.internal.store.Chain;
+public class InvalidOperationException extends ClusteredEhcacheException {
+  private static final long serialVersionUID = 5717142794536675810L;
 
-public class EhcacheEntityResponseFactory {
-
-  public EhcacheEntityResponse success() {
-    return EhcacheEntityResponse.Success.INSTANCE;
+  public InvalidOperationException(final String message) {
+    super(message);
   }
 
-  public EhcacheEntityResponse failure(ClusteredEhcacheException cause) {
-    return new EhcacheEntityResponse.Failure(cause);
+  public InvalidOperationException(final Throwable cause) {
+    super(cause);
   }
 
-  public EhcacheEntityResponse response(Chain chain) {
-    return new EhcacheEntityResponse.GetResponse(chain);
+  private InvalidOperationException(InvalidOperationException cause) {
+    super(cause.getMessage(), cause);
+  }
+
+  @Override
+  public ClusteredEhcacheException withClientStackTrace() {
+    return new InvalidOperationException(this);
   }
 }

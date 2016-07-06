@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ public class ResponseCodecTest {
 
   @Test
   public void testFailureResponseCodec() {
-    EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new Exception("Test Exception"));
+    EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new IllegalMessageException("Test Exception"));
 
     EhcacheEntityResponse decoded = RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(failure));
 

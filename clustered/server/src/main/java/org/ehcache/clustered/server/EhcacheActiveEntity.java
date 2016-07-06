@@ -35,6 +35,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.exceptions.ClusteredEhcacheException;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
@@ -313,7 +314,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       return responseFactory.failure(e);
     } catch (Exception e) {
       LOGGER.error("Unexpected exception raised during operation: " + message, e);
-      return responseFactory.failure(e);
+      return responseFactory.failure(new InvalidOperationException(e));
     }
   }
 

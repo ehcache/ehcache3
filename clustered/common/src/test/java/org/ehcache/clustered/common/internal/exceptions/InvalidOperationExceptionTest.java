@@ -14,22 +14,15 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.internal.messages;
+package org.ehcache.clustered.common.internal.exceptions;
 
-import org.ehcache.clustered.common.internal.exceptions.ClusteredEhcacheException;
-import org.ehcache.clustered.common.internal.store.Chain;
+/**
+ * Tests {@link InvalidOperationException} functions including
+ * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
+ */
+public class InvalidOperationExceptionTest extends BaseClusteredEhcacheExceptionTest<InvalidOperationException> {
 
-public class EhcacheEntityResponseFactory {
-
-  public EhcacheEntityResponse success() {
-    return EhcacheEntityResponse.Success.INSTANCE;
-  }
-
-  public EhcacheEntityResponse failure(ClusteredEhcacheException cause) {
-    return new EhcacheEntityResponse.Failure(cause);
-  }
-
-  public EhcacheEntityResponse response(Chain chain) {
-    return new EhcacheEntityResponse.GetResponse(chain);
+  public InvalidOperationExceptionTest() {
+    super(InvalidOperationException.class);
   }
 }
