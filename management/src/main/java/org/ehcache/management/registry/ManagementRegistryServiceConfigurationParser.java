@@ -96,7 +96,7 @@ public class ManagementRegistryServiceConfigurationParser implements CacheManage
             throw new IllegalStateException("Class " + statisticConfiguration.getAttribute("provider") + " is not a " + ManagementProvider.class.getSimpleName());
           }
 
-          DefaultStatisticsProviderConfiguration providerConfiguration = new DefaultStatisticsProviderConfiguration((Class<? extends ManagementProvider>) providerType);
+          DefaultStatisticsProviderConfiguration providerConfiguration = new DefaultStatisticsProviderConfiguration(providerType.asSubclass(ManagementProvider.class));
 
           // average-window
           for (Element averageWindow : NodeListIterable.elements(statisticConfiguration, NAMESPACE, "average-window")) {
