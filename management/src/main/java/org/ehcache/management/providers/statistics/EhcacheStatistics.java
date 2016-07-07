@@ -15,8 +15,8 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import org.ehcache.Cache;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
@@ -56,7 +56,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -78,11 +77,11 @@ class EhcacheStatistics extends ExposedCacheBinding {
   private static final Set<CacheOperationOutcomes.CacheLoadingOutcome> ALL_CACHE_LOADER_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.CacheLoadingOutcome.class);
 
   private final StatisticsRegistry statisticsRegistry;
-  private final ConcurrentMap<String, OperationStatistic<?>> countStatistics;
+  private final Map<String, OperationStatistic<?>> countStatistics;
 
   EhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsProviderConfiguration statisticsProviderConfiguration, ScheduledExecutorService executor) {
     super(registryConfiguration, cacheBinding);
-    this.countStatistics = discoverCountStatistics();
+    this.countStatistics = discoverCountStatistics(cacheBinding.getCache());
     this.statisticsRegistry = new StatisticsRegistry(StandardOperationStatistic.class, cacheBinding.getCache(), executor, statisticsProviderConfiguration.averageWindowDuration(),
         statisticsProviderConfiguration.averageWindowUnit(), statisticsProviderConfiguration.historySize(), statisticsProviderConfiguration.historyInterval(), statisticsProviderConfiguration.historyIntervalUnit(),
         statisticsProviderConfiguration.timeToDisable(), statisticsProviderConfiguration.timeToDisableUnit());
@@ -221,17 +220,21 @@ class EhcacheStatistics extends ExposedCacheBinding {
 
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private ConcurrentMap<String, OperationStatistic<?>> discoverCountStatistics() {
-    ConcurrentHashMap<String, OperationStatistic<?>> result = new ConcurrentHashMap<String, OperationStatistic<?>>();
+  private static Map<String, OperationStatistic<?>> discoverCountStatistics(Cache<?, ?> cache) {
+    Map<String, OperationStatistic<?>> result = new HashMap<String, OperationStatistic<?>>();
 
     for (OperationType t : StandardOperationStatistic.class.getEnumConstants()) {
-      OperationStatistic statistic = findOperationObserver(t);
+      OperationStatistic statistic = findOperationObserver(t, cache);
       if (statistic == null) {
         if (t.required()) {
           throw new IllegalStateException("Required statistic " + t + " not found");
         }
       } else {
-        result.putIfAbsent(capitalize(t.operationName()) + "Counter", statistic);
+        String key = capitalize(t.operationName()) + "Counter";
+        if(!result.containsKey(key)) {
+          result.put(key, statistic);
+        }
+
       }
     }
 
@@ -247,8 +250,8 @@ class EhcacheStatistics extends ExposedCacheBinding {
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private OperationStatistic findOperationObserver(OperationType statistic) {
-    Set<OperationStatistic<?>> results = findOperationObserver(statistic.context(), statistic.type(), statistic.operationName(), statistic.tags());
+  private static OperationStatistic findOperationObserver(OperationType statistic, Cache<?, ?> cache) {
+    Set<OperationStatistic<?>> results = findOperationObserver(statistic.context(), statistic.type(), statistic.operationName(), statistic.tags(), cache);
     switch (results.size()) {
       case 0:
         return null;
@@ -260,12 +263,12 @@ class EhcacheStatistics extends ExposedCacheBinding {
   }
 
   @SuppressWarnings("unchecked")
-  private Set<OperationStatistic<?>> findOperationObserver(Query contextQuery, Class<?> type, String name,
-                                                           final Set<String> tags) {
+  private static Set<OperationStatistic<?>> findOperationObserver(Query contextQuery, Class<?> type, String name,
+                                                           final Set<String> tags, Cache<?, ?> cache) {
     Query q = queryBuilder().chain(contextQuery)
         .children().filter(context(identifier(subclassOf(OperationStatistic.class)))).build();
 
-    Set<TreeNode> operationStatisticNodes = q.execute(Collections.singleton(ContextManager.nodeFor(cacheBinding.getCache())));
+    Set<TreeNode> operationStatisticNodes = q.execute(Collections.singleton(ContextManager.nodeFor(cache)));
     Set<TreeNode> result = queryBuilder()
         .filter(
             context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("type", type),
