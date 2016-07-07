@@ -538,6 +538,10 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
           return false;
         } else {
           long tail = storage.readLong(to + CHAIN_HEADER_TAIL_OFFSET);
+          if (tail == from + CHAIN_HEADER_SIZE) {
+            tail = to + CHAIN_HEADER_SIZE;
+            storage.writeLong(to + CHAIN_HEADER_TAIL_OFFSET, tail);
+          }
           storage.writeLong(tail + ELEMENT_HEADER_NEXT_OFFSET, to);
           for (AttachedInternalChain activeChain : activeChains) {
             activeChain.moved(from, to);
