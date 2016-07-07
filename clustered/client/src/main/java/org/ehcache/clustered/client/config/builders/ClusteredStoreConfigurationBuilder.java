@@ -26,6 +26,7 @@ import org.ehcache.config.Builder;
 public class ClusteredStoreConfigurationBuilder implements Builder<ClusteredStoreConfiguration> {
 
   private final Consistency consistency;
+  private final int concurrency;
 
   /**
    * Creates a new builder instance with the provided {@link Consistency} configured.
@@ -33,12 +34,13 @@ public class ClusteredStoreConfigurationBuilder implements Builder<ClusteredStor
    * @param consistency the {@code Consistency}
    * @return a {@code Builder} instance
    */
-  public static ClusteredStoreConfigurationBuilder withConsistency(Consistency consistency) {
-    return new ClusteredStoreConfigurationBuilder(consistency);
+  public static ClusteredStoreConfigurationBuilder withConsistencyAndConcurrency(Consistency consistency, int concurrency) {
+    return new ClusteredStoreConfigurationBuilder(consistency, concurrency);
   }
 
-  ClusteredStoreConfigurationBuilder(Consistency consistency) {
+  ClusteredStoreConfigurationBuilder(Consistency consistency, int concurrency) {
     this.consistency = consistency;
+    this.concurrency = concurrency;
   }
 
   /**
@@ -46,6 +48,6 @@ public class ClusteredStoreConfigurationBuilder implements Builder<ClusteredStor
    */
   @Override
   public ClusteredStoreConfiguration build() {
-    return new ClusteredStoreConfiguration(consistency);
+    return new ClusteredStoreConfiguration(consistency, concurrency);
   }
 }

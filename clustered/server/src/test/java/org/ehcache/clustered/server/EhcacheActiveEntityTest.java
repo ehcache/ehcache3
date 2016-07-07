@@ -2590,7 +2590,13 @@ public class EhcacheActiveEntityTest {
     private String keySerializerType;
     private String valueSerializerType;
     private Consistency consistency;
+    private int concurrency;
 
+
+    ServerStoreConfigBuilder concurrency(int concurrency) {
+      this.concurrency = concurrency;
+      return this;
+    }
 
     ServerStoreConfigBuilder consistency(Consistency consistency) {
       this.consistency = consistency;
@@ -2644,7 +2650,7 @@ public class EhcacheActiveEntityTest {
 
     ServerStoreConfiguration build() {
       return new ServerStoreConfiguration(poolAllocation, storedKeyType, storedValueType,
-          actualKeyType, actualValueType, keySerializerType, valueSerializerType, consistency);
+          actualKeyType, actualValueType, keySerializerType, valueSerializerType, consistency, concurrency);
     }
   }
 

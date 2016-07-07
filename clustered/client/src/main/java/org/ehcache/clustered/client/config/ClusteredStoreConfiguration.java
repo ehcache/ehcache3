@@ -25,13 +25,17 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public class ClusteredStoreConfiguration implements ServiceConfiguration<ClusteredStore.Provider> {
 
+  public static final Consistency DEFAULT_CONSISTENCY = Consistency.EVENTUAL;
+  public static final int DEFAULT_CONCURRENCY = 16;
+
   private final Consistency consistency;
+  private final int concurrency;
 
   /**
    * Creates a new configuration with consistency set to {@link Consistency#EVENTUAL EVENTUAL}.
    */
   public ClusteredStoreConfiguration() {
-    this(Consistency.EVENTUAL);
+    this(DEFAULT_CONSISTENCY, DEFAULT_CONCURRENCY);
   }
 
   /**
@@ -40,7 +44,27 @@ public class ClusteredStoreConfiguration implements ServiceConfiguration<Cluster
    * @param consistency the {@code Consistency}
    */
   public ClusteredStoreConfiguration(Consistency consistency) {
+    this(consistency, DEFAULT_CONCURRENCY);
+  }
+
+  /**
+   * Creates a new configuration with the provided concurrency.
+   *
+   * @param concurrency the concurrency
+   */
+  public ClusteredStoreConfiguration(int concurrency) {
+    this(DEFAULT_CONSISTENCY, concurrency);
+  }
+
+  /**
+   * Creates a new configuration with the provided {@link Consistency} and concurrency.
+   *
+   * @param consistency the {@code Consistency}
+   * @param concurrency the concurrency
+   */
+  public ClusteredStoreConfiguration(Consistency consistency, int concurrency) {
     this.consistency = consistency;
+    this.concurrency = concurrency;
   }
 
   /**
@@ -58,5 +82,9 @@ public class ClusteredStoreConfiguration implements ServiceConfiguration<Cluster
    */
   public Consistency getConsistency() {
     return consistency;
+  }
+
+  public int getConcurrency() {
+    return concurrency;
   }
 }

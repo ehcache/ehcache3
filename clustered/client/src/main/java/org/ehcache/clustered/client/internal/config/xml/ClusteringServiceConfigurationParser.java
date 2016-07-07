@@ -79,7 +79,7 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
   public ServiceConfiguration<ClusteredStore.Provider> parseServiceConfiguration(Element fragment) {
     if (CLUSTERED_STORE_ELEMENT_NAME.equals(fragment.getLocalName())) {
       if (fragment.hasAttribute(CONSISTENCY_ATTRIBUTE_NAME)) {
-        return new ClusteredStoreConfiguration(Consistency.valueOf(fragment.getAttribute("consistency").toUpperCase()));
+        return new ClusteredStoreConfiguration(Consistency.valueOf(fragment.getAttribute("consistency").toUpperCase()), 16);
       } else {
         return new ClusteredStoreConfiguration();
       }

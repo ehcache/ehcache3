@@ -39,6 +39,7 @@ public class ServerStoreConfiguration implements Serializable {
   private final String keySerializerType;
   private final String valueSerializerType;
   private final Consistency consistency;
+  private final int concurrency;
   // TODO: Loader/Writer configuration ...
 
   public ServerStoreConfiguration(PoolAllocation poolAllocation,
@@ -48,7 +49,8 @@ public class ServerStoreConfiguration implements Serializable {
                                   String actualValueType,
                                   String keySerializerType,
                                   String valueSerializerType,
-                                  Consistency consistency) {
+                                  Consistency consistency,
+                                  int concurrency) {
     this.poolAllocation = poolAllocation;
     this.storedKeyType = storedKeyType;
     this.storedValueType = storedValueType;
@@ -57,6 +59,7 @@ public class ServerStoreConfiguration implements Serializable {
     this.keySerializerType = keySerializerType;
     this.valueSerializerType = valueSerializerType;
     this.consistency = consistency;
+    this.concurrency = concurrency;
   }
 
   public PoolAllocation getPoolAllocation() {
@@ -91,17 +94,20 @@ public class ServerStoreConfiguration implements Serializable {
     return consistency;
   }
 
-  public boolean isCompatible(ServerStoreConfiguration otherConfiguration, StringBuilder sb) {
+  public int getConcurrency() {
+    return concurrency;
+  }
 
+  public boolean isCompatible(ServerStoreConfiguration otherConfiguration, StringBuilder sb) {
     boolean isCompatible;
     PoolAllocation otherPoolAllocation = otherConfiguration.getPoolAllocation();
 
     isCompatible = comparePoolAllocationType(sb, otherPoolAllocation);
-    if(isCompatible) {
-      if( !(otherPoolAllocation instanceof PoolAllocation.Unknown) ) {
+    if (isCompatible) {
+      if (!(otherPoolAllocation instanceof PoolAllocation.Unknown)) {
         if (poolAllocation instanceof PoolAllocation.Dedicated) {
-          PoolAllocation.Dedicated serverDedicatedAllocation = (PoolAllocation.Dedicated)poolAllocation;
-          PoolAllocation.Dedicated clientDedicatedAllocation = (PoolAllocation.Dedicated)otherPoolAllocation;
+          PoolAllocation.Dedicated serverDedicatedAllocation = (PoolAllocation.Dedicated) poolAllocation;
+          PoolAllocation.Dedicated clientDedicatedAllocation = (PoolAllocation.Dedicated) otherPoolAllocation;
           if (compareField(sb, "resourcePoolDedicatedResourceName",
               serverDedicatedAllocation.getResourceName(),
               clientDedicatedAllocation.getResourceName())) {
@@ -114,8 +120,8 @@ public class ServerStoreConfiguration implements Serializable {
           }
         } else if (poolAllocation instanceof PoolAllocation.Shared) {
           isCompatible &= compareField(sb, "resourcePoolSharedPoolName",
-              ((PoolAllocation.Shared)poolAllocation).getResourcePoolName(),
-              ((PoolAllocation.Shared)otherPoolAllocation).getResourcePoolName());
+              ((PoolAllocation.Shared) poolAllocation).getResourcePoolName(),
+              ((PoolAllocation.Shared) otherPoolAllocation).getResourcePoolName());
         }
       }
     }
@@ -125,13 +131,13 @@ public class ServerStoreConfiguration implements Serializable {
     isCompatible &= compareField(sb, "actualValueType", actualValueType, otherConfiguration.getActualValueType());
     isCompatible &= compareField(sb, "keySerializerType", keySerializerType, otherConfiguration.getKeySerializerType());
     isCompatible &= compareField(sb, "valueSerializerType", valueSerializerType, otherConfiguration.getValueSerializerType());
-    isCompatible &= compareConsistencyField(sb, consistency, otherConfiguration.getConsistency());
+    isCompatible &= compareField(sb, "consistency", consistency, otherConfiguration.getConsistency());
+    isCompatible &= compareField(sb, "concurrency", concurrency, otherConfiguration.getConcurrency());
 
     return isCompatible;
   }
 
-    private boolean comparePoolAllocationType(StringBuilder sb, PoolAllocation clientPoolAllocation) {
-
+  private boolean comparePoolAllocationType(StringBuilder sb, PoolAllocation clientPoolAllocation) {
     if (clientPoolAllocation instanceof PoolAllocation.Unknown || poolAllocation.getClass().getName().equals(clientPoolAllocation.getClass().getName())) {
       return true;
     }
@@ -140,25 +146,15 @@ public class ServerStoreConfiguration implements Serializable {
     return false;
   }
 
-    private String getClassName(Object obj) {
-    if(obj != null) {
+  private static String getClassName(Object obj) {
+    if (obj != null) {
       return obj.getClass().getName();
     } else {
       return null;
     }
   }
 
-    private boolean compareConsistencyField(StringBuilder sb, Consistency serverConsistencyValue, Consistency clientConsistencyValue) {
-    if((serverConsistencyValue == null && clientConsistencyValue == null)
-        || (serverConsistencyValue != null && serverConsistencyValue.equals(clientConsistencyValue))) {
-      return true;
-    }
-
-    appendFault(sb, "consistencyType", serverConsistencyValue, clientConsistencyValue);
-    return false;
-  }
-
-  private boolean compareField(StringBuilder sb, String fieldName, String serverConfigValue, String clientConfigValue) {
+  private static boolean compareField(StringBuilder sb, String fieldName, Object serverConfigValue, Object clientConfigValue) {
     if ((serverConfigValue == null && clientConfigValue == null)
         || (serverConfigValue != null && serverConfigValue.equals(clientConfigValue))) {
       return true;
@@ -168,7 +164,7 @@ public class ServerStoreConfiguration implements Serializable {
     return false;
   }
 
-  private void appendFault(StringBuilder sb, String fieldName, Object serverConfigValue, Object clientConfigValue) {
+  private static void appendFault(StringBuilder sb, String fieldName, Object serverConfigValue, Object clientConfigValue) {
     sb.append("\n\t").append(fieldName)
         .append(" existing: ").append(serverConfigValue)
         .append(", desired: ").append(clientConfigValue);

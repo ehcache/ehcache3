@@ -340,7 +340,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   @Override
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                      final Store.Configuration<K, V> storeConfig,
-                                                     Consistency configuredConsistency) throws CachePersistenceException {
+                                                     Consistency configuredConsistency, int configuredConcurrency) throws CachePersistenceException {
     final String cacheId = cacheIdentifier.getId();
 
     if (configuredConsistency == null) {
@@ -372,7 +372,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         null, // TODO: Need actual value type -- cache wrappers can wrap key/value types
         (storeConfig.getKeySerializer() == null ? null : storeConfig.getKeySerializer().getClass().getName()),
         (storeConfig.getValueSerializer() == null ? null : storeConfig.getValueSerializer().getClass().getName()),
-        configuredConsistency
+        configuredConsistency,
+        configuredConcurrency
     );
 
     try {

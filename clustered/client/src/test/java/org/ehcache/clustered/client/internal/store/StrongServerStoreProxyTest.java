@@ -89,7 +89,7 @@ public class StrongServerStoreProxyTest {
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.STRONG);
+        .getName(), Consistency.STRONG, 1);
     clientEntity1.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
     // required to attach the store to the client
