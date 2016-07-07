@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered;
 
+import com.google.code.tempusfugit.concurrency.ConcurrentTestRunner;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.CachePersistenceException;
@@ -38,6 +39,7 @@ import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestName;
+import org.junit.runner.RunWith;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
@@ -76,6 +78,12 @@ import static org.junit.Assert.fail;
  *   <b>must not</b> intercept {@code ThreadDeath} and prevent thread termination.
  * </p>
  */
+// =============================================================================================
+// The tests in this class are run **in parallel** to avoid long run times caused by starting
+// and stopping a server for each test.  Each test and the environment supporting it must have
+// no side effects which can affect another test.
+// =============================================================================================
+@RunWith(ConcurrentTestRunner.class)
 public class TerminatedServerTest {
 
   private static final String RESOURCE_CONFIG =
@@ -166,7 +174,7 @@ public class TerminatedServerTest {
             .withCache("simple-cache",
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                     ResourcePoolsBuilder.newResourcePoolsBuilder()
-                        .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                        .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -233,7 +241,7 @@ public class TerminatedServerTest {
             .withCache("simple-cache",
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                     ResourcePoolsBuilder.newResourcePoolsBuilder()
-                        .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                        .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -281,7 +289,7 @@ public class TerminatedServerTest {
           return cacheManager.createCache("simple-cache",
               CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                   ResourcePoolsBuilder.newResourcePoolsBuilder()
-                      .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                      .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
         }
       }.run();
       fail("Expecting IllegalStateException");
@@ -302,7 +310,7 @@ public class TerminatedServerTest {
             .withCache("simple-cache",
                 CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                     ResourcePoolsBuilder.newResourcePoolsBuilder()
-                        .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                        .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -329,7 +337,7 @@ public class TerminatedServerTest {
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -363,7 +371,7 @@ public class TerminatedServerTest {
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -398,7 +406,7 @@ public class TerminatedServerTest {
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -431,7 +439,7 @@ public class TerminatedServerTest {
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -468,7 +476,7 @@ public class TerminatedServerTest {
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -504,7 +512,7 @@ public class TerminatedServerTest {
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
@@ -541,7 +549,7 @@ public class TerminatedServerTest {
         .withCache("simple-cache",
             CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder()
-                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(16, MemoryUnit.MB))));
+                    .with(ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB))));
     PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
