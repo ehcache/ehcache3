@@ -61,14 +61,14 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    this.statisticsExecutor = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getStatisticsExecutorAlias());
+    this.statisticsExecutor = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(getConfiguration().getStatisticsExecutorAlias());
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
     // initialize management capabilities (stats, action calls, etc)
     addManagementProvider(new EhcacheActionProvider(getConfiguration()));
     addManagementProvider(new EhcacheStatisticsProvider(getConfiguration(), statisticsExecutor));
-    addManagementProvider(new EhcacheStatisticCollectorProvider(getConfiguration().getContext()));
-    addManagementProvider(new EhcacheSettingsProvider(cacheManager, getConfiguration()));
+    addManagementProvider(new EhcacheStatisticCollectorProvider(getConfiguration()));
+    addManagementProvider(new EhcacheSettingsProvider(getConfiguration(), cacheManager));
 
     this.cacheManager.registerListener(this);
   }
