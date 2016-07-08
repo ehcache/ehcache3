@@ -53,8 +53,12 @@ class OffHeapChainMap<K> implements MapInternals {
       public void evicting(Callable<Map.Entry<K, InternalChain>> callable) {
         try {
           Map.Entry<K, InternalChain> entry = callable.call();
-          if (evictionListener != null) {
-            evictionListener.onEviction(entry.getKey());
+          try {
+            if (evictionListener != null) {
+              evictionListener.onEviction(entry.getKey());
+            }
+          } finally {
+            entry.getValue().close();
           }
         } catch (Exception e) {
           throw new AssertionError(e);

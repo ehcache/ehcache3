@@ -16,6 +16,7 @@
 package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
+import java.util.Random;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
@@ -30,6 +31,7 @@ import org.mockito.stubbing.Answer;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.UnlimitedPageSource;
+import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -39,6 +41,7 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
 
@@ -159,6 +162,35 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
     Chain update = newChainBuilder().build(newElementBuilder().build(payload));
     store.replaceAtHead(1L, expected, update);
     assertThat(payload.remaining(), is(8));
+  }
+
+  @Test
+  public void testCrossSegmentShrinking() {
+    long seed = System.nanoTime();
+    Random random = new Random(seed);
+    try {
+      OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), MEGABYTES.toBytes(1L), MEGABYTES.toBytes(1)), 16);
+
+      ByteBuffer smallValue = ByteBuffer.allocate(1024);
+      for (int i = 0; i < 10000; i++) {
+        try {
+          store.getAndAppend(random.nextInt(500), smallValue.duplicate());
+        } catch (OversizeMappingException e) {
+          //ignore
+        }
+      }
+
+      ByteBuffer largeValue = ByteBuffer.allocate(100 * 1024);
+      for (int i = 0; i < 10000; i++) {
+        try {
+          store.getAndAppend(random.nextInt(500), largeValue.duplicate());
+        } catch (OversizeMappingException e) {
+          //ignore
+        }
+      }
+    } catch (Throwable t) {
+      throw (AssertionError) new AssertionError("Failed with seed " + seed).initCause(t);
+    }
   }
 
 }
