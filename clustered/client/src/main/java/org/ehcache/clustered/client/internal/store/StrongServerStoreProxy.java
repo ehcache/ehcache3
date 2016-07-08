@@ -19,7 +19,6 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +30,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -119,7 +119,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
           try {
             LOGGER.debug("CLIENT: ack'ing invalidation of hash {} from cache {} (ID {})", key, cacheId, invalidationId);
-            entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
+            entity.invokeAsync(messageFactory.clientInvalidationAck(invalidationId), true);
           } catch (Exception e) {
             //TODO: what should be done here?
             LOGGER.error("error acking client invalidation of hash {} on cache {}", key, cacheId, e);
@@ -143,7 +143,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
           try {
             LOGGER.debug("CLIENT: ack'ing invalidation of all from cache {} (ID {})", cacheId, invalidationId);
-            entity.invoke(messageFactory.clientInvalidationAck(invalidationId), true);
+            entity.invokeAsync(messageFactory.clientInvalidationAck(invalidationId), true);
           } catch (Exception e) {
             //TODO: what should be done here?
             LOGGER.error("error acking client invalidation of all on cache {}", cacheId, e);
@@ -173,7 +173,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     });
   }
 
-  private <T> T performWaitingForHashInvalidation(long key, NullaryFunction<T> c) throws InterruptedException {
+  private <T> T performWaitingForHashInvalidation(long key, NullaryFunction<T> c) throws InterruptedException, TimeoutException {
     CountDownLatch latch = new CountDownLatch(1);
     while (true) {
       if (!entity.isConnected()) {
@@ -194,11 +194,15 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     } catch (Exception ex) {
       hashInvalidationsInProgress.remove(key);
       latch.countDown();
+
+      if (ex instanceof TimeoutException) {
+        throw (TimeoutException)ex;
+      }
       throw new RuntimeException(ex);
     }
   }
 
-  private <T> T performWaitingForAllInvalidation(NullaryFunction<T> c) throws InterruptedException {
+  private <T> T performWaitingForAllInvalidation(NullaryFunction<T> c) throws InterruptedException, TimeoutException {
     CountDownLatch newLatch = new CountDownLatch(1);
     while (true) {
       if (!entity.isConnected()) {
@@ -233,6 +237,10 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         invalidateAllLock.unlock();
       }
       newLatch.countDown();
+
+      if (ex instanceof TimeoutException) {
+        throw (TimeoutException)ex;
+      }
       throw new RuntimeException(ex);
     }
   }
@@ -267,16 +275,16 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain get(long key) {
+  public Chain get(long key) throws TimeoutException {
     return delegate.get(key);
   }
 
   @Override
-  public void append(final long key, final ByteBuffer payLoad) {
+  public void append(final long key, final ByteBuffer payLoad) throws TimeoutException {
     try {
       performWaitingForHashInvalidation(key, new NullaryFunction<Void>() {
         @Override
-        public Void apply() {
+        public Void apply() throws TimeoutException {
           delegate.append(key, payLoad);
           return null;
         }
@@ -287,11 +295,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public Chain getAndAppend(final long key, final ByteBuffer payLoad) {
+  public Chain getAndAppend(final long key, final ByteBuffer payLoad) throws TimeoutException {
     try {
       return performWaitingForHashInvalidation(key, new NullaryFunction<Chain>() {
         @Override
-        public Chain apply() {
+        public Chain apply() throws TimeoutException {
           return delegate.getAndAppend(key, payLoad);
         }
       });
@@ -306,11 +314,11 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   }
 
   @Override
-  public void clear() {
+  public void clear() throws TimeoutException {
     try {
       performWaitingForAllInvalidation(new NullaryFunction<Object>() {
         @Override
-        public Object apply() {
+        public Object apply() throws TimeoutException {
           delegate.clear();
           return null;
         }
@@ -318,5 +326,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     } catch (InterruptedException ie) {
       throw new RuntimeException(ie);
     }
+  }
+
+  private interface NullaryFunction<T> {
+    T apply() throws Exception;
   }
 }

@@ -24,24 +24,36 @@ import org.junit.Test;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class ClusteringServiceConfigurationTest {
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test(expected = NullPointerException.class)
   public void testGetConnectionUrlNull() throws Exception {
-    new ClusteringServiceConfiguration(null);
+    new ClusteringServiceConfiguration((URI)null);
   }
 
   @Test
   public void testGetConnectionUrl() throws Exception {
     final URI connectionUrl = URI.create("terracotta://localhost:9450");
     assertThat(new ClusteringServiceConfiguration(connectionUrl).getClusterUri(), is(connectionUrl));
+  }
+
+  @Test
+  public void testGetGetTimeout() throws Exception {
+    final URI connectionUrl = URI.create("terracotta://localhost:9450");
+    final TimeoutDuration getTimeout = TimeoutDuration.of(15, TimeUnit.SECONDS);
+    assertThat(new ClusteringServiceConfiguration(connectionUrl, getTimeout).getReadOperationTimeout(), is(getTimeout));
+
+    assertThat(new ClusteringServiceConfiguration(connectionUrl).getReadOperationTimeout(), is(nullValue()));
+    assertThat(new ClusteringServiceConfiguration(connectionUrl, null).getReadOperationTimeout(), is(nullValue()));
   }
 
   @Test

@@ -53,6 +53,14 @@
           </xs:documentation>
         </xs:annotation>
       </xs:element>
+      <xs:element name="read-timeout" type="eh:time-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Specifies the amount of time a cache read operation will wait for a response from a cluster
+            server before abandoning the cluster operation and returning a null.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
       <xs:element ref="tc:server-side-config" minOccurs="0" maxOccurs="1"/>
     </xs:sequence>
   </xs:complexType>

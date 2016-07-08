@@ -25,6 +25,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
+import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
@@ -66,6 +67,7 @@ import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Provides support for accessing server-based cluster services.
@@ -82,6 +84,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final String entityIdentifier;
   private final ConcurrentMap<String, Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository>> knownPersistenceSpaces =
       new ConcurrentHashMap<String, Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository>>();
+  private final EhcacheClientEntity.Timeouts operationTimeouts;
 
   private Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
@@ -94,6 +97,21 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     URI ehcacheUri = configuration.getClusterUri();
     this.clusterUri = extractClusterUri(ehcacheUri);
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
+
+    EhcacheClientEntity.Timeouts.Builder timeoutsBuilder = EhcacheClientEntity.Timeouts.builder();
+    if (configuration.getReadOperationTimeout() != null) {
+      timeoutsBuilder.setReadOperationTimeout(configuration.getReadOperationTimeout());
+    }
+    if (configuration instanceof ExperimentalClusteringServiceConfiguration) {
+      ExperimentalClusteringServiceConfiguration experimentalConfiguration = (ExperimentalClusteringServiceConfiguration)configuration;
+      if (experimentalConfiguration.getMutativeOperationTimeout() != null) {
+        timeoutsBuilder.setMutativeOperationTimeout(experimentalConfiguration.getMutativeOperationTimeout());
+      }
+      if (experimentalConfiguration.getLifecycleOperationTimeout() != null) {
+        timeoutsBuilder.setLifecycleOperationTimeout(experimentalConfiguration.getLifecycleOperationTimeout());
+      }
+    }
+    this.operationTimeouts = timeoutsBuilder.build();
   }
 
   private static URI extractClusterUri(URI uri) {
@@ -127,11 +145,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     try {
       Properties properties = new Properties();
       properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + this.entityIdentifier);
+      properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT,
+          Long.toString(operationTimeouts.getLifecycleOperationTimeout().toMillis()));
       clusterConnection = ConnectionFactory.connect(clusterUri, properties);
     } catch (ConnectionException ex) {
       throw new RuntimeException(ex);
     }
-    entityFactory = new EhcacheClientEntityFactory(clusterConnection);
+    entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
     try {
       if (configuration.isAutoCreate()) {
         entity = autoCreateEntity();
@@ -140,7 +160,10 @@ class DefaultClusteringService implements ClusteringService, EntityService {
           entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
         } catch (EntityNotFoundException e) {
           throw new IllegalStateException("The clustered tier manager '" + entityIdentifier + "' does not exist."
-                  + " Please review your configuration.", e);
+              + " Please review your configuration.", e);
+        } catch (TimeoutException e) {
+          throw new RuntimeException("Could not connect to the clustered tier manager '" + entityIdentifier
+              + "'; retrieve operation timed out", e);
         }
       }
     } catch (RuntimeException e) {
@@ -165,11 +188,17 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         //ignore - entity already exists - try to retrieve
       } catch (EntityBusyException e) {
         //ignore - entity in transition - try to retrieve
+      } catch (TimeoutException e) {
+        throw new RuntimeException("Could not create the clustered tier manager '" + entityIdentifier
+            + "'; create operation timed out", e);
       }
       try {
         return entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
       } catch (EntityNotFoundException e) {
         //ignore - loop and try to create
+      } catch (TimeoutException e) {
+        throw new RuntimeException("Could not connect to the clustered tier manager '" + entityIdentifier
+            + "'; retrieve operation timed out", e);
       }
     }
   }
@@ -181,7 +210,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     } catch (ConnectionException ex) {
       throw new RuntimeException(ex);
     }
-    entityFactory = new EhcacheClientEntityFactory(clusterConnection);
+    entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
     if (!entityFactory.acquireLeadership(entityIdentifier)) {
       entityFactory = null;
       try {
@@ -282,6 +311,9 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       entity.destroyCache(name);
     } catch (ClusteredTierDestructionException e) {
       throw new CachePersistenceException("Cannot destroy clustered tier '" + name + "' on " + clusterUri, e);
+    } catch (TimeoutException e) {
+      throw new CachePersistenceException("Could not destroy clustered tier '" + name + "' on " + clusterUri
+          + "; destroy operation timed out" + clusterUri, e);
     }
   }
 
@@ -333,7 +365,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
           this.entity.validateCache(cacheId, clientStoreConfiguration);
         } catch (ClusteredTierValidationException ex) {
           if (ex.getCause() instanceof InvalidStoreException) {
-            this.entity.createCache(cacheId, clientStoreConfiguration);
+            try {
+              this.entity.createCache(cacheId, clientStoreConfiguration);
+            } catch (TimeoutException e) {
+              throw new CachePersistenceException("Unable to create clustered tier proxy '"
+                  + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
+                  + "'; create operation timed out", e);
+            }
           } else {
             throw ex;
           }
@@ -343,6 +381,10 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       }
     } catch (ClusteredTierException e) {
       throw new CachePersistenceException("Unable to create clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
+    } catch (TimeoutException e) {
+      throw new CachePersistenceException("Unable to create clustered tier proxy '"
+          + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
+          + "'; validate operation timed out", e);
     }
 
     ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
@@ -354,7 +396,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       default:
         throw new AssertionError("Unknown consistency : " + configuredConsistency);
     }
-
   }
 
   @Override
@@ -365,6 +406,13 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       this.entity.releaseCache(cacheId);
     } catch (ClusteredTierReleaseException e) {
       throw new IllegalStateException(e);
+    } catch (TimeoutException e) {
+      /*
+       * A delayed ServerStore release is simply logged. If due to a disconnection, the server-side
+       * release will take place when the server recognizes the client is disconnected.  If the
+       * communication is only delayed, the message will eventually be presented and acted upon.
+       */
+      LOGGER.warn("Timed out trying to release clustered tier proxy for '{}'", cacheId, e);
     }
   }
 
@@ -443,7 +491,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   /**
    * Tuple
    */
-  static class Tuple<K, V> {
+  private static class Tuple<K, V> {
     final K first;
     final V second;
 
