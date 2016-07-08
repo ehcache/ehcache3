@@ -35,11 +35,17 @@ import org.hamcrest.Matchers;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExternalResource;
+import org.junit.rules.RuleChain;
 import org.junit.rules.TestName;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
+import org.junit.runners.model.Statement;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
@@ -58,6 +64,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -85,6 +92,22 @@ import static org.junit.Assert.fail;
 // =============================================================================================
 @RunWith(ConcurrentTestRunner.class)
 public class TerminatedServerTest {
+
+  /**
+   * Determines the level of test concurrency.  The number of allowed concurrent tests
+   * is set in {@link #setConcurrency()}.
+   */
+  private static final Semaphore TEST_PERMITS = new Semaphore(0);
+
+  @ClassRule
+  public static final TestCounter TEST_COUNTER = new TestCounter();
+
+  @BeforeClass
+  public static void setConcurrency() {
+    int availableProcessors = Runtime.getRuntime().availableProcessors();
+    TEST_PERMITS.release(Math.min(Math.max(1, TEST_COUNTER.getTestCount() / 2), availableProcessors));
+    System.out.format("TerminatedServerTest: TEST_PERMITS.availablePermits()=%d%n", TEST_PERMITS.availablePermits());
+  }
 
   private static final String RESOURCE_CONFIG =
       "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
@@ -127,9 +150,18 @@ public class TerminatedServerTest {
   @Rule
   public final TestName testName = new TestName();
 
-  @Rule
-  public final Cluster cluster =
+  // Included in 'ruleChain' below.
+  private final Cluster cluster =
       new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, null);
+
+  // The TestRule.apply method is called on the inner-most Rule first with the result being passed to each
+  // successively outer rule until the outer-most rule is reached. For ExternalResource rules, the before
+  // method of each rule is called from outer-most rule to inner-most rule; the after method is called from
+  // inner-most to outer-most.
+  @Rule
+  public final RuleChain ruleChain = RuleChain
+      .outerRule(new TestConcurrencyLimiter())
+      .around(cluster);
 
   @Before
   public void waitForActive() throws Exception {
@@ -594,6 +626,52 @@ public class TerminatedServerTest {
     TCProperties tcProperties = TCPropertiesImpl.getProperties();
     oldProperties.put(propertyName, tcProperties.getProperty(propertyName));
     tcProperties.setProperty(propertyName, propertyValue);
+  }
+
+  /**
+   * Used as a {@link Rule @Rule} to limit the number of concurrently executing tests.
+   */
+  private final class TestConcurrencyLimiter extends ExternalResource {
+
+    @Override
+    protected void before() throws Throwable {
+      try {
+        TEST_PERMITS.acquire();
+      } catch (InterruptedException e) {
+        throw new AssertionError(e);
+      }
+    }
+
+    @Override
+    protected void after() {
+      TEST_PERMITS.release();
+    }
+  }
+
+  /**
+   * Used as a {@link org.junit.ClassRule @ClassRule} to determine the number of tests to
+   * be run from the class.
+   */
+  private static final class TestCounter implements TestRule {
+
+    private int testCount;
+
+    @Override
+    public Statement apply(Statement base, Description description) {
+      int testCount = 0;
+      for (Description child : description.getChildren()) {
+        if (child.isTest()) {
+          testCount++;
+        }
+      }
+      this.testCount = testCount;
+
+      return base;
+    }
+
+    private int getTestCount() {
+      return testCount;
+    }
   }
 
   /**
