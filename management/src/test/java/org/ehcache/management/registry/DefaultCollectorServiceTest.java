@@ -109,13 +109,6 @@ public class DefaultCollectorServiceTest {
         .execute()
         .getSingleResult();
 
-    managementRegistry.withCapability("StatisticCollectorCapability")
-        .call("startStatisticCollector")
-        .on(Context.create("cacheManagerName", "my-cm-1"))
-        .build()
-        .execute()
-        .getSingleResult();
-
     Cache<String, String> cache = cacheManager.createCache("my-cache", cacheConfiguration);
     cache.put("key", "val");
 

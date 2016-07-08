@@ -34,13 +34,13 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.StatisticQuery;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -133,6 +133,9 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
             new ContextualNotification(
                 configuration.getContext(),
                 EhcacheNotification.CACHE_MANAGER_AVAILABLE.name()));
+
+        // auto-start stat collection
+        startStatisticCollector();
         break;
 
       case MAINTENANCE:
@@ -171,19 +174,20 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
         public void run() {
           try {
             // always check if the cache manager is still available
-            if (cacheManager.getStatus() == Status.AVAILABLE) {
+            if (cacheManager.getStatus() == Status.AVAILABLE && !selectedStatsPerCapability.isEmpty()) {
 
               // create the full context list from current caches
               Collection<Context> cacheContexts = new ArrayList<Context>();
-              for (ContextContainer cacheContext : managementRegistry.getContextContainer().getSubContexts()) {
-                cacheContexts.add(configuration.getContext().with(cacheContext.getName(), cacheContext.getValue()));
+              for (String cacheAlias : new HashSet<String>(cacheManager.getRuntimeConfiguration().getCacheConfigurations().keySet())) {
+                cacheContexts.add(configuration.getContext().with("cacheName", cacheAlias));
               }
 
               Collection<ContextualStatistics> statistics = new ArrayList<ContextualStatistics>();
 
               // for each capability, call the management registry
+              long since = lastPoll.get();
               for (Map.Entry<String, StatisticQuery.Builder> entry : selectedStatsPerCapability.entrySet()) {
-                for (ContextualStatistics contextualStatistics : entry.getValue().since(lastPoll.get()).on(cacheContexts).build().execute()) {
+                for (ContextualStatistics contextualStatistics : entry.getValue().since(since).on(cacheContexts).build().execute()) {
                   statistics.add(contextualStatistics);
                 }
               }
