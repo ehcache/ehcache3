@@ -18,7 +18,7 @@ dependencies {
   testCompile project(':dist')
   testCompile project(':clustered:clustered-dist')
 
-  testCompile group:'org.terracotta', name:'galvan-support', version:'1.0.0-SNAPSHOT' changing true
+  testCompile group:'org.terracotta', name:'galvan-support', version:'1.0.0-beta'
 }
 
 task unzipKit(type: Copy) {
