@@ -22,7 +22,7 @@ dependencies {
   compile project(':api')
   compile project(':core')
   compile project(':impl')
-  compile "org.terracotta.management:management-registry:$parent.managementVersion"
+  compile "org.terracotta.management:management-registry:$parent.terracottaPlatformVersion"
 
   testCompile project(':xml')
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"
