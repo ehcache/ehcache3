@@ -17,7 +17,11 @@ package org.ehcache.management;
 
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.spi.service.Service;
+import org.terracotta.management.model.notification.ContextualNotification;
+import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.collect.StatisticCollector;
+
+import java.util.Collection;
 
 /**
  * Collector service installed in a cache manager
@@ -25,7 +29,24 @@ import org.terracotta.management.registry.collect.StatisticCollector;
  * The collecting time is automatically calculated from {@link StatisticsProviderConfiguration#timeToDisable()}
  */
 public interface CollectorService extends StatisticCollector, Service {
-  interface EventListener {
-    void onEvent(String type, Object event);
+
+  interface Collector {
+
+    Collector EMPTY = new Collector() {
+      @Override
+      public void onNotification(ContextualNotification notification) {
+
+      }
+
+      @Override
+      public void onStatistics(Collection<ContextualStatistics> statistics) {
+
+      }
+    };
+
+    void onNotification(ContextualNotification notification);
+
+    void onStatistics(Collection<ContextualStatistics> statistics);
   }
+
 }

@@ -19,7 +19,7 @@ import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.concurrent.TimeUnit;
 
-public interface StatisticsProviderConfiguration<T extends ManagementProvider> {
+public interface StatisticsProviderConfiguration {
 
   long averageWindowDuration();
   TimeUnit averageWindowUnit();
@@ -32,6 +32,6 @@ public interface StatisticsProviderConfiguration<T extends ManagementProvider> {
   TimeUnit timeToDisableUnit();
 
 
-  Class<T> getStatisticsProviderType();
+  Class<? extends ManagementProvider> getStatisticsProviderType();
 
 }

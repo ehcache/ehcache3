@@ -3,7 +3,7 @@
     xmlns='http://www.ehcache.org/v3'
     xmlns:mnm='http://www.ehcache.org/v3/management'
     xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../xml/src/main/resources/ehcache-core.xsd
-                        http://www.ehcache.org/v3/management ../../main/resources/org/ehcache/management/ehcache-management-ext.xsd">
+                        http://www.ehcache.org/v3/management ../../main/resources/ehcache-management-ext.xsd">
 
   <service>
     <mnm:management>

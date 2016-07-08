@@ -33,7 +33,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
 
   private static final AtomicLong COUNTER = new AtomicLong();
 
-  private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> statisticConfigurations = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
+  private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration> statisticConfigurations = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration>();
   private final Collection<String> tags = new TreeSet<String>();
   private Context context = Context.empty();
   private String statisticsExecutorAlias;
@@ -66,7 +66,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return this;
   }
 
-  public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration<?> configuration) {
+  public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration configuration) {
     Class<? extends ManagementProvider> providerType = configuration.getStatisticsProviderType();
     statisticConfigurations.put(providerType, configuration);
     return this;
@@ -106,7 +106,7 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   }
 
   @Override
-  public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider<?>> providerType) {
+  public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider> providerType) {
     return statisticConfigurations.get(providerType);
   }
 

@@ -57,5 +57,5 @@ public interface ManagementRegistryServiceConfiguration extends ServiceCreationC
    * @param managementProviderClass The type of the class managing statistics, capabilities, actions, etc.
    * @return The configuration class to use for this manager type
    */
-  StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider<?>> managementProviderClass);
+  StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider> managementProviderClass);
 }

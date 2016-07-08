@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.notification.ContextualNotification;
+import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,12 +69,20 @@ public class DefaultCollectorServiceTest {
         .addConfiguration(statisticsProviderConfiguration)
         .setCacheManagerAlias("my-cm-1"));
 
-    CollectorService collectorService = new DefaultCollectorService(new CollectorService.EventListener() {
+    CollectorService collectorService = new DefaultCollectorService(new CollectorService.Collector() {
       @Override
-      public void onEvent(String type, Object event) {
-        System.out.println(type + " - " + event);
+      public void onNotification(ContextualNotification notification) {
+        onEvent(notification);
+      }
+
+      @Override
+      public void onStatistics(Collection<ContextualStatistics> statistics) {
+        onEvent(statistics);
+      }
+
+      void onEvent(Object event) {
         messages.offer(event);
-        if (type.equals("NOTIFICATION")) {
+        if (event instanceof ContextualNotification) {
           notifs.add(((ContextualNotification) event).getType());
         }
         num.countDown();

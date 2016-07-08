@@ -32,7 +32,7 @@ public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
 
   private final CacheManager cacheManager;
 
-  public EhcacheSettingsProvider(CacheManager cacheManager, ManagementRegistryServiceConfiguration configuration) {
+  public EhcacheSettingsProvider(ManagementRegistryServiceConfiguration configuration, CacheManager cacheManager) {
     super(configuration);
     this.cacheManager = cacheManager;
   }
