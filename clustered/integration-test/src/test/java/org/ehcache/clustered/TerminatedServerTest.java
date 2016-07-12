@@ -105,8 +105,10 @@ public class TerminatedServerTest {
   @BeforeClass
   public static void setConcurrency() {
     int availableProcessors = Runtime.getRuntime().availableProcessors();
-    TEST_PERMITS.release(Math.min(Math.max(1, TEST_COUNTER.getTestCount() / 2), availableProcessors));
-    System.out.format("TerminatedServerTest: TEST_PERMITS.availablePermits()=%d%n", TEST_PERMITS.availablePermits());
+    int testCount = TEST_COUNTER.getTestCount();
+    TEST_PERMITS.release(Math.min(Math.max(1, testCount / 3), availableProcessors));
+    System.out.format("TerminatedServerTest: testCount=%d, availableProcessors=%d, TEST_PERMITS.availablePermits()=%d%n",
+        testCount, availableProcessors, TEST_PERMITS.availablePermits());
   }
 
   private static final String RESOURCE_CONFIG =
