@@ -20,11 +20,22 @@ package org.ehcache.clustered.common.internal.exceptions;
  * Thrown to indicate a configuration mismatch on a clustered store.
  */
 public class InvalidServerStoreConfigurationException extends ClusteredEhcacheException {
+  private static final long serialVersionUID = 7390173198205796763L;
+
   public InvalidServerStoreConfigurationException(String message) {
     super(message);
   }
 
   public InvalidServerStoreConfigurationException(Throwable cause) {
     super(cause);
+  }
+
+  private InvalidServerStoreConfigurationException(InvalidServerStoreConfigurationException cause) {
+    super(cause.getMessage(), cause);
+  }
+
+  @Override
+  public InvalidServerStoreConfigurationException withClientStackTrace() {
+    return new InvalidServerStoreConfigurationException(this);
   }
 }

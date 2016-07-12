@@ -17,21 +17,12 @@
 package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Thrown to indicate an unexpected failure an {@code Entity} supporting clustered operations.
+ * Tests {@link ResourceConfigurationException} functions including
+ * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
  */
-public class IllegalMessageException extends ClusteredEhcacheException {
-  private static final long serialVersionUID = -6202125337269820200L;
+public class ResourceConfigurationExceptionTest extends BaseClusteredEhcacheExceptionTest<ResourceConfigurationException> {
 
-  public IllegalMessageException(String message) {
-    super(message);
-  }
-
-  private IllegalMessageException(IllegalMessageException cause) {
-    super(cause.getMessage(), cause);
-  }
-
-  @Override
-  public IllegalMessageException withClientStackTrace() {
-    return new IllegalMessageException(this);
+  public ResourceConfigurationExceptionTest() {
+    super(ResourceConfigurationException.class);
   }
 }
