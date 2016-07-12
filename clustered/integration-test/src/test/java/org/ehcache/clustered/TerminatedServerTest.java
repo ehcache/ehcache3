@@ -106,9 +106,20 @@ public class TerminatedServerTest {
   public static void setConcurrency() {
     int availableProcessors = Runtime.getRuntime().availableProcessors();
     int testCount = TEST_COUNTER.getTestCount();
-    TEST_PERMITS.release(Math.min(Math.max(1, testCount / 3), availableProcessors));
-    System.out.format("TerminatedServerTest: testCount=%d, availableProcessors=%d, TEST_PERMITS.availablePermits()=%d%n",
-        testCount, availableProcessors, TEST_PERMITS.availablePermits());
+    /*
+     * Some build environments can't reliably handle running tests in this class concurrently.
+     * If the 'disable.concurrent.tests' system property is 'true', restrict the tests to
+     * single operation using a single test permit.
+     */
+    boolean disableConcurrentTests = Boolean.getBoolean("disable.concurrent.tests");
+    if (disableConcurrentTests) {
+      TEST_PERMITS.release(1);
+    } else {
+      TEST_PERMITS.release(Math.min(Math.max(1, testCount / 2), availableProcessors));
+    }
+    System.out.format("TerminatedServerTest:" +
+        " disableConcurrentTests=%b, testCount=%d, availableProcessors=%d, TEST_PERMITS.availablePermits()=%d%n",
+        disableConcurrentTests, testCount, availableProcessors, TEST_PERMITS.availablePermits());
   }
 
   private static final String RESOURCE_CONFIG =

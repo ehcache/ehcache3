@@ -26,6 +26,8 @@ ext {
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
+  isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
+  logger.info("Is cloudbees? $isCloudbees")
 }
 
 subprojects {
@@ -75,6 +77,9 @@ subprojects {
   test {
     maxHeapSize = "512m"
     systemProperty 'java.awt.headless', 'true'
+    if (parent.isCloudbees) {
+      systemProperty 'disable.concurrent.tests', 'true'
+    }
   }
 
   task slowTest(type: Test) {
