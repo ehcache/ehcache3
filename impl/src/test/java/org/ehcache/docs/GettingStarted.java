@@ -44,11 +44,16 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.copy.ReadWriteCopier;
 import org.junit.Test;
+import org.terracotta.context.ContextElement;
+import org.terracotta.context.TreeNode;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -87,6 +92,9 @@ public class GettingStarted {
     myCache.put(1L, "da one!"); // <7>
     String value = myCache.get(1L); // <8>
 
+    System.out.println(StatisticsManager.nodeFor(myCache).toTreeString());
+
+
     cacheManager.removeCache("preConfigured"); // <9>
 
     cacheManager.close(); // <10>
@@ -120,6 +128,10 @@ public class GettingStarted {
             )
         .build(true);
 
+    Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
+
+    System.out.println(StatisticsManager.nodeFor(tieredCache).toTreeString());
+
     cacheManager.close();
     // end::offheapCacheManager[]
   }
@@ -137,6 +149,11 @@ public class GettingStarted {
                     .disk(20, MemoryUnit.MB) // <4>
                 )
         ).build(true);
+
+    Cache<Long, String> threeTieredCache = persistentCacheManager.getCache("threeTieredCache", Long.class, String.class);
+
+    System.out.println(StatisticsManager.nodeFor(threeTieredCache).toTreeString());
+
 
     persistentCacheManager.close();
     // end::threeTiersCacheManager[]

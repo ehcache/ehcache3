@@ -46,12 +46,12 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
   @Override
   protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
-    return new EhcacheStatistics(registryConfiguration, cacheBinding, statisticsProviderConfiguration, executor);
+    return new StandardEhcacheStatistics(registryConfiguration, cacheBinding, statisticsProviderConfiguration, executor);
   }
 
   @Override
   protected void dispose(ExposedObject<CacheBinding> exposedObject) {
-    ((EhcacheStatistics) exposedObject).dispose();
+    ((StandardEhcacheStatistics) exposedObject).dispose();
   }
 
   @Override
@@ -65,10 +65,10 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
   @Override
   public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
     Map<String, Statistic<?, ?>> statistics = new HashMap<String, Statistic<?, ?>>(statisticNames.size());
-    EhcacheStatistics ehcacheStatistics = (EhcacheStatistics) findExposedObject(context);
+    StandardEhcacheStatistics ehcacheStatistics = (StandardEhcacheStatistics) findExposedObject(context);
     if (ehcacheStatistics != null) {
       for (String statisticName : statisticNames) {
-        statistics.putAll(ehcacheStatistics.queryStatistic(statisticName, since));
+        statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName, since));
       }
     }
     return statistics;

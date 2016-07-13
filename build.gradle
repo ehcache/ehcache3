@@ -20,7 +20,8 @@ ext {
 
   // Third parties
   offheapVersion = '2.2.2'
-  statisticVersion = '1.1.0'
+  managementVersion = '5.0.0.beta'
+  statisticVersion = '1.1-SNAPSHOT'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
   sizeofVersion = '0.3.0'
@@ -58,6 +59,7 @@ subprojects {
   targetCompatibility = 1.6
 
   repositories {
+    mavenLocal()
     mavenCentral()
     maven { url "http://repo.terracotta.org/maven2" }
   }
