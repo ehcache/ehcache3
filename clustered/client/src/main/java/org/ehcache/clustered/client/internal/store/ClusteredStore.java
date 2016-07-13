@@ -124,7 +124,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     try {
       value = getInternal(key);
     } catch (TimeoutException e) {
-      // Don't count as a MISS
+      getObserver.end(StoreOperationOutcomes.GetOutcome.TIMEOUT);
       return null;
     }
     if(value == null) {
