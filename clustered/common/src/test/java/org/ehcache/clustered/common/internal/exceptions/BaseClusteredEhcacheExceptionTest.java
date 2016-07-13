@@ -30,9 +30,9 @@ import static org.hamcrest.Matchers.typeCompatibleWith;
 import static org.junit.Assert.assertThat;
 
 /**
- * Foundation for tests on {@link ClusteredEhcacheException} subclasses.
+ * Foundation for tests on {@link ClusterException} subclasses.
  */
-public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusteredEhcacheException> {
+public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusterException> {
 
   private final Class<T> testClass;
 
@@ -108,7 +108,7 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusteredEhcac
 
   @Test
   public void testType() throws Exception {
-    assertThat(testClass, is(typeCompatibleWith(ClusteredEhcacheException.class)));
+    assertThat(testClass, is(typeCompatibleWith(ClusterException.class)));
   }
 
   @Test
@@ -144,7 +144,7 @@ public abstract class BaseClusteredEhcacheExceptionTest<T extends ClusteredEhcac
   }
 
   private void checkWithClientStack(T baseException) {
-    ClusteredEhcacheException copyException = baseException.withClientStackTrace();
+    ClusterException copyException = baseException.withClientStackTrace();
     assertThat(copyException, is(notNullValue()));
     assertThat(copyException, is(instanceOf(testClass)));
     assertThat(copyException.getMessage(), is(baseException.getMessage()));

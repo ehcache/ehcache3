@@ -19,7 +19,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 /**
  * Thrown to indicate a configuration mismatch on an {@code Entity} supporting clustered operations.
  */
-public class InvalidServerSideConfigurationException extends ClusteredEhcacheException {
+public class InvalidServerSideConfigurationException extends ClusterException {
   private static final long serialVersionUID = -7055831050639925875L;
 
   public InvalidServerSideConfigurationException(String message) {

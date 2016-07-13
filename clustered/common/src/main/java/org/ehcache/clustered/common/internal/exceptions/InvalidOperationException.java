@@ -16,13 +16,23 @@
 
 package org.ehcache.clustered.common.internal.exceptions;
 
-/**
- * Tests {@link IllegalMessageException} functions including
- * {@link ClusterException#withClientStackTrace() withClientStackTrace}.
- */
-public class IllegalMessageExceptionTest extends BaseClusteredEhcacheExceptionTest<IllegalMessageException> {
+public class InvalidOperationException extends ClusterException {
+  private static final long serialVersionUID = 5717142794536675810L;
 
-  public IllegalMessageExceptionTest() {
-    super(IllegalMessageException.class);
+  public InvalidOperationException(final String message) {
+    super(message);
+  }
+
+  public InvalidOperationException(final Throwable cause) {
+    super(cause);
+  }
+
+  private InvalidOperationException(InvalidOperationException cause) {
+    super(cause.getMessage(), cause);
+  }
+
+  @Override
+  public ClusterException withClientStackTrace() {
+    return new InvalidOperationException(this);
   }
 }

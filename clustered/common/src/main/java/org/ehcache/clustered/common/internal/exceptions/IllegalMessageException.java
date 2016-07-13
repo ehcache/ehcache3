@@ -19,7 +19,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 /**
  * Thrown to indicate an unexpected failure an {@code Entity} supporting clustered operations.
  */
-public class IllegalMessageException extends ClusteredEhcacheException {
+public class IllegalMessageException extends ClusterException {
   private static final long serialVersionUID = -6202125337269820200L;
 
   public IllegalMessageException(String message) {

@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 public class EhcacheEntityResponseFactory {
@@ -24,7 +25,7 @@ public class EhcacheEntityResponseFactory {
     return EhcacheEntityResponse.Success.INSTANCE;
   }
 
-  public EhcacheEntityResponse failure(Exception cause) {
+  public EhcacheEntityResponse failure(ClusterException cause) {
     return new EhcacheEntityResponse.Failure(cause);
   }
 

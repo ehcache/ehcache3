@@ -19,7 +19,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 /**
  * Thrown to indicate an operation cannot be performed on a certain clustered store manager.
  */
-public class InvalidStoreManagerException extends ClusteredEhcacheException {
+public class InvalidStoreManagerException extends ClusterException {
   private static final long serialVersionUID = 8706722895064395931L;
 
   public InvalidStoreManagerException(String message) {

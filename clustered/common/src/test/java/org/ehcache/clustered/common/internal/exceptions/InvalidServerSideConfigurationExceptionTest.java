@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link InvalidServerSideConfigurationException} functions including
- * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
+ * {@link ClusterException#withClientStackTrace() withClientStackTrace}.
  */
 public class InvalidServerSideConfigurationExceptionTest extends BaseClusteredEhcacheExceptionTest<InvalidServerSideConfigurationException> {
 

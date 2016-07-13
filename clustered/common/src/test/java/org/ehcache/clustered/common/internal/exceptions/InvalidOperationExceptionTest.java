@@ -17,12 +17,12 @@
 package org.ehcache.clustered.common.internal.exceptions;
 
 /**
- * Tests {@link IllegalMessageException} functions including
+ * Tests {@link InvalidOperationException} functions including
  * {@link ClusterException#withClientStackTrace() withClientStackTrace}.
  */
-public class IllegalMessageExceptionTest extends BaseClusteredEhcacheExceptionTest<IllegalMessageException> {
+public class InvalidOperationExceptionTest extends BaseClusteredEhcacheExceptionTest<InvalidOperationException> {
 
-  public IllegalMessageExceptionTest() {
-    super(IllegalMessageException.class);
+  public InvalidOperationExceptionTest() {
+    super(InvalidOperationException.class);
   }
 }

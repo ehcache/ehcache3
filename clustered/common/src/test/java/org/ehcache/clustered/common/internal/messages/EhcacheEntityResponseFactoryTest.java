@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.junit.Test;
 
@@ -31,7 +32,7 @@ public class EhcacheEntityResponseFactoryTest {
 
   @Test
   public void testFailureResponse() {
-    EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new Exception("Test Exception"));
+    EhcacheEntityResponse failure = RESPONSE_FACTORY.failure(new IllegalMessageException("Test Exception"));
 
     assertThat(((EhcacheEntityResponse.Failure)failure).getCause().getMessage(), is("Test Exception"));
   }

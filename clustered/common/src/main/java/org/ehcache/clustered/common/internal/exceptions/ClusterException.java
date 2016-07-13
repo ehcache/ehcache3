@@ -16,28 +16,28 @@
 
 package org.ehcache.clustered.common.internal.exceptions;
 
-public abstract class ClusteredEhcacheException extends Exception {
+public abstract class ClusterException extends Exception {
   private static final long serialVersionUID = 38615046229882871L;
 
-  public ClusteredEhcacheException(String message) {
+  public ClusterException(String message) {
     super(message);
   }
 
-  public ClusteredEhcacheException(String message, Throwable cause) {
+  public ClusterException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public ClusteredEhcacheException(Throwable cause) {
+  public ClusterException(Throwable cause) {
     super(cause);
   }
 
   /**
-   * Makes a copy of this {@code ClusteredEhcacheException}, retaining the type, in the current
+   * Makes a copy of this {@code ClusterException}, retaining the type, in the current
    * client context.  This method is used to prepare exceptions originating in the server to be
    * re-thrown in the client.
    *
-   * @return a new {@code ClusteredEhcacheException} of {@code this} subtype with {@code this}
+   * @return a new {@code ClusterException} of {@code this} subtype with {@code this}
    *      instance as the cause
    */
-  public abstract ClusteredEhcacheException withClientStackTrace();
+  public abstract ClusterException withClientStackTrace();
 }

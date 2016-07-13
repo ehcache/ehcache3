@@ -19,7 +19,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 /**
  * Thrown to indicate a clustered entity is busy.
  */
-public class ResourceBusyException extends ClusteredEhcacheException {
+public class ResourceBusyException extends ClusterException {
   private static final long serialVersionUID = 3830614247618106338L;
 
   public ResourceBusyException(String message) {
