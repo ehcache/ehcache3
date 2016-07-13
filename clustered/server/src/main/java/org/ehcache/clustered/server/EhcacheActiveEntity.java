@@ -56,7 +56,6 @@ import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResources;
-import org.terracotta.offheapstore.paging.PageSource;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
@@ -81,12 +80,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final Set<String> offHeapResourceIdentifiers;
 
   /**
-   * The clustered stores representing the server-side of a {@code ClusterStore}.
-   * The index is the cache alias/identifier.
-   */
-  private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
-
-  /**
    * Tracks the state of a connected client.  An entry is added to this map when the
    * {@link #connected(ClientDescriptor)} method is invoked for a client and removed when the
    * {@link #disconnected(ClientDescriptor)} method is invoked for the client.
@@ -101,7 +94,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<Integer, InvalidationHolder>();
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ClientCommunicator clientCommunicator;
-  private final StoragePoolManager storagePoolManager;
+  private final ServerStoreManager serverStoreManager;
 
   static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
@@ -150,7 +143,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     } else {
       this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
     }
-    storagePoolManager = new StoragePoolManager(services, offHeapResourceIdentifiers);
+    serverStoreManager = new ServerStoreManager(services, offHeapResourceIdentifiers);
   }
 
   /**
@@ -175,7 +168,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Set<String> getStores() {
-    return Collections.unmodifiableSet(new HashSet<String>(stores.keySet()));
+    return Collections.unmodifiableSet(new HashSet<String>(serverStoreManager.getStores().keySet()));
   }
 
   /**
@@ -200,7 +193,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   String getDefaultServerResource() {
-    return storagePoolManager.getDefaultServerResource();
+    return serverStoreManager.getDefaultServerResource();
   }
 
   /**
@@ -210,7 +203,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Set<String> getSharedResourcePoolIds() {
-    return storagePoolManager.getSharedResourcePoolIds();
+    return serverStoreManager.getSharedResourcePoolIds();
   }
 
   /**
@@ -220,7 +213,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Set<String> getDedicatedResourcePoolIds() {
-    return storagePoolManager.getDedicatedResourcePoolIds();
+    return serverStoreManager.getDedicatedResourcePoolIds();
   }
 
   @Override
@@ -334,7 +327,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {
-    ServerStoreImpl cacheStore = stores.get(message.getCacheId());
+    ServerStoreImpl cacheStore = serverStoreManager.getStore(message.getCacheId());
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
       throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
@@ -413,7 +406,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     clientsToInvalidate.remove(originatingClientDescriptor);
 
     InvalidationHolder invalidationHolder = null;
-    if (stores.get(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
+    if (serverStoreManager.getStore(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
       invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId, key);
       clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
     }
@@ -441,7 +434,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     clientsToInvalidate.remove(originatingClientDescriptor);
 
     InvalidationHolder invalidationHolder = null;
-    if (stores.get(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
+    if (serverStoreManager.getStore(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
       invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId);
       clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
     }
@@ -465,7 +458,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void clientInvalidated(ClientDescriptor clientDescriptor, int invalidationId) {
     InvalidationHolder invalidationHolder = clientsWaitingForInvalidation.get(invalidationId);
 
-    if (stores.get(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
+    if (serverStoreManager.getStore(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
       invalidationHolder.clientsHavingToInvalidate.remove(clientDescriptor);
       if (invalidationHolder.clientsHavingToInvalidate.isEmpty()) {
         if (clientsWaitingForInvalidation.remove(invalidationId) != null) {
@@ -502,7 +495,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     /*
      * Ensure the allocated stores are closed out.
      */
-    final Iterator<Entry<String, ServerStoreImpl>> storeIterator = stores.entrySet().iterator();
+    final Iterator<Entry<String, ServerStoreImpl>> storeIterator = serverStoreManager.getStores().entrySet().iterator();
     while (storeIterator.hasNext()) {
       Entry<String, ServerStoreImpl> storeEntry = storeIterator.next();
       final Set<ClientDescriptor> attachedClients = storeClientMap.get(storeEntry.getKey());
@@ -513,11 +506,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
       LOGGER.info("Destroying clustered tier '{}' for clustered tier manager destroy", storeEntry.getKey());
       storeClientMap.remove(storeEntry.getKey());
-      storeEntry.getValue().close();
-      storeIterator.remove();
     }
 
-    storagePoolManager.destroy();
+    serverStoreManager.destroy();
 
   }
 
@@ -533,8 +524,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (clientState == null) {
       throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
-    storagePoolManager.configure(message);
-    this.stores = new HashMap<String, ServerStoreImpl>();
+    serverStoreManager.configure(message);
     clientState.attach();
   }
 
@@ -551,7 +541,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (clientState == null) {
       throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
-    storagePoolManager.validate(message);
+    serverStoreManager.validate(message);
     clientState.attach();
   }
 
@@ -581,7 +571,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
-    if (!storagePoolManager.isConfigured()) {
+    if (!serverStoreManager.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
     if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
@@ -592,21 +582,15 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     LOGGER.info("Client {} creating new clustered tier '{}'", clientDescriptor, name);
 
-    if (stores.containsKey(name)) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
-    }
-
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
-    PageSource resourcePageSource = storagePoolManager.getPageSource(name, storeConfiguration.getPoolAllocation());
 
-    ServerStoreImpl serverStore = new ServerStoreImpl(storeConfiguration, resourcePageSource);
+    ServerStoreImpl serverStore = serverStoreManager.createStore(name, storeConfiguration);
     serverStore.setEvictionListener(new ServerStoreEvictionListener() {
       @Override
       public void onEviction(long key) {
         invalidateHashAfterEviction(name, key);
       }
     });
-    stores.put(name, serverStore);
     attachStore(clientDescriptor, name);
   }
 
@@ -629,7 +613,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
-    if (!storagePoolManager.isConfigured()) {
+    if (!serverStoreManager.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
@@ -637,7 +621,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
 
     LOGGER.info("Client {} validating clustered tier '{}'", clientDescriptor, name);
-    ServerStoreImpl store = stores.get(name);
+    ServerStoreImpl store = serverStoreManager.getStore(name);
     if (store != null) {
       storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
       attachStore(clientDescriptor, name);
@@ -662,14 +646,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
-    if (!storagePoolManager.isConfigured()) {
+    if (!serverStoreManager.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
     String name = releaseServerStore.getName();
 
     LOGGER.info("Client {} releasing clustered tier '{}'", clientDescriptor, name);
-    ServerStoreImpl store = stores.get(name);
+    ServerStoreImpl store = serverStoreManager.getStore(name);
     if (store != null) {
 
       boolean removedFromClient = clientState.removeStore(name);
@@ -699,7 +683,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
-    if (!storagePoolManager.isConfigured()) {
+    if (!serverStoreManager.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
@@ -711,15 +695,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
 
     LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
-    final ServerStoreImpl store = stores.remove(name);
-    if (store == null) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
-    } else {
-      storagePoolManager.releaseDedicatedPool(name, store.getPageSource());
-
-      storeClientMap.remove(name);
-      store.close();
-    }
+    serverStoreManager.destroyServerStore(name);
+    storeClientMap.remove(name);
   }
 
   /**

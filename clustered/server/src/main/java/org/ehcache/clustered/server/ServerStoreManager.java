@@ -19,12 +19,13 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 import org.slf4j.Logger;
@@ -51,9 +52,9 @@ import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 /**
  * Manages storage pools for server entity
  */
-class StoragePoolManager {
+class ServerStoreManager {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(StoragePoolManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ServerStoreManager.class);
 
   private final ServiceRegistry services;
   private final Set<String> offHeapResourceIdentifiers;
@@ -76,18 +77,24 @@ class StoragePoolManager {
    */
   private Map<String, ResourcePageSource> dedicatedResourcePools = new HashMap<String, ResourcePageSource>();
 
-  StoragePoolManager(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
+  /**
+   * The clustered stores representing the server-side of a {@code ClusterStore}.
+   * The index is the cache alias/identifier.
+   */
+  private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
+
+  ServerStoreManager(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
     this.services = services;
     this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
   }
+  ServerStoreImpl getStore(String name) {
+    return stores.get(name);
+  }
 
-  /**
-   * Handles the {@link ValidateStoreManager ValidateStoreManager} message.  This message is used by a client to
-   * connect to an established {@code EhcacheActiveEntity}.  This method validates the client-provided configuration
-   * against the existing configuration to ensure compatibility.
-   *
-   * @param message the {@code ValidateStoreManager} message carrying the client expected resource pool configuration
-   */
+  Map<String, ServerStoreImpl> getStores() {
+    return Collections.unmodifiableMap(stores);
+  }
+
   void validate(ValidateStoreManager message) throws ClusterException {
     if (!isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
@@ -144,12 +151,6 @@ class StoragePoolManager {
     return Collections.unmodifiableMap(pools);
   }
 
-  /**
-   * Handles the {@link LifecycleMessage.ConfigureStoreManager ConfigureStoreManager} message.  This method creates the shared
-   * resource pools to be available to clients of this {@code EhcacheActiveEntity}.
-   *
-   * @param message the {@code ConfigureStoreManager} message carrying the desired shared resource pool configuration
-   */
   void configure(ConfigureStoreManager message) throws ClusterException {
     if (!isConfigured()) {
       LOGGER.info("Configuring server-side clustered tier manager");
@@ -164,6 +165,7 @@ class StoragePoolManager {
       }
 
       this.sharedResourcePools = createPools(resolveResourcePools(configuration));
+      this.stores = new HashMap<String, ServerStoreImpl>();
 
     } else {
       throw new InvalidStoreManagerException("Clustered Tier Manager already configured");
@@ -218,7 +220,7 @@ class StoragePoolManager {
     return pageSource;
   }
 
-  void releaseDedicatedPool(String name, PageSource pageSource) {
+  private void releaseDedicatedPool(String name, PageSource pageSource) {
     /*
        * A ServerStore using a dedicated resource pool is the only referent to that pool.  When such a
        * ServerStore is destroyed, the associated dedicated resource pool must also be discarded.
@@ -235,6 +237,10 @@ class StoragePoolManager {
   }
 
   void destroy() {
+    for (Map.Entry<String, ServerStoreImpl> storeEntry: stores.entrySet()) {
+      storeEntry.getValue().close();
+    }
+    stores.clear();
     this.defaultServerResource = null;
     /*
      * Remove the reservation for resource pool memory of resource pools.
@@ -266,7 +272,28 @@ class StoragePoolManager {
     }
   }
 
-  PageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
+  ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusterException {
+    if (this.stores.containsKey(name)) {
+      throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
+    }
+
+    PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
+    ServerStoreImpl serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource);
+    stores.put(name, serverStore);
+    return serverStore;
+  }
+
+  void destroyServerStore(String name) throws ClusterException {
+    final ServerStoreImpl store = stores.remove(name);
+    if (store == null) {
+      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
+    } else {
+      releaseDedicatedPool(name, store.getPageSource());
+      store.close();
+    }
+  }
+
+  private PageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
 
     ResourcePageSource resourcePageSource;
     if (allocation instanceof PoolAllocation.Dedicated) {
@@ -314,21 +341,11 @@ class StoragePoolManager {
     return (s1 == null ? s2 == null : s1.equals(s2));
   }
 
-  /**
-   * Gets the name of the default server resource.
-   *
-   * @return the name of the default server resource; may be {@code null} is none is defined
-   */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   String getDefaultServerResource() {
     return defaultServerResource;
   }
 
-  /**
-   * Gets the set of defined shared resource pools.
-   *
-   * @return an unmodifiable set of resource pool identifiers
-   */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Set<String> getSharedResourcePoolIds() {
     return (sharedResourcePools == null
@@ -336,11 +353,6 @@ class StoragePoolManager {
         : Collections.unmodifiableSet(new HashSet<String>(sharedResourcePools.keySet())));
   }
 
-  /**
-   * Gets the set of defined dedicated resource pools.
-   *
-   * @return an unmodifiable set of resource pool identifiers
-   */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Set<String> getDedicatedResourcePoolIds() {
     return Collections.unmodifiableSet(new HashSet<String>(dedicatedResourcePools.keySet()));
