@@ -129,9 +129,18 @@ class ConfigurationMerger {
           new Eh107CompleteConfiguration<K, V>(jsr107Configuration, cacheConfiguration, hasConfiguredExpiry, useEhcacheLoaderWriter),
           cacheConfiguration,useEhcacheLoaderWriter);
     } catch (Throwable throwable) {
-      MultiCacheException mce = new MultiCacheException(throwable);
+      MultiCacheException mce = new MultiCacheException();
       CacheResources.close(expiryPolicy, mce);
       CacheResources.close(loaderWriter, mce);
+
+      if (throwable instanceof IllegalArgumentException) {
+        String message = throwable.getMessage();
+        if (mce.getMessage() != null) {
+          message = message + "\nSuppressed " + mce.getMessage();
+        }
+        throw new IllegalArgumentException(message, throwable);
+      }
+      mce.addFirstThrowable(throwable);
       throw mce;
     }
   }
@@ -226,6 +235,13 @@ class ConfigurationMerger {
     Factory<CacheLoader<K, V>> cacheLoaderFactory = config.getCacheLoaderFactory();
     @SuppressWarnings("unchecked")
     Factory<CacheWriter<K, V>> cacheWriterFactory = (Factory<CacheWriter<K, V>>) (Object) config.getCacheWriterFactory();
+
+    if (config.isReadThrough() && cacheLoaderFactory == null) {
+      throw new IllegalArgumentException("read-through enabled without a CacheLoader factory provided");
+    }
+    if (config.isWriteThrough() && cacheWriterFactory == null) {
+      throw new IllegalArgumentException("write-through enabled without a CacheWriter factory provided");
+    }
 
     CacheLoader<K, V> cacheLoader = cacheLoaderFactory == null ? null : cacheLoaderFactory.create();
     CacheWriter<K, V> cacheWriter;
