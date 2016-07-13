@@ -1,0 +1,389 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.ehcache.clustered.server;
+
+import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
+import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
+import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.terracotta.entity.ServiceRegistry;
+import org.terracotta.offheapresource.OffHeapResource;
+import org.terracotta.offheapresource.OffHeapResourceIdentifier;
+import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
+import org.terracotta.offheapstore.paging.OffHeapStorageArea;
+import org.terracotta.offheapstore.paging.Page;
+import org.terracotta.offheapstore.paging.PageSource;
+import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
+import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
+
+/**
+ * Manages storage pools for server entity
+ */
+class StoragePoolManager {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(StoragePoolManager.class);
+
+  private final ServiceRegistry services;
+  private final Set<String> offHeapResourceIdentifiers;
+
+  /**
+   * The name of the resource to use for dedicated resource pools not identifying a resource from which
+   * space for the pool is obtained.  This value may be {@code null};
+   */
+  private String defaultServerResource;
+
+  /**
+   * The clustered shared resource pools specified by the CacheManager creating this {@code EhcacheActiveEntity}.
+   * The index is the name assigned to the shared resource pool in the cache manager configuration.
+   */
+  private Map<String, ResourcePageSource> sharedResourcePools;
+
+  /**
+   * The clustered dedicated resource pools specified by caches defined in CacheManagers using this
+   * {@code EhcacheActiveEntity}.  The index is the cache identifier (alias).
+   */
+  private Map<String, ResourcePageSource> dedicatedResourcePools = new HashMap<String, ResourcePageSource>();
+
+  StoragePoolManager(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
+    this.services = services;
+    this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
+  }
+
+  /**
+   * Handles the {@link ValidateStoreManager ValidateStoreManager} message.  This message is used by a client to
+   * connect to an established {@code EhcacheActiveEntity}.  This method validates the client-provided configuration
+   * against the existing configuration to ensure compatibility.
+   *
+   * @param message the {@code ValidateStoreManager} message carrying the client expected resource pool configuration
+   */
+  void validate(ValidateStoreManager message) throws ClusterException {
+    if (!isConfigured()) {
+      throw new LifecycleException("Clustered Tier Manager is not configured");
+    }
+    ServerSideConfiguration incomingConfig = message.getConfiguration();
+
+    if (incomingConfig != null) {
+      checkConfigurationCompatibility(incomingConfig);
+    }
+  }
+
+  /**
+   * Checks whether the {@link ServerSideConfiguration} sent from the client is equal with the ServerSideConfiguration
+   * that is already configured on the server.
+   * @param incomingConfig the ServerSideConfiguration to be validated.  This is sent from a client
+   * @throws IllegalArgumentException if configurations do not match
+   */
+  private void checkConfigurationCompatibility(ServerSideConfiguration incomingConfig) throws InvalidServerSideConfigurationException {
+    if (!nullSafeEquals(this.defaultServerResource, incomingConfig.getDefaultServerResource())) {
+      throw new InvalidServerSideConfigurationException("Default resource not aligned. "
+                                                        + "Client: " + incomingConfig.getDefaultServerResource() + " "
+                                                        + "Server: " + defaultServerResource);
+    } else if (!sharedResourcePools.keySet().equals(incomingConfig.getResourcePools().keySet())) {
+      throw new InvalidServerSideConfigurationException("Pool names not equal. "
+                                                        + "Client: " + incomingConfig.getResourcePools().keySet() + " "
+                                                        + "Server: " + sharedResourcePools.keySet().toString());
+    }
+
+    for (Map.Entry<String, ServerSideConfiguration.Pool> pool : resolveResourcePools(incomingConfig).entrySet()) {
+      ServerSideConfiguration.Pool serverPool = this.sharedResourcePools.get(pool.getKey()).getPool();
+
+      if (!serverPool.equals(pool.getValue())) {
+        throw new InvalidServerSideConfigurationException("Pool '" + pool.getKey() + "' not equal. "
+                                                          + "Client: " + pool.getValue() + " "
+                                                          + "Server: " + serverPool);
+      }
+    }
+  }
+
+  private static Map<String, ServerSideConfiguration.Pool> resolveResourcePools(ServerSideConfiguration configuration) throws InvalidServerSideConfigurationException {
+    Map<String, ServerSideConfiguration.Pool> pools = new HashMap<String, ServerSideConfiguration.Pool>();
+    for (Map.Entry<String, ServerSideConfiguration.Pool> e : configuration.getResourcePools().entrySet()) {
+      ServerSideConfiguration.Pool pool = e.getValue();
+      if (pool.getServerResource() == null) {
+        if (configuration.getDefaultServerResource() == null) {
+          throw new InvalidServerSideConfigurationException("Pool '" + e.getKey() + "' has no defined server resource, and no default value was available");
+        } else {
+          pools.put(e.getKey(), new ServerSideConfiguration.Pool(pool.getSize(), configuration.getDefaultServerResource()));
+        }
+      } else {
+        pools.put(e.getKey(), pool);
+      }
+    }
+    return Collections.unmodifiableMap(pools);
+  }
+
+  /**
+   * Handles the {@link LifecycleMessage.ConfigureStoreManager ConfigureStoreManager} message.  This method creates the shared
+   * resource pools to be available to clients of this {@code EhcacheActiveEntity}.
+   *
+   * @param message the {@code ConfigureStoreManager} message carrying the desired shared resource pool configuration
+   */
+  void configure(ConfigureStoreManager message) throws ClusterException {
+    if (!isConfigured()) {
+      LOGGER.info("Configuring server-side clustered tier manager");
+      ServerSideConfiguration configuration = message.getConfiguration();
+
+      this.defaultServerResource = configuration.getDefaultServerResource();
+      if (this.defaultServerResource != null) {
+        if (!offHeapResourceIdentifiers.contains(this.defaultServerResource)) {
+          throw new ResourceConfigurationException("Default server resource '" + this.defaultServerResource
+                                                   + "' is not defined. Available resources are: " + offHeapResourceIdentifiers);
+        }
+      }
+
+      this.sharedResourcePools = createPools(resolveResourcePools(configuration));
+
+    } else {
+      throw new InvalidStoreManagerException("Clustered Tier Manager already configured");
+    }
+  }
+
+  private Map<String, ResourcePageSource> createPools(Map<String, ServerSideConfiguration.Pool> resourcePools) throws ResourceConfigurationException {
+    Map<String, ResourcePageSource> pools = new HashMap<String, ResourcePageSource>();
+    try {
+      for (Map.Entry<String, ServerSideConfiguration.Pool> e : resourcePools.entrySet()) {
+        pools.put(e.getKey(), createPageSource(e.getKey(), e.getValue()));
+      }
+    } catch (ResourceConfigurationException e) {
+      /*
+       * If we fail during pool creation, back out any pools successfully created during this call.
+       */
+      if (!pools.isEmpty()) {
+        LOGGER.warn("Failed to create shared resource pools; reversing reservations", e);
+        releasePools("shared", pools);
+      }
+      throw e;
+    } catch (RuntimeException e) {
+      /*
+       * If we fail during pool creation, back out any pools successfully created during this call.
+       */
+      if (!pools.isEmpty()) {
+        LOGGER.warn("Failed to create shared resource pools; reversing reservations", e);
+        releasePools("shared", pools);
+      }
+      throw e;
+    }
+    return pools;
+  }
+
+  private ResourcePageSource createPageSource(String poolName, ServerSideConfiguration.Pool pool) throws ResourceConfigurationException {
+    ResourcePageSource pageSource;
+    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
+    if (source == null) {
+      throw new ResourceConfigurationException("Non-existent server side resource '" + pool.getServerResource() +
+                                               "'. Available resources are: " + offHeapResourceIdentifiers);
+    } else if (source.reserve(pool.getSize())) {
+      try {
+        pageSource = new ResourcePageSource(pool);
+      } catch (RuntimeException t) {
+        source.release(pool.getSize());
+        throw new ResourceConfigurationException("Failure allocating pool " + pool, t);
+      }
+      LOGGER.info("Reserved {} bytes from resource '{}' for pool '{}'", pool.getSize(), pool.getServerResource(), poolName);
+    } else {
+      throw new ResourceConfigurationException("Insufficient defined resources to allocate pool " + poolName + "=" + pool);
+    }
+    return pageSource;
+  }
+
+  void releaseDedicatedPool(String name, PageSource pageSource) {
+    /*
+       * A ServerStore using a dedicated resource pool is the only referent to that pool.  When such a
+       * ServerStore is destroyed, the associated dedicated resource pool must also be discarded.
+       */
+    ResourcePageSource expectedPageSource = dedicatedResourcePools.get(name);
+    if (expectedPageSource != null) {
+      if (pageSource == expectedPageSource) {
+        dedicatedResourcePools.remove(name);
+        releasePool("dedicated", name, expectedPageSource);
+      } else {
+        LOGGER.error("Client {} attempting to destroy clustered tier '{}' with unmatched page source", name);
+      }
+    }
+  }
+
+  void destroy() {
+    this.defaultServerResource = null;
+    /*
+     * Remove the reservation for resource pool memory of resource pools.
+     */
+    releasePools("shared", this.sharedResourcePools);
+    releasePools("dedicated", this.dedicatedResourcePools);
+
+    this.sharedResourcePools = null;
+  }
+
+  private void releasePools(String poolType, Map<String, ResourcePageSource> resourcePools) {
+    if (resourcePools == null) {
+      return;
+    }
+    final Iterator<Map.Entry<String, ResourcePageSource>> dedicatedPoolIterator = resourcePools.entrySet().iterator();
+    while (dedicatedPoolIterator.hasNext()) {
+      Map.Entry<String, ResourcePageSource> poolEntry = dedicatedPoolIterator.next();
+      releasePool(poolType, poolEntry.getKey(), poolEntry.getValue());
+      dedicatedPoolIterator.remove();
+    }
+  }
+
+  private void releasePool(String poolType, String poolName, ResourcePageSource resourcePageSource) {
+    ServerSideConfiguration.Pool pool = resourcePageSource.getPool();
+    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
+    if (source != null) {
+      source.release(pool.getSize());
+      LOGGER.info("Released {} bytes from resource '{}' for {} pool '{}'", pool.getSize(), pool.getServerResource(), poolType, poolName);
+    }
+  }
+
+  PageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
+
+    ResourcePageSource resourcePageSource;
+    if (allocation instanceof PoolAllocation.Dedicated) {
+      /*
+       * Dedicated allocation pools are taken directly from a specified resource, not a shared pool, and
+       * identified by the cache identifier/name.
+       */
+      if (dedicatedResourcePools.containsKey(name)) {
+        throw new ResourceConfigurationException("Fixed resource pool for clustered tier '" + name + "' already exists");
+      } else {
+        PoolAllocation.Dedicated dedicatedAllocation = (PoolAllocation.Dedicated)allocation;
+        String resourceName = dedicatedAllocation.getResourceName();
+        if (resourceName == null) {
+          if (defaultServerResource == null) {
+            throw new ResourceConfigurationException("Fixed pool for clustered tier '" + name + "' not defined; default server resource not configured");
+          } else {
+            resourceName = defaultServerResource;
+          }
+        }
+        resourcePageSource = createPageSource(name, new ServerSideConfiguration.Pool(dedicatedAllocation.getSize(), resourceName));
+        dedicatedResourcePools.put(name, resourcePageSource);
+      }
+    } else if (allocation instanceof PoolAllocation.Shared) {
+      /*
+       * Shared allocation pools are created during EhcacheActiveEntity configuration.
+       */
+      PoolAllocation.Shared sharedAllocation = (PoolAllocation.Shared)allocation;
+      resourcePageSource = sharedResourcePools.get(sharedAllocation.getResourcePoolName());
+      if (resourcePageSource == null) {
+        throw new ResourceConfigurationException("Shared pool named '" + sharedAllocation.getResourcePoolName() + "' undefined.");
+      }
+
+    } else {
+      throw new IllegalMessageException("Unexpected PoolAllocation type: " + allocation.getClass().getName());
+    }
+    return resourcePageSource;
+
+  }
+
+  boolean isConfigured() {
+    return (sharedResourcePools != null);
+  }
+
+  private static boolean nullSafeEquals(Object s1, Object s2) {
+    return (s1 == null ? s2 == null : s1.equals(s2));
+  }
+
+  /**
+   * Gets the name of the default server resource.
+   *
+   * @return the name of the default server resource; may be {@code null} is none is defined
+   */
+  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
+  String getDefaultServerResource() {
+    return defaultServerResource;
+  }
+
+  /**
+   * Gets the set of defined shared resource pools.
+   *
+   * @return an unmodifiable set of resource pool identifiers
+   */
+  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
+  Set<String> getSharedResourcePoolIds() {
+    return (sharedResourcePools == null
+        ? Collections.<String>emptySet()
+        : Collections.unmodifiableSet(new HashSet<String>(sharedResourcePools.keySet())));
+  }
+
+  /**
+   * Gets the set of defined dedicated resource pools.
+   *
+   * @return an unmodifiable set of resource pool identifiers
+   */
+  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
+  Set<String> getDedicatedResourcePoolIds() {
+    return Collections.unmodifiableSet(new HashSet<String>(dedicatedResourcePools.keySet()));
+  }
+
+  /**
+   * Pairs a {@link ServerSideConfiguration.Pool} and an {@link UpfrontAllocatingPageSource} instance providing storage
+   * for the pool.
+   */
+  private static class ResourcePageSource implements PageSource{
+    /**
+     * A description of the resource allocation underlying this {@code PageSource}.
+     */
+    private final ServerSideConfiguration.Pool pool;
+    private final UpfrontAllocatingPageSource delegatePageSource;
+
+    private ResourcePageSource(ServerSideConfiguration.Pool pool) {
+      this.pool = pool;
+      this.delegatePageSource = new UpfrontAllocatingPageSource(new OffHeapBufferSource(), pool.getSize(), GIGABYTES.toBytes(1), MEGABYTES.toBytes(128));
+    }
+
+    public ServerSideConfiguration.Pool getPool() {
+      return pool;
+    }
+
+    @Override
+    public Page allocate(int size, boolean thief, boolean victim, OffHeapStorageArea owner) {
+      return delegatePageSource.allocate(size, thief, victim, owner);
+    }
+
+    @Override
+    public void free(Page page) {
+      delegatePageSource.free(page);
+    }
+
+    @Override
+    public String toString() {
+      final StringBuilder sb = new StringBuilder("ResourcePageSource{");
+      sb.append("pool=").append(pool);
+      sb.append(", delegatePageSource=").append(delegatePageSource);
+      sb.append('}');
+      return sb.toString();
+    }
+  }
+
+}
