@@ -67,7 +67,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
       "</service>\n";
 
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, null);
+  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
   private static Connection ASSERTION_CONNECTION;
 
   @BeforeClass

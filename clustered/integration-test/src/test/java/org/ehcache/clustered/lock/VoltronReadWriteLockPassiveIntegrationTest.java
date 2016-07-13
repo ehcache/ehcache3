@@ -52,7 +52,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest {
 
       Hold hold = lock.writeLock();
 
-      CLUSTER.getClusterControl().restartActive();
+      CLUSTER.getClusterControl().terminateActive();
+      CLUSTER.getClusterControl().startOneServer();
 
       hold.unlock();
     } finally {
@@ -83,7 +84,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest {
         //expected
       }
 
-      CLUSTER.getClusterControl().restartActive();
+      CLUSTER.getClusterControl().terminateActive();
+      CLUSTER.getClusterControl().startOneServer();
 
       try {
         waiter.get(100, TimeUnit.MILLISECONDS);
@@ -125,7 +127,8 @@ public class VoltronReadWriteLockPassiveIntegrationTest {
           //expected
         }
 
-        CLUSTER.getClusterControl().restartActive();
+        CLUSTER.getClusterControl().terminateActive();
+        CLUSTER.getClusterControl().startOneServer();
 
         try {
           waiter.get(100, TimeUnit.MILLISECONDS);
