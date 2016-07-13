@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link ResourceBusyException} functions including
- * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
+ * {@link ClusterException#withClientStackTrace() withClientStackTrace}.
  */
 public class ResourceBusyExceptionTest extends BaseClusteredEhcacheExceptionTest<ResourceBusyException> {
 

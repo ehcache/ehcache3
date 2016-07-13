@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link InvalidStoreException} functions including
- * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
+ * {@link ClusterException#withClientStackTrace() withClientStackTrace}.
  */
 public class InvalidStoreExceptionTest extends BaseClusteredEhcacheExceptionTest<InvalidStoreException> {
 

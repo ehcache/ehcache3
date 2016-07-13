@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link ServerMisconfigurationException} functions including
- * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
+ * {@link ClusterException#withClientStackTrace() withClientStackTrace}.
  */
 public class ServerMisconfigurationExceptionTest extends BaseClusteredEhcacheExceptionTest<ServerMisconfigurationException> {
 

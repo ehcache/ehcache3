@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 
 /**
  * Tests {@link InvalidStoreManagerException} functions including
- * {@link ClusteredEhcacheException#withClientStackTrace() withClientStackTrace}.
+ * {@link ClusterException#withClientStackTrace() withClientStackTrace}.
  */
 public class InvalidStoreManagerExceptionTest extends BaseClusteredEhcacheExceptionTest<InvalidStoreManagerException> {
 

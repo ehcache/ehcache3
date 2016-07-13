@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.common.internal.exceptions;
 
-public class InvalidOperationException extends ClusteredEhcacheException {
+public class InvalidOperationException extends ClusterException {
   private static final long serialVersionUID = 5717142794536675810L;
 
   public InvalidOperationException(final String message) {
@@ -32,7 +32,7 @@ public class InvalidOperationException extends ClusteredEhcacheException {
   }
 
   @Override
-  public ClusteredEhcacheException withClientStackTrace() {
+  public ClusterException withClientStackTrace() {
     return new InvalidOperationException(this);
   }
 }

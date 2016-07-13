@@ -24,6 +24,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -68,7 +69,7 @@ public class EhcacheClientEntityExceptionTest {
   }
 
   /**
-   * Tests to ensure that a {@link org.ehcache.clustered.common.internal.exceptions.ClusteredEhcacheException ClusteredEhcacheException}
+   * Tests to ensure that a {@link ClusterException ClusterException}
    * originating in the server is properly wrapped on the client before being re-thrown.
    */
   @Test

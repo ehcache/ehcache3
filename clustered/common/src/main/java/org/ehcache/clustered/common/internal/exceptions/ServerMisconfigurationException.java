@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.common.internal.exceptions;
 
-public class ServerMisconfigurationException extends ClusteredEhcacheException {
+public class ServerMisconfigurationException extends ClusterException {
   private static final long serialVersionUID = -1412283170898723994L;
 
   public ServerMisconfigurationException(final String message) {

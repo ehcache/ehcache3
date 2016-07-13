@@ -19,7 +19,7 @@ package org.ehcache.clustered.common.internal.exceptions;
 /**
  * Thrown to indicate the lifecycle of a clustered entity hasn't been respected.
  */
-public class LifecycleException extends ClusteredEhcacheException {
+public class LifecycleException extends ClusterException {
   private static final long serialVersionUID = 8296083644864873465L;
 
   public LifecycleException(String message) {

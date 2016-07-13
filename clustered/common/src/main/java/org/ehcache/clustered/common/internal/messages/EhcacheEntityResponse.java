@@ -17,7 +17,7 @@
 package org.ehcache.clustered.common.internal.messages;
 
 
-import org.ehcache.clustered.common.internal.exceptions.ClusteredEhcacheException;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.entity.EntityResponse;
 
@@ -87,9 +87,9 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public static class Failure extends EhcacheEntityResponse {
 
-    private final ClusteredEhcacheException cause;
+    private final ClusterException cause;
 
-    Failure(ClusteredEhcacheException cause) {
+    Failure(ClusterException cause) {
       this.cause = cause;
     }
 
@@ -98,7 +98,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
       return Type.FAILURE;
     }
 
-    public ClusteredEhcacheException getCause() {
+    public ClusterException getCause() {
       return cause;
     }
 

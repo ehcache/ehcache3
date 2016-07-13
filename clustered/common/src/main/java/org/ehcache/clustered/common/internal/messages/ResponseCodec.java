@@ -16,7 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.internal.exceptions.ClusteredEhcacheException;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.Util;
 
 import java.nio.ByteBuffer;
@@ -113,7 +113,7 @@ class ResponseCodec {
       case SUCCESS:
         return EhcacheEntityResponse.Success.INSTANCE;
       case FAILURE:
-        ClusteredEhcacheException exception = (ClusteredEhcacheException)Util.unmarshall(payArr);
+        ClusterException exception = (ClusterException)Util.unmarshall(payArr);
         return new EhcacheEntityResponse.Failure(exception.withClientStackTrace());
       case GET_RESPONSE:
         return new EhcacheEntityResponse.GetResponse(chainCodec.decode(payArr));
