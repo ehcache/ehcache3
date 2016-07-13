@@ -23,6 +23,7 @@ import org.junit.rules.TemporaryFolder;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.concurrent.ConcurrentHashMap;
@@ -93,5 +94,37 @@ public class FileBasedStateRepositoryTest {
     ConcurrentMap<Long, String> myMap = stateRepository.getPersistentConcurrentMap(mapName, Long.class, String.class);
 
     assertThat(myMap, is(map));
+  }
+
+  @Test
+  public void testIndexProperlySetAfterLoad() throws Exception {
+    File directory = folder.newFolder("testIndexAfterLoad");
+    String mapName = "myMap";
+
+    FileOutputStream fos = new FileOutputStream(new File(directory, MAP_FILE_NAME));
+    try {
+      ObjectOutputStream oos = new ObjectOutputStream(fos);
+      try {
+        oos.writeObject(mapName);
+        oos.writeObject(new FileBasedStateRepository.Tuple(0, new ConcurrentHashMap<Long, String>()));
+      } finally {
+        oos.close();
+      }
+    } finally {
+      fos.close();
+    }
+
+    FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
+    stateRepository.getPersistentConcurrentMap("otherMap", Long.class, Long.class);
+    stateRepository.close();
+
+    File[] files = directory.listFiles(new FilenameFilter() {
+      @Override
+      public boolean accept(File dir, String name) {
+        return name.contains("otherMap") && name.contains("-1-");
+      }
+    });
+
+    assertThat(files.length, is(1));
   }
 }

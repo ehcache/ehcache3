@@ -75,6 +75,9 @@ class FileBasedStateRepository implements StateRepository, Closeable {
           try {
             String name = (String) oin.readObject();
             Tuple tuple = (Tuple) oin.readObject();
+            if (nextIndex.get() <= tuple.index) {
+              nextIndex.set(tuple.index + 1);
+            }
             knownMaps.put(name, tuple);
           } finally {
             oin.close();
