@@ -21,6 +21,8 @@ import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.InternalCache;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.copy.IdentityCopier;
+import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
+import org.ehcache.jsr107.internal.WrappedCacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
@@ -108,8 +110,12 @@ class Eh107CacheManager implements CacheManager {
     }
     Eh107Configuration<K, V> config = new Eh107ReverseConfiguration<K, V>(cache, cacheLoaderWriter != null, cacheLoaderWriter != null, storeByValueOnHeap);
     Eh107Expiry<K, V> expiry = new EhcacheExpiryWrapper<K, V>(cache.getRuntimeConfiguration().getExpiry());
-    CacheResources<K, V> resources = new CacheResources<K, V>(alias, cacheLoaderWriter, expiry);
+    CacheResources<K, V> resources = new CacheResources<K, V>(alias, wrapCacheLoaderWriter(cacheLoaderWriter), expiry);
     return new Eh107Cache<K, V>(alias, config, resources, cache, this);
+  }
+
+  private <K, V> Jsr107CacheLoaderWriter<K, V> wrapCacheLoaderWriter(CacheLoaderWriter<K, V> cacheLoaderWriter) {
+    return new WrappedCacheLoaderWriter<K, V>(cacheLoaderWriter);
   }
 
   @Override
@@ -181,7 +187,7 @@ class Eh107CacheManager implements CacheManager {
       CacheResources<K, V> cacheResources = configHolder.cacheResources;
       try {
         if (configHolder.useEhcacheLoaderWriter) {
-          cacheResources = new CacheResources<K, V>(cacheName, ehCache.getCacheLoaderWriter(),
+          cacheResources = new CacheResources<K, V>(cacheName, wrapCacheLoaderWriter(ehCache.getCacheLoaderWriter()),
               cacheResources.getExpiryPolicy(), cacheResources.getListenerResources());
         }
         cache = new Eh107Cache<K, V>(cacheName, new Eh107CompleteConfiguration<K, V>(configHolder.jsr107Configuration, ehCache

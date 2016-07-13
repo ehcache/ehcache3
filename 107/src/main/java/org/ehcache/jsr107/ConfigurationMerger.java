@@ -24,8 +24,8 @@ import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguratio
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.jsr107.config.Jsr107Service;
+import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.xml.XmlConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +71,7 @@ class ConfigurationMerger {
     final Eh107CompleteConfiguration<K, V> jsr107Configuration = new Eh107CompleteConfiguration<K, V>(configuration);
 
     Eh107Expiry<K, V> expiryPolicy = null;
-    CacheLoaderWriter<? super K, V> loaderWriter = null;
+    Jsr107CacheLoaderWriter<? super K, V> loaderWriter = null;
     try {
       CacheConfigurationBuilder<K, V> builder = newCacheConfigurationBuilder(configuration.getKeyType(), configuration.getValueType(), heap(Long.MAX_VALUE));
 
@@ -222,9 +222,10 @@ class ConfigurationMerger {
     return new ExpiryPolicyToEhcacheExpiry<K, V>(config.getExpiryPolicyFactory().create());
   }
 
-  private <K, V> CacheLoaderWriter<K, V> initCacheLoaderWriter(CompleteConfiguration<K, V> config, MultiCacheException mce) {
+  private <K, V> Jsr107CacheLoaderWriter<K, V> initCacheLoaderWriter(CompleteConfiguration<K, V> config, MultiCacheException mce) {
     Factory<CacheLoader<K, V>> cacheLoaderFactory = config.getCacheLoaderFactory();
-    Factory<CacheWriter<K, V>> cacheWriterFactory = getCacheWriterFactory(config);
+    @SuppressWarnings("unchecked")
+    Factory<CacheWriter<K, V>> cacheWriterFactory = (Factory<CacheWriter<K, V>>) (Object) config.getCacheWriterFactory();
 
     CacheLoader<K, V> cacheLoader = cacheLoaderFactory == null ? null : cacheLoaderFactory.create();
     CacheWriter<K, V> cacheWriter;
@@ -241,16 +242,8 @@ class ConfigurationMerger {
     if (cacheLoader == null && cacheWriter == null) {
       return null;
     } else {
-      return new Eh107CacheLoaderWriter<K, V>(cacheLoader, cacheWriter);
+      return new Eh107CacheLoaderWriter<K, V>(cacheLoader, config.isReadThrough(), cacheWriter, config.isWriteThrough());
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  private static <K, V> Factory<CacheWriter<K, V>> getCacheWriterFactory(CompleteConfiguration<K, V> config) {
-    // I could be wrong, but I don't think this factory should be typed the way it is. The factory
-    // should be parameterized with (K, V) and it's methods take <? extend K>, etc
-    Object factory = config.getCacheWriterFactory();
-    return (Factory<javax.cache.integration.CacheWriter<K, V>>) factory;
   }
 
   static class ConfigHolder<K, V> {
