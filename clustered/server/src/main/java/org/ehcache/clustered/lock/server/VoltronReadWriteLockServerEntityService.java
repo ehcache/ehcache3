@@ -24,9 +24,9 @@ import org.ehcache.clustered.common.internal.lock.LockMessaging.LockTransition;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
-import org.terracotta.entity.ServerEntityService;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.SyncMessageCodec;
@@ -35,7 +35,7 @@ import org.terracotta.entity.SyncMessageCodec;
  *
  * @author cdennis
  */
-public class VoltronReadWriteLockServerEntityService implements ServerEntityService<LockOperation, LockTransition> {
+public class VoltronReadWriteLockServerEntityService implements EntityServerService<LockOperation, LockTransition> {
 
   @Override
   public long getVersion() {

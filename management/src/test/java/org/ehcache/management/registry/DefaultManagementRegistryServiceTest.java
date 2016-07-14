@@ -33,10 +33,10 @@ import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.history.CounterHistory;
 import org.terracotta.management.model.stats.primitive.Counter;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
@@ -237,7 +237,7 @@ public class DefaultManagementRegistryServiceTest {
   }
 
   @Test
-  public void testCall() {
+  public void testCall() throws ExecutionException {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
@@ -264,7 +264,7 @@ public class DefaultManagementRegistryServiceTest {
         .execute()
         .getSingleResult();
 
-    assertThat(result.hasValue(), is(true));
+    assertThat(result.hasExecuted(), is(true));
     assertThat(result.getValue(), is(nullValue()));
 
     assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), is(Matchers.nullValue()));
@@ -289,14 +289,14 @@ public class DefaultManagementRegistryServiceTest {
         .with("cacheManagerName", "myCM2")
         .with("cacheName", "aCache2");
 
-    ResultSet<ContextualReturn<Serializable>> results = managementRegistry.withCapability("ActionsCapability")
+    ResultSet<? extends ContextualReturn<?>> results = managementRegistry.withCapability("ActionsCapability")
         .call("clear")
         .on(inexisting)
         .build()
         .execute();
 
     assertThat(results.size(), equalTo(1));
-    assertThat(results.getSingleResult().hasValue(), is(false));
+    assertThat(results.getSingleResult().hasExecuted(), is(false));
 
     try {
       results.getSingleResult().getValue();
