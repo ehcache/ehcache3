@@ -13,15 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.management.cluster;
 
-ext {
-    clusteredMapVersion = parent.terracottaPlatformVersion
-    offheapResourceVersion = parent.terracottaPlatformVersion
-    entityApiVersion = parent.terracottaApisVersion
-}
+import org.ehcache.spi.service.Service;
 
-subprojects {
-  repositories {
-    maven { url "http://snapshots.terracotta.org/" }
-  }
+/**
+ * Activate the clustering management, which will sends all client-side stats,
+ * notifications and also the client-side management registry through the cluster
+ * connection
+ */
+public interface ClusteringManagementService extends Service {
 }

@@ -25,6 +25,8 @@ import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
+import org.ehcache.management.cluster.Clustering;
+import org.ehcache.management.cluster.ClusteringManagementService;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
@@ -51,6 +53,7 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
   private final ManagementRegistryServiceConfiguration configuration;
   private volatile ScheduledExecutorService statisticsExecutor;
   private volatile InternalCacheManager cacheManager;
+  private volatile ClusteringManagementService clusteringManagementService;
 
   public DefaultManagementRegistryService() {
     this(new DefaultManagementRegistryConfiguration());
@@ -72,10 +75,23 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
     addManagementProvider(new EhcacheSettingsProvider(getConfiguration(), cacheManager));
 
     this.cacheManager.registerListener(this);
+
+    // optional clustering support. Management works both in standalone and clustering mode
+    // this feature detection is done to avoid having another "cluster-management" module that would depend on both management and clustering
+    this.clusteringManagementService = serviceProvider.getService(ClusteringManagementService.class);
+    if (this.clusteringManagementService == null && Clustering.isAvailable(serviceProvider)) {
+      this.clusteringManagementService = Clustering.newClusteringManagementService();
+      this.clusteringManagementService.start(serviceProvider);
+    }
   }
 
   @Override
   public void stop() {
+    if (this.clusteringManagementService != null) {
+      this.clusteringManagementService.stop();
+      this.clusteringManagementService = null;
+    }
+
     for (ManagementProvider<?> managementProvider : managementProviders) {
       managementProvider.close();
     }
@@ -125,7 +141,7 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
         break;
 
       default:
-        throw new AssertionError(to);
+        throw new AssertionError("Unsupported state: " + to);
     }
   }
 

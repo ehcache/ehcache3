@@ -18,11 +18,14 @@ import scripts.*
 ext {
   baseVersion = '3.1.1-SNAPSHOT'
   offheapVersion = '2.2.2'
-  managementVersion = '5.0.0.beta'
   statisticVersion = '1.1.0'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
   sizeofVersion = '0.3.0'
+  terracottaPlatformVersion = '5.0.3.beta'
+  terracottaApisVersion = '1.0.3.beta'
+  entityTestLibVersion = '1.0.3.beta'
+  terracottaCoreVersion = '5.0.0-beta2'
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')

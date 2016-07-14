@@ -21,9 +21,9 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
-import org.terracotta.entity.ServerEntityService;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.SyncMessageCodec;
 
@@ -38,14 +38,14 @@ import java.util.Set;
  * the state of the {@link EhcacheActiveEntity} instances served.
  */
 public class ObservableEhcacheServerEntityService
-    implements ServerEntityService<EhcacheEntityMessage, EhcacheEntityResponse> {
+    implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
   private final EhcacheServerEntityService delegate = new EhcacheServerEntityService();
 
   private final List<EhcacheActiveEntity> servedActiveEntities = new ArrayList<EhcacheActiveEntity>();
 
   /**
    * Gets a list of {@link ObservableEhcacheActiveEntity} instances wrapping the
-   * {@link EhcacheActiveEntity} instances served by this {@link ServerEntityService}.
+   * {@link EhcacheActiveEntity} instances served by this {@link EntityServerService}.
    *
    * @return an unmodifiable list of {@code ObservableEhcacheActiveEntity} instances
    */

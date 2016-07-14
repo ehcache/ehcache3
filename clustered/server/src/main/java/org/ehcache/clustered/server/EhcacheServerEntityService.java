@@ -19,15 +19,15 @@ import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
-import org.terracotta.entity.ServerEntityService;
 import org.terracotta.entity.ServiceRegistry;
 
 import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
 import org.terracotta.entity.SyncMessageCodec;
 
-public class EhcacheServerEntityService implements ServerEntityService<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final long ENTITY_VERSION = 1L;
   private static final int DEFAULT_CONCURRENCY = 1024;

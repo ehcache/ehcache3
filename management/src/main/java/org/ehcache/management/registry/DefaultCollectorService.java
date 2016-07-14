@@ -156,7 +156,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
         break;
 
       default:
-        throw new AssertionError(to);
+        throw new AssertionError("Unsupported state: " + to);
     }
   }
 

@@ -24,6 +24,9 @@ import org.ehcache.config.builders.CacheManagerConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 
@@ -36,7 +39,7 @@ public class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<PersistentCacheManager> {
 
-  private static final String CLUSTER_SCHEME = "terracotta";
+  private static final Collection<String> CLUSTER_SCHEMES = new HashSet<String>(Arrays.asList("terracotta", "passthrough"));
 
   private final URI clusterUri;
   private final boolean autoCreate;
@@ -159,7 +162,7 @@ public class ClusteringServiceConfiguration
       throw new NullPointerException("Cluster URI cannot be null.");
     }
 
-    if (!CLUSTER_SCHEME.equals(clusterUri.getScheme())) {
+    if (!CLUSTER_SCHEMES.contains(clusterUri.getScheme())) {
       throw new IllegalArgumentException("Cluster Uri is not valid, clusterUri : " + clusterUri.toString());
     }
   }
