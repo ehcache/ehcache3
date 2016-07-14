@@ -28,20 +28,15 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
-import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
@@ -60,22 +55,13 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.offheapresource.OffHeapResource;
-import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
-import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
-import org.terracotta.offheapstore.paging.OffHeapStorageArea;
-import org.terracotta.offheapstore.paging.Page;
-import org.terracotta.offheapstore.paging.PageSource;
-import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.hashInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
-import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
-import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
@@ -91,32 +77,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
 
   private final UUID identity;
-  private final ServiceRegistry services;
   private final Set<String> offHeapResourceIdentifiers;
-
-  /**
-   * The name of the resource to use for dedicated resource pools not identifying a resource from which
-   * space for the pool is obtained.  This value may be {@code null};
-   */
-  private String defaultServerResource;
-
-  /**
-   * The clustered shared resource pools specified by the CacheManager creating this {@code EhcacheActiveEntity}.
-   * The index is the name assigned to the shared resource pool in the cache manager configuration.
-   */
-  private Map<String, ResourcePageSource> sharedResourcePools;
-
-  /**
-   * The clustered dedicated resource pools specified by caches defined in CacheManagers using this
-   * {@code EhcacheActiveEntity}.  The index is the cache identifier (alias).
-   */
-  private Map<String, ResourcePageSource> dedicatedResourcePools = new HashMap<String, ResourcePageSource>();
-
-  /**
-   * The clustered stores representing the server-side of a {@code ClusterStore}.
-   * The index is the cache alias/identifier.
-   */
-  private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
 
   /**
    * Tracks the state of a connected client.  An entry is added to this map when the
@@ -133,6 +94,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<Integer, InvalidationHolder>();
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ClientCommunicator clientCommunicator;
+  private final ServerStoreManager serverStoreManager;
 
   static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
@@ -163,15 +125,16 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private static class OffHeapResourcesServiceConfiguration implements ServiceConfiguration<OffHeapResources> {
+
     @Override
     public Class<OffHeapResources> getServiceType() {
       return OffHeapResources.class;
     }
+
   }
 
   EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
-    this.services = services;
     this.responseFactory = new EhcacheEntityResponseFactory();
     this.clientCommunicator = services.getService(new CommunicatorServiceConfiguration());
     OffHeapResources offHeapResources = services.getService(new OffHeapResourcesServiceConfiguration());
@@ -180,6 +143,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     } else {
       this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
     }
+    serverStoreManager = new ServerStoreManager(services, offHeapResourceIdentifiers);
   }
 
   /**
@@ -204,7 +168,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Set<String> getStores() {
-    return Collections.unmodifiableSet(new HashSet<String>(stores.keySet()));
+    return Collections.unmodifiableSet(new HashSet<String>(serverStoreManager.getStores().keySet()));
   }
 
   /**
@@ -229,7 +193,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   String getDefaultServerResource() {
-    return defaultServerResource;
+    return serverStoreManager.getDefaultServerResource();
   }
 
   /**
@@ -239,9 +203,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Set<String> getSharedResourcePoolIds() {
-    return (sharedResourcePools == null
-        ? Collections.<String>emptySet()
-        : Collections.unmodifiableSet(new HashSet<String>(sharedResourcePools.keySet())));
+    return serverStoreManager.getSharedResourcePoolIds();
   }
 
   /**
@@ -251,7 +213,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
   Set<String> getDedicatedResourcePoolIds() {
-    return Collections.unmodifiableSet(new HashSet<String>(dedicatedResourcePools.keySet()));
+    return serverStoreManager.getDedicatedResourcePoolIds();
   }
 
   @Override
@@ -365,7 +327,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {
-    ServerStoreImpl cacheStore = stores.get(message.getCacheId());
+    ServerStoreImpl cacheStore = serverStoreManager.getStore(message.getCacheId());
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
       throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
@@ -444,7 +406,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     clientsToInvalidate.remove(originatingClientDescriptor);
 
     InvalidationHolder invalidationHolder = null;
-    if (stores.get(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
+    if (serverStoreManager.getStore(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
       invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId, key);
       clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
     }
@@ -472,7 +434,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     clientsToInvalidate.remove(originatingClientDescriptor);
 
     InvalidationHolder invalidationHolder = null;
-    if (stores.get(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
+    if (serverStoreManager.getStore(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
       invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId);
       clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
     }
@@ -496,7 +458,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void clientInvalidated(ClientDescriptor clientDescriptor, int invalidationId) {
     InvalidationHolder invalidationHolder = clientsWaitingForInvalidation.get(invalidationId);
 
-    if (stores.get(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
+    if (serverStoreManager.getStore(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
       invalidationHolder.clientsHavingToInvalidate.remove(clientDescriptor);
       if (invalidationHolder.clientsHavingToInvalidate.isEmpty()) {
         if (clientsWaitingForInvalidation.remove(invalidationId) != null) {
@@ -530,12 +492,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   @Override
   public void destroy() {
 
-    defaultServerResource = null;
-
     /*
      * Ensure the allocated stores are closed out.
      */
-    final Iterator<Entry<String, ServerStoreImpl>> storeIterator = stores.entrySet().iterator();
+    final Iterator<Entry<String, ServerStoreImpl>> storeIterator = serverStoreManager.getStores().entrySet().iterator();
     while (storeIterator.hasNext()) {
       Entry<String, ServerStoreImpl> storeEntry = storeIterator.next();
       final Set<ClientDescriptor> attachedClients = storeClientMap.get(storeEntry.getKey());
@@ -546,17 +506,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
       LOGGER.info("Destroying clustered tier '{}' for clustered tier manager destroy", storeEntry.getKey());
       storeClientMap.remove(storeEntry.getKey());
-      storeEntry.getValue().close();
-      storeIterator.remove();
     }
 
-    /*
-     * Remove the reservation for resource pool memory of resource pools.
-     */
-    releasePools("shared", this.sharedResourcePools);
-    releasePools("dedicated", this.dedicatedResourcePools);
+    serverStoreManager.destroy();
 
-    this.sharedResourcePools = null;
   }
 
   /**
@@ -571,29 +524,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (clientState == null) {
       throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
-    if (!isConfigured()) {
-      LOGGER.info("Configuring server-side clustered tier manager");
-      ServerSideConfiguration configuration = message.getConfiguration();
-
-      this.defaultServerResource = configuration.getDefaultServerResource();
-      if (this.defaultServerResource != null) {
-        if (!offHeapResourceIdentifiers.contains(this.defaultServerResource)) {
-          throw new ResourceConfigurationException("Default server resource '" + this.defaultServerResource
-              + "' is not defined. Available resources are: " + offHeapResourceIdentifiers);
-        }
-      }
-
-      this.sharedResourcePools = createPools(resolveResourcePools(configuration));
-      this.stores = new HashMap<String, ServerStoreImpl>();
-
-      clientState.attach();
-    } else {
-      throw new InvalidStoreManagerException("Clustered Tier Manager already configured");
-    }
-  }
-
-  private boolean isConfigured() {
-    return (sharedResourcePools != null);
+    serverStoreManager.configure(message);
+    clientState.attach();
   }
 
   /**
@@ -609,47 +541,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (clientState == null) {
       throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
-    if (!isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
-    }
-    ServerSideConfiguration incomingConfig = message.getConfiguration();
-
-    if(incomingConfig != null) {
-      checkConfigurationCompatibility(incomingConfig);
-    }
+    serverStoreManager.validate(message);
     clientState.attach();
-  }
-
-  /**
-   * Checks whether the {@link ServerSideConfiguration} sent from the client is equal with the ServerSideConfiguration
-   * that is already configured on the server.
-   * @param incomingConfig the ServerSideConfiguration to be validated.  This is sent from a client
-   * @throws IllegalArgumentException if configurations do not match
-   */
-  private void checkConfigurationCompatibility(ServerSideConfiguration incomingConfig) throws InvalidServerSideConfigurationException {
-    if (!nullSafeEquals(this.defaultServerResource, incomingConfig.getDefaultServerResource())) {
-      throw new InvalidServerSideConfigurationException("Default resource not aligned. "
-              + "Client: " + incomingConfig.getDefaultServerResource() + " "
-              + "Server: " + defaultServerResource);
-    } else if(!sharedResourcePools.keySet().equals(incomingConfig.getResourcePools().keySet())) {
-      throw new InvalidServerSideConfigurationException("Pool names not equal. "
-              + "Client: " + incomingConfig.getResourcePools().keySet() + " "
-              + "Server: " + sharedResourcePools.keySet().toString());
-    }
-
-    for(Entry<String, Pool> pool : resolveResourcePools(incomingConfig).entrySet()) {
-      Pool serverPool = this.sharedResourcePools.get(pool.getKey()).getPool();
-
-      if(!serverPool.equals(pool.getValue())) {
-        throw new InvalidServerSideConfigurationException("Pool '" + pool.getKey() + "' not equal. "
-                + "Client: " + pool.getValue() + " "
-                + "Server: " + serverPool);
-      }
-    }
-  }
-
-  private static boolean nullSafeEquals(Object s1, Object s2) {
-    return (s1 == null ? s2 == null : s1.equals(s2));
   }
 
   /**
@@ -678,7 +571,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
-    if (!isConfigured()) {
+    if (!serverStoreManager.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
     if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
@@ -689,56 +582,15 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     LOGGER.info("Client {} creating new clustered tier '{}'", clientDescriptor, name);
 
-    if (stores.containsKey(name)) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
-    }
-
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
-    ResourcePageSource resourcePageSource;
-    PoolAllocation allocation = storeConfiguration.getPoolAllocation();
-    if (allocation instanceof PoolAllocation.Dedicated) {
-      /*
-       * Dedicated allocation pools are taken directly from a specified resource, not a shared pool, and
-       * identified by the cache identifier/name.
-       */
-//<<<<<<< HEAD
-      if (dedicatedResourcePools.containsKey(name)) {
-        throw new ResourceConfigurationException("Fixed resource pool for clustered tier '" + name + "' already exists");
-      } else {
-        PoolAllocation.Dedicated dedicatedAllocation = (PoolAllocation.Dedicated)allocation;
-        String resourceName = dedicatedAllocation.getResourceName();
-        if (resourceName == null) {
-          if (defaultServerResource == null) {
-            throw new ResourceConfigurationException("Fixed pool for clustered tier '" + name + "' not defined; default server resource not configured");
-          } else {
-            resourceName = defaultServerResource;
-          }
-        }
-        resourcePageSource = createPageSource(name, new Pool(dedicatedAllocation.getSize(), resourceName));
-        dedicatedResourcePools.put(name, resourcePageSource);
-      }
-    } else if (allocation instanceof PoolAllocation.Shared) {
-      /*
-       * Shared allocation pools are created during EhcacheActiveEntity configuration.
-       */
-      PoolAllocation.Shared sharedAllocation = (PoolAllocation.Shared)allocation;
-      resourcePageSource = sharedResourcePools.get(sharedAllocation.getResourcePoolName());
-      if(resourcePageSource == null) {
-        throw new ResourceConfigurationException("Shared pool named '" + sharedAllocation.getResourcePoolName() + "' undefined.");
-      }
 
-    } else {
-      throw new IllegalMessageException("Unexpected PoolAllocation type: " + allocation.getClass().getName());
-    }
-
-    ServerStoreImpl serverStore = new ServerStoreImpl(storeConfiguration, resourcePageSource);
+    ServerStoreImpl serverStore = serverStoreManager.createStore(name, storeConfiguration);
     serverStore.setEvictionListener(new ServerStoreEvictionListener() {
       @Override
       public void onEviction(long key) {
         invalidateHashAfterEviction(name, key);
       }
     });
-    stores.put(name, serverStore);
     attachStore(clientDescriptor, name);
   }
 
@@ -761,7 +613,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
-    if (!isConfigured()) {
+    if (!serverStoreManager.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
@@ -769,7 +621,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
 
     LOGGER.info("Client {} validating clustered tier '{}'", clientDescriptor, name);
-    ServerStoreImpl store = stores.get(name);
+    ServerStoreImpl store = serverStoreManager.getStore(name);
     if (store != null) {
       storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
       attachStore(clientDescriptor, name);
@@ -794,14 +646,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
-    if (!isConfigured()) {
+    if (!serverStoreManager.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
     String name = releaseServerStore.getName();
 
     LOGGER.info("Client {} releasing clustered tier '{}'", clientDescriptor, name);
-    ServerStoreImpl store = stores.get(name);
+    ServerStoreImpl store = serverStoreManager.getStore(name);
     if (store != null) {
 
       boolean removedFromClient = clientState.removeStore(name);
@@ -831,7 +683,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
     }
-    if (!isConfigured()) {
+    if (!serverStoreManager.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
 
@@ -843,113 +695,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
 
     LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
-    final ServerStoreImpl store = stores.remove(name);
-    if (store == null) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
-    } else {
-      /*
-       * A ServerStore using a dedicated resource pool is the only referent to that pool.  When such a
-       * ServerStore is destroyed, the associated dedicated resource pool must also be discarded.
-       */
-      ResourcePageSource expectedPageSource = dedicatedResourcePools.get(name);
-      if (expectedPageSource != null) {
-        if (store.getPageSource() == expectedPageSource) {
-          dedicatedResourcePools.remove(name);
-          releasePool("dedicated", name, expectedPageSource);
-        } else {
-          LOGGER.error("Client {} attempting to destroy clustered tier '{}' with unmatched page source", clientDescriptor, name);
-        }
-      }
-
-      storeClientMap.remove(name);
-      store.close();
-    }
-  }
-
-  private static Map<String, Pool> resolveResourcePools(ServerSideConfiguration configuration) throws InvalidServerSideConfigurationException {
-    Map<String, Pool> pools = new HashMap<String, Pool>();
-    for (Map.Entry<String, Pool> e : configuration.getResourcePools().entrySet()) {
-      Pool pool = e.getValue();
-      if (pool.getServerResource() == null) {
-        if (configuration.getDefaultServerResource() == null) {
-          throw new InvalidServerSideConfigurationException("Pool '" + e.getKey() + "' has no defined server resource, and no default value was available");
-        } else {
-          pools.put(e.getKey(), new Pool(pool.getSize(), configuration.getDefaultServerResource()));
-        }
-      } else {
-        pools.put(e.getKey(), pool);
-      }
-    }
-    return Collections.unmodifiableMap(pools);
-  }
-
-  private Map<String, ResourcePageSource> createPools(Map<String, Pool> resourcePools) throws ResourceConfigurationException {
-    Map<String, ResourcePageSource> pools = new HashMap<String, ResourcePageSource>();
-    try {
-      for (Entry<String, Pool> e : resourcePools.entrySet()) {
-        pools.put(e.getKey(), createPageSource(e.getKey(), e.getValue()));
-      }
-    } catch (ResourceConfigurationException e) {
-      /*
-       * If we fail during pool creation, back out any pools successfully created during this call.
-       */
-      if (!pools.isEmpty()) {
-        LOGGER.warn("Failed to create shared resource pools; reversing reservations", e);
-        releasePools("shared", pools);
-      }
-      throw e;
-    } catch (RuntimeException e) {
-      /*
-       * If we fail during pool creation, back out any pools successfully created during this call.
-       */
-      if (!pools.isEmpty()) {
-        LOGGER.warn("Failed to create shared resource pools; reversing reservations", e);
-        releasePools("shared", pools);
-      }
-      throw e;
-    }
-    return pools;
-  }
-
-  private ResourcePageSource createPageSource(String poolName, Pool pool) throws ResourceConfigurationException {
-    ResourcePageSource pageSource;
-    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
-    if (source == null) {
-      throw new ResourceConfigurationException("Non-existent server side resource '" + pool.getServerResource() +
-                                               "'. Available resources are: " + offHeapResourceIdentifiers);
-    } else if (source.reserve(pool.getSize())) {
-      try {
-        pageSource = new ResourcePageSource(pool);
-      } catch (RuntimeException t) {
-        source.release(pool.getSize());
-        throw new ResourceConfigurationException("Failure allocating pool " + pool, t);
-      }
-      LOGGER.info("Reserved {} bytes from resource '{}' for pool '{}'", pool.getSize(), pool.getServerResource(), poolName);
-    } else {
-      throw new ResourceConfigurationException("Insufficient defined resources to allocate pool " + poolName + "=" + pool);
-    }
-    return pageSource;
-  }
-
-  private void releasePools(String poolType, Map<String, ResourcePageSource> resourcePools) {
-    if (resourcePools == null) {
-      return;
-    }
-    final Iterator<Entry<String, ResourcePageSource>> dedicatedPoolIterator = resourcePools.entrySet().iterator();
-    while (dedicatedPoolIterator.hasNext()) {
-      Entry<String, ResourcePageSource> poolEntry = dedicatedPoolIterator.next();
-      releasePool(poolType, poolEntry.getKey(), poolEntry.getValue());
-      dedicatedPoolIterator.remove();
-    }
-  }
-
-  private void releasePool(String poolType, String poolName, ResourcePageSource resourcePageSource) {
-    Pool pool = resourcePageSource.getPool();
-    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
-    if (source != null) {
-      source.release(pool.getSize());
-      LOGGER.info("Released {} bytes from resource '{}' for {} pool '{}'", pool.getSize(), pool.getServerResource(), poolType, poolName);
-    }
+    serverStoreManager.destroyServerStore(name);
+    storeClientMap.remove(name);
   }
 
   /**
@@ -1060,43 +807,4 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
-  /**
-   * Pairs a {@link Pool} and an {@link UpfrontAllocatingPageSource} instance providing storage
-   * for the pool.
-   */
-  private static class ResourcePageSource implements PageSource {
-    /**
-     * A description of the resource allocation underlying this {@code PageSource}.
-     */
-    private final Pool pool;
-    private final UpfrontAllocatingPageSource delegatePageSource;
-
-    private ResourcePageSource(Pool pool) {
-      this.pool = pool;
-      this.delegatePageSource = new UpfrontAllocatingPageSource(new OffHeapBufferSource(), pool.getSize(), GIGABYTES.toBytes(1), MEGABYTES.toBytes(128));
-    }
-
-    private Pool getPool() {
-      return pool;
-    }
-
-    @Override
-    public Page allocate(int size, boolean thief, boolean victim, OffHeapStorageArea owner) {
-      return delegatePageSource.allocate(size, thief, victim, owner);
-    }
-
-    @Override
-    public void free(Page page) {
-      delegatePageSource.free(page);
-    }
-
-    @Override
-    public String toString() {
-      final StringBuilder sb = new StringBuilder("ResourcePageSource{");
-      sb.append("pool=").append(pool);
-      sb.append(", delegatePageSource=").append(delegatePageSource);
-      sb.append('}');
-      return sb.toString();
-    }
-  }
 }
