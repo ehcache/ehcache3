@@ -61,7 +61,7 @@ public class BasicClusteredCacheOpsTest {
 
   @ClassRule
   public static Cluster CLUSTER =
-      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, null);
+      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
 
   @BeforeClass
   public static void waitForActive() throws Exception {

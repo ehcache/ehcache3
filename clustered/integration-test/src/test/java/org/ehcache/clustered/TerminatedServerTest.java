@@ -165,7 +165,7 @@ public class TerminatedServerTest {
 
   // Included in 'ruleChain' below.
   private final Cluster cluster =
-      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, null);
+      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
 
   // The TestRule.apply method is called on the inner-most Rule first with the result being passed to each
   // successively outer rule until the outer-most rule is reached. For ExternalResource rules, the before
@@ -194,7 +194,7 @@ public class TerminatedServerTest {
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     new TimeLimitedTask<Void>(2, TimeUnit.SECONDS) {
       @Override
@@ -223,7 +223,7 @@ public class TerminatedServerTest {
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
       @Override
@@ -247,7 +247,7 @@ public class TerminatedServerTest {
     cacheManager.init();
     cacheManager.close();
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     clusteredCacheManagerBuilder =
         CacheManagerBuilder.newCacheManagerBuilder()
@@ -297,7 +297,7 @@ public class TerminatedServerTest {
 
     cacheManager.removeCache("simple-cache");
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     try {
       new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
@@ -325,7 +325,7 @@ public class TerminatedServerTest {
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     try {
       new TimeLimitedTask<Cache<Long, String>>(5, TimeUnit.SECONDS) {
@@ -359,7 +359,7 @@ public class TerminatedServerTest {
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
     cacheManager.init();
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
       @Override
@@ -393,7 +393,7 @@ public class TerminatedServerTest {
 
     assertThat(cache.get(2L), is(not(nullValue())));
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     String value = new TimeLimitedTask<String>(5, TimeUnit.SECONDS) {
       @Override
@@ -427,7 +427,7 @@ public class TerminatedServerTest {
 
     assertThat(cache.containsKey(2L), is(true));
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     boolean value = new TimeLimitedTask<Boolean>(5, TimeUnit.SECONDS) {
       @Override
@@ -460,7 +460,7 @@ public class TerminatedServerTest {
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     Iterator<Cache.Entry<Long, String>> value = new TimeLimitedTask<Iterator<Cache.Entry<Long,String>>>(5, TimeUnit.SECONDS) {
       @Override
@@ -493,7 +493,7 @@ public class TerminatedServerTest {
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     try {
       new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
@@ -530,7 +530,7 @@ public class TerminatedServerTest {
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     try {
       new TimeLimitedTask<String>(5, TimeUnit.SECONDS) {
@@ -566,7 +566,7 @@ public class TerminatedServerTest {
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     try {
       new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
@@ -603,7 +603,7 @@ public class TerminatedServerTest {
     cache.put(2L, "deux");
     cache.put(3L, "trois");
 
-    cluster.getClusterControl().tearDown();
+    cluster.getClusterControl().terminateAllServers();
 
     try {
       new TimeLimitedTask<Void>(5, TimeUnit.SECONDS) {
