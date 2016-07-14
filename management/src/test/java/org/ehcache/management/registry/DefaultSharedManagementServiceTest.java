@@ -35,12 +35,12 @@ import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.primitive.Counter;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.concurrent.ExecutionException;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -180,7 +180,7 @@ public class DefaultSharedManagementServiceTest {
   }
 
   @Test
-  public void testCall() {
+  public void testCall() throws ExecutionException {
     List<Context> contextList = Arrays.asList(
         Context.empty()
             .with("cacheManagerName", "myCM1")
@@ -208,7 +208,7 @@ public class DefaultSharedManagementServiceTest {
     cacheManager1.getCache("aCache4", Long.class, String.class).put(4L, "4");
     assertThat(cacheManager1.getCache("aCache4", Long.class, String.class).get(4L), equalTo("4"));
 
-    ResultSet<ContextualReturn<Serializable>> results = service.withCapability("ActionsCapability")
+    ResultSet<? extends ContextualReturn<?>> results = service.withCapability("ActionsCapability")
         .call("clear")
         .on(contextList)
         .build()
@@ -216,10 +216,10 @@ public class DefaultSharedManagementServiceTest {
 
     assertThat(results.size(), Matchers.equalTo(4));
 
-    assertThat(results.getResult(contextList.get(0)).hasValue(), is(true));
-    assertThat(results.getResult(contextList.get(1)).hasValue(), is(true));
-    assertThat(results.getResult(contextList.get(2)).hasValue(), is(true));
-    assertThat(results.getResult(contextList.get(3)).hasValue(), is(false));
+    assertThat(results.getResult(contextList.get(0)).hasExecuted(), is(true));
+    assertThat(results.getResult(contextList.get(1)).hasExecuted(), is(true));
+    assertThat(results.getResult(contextList.get(2)).hasExecuted(), is(true));
+    assertThat(results.getResult(contextList.get(3)).hasExecuted(), is(false));
 
     assertThat(results.getResult(contextList.get(0)).getValue(), is(nullValue()));
     assertThat(results.getResult(contextList.get(1)).getValue(), is(nullValue()));
