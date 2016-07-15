@@ -9,24 +9,63 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
-== Getting started with Ehcache 3.0 & JSR-107
+== JCache overview
 
-There is nothing special for you to do to use Ehcache 3.0 as the caching provider for your application: add the
-`ehcache-3.0.0.jar` to your application's classpath (possibly removing the previous provider's jar) and you are ready to
-go:
+JCache (aka JSR-107) specification defines the standard caching API for Java.
+The specification was developed under the Java Community Process v2.9 by an expert group including members from the Ehcache developer community.
+JCache provides a very simple API set that is easy to use and vendor neutral.
 
-[source,java]
-----
-CachingProvider provider = Caching.getCachingProvider(); // <1>
-CacheManager cacheManager = provider.getCacheManager(); // <2>
-----
-<1> Retrieves the default `CachingProvider`, this should be `org.ehcache.jsr107.EhcacheCachingProvider`.
-    You can also force use of `org.ehcache.jsr107.EhcacheCachingProvider` by using the `Caching.getCachingProvider(String)` static method instead.
-<2> Retrieve the default `CacheManager` instance using the provider.
+Being one of the pioneers in the Java caching domain, Ehcache had to offer an implementation that is fully compliant with the JCache specification.
+
+For years the biggest problems that application developers have faced while wanting to try cache implementations by different vendors is the stark contrast in the APIs offered by these vendors.
+Developers were forced to rewrite a whole lot of their caching related code in an application just to try out a new caching solution.
+This lead to developers sticking with what they had as the bar to investigating other products was too high.
+
+The availability of the JCache specification gives real added value for developers as there is now a standard caching API they can use.
+So it is easier for an application developer to switch between products by different vendors and choose the one that suits them best without changing a single line of their application code interacting with caches.
+All they have to do is swap the caching library from one vendor with another.
+Unless they use vendor specific APIs or configurations, this swap will be transparent.
+
+This document covers the basic usage of JCache API with Ehcache's implementation.
+Complete details on the JCache specification can be found https://www.jcp.org/en/jsr/detail?id=107[here].
+
+== Getting started with Ehcache 3 & JCache
+
+There is nothing special for you to do to use Ehcache 3 as the caching provider for your application:
+add the `ehcache-3.x.x.jar` to your application's classpath (possibly removing the previous provider's jar) and you are ready to go.
 
 NOTE: See http://www.ehcache.org/#using_jsr107_api[the section on using Ehcache 3 and JSR-107] for details on required libraries.
 
+In addition to the `Cache` interface, JCache specification has defined two more interfaces: `CachingProvider` and `CacheManager`.
+Applications need to use a `CacheManager` to create/retrieve a `Cache`.
+Similarly a `CachingProvider` is required to get/access a `CacheManager`.
+
+Here is a sample code that demonstrates the usage of basic JCache configuration APIs:
+
+[source,java]
+----
+include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=basicConfigurationExample]
+----
+<1> Retrieves the default `CachingProvider` implementation from the application's classpath.
+    This method will work if and only if there is only one JCache implementation jar in the classpath.
+    If there are multiple providers in your classpath then use the fully qualified name `org.ehcache.jsr107.EhcacheCachingProvider` to retrieve the Ehcache caching provider.
+    You can do this by using the `Caching.getCachingProvider(String)` static method instead.
+<2> Retrieve the default `CacheManager` instance using the provider.
+<3> Create a cache configuration using `MutableConfiguration`...
+<4> with key type and value type as `Long` and `String` respectively...
+<5> configured to store the cache entries by reference(not by value)...
+<6> and with an expiry time of one minute defined for entries from the moment they are created.
+<7> Using the cache manager, create a cache named `jCache` with the configuration created in step <3>
+<8> Put some data into the cache.
+<9> Retrieve the data from the same cache.
+
 == JSR-107 and Ehcache configuration integration
+
+As mentioned already the JCache specification offers a minimal set of configuration that is ideal for an in-memory cache.
+But Ehcache native APIs support topologies that are much more complex and provides more features.
+At times application developers might want to configure caches that are much complex (in terms of topology or features)
+than the ones that JCache `MutableConfiguration` permits and still be able to use the JCache's caching APIs.
+Ehcache provides several ways to achieve that and this section covers the same.
 
 === Starting from JSR-107 created caches
 
