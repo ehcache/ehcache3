@@ -633,6 +633,42 @@ public class XmlConfigurationTest {
     assertThat(sizeOfEngineConfig1, notNullValue());
     assertEquals(sizeOfEngineConfig1.getMaxObjectGraphSize(), 500);
     assertEquals(sizeOfEngineConfig1.getMaxObjectSize(), 200000);
+
+    CacheConfiguration<?, ?> cacheConfig2 = xmlConfig.getCacheConfigurations().get("usesPartialOneConfiguredInCache");
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig2 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig2.getServiceConfigurations());
+
+    assertThat(sizeOfEngineConfig2, notNullValue());
+    assertThat(sizeOfEngineConfig2.getMaxObjectGraphSize(), is(500L));
+    assertThat(sizeOfEngineConfig2.getMaxObjectSize(), is(Long.MAX_VALUE));
+
+    CacheConfiguration<?, ?> cacheConfig3 = xmlConfig.getCacheConfigurations().get("usesPartialTwoConfiguredInCache");
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig3 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig3.getServiceConfigurations());
+
+    assertThat(sizeOfEngineConfig3, notNullValue());
+    assertThat(sizeOfEngineConfig3.getMaxObjectGraphSize(), is(1000L));
+    assertThat(sizeOfEngineConfig3.getMaxObjectSize(), is(200000L));
+  }
+
+  @Test
+  public void testCacheManagerDefaultObjectGraphSize() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-one.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+
+    assertThat(sizeOfEngineProviderConfig, notNullValue());
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), is(1000L));
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectSize(), is(100000L));
+  }
+
+  @Test
+  public void testCacheManagerDefaultObjectSize() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-two.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+
+    assertThat(sizeOfEngineProviderConfig, notNullValue());
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), is(200L));
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectSize(), is(Long.MAX_VALUE));
   }
 
   @Test

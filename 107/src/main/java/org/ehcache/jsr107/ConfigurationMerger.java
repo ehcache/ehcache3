@@ -18,11 +18,15 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.core.InternalCache;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.jsr107.config.ConfigurationElementState;
+import org.ehcache.jsr107.config.Jsr107CacheConfiguration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.copy.Copier;
@@ -119,6 +123,8 @@ class ConfigurationMerger {
       }
 
       CacheConfiguration<K, V> cacheConfiguration = builder.build();
+
+      setupManagementAndStatsInternal(jsr107Configuration, findSingletonAmongst(Jsr107CacheConfiguration.class, cacheConfiguration.getServiceConfigurations()));
 
       if (hasConfiguredExpiry) {
         expiryPolicy = new EhcacheExpiryWrapper<K, V>(cacheConfiguration.getExpiry());
@@ -259,6 +265,33 @@ class ConfigurationMerger {
       return null;
     } else {
       return new Eh107CacheLoaderWriter<K, V>(cacheLoader, config.isReadThrough(), cacheWriter, config.isWriteThrough());
+    }
+  }
+
+  void setUpManagementAndStats(InternalCache<?, ?> cache, Eh107Configuration<?, ?> configuration) {
+    Jsr107CacheConfiguration cacheConfiguration = ServiceLocator.findSingletonAmongst(Jsr107CacheConfiguration.class, cache
+        .getRuntimeConfiguration().getServiceConfigurations());
+    setupManagementAndStatsInternal(configuration, cacheConfiguration);
+  }
+
+  private void setupManagementAndStatsInternal(Eh107Configuration<?, ?> configuration, Jsr107CacheConfiguration cacheConfiguration) {
+    ConfigurationElementState enableManagement = jsr107Service.isManagementEnabledOnAllCaches();
+    ConfigurationElementState enableStatistics = jsr107Service.isStatisticsEnabledOnAllCaches();
+    if (cacheConfiguration != null) {
+      ConfigurationElementState managementEnabled = cacheConfiguration.isManagementEnabled();
+      if (managementEnabled != null && managementEnabled != ConfigurationElementState.UNSPECIFIED) {
+        enableManagement = managementEnabled;
+      }
+      ConfigurationElementState statisticsEnabled = cacheConfiguration.isStatisticsEnabled();
+      if (statisticsEnabled != null && statisticsEnabled != ConfigurationElementState.UNSPECIFIED) {
+        enableStatistics = statisticsEnabled;
+      }
+    }
+    if (enableManagement != null && enableManagement != ConfigurationElementState.UNSPECIFIED) {
+      configuration.setManagementEnabled(enableManagement.asBoolean());
+    }
+    if (enableStatistics != null && enableStatistics != ConfigurationElementState.UNSPECIFIED) {
+      configuration.setStatisticsEnabled(enableStatistics.asBoolean());
     }
   }
 

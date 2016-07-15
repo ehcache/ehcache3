@@ -38,6 +38,7 @@ import org.ehcache.xml.model.ExpiryType;
 import org.ehcache.xml.model.Heap;
 import org.ehcache.xml.model.ListenersType;
 import org.ehcache.xml.model.MemoryType;
+import org.ehcache.xml.model.ObjectFactory;
 import org.ehcache.xml.model.Offheap;
 import org.ehcache.xml.model.PersistableMemoryType;
 import org.ehcache.xml.model.PersistenceType;
@@ -67,6 +68,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -125,7 +127,6 @@ class ConfigurationParser {
     factory.setNamespaceAware(true);
     factory.setIgnoringComments(true);
     factory.setIgnoringElementContentWhitespace(true);
-    factory.setXIncludeAware(true);
     factory.setSchema(XSD_SCHEMA_FACTORY.newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
 
     DocumentBuilder domBuilder = factory.newDocumentBuilder();
@@ -174,8 +175,9 @@ class ConfigurationParser {
     return config.getThreadPools();
   }
 
-  public SizeofType getHeapStore() {
-    return config.getHeapStore();
+  public SizeOfEngineLimits getHeapStore() {
+    SizeofType type = config.getHeapStore();
+    return type == null ? null : new XmlSizeOfEngineLimits(type);
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -329,13 +331,17 @@ class ConfigurationParser {
 
           @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
-            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
+            Map<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>> configsMap =
+                new HashMap<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>>();
             for (BaseCacheType source : sources) {
               for (Element child : source.getServiceConfiguration()) {
-                configs.add(parseCacheExtension(child));
+                ServiceConfiguration<?> serviceConfiguration = parseCacheExtension(child);
+                if (!configsMap.containsKey(serviceConfiguration.getClass())) {
+                  configsMap.put(serviceConfiguration.getClass(), serviceConfiguration);
+                }
               }
             }
-            return configs;
+            return configsMap.values();
           }
 
           @Override
@@ -864,17 +870,32 @@ class ConfigurationParser {
 
     @Override
     public long getMaxObjectGraphSize() {
-      return sizeoflimits.getMaxObjectGraphSize().getValue().longValue();
+      SizeofType.MaxObjectGraphSize value = sizeoflimits.getMaxObjectGraphSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectGraphSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public long getMaxObjectSize() {
-      return sizeoflimits.getMaxObjectSize().getValue().longValue();
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public MemoryUnit getUnit() {
-      return MemoryUnit.valueOf(sizeoflimits.getMaxObjectSize().getUnit().value().toUpperCase());
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return MemoryUnit.valueOf(new ObjectFactory().createMemoryType().getUnit().value().toUpperCase());
+      } else {
+        return MemoryUnit.valueOf(value.getUnit().value().toUpperCase());
+      }
     }
 
   }

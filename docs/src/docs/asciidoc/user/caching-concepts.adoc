@@ -9,6 +9,7 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
+[[data-freshness-and-expiration]]
 == Data Freshness and Expiration
 
 === Data Freshness

@@ -164,7 +164,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         ResourcePools configuredPools = (ResourcePools)event.getOldValue();
         if(updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize() !=
             configuredPools.getPoolForResource(ResourceType.Core.HEAP).getSize()) {
-          LOG.info("Setting size: " + updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
+          LOG.info("Updating size to: {}", updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
           SizedResourcePool pool = updatedPools.getPoolForResource(ResourceType.Core.HEAP);
           if (pool.getUnit() instanceof MemoryUnit) {
             capacity = ((MemoryUnit)pool.getUnit()).toBytes(pool.getSize());
@@ -642,7 +642,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.map = map.clear();
   }
 
-  private void invalidate() {
+  public void invalidate() {
     for(K key : map.keySet()) {
       try {
         invalidate(key);

@@ -15,9 +15,12 @@
  */
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.Cache;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -139,6 +142,25 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
       });
     } catch (ComputationException ce) {
       throw ce.getStoreAccessException();
+    }
+  }
+
+  public void invalidate() {
+    // Fix for 919 introduced this ugly method
+    // After the 3.0 line, this is done through proper abstractions
+    if (higher instanceof OnHeapStore) {
+      ((OnHeapStore) higher).invalidate();
+    }
+    if (lower instanceof AbstractOffHeapStore) {
+      AbstractOffHeapStore<K, V> offHeapStore = (AbstractOffHeapStore) lower;
+      Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = offHeapStore.iterator();
+      while (iterator.hasNext()) {
+        try {
+          offHeapStore.invalidate(iterator.next().getKey());
+        } catch (StoreAccessException e) {
+          LOGGER.warn("Error during invalidation", e);
+        }
+      }
     }
   }
 

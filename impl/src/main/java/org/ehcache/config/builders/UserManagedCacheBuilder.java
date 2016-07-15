@@ -264,7 +264,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
           throw new RuntimeException(e);
         } else {
-          LOGGER.info("Could not create serializers for user managed cache " + id, e);
+          LOGGER.debug("Could not create serializers for user managed cache {}", id, e);
         }
       }
     }
@@ -453,7 +453,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @param expiry the expiry to use
    * @return a new builer with the added expiry
    */
-  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<K, V> expiry) {
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<? super K, ? super V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }

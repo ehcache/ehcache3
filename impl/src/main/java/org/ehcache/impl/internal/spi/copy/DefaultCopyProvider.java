@@ -82,7 +82,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
     } else {
       copier = createCopier(clazz, conf, type);
     }
-    LOG.info("Copier for <{}> : {}", clazz.getName(), copier);
+    LOG.debug("Copier for <{}> : {}", clazz.getName(), copier);
     return copier;
   }
 

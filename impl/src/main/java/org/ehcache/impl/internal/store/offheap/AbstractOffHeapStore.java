@@ -16,8 +16,10 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -49,6 +51,7 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.internal.store.BinaryValueHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.offheapstore.Segment;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.statistics.StatisticsManager;
@@ -96,6 +99,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private final OperationObserver<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome> getAndRemoveObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.InstallMappingOutcome> installMappingObserver;
 
+  private final OperationObserver<EmergencyValveOutcome> emergencyValveObserver;
+
+  private final OffHeapStoreStatsSettings offHeapStoreStatsSettings;
+
   private volatile Callable<Void> valve;
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
   private volatile CachingTier.InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
@@ -108,6 +115,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.timeSource = timeSource;
     this.eventDispatcher = eventDispatcher;
 
+    this.offHeapStoreStatsSettings = new OffHeapStoreStatsSettings(this);
+    StatisticsManager.associate(offHeapStoreStatsSettings).withParent(this);
     this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(statisticsTag).build();
     this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(statisticsTag).build();
     this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(statisticsTag).build();
@@ -127,6 +136,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.invalidateObserver = operation(LowerCachingTierOperationsOutcome.InvalidateOutcome.class).of(this).named("invalidate").tag(statisticsTag).build();
     this.getAndRemoveObserver= operation(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class).of(this).named("getAndRemove").tag(statisticsTag).build();
     this.installMappingObserver= operation(LowerCachingTierOperationsOutcome.InstallMappingOutcome.class).of(this).named("installMapping").tag(statisticsTag).build();
+
+    this.emergencyValveObserver = operation(EmergencyValveOutcome.class).of(this).named("emergencyValve").tag(statisticsTag).build();
 
     StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", Collections.singleton(statisticsTag), new Callable<Number>() {
       @Override
@@ -273,6 +284,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     final AtomicReference<OffHeapValueHolder<V>> replacedVal = new AtomicReference<OffHeapValueHolder<V>>(null);
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
     try {
+      AtomicBoolean invokeValve = new AtomicBoolean(true);
       while (true) {
         final long now = timeSource.getTimeMillis();
         try {
@@ -297,7 +309,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
           }, false);
           break;
         } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex, eventSink);
+          handleOversizeMappingException(key, ex, invokeValve, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -332,6 +344,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     final StoreEventSink<K, V> eventSink = eventDispatcher.eventSink();
 
     try {
+      AtomicBoolean invokeValve = new AtomicBoolean(true);
       while (true) {
         try {
           backingMap().compute(key, new BiFunction<K, OffHeapValueHolder<V>, OffHeapValueHolder<V>>() {
@@ -362,7 +375,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
             return resultHolder;
           }
         } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex, eventSink);
+          handleOversizeMappingException(key, ex, invokeValve, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -496,12 +509,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
     };
     try {
+      AtomicBoolean invokeValve = new AtomicBoolean(true);
       while (true) {
         try {
           backingMap().compute(key, mappingFunction, false);
           break;
         } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex, eventSink);
+          handleOversizeMappingException(key, ex, invokeValve, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -555,12 +569,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     };
 
     try {
+      AtomicBoolean invokeValve = new AtomicBoolean(true);
       while (true) {
         try {
           backingMap().compute(key, mappingFunction, false);
           break;
         } catch (OversizeMappingException ex) {
-          handleOversizeMappingException(key, ex, eventSink);
+          handleOversizeMappingException(key, ex, invokeValve, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -690,12 +705,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     OffHeapValueHolder<V> result;
     try {
+      AtomicBoolean invokeValve = new AtomicBoolean(true);
       while (true) {
         try {
           result = backingMap().compute(key, computeFunction, false);
           break;
         } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e, eventSink);
+          handleOversizeMappingException(key, e, invokeValve, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -775,12 +791,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
     OffHeapValueHolder<V> computeResult;
     try {
+      AtomicBoolean invokeValve = new AtomicBoolean(true);
       while (true) {
         try {
           computeResult = backingMap().compute(key, computeFunction, fault);
           break;
         } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e, eventSink);
+          handleOversizeMappingException(key, e, invokeValve, eventSink);
         } catch (RuntimeException re) {
           handleRuntimeException(re);
         }
@@ -1095,12 +1112,13 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     };
     OffHeapValueHolder<V> computeResult;
     try {
+      AtomicBoolean invokeValve = new AtomicBoolean(true);
       while (true) {
         try {
           computeResult = backingMap().compute(key, computeFunction, false);
           break;
         } catch (OversizeMappingException e) {
-          handleOversizeMappingException(key, e, null);
+          handleOversizeMappingException(key, e, invokeValve, null);
         }
       }
       if (computeResult != null) {
@@ -1200,11 +1218,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     }
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause, StoreEventSink<K, V> eventSink) throws StoreAccessException {
+  void handleOversizeMappingException(K key, OversizeMappingException cause, StoreEventSink<K, V> eventSink) throws StoreAccessException {
     handleOversizeMappingException(key, cause, null, eventSink);
   }
 
-  public void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve, StoreEventSink<K, V> eventSink) throws StoreAccessException {
+  void handleOversizeMappingException(K key, OversizeMappingException cause, AtomicBoolean invokeValve, StoreEventSink<K, V> eventSink) throws StoreAccessException {
     if (eventSink != null) {
       eventDispatcher.reset(eventSink);
     }
@@ -1230,7 +1248,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   }
 
   private boolean invokeValve(final AtomicBoolean invokeValve) throws StoreAccessException {
+    emergencyValveObserver.begin();
     if(invokeValve == null || !invokeValve.get()) {
+      emergencyValveObserver.end(EmergencyValveOutcome.IGNORED);
       return false;
     }
     invokeValve.set(false);
@@ -1240,6 +1260,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
         valve.call();
       } catch (Exception exception) {
         throw new StoreAccessException("Failed invoking valve", exception);
+      } finally {
+        emergencyValveObserver.end(EmergencyValveOutcome.INVOKED);
       }
     }
     return true;
@@ -1347,6 +1369,20 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
       invalidationListener.onInvalidation(key, value);
       evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
+    }
+  }
+
+  public enum EmergencyValveOutcome {
+    INVOKED,
+    IGNORED
+  }
+
+  private static final class OffHeapStoreStatsSettings {
+    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("store"));
+    @ContextAttribute("authoritativeTier") private final AbstractOffHeapStore<?, ?> authoritativeTier;
+
+    OffHeapStoreStatsSettings(AbstractOffHeapStore<?, ?> store) {
+      this.authoritativeTier = store;
     }
   }
 }
