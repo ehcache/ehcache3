@@ -21,56 +21,147 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.CacheManagerConfiguration;
-import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
 
-import static java.util.Collections.unmodifiableMap;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 
 /**
  * Specifies the configuration for a {@link ClusteringService}.
  */
 // TODO: Should this accept/hold a *list* of URIs?
-public final class ClusteringServiceConfiguration
+// TODO: Determine proper place for setting readOperationTimeout default
+public class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<PersistentCacheManager> {
 
-  private final URI clusterUri;
-  private final String defaultServerResource;
-  private final Map<String, PoolDefinition> pools;
+  private static final String CLUSTER_SCHEME = "terracotta";
 
-  public ClusteringServiceConfiguration(final URI clusterUri, String defaultServerResource, Map<String, PoolDefinition> pools) {
-    if (clusterUri == null) {
-      throw new NullPointerException("Cluster URI cannot be null");
-    }
-    if (defaultServerResource == null) {
-      throw new NullPointerException("Default server resource cannot be null");
-    }
+  private final URI clusterUri;
+  private final boolean autoCreate;
+  private final ServerSideConfiguration serverConfiguration;
+  private final TimeoutDuration readOperationTimeout;
+
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   *
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
+   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
+   */
+  public ClusteringServiceConfiguration(final URI clusterUri) {
+    validateClusterUri(clusterUri);
     this.clusterUri = clusterUri;
-    this.defaultServerResource = defaultServerResource;
-    this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
+    this.autoCreate = false;
+    this.serverConfiguration = null;
+    this.readOperationTimeout = null;
   }
 
-  public ClusteringServiceConfiguration(URI clusterUri, Map<String, PoolDefinition> pools) {
-    if (clusterUri == null) {
-      throw new NullPointerException("Cluster URI cannot be null");
-    }
-    StringBuilder issues = new StringBuilder();
-    for (Entry<String, PoolDefinition> e : pools.entrySet()) {
-      if (e.getValue().getServerResource() == null) {
-        issues.append("Pool '").append(e.getKey()).append("' has no defined server resource, and no default value was supplied").append("\n");
-      }
-    }
-    if (issues.length() > 0) {
-      throw new IllegalArgumentException(issues.toString());
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
+   *                            read operations; if {@code null}, the default value is used
+   *
+   * @throws NullPointerException if {@code clusterUri} is {@code null}
+   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
+   */
+  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout) {
+    validateClusterUri(clusterUri);
+    this.clusterUri = clusterUri;
+    this.autoCreate = false;
+    this.serverConfiguration = null;
+    this.readOperationTimeout = readOperationTimeout;
+  }
+
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
+   *                            read operations; if {@code null}, the default value is used
+   * @param serverConfig  the server side entity configuration required
+   *
+   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
+   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
+   */
+  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout, ServerSideConfiguration serverConfig) {
+    validateClusterUri(clusterUri);
+    if (serverConfig == null) {
+      throw new NullPointerException("Server configuration cannot be null");
     }
     this.clusterUri = clusterUri;
-    this.defaultServerResource = null;
-    this.pools = unmodifiableMap(new HashMap<String, PoolDefinition>(pools));
+    this.autoCreate = false;
+    this.serverConfiguration = serverConfig;
+    this.readOperationTimeout = readOperationTimeout;
+  }
+
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param autoCreate {@code true} if server components should be auto created
+   * @param serverConfig  the server side entity configuration required
+   *
+   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
+   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
+   */
+  public ClusteringServiceConfiguration(final URI clusterUri, boolean autoCreate, ServerSideConfiguration serverConfig) {
+    validateClusterUri(clusterUri);
+    if (serverConfig == null) {
+      throw new NullPointerException("Server configuration cannot be null");
+    }
+    this.clusterUri = clusterUri;
+    this.autoCreate = autoCreate;
+    this.serverConfiguration = serverConfig;
+    this.readOperationTimeout = null;
+  }
+
+  /**
+   * Creates a {@code ClusteringServiceConfiguration} from the properties provided.
+   *
+   * @param clusterUri the non-{@code null} URI identifying the cluster server
+   * @param readOperationTimeout the {@code TimeoutDuration} specifying the time limit for clustered cache
+   *                            read operations; if {@code null}, the default value is used
+   * @param autoCreate {@code true} if server components should be auto created
+   * @param serverConfig  the server side entity configuration required
+   *
+   * @throws NullPointerException if {@code clusterUri} or {@code serverConfig} is {@code null}
+   * @throws IllegalArgumentException if {@code clusterUri} is not URI valid for cluster operations
+   */
+  public ClusteringServiceConfiguration(final URI clusterUri, final TimeoutDuration readOperationTimeout, boolean autoCreate, ServerSideConfiguration serverConfig) {
+    validateClusterUri(clusterUri);
+    if (serverConfig == null) {
+      throw new NullPointerException("Server configuration cannot be null");
+    }
+    this.clusterUri = clusterUri;
+    this.autoCreate = autoCreate;
+    this.serverConfiguration = serverConfig;
+    this.readOperationTimeout = readOperationTimeout;
+  }
+
+  protected ClusteringServiceConfiguration(ClusteringServiceConfiguration baseConfig) {
+    if (baseConfig == null) {
+      throw new NullPointerException("Base configuration cannot be null");
+    }
+
+    this.clusterUri = baseConfig.getClusterUri();
+    this.readOperationTimeout = baseConfig.getReadOperationTimeout();
+    this.autoCreate = baseConfig.isAutoCreate();
+    this.serverConfiguration = baseConfig.getServerConfiguration();
+  }
+
+  private static void validateClusterUri(URI clusterUri) {
+    if (clusterUri == null) {
+      throw new NullPointerException("Cluster URI cannot be null.");
+    }
+
+    if (!CLUSTER_SCHEME.equals(clusterUri.getScheme())) {
+      throw new IllegalArgumentException("Cluster Uri is not valid, clusterUri : " + clusterUri.toString());
+    }
   }
 
   /**
@@ -83,21 +174,30 @@ public final class ClusteringServiceConfiguration
   }
 
   /**
+   * Returns {@code true} is server side components should be automatically created.
+   *
+   * @return {@code true} is auto-create is enabled
+   */
+  public boolean isAutoCreate() {
+    return autoCreate;
+  }
+
+  /**
    * The default server resource to use for caches and pools, or {@code null} if one is not defined.
    *
    * @return the default server resource
    */
-  public String getDefaultServerResource() {
-    return defaultServerResource;
+  public ServerSideConfiguration getServerConfiguration() {
+    return serverConfiguration;
   }
 
   /**
-   * The map of pool definitions that can be used for clustered caches.
+   * The timeout for cache read operations.
    *
-   * @return the set of pools
+   * @return the cache read operation timeout; may be {@code null} indicating the default timeout is used
    */
-  public Map<String, PoolDefinition> getPools() {
-    return pools;
+  public TimeoutDuration getReadOperationTimeout() {
+    return readOperationTimeout;
   }
 
   @Override
@@ -109,82 +209,5 @@ public final class ClusteringServiceConfiguration
   @Override
   public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
     return (CacheManagerBuilder<PersistentCacheManager>) other.using(this);   // unchecked
-  }
-
-  /**
-   * The definition of a pool that can be shared by multiple caches.
-   */
-  public static final class PoolDefinition {
-
-    private final long size;
-    private final MemoryUnit unit;
-    private final String serverResource;
-
-    /**
-     * Creates a new pool definition with the given size, consuming the given server resource.
-     *
-     * @param size pool size
-     * @param unit pool size unit
-     * @param serverResource the server resource to consume
-     */
-    public PoolDefinition(long size, MemoryUnit unit, String serverResource) {
-      if (unit == null) {
-        throw new NullPointerException("Unit cannot be null");
-      }
-      if (size <= 0) {
-        throw new IllegalArgumentException("Pool must have a positive size");
-      }
-      if (serverResource == null) {
-        throw new NullPointerException("Source resource cannot be null");
-      }
-      this.size = size;
-      this.unit = unit;
-      this.serverResource = serverResource;
-    }
-
-    /**
-     * Creates a new pool definition with the given size, consuming the default server resource.
-     *
-     * @param size pool size
-     * @param unit pool size unit
-     */
-    public PoolDefinition(long size, MemoryUnit unit) {
-      if (unit == null) {
-        throw new NullPointerException("Unit cannot be null");
-      }
-      if (size <= 0) {
-        throw new IllegalArgumentException("Pool must have a positive size");
-      }
-      this.size = size;
-      this.unit = unit;
-      this.serverResource = null;
-    }
-
-    /**
-     * Returns the size of the pool.
-     *
-     * @return pool size
-     */
-    public long getSize() {
-      return size;
-    }
-
-    /**
-     * Returns the memory unit used for size.
-     *
-     * @return pool size unit
-     */
-    public MemoryUnit getUnit() {
-      return unit;
-    }
-
-    /**
-     * Returns the server resource consumed by this pool, or {@code null} if the default pool will be used.
-     *
-     * @return the server resource to consume
-     */
-    public String getServerResource() {
-      return serverResource;
-    }
   }
 }

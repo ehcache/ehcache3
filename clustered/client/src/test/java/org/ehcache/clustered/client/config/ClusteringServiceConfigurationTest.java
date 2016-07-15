@@ -16,41 +16,82 @@
 
 package org.ehcache.clustered.client.config;
 
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.junit.Test;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class ClusteringServiceConfigurationTest {
 
   @Test(expected = NullPointerException.class)
   public void testGetConnectionUrlNull() throws Exception {
-    new ClusteringServiceConfiguration(null, Collections.<String, PoolDefinition>emptyMap());
+    new ClusteringServiceConfiguration((URI)null);
   }
 
   @Test
   public void testGetConnectionUrl() throws Exception {
-    final URI connectionUrl = URI.create("http://localhost:9450");
-    assertThat(new ClusteringServiceConfiguration(connectionUrl, Collections.<String, PoolDefinition>emptyMap()).getClusterUri(), is(connectionUrl));
+    final URI connectionUrl = URI.create("terracotta://localhost:9450");
+    assertThat(new ClusteringServiceConfiguration(connectionUrl).getClusterUri(), is(connectionUrl));
+  }
+
+  @Test
+  public void testGetGetTimeout() throws Exception {
+    final URI connectionUrl = URI.create("terracotta://localhost:9450");
+    final TimeoutDuration getTimeout = TimeoutDuration.of(15, TimeUnit.SECONDS);
+    assertThat(new ClusteringServiceConfiguration(connectionUrl, getTimeout).getReadOperationTimeout(), is(getTimeout));
+
+    assertThat(new ClusteringServiceConfiguration(connectionUrl).getReadOperationTimeout(), is(nullValue()));
+    assertThat(new ClusteringServiceConfiguration(connectionUrl, null).getReadOperationTimeout(), is(nullValue()));
   }
 
   @Test
   public void testGetServiceType() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), Collections.<String, PoolDefinition>emptyMap()).getServiceType(),
+    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450")).getServiceType(),
         is(equalTo(ClusteringService.class)));
   }
 
   @Test
+  public void testGetAutoCreate() throws Exception {
+    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"), true,
+            new ServerSideConfiguration(Collections.<String, Pool>emptyMap())).isAutoCreate(),
+        is(true));
+  }
+
+  @Test
   public void testBuilder() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("http://localhost:9450"), Collections.<String, PoolDefinition>emptyMap())
+    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"))
         .builder(CacheManagerBuilder.newCacheManagerBuilder()), is(instanceOf(CacheManagerBuilder.class)));
+  }
+
+  @Test
+  public void testInvalidURI() {
+
+    URI uri = URI.create("http://localhost:9540");
+    try {
+      new ClusteringServiceConfiguration(uri);
+      fail();
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("Cluster Uri is not valid, clusterUri : http://localhost:9540"));
+    }
+  }
+
+  @Test
+  public void testValidURI() {
+    URI uri = URI.create("terracotta://localhost:9540");
+    ClusteringServiceConfiguration serviceConfiguration = new ClusteringServiceConfiguration(uri);
+
+    assertThat(serviceConfiguration.getClusterUri(), is(uri));
   }
 }

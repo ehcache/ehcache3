@@ -18,17 +18,16 @@ package org.ehcache.impl.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,17 +39,18 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayDeque;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 import static java.lang.Integer.toHexString;
 import static java.nio.charset.Charset.forName;
 
 import java.util.concurrent.ConcurrentMap;
+
+import org.ehcache.config.CacheConfiguration;
 
 /**
  * Default implementation of the {@link LocalPersistenceService} which can be used explicitly when
@@ -75,7 +75,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     ILLEGALS.add('.');
   }
 
-  private final ConcurrentMap<String, DefaultPersistenceSpaceIdentifier> knownPersistenceSpaces = new ConcurrentHashMap<String, DefaultPersistenceSpaceIdentifier>();
+  private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, PersistenceSpace>();
   private final File rootDirectory;
   private final File lockFile;
   private FileLock lock;
@@ -179,58 +179,72 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    */
   @Override
-  public Collection<ServiceConfiguration<?>> additionalConfigurationsForPool(String alias, ResourcePool pool) throws CachePersistenceException {
-    if (!ResourceType.Core.DISK.equals(pool.getType())) {
-      throw new IllegalArgumentException("Pool is of wrong resource type. Disk expected, received " + pool.getType());
-    }
-    if (!pool.isPersistent()) {
-      try {
-        destroy(alias);
-      } catch (CachePersistenceException cpex) {
-        throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + alias, cpex);
+  public PersistenceSpaceIdentifier<LocalPersistenceService> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
+    boolean persistent = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent();
+    while (true) {
+      PersistenceSpace persistenceSpace = knownPersistenceSpaces.get(name);
+      if (persistenceSpace != null) {
+        return persistenceSpace.identifier;
       }
-    }
-    try {
-      return Collections.<ServiceConfiguration<?>>singleton(getOrCreatePersistenceSpace(alias));
-    } catch (CachePersistenceException cpex) {
-      throw new RuntimeException("Unable to create persistence space for cache " + alias, cpex);
+      PersistenceSpace newSpace = createSpace(name, persistent);
+      if (newSpace != null) {
+        return newSpace.identifier;
+      }
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
-  public PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException {
-    PersistenceSpaceIdentifier existingSpace = knownPersistenceSpaces.get(name);
-    if (existingSpace != null) {
-      return existingSpace;
+  public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
+    String name = null;
+    for (Map.Entry<String, PersistenceSpace> entry : knownPersistenceSpaces.entrySet()) {
+      if (entry.getValue().identifier.equals(identifier)) {
+        name = entry.getKey();
+      }
     }
+    if (name == null) {
+      throw new CachePersistenceException("Unknown space " + identifier);
+    }
+    PersistenceSpace persistenceSpace = knownPersistenceSpaces.remove(name);
+    if (persistenceSpace != null) {
+      for (FileBasedStateRepository stateRepository : persistenceSpace.stateRepositories.values()) {
+        try {
+          stateRepository.close();
+        } catch (IOException e) {
+          LOGGER.warn("StateRepository close failed - destroying persistence space {} to prevent corruption", identifier, e);
+          destroy(name, (DefaultPersistenceSpaceIdentifier) identifier, true);
+        }
+      }
+    }
+  }
 
-    DefaultPersistenceSpaceIdentifier newSpace = new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name));
-    if ((existingSpace = knownPersistenceSpaces.putIfAbsent(name, newSpace)) == null) {
+  private PersistenceSpace createSpace(String name, boolean persistent) throws CachePersistenceException {
+    DefaultPersistenceSpaceIdentifier persistenceSpaceIdentifier = new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name));
+    PersistenceSpace persistenceSpace = new PersistenceSpace(persistenceSpaceIdentifier);
+    if (knownPersistenceSpaces.putIfAbsent(name, persistenceSpace) == null) {
       try {
-        create(newSpace.getDirectory());
+        if (!persistent) {
+          destroy(name, persistenceSpaceIdentifier, true);
+        }
+        create(persistenceSpaceIdentifier.getDirectory());
       } catch (IOException e) {
-        knownPersistenceSpaces.remove(name, newSpace);
+        knownPersistenceSpaces.remove(name, persistenceSpace);
         throw new CachePersistenceException("Unable to create persistence space for " + name, e);
       }
-      return newSpace;
+      return persistenceSpace;
     } else {
-      return existingSpace;
+      return null;
     }
   }
-
   /**
    * {@inheritDoc}
    */
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    DefaultPersistenceSpaceIdentifier space = knownPersistenceSpaces.remove(name);
+    PersistenceSpace space = knownPersistenceSpaces.remove(name);
     if (space == null) {
       destroy(name, new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name)), true);
     } else {
-      destroy(name, space, true);
+      destroy(name, space.identifier, true);
     }
   }
 
@@ -240,9 +254,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   @Override
   public void destroyAll() {
     if(recursiveDeleteDirectoryContent(rootDirectory)){
-      LOGGER.info("Destroyed all file based persistence context");
+      LOGGER.debug("Destroyed all file based persistence contexts");
     } else {
-      LOGGER.warn("Could not delete all file based persistence context");
+      LOGGER.warn("Could not delete all file based persistence contexts");
     }
   }
 
@@ -250,18 +264,68 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    */
   @Override
-  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier space, String name) throws CachePersistenceException {
-    if (knownPersistenceSpaces.containsValue(space)) {
-      File directory = new File(((DefaultPersistenceSpaceIdentifier) space).getDirectory(), name);
+  public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
+    PersistenceSpace persistenceSpace = getPersistenceSpace(identifier);
+    if (persistenceSpace != null) {
+      validateName(name);
+      File directory = new File(((DefaultPersistenceSpaceIdentifier) identifier).getDirectory(), name);
+      if (!directory.mkdirs()) {
+        if (!directory.exists()) {
+          throw new CachePersistenceException("Unable to create directory " + directory);
+        }
+      }
+      FileBasedStateRepository stateRepository = new FileBasedStateRepository(directory);
+      FileBasedStateRepository previous = persistenceSpace.stateRepositories.putIfAbsent(name, stateRepository);
+      if (previous != null) {
+        return previous;
+      } else {
+        return stateRepository;
+      }
+    }
+    throw new CachePersistenceException("Unknown space " + identifier);
+  }
+
+  private PersistenceSpace getPersistenceSpace(PersistenceSpaceIdentifier<?> identifier) {
+    for (PersistenceSpace persistenceSpace : knownPersistenceSpaces.values()) {
+      if (persistenceSpace.identifier.equals(identifier)) {
+        return persistenceSpace;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
+    if (containsSpace(identifier)) {
+      validateName(name);
+      File directory = new File(((DefaultPersistenceSpaceIdentifier) identifier).getDirectory(), name);
       try {
         create(directory);
       } catch (IOException ex) {
-        throw new CachePersistenceException("Unable to create persistence context for " + name + " in " + space);
+        throw new CachePersistenceException("Unable to create persistence context for " + name + " in " + identifier);
       }
       return new DefaultFileBasedPersistenceContext(directory);
     } else {
-      throw new CachePersistenceException("Unknown space: " + space);
+      throw new CachePersistenceException("Unknown space: " + identifier);
     }
+  }
+
+  private void validateName(String name) {
+    if (!name.matches("[a-zA-Z0-9\\-_]+")) {
+      throw new IllegalArgumentException("Name is invalid for persistence context: " + name);
+    }
+  }
+
+  private boolean containsSpace(PersistenceSpaceIdentifier<?> identifier) {
+    for (PersistenceSpace persistenceSpace : knownPersistenceSpaces.values()) {
+      if (persistenceSpace.identifier.equals(identifier)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   File getLockFile() {
@@ -282,9 +346,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private static void create(File directory) throws IOException, CachePersistenceException {
     if (directory.isDirectory()) {
-      LOGGER.info("Reusing " + directory.getAbsolutePath());
+      LOGGER.debug("Reusing {}", directory.getAbsolutePath());
     } else if (directory.mkdir()) {
-      LOGGER.info("Created " + directory.getAbsolutePath());
+      LOGGER.debug("Created {}", directory.getAbsolutePath());
     } else {
       throw new CachePersistenceException("Unable to create or reuse directory: " + directory.getAbsolutePath());
     }
@@ -292,7 +356,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private static void destroy(String identifier, DefaultPersistenceSpaceIdentifier fileBasedPersistenceContext, boolean verbose) {
     if (verbose) {
-      LOGGER.info("Destroying file based persistence context for {}", identifier);
+      LOGGER.debug("Destroying file based persistence context for {}", identifier);
     }
     if (fileBasedPersistenceContext.getDirectory().exists() && !tryRecursiveDelete(fileBasedPersistenceContext.getDirectory())) {
       if (verbose) {
@@ -308,7 +372,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } else {
       boolean deleteSuccessful = true;
       for (File f : contents) {
-        deleteSuccessful |= tryRecursiveDelete(f);
+        deleteSuccessful &= tryRecursiveDelete(f);
       }
       return deleteSuccessful;
     }
@@ -371,6 +435,10 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * @return sanitized version of name
    */
   private static String safeIdentifier(String name) {
+    return safeIdentifier(name, true);
+  }
+
+  static String safeIdentifier(String name, boolean withSha1) {
     int len = name.length();
     StringBuilder sb = new StringBuilder(len);
     for (int i = 0; i < len; i++) {
@@ -382,7 +450,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
         sb.append(c);
       }
     }
-    sb.append("_").append(sha1(name));
+    if (withSha1) {
+      sb.append("_").append(sha1(name));
+    }
     return sb.toString();
   }
 
@@ -403,12 +473,13 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public void create() {
-    //no-op
+  private static class PersistenceSpace {
+    final DefaultPersistenceSpaceIdentifier identifier;
+    final ConcurrentMap<String, FileBasedStateRepository> stateRepositories = new ConcurrentHashMap<String, FileBasedStateRepository>();
+
+    private PersistenceSpace(DefaultPersistenceSpaceIdentifier identifier) {
+      this.identifier = identifier;
+    }
   }
 
   private static abstract class FileHolder {
@@ -423,7 +494,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
 
   }
-  private static class DefaultPersistenceSpaceIdentifier extends FileHolder implements PersistenceSpaceIdentifier {
+  private static class DefaultPersistenceSpaceIdentifier extends FileHolder implements PersistenceSpaceIdentifier<LocalPersistenceService> {
 
     DefaultPersistenceSpaceIdentifier(File directory) {
       super(directory);

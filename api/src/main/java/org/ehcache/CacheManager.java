@@ -16,6 +16,7 @@
 
 package org.ehcache;
 
+import java.io.Closeable;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.Configuration;
@@ -23,7 +24,7 @@ import org.ehcache.config.Configuration;
 /**
  * A repository that manages {@link Cache}s and associated {@link org.ehcache.spi.service.Service Service}s.
  */
-public interface CacheManager {
+public interface CacheManager extends Closeable {
 
   /**
    * Creates a {@link Cache} in this {@code CacheManager} according to the specified {@link CacheConfiguration}.
@@ -115,6 +116,7 @@ public interface CacheManager {
    * @throws StateTransitionException if the {@code CacheManager} could not reach {@code UNINITIALIZED} cleanly
    * @throws IllegalStateException if the {@code CacheManager} is not {@code AVAILABLE}
    */
+  @Override
   void close() throws StateTransitionException;
 
   /**

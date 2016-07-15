@@ -19,6 +19,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -45,6 +46,7 @@ import org.mockito.stubbing.Answer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,6 +57,7 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.Collections.singleton;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -544,7 +547,7 @@ public class TieredStoreTest {
   }
 
   @Test
-  public void testReleaseStoreFlushes () throws StoreAccessException {
+  public void testReleaseStoreFlushes() throws Exception {
     TieredStore.Provider tieredStoreProvider = new TieredStore.Provider();
 
     ResourcePools resourcePools = mock(ResourcePools.class);
@@ -555,6 +558,8 @@ public class TieredStoreTest {
     when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.HEAP);
     when(resourcePools.getPoolForResource(ResourceType.Core.HEAP)).thenReturn(heapPool);
     OnHeapStore.Provider onHeapStoreProvider = mock(OnHeapStore.Provider.class);
+    Set<ResourceType<?>> singleton = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
+    when(onHeapStoreProvider.rankCachingTier(eq(singleton), any(Collection.class))).thenReturn(1);
     when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
         org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
         .thenReturn(stringCachingTier);
@@ -563,6 +568,7 @@ public class TieredStoreTest {
     when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.OFFHEAP);
     when(resourcePools.getPoolForResource(ResourceType.Core.OFFHEAP)).thenReturn(offHeapPool);
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
+    when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
     when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class),
         org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
         .thenReturn(stringAuthoritativeTier);
@@ -570,9 +576,15 @@ public class TieredStoreTest {
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(resourcePools);
 
+    Set<AuthoritativeTier.Provider> authorities = new HashSet<AuthoritativeTier.Provider>();
+    authorities.add(offHeapStoreProvider);
+    Set<CachingTier.Provider> cachingTiers = new HashSet<CachingTier.Provider>();
+    cachingTiers.add(onHeapStoreProvider);
     ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
     when(serviceProvider.getService(OnHeapStore.Provider.class)).thenReturn(onHeapStoreProvider);
     when(serviceProvider.getService(OffHeapStore.Provider.class)).thenReturn(offHeapStoreProvider);
+    when(serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class)).thenReturn(authorities);
+    when(serviceProvider.getServicesOfType(CachingTier.Provider.class)).thenReturn(cachingTiers);
     tieredStoreProvider.start(serviceProvider);
 
     final Store<String, String> tieredStore = tieredStoreProvider.createStore(configuration);
@@ -584,6 +596,8 @@ public class TieredStoreTest {
   @Test
   public void testRank() throws Exception {
     TieredStore.Provider provider = new TieredStore.Provider();
+    ServiceLocator serviceLocator = new ServiceLocator(provider);
+    serviceLocator.startAllServices();
 
     assertRank(provider, 0, ResourceType.Core.DISK);
     assertRank(provider, 0, ResourceType.Core.HEAP);
@@ -605,6 +619,10 @@ public class TieredStoreTest {
       @Override
       public boolean requiresSerialization() {
         return true;
+      }
+      @Override
+      public int getTierHeight() {
+        return 10;
       }
     };
     assertRank(provider, 0, unmatchedResourceType);

@@ -25,13 +25,13 @@ import org.terracotta.management.registry.StatisticQuery;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.Test;
-import org.terracotta.management.call.ContextualReturn;
-import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.stats.ContextualStatistics;
-import org.terracotta.management.stats.Sample;
-import org.terracotta.management.stats.history.CounterHistory;
-import org.terracotta.management.stats.primitive.Counter;
+import org.terracotta.management.model.call.ContextualReturn;
+import org.terracotta.management.model.capabilities.Capability;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.model.stats.Sample;
+import org.terracotta.management.model.stats.history.CounterHistory;
+import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -50,9 +50,6 @@ import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
-/**
- * @author Ludovic Orban, Mathoeu Carbou
- */
 public class DefaultManagementRegistryServiceTest {
 
   @Test
@@ -88,12 +85,14 @@ public class DefaultManagementRegistryServiceTest {
         .using(managementRegistry)
         .build(true);
 
-    assertThat(managementRegistry.getCapabilities(), hasSize(3));
+    assertThat(managementRegistry.getCapabilities(), hasSize(4));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("StatisticsCapability"));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("SettingsCapability"));
 
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors(), hasSize(14));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors(), hasSize(13));
 
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getCapabilityContext().getAttributes(), hasSize(2));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getCapabilityContext().getAttributes(), hasSize(2));

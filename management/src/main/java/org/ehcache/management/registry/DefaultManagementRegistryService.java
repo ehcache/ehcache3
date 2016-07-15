@@ -22,16 +22,18 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
+import org.ehcache.management.providers.settings.EhcacheSettingsProvider;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.AbstractManagementRegistry;
 import org.terracotta.management.registry.ManagementProvider;
 import org.terracotta.statistics.StatisticsManager;
@@ -43,11 +45,7 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
-
-/**
- * @author Ludovic Orban
- */
-@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class})
+@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class})
 public class DefaultManagementRegistryService extends AbstractManagementRegistry implements ManagementRegistryService, CacheManagerListener {
 
   private final ManagementRegistryServiceConfiguration configuration;
@@ -64,16 +62,14 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    this.statisticsExecutor = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getStatisticsExecutorAlias());
+    this.statisticsExecutor = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(getConfiguration().getStatisticsExecutorAlias());
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
     // initialize management capabilities (stats, action calls, etc)
-    addManagementProvider(new EhcacheActionProvider(getConfiguration().getContext()));
-    addManagementProvider(new EhcacheStatisticsProvider(
-        getConfiguration().getContext(),
-        getConfiguration().getConfigurationFor(EhcacheStatisticsProvider.class),
-        statisticsExecutor));
-    addManagementProvider(new EhcacheStatisticCollectorProvider(getConfiguration().getContext()));
+    addManagementProvider(new EhcacheActionProvider(getConfiguration()));
+    addManagementProvider(new EhcacheStatisticsProvider(getConfiguration(), statisticsExecutor));
+    addManagementProvider(new EhcacheStatisticCollectorProvider(getConfiguration()));
+    addManagementProvider(new EhcacheSettingsProvider(getConfiguration(), cacheManager));
 
     this.cacheManager.registerListener(this);
   }

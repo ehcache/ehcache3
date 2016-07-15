@@ -26,9 +26,9 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.context.ContextContainer;
+import org.terracotta.management.model.capabilities.Capability;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.registry.CapabilityManagement;
 import org.terracotta.management.registry.DefaultCapabilityManagement;
 import org.terracotta.management.registry.ManagementProvider;
@@ -42,8 +42,6 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * This service can be registered across several cache managers and provides a way to access per-cache manager management registry
- *
- * @author Mathieu Carbou
  */
 @ServiceDependencies({CacheManagerProviderService.class, ManagementRegistryService.class})
 public class DefaultSharedManagementService implements SharedManagementService {

@@ -18,10 +18,10 @@ package org.ehcache.clustered.client.internal;
 
 import java.util.UUID;
 
-import org.ehcache.clustered.common.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.messages.EhcacheCodec;
-import org.ehcache.clustered.common.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.common.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
 import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;

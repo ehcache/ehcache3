@@ -309,7 +309,7 @@ public class StatusTransitionerTest {
       st.failed(new Throwable());
       fail();
     } catch (AssertionError err) {
-      assertThat(err.getMessage(), is("Throwable cannot be null if Transition is done."));
+      assertThat(err.getMessage(), is("Throwable cannot be thrown if Transition is done."));
     }
 
     st.failed(null);

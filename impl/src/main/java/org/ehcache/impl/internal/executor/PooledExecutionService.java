@@ -131,7 +131,7 @@ public class PooledExecutionService implements ExecutionService {
 
   @Override
   public void stop() {
-    LOGGER.info("Shutting down PooledExecutionService");
+    LOGGER.debug("Shutting down PooledExecutionService");
     running = false;
     //scheduledExecutor.shutdown();
     for (Iterator<Entry<String, ThreadPoolExecutor>> it = pools.entrySet().iterator(); it.hasNext(); ) {
