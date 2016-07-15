@@ -26,7 +26,7 @@ ext {
   sizeofVersion = '0.3.0'
 
   // Clustered
-  terracottaPlatformVersion = '5.0.3.beta'
+  terracottaPlatformVersion = '5.0.3.beta2'
   managementVersion = terracottaPlatformVersion
   terracottaApisVersion = '1.0.3.beta'
   terracottaCoreVersion = '5.0.3-beta'
