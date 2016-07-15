@@ -26,6 +26,7 @@ import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.jsr107.EventListenerAdaptors.EventListenerAdaptor;
+import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoadingException;
 import org.ehcache.spi.loaderwriter.CacheWritingException;
@@ -63,7 +64,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
   private final Eh107CacheMXBean managementBean;
   private final Eh107CacheStatisticsMXBean statisticsBean;
   private final Eh107Configuration<K, V> config;
-  private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
+  private final Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter;
 
   Eh107Cache(String name, Eh107Configuration<K, V> config, CacheResources<K, V> cacheResources,
       InternalCache<K, V> ehCache, Eh107CacheManager cacheManager) {
@@ -136,7 +137,7 @@ class Eh107Cache<K, V> implements Cache<K, V> {
         @Override
         public Map<K, V> apply(Iterable<? extends K> keys) {
           try {
-            Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAll(keys);
+            Map<? super K, ? extends V> loadResult = cacheLoaderWriter.loadAllAlways(keys);
             HashMap<K, V> resultMap = new HashMap<K, V>();
             for (K key : keys) {
               resultMap.put(key, loadResult.get(key));
