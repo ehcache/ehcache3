@@ -333,7 +333,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     String name = properties.getProperty(ConnectionPropertyNames.CONNECTION_NAME);
-    if(name == null) {
+    if (name == null) {
       name = "Ehcache:UNKNOWN";
     }
     Connection connection = serverDescriptor.server.connectNewClient(name);
