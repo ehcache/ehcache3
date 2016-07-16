@@ -31,4 +31,5 @@ dependencies {
   }
   testCompile "org.terracotta.entities:clustered-map-server:$parent.clusteredMapVersion"
   testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+  testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
 }

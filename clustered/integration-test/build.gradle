@@ -18,7 +18,7 @@ dependencies {
   testCompile project(':dist')
   testCompile project(':clustered:clustered-dist')
 
-  testCompile group:'org.terracotta', name:'galvan-support', version:'1.0.2-beta2'
+  testCompile group:'org.terracotta', name:'galvan-support', version: galvanVersion
   testCompile group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1'
 }
 

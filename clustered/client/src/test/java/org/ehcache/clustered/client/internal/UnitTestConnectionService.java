@@ -42,11 +42,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
+import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.connection.ConnectionService;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.EntityMessage;
 import org.terracotta.entity.EntityResponse;
-import org.terracotta.entity.ServerEntityService;
+import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.entity.map.TerracottaClusteredMapClientService;
@@ -196,7 +197,7 @@ public class UnitTestConnectionService implements ConnectionService {
 
   /**
    * A builder for a new {@link PassthroughServer} instance.  If no services are added using
-   * {@link #serverEntityService(ServerEntityService)} or {@link #clientEntityService(EntityClientService)},
+   * {@link #serverEntityService(EntityServerService)} or {@link #clientEntityService(EntityClientService)},
    * this builder defines the following services for each {@code PassthroughServer} built:
    * <ul>
    *   <li>{@link EhcacheServerEntityService}</li>
@@ -209,7 +210,7 @@ public class UnitTestConnectionService implements ConnectionService {
    */
   @SuppressWarnings("unused")
   public static final class PassthroughServerBuilder {
-    private final List<ServerEntityService<?, ?>> serverEntityServices = new ArrayList<ServerEntityService<?, ?>>();
+    private final List<EntityServerService<?, ?>> serverEntityServices = new ArrayList<EntityServerService<?, ?>>();
     private final List<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>> clientEntityServices =
         new ArrayList<EntityClientService<?, ?, ? extends EntityMessage, ? extends EntityResponse>>();
     private final Map<ServiceProvider, ServiceProviderConfiguration> serviceProviders =
@@ -262,7 +263,7 @@ public class UnitTestConnectionService implements ConnectionService {
       return this;
     }
 
-    public PassthroughServerBuilder serverEntityService(ServerEntityService<?, ?> service) {
+    public PassthroughServerBuilder serverEntityService(EntityServerService<?, ?> service) {
       this.serverEntityServices.add(service);
       return this;
     }
@@ -287,7 +288,7 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerServerEntityService(new TerracottaClusteredMapService());
       }
 
-      for (ServerEntityService<?, ?> service : serverEntityServices) {
+      for (EntityServerService<?, ?> service : serverEntityServices) {
         newServer.registerServerEntityService(service);
       }
 
@@ -331,7 +332,11 @@ public class UnitTestConnectionService implements ConnectionService {
       throw new IllegalArgumentException("No server available for " + uri);
     }
 
-    Connection connection = serverDescriptor.server.connectNewClient();
+    String name = properties.getProperty(ConnectionPropertyNames.CONNECTION_NAME);
+    if (name == null) {
+      name = "Ehcache:UNKNOWN";
+    }
+    Connection connection = serverDescriptor.server.connectNewClient(name);
     serverDescriptor.add(connection, properties);
 
     LOGGER.info("Client opened {} to PassthroughServer at {}", formatConnectionId(connection), uri);
