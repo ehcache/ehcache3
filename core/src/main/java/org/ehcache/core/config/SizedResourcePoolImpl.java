@@ -45,6 +45,9 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
     if (unit == null) {
       throw new NullPointerException("ResourceUnit can not be null");
     }
+    if (size <= 0) {
+      throw new IllegalArgumentException("Size must be greater than 0");
+    }
     if (!type.isPersistable() && persistent) {
       throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
     }
