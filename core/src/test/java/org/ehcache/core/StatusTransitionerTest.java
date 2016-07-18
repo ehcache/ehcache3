@@ -17,10 +17,9 @@
 package org.ehcache.core;
 
 import org.ehcache.Status;
-import org.ehcache.core.StatusTransitioner;
 import org.ehcache.core.events.StateChangeListener;
-import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.StateTransitionException;
+import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.hamcrest.CoreMatchers;
 import org.junit.Test;
@@ -310,7 +309,7 @@ public class StatusTransitionerTest {
       st.failed(new Throwable());
       fail();
     } catch (AssertionError err) {
-      assertThat(err.getMessage(), is("Throwable cannot be null if Transition is done."));
+      assertThat(err.getMessage(), is("Throwable cannot be thrown if Transition is done."));
     }
 
     st.failed(null);

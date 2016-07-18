@@ -16,8 +16,8 @@
 import scripts.*
 
 ext {
-  baseVersion = '3.0.0-SNAPSHOT'
-  offheapVersion = '2.2.1'
+  baseVersion = '3.0.3-SNAPSHOT'
+  offheapVersion = '2.2.2'
   managementVersion = '2.3.0'
   statisticVersion = '1.1.0'
   jcacheVersion = '1.0.0'
@@ -53,7 +53,6 @@ subprojects {
   repositories {
     mavenCentral()
     maven { url "http://repo.terracotta.org/maven2" }
-    mavenLocal()
   }
 
   sourceSets {

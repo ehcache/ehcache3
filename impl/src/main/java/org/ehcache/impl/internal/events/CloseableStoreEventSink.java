@@ -25,4 +25,6 @@ interface CloseableStoreEventSink<K, V> extends StoreEventSink<K, V> {
   void close();
 
   void closeOnFailure();
+
+  void reset();
 }

@@ -1,2 +1,0 @@
-org.ehcache.clustered.service.ClusteringServiceFactory
-org.ehcache.clustered.internal.store.ClusteredStoreProviderFactory

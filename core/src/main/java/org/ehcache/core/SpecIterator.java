@@ -17,7 +17,7 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 
 import java.util.Iterator;
 
@@ -82,9 +82,6 @@ class SpecIterator<K, V> implements Iterator<Cache.Entry<K, V>> {
     if (current == null) {
       throw new IllegalStateException();
     }
-    // XXX should be 2-args remove for correctness, but that breaks the TCK's stats tests
-    // as Iterator.remove() must be accounted as a remove but not as a get, while 2-args remove successes must be
-    // accounted as both a get and a remove
     cache.remove(current.getKey());
     current = null;
   }

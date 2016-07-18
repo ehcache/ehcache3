@@ -38,6 +38,7 @@ import org.ehcache.xml.model.ExpiryType;
 import org.ehcache.xml.model.Heap;
 import org.ehcache.xml.model.ListenersType;
 import org.ehcache.xml.model.MemoryType;
+import org.ehcache.xml.model.ObjectFactory;
 import org.ehcache.xml.model.Offheap;
 import org.ehcache.xml.model.PersistableMemoryType;
 import org.ehcache.xml.model.PersistenceType;
@@ -67,6 +68,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -125,7 +127,6 @@ class ConfigurationParser {
     factory.setNamespaceAware(true);
     factory.setIgnoringComments(true);
     factory.setIgnoringElementContentWhitespace(true);
-    factory.setXIncludeAware(true);
     factory.setSchema(XSD_SCHEMA_FACTORY.newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
 
     DocumentBuilder domBuilder = factory.newDocumentBuilder();
@@ -174,8 +175,9 @@ class ConfigurationParser {
     return config.getThreadPools();
   }
 
-  public SizeofType getHeapStore() {
-    return config.getHeapStore();
+  public SizeOfEngineLimits getHeapStore() {
+    SizeofType type = config.getHeapStore();
+    return type == null ? null : new XmlSizeOfEngineLimits(type);
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -274,10 +276,10 @@ class ConfigurationParser {
           }
 
           @Override
-          public String evictionVeto() {
+          public String evictionAdvisor() {
             String value = null;
             for (BaseCacheType source : sources) {
-              value = source.getEvictionVeto();
+              value = source.getEvictionAdvisor();
               if (value != null) break;
             }
             return value;
@@ -329,17 +331,21 @@ class ConfigurationParser {
 
           @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
-            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
+            Map<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>> configsMap =
+                new HashMap<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>>();
             for (BaseCacheType source : sources) {
               for (Element child : source.getServiceConfiguration()) {
-                configs.add(parseCacheExtension(child));
+                ServiceConfiguration<?> serviceConfiguration = parseCacheExtension(child);
+                if (!configsMap.containsKey(serviceConfiguration.getClass())) {
+                  configsMap.put(serviceConfiguration.getClass(), serviceConfiguration);
+                }
               }
             }
-            return configs;
+            return configsMap.values();
           }
 
           @Override
-          public Iterable<ResourcePool> resourcePools() {
+          public Collection<ResourcePool> resourcePools() {
             for (BaseCacheType source : sources) {
               Heap heapResource = source.getHeap();
               if (heapResource != null) {
@@ -443,8 +449,8 @@ class ConfigurationParser {
           }
 
           @Override
-          public String evictionVeto() {
-            return cacheTemplate.getEvictionVeto();
+          public String evictionAdvisor() {
+            return cacheTemplate.getEvictionAdvisor();
           }
 
           @Override
@@ -479,7 +485,7 @@ class ConfigurationParser {
           }
 
           @Override
-          public Iterable<ResourcePool> resourcePools() {
+          public Collection<ResourcePool> resourcePools() {
             Heap heapResource = cacheTemplate.getHeap();
             if (heapResource != null) {
               return singleton(parseResource(heapResource));
@@ -517,7 +523,7 @@ class ConfigurationParser {
     return Collections.unmodifiableMap(templates);
   }
 
-  private Iterable<ResourcePool> parseResources(ResourcesType resources) {
+  private Collection<ResourcePool> parseResources(ResourcesType resources) {
     Collection<ResourcePool> resourcePools = new ArrayList<ResourcePool>();
     for (Element resource : resources.getResource()) {
       resourcePools.add(parseResource(resource));
@@ -629,7 +635,7 @@ class ConfigurationParser {
 
     String valueCopier();
 
-    String evictionVeto();
+    String evictionAdvisor();
 
     Expiry expiry();
 
@@ -639,7 +645,7 @@ class ConfigurationParser {
 
     Iterable<ServiceConfiguration<?>> serviceConfigs();
 
-    Iterable<ResourcePool> resourcePools();
+    Collection<ResourcePool> resourcePools();
 
     WriteBehind writeBehind();
 
@@ -657,7 +663,7 @@ class ConfigurationParser {
 
   interface ListenersConfig {
 
-    int parallelismLevel();
+    int dispatcherConcurrency();
 
     String threadPool();
 
@@ -733,20 +739,20 @@ class ConfigurationParser {
 
   private static class XmlListenersConfig implements ListenersConfig {
 
-    final int parallelismLevel;
+    final int dispatcherConcurrency;
     final String threadPool;
     final Iterable<Listener> listeners;
 
     private XmlListenersConfig(final ListenersType type, final ListenersType... others) {
-      this.parallelismLevel = type.getParallelismLevel().intValue();
-      String threadPool = type.getThreadPool();
+      this.dispatcherConcurrency = type.getDispatcherConcurrency().intValue();
+      String threadPool = type.getDispatcherThreadPool();
       Set<Listener> listenerSet = new HashSet<Listener>();
       final List<ListenersType.Listener> xmlListeners = type.getListener();
       extractListeners(listenerSet, xmlListeners);
 
       for (ListenersType other : others) {
-        if (threadPool == null && other.getThreadPool() != null) {
-          threadPool = other.getThreadPool();
+        if (threadPool == null && other.getDispatcherThreadPool() != null) {
+          threadPool = other.getDispatcherThreadPool();
         }
         extractListeners(listenerSet, other.getListener());
       }
@@ -784,8 +790,8 @@ class ConfigurationParser {
     }
 
     @Override
-    public int parallelismLevel() {
-      return parallelismLevel;
+    public int dispatcherConcurrency() {
+      return dispatcherConcurrency;
     }
 
     @Override
@@ -864,17 +870,32 @@ class ConfigurationParser {
 
     @Override
     public long getMaxObjectGraphSize() {
-      return sizeoflimits.getMaxObjectGraphSize().getValue().longValue();
+      SizeofType.MaxObjectGraphSize value = sizeoflimits.getMaxObjectGraphSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectGraphSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public long getMaxObjectSize() {
-      return sizeoflimits.getMaxObjectSize().getValue().longValue();
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public MemoryUnit getUnit() {
-      return MemoryUnit.valueOf(sizeoflimits.getMaxObjectSize().getUnit().value().toUpperCase());
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return MemoryUnit.valueOf(new ObjectFactory().createMemoryType().getUnit().value().toUpperCase());
+      } else {
+        return MemoryUnit.valueOf(value.getUnit().value().toUpperCase());
+      }
     }
 
   }
@@ -954,7 +975,7 @@ class ConfigurationParser {
 
     @Override
     public int writerConcurrency() {
-      return this.diskStoreSettings.getWriterThreads().intValue();
+      return this.diskStoreSettings.getWriterConcurrency().intValue();
     }
 
     @Override

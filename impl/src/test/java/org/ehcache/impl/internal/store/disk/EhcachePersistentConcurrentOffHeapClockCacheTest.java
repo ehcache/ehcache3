@@ -17,7 +17,8 @@
 package org.ehcache.impl.internal.store.disk;
 
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.AbstractEhcacheOffHeapBackingMapTest;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
@@ -38,8 +39,8 @@ import java.io.IOException;
 
 import static org.ehcache.impl.internal.store.disk.OffHeapDiskStore.persistent;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
-import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import static org.mockito.Mockito.mock;
+import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHeapBackingMapTest {
 
@@ -48,15 +49,15 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
 
   @Override
   protected EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment() throws IOException {
-    return createTestSegment(Eviction.<String, String>none(), mock(EvictionListener.class));
+    return createTestSegment(Eviction.<String, String>noAdvice(), mock(EvictionListener.class));
   }
 
   @Override
-  protected EhcacheOffHeapBackingMap<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate) throws IOException {
+  protected EhcacheOffHeapBackingMap<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) throws IOException {
     return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionVeto<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -66,7 +67,7 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentConcurrentOffHeapClockCacheTest.class.getClassLoader());
       PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
       PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
-      Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, keyPortability, elementPortability);
+      Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, configuration.getMaximumSize() / 10, BYTES, keyPortability, elementPortability);
       EhcachePersistentSegmentFactory<String, String> segmentFactory = new EhcachePersistentSegmentFactory<String, String>(pageSource, storageEngineFactory, 0, evictionPredicate, evictionListener, true);
       return new EhcachePersistentConcurrentOffHeapClockCache<String, String>(evictionPredicate, segmentFactory, 1);
     } catch (UnsupportedTypeException e) {

@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
@@ -34,7 +34,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
   private final Class<? super K> keyType;
   private final Class<? super V> valueType;
-  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
   private final Expiry<? super K, ? super V> expiry;
@@ -45,19 +45,19 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
    *
    * @param keyType the key type
    * @param valueType the value type
-   * @param evictionVeto the eviction veto
+   * @param evictionAdvisor the eviction advisor
    * @param classLoader the class loader
    * @param expiry the expiry policy
    * @param resourcePools the resource pools
    * @param serviceConfigurations the service configurations
    */
   public BaseCacheConfiguration(Class<? super K> keyType, Class<? super V> valueType,
-          EvictionVeto<? super K, ? super V> evictionVeto,
+          EvictionAdvisor<? super K, ? super V> evictionAdvisor,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
           ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
     this.keyType = keyType;
     this.valueType = valueType;
-    this.evictionVeto = evictionVeto;
+    this.evictionAdvisor = evictionAdvisor;
     this.classLoader = classLoader;
     if (expiry != null) {
       this.expiry = expiry;
@@ -96,8 +96,8 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
    * {@inheritDoc}
    */
   @Override
-  public EvictionVeto<? super K, ? super V> getEvictionVeto() {
-    return evictionVeto;
+  public EvictionAdvisor<? super K, ? super V> getEvictionAdvisor() {
+    return evictionAdvisor;
   }
 
   /**

@@ -12,15 +12,12 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released the Milestone 5 on February 20th, 2016.
-This milestone is feature complete for Ehcache 3 and marks the start of release candidates production where the focus
-will be on performance and documentation.
+We released 3.0.2 on June 6th, 2016.
 
 The https://github.com/ehcache/ehcache3/releases/tag/v3.0.0.m5[release notes] contain the links to the documentation to help you get started
 
 == Current development & next release
 
-We are now working on producing release candidates.
-Expect mostly performance and documentation improvements in addition to the usual bug fixes.
+This branch focuses on maintenance releases for the 3.0 line.
 
 See the https://github.com/ehcache/ehcache3/milestones[milestones on GitHub] for more details on the current status.

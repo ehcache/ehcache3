@@ -20,10 +20,10 @@ import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -34,7 +34,7 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.copy.Copier;
@@ -111,7 +111,7 @@ public class XAStore<K, V> implements Store<K, V> {
     this.eventSourceWrapper = new StoreEventSourceWrapper<K, V>(underlyingStore.getStoreEventSource());
   }
 
-  private boolean isInDoubt(SoftLock<V> softLock) {
+  private static boolean isInDoubt(SoftLock<?> softLock) {
     return softLock.getTransactionId() != null;
   }
 
@@ -742,6 +742,10 @@ public class XAStore<K, V> implements Store<K, V> {
       if (xaServiceConfiguration == null) {
         // An XAStore must be configured for use
         return 0;
+      } else {
+        if (this.transactionManagerProvider == null) {
+          throw new IllegalStateException("A TransactionManagerProvider is mandatory to use XA caches");
+        }
       }
 
       final Store.Provider candidateUnderlyingProvider = selectProvider(resourceTypes, serviceConfigs, xaServiceConfiguration);
@@ -762,15 +766,14 @@ public class XAStore<K, V> implements Store<K, V> {
       List<ServiceConfiguration<?>> underlyingServiceConfigs = new ArrayList<ServiceConfiguration<?>>();
       underlyingServiceConfigs.addAll(Arrays.asList(serviceConfigs));
 
-      // TODO: do we want to support pluggable veto?
-
-      // eviction veto
-      EvictionVeto<? super K, ? super SoftLock> evictionVeto = new EvictionVeto<K, SoftLock>() {
-        @Override
-        public boolean vetoes(K key, SoftLock lock) {
-          return lock.getTransactionId() != null;
-        }
-      };
+      // eviction advisor
+      EvictionAdvisor<? super K, ? super V> realEvictionAdvisor = storeConfig.getEvictionAdvisor();
+      EvictionAdvisor<? super K, ? super SoftLock<V>> evictionAdvisor;
+      if (realEvictionAdvisor == null) {
+        evictionAdvisor = null;
+      } else {
+        evictionAdvisor = new XAEvictionAdvisor<K, V>(realEvictionAdvisor);
+      }
 
       // expiry
       final Expiry<? super K, ? super V> configuredExpiry = storeConfig.getExpiry();
@@ -779,7 +782,7 @@ public class XAStore<K, V> implements Store<K, V> {
         public Duration getExpiryForCreation(K key, SoftLock<V> softLock) {
           if (softLock.getTransactionId() != null) {
             // phase 1 prepare, create -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, create -> some time
             Duration duration;
@@ -797,7 +800,7 @@ public class XAStore<K, V> implements Store<K, V> {
         public Duration getExpiryForAccess(K key, final ValueSupplier<? extends SoftLock<V>> softLock) {
           if (softLock.value().getTransactionId() != null) {
             // phase 1 prepare, access -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime, access -> some time
             Duration duration;
@@ -816,7 +819,7 @@ public class XAStore<K, V> implements Store<K, V> {
           SoftLock<V> oldSoftLock = oldSoftLockSupplier.value();
           if (oldSoftLock.getTransactionId() == null) {
             // phase 1 prepare, update -> forever
-            return Duration.FOREVER;
+            return Duration.INFINITE;
           } else {
             // phase 2 commit, or during a TX's lifetime
             if (oldSoftLock.getOldValue() == null) {
@@ -888,8 +891,8 @@ public class XAStore<K, V> implements Store<K, V> {
       SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
       // create the underlying store
-      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), (Class) SoftLock.class, evictionVeto,
-          storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getOrderedEventParallelism(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
+      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), (Class) SoftLock.class, evictionAdvisor,
+          storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getDispatcherConcurrency(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
       Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 
       // create the XA store
@@ -974,6 +977,20 @@ public class XAStore<K, V> implements Store<K, V> {
       List<ServiceConfiguration<?>> configsWithoutXA = new ArrayList<ServiceConfiguration<?>>(serviceConfigs);
       configsWithoutXA.remove(xaConfig);
       return StoreSupport.selectStoreProvider(serviceProvider, resourceTypes, configsWithoutXA);
+    }
+  }
+
+  private static class XAEvictionAdvisor<K, V> implements EvictionAdvisor<K, SoftLock<V>> {
+
+    private final EvictionAdvisor<? super K, ? super V> wrappedEvictionAdvisor;
+
+    private XAEvictionAdvisor(EvictionAdvisor<? super K, ? super V> wrappedEvictionAdvisor) {
+      this.wrappedEvictionAdvisor = wrappedEvictionAdvisor;
+    }
+
+    @Override
+    public boolean adviseAgainstEviction(K key, SoftLock<V> softLock) {
+      return isInDoubt(softLock) || wrappedEvictionAdvisor.adviseAgainstEviction(key, softLock.getOldValue());
     }
   }
 

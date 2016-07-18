@@ -16,7 +16,7 @@
 
 package org.ehcache.core.internal.resilience;
 
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 
 /**
  *

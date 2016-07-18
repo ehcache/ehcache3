@@ -19,7 +19,6 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -28,7 +27,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -55,8 +54,7 @@ public class EvictionEhcacheTest {
   @Test
   public void testSimplePutWithEviction() throws Exception {
     Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class)
-            .withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(2))
             .build());
 
     testCache.put(1, "one");
@@ -77,8 +75,7 @@ public class EvictionEhcacheTest {
   @Test
   public void testSimplePutIfAbsentWithEviction() throws Exception {
     Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class)
-            .withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(2))
             .build());
 
     testCache.putIfAbsent(1, "one");
@@ -99,8 +96,7 @@ public class EvictionEhcacheTest {
   @Test
   public void testSimplePutAllWithEviction() throws Exception {
     Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class)
-            .withResourcePools(newResourcePoolsBuilder().heap(2, EntryUnit.ENTRIES))
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(2))
             .build());
 
     Map<Integer, String> values = new HashMap<Integer, String>();

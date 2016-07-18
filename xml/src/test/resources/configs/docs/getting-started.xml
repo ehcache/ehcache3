@@ -41,4 +41,22 @@
   <cache alias="simpleCache" uses-template="myDefaults" /> <!--7-->
   <!-- end::gettingStarted[] -->
 
+  <!-- tag::expiry[] -->
+  <cache alias="foo">
+    <expiry>
+      <ttl unit="seconds">20</ttl> <!--1-->
+    </expiry>
+    <heap>100</heap>
+  </cache>
+  <!-- end::expiry[] -->
+
+  <!-- tag::customExpiry[] -->
+  <cache alias="foo">
+    <expiry>
+      <class>com.pany.ehcache.MyExpiry</class> <!--1-->
+    </expiry>
+    <heap>100</heap>
+  </cache>
+  <!-- end::customExpiry[] -->
+
 </config>

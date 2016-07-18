@@ -26,7 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.Configuration;
-import org.ehcache.config.RuntimeConfiguration;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import static java.util.Collections.unmodifiableCollection;
@@ -35,7 +35,7 @@ import static java.util.Collections.unmodifiableMap;
 /**
  * Base implementation of {@link Configuration}.
  */
-public final class DefaultConfiguration implements Configuration, RuntimeConfiguration {
+public final class DefaultConfiguration implements Configuration {
 
   private final ConcurrentMap<String,CacheConfiguration<?, ?>> caches;
   private final Collection<ServiceCreationConfiguration<?>> services;
@@ -47,6 +47,9 @@ public final class DefaultConfiguration implements Configuration, RuntimeConfigu
    * @param cfg the configuration to copy
    */
   public DefaultConfiguration(Configuration cfg) {
+    if (cfg.getClassLoader() == null) {
+      throw new NullPointerException();
+    }
     this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(cfg.getCacheConfigurations());
     this.services = unmodifiableCollection(cfg.getServiceCreationConfigurations());
     this.classLoader = cfg.getClassLoader();
@@ -78,7 +81,7 @@ public final class DefaultConfiguration implements Configuration, RuntimeConfigu
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceCreationConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(caches);
-    this.classLoader = classLoader;
+    this.classLoader = classLoader == null ? ClassLoading.getDefaultClassLoader() : classLoader;
   }
 
   /**
@@ -125,13 +128,9 @@ public final class DefaultConfiguration implements Configuration, RuntimeConfigu
    * Removes the {@link CacheConfiguration} tied to the provided alias.
    *
    * @param alias the alias for which to remove configuration
-   *
-   * @throws IllegalStateException if the alias was not in use
    */
   public void removeCacheConfiguration(final String alias) {
-    if (caches.remove(alias) == null) {
-      throw new IllegalStateException("Cache '" + alias + "' unknown!");
-    }
+    caches.remove(alias);
   }
 
   /**

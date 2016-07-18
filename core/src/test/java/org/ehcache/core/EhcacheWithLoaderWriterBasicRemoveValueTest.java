@@ -17,8 +17,8 @@
 package org.ehcache.core;
 
 import org.ehcache.Status;
-import org.ehcache.exceptions.StoreAccessException;
-import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.hamcrest.CoreMatchers;
@@ -474,11 +474,11 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     this.cacheLoaderWriter = spy(fakeWriter);
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.remove("key", "value");
+    assertThat(ehcache.remove("key", "value"), is(false));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(false));
-    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));   // TODO: Confirm correctness
+    assertThat(fakeWriter.getEntryMap().get("key"), is(equalTo("unequalValue")));
     validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
@@ -600,7 +600,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));
     assertThat(fakeWriter.getEntryMap().containsKey("key"), is(false));
-    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE)); // TODO: Confirm correctness
+    validateStats(ehcache, EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE));
   }
 
   /**
@@ -621,7 +621,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     this.cacheLoaderWriter = spy(fakeWriter);
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.remove("key", "value");
+    assertThat(ehcache.remove("key", "value"), is(true));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));
@@ -647,7 +647,7 @@ public class EhcacheWithLoaderWriterBasicRemoveValueTest extends EhcacheBasicCru
     this.cacheLoaderWriter = spy(fakeWriter);
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcache(this.cacheLoaderWriter);
 
-    ehcache.remove("key", "value");
+    assertThat(ehcache.remove("key", "value"), is(true));
     verify(this.store).compute(eq("key"), getAnyBiFunction(), getBooleanNullaryFunction());
     verify(this.spiedResilienceStrategy)
         .removeFailure(eq("key"), eq("value"), any(StoreAccessException.class), eq(true));

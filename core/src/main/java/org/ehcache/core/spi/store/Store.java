@@ -18,10 +18,9 @@ package org.ehcache.core.spi.store;
 
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.exceptions.StoreAccessException;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
@@ -166,11 +165,12 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * <P>
    * This is equivalent to
    * <pre>
-   *   if (store.containsKey(key) &amp;&amp; store.get(key).equals(value)) {
+   *   if (store.containsKey(key)) {
+   *     if (store.get(key).equals(value)) {
    *       store.remove(key);
-   *       return true;
-   *   } else return false;
-   * </pre>
+   *       return REMOVED;
+   *     } else return KEY_PRESENT;
+   *   } else return KEY_MISSING;</pre>
    * except that the action is performed atomically.
    * </P>
    * <P>
@@ -192,9 +192,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * <P>
    * This is equivalent to
    * <pre>
-   *   V oldValue = store.get(key);
+   *   ValueHolder&lt;V&gt; oldValue = store.get(key);
    *   if (oldValue != null) {
-   *     map.put(key, value);
+   *     store.put(key, value);
    *   }
    *   return oldValue; </pre>
    * except that the action is performed atomically.
@@ -220,10 +220,16 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
    * <P>
    * This is equivalent to
    * <pre>
-   *   if (store.containsKey(key) &amp;&amp; store.get(key).equals(oldValue)) {
+   *   if (store.containsKey(key)) {
+   *     if (store.get(key).equals(oldValue)) {
    *       store.put(key, newValue);
-   *       return true;
-   *   } else return false;</pre>
+   *       return HIT;
+   *     } else {
+   *       return MISS_PRESENT;
+   *     }
+   *   } else {
+   *     return MISS_NOT_PRESENT;
+   *   }</pre>
    * except that the action is performed atomically.
    * </P>
    * <P>
@@ -523,7 +529,7 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     long lastAccessTime(TimeUnit unit);
 
     /**
-     * Accessor to the hit rate of the Value held in this ValueHolder?
+     * Accessor to the hit rate of the value held in this {@code ValueHolder}.
      *
      * @param now the time in {@link TimeUnit#MILLISECONDS} upto which the rate needs to be calculated
      * @param unit the {@link TimeUnit} in which the rate is to returned
@@ -613,12 +619,14 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     Class<V> getValueType();
 
     /**
-     * A predicate function that, if it passes an entry, must prevent that entry
-     * from being evicted by the store.
+     * The {@link EvictionAdvisor} indicates if mappings should be advised against eviction.
+     * <P>
+     *   The {@code Store} will use best effort to prevent eviction of advised mappings.
+     * </P>
      *
-     * @return the eviction veto predicate
+     * @return the eviction advisor
      */
-    EvictionVeto<? super K, ? super V> getEvictionVeto();
+    EvictionAdvisor<? super K, ? super V> getEvictionAdvisor();
 
     /**
      * The Classloader for this store. This classloader will be used to deserialize cache entries when required
@@ -646,9 +654,9 @@ public interface Store<K, V> extends ConfigurationChangeSupport {
     Serializer<V> getValueSerializer();
 
     /**
-     * The number of parallel queues used when doing ordered events
+     * The concurrency level of the dispatcher that processes events
      */
-    int getOrderedEventParallelism();
+    int getDispatcherConcurrency();
   }
 
   /**

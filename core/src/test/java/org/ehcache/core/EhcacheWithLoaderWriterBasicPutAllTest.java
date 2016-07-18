@@ -29,8 +29,8 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.Function;
@@ -109,7 +109,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
 
   /**
    * A Mockito {@code ArgumentCaptor} for the
-   * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}
+   * {@link BulkCacheWritingException BulkCacheWritingException}
    * provided to the
    * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#putAllFailure(Map, StoreAccessException, BulkCacheWritingException)}
    *    ResilienceStrategy.putAllFailure(Iterable, StoreAccessException, BulkCacheWritingException)} method.

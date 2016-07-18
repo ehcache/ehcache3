@@ -16,6 +16,7 @@
 
 package org.ehcache.config.builders;
 
+import org.ehcache.config.Builder;
 import org.ehcache.impl.config.executor.PooledExecutionServiceConfiguration;
 
 import java.util.HashSet;

@@ -18,7 +18,6 @@ package org.ehcache.core;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.Maintainable;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
@@ -35,9 +34,9 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.event.CacheEventListenerProvider;
-import org.ehcache.exceptions.StateTransitionException;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.core.events.CacheEventListenerProvider;
+import org.ehcache.StateTransitionException;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
@@ -87,7 +86,7 @@ import static org.mockito.Mockito.when;
 public class EhcacheManagerTest {
 
   @Test
-  public void testCanGoInMaintenanceAndClose() {
+  public void testCanDestroyAndClose() throws Exception {
     CacheConfiguration<Long, String> cacheConfiguration = new BaseCacheConfiguration<Long, String>(Long.class, String.class, null,
         null, null, ResourcePoolsHelper.createHeapOnlyPools(10));
 
@@ -103,7 +102,7 @@ public class EhcacheManagerTest {
     Map<String, CacheConfiguration<?, ?>> caches = new HashMap<String, CacheConfiguration<?, ?>>();
     caches.put("aCache", cacheConfiguration);
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
-    CacheManager cacheManager = new EhcacheManager(config, Arrays.asList(
+    PersistentCacheManager cacheManager = new EhcacheManager(config, Arrays.asList(
         storeProvider,
         mock(CacheLoaderWriterProvider.class),
         mock(WriteBehindProvider.class),
@@ -115,8 +114,7 @@ public class EhcacheManagerTest {
     cacheManager.close();
     cacheManager.init();
     cacheManager.close();
-    Maintainable maintainable = ((PersistentCacheManager) cacheManager).toMaintenance();
-    maintainable.close();
+    cacheManager.destroy();
     cacheManager.init();
     cacheManager.close();
   }
@@ -310,7 +308,7 @@ public class EhcacheManagerTest {
       assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));
     }
     try {
-      cacheManager.createCache("foo", null);
+      cacheManager.createCache("foo", (CacheConfiguration) null);
       fail();
     } catch (IllegalStateException e) {
       assertThat(e.getMessage().contains(Status.UNINITIALIZED.name()), is(true));

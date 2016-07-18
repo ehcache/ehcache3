@@ -23,7 +23,6 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.spi.time.TimeSource;
@@ -36,7 +35,8 @@ import org.ehcache.impl.internal.TimeSourceConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.transactions.xa.XACacheException;
 import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
-import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProviderConfiguration;
+import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,6 +53,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -85,14 +86,13 @@ public class XACacheTest {
   public void testEndToEnd() throws Exception {
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)
-        );
+                .offheap(10, MemoryUnit.MB));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).build())
         .withCache("nonTxCache", cacheConfigurationBuilder.build())
@@ -155,16 +155,15 @@ public class XACacheTest {
   public void testRecoveryWithInflightTx() throws Exception {
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)
-        );
+                .offheap(10, MemoryUnit.MB));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).build())
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
@@ -204,18 +203,17 @@ public class XACacheTest {
   public void testRecoveryAfterCrash() throws Exception {
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(10, MemoryUnit.MB)
-                .disk(20, MemoryUnit.MB, true)
-        );
+                .disk(20, MemoryUnit.MB, true));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath())))
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).build())
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
@@ -272,18 +270,17 @@ public class XACacheTest {
     TestTimeSource testTimeSource = new TestTimeSource();
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)
-        );
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
+                        .heap(10, EntryUnit.ENTRIES)
+                        .offheap(10, MemoryUnit.MB))
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
@@ -323,12 +320,11 @@ public class XACacheTest {
     TestTimeSource testTimeSource = new TestTimeSource();
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(10, MemoryUnit.MB)
-                .disk(20, MemoryUnit.MB, true)
-        );
+                .disk(20, MemoryUnit.MB, true));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath())))
@@ -344,7 +340,7 @@ public class XACacheTest {
             .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
@@ -383,11 +379,10 @@ public class XACacheTest {
     TestTimeSource testTimeSource = new TestTimeSource();
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)
-        );
+                .offheap(10, MemoryUnit.MB));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .with(new CacheManagerPersistenceConfiguration(new File(getStoragePath())))
@@ -403,7 +398,7 @@ public class XACacheTest {
             .add(new DefaultCopierConfiguration<String>(StringCopier.class, DefaultCopierConfiguration.Type.VALUE))
             .build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
@@ -453,18 +448,17 @@ public class XACacheTest {
     TestTimeSource testTimeSource = new TestTimeSource();
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(10, EntryUnit.ENTRIES)
-                .offheap(10, MemoryUnit.MB)
-        );
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
+                        .heap(10, EntryUnit.ENTRIES)
+                        .offheap(10, MemoryUnit.MB))
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .withCache("txCache2", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache2")).build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
@@ -524,17 +518,17 @@ public class XACacheTest {
     TestTimeSource testTimeSource = new TestTimeSource();
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10, EntryUnit.ENTRIES)
-            .offheap(10, MemoryUnit.MB)
-        );
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
+                    .heap(10, EntryUnit.ENTRIES)
+                    .offheap(10, MemoryUnit.MB)
+                )
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
@@ -558,18 +552,17 @@ public class XACacheTest {
     BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
     SampleLoaderWriter<Long, String> loaderWriter = new SampleLoaderWriter<Long, String>();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
+                    .heap(10, EntryUnit.ENTRIES)
+                    .offheap(10, MemoryUnit.MB))
         .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
-        .withLoaderWriter(loaderWriter)
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10, EntryUnit.ENTRIES)
-            .offheap(10, MemoryUnit.MB)
-        );
+        .withLoaderWriter(loaderWriter);
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);
@@ -715,17 +708,16 @@ public class XACacheTest {
     TestTimeSource testTimeSource = new TestTimeSource();
     final BitronixTransactionManager transactionManager = TransactionManagerServices.getTransactionManager();
 
-    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)))
-        .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .heap(10, EntryUnit.ENTRIES)
-            .offheap(10, MemoryUnit.MB)
-        );
+    CacheConfigurationBuilder<Long, String> cacheConfigurationBuilder = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        newResourcePoolsBuilder()
+                    .heap(10, EntryUnit.ENTRIES)
+                    .offheap(10, MemoryUnit.MB))
+        .withExpiry(Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS)));
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("txCache1", cacheConfigurationBuilder.add(new XAStoreConfiguration("txCache1")).build())
         .using(new DefaultTimeSourceService(new TimeSourceConfiguration(testTimeSource)))
-        .using(new TransactionManagerProviderConfiguration())
+        .using(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class))
         .build(true);
 
     final Cache<Long, String> txCache1 = cacheManager.getCache("txCache1", Long.class, String.class);

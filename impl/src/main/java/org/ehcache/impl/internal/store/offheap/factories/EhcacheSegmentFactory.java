@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.internal.store.offheap.factories;
 
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 
 import org.terracotta.offheapstore.Metadata;
 import org.terracotta.offheapstore.ReadWriteLockedOffHeapClockCache;
@@ -35,21 +35,21 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
   private final Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory;
   private final PageSource tableSource;
   private final int tableSize;
-  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final EhcacheSegment.EvictionListener<K, V> evictionListener;
 
-  public EhcacheSegmentFactory(PageSource source, Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, EvictionVeto<? super K, ? super V> evictionVeto, EhcacheSegment.EvictionListener<K, V> evictionListener) {
+  public EhcacheSegmentFactory(PageSource source, Factory<? extends StorageEngine<? super K, ? super V>> storageEngineFactory, int initialTableSize, EvictionAdvisor<? super K, ? super V> evictionAdvisor, EhcacheSegment.EvictionListener<K, V> evictionListener) {
     this.storageEngineFactory = storageEngineFactory;
     this.tableSource = source;
     this.tableSize = initialTableSize;
-    this.evictionVeto = evictionVeto;
+    this.evictionAdvisor = evictionAdvisor;
     this.evictionListener = evictionListener;
   }
 
   public PinnableSegment<K, V> newInstance() {
     StorageEngine<? super K, ? super V> storageEngine = storageEngineFactory.newInstance();
     try {
-      return new EhcacheSegment<K, V>(tableSource, storageEngine, tableSize, evictionVeto, evictionListener);
+      return new EhcacheSegment<K, V>(tableSource, storageEngine, tableSize, evictionAdvisor, evictionListener);
     } catch (RuntimeException e) {
       storageEngine.destroy();
       throw e;
@@ -58,36 +58,36 @@ public class EhcacheSegmentFactory<K, V> implements Factory<PinnableSegment<K, V
 
   public static class EhcacheSegment<K, V> extends ReadWriteLockedOffHeapClockCache<K, V> {
 
-    public static final int VETOED = 1 << (Integer.SIZE - 3);
+    public static final int ADVISED_AGAINST_EVICTION = 1 << (Integer.SIZE - 3);
 
-    private final EvictionVeto<? super K, ? super V> evictionVeto;
+    private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
     private final EvictionListener<K, V> evictionListener;
 
-    EhcacheSegment(PageSource source, StorageEngine<? super K, ? super V> storageEngine, int tableSize, EvictionVeto<? super K, ? super V> evictionVeto, EvictionListener<K, V> evictionListener) {
+    EhcacheSegment(PageSource source, StorageEngine<? super K, ? super V> storageEngine, int tableSize, EvictionAdvisor<? super K, ? super V> evictionAdvisor, EvictionListener<K, V> evictionListener) {
       super(source, true, storageEngine, tableSize);
-      this.evictionVeto = evictionVeto;
+      this.evictionAdvisor = evictionAdvisor;
       this.evictionListener = evictionListener;
     }
 
     @Override
     public V put(K key, V value) {
-      int metadata = getVetoedStatus(key, value);
+      int metadata = getEvictionAdviceStatus(key, value);
       return put(key, value, metadata);
     }
 
-    private int getVetoedStatus(final K key, final V value) {
-      return evictionVeto.vetoes(key, value) ? VETOED : 0;
+    private int getEvictionAdviceStatus(final K key, final V value) {
+      return evictionAdvisor.adviseAgainstEviction(key, value) ? ADVISED_AGAINST_EVICTION : 0;
     }
 
     @Override
     public V putPinned(K key, V value) {
-      int metadata = getVetoedStatus(key, value) | Metadata.PINNED;
+      int metadata = getEvictionAdviceStatus(key, value) | Metadata.PINNED;
       return put(key, value, metadata);
     }
 
     @Override
     protected boolean evictable(int status) {
-      return super.evictable(status) && ((status & VETOED) == 0);
+      return super.evictable(status) && ((status & ADVISED_AGAINST_EVICTION) == 0);
     }
 
     @Override

@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.copy;
 
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
 /**

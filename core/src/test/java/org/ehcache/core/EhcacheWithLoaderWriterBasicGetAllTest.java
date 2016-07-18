@@ -24,8 +24,8 @@ import java.util.Set;
 import org.ehcache.Status;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.hamcrest.Matchers;
 import org.junit.Test;
@@ -101,7 +101,7 @@ public class EhcacheWithLoaderWriterBasicGetAllTest extends EhcacheBasicCrudBase
 
   /**
    * A Mockito {@code ArgumentCaptor} for the
-   * {@link org.ehcache.exceptions.BulkCacheLoadingException BulkCacheLoadingException}
+   * {@link BulkCacheLoadingException BulkCacheLoadingException}
    * provided to the
    * {@link org.ehcache.core.internal.resilience.ResilienceStrategy#getAllFailure(Iterable, StoreAccessException, BulkCacheLoadingException)
    *    ResilienceStrategy.getAllFailure(Iterable, StoreAccessException, BulkCacheLoadingException)} method.

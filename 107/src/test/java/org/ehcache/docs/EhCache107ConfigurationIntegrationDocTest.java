@@ -20,6 +20,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.core.internal.util.ValueSuppliers;
 import org.ehcache.jsr107.Eh107Configuration;
 import org.junit.After;
@@ -28,6 +29,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.pany.domain.Client;
 import com.pany.domain.Product;
 
 import java.util.Random;
@@ -102,7 +104,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     LOGGER.info("Seeding random with {}", nanoTime);
     Random random = new Random(nanoTime);
     assertThat(runtimeConfiguration.getExpiry().getExpiryForCreation(random.nextLong(), Long.toOctalString(random.nextLong())),
-                equalTo(org.ehcache.expiry.Duration.FOREVER));
+                equalTo(org.ehcache.expiry.Duration.INFINITE));
     assertThat(runtimeConfiguration.getExpiry().getExpiryForAccess(random.nextLong(),
                   ValueSuppliers.supplierOf(Long.toOctalString(random.nextLong()))), nullValue());
     assertThat(runtimeConfiguration.getExpiry().getExpiryForUpdate(random.nextLong(),
@@ -112,8 +114,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
   @Test
   public void testUsingEhcacheConfiguration() throws Exception {
     // tag::ehcacheBasedConfigurationExample[]
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
-        .build(); // <1>
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.heap(10)).build(); // <1>
 
     Cache<Long, String> cache = cacheManager.createCache("myCache",
         Eh107Configuration.fromEhcacheCacheConfiguration(cacheConfiguration)); // <2>
@@ -151,26 +153,27 @@ public class EhCache107ConfigurationIntegrationDocTest {
         getClass().getClassLoader());
 
     // tag::jsr107SupplementWithTemplatesExample[]
-    MutableConfiguration<Long, String> mutableConfiguration = new MutableConfiguration<Long, String>();
-    mutableConfiguration.setTypes(Long.class, String.class); // <1>
+    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<Long, Client>();
+    mutableConfiguration.setTypes(Long.class, Client.class); // <1>
 
-    Cache<Long, String> anyCache = manager.createCache("anyCache", mutableConfiguration); // <2>
+    Cache<Long, Client> anyCache = manager.createCache("anyCache", mutableConfiguration); // <2>
 
-    CacheRuntimeConfiguration<Long, String> ehcacheConfig = (CacheRuntimeConfiguration<Long, String>)anyCache.getConfiguration(
+    CacheRuntimeConfiguration<Long, Client> ehcacheConfig = (CacheRuntimeConfiguration<Long, Client>)anyCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class); // <3>
     ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(); // <4>
 
-    Cache<Long, String> anotherCache = manager.createCache("byRefCache", mutableConfiguration);
+    Cache<Long, Client> anotherCache = manager.createCache("byRefCache", mutableConfiguration);
     assertFalse(anotherCache.getConfiguration(Configuration.class).isStoreByValue()); // <5>
 
-    MutableConfiguration<String, String> otherConfiguration = new MutableConfiguration<String, String>();
-    otherConfiguration.setTypes(String.class, String.class);
+    MutableConfiguration<String, Client> otherConfiguration = new MutableConfiguration<String, Client>();
+    otherConfiguration.setTypes(String.class, Client.class);
     otherConfiguration.setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE)); // <6>
 
-    Cache<String, String> foosCache = manager.createCache("foos", otherConfiguration);// <7>
-    CacheRuntimeConfiguration<Long, String> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, String>)foosCache.getConfiguration(
+    Cache<String, Client> foosCache = manager.createCache("foos", otherConfiguration);// <7>
+    CacheRuntimeConfiguration<Long, Client> foosEhcacheConfig = (CacheRuntimeConfiguration<Long, Client>)foosCache.getConfiguration(
         Eh107Configuration.class).unwrap(CacheRuntimeConfiguration.class);
-    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!").getAmount(); // <8>
+    Client client1 = new Client("client1", 1);
+    foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1).getLength(); // <8>
 
     CompleteConfiguration<String, String> foosConfig = foosCache.getConfiguration(CompleteConfiguration.class);
 
@@ -183,7 +186,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
     }
     // end::jsr107SupplementWithTemplatesExample[]
     assertThat(ehcacheConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getSize(), is(20L));
-    assertThat(foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, "Answer!"),
+    assertThat(foosEhcacheConfig.getExpiry().getExpiryForCreation(42L, client1),
         is(new org.ehcache.expiry.Duration(2, TimeUnit.MINUTES)));
   }
 
@@ -193,28 +196,30 @@ public class EhCache107ConfigurationIntegrationDocTest {
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
         getClass().getClassLoader());
 
-    MutableConfiguration<Long, String> mutableConfiguration = new MutableConfiguration<Long, String>();
-    mutableConfiguration.setTypes(Long.class, String.class);
+    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<Long, Client>();
+    mutableConfiguration.setTypes(Long.class, Client.class);
 
-    Cache<Long, String> myCache = null;
+    Client client1 = new Client("client1", 1);
+
+    Cache<Long, Client> myCache = null;
     myCache = cacheManager.createCache("anyCache", mutableConfiguration);
-    myCache.put(1L, "foo");
-    assertNotSame("foo", myCache.get(1L));
+    myCache.put(1L, client1);
+    assertNotSame(client1, myCache.get(1L));
     assertTrue(myCache.getConfiguration(Configuration.class).isStoreByValue());
 
     myCache = cacheManager.createCache("byRefCache", mutableConfiguration);
-    myCache.put(1L, "foo");
-    assertSame("foo", myCache.get(1L));
+    myCache.put(1L, client1);
+    assertSame(client1, myCache.get(1L));
     assertFalse(myCache.getConfiguration(Configuration.class).isStoreByValue());
 
     myCache = cacheManager.createCache("weirdCache1", mutableConfiguration);
-    myCache.put(1L, "foo");
-    assertNotSame("foo", myCache.get(1L));
+    myCache.put(1L, client1);
+    assertNotSame(client1, myCache.get(1L));
     assertTrue(myCache.getConfiguration(Configuration.class).isStoreByValue());
 
     myCache = cacheManager.createCache("weirdCache2", mutableConfiguration);
-    myCache.put(1L, "foo");
-    assertSame("foo", myCache.get(1L));
+    myCache.put(1L, client1);
+    assertSame(client1, myCache.get(1L));
     assertFalse(myCache.getConfiguration(Configuration.class).isStoreByValue());
   }
 
@@ -224,17 +229,18 @@ public class EhCache107ConfigurationIntegrationDocTest {
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
         getClass().getClassLoader());
 
-    MutableConfiguration<Long, String> mutableConfiguration = new MutableConfiguration<Long, String>();
-    mutableConfiguration.setTypes(Long.class, String.class).setStoreByValue(false);
+    MutableConfiguration<Long, Client> mutableConfiguration = new MutableConfiguration<Long, Client>();
+    mutableConfiguration.setTypes(Long.class, Client.class).setStoreByValue(false);
 
-    Cache<Long, String> myCache = null;
+    Cache<Long, Client> myCache = null;
+    Client client1 = new Client("client1", 1);
 
     myCache = cacheManager.createCache("anotherCache", mutableConfiguration);
-    myCache.put(1L, "foo");
-    assertSame("foo", myCache.get(1L));
+    myCache.put(1L, client1);
+    assertSame(client1, myCache.get(1L));
 
     myCache = cacheManager.createCache("byValCache", mutableConfiguration);
-    myCache.put(1L, "foo");
-    assertNotSame("foo", myCache.get(1L));
+    myCache.put(1L, client1);
+    assertNotSame(client1, myCache.get(1L));
   }
 }

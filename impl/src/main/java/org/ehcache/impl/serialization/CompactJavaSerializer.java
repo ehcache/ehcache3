@@ -36,7 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.ehcache.exceptions.SerializerException;
+import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -76,6 +76,9 @@ public class CompactJavaSerializer<T> implements Serializer<T>, Closeable {
       readLookup.put(encoding, disconnectedOsc);
       if (writeLookup.putIfAbsent(new SerializableDataKey(disconnectedOsc, true), encoding) != null) {
         throw new AssertionError("Corrupted data " + mappings.toString());
+      }
+      if (nextStreamIndex.get() < encoding + 1) {
+        nextStreamIndex.set(encoding + 1);
       }
     }
   }

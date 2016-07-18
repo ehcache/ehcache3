@@ -22,7 +22,7 @@
 
   <!-- tag::gettingStarted[] -->
   <service>
-    <tx:jta-tm transaction-manager-provider-class="com.pany.BitronixProvider"/> <!--1-->
+    <tx:jta-tm transaction-manager-lookup-class="org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup"/> <!--1-->
   </service>
 
   <cache alias="xaCache"> <!--2-->

@@ -24,9 +24,9 @@ import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.exceptions.StorePassThroughException;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
@@ -239,7 +239,6 @@ public abstract class EhcacheBasicCrudBase {
    * The contract implemented by this {@code Store} is not strictly conformant but
    * should be sufficient for {@code Ehcache} implementation testing.
    */
-  // TODO: Use a validated Store implementation.
   protected static class FakeStore implements Store<String, String> {
 
     private final CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
@@ -753,7 +752,7 @@ public abstract class EhcacheBasicCrudBase {
     /**
      * The entry key causing the {@link #writeAll(Iterable)} and {@link #deleteAll(Iterable)}
      * methods to fail by throwing an exception <i>other</i> than a
-     * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}.
+     * {@link BulkCacheWritingException BulkCacheWritingException}.
      *
      * @see #setCompleteFailureKey
      */
@@ -785,7 +784,7 @@ public abstract class EhcacheBasicCrudBase {
     /**
      * Sets the key causing the {@link #writeAll(Iterable)} and {@link #deleteAll(Iterable)}
      * methods to throw an exception <i>other</i> that a
-     * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}.
+     * {@link BulkCacheWritingException BulkCacheWritingException}.
      * <p/>
      * If a complete failure is recognized, the cache image maintained by this instance
      * is in an inconsistent state.
@@ -807,7 +806,7 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p/>
      * If this method throws an exception <i>other</i> than a
-     * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}, the
+     * {@link BulkCacheWritingException BulkCacheWritingException}, the
      * cache image maintained by this {@code CacheLoaderWriter} is in an inconsistent state.
      */
     @Override
@@ -846,7 +845,7 @@ public abstract class EhcacheBasicCrudBase {
      * {@inheritDoc}
      * <p/>
      * If this method throws an exception <i>other</i> than a
-     * {@link org.ehcache.exceptions.BulkCacheWritingException BulkCacheWritingException}, the
+     * {@link BulkCacheWritingException BulkCacheWritingException}, the
      * cache image maintained by this {@code CacheLoaderWriter} is in an inconsistent state.
      */
     @Override

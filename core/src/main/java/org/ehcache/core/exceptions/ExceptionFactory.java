@@ -16,8 +16,8 @@
 
 package org.ehcache.core.exceptions;
 
-import org.ehcache.exceptions.CacheLoadingException;
-import org.ehcache.exceptions.CacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
 
 /**
  * Factory to help creation of {@link CacheLoadingException} and {@link CacheWritingException}.

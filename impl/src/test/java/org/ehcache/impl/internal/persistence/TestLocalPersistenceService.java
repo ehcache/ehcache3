@@ -22,9 +22,9 @@ import java.util.Collection;
 import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.MaintainableService;
@@ -96,7 +96,7 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void create() {
+  public void create() throws CachePersistenceException {
     persistenceService.create();
   }
 

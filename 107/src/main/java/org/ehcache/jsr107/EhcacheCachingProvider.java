@@ -24,10 +24,7 @@ import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfigurat
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.jsr107.internal.DefaultJsr107Service;
-import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.spi.ServiceProvider;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.xml.XmlConfiguration;
 
 import java.net.URI;
@@ -107,7 +104,7 @@ public class EhcacheCachingProvider implements CachingProvider {
 
   /**
    * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration} with the
-   * provided {@Link Properties}.
+   * provided {@link Properties}.
    *
    * @param uri the URI identifying this cache manager
    * @param config the Ehcache configuration to use
@@ -145,7 +142,6 @@ public class EhcacheCachingProvider implements CachingProvider {
   private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
     Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
     Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
-    ManagementRegistryCollectorService managementRegistryCollectorService = new ManagementRegistryCollectorService();
 
     Collection<Service> services = new ArrayList<Service>();
     services.add(cacheLoaderWriterFactory);
@@ -153,30 +149,12 @@ public class EhcacheCachingProvider implements CachingProvider {
     if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
       services.add(new DefaultJsr107SerializationProvider());
     }
-    services.add(managementRegistryCollectorService);
 
     EhcacheManager ehcacheManager = new EhcacheManager(config, services, !jsr107Service.jsr107CompliantAtomics());
     ehcacheManager.init();
 
     return new Eh107CacheManager(this, ehcacheManager, properties, config.getClassLoader(), uri,
-        managementRegistryCollectorService.managementRegistry, new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
-  }
-
-  @ServiceDependencies(ManagementRegistryService.class)
-  static class ManagementRegistryCollectorService implements Service {
-
-    public volatile ManagementRegistryService managementRegistry;
-
-    @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
-      managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
-    }
-
-    @Override
-    public void stop() {
-      managementRegistry = null;
-    }
-
+            new ConfigurationMerger(config, jsr107Service, cacheLoaderWriterFactory));
   }
 
   /**

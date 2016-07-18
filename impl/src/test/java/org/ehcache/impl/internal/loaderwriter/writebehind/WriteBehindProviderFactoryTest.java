@@ -19,11 +19,9 @@ package org.ehcache.impl.internal.loaderwriter.writebehind;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
-import org.ehcache.config.units.EntryUnit;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -36,6 +34,7 @@ import java.util.Collection;
 import java.util.Map;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 
@@ -58,11 +57,9 @@ public class WriteBehindProviderFactoryTest {
     Class<CacheLoaderWriter<?, ?>> klazz = (Class<CacheLoaderWriter<?, ?>>) (Class) (SampleLoaderWriter.class);
     CacheManager cacheManager = cacheManagerBuilder.build(true);
     final Cache<Long, String> cache = cacheManager.createCache("cache",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class)
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(100))
             .add(writeBehindConfiguration)
             .add(new DefaultCacheLoaderWriterConfiguration(klazz))
-            .withResourcePools(ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .heap(100, EntryUnit.ENTRIES).build())
             .build());
     Collection<ServiceConfiguration<?>> serviceConfiguration = cache.getRuntimeConfiguration()
         .getServiceConfigurations();

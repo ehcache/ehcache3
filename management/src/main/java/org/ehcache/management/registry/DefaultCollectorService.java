@@ -27,7 +27,7 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;

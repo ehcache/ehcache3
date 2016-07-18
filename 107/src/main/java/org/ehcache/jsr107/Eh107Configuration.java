@@ -15,6 +15,7 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 
@@ -47,6 +48,20 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
    */
   public static <K, V> Configuration<K, V> fromEhcacheCacheConfiguration(CacheConfiguration<K, V> ehcacheConfig) {
     return new Eh107ConfigurationWrapper<K, V> (ehcacheConfig);
+  }
+
+  /**
+   * Creates a new JSR-107 {@link Configuration} from the provided {@link CacheConfiguration} obtained through a
+   * {@link Builder}.
+   *
+   * @param ehcacheConfigBuilder the native Ehcache configuration through a builder
+   * @param <K> the key type
+   * @param <V> the value type
+   *
+   * @return a JSR-107 configuration
+   */
+  public static <K, V> Configuration<K, V> fromEhcacheCacheConfiguration(Builder<? extends CacheConfiguration<K, V>> ehcacheConfigBuilder) {
+    return new Eh107ConfigurationWrapper<K, V>(ehcacheConfigBuilder.build());
   }
 
   /**

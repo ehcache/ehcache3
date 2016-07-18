@@ -16,7 +16,6 @@
 
 package org.ehcache.core;
 
-import org.ehcache.Maintainable;
 import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.Status;
 import org.ehcache.config.CacheConfiguration;
@@ -25,12 +24,12 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.CacheLoadingException;
-import org.ehcache.exceptions.CachePersistenceException;
-import org.ehcache.exceptions.CacheWritingException;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.CacheLoadingException;
+import org.ehcache.CachePersistenceException;
+import org.ehcache.spi.loaderwriter.CacheWritingException;
+import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,30 +80,16 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
    * {@inheritDoc}
    */
   @Override
-  public Maintainable toMaintenance() {
-    final StatusTransitioner.Transition st = statusTransitioner.maintenance();
+  public void destroy() throws CachePersistenceException {
+    StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
-      final Maintainable maintainable = new Maintainable() {
-        @Override
-        public void create() {
-          PersistentUserManagedEhcache.this.create();
-        }
-
-        @Override
-        public void destroy() {
-          PersistentUserManagedEhcache.this.destroy();
-        }
-
-        @Override
-        public void close() {
-          statusTransitioner.exitMaintenance().succeeded();
-        }
-      };
       st.succeeded();
-      return maintainable;
-    } catch (RuntimeException e) {
-      throw st.failed(e);
+    } catch (Throwable t) {
+      throw st.failed(t);
     }
+    destroyInternal();
+    // Exit maintenance mode once #934 is solved
+//    statusTransitioner.exitMaintenance().succeeded();
   }
 
   void create() {
@@ -119,13 +104,9 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
     }
   }
 
-  void destroy() {
+  void destroyInternal() throws CachePersistenceException {
     statusTransitioner.checkMaintenance();
-    try {
-      localPersistenceService.destroy(id);
-    } catch (CachePersistenceException e) {
-      throw new RuntimeException("Could not destroy persistence space for user managed cache " + id, e);
-    }
+    localPersistenceService.destroy(id);
   }
 
   /**
@@ -146,7 +127,7 @@ public class PersistentUserManagedEhcache<K, V> implements PersistentUserManaged
       try {
         localPersistenceService.destroy(id);
       } catch (CachePersistenceException e) {
-        logger.debug("Unable to clear persistence space for user managed cache " + id, e);
+        logger.debug("Unable to clear persistence space for user managed cache {}", id, e);
       }
     }
   }

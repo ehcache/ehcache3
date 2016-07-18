@@ -16,13 +16,12 @@
 
 package org.ehcache.config.builders;
 
-import org.ehcache.Maintainable;
 import org.ehcache.PersistentUserManagedCache;
 import org.ehcache.Status;
 import org.ehcache.UserManagedCache;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.event.EventType;
-import org.ehcache.exceptions.BulkCacheWritingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProviderTest;
 import org.junit.Test;
@@ -30,9 +29,14 @@ import org.junit.Test;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
@@ -55,16 +59,10 @@ public class UserManagedCacheBuilderTest {
 
     assertNotNull(cfg);
 
-    // OpenJDK 1.6's javac is not happy about the type inference here...
-    // java version "1.6.0_32"
-    // OpenJDK Runtime Environment (IcedTea6 1.13.4) (6b32-1.13.4-4ubuntu0.12.04.2)
-    // OpenJDK 64-Bit Server VM (build 23.25-b01, mixed mode)
-    // javac 1.6.0_32
-
-//    final TestUserManagedCache<String, Object> cache = newCacheBuilder(String.class, Object.class)
-//        .with(cfg).build();
-//    assertThat(cache, notNullValue());
-//    assertThat(cache, is(instanceOf(TestUserManagedCache.class)));
+    final TestUserManagedCache<String, Object> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, Object.class)
+        .with(cfg).build();
+    assertThat(cache, notNullValue());
+    assertThat(cache, instanceOf(TestUserManagedCache.class));
   }
 
   @Test
@@ -85,9 +83,22 @@ public class UserManagedCacheBuilderTest {
     }
   }
 
+  @Test
+  public void testTypedCacheWithExpirationPolicy() {
+    UserManagedCache<String, String> cache = UserManagedCacheBuilder.newUserManagedCacheBuilder(String.class, String.class)
+        .withExpiry(Expirations.timeToIdleExpiration(new Duration(30, TimeUnit.SECONDS)))
+        .build(true);
+    try {
+      assertThat(cache, notNullValue());
+    } finally {
+      cache.close();
+    }
+  }
+
   private class TestUserManagedCache<K, V> implements PersistentUserManagedCache<K, V> {
+
     @Override
-    public Maintainable toMaintenance() {
+    public void destroy() {
       throw new UnsupportedOperationException("Implement me!");
     }
 

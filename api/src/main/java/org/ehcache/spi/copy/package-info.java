@@ -15,6 +15,6 @@
  */
 
 /**
- * Package for SPI related to copiers in Ehcache
+ * {@link org.ehcache.spi.copy.Copier Copier} SPI in Ehcache.
  */
 package org.ehcache.spi.copy;

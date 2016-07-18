@@ -22,10 +22,10 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -240,9 +240,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   @Override
   public void destroyAll() {
     if(recursiveDeleteDirectoryContent(rootDirectory)){
-      LOGGER.info("Destroyed all file based persistence context");
+      LOGGER.debug("Destroyed all file based persistence contexts");
     } else {
-      LOGGER.warn("Could not delete all file based persistence context");
+      LOGGER.warn("Could not delete all file based persistence contexts");
     }
   }
 
@@ -282,9 +282,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private static void create(File directory) throws IOException, CachePersistenceException {
     if (directory.isDirectory()) {
-      LOGGER.info("Reusing " + directory.getAbsolutePath());
+      LOGGER.debug("Reusing {}", directory.getAbsolutePath());
     } else if (directory.mkdir()) {
-      LOGGER.info("Created " + directory.getAbsolutePath());
+      LOGGER.debug("Created {}", directory.getAbsolutePath());
     } else {
       throw new CachePersistenceException("Unable to create or reuse directory: " + directory.getAbsolutePath());
     }
@@ -292,7 +292,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
 
   private static void destroy(String identifier, DefaultPersistenceSpaceIdentifier fileBasedPersistenceContext, boolean verbose) {
     if (verbose) {
-      LOGGER.info("Destroying file based persistence context for {}", identifier);
+      LOGGER.debug("Destroying file based persistence context for {}", identifier);
     }
     if (fileBasedPersistenceContext.getDirectory().exists() && !tryRecursiveDelete(fileBasedPersistenceContext.getDirectory())) {
       if (verbose) {
@@ -308,7 +308,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     } else {
       boolean deleteSuccessful = true;
       for (File f : contents) {
-        deleteSuccessful |= tryRecursiveDelete(f);
+        deleteSuccessful &= tryRecursiveDelete(f);
       }
       return deleteSuccessful;
     }

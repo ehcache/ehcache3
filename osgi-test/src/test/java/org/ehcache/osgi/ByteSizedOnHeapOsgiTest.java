@@ -55,7 +55,7 @@ public class ByteSizedOnHeapOsgiTest {
   @Test
   public void testByteSizedOnHeapInOsgi() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class).withResourcePools(newResourcePoolsBuilder().heap(10, MemoryUnit.KB))
+        .withCache("myCache", newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder().heap(10, MemoryUnit.KB))
             .build())
         .build(true);
 

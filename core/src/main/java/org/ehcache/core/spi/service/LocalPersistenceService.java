@@ -16,9 +16,8 @@
 
 package org.ehcache.core.spi.service;
 
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.service.PersistableResourceService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**

@@ -22,13 +22,13 @@ import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.Eviction;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
@@ -47,7 +47,7 @@ import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -113,10 +113,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
 
-  private static final EvictionVeto<Object, OnHeapValueHolder<?>> EVICTION_VETO = new EvictionVeto<Object, OnHeapValueHolder<?>>() {
+  private static final EvictionAdvisor<Object, OnHeapValueHolder<?>> EVICTION_ADVISOR = new EvictionAdvisor<Object, OnHeapValueHolder<?>>() {
     @Override
-    public boolean vetoes(Object key, OnHeapValueHolder<?> value) {
-      return value.veto();
+    public boolean adviseAgainstEviction(Object key, OnHeapValueHolder<?> value) {
+      return value.evictionAdvice();
     }
   };
 
@@ -150,7 +150,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final SizeOfEngine sizeOfEngine;
 
   private volatile long capacity;
-  private final EvictionVeto<? super K, ? super V> evictionVeto;
+  private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> storeEventDispatcher;
@@ -164,7 +164,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         ResourcePools configuredPools = (ResourcePools)event.getOldValue();
         if(updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize() !=
             configuredPools.getPoolForResource(ResourceType.Core.HEAP).getSize()) {
-          LOG.info("Setting size: " + updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
+          LOG.info("Updating size to: {}", updatedPools.getPoolForResource(ResourceType.Core.HEAP).getSize());
           SizedResourcePool pool = updatedPools.getPoolForResource(ResourceType.Core.HEAP);
           if (pool.getUnit() instanceof MemoryUnit) {
             capacity = ((MemoryUnit)pool.getUnit()).toBytes(pool.getSize());
@@ -216,10 +216,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     boolean byteSized = this.sizeOfEngine instanceof NoopSizeOfEngine ? false : true;
     this.capacity = byteSized ? ((MemoryUnit) heapPool.getUnit()).toBytes(heapPool.getSize()) : heapPool.getSize();
     this.timeSource = timeSource;
-    if (config.getEvictionVeto() == null) {
-      this.evictionVeto = Eviction.none();
+    if (config.getEvictionAdvisor() == null) {
+      this.evictionAdvisor = Eviction.noAdvice();
     } else {
-      this.evictionVeto = config.getEvictionVeto();
+      this.evictionAdvisor = config.getEvictionAdvisor();
     }
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
@@ -642,7 +642,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     this.map = map.clear();
   }
 
-  private void invalidate() {
+  public void invalidate() {
     for(K key : map.keySet()) {
       try {
         invalidate(key);
@@ -650,7 +650,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         LOG.warn("Failed to invalidate mapping for key {}", key, cae);
       }
     }
-    map.clear();
+    clear();
   }
 
   @Override
@@ -758,7 +758,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
           return null;
         }
-        // TODO find a way to increment hit count on a fault
         setAccessTimeAndExpiryThenReturnMappingOutsideLock(key, cachedValue, now);
       }
 
@@ -1311,7 +1310,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (duration == null) {
       expirationTime = oldValue.expirationTime(OnHeapValueHolder.TIME_UNIT);
     } else {
-      if (duration.isForever()) {
+      if (duration.isInfinite()) {
         expirationTime = ValueHolder.NO_EXPIRE;
       } else {
         expirationTime = safeExpireTime(now, duration);
@@ -1345,7 +1344,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       return null;
     }
 
-    long expirationTime = duration.isForever() ? ValueHolder.NO_EXPIRE : safeExpireTime(now, duration);
+    long expirationTime = duration.isInfinite() ? ValueHolder.NO_EXPIRE : safeExpireTime(now, duration);
 
     OnHeapValueHolder<V> holder = null;
     try {
@@ -1383,18 +1382,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private OnHeapValueHolder<V> cloneValueHolder(K key, ValueHolder<V> valueHolder, long now, Duration expiration, boolean sizingEnabled) throws LimitExceededException {
     V realValue = valueHolder.value();
-    boolean veto = checkVeto(key, realValue);
+    boolean evictionAdvice = checkEvictionAdvice(key, realValue);
     OnHeapValueHolder<V> clonedValueHolder = null;
     if(valueCopier instanceof SerializingCopier) {
       if (valueHolder instanceof BinaryValueHolder && ((BinaryValueHolder) valueHolder).isBinaryValueAvailable()) {
         clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, ((BinaryValueHolder) valueHolder).getBinaryValue(),
-            veto, ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
+            evictionAdvice, ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
       } else {
-        clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, realValue, veto,
+        clonedValueHolder = new SerializedOnHeapValueHolder<V>(valueHolder, realValue, evictionAdvice,
             ((SerializingCopier<V>) valueCopier).getSerializer(), now, expiration);
       }
     } else {
-      clonedValueHolder = new CopiedOnHeapValueHolder<V>(valueHolder, realValue, veto, valueCopier, now, expiration);
+      clonedValueHolder = new CopiedOnHeapValueHolder<V>(valueHolder, realValue, evictionAdvice, valueCopier, now, expiration);
     }
     if (sizingEnabled) {
       clonedValueHolder.setSize(getSizeOfKeyValuePairs(key, clonedValueHolder));
@@ -1407,12 +1406,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   }
 
   private OnHeapValueHolder<V> makeValue(K key, V value, long creationTime, long expirationTime, Copier<V> valueCopier, boolean size) throws LimitExceededException {
-    boolean veto = checkVeto(key, value);
+    boolean evictionAdvice = checkEvictionAdvice(key, value);
     OnHeapValueHolder<V> valueHolder;
     if (valueCopier instanceof SerializingCopier) {
-      valueHolder = new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, ((SerializingCopier<V>) valueCopier).getSerializer());
+      valueHolder = new SerializedOnHeapValueHolder<V>(value, creationTime, expirationTime, evictionAdvice, ((SerializingCopier<V>) valueCopier).getSerializer());
     } else {
-      valueHolder = new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, veto, valueCopier);
+      valueHolder = new CopiedOnHeapValueHolder<V>(value, creationTime, expirationTime, evictionAdvice, valueCopier);
     }
     if (size) {
       valueHolder.setSize(getSizeOfKeyValuePairs(key, valueHolder));
@@ -1420,18 +1419,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     return valueHolder;
   }
 
-  private boolean checkVeto(K key, V value) {
+  private boolean checkEvictionAdvice(K key, V value) {
     try {
-      return evictionVeto.vetoes(key, value);
+      return evictionAdvisor.adviseAgainstEviction(key, value);
     } catch (Exception e) {
-      LOG.error("Exception raised while running eviction veto " +
-          "- Eviction will assume entry is NOT vetoed", e);
+      LOG.error("Exception raised while running eviction advisor " +
+          "- Eviction will assume entry is NOT advised against eviction", e);
       return false;
     }
   }
 
   private static long safeExpireTime(long now, Duration duration) {
-    long millis = OnHeapValueHolder.TIME_UNIT.convert(duration.getAmount(), duration.getTimeUnit());
+    long millis = OnHeapValueHolder.TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
 
     if (millis == Long.MAX_VALUE) {
       return Long.MAX_VALUE;
@@ -1479,11 +1478,11 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     final Random random = new Random();
 
     @SuppressWarnings("unchecked")
-    Map.Entry<K, OnHeapValueHolder<V>> candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, EVICTION_VETO);
+    Map.Entry<K, OnHeapValueHolder<V>> candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, EVICTION_ADVISOR);
 
     if (candidate == null) {
-      // 2nd attempt without any veto
-      candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, Eviction.<Object, OnHeapValueHolder<?>>none());
+      // 2nd attempt without any advisor
+      candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, Eviction.<Object, OnHeapValueHolder<?>>noAdvice());
     }
 
     if (candidate == null) {
@@ -1549,7 +1548,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
-    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+    private final Map<Store<?, ?>, List<Copier>> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, List<Copier>>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -1558,7 +1557,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
-      return createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getOrderedEventParallelism()), serviceConfigs);
+      return createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
     }
 
     public <K, V> OnHeapStore<K, V> createStoreInternal(final Configuration<K, V> storeConfig, final StoreEventDispatcher<K, V> eventDispatcher,
@@ -1568,21 +1567,34 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       Copier<K> keyCopier  = copyProvider.createKeyCopier(storeConfig.getKeyType(), storeConfig.getKeySerializer(), serviceConfigs);
       Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), serviceConfigs);
 
+      List<Copier> copiers = new ArrayList<Copier>();
+      copiers.add(keyCopier);
+      copiers.add(valueCopier);
+
       SizeOfEngineProvider sizeOfEngineProvider = serviceProvider.getService(SizeOfEngineProvider.class);
       SizeOfEngine sizeOfEngine = sizeOfEngineProvider.createSizeOfEngine(
           storeConfig.getResourcePools().getPoolForResource(ResourceType.Core.HEAP).getUnit(), serviceConfigs);
       OnHeapStore<K, V> onHeapStore = new OnHeapStore<K, V>(storeConfig, timeSource, keyCopier, valueCopier, sizeOfEngine, eventDispatcher);
-      createdStores.add(onHeapStore);
+      createdStores.put(onHeapStore, copiers);
       return onHeapStore;
     }
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      if (!createdStores.remove(resource)) {
+      List<Copier> copiers = createdStores.remove(resource);
+      if (copiers == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       final OnHeapStore onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
+      CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
+      for (Copier copier: copiers) {
+        try {
+          copyProvider.releaseCopier(copier);
+        } catch (Exception e) {
+          throw new IllegalStateException("Exception while releasing Copier instance.", e);
+        }
+      }
     }
 
     static void close(final OnHeapStore onHeapStore) {
@@ -1595,7 +1607,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
 
     private void checkResource(Object resource) {
-      if (!createdStores.contains(resource)) {
+      if (!createdStores.containsKey(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
     }

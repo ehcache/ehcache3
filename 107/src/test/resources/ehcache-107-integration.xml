@@ -19,7 +19,7 @@
       <ehcache:tti unit="minutes">2</ehcache:tti>
     </ehcache:expiry>
 
-    <ehcache:eviction-veto>com.pany.ehcache.MyEvictionVeto</ehcache:eviction-veto>
+    <ehcache:eviction-advisor>com.pany.ehcache.MyEvictionAdvisor</ehcache:eviction-advisor>
 
     <ehcache:loader-writer>
       <ehcache:class>com.pany.ehcache.integration.ProductCacheLoaderWriter</ehcache:class>

@@ -16,8 +16,6 @@
 
 package org.ehcache.core.spi;
 
-import org.ehcache.spi.LifeCycled;
-
 /**
  * Adapter class for {@link LifeCycled} in case you do not need to implement all methods from the interface.
  */

@@ -17,6 +17,7 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.Cache;
+import org.ehcache.config.Builder;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.EhcacheWithLoaderWriter;
 import org.ehcache.core.InternalCache;
@@ -24,7 +25,7 @@ import org.ehcache.core.PersistentUserManagedEhcache;
 import org.ehcache.UserManagedCache;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.EvictionVeto;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
@@ -32,8 +33,8 @@ import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.core.internal.store.StoreSupport;
 import org.ehcache.event.CacheEventListener;
-import org.ehcache.event.CacheEventListenerConfiguration;
-import org.ehcache.event.CacheEventListenerProvider;
+import org.ehcache.core.events.CacheEventListenerConfiguration;
+import org.ehcache.core.events.CacheEventListenerProvider;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
@@ -41,16 +42,16 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.impl.internal.events.DisabledCacheEventNotificationService;
-import org.ehcache.exceptions.CachePersistenceException;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
@@ -117,7 +118,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private final Set<ServiceCreationConfiguration<?>> serviceCreationConfigurations = new HashSet<ServiceCreationConfiguration<?>>();
   private Expiry<? super K, ? super V> expiry = Expirations.noExpiration();
   private ClassLoader classLoader = ClassLoading.getDefaultClassLoader();
-  private EvictionVeto<? super K, ? super V> evictionVeto;
+  private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private CacheEventDispatcher<K, V> eventDispatcher = new DisabledCacheEventNotificationService<K, V>();
   private ResourcePools resourcePools = newResourcePoolsBuilder().heap(Long.MAX_VALUE, EntryUnit.ENTRIES).build();
@@ -127,7 +128,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   private boolean useValueSerializingCopier;
   private Serializer<K> keySerializer;
   private Serializer<V> valueSerializer;
-  private int orderedEventParallelism = 4;
+  private int dispatcherConcurrency = 4;
   private List<CacheEventListenerConfiguration> eventListenerConfigurations = new ArrayList<CacheEventListenerConfiguration>();
   private ExecutorService unOrderedExecutor;
   private ExecutorService orderedExecutor;
@@ -149,7 +150,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.serviceCreationConfigurations.addAll(toCopy.serviceCreationConfigurations);
     this.expiry = toCopy.expiry;
     this.classLoader = toCopy.classLoader;
-    this.evictionVeto = toCopy.evictionVeto;
+    this.evictionAdvisor = toCopy.evictionAdvisor;
     this.cacheLoaderWriter = toCopy.cacheLoaderWriter;
     this.eventDispatcher = toCopy.eventDispatcher;
     this.resourcePools = toCopy.resourcePools;
@@ -263,18 +264,18 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
           throw new RuntimeException(e);
         } else {
-          LOGGER.info("Could not create serializers for user managed cache " + id, e);
+          LOGGER.debug("Could not create serializers for user managed cache {}", id, e);
         }
       }
     }
 
     final Store.Provider storeProvider = StoreSupport.selectStoreProvider(serviceLocator, resources, serviceConfigsList);
 
-    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionVeto, classLoader,
-            expiry, resourcePools, orderedEventParallelism, keySerializer, valueSerializer);
+    Store.Configuration<K, V> storeConfig = new StoreConfigurationImpl<K, V>(keyType, valueType, evictionAdvisor, classLoader,
+            expiry, resourcePools, dispatcherConcurrency, keySerializer, valueSerializer);
     final Store<K, V> store = storeProvider.createStore(storeConfig, serviceConfigs);
 
-    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionVeto,
+    CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
         classLoader, expiry, resourcePools);
 
     lifeCycledList.add(new LifeCycled() {
@@ -452,7 +453,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @param expiry the expiry to use
    * @return a new builer with the added expiry
    */
-  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<K, V> expiry) {
+  public final UserManagedCacheBuilder<K, V, T> withExpiry(Expiry<? super K, ? super V> expiry) {
     if (expiry == null) {
       throw new NullPointerException("Null expiry");
     }
@@ -563,28 +564,28 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
   }
 
   /**
-   * Adds a configuration for the amount of ordered parallelism desired in event processing.
+   * Adds a configuration for dispatcher concurrency in event processing.
    *
-   * @param parallelism the parallelism level
+   * @param dispatcherConcurrency the dispatcher concurrency level
    * @return a new builder with the added configuration
    */
-  public final UserManagedCacheBuilder<K, V, T> withOrderedEventParallelism(int parallelism) {
-    this.orderedEventParallelism = parallelism;
+  public final UserManagedCacheBuilder<K, V, T> withDispatcherConcurrency(int dispatcherConcurrency) {
+    this.dispatcherConcurrency = dispatcherConcurrency;
     return this;
   }
 
   /**
-   * Adds an {@link EvictionVeto} to the returned builder.
+   * Adds an {@link EvictionAdvisor} to the returned builder.
    *
-   * @param evictionVeto the eviction veto to use
-   * @return a new builder with the added eviction veto
+   * @param evictionAdvisor the eviction advisor to use
+   * @return a new builder with the added eviction advisor
    */
-  public UserManagedCacheBuilder<K, V, T> withEvictionVeto(EvictionVeto<K, V> evictionVeto) {
-    if (evictionVeto == null) {
-      throw new NullPointerException("Null eviction veto");
+  public UserManagedCacheBuilder<K, V, T> withEvictionAdvisor(EvictionAdvisor<K, V> evictionAdvisor) {
+    if (evictionAdvisor == null) {
+      throw new NullPointerException("Null eviction advisor");
     }
     UserManagedCacheBuilder<K, V, T> otherBuilder = new UserManagedCacheBuilder<K, V, T>(this);
-    otherBuilder.evictionVeto = evictionVeto;
+    otherBuilder.evictionAdvisor = evictionAdvisor;
     return otherBuilder;
   }
 

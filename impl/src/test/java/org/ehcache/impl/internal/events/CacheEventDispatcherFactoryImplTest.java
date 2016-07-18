@@ -19,7 +19,7 @@ package org.ehcache.impl.internal.events;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
-import org.ehcache.spi.ServiceProvider;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.spi.service.Service;

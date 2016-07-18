@@ -18,19 +18,28 @@ package org.ehcache.transactions.xa.internal.txmgr.provider;
 
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.transactions.xa.internal.txmgr.provider.DefaultTransactionManagerProvider;
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvider;
+import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
-import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProviderConfiguration;
 
 /**
- * @author Ludovic Orban
+ * {@link ServiceFactory} for the default {@link TransactionManagerProvider}
+ *
+ * @see LookupTransactionManagerProvider
  */
 public class DefaultTransactionManagerProviderFactory implements ServiceFactory<TransactionManagerProvider> {
+
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public TransactionManagerProvider create(ServiceCreationConfiguration<TransactionManagerProvider> configuration) {
-    return new DefaultTransactionManagerProvider((TransactionManagerProviderConfiguration) configuration);
+    return new LookupTransactionManagerProvider((LookupTransactionManagerProviderConfiguration) configuration);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Class<TransactionManagerProvider> getServiceType() {
     return TransactionManagerProvider.class;

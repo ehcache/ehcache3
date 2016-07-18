@@ -52,15 +52,15 @@ import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
-import org.ehcache.exceptions.BulkCacheLoadingException;
-import org.ehcache.exceptions.BulkCacheWritingException;
-import org.ehcache.exceptions.StoreAccessException;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.internal.resilience.ResilienceStrategy;
-import org.ehcache.spi.LifeCycled;
+import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.core.statistics.BulkOps;
 import org.slf4j.Logger;
@@ -521,7 +521,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       }
     } catch (StoreAccessException e) {
       try {
-        return resilienceStrategy.putIfAbsentFailure(key, value, e, absent);
+        return resilienceStrategy.putIfAbsentFailure(key, value, null, e, absent);
       } finally {
         putIfAbsentObserver.end(PutIfAbsentOutcome.FAILURE);
       }
@@ -830,7 +830,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
         store.compute(key, fn, replaceEqual);
       } catch (StoreAccessException e) {
-        // XXX:
         throw new RuntimeException(e);
       }
     }
@@ -853,7 +852,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       } catch (StoreAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         removeObserver.end(RemoveOutcome.FAILURE);
-        // XXX:
         throw new RuntimeException(e);
       }
 
@@ -889,7 +887,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       } catch (StoreAccessException e) {
         getObserver.end(GetOutcome.FAILURE);
         putObserver.end(PutOutcome.FAILURE);
-        // XXX:
         throw new RuntimeException(e);
       }
 
@@ -923,7 +920,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
-  //TODO: this is an exact copy of the same class in EhcacheWithLoaderWriter
   private class CacheEntryIterator implements Iterator<Entry<K, V>> {
 
     private final Store.Iterator<Entry<K, Store.ValueHolder<V>>> iterator;

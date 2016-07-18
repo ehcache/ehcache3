@@ -24,23 +24,31 @@ import org.ehcache.event.EventType;
 import java.util.Set;
 
 /**
- * Represents the configuration currently used by a {@link org.ehcache.Cache}. It only exposes mutative operations for
- * attributes that can be changed on a "RUNNING" {@link org.ehcache.Cache} instance.
+ * Represents the configuration currently used by a {@link org.ehcache.Cache Cache}.
+ * <P>
+ * It only exposes mutative operations for attributes that can be changed on an
+ * {@link org.ehcache.Status#AVAILABLE AVAILABLE} {@code Cache} instance.
+ * </P>
  *
- * @param <K> the type of the keys used to access data within the cache
- * @param <V> the type of the values held within the cache
- *
- * @author Alex Snaps
+ * @param <K> the key type for the cache
+ * @param <V> the value type for the cache
  */
 public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V> {
 
   /**
-   * Allows for registering {@link org.ehcache.event.CacheEventListener} on the cache
+   * Registers a {@link CacheEventListener} on the cache.
+   * <P>
+   *   The registered listener will be configured according to the provided {@link EventOrdering}, {@link EventFiring}
+   *   and {@link EventType} set.
+   * </P>
+   * <P>
+   *   Registering a listener will cause the eventing subsystem to start.
+   * </P>
    *
    * @param listener the listener instance to register
-   * @param ordering the {@link org.ehcache.event.EventOrdering ordering} required by this listener
-   * @param firing the {@link org.ehcache.event.EventFiring firing mode} required by this listener
-   * @param forEventTypes the set of {@link org.ehcache.event.EventType}s to notify this listener of
+   * @param ordering the {@code EventOrdering} required by this listener
+   * @param firing the {@code EventFiring} required by this listener
+   * @param forEventTypes the set of {@code EventType}s for which this listener is to be registered
    *
    * @throws java.lang.IllegalStateException if the listener is already registered
    */
@@ -48,13 +56,20 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
                                   EventOrdering ordering, EventFiring firing, Set<EventType> forEventTypes);
 
   /**
-   * Allows for registering {@link org.ehcache.event.CacheEventListener} on the cache
+   * Registers a {@link CacheEventListener} on the cache.
+   * <P>
+   *   The registered listener will be configured according to the provided {@link EventOrdering}, {@link EventFiring}
+   *   and {@link EventType}s.
+   * </P>
+   * <P>
+   *   Registering a listener will cause the eventing subsystem to start.
+   * </P>
    *
    * @param listener the listener instance to register
-   * @param ordering the {@link org.ehcache.event.EventOrdering ordering} required by this listener
-   * @param firing the {@link org.ehcache.event.EventFiring firing mode} required by this listener
-   * @param eventType the {@link org.ehcache.event.EventType event type} to notify this listener of
-   * @param eventTypes additional {@link org.ehcache.event.EventType event types} to notify this listener of
+   * @param ordering the {@code EventOrdering} required by this listener
+   * @param firing the {@code EventFiring} required by this listener
+   * @param eventType the {@code EventType} for which this listener is to be registered
+   * @param eventTypes additional {@code EventType}s for which this listener is to be registered
    *
    * @throws java.lang.IllegalStateException if the listener is already registered
    */
@@ -62,18 +77,21 @@ public interface CacheRuntimeConfiguration<K, V> extends CacheConfiguration<K, V
                                   EventOrdering ordering, EventFiring firing, EventType eventType, EventType... eventTypes);
 
   /**
-   *  Allows for deregistering of a previously registered {@link org.ehcache.event.CacheEventListener} instance
+   * Deregisters a previously registered {@link org.ehcache.event.CacheEventListener CacheEventListener} instance.
+   * <P>
+   *   Deregistering all listeners will cause the eventing subsystem to stop.
+   * </P>
    *
    * @param listener the listener to deregister
    *
-   * @throws java.lang.IllegalStateException if the listener isn't already registered
+   * @throws IllegalStateException if the listener is not registered
    */
   void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener);
 
   /**
-   * updates ResourcePools
+   * Updates the {@link ResourcePools} used by the {@link org.ehcache.Cache Cache}.
    *
-   * @param pools the {@link ResourcePools} that need to be updated
+   * @param pools the {@code ResourcePools} that need to be updated
    */
   void updateResourcePools(ResourcePools pools);
 }
