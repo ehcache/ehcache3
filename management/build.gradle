@@ -23,26 +23,17 @@ dependencies {
   compile project(':api')
   compile project(':core')
   compile project(':impl')
-  compile "org.terracotta.management:management-registry:$parent.terracottaPlatformVersion"
-  compile "org.terracotta.management:management-entity-client:$parent.terracottaPlatformVersion"
+  compile "org.terracotta.management:management-entity-client:$parent.managementVersion"
 
   testCompile project(':xml')
   testCompile project(':clustered:client')
   testCompile project(':clustered:server')
   testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
   testCompile "org.terracotta:passthrough-server:$parent.entityTestLibVersion"
-  testCompile "org.terracotta.management:monitoring-service:$parent.terracottaPlatformVersion"
-  testCompile "org.terracotta.management:management-entity-server:$parent.terracottaPlatformVersion"
+  testCompile "org.terracotta.management:monitoring-service:$parent.managementVersion"
+  testCompile "org.terracotta.management:management-entity-server:$parent.managementVersion"
   testCompile "org.terracotta.entities:clustered-map-server:$parent.terracottaPlatformVersion"
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"
-}
-
-repositories {
-  maven { url "http://snapshots.terracotta.org/" }
-}
-
-def java8 = {
-  JavaVersion.current().isJava8Compatible()
 }
 
 compileTestJava {
