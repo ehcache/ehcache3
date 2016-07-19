@@ -691,7 +691,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     final Set<ClientDescriptor> clients = storeClientMap.get(name);
     if (clients != null && !clients.isEmpty()) {
-      throw new ResourceBusyException("Can not destroy clustered tier '" + name + "': in use by " + clients.size() + " clients");
+      throw new ResourceBusyException("Cannot destroy clustered tier '" + name + "': in use by " + clients.size() + " other client(s)");
     }
 
     LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);

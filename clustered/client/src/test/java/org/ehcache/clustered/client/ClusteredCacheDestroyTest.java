@@ -34,9 +34,11 @@ import org.junit.Test;
 
 import java.net.URI;
 
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clustered;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -104,6 +106,23 @@ public class ClusteredCacheDestroyTest {
 
     anotherCache.put(1L, "One");
     assertThat(anotherCache.get(1L), is("One"));
+  }
+
+  @Test
+  public void testDestroyUnknownCacheAlias() throws Exception {
+    clusteredCacheManagerBuilder.build(true).close();
+
+    PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI).expecting()).build(true);
+
+    cacheManager.destroyCache("clustered-cache");
+
+    try {
+      cacheManager.createCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder()
+          .with(clustered())));
+      fail("Expected exception as clustered store no longer exists");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("clustered-cache"));
+    }
   }
 
   @Test

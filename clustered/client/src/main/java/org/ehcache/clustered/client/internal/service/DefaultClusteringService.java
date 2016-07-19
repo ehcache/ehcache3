@@ -310,7 +310,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     try {
       entity.destroyCache(name);
     } catch (ClusteredTierDestructionException e) {
-      throw new CachePersistenceException("Cannot destroy clustered tier '" + name + "' on " + clusterUri, e);
+      throw new CachePersistenceException(e.getMessage() + " (on " + clusterUri + ")", e);
     } catch (TimeoutException e) {
       throw new CachePersistenceException("Could not destroy clustered tier '" + name + "' on " + clusterUri
           + "; destroy operation timed out" + clusterUri, e);
