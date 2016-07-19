@@ -15,9 +15,12 @@
  */
 package org.ehcache.clustered.server;
 
+import com.tc.classloader.CommonComponent;
+
 /**
  * ServerStore eviction listener interface
  */
+@CommonComponent
 public interface ServerStoreEvictionListener {
   /**
    * Called when the ServerStore evicts a mapping

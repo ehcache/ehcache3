@@ -22,10 +22,12 @@ import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
 import org.terracotta.offheapstore.paging.PageSource;
 
-import java.nio.ByteBuffer;
-import java.util.concurrent.TimeoutException;
+import com.tc.classloader.CommonComponent;
 
-class ServerStoreImpl implements ServerStore {
+import java.nio.ByteBuffer;
+
+@CommonComponent
+public class ServerStoreImpl implements ServerStore {
 
   private static final int OFFHEAP_CHAIN_SEGMENTS = 16;
 
@@ -33,7 +35,7 @@ class ServerStoreImpl implements ServerStore {
   private final PageSource pageSource;
   private final OffHeapServerStore store;
 
-  ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
+  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
     this.store = new OffHeapServerStore(pageSource, OFFHEAP_CHAIN_SEGMENTS);
@@ -48,11 +50,11 @@ class ServerStoreImpl implements ServerStore {
    *
    * @return the {@code PageSource} used by this {@code ServerStore}
    */
-  PageSource getPageSource() {
+  public PageSource getPageSource() {
     return pageSource;
   }
 
-  ServerStoreConfiguration getStoreConfiguration() {
+  public ServerStoreConfiguration getStoreConfiguration() {
     return storeConfiguration;
   }
 
