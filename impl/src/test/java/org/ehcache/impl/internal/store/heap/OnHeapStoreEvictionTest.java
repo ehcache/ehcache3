@@ -19,19 +19,25 @@ import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.store.events.StoreEvent;
+import org.ehcache.core.spi.store.events.StoreEventListener;
+import org.ehcache.event.EventType;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.ValueHolder;
+import org.ehcache.internal.TestTimeSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
@@ -43,6 +49,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
@@ -116,6 +123,30 @@ public class OnHeapStoreEvictionTest {
       semaphore.release(1);
       executor.shutdown();
     }
+  }
+
+  @Test
+  public void testEvictionCandidateLimits() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    StoreConfigurationImpl<String, String> configuration = new StoreConfigurationImpl<String, String>(
+        String.class, String.class, Eviction.<String, String>noAdvice(),
+        getClass().getClassLoader(), Expirations.noExpiration(), heap(1).build(), 1, null, null);
+    TestStoreEventDispatcher<String, String> eventDispatcher = new TestStoreEventDispatcher<String, String>();
+    final String firstKey = "daFirst";
+    eventDispatcher.addEventListener(new StoreEventListener<String, String>() {
+      @Override
+      public void onEvent(StoreEvent<String, String> event) {
+        if (event.getType().equals(EventType.EVICTED)) {
+          assertThat(event.getKey(), is(firstKey));
+        }
+      }
+    });
+    OnHeapStore<String, String> store = new OnHeapStore<String, String>(configuration, timeSource,
+        new IdentityCopier<String>(), new IdentityCopier<String>(), new NoopSizeOfEngine(), eventDispatcher);
+    timeSource.advanceTime(10000L);
+    store.put(firstKey, "daValue");
+    timeSource.advanceTime(10000L);
+    store.put("other", "otherValue");
   }
 
   protected <K, V> OnHeapStoreForTests<K, V> newStore(final TimeSource timeSource,
