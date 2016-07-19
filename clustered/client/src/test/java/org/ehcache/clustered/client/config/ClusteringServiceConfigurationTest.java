@@ -76,18 +76,6 @@ public class ClusteringServiceConfigurationTest {
   }
 
   @Test
-  public void testInvalidURI() {
-
-    URI uri = URI.create("http://localhost:9540");
-    try {
-      new ClusteringServiceConfiguration(uri);
-      fail();
-    } catch (IllegalArgumentException e) {
-      assertThat(e.getMessage(), is("Cluster Uri is not valid, clusterUri : http://localhost:9540"));
-    }
-  }
-
-  @Test
   public void testValidURI() {
     URI uri = URI.create("terracotta://localhost:9540");
     ClusteringServiceConfiguration serviceConfiguration = new ClusteringServiceConfiguration(uri);

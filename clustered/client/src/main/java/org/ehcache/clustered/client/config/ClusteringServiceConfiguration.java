@@ -36,8 +36,6 @@ public class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
     CacheManagerConfiguration<PersistentCacheManager> {
 
-  private static final String CLUSTER_SCHEME = "terracotta";
-
   private final URI clusterUri;
   private final boolean autoCreate;
   private final ServerSideConfiguration serverConfiguration;
@@ -157,10 +155,6 @@ public class ClusteringServiceConfiguration
   private static void validateClusterUri(URI clusterUri) {
     if (clusterUri == null) {
       throw new NullPointerException("Cluster URI cannot be null.");
-    }
-
-    if (!CLUSTER_SCHEME.equals(clusterUri.getScheme())) {
-      throw new IllegalArgumentException("Cluster Uri is not valid, clusterUri : " + clusterUri.toString());
     }
   }
 
