@@ -120,6 +120,10 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   };
 
+  /**
+   * Comparator for eviction candidates:
+   * The highest priority is the ValueHolder having the smallest lastAccessTime.
+   */
   private static final Comparator<ValueHolder<?>> EVICTION_PRIORITIZER = new Comparator<ValueHolder<?>>() {
     @Override
     public int compare(ValueHolder<?> t, ValueHolder<?> u) {
@@ -128,7 +132,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       } else if (u instanceof Fault) {
         return 1;
       } else {
-        return Long.signum(t.lastAccessTime(TimeUnit.NANOSECONDS) - u.lastAccessTime(TimeUnit.NANOSECONDS));
+        return Long.signum(u.lastAccessTime(TimeUnit.NANOSECONDS) - t.lastAccessTime(TimeUnit.NANOSECONDS));
       }
     }
   };
