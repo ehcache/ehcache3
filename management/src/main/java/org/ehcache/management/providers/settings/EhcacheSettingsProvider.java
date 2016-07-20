@@ -16,6 +16,7 @@
 package org.ehcache.management.providers.settings;
 
 import org.ehcache.CacheManager;
+import org.ehcache.core.HumanReadable;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.CacheBindingManagementProvider;
@@ -51,7 +52,7 @@ public class EhcacheSettingsProvider extends CacheBindingManagementProvider {
 
   private Descriptor cacheManagerSettings() {
     return new Settings()
-        .set("cacheManagerDescription", cacheManager.toString())
+        .set("cacheManagerDescription", ((HumanReadable)cacheManager.getRuntimeConfiguration()).readableString())
         .set("status", cacheManager.getStatus())
         .set("managementContext", new Settings(registryConfiguration.getContext()))
         .set("tags", registryConfiguration.getTags().toArray(new String[registryConfiguration.getTags().size()]));

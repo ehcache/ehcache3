@@ -111,7 +111,7 @@ public class EhcacheSettingsProviderTest {
     cacheManager.init();
 
     String expected = read("/settings-capability.json");
-    String actual = mapper.writeValueAsString(getSettingsCapability()).replaceAll("org\\.ehcache\\.core\\.EhcacheManager@[\\w]+", "<CacheManager.toString() output>");
+    String actual = mapper.writeValueAsString(getSettingsCapability()).replaceAll("\\\"cacheManagerDescription\\\":\\\".*\\\",\\\"status\\\"", "\\\"cacheManagerDescription\\\":\\\"\\\",\\\"status\\\"");
 
     // assertThat for formatted string comparison: ide support is bad
     assertEquals(expected, actual);
