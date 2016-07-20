@@ -1,0 +1,46 @@
+<config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns='http://www.ehcache.org/v3'
+    xmlns:mnm='http://www.ehcache.org/v3/management'
+    xmlns:c="http://www.ehcache.org/v3/clustered"
+    xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../xml/src/main/resources/ehcache-core.xsd
+                        http://www.ehcache.org/v3/management ../../main/resources/ehcache-management-ext.xsd
+                        http://www.ehcache.org/v3/clustered ../../../../clustered/client/src/main/resources/ehcache-clustered-ext.xsd">
+
+  <service>
+    <c:cluster>
+      <c:connection url="passthrough://server-1:9510/my-server-entity-2"/>
+      <c:server-side-config auto-create="true">
+        <c:default-resource from="primary-server-resource"/>
+      </c:server-side-config>
+    </c:cluster>
+  </service>
+
+  <service>
+    <mnm:management cache-manager-alias="my-super-cache-manager">
+      <mnm:tags>
+        <mnm:tag>webapp-1</mnm:tag>
+        <mnm:tag>server-node-1</mnm:tag>
+      </mnm:tags>
+      <mnm:statistics-configurations>
+        <mnm:statistics-configuration>
+          <mnm:average-window unit="minutes">1</mnm:average-window>
+          <mnm:history-interval unit="seconds">1</mnm:history-interval>
+          <mnm:history-size>100</mnm:history-size>
+          <mnm:time-to-disable unit="seconds">2</mnm:time-to-disable>
+        </mnm:statistics-configuration>
+      </mnm:statistics-configurations>
+    </mnm:management>
+  </service>
+
+  <cache alias="cache-1">
+    <key-type>java.lang.String</key-type>
+    <value-type>java.lang.String</value-type>
+    <resources>
+      <heap unit="entries">10</heap>
+      <offheap unit="MB">1</offheap>
+      <c:clustered-dedicated from="primary-server-resource" unit="MB">1</c:clustered-dedicated>
+    </resources>
+  </cache>
+
+</config>

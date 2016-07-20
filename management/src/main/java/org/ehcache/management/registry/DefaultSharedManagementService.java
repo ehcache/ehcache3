@@ -82,7 +82,7 @@ public class DefaultSharedManagementService implements SharedManagementService {
             break;
 
           default:
-            throw new AssertionError(to);
+            throw new AssertionError("Unsupported state: " + to);
         }
       }
     });
