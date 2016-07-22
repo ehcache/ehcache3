@@ -27,24 +27,15 @@ import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.junit.Assert;
 import org.junit.Test;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.Constructor;
-import org.yaml.snakeyaml.error.YAMLException;
-import org.yaml.snakeyaml.introspector.BeanAccess;
-import org.yaml.snakeyaml.nodes.Node;
-import org.yaml.snakeyaml.nodes.NodeId;
-import org.yaml.snakeyaml.nodes.SequenceNode;
-import org.yaml.snakeyaml.nodes.Tag;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -82,38 +73,16 @@ public class EhcacheManagerToStringTest {
             .build())
         .build(true);
 
-    String readableString = ((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString();
+    String actual = ((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString();
+    String expected = read("/simpleConfiguration.txt");
 
-    System.out.println(readableString);
-
-    Yaml yaml = new Yaml();
-    Object actual = yaml.load(readableString);
-    Object expected = yaml.load(this.getClass().getResourceAsStream("/simpleConfiguration.yml"));
-
-    applySortingOnLists(actual);
-    applySortingOnLists(expected);
-
-
-    Assert.assertThat(actual, equalTo(expected));
-  }
-
-  /**
-   * SnakeYaml is using Lists to represents sequences
-   * We could have tags, such as !!set in the yaml representation
-   * to hint SnakeYaml to use Sets, but it would have cluttered
-   * the string representation
-   * @param actual
-   */
-  private void applySortingOnLists(Object actual) {
-    for (Object value : ((LinkedHashMap)actual).values()) {
-      if(value instanceof LinkedHashMap) {
-        applySortingOnLists(value);
-      } else if (value instanceof ArrayList) {
-        Collections.sort((List) value);
-      } else {
-        continue;
-      }
-    }
+    // only testing part of the string, to avoid collections ordering clashes
+    Assert.assertThat(
+        actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", ""),
+        equalTo(
+            expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "")
+        )
+    );
   }
 
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
@@ -146,6 +115,15 @@ public class EhcacheManagerToStringTest {
     @Override
     public void deleteAll(Iterable<? extends K> keys) throws Exception {
       throw new UnsupportedOperationException("Implement me!");
+    }
+  }
+
+  private String read(String path) throws FileNotFoundException {
+    Scanner scanner = new Scanner(getClass().getResourceAsStream(path), "UTF-8");
+    try {
+      return scanner.useDelimiter("\\A").next();
+    } finally {
+      scanner.close();
     }
   }
 

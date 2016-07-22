@@ -34,7 +34,6 @@ dependencies {
   testCompile "org.terracotta.management:management-entity-server:$parent.managementVersion"
   testCompile "org.terracotta.entities:clustered-map-server:$parent.terracottaPlatformVersion"
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"
-  testCompile 'org.yaml:snakeyaml:1.17'
 }
 
 compileTestJava {
