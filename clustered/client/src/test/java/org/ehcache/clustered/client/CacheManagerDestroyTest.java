@@ -36,7 +36,6 @@ import java.net.URI;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -168,38 +167,6 @@ public class CacheManagerDestroyTest {
     Cache<Long, String> cache2 = persistentCacheManager2.getCache("test", Long.class, String.class);
 
     assertThat(cache2.get(1L), is("One"));
-
-  }
-
-  @Test
-  public void testDestroyUnKnownCacheAlias() throws CachePersistenceException {
-    CacheManagerBuilder<PersistentCacheManager> cacheManagerBuilder = clusteredCacheManagerBuilder
-        .withCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-            ResourcePoolsBuilder.newResourcePoolsBuilder()
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB))));
-
-    PersistentCacheManager persistentCacheManager1 = cacheManagerBuilder.build(true);
-
-    PersistentCacheManager anotherPersistentCacheManager = clusteredCacheManagerBuilder.build(true);
-
-    try {
-      anotherPersistentCacheManager.destroyCache("test");
-      fail("CachePersistenceException Expected");
-    } catch (CachePersistenceException e) {
-      assertThat(e.getMessage(), is("Cannot destroy clustered tier 'test' on terracotta://example.com:9540"));
-    }
-
-    persistentCacheManager1.close();
-
-    anotherPersistentCacheManager.destroyCache("test");
-
-    //Proves that the resource cache is destroyed.
-
-    Cache<Long, String> cache1 = anotherPersistentCacheManager.createCache("test", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        ResourcePoolsBuilder.newResourcePoolsBuilder()
-            .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 40, MemoryUnit.MB))));
-
-    assertNotNull(cache1);
 
   }
 
