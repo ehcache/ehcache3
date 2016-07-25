@@ -49,7 +49,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
 
   @Override
   public PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
-    throw new UnsupportedOperationException("Active/passive is not supported yet");
+    return new EhcachePassiveEntity(registry, configuration);
   }
 
   @Override

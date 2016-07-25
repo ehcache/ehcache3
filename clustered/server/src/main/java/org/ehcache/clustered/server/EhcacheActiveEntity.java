@@ -265,6 +265,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public void loadExisting() {
+    //TODO : When passive becomes active, load existing should add the eviction listeners to all the stores
+    // if not added already
     //nothing to do
   }
 
