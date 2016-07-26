@@ -15,6 +15,24 @@
  */
 import scripts.*
 
+buildscript {
+  repositories {
+    mavenCentral()
+  }
+  dependencies {
+    classpath "io.codearte.gradle.nexus:gradle-nexus-staging-plugin:0.5.3"
+  }
+}
+
+// This adds tasks to auto close or release nexus staging repos
+// see https://github.com/Codearte/gradle-nexus-staging-plugin/
+project.plugins.apply 'io.codearte.nexus-staging'
+project.nexusStaging {
+  username = project.sonatypeUser
+  password = project.sonatypePwd
+  packageGroup = 'org.ehcache'
+}
+
 ext {
   baseVersion = '3.1.2-SNAPSHOT'
 
