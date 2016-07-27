@@ -103,9 +103,9 @@ public class EhcacheManagerToStringTest {
 
     // only testing part of the string, to avoid collections ordering clashes
     Assert.assertThat(
-        actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", ""),
+        actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replaceAll("\\\\|/", "|"),
         equalTo(
-            expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "")
+            expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replaceAll("\\\\|/", "|")
         )
     );
   }
