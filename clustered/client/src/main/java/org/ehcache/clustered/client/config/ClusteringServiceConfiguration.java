@@ -21,6 +21,7 @@ import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.CacheManagerConfiguration;
+import org.ehcache.core.HumanReadable;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import java.net.URI;
@@ -34,7 +35,8 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 // TODO: Determine proper place for setting readOperationTimeout default
 public class ClusteringServiceConfiguration
     implements ServiceCreationConfiguration<ClusteringService>,
-    CacheManagerConfiguration<PersistentCacheManager> {
+    CacheManagerConfiguration<PersistentCacheManager>,
+    HumanReadable {
 
   private final URI clusterUri;
   private final boolean autoCreate;
@@ -203,5 +205,13 @@ public class ClusteringServiceConfiguration
   @Override
   public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
     return (CacheManagerBuilder<PersistentCacheManager>) other.using(this);   // unchecked
+  }
+
+  @Override
+  public String readableString() {
+    return this.getClass().getName() + ":\n    " +
+        "clusterUri: " + getClusterUri()+ "\n    " +
+        "readOperationTimeout: " + getReadOperationTimeout()+ "\n    " +
+        "autoCreate: " + isAutoCreate();
   }
 }
