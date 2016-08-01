@@ -51,6 +51,7 @@ import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.core.spi.LifeCycledAdapter;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -201,13 +202,15 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
         classLoader, expiry, resourcePools);
 
+    List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
+
     Set<ResourceType<?>> resources = resourcePools.getResourceTypeSet();
     boolean persistent = resources.contains(DISK);
     if (persistent) {
       if (id == null) {
         throw new IllegalStateException("Persistent user managed caches must have an id set");
       }
-      LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+      final LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
       if (!resourcePools.getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
         try {
           persistenceService.destroy(id);
@@ -216,13 +219,18 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         }
       }
       try {
-        serviceConfigsList.add(persistenceService.getPersistenceSpaceIdentifier(id, cacheConfig));
+        final PersistableResourceService.PersistenceSpaceIdentifier<?> identifier = persistenceService.getPersistenceSpaceIdentifier(id, cacheConfig);
+        lifeCycledList.add(new LifeCycledAdapter() {
+          @Override
+          public void close() throws Exception {
+            persistenceService.releasePersistenceSpaceIdentifier(identifier);
+          }
+        });
+        serviceConfigsList.add(identifier);
       } catch (CachePersistenceException cpex) {
         throw new RuntimeException("Unable to create persistence space for cache " + id, cpex);
       }
     }
-
-    List<LifeCycled> lifeCycledList = new ArrayList<LifeCycled>();
 
     Serializer<K> keySerializer = this.keySerializer;
     Serializer<V> valueSerializer = this.valueSerializer;
