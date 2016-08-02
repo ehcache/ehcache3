@@ -35,6 +35,8 @@ import static org.junit.Assert.fail;
 
 public class ClusteringServiceConfigurationTest {
 
+  private URI DEFAULT_URI = URI.create("terracotta://localhost:9450");
+
   @Test(expected = NullPointerException.class)
   public void testGetConnectionUrlNull() throws Exception {
     new ClusteringServiceConfiguration((URI)null);
@@ -42,44 +44,52 @@ public class ClusteringServiceConfigurationTest {
 
   @Test
   public void testGetConnectionUrl() throws Exception {
-    final URI connectionUrl = URI.create("terracotta://localhost:9450");
-    assertThat(new ClusteringServiceConfiguration(connectionUrl).getClusterUri(), is(connectionUrl));
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getClusterUri(), is(DEFAULT_URI));
   }
 
   @Test
-  public void testGetGetTimeout() throws Exception {
-    final URI connectionUrl = URI.create("terracotta://localhost:9450");
+  public void testGetReadOperationTimeout() throws Exception {
     final TimeoutDuration getTimeout = TimeoutDuration.of(15, TimeUnit.SECONDS);
-    assertThat(new ClusteringServiceConfiguration(connectionUrl, getTimeout).getReadOperationTimeout(), is(getTimeout));
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, getTimeout).getReadOperationTimeout(), is(getTimeout));
+  }
 
-    assertThat(new ClusteringServiceConfiguration(connectionUrl).getReadOperationTimeout(), is(nullValue()));
-    assertThat(new ClusteringServiceConfiguration(connectionUrl, null).getReadOperationTimeout(), is(nullValue()));
+  @Test
+  public void testDefaultReadOperationTimeout() throws Exception {
+
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getReadOperationTimeout(), is(TimeoutDuration.of(5, TimeUnit.SECONDS)));
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testReadOperationTimeoutCannotBeNull2Args() throws Exception {
+    new ClusteringServiceConfiguration(DEFAULT_URI, (TimeoutDuration) null);
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testReadOperationTimeoutCannotBeNull3Args() throws Exception {
+    new ClusteringServiceConfiguration(DEFAULT_URI, null, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+  }
+
+  @Test(expected = NullPointerException.class)
+  public void testReadOperationTimeoutCannotBeNull4Args() throws Exception {
+    new ClusteringServiceConfiguration(DEFAULT_URI, null, true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
   }
 
   @Test
   public void testGetServiceType() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450")).getServiceType(),
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI).getServiceType(),
         is(equalTo(ClusteringService.class)));
   }
 
   @Test
   public void testGetAutoCreate() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"), true,
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI, true,
             new ServerSideConfiguration(Collections.<String, Pool>emptyMap())).isAutoCreate(),
         is(true));
   }
 
   @Test
   public void testBuilder() throws Exception {
-    assertThat(new ClusteringServiceConfiguration(URI.create("terracotta://localhost:9450"))
+    assertThat(new ClusteringServiceConfiguration(DEFAULT_URI)
         .builder(CacheManagerBuilder.newCacheManagerBuilder()), is(instanceOf(CacheManagerBuilder.class)));
-  }
-
-  @Test
-  public void testValidURI() {
-    URI uri = URI.create("terracotta://localhost:9540");
-    ClusteringServiceConfiguration serviceConfiguration = new ClusteringServiceConfiguration(uri);
-
-    assertThat(serviceConfiguration.getClusterUri(), is(uri));
   }
 }

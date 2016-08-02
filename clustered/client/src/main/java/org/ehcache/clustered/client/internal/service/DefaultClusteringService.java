@@ -99,9 +99,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     this.entityIdentifier = clusterUri.relativize(ehcacheUri).getPath();
 
     EhcacheClientEntity.Timeouts.Builder timeoutsBuilder = EhcacheClientEntity.Timeouts.builder();
-    if (configuration.getReadOperationTimeout() != null) {
-      timeoutsBuilder.setReadOperationTimeout(configuration.getReadOperationTimeout());
-    }
+    timeoutsBuilder.setReadOperationTimeout(configuration.getReadOperationTimeout());
     if (configuration instanceof ExperimentalClusteringServiceConfiguration) {
       ExperimentalClusteringServiceConfiguration experimentalConfiguration = (ExperimentalClusteringServiceConfiguration)configuration;
       if (experimentalConfiguration.getMutativeOperationTimeout() != null) {
