@@ -40,6 +40,7 @@ import org.terracotta.management.registry.StatisticQuery;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -217,8 +218,23 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
 
   @Override
   public void updateCollectedStatistics(String capabilityName, Collection<String> statisticNames) {
-    StatisticQuery.Builder builder = managementRegistry.withCapability(capabilityName).queryStatistics(statisticNames);
-    selectedStatsPerCapability.put(capabilityName, builder);
+    if(!statisticNames.isEmpty()) {
+      StatisticQuery.Builder builder = managementRegistry.withCapability(capabilityName).queryStatistics(statisticNames);
+      selectedStatsPerCapability.put(capabilityName, builder);
+    } else {
+      // we clear the stats set
+      selectedStatsPerCapability.remove(capabilityName);
+    }
+  }
+
+  // for test purposes
+  Map<String, StatisticQuery.Builder> getSelectedStatsPerCapability() {
+    return Collections.unmodifiableMap(selectedStatsPerCapability);
+  }
+
+  // for test purposes
+  void setManagementRegistry(ManagementRegistryService managementRegistry) {
+    this.managementRegistry = managementRegistry;
   }
 
 }
