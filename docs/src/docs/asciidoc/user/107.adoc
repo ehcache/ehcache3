@@ -31,9 +31,6 @@ Complete details on the JCache specification can be found https://www.jcp.org/en
 
 == Getting started with Ehcache 3 & JCache
 
-There is nothing special for you to do to use Ehcache 3 as the caching provider for your application:
-add the `ehcache-3.x.x.jar` to your application's classpath (possibly removing the previous provider's jar) and you are ready to go.
-
 NOTE: See http://www.ehcache.org/#using_jsr107_api[the section on using Ehcache 3 and JSR-107] for details on required libraries.
 
 In addition to the `Cache` interface, JCache specification has defined two more interfaces: `CachingProvider` and `CacheManager`.
