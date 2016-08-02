@@ -97,7 +97,11 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   @Override
   public ClusteringServiceConfiguration build() {
-    return new ClusteringServiceConfiguration(clusterUri, readOperationTimeout);
+    if (readOperationTimeout == null) {
+      return new ClusteringServiceConfiguration(clusterUri);
+    } else {
+      return new ClusteringServiceConfiguration(clusterUri, readOperationTimeout);
+    }
   }
 
   /**
@@ -111,9 +115,17 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
   ClusteringServiceConfiguration build(ServerSideConfiguration serverSideConfiguration) {
     ClusteringServiceConfiguration configuration;
     if (autoCreate != null) {
-      configuration = new ClusteringServiceConfiguration(clusterUri, readOperationTimeout, autoCreate, serverSideConfiguration);
+      if (readOperationTimeout != null) {
+        configuration = new ClusteringServiceConfiguration(clusterUri, readOperationTimeout, autoCreate, serverSideConfiguration);
+      } else {
+        configuration = new ClusteringServiceConfiguration(clusterUri, autoCreate, serverSideConfiguration);
+      }
     } else {
-      configuration = new ClusteringServiceConfiguration(clusterUri, readOperationTimeout, serverSideConfiguration);
+      if (readOperationTimeout != null) {
+        configuration = new ClusteringServiceConfiguration(clusterUri, readOperationTimeout, serverSideConfiguration);
+      } else {
+        configuration = new ClusteringServiceConfiguration(clusterUri, serverSideConfiguration);
+      }
     }
     return configuration;
   }

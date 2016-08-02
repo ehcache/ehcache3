@@ -312,6 +312,9 @@ public class EhcacheClientEntity implements Entity {
    * {@link #builder()} to construct an instance.
    */
   public static final class Timeouts {
+
+    public static final TimeoutDuration DEFAULT_READ_OPERATION_TIMEOUT = TimeoutDuration.of(5, TimeUnit.SECONDS);
+
     private final TimeoutDuration readOperationTimeout;
     private final TimeoutDuration mutativeOperationTimeout;
     private final TimeoutDuration lifecycleOperationTimeout;
@@ -352,7 +355,7 @@ public class EhcacheClientEntity implements Entity {
      * {@link Timeouts#builder()}, the default values are pre-set.
      */
     public static final class Builder {
-      private TimeoutDuration readOperationTimeout = TimeoutDuration.of(5, TimeUnit.SECONDS);
+      private TimeoutDuration readOperationTimeout = DEFAULT_READ_OPERATION_TIMEOUT;
       private TimeoutDuration mutativeOperationTimeout = TimeoutDuration.of(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
       private TimeoutDuration lifecycleOperationTimeout = TimeoutDuration.of(10, TimeUnit.SECONDS);
 

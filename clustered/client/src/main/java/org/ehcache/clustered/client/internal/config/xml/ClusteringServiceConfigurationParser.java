@@ -142,7 +142,11 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
 
       try {
         if (serverConfig == null) {
-          return new ClusteringServiceConfiguration(connectionUri, getTimeout);
+          if (getTimeout == null) {
+            return new ClusteringServiceConfiguration(connectionUri);
+          } else {
+            return new ClusteringServiceConfiguration(connectionUri, getTimeout);
+          }
         } else {
           ServerSideConfiguration serverSideConfiguration;
           if (serverConfig.defaultServerResource == null) {
@@ -150,8 +154,12 @@ public class ClusteringServiceConfigurationParser implements CacheManagerService
           } else {
             serverSideConfiguration = new ServerSideConfiguration(serverConfig.defaultServerResource, serverConfig.pools);
           }
-          return new ClusteringServiceConfiguration(
-              connectionUri, getTimeout, serverConfig.autoCreate, serverSideConfiguration);
+          if (getTimeout == null) {
+            return new ClusteringServiceConfiguration(connectionUri, serverConfig.autoCreate, serverSideConfiguration);
+          } else {
+            return new ClusteringServiceConfiguration(
+                connectionUri, getTimeout, serverConfig.autoCreate, serverSideConfiguration);
+          }
         }
       } catch (IllegalArgumentException e) {
         throw new XmlConfigurationException(e);
