@@ -73,6 +73,7 @@ import java.util.Collection;
 import java.util.Properties;
 import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -234,15 +235,22 @@ public class ClusteringManagementServiceTest {
       assertThat(client, is(notNullValue()));
       final ClientIdentifier ehcacheClientIdentifier = client;
 
+      CountDownLatch callCompleted = new CountDownLatch(1);
       AtomicReference<String> managementCallId = new AtomicReference<>();
       BlockingQueue<ContextualReturn<?>> returns = new LinkedBlockingQueue<>();
 
       agent.setContextualReturnListener(new ContextualReturnListener() {
         @Override
         public void onContextualReturn(ClientIdentifier from, String id, ContextualReturn<?> aReturn) {
-          assertEquals(ehcacheClientIdentifier, from);
-          assertEquals(managementCallId.get(), id);
-          returns.offer(aReturn);
+          try {
+            assertEquals(ehcacheClientIdentifier, from);
+            // make sure the call completed
+            callCompleted.await(10, TimeUnit.SECONDS);
+            assertEquals(managementCallId.get(), id);
+            returns.offer(aReturn);
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
         }
       });
 
@@ -254,6 +262,9 @@ public class ClusteringManagementServiceTest {
           Collection.class,
           new Parameter("StatisticsCapability"),
           new Parameter(asList("PutCounter", "InexistingRate"), Collection.class.getName())));
+
+      // now we're sure the call completed
+      callCompleted.countDown();
 
       // ensure the call is made
       returns.take();
