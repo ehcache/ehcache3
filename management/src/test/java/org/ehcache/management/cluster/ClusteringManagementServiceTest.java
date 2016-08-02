@@ -37,8 +37,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionFactory;
-import org.terracotta.entity.map.TerracottaClusteredMapClientService;
-import org.terracotta.entity.map.server.TerracottaClusteredMapService;
 import org.terracotta.management.entity.management.ManagementAgentConfig;
 import org.terracotta.management.entity.management.client.ContextualReturnListener;
 import org.terracotta.management.entity.management.client.ManagementAgentEntityClientService;
@@ -289,10 +287,6 @@ public class ClusteringManagementServiceTest {
     // RW lock entity (required by ehcache)
     activeServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
     activeServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-
-    // clustered map (required by ehcache)
-    activeServer.registerClientEntityService(new TerracottaClusteredMapClientService());
-    activeServer.registerServerEntityService(new TerracottaClusteredMapService());
 
     activeServer.registerServerEntityService(new MonitoringServiceEntityServerService());
     activeServer.registerClientEntityService(new MonitoringServiceEntityClientService());

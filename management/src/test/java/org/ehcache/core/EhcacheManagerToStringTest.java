@@ -38,8 +38,6 @@ import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.terracotta.entity.map.TerracottaClusteredMapClientService;
-import org.terracotta.entity.map.server.TerracottaClusteredMapService;
 import org.terracotta.management.entity.management.client.ManagementAgentEntityClientService;
 import org.terracotta.management.entity.management.server.ManagementAgentEntityServerService;
 import org.terracotta.management.service.monitoring.IMonitoringConsumer;
@@ -172,10 +170,6 @@ public class EhcacheManagerToStringTest {
     // RW lock entity (required by ehcache)
     activeServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
     activeServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-
-    // clustered map (required by ehcache)
-    activeServer.registerClientEntityService(new TerracottaClusteredMapClientService());
-    activeServer.registerServerEntityService(new TerracottaClusteredMapService());
 
     // off-heap service
     OffheapResourcesType offheapResourcesType = new OffheapResourcesType();

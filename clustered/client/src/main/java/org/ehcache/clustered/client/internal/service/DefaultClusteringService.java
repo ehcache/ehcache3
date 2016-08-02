@@ -54,14 +54,10 @@ import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.connection.entity.Entity;
-import org.terracotta.connection.entity.EntityRef;
-import org.terracotta.entity.map.common.ConcurrentClusteredMap;
 import org.terracotta.exception.EntityAlreadyExistsException;
-import org.terracotta.exception.EntityException;
 import org.terracotta.exception.EntityNotFoundException;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
@@ -82,8 +78,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final ClusteringServiceConfiguration configuration;
   private final URI clusterUri;
   private final String entityIdentifier;
-  private final ConcurrentMap<String, Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository>> knownPersistenceSpaces =
-      new ConcurrentHashMap<String, Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository>>();
+  private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
   private final EhcacheClientEntity.Timeouts operationTimeouts;
 
   private Connection clusterConnection;
@@ -271,36 +266,48 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    DefaultClusterCacheIdentifier identifier = new DefaultClusterCacheIdentifier(name);
-    Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository> existing = knownPersistenceSpaces
-        .putIfAbsent(name, new Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository>(identifier, new ClusteredMapRepository()));
-    if (existing != null) {
-      identifier = existing.first;
+    ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(name);
+    if(clusteredSpace != null) {
+      return clusteredSpace.identifier;
+    } else {
+      ClusteredCacheIdentifier cacheIdentifier = new DefaultClusterCacheIdentifier(name);
+      clusteredSpace = knownPersistenceSpaces.putIfAbsent(name, new ClusteredSpace(cacheIdentifier));
+      if(clusteredSpace == null) {
+        return cacheIdentifier;
+      } else {
+        return clusteredSpace.identifier;
+      }
     }
-    return identifier;
-  }
-
-  private ConcurrentHashMap<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap<?, ?>> getNewMapEntityMap() {
-    return new ConcurrentHashMap<EntityRef<ConcurrentClusteredMap, Object>, ConcurrentClusteredMap<?, ?>>();
   }
 
   @Override
   public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
-    if (!isKnownIdentifier(identifier)) {
-      throw new CachePersistenceException("Unknown identifier: " + identifier);
+    ClusteredCacheIdentifier clusterCacheIdentifier = (ClusteredCacheIdentifier) identifier;
+    if (knownPersistenceSpaces.remove(clusterCacheIdentifier.getId()) == null) {
+      throw new CachePersistenceException("Unknown identifier: " + clusterCacheIdentifier);
     }
-    DefaultClusterCacheIdentifier clusterCacheIdentifier = (DefaultClusterCacheIdentifier) identifier;
-    Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository> tuple = knownPersistenceSpaces.remove(clusterCacheIdentifier.getId());
-    tuple.second.clear();
   }
 
   @Override
   public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
-    if (!isKnownIdentifier(identifier)) {
-      throw new CachePersistenceException("Unknown identifier: " + identifier);
+    ClusteredCacheIdentifier clusterCacheIdentifier = (ClusteredCacheIdentifier) identifier;
+    ClusteredSpace clusteredSpace = knownPersistenceSpaces.get(clusterCacheIdentifier.getId());
+    if (clusteredSpace == null) {
+      throw new CachePersistenceException("Clustered space not found for identifier: " + clusterCacheIdentifier);
     }
-    DefaultClusterCacheIdentifier clusterCacheIdentifier = (DefaultClusterCacheIdentifier) identifier;
-    return new ClusteredStateRepository(clusterCacheIdentifier, name, this);
+    ConcurrentMap<String, ClusteredStateRepository> stateRepositories = clusteredSpace.stateRepositories;
+    ClusteredStateRepository currentRepo = stateRepositories.get(name);
+    if(currentRepo != null) {
+      return currentRepo;
+    } else {
+      ClusteredStateRepository newRepo = new ClusteredStateRepository(clusterCacheIdentifier, name, entity);
+      currentRepo = stateRepositories.putIfAbsent(name, newRepo);
+      if (currentRepo == null) {
+        return newRepo;
+      } else {
+        return currentRepo;
+      }
+    }
   }
 
   @Override
@@ -319,10 +326,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public <K, V> ServerStoreProxy getServerStoreProxy(final ClusteredCacheIdentifier cacheIdentifier,
                                                      final Store.Configuration<K, V> storeConfig,
                                                      Consistency configuredConsistency) throws CachePersistenceException {
-    if (!isKnownIdentifier(cacheIdentifier)) {
-      throw new CachePersistenceException("Unknown identifier: " + cacheIdentifier);
-    }
-
     final String cacheId = cacheIdentifier.getId();
 
     if (configuredConsistency == null) {
@@ -414,51 +417,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
-  <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getConcurrentMap(ClusteredCacheIdentifier identifier, String name, Class<K> keyClass, Class<V> valueClass) {
-    Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository> tuple = knownPersistenceSpaces.get(identifier.getId());
-    if (tuple == null) {
-      throw new AssertionError("Lost a space?? " + identifier);
-    }
-    ClusteredMapRepository mapRepository = tuple.second;
-    while (true) {
-      ConcurrentClusteredMap map = mapRepository.getMap(name);
-      if (map == null) {
-        mapRepository.addNewMap(name, createConcurrentClusteredMap(name, keyClass, valueClass));
-      } else {
-        return map;
-      }
-    }
-  }
-
-  private ConcurrentClusteredMap createConcurrentClusteredMap(String name, Class<?> keyClass, Class<?> valueClass) {
-    try {
-      EntityRef<ConcurrentClusteredMap, Object> clusteredMapRef = clusterConnection.getEntityRef(ConcurrentClusteredMap.class, ConcurrentClusteredMap.VERSION, name);
-      ConcurrentClusteredMap clusteredMap;
-      try {
-        clusteredMap = clusteredMapRef.fetchEntity();
-      } catch (EntityNotFoundException e) {
-        clusteredMapRef.create(null);
-        clusteredMap = clusteredMapRef.fetchEntity();
-      }
-      clusteredMap.setTypes(keyClass, valueClass);
-      return clusteredMap;
-    } catch (EntityNotFoundException e) {
-      throw new AssertionError("Should not happen");
-    } catch (EntityException e) {
-      LOGGER.error("Classpath issue - missing entity provider", e);
-      throw new AssertionError("Classpath issues as expected entity is not resolvable");
-    }
-  }
-
-  private boolean isKnownIdentifier(PersistenceSpaceIdentifier<?> identifier) {
-    for (Tuple<DefaultClusterCacheIdentifier, ClusteredMapRepository> tuple : knownPersistenceSpaces.values()) {
-      if (tuple.first.equals(identifier)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   /**
    * Supplies the identifier to use for identifying a client-side cache to its server counterparts.
    */
@@ -466,7 +424,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     private final String id;
 
-    private DefaultClusterCacheIdentifier(final String id) {
+    DefaultClusterCacheIdentifier(final String id) {
       this.id = id;
     }
 
@@ -486,16 +444,15 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
-  /**
-   * Tuple
-   */
-  private static class Tuple<K, V> {
-    final K first;
-    final V second;
+  private static class ClusteredSpace {
 
-    Tuple(K first, V second) {
-      this.first = first;
-      this.second = second;
+    private final ClusteredCacheIdentifier identifier;
+    private final ConcurrentMap<String, ClusteredStateRepository> stateRepositories;
+
+    ClusteredSpace(final ClusteredCacheIdentifier identifier) {
+      this.identifier = identifier;
+      this.stateRepositories = new ConcurrentHashMap<String, ClusteredStateRepository>();
     }
   }
+
 }

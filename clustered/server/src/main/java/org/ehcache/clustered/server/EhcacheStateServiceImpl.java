@@ -20,6 +20,7 @@ import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,9 +82,12 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
    */
   private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
 
+  private final StateRepositoryManager stateRepositoryManager;
+
   public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
     this.services = services;
     this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
+    this.stateRepositoryManager = new StateRepositoryManager();
   }
 
   public ServerStoreImpl getStore(String name) {
@@ -302,6 +306,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       releaseDedicatedPool(name, store.getPageSource());
       store.close();
     }
+    stateRepositoryManager.destroyStateRepository(name);
   }
 
   private PageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
@@ -346,6 +351,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   public boolean isConfigured() {
     return (sharedResourcePools != null);
+  }
+
+  @Override
+  public StateRepositoryManager getStateRepositoryManager() throws ClusterException {
+    return this.stateRepositoryManager;
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {

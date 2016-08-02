@@ -26,6 +26,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateHash;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.HashInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ServerInvalidateHash;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.MapValue;
 
 class ResponseCodec {
 
@@ -98,6 +99,14 @@ class ResponseCodec {
         buffer.putLong(serverInvalidateHash.getKey());
         return buffer.array();
       }
+      case MAP_VALUE: {
+        MapValue mapValue = (MapValue) response;
+        byte[] encodedMapValue = Util.marshall(mapValue.getValue());
+        buffer = ByteBuffer.allocate(OP_CODE_SIZE + encodedMapValue.length);
+        buffer.put(EhcacheEntityResponse.Type.MAP_VALUE.getOpCode());
+        buffer.put(encodedMapValue);
+        return buffer.array();
+      }
       default:
         throw new UnsupportedOperationException("The operation is not supported : " + response.getType());
     }
@@ -144,6 +153,9 @@ class ResponseCodec {
         ByteBuffer byteBuffer = ByteBuffer.wrap(payArr, payArr.length - 8, 8);
         long key = byteBuffer.getLong();
         return EhcacheEntityResponse.serverInvalidateHash(cacheId, key);
+      }
+      case MAP_VALUE: {
+        return EhcacheEntityResponse.mapValue(Util.unmarshall(payArr));
       }
       default:
         throw new UnsupportedOperationException("The operation is not supported with opCode : " + type);

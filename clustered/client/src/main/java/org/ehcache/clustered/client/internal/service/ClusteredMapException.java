@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+package org.ehcache.clustered.client.internal.service;
 
-dependencies {
-  compileOnly project(':api')
-  compileOnly project(':xml')
-  compile project(':clustered:common')
-  compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
+public class ClusteredMapException extends RuntimeException {
 
-  testCompile project(':api')
-  testCompile project(':xml')
-  testCompile project(':transactions')
-  testCompile(project(':clustered:server')) {
-    exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
+  public ClusteredMapException(final String message) {
+    super(message);
   }
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
-  testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
+
+  public ClusteredMapException(final String message, final Throwable cause) {
+    super(message, cause);
+  }
+
+  public ClusteredMapException(final Throwable cause) {
+    super(cause);
+  }
 }

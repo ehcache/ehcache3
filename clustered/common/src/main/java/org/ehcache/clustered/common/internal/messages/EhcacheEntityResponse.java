@@ -32,6 +32,7 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     CLIENT_INVALIDATE_HASH((byte) 5),
     CLIENT_INVALIDATE_ALL((byte) 6),
     SERVER_INVALIDATE_HASH((byte) 7),
+    MAP_VALUE((byte) 8),
     ;
 
     private final byte opCode;
@@ -62,6 +63,8 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
           return CLIENT_INVALIDATE_ALL;
         case 7:
           return SERVER_INVALIDATE_HASH;
+        case 8:
+          return MAP_VALUE;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + opCode);
       }
@@ -257,6 +260,28 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     @Override
     public Type getType() {
       return Type.CLIENT_INVALIDATE_ALL;
+    }
+  }
+
+  public static MapValue mapValue(Object value) {
+    return new MapValue(value);
+  }
+
+  public static class MapValue extends EhcacheEntityResponse {
+
+    private final Object value;
+
+    public MapValue(Object value) {
+      this.value = value;
+    }
+
+    @Override
+    public Type getType() {
+      return Type.MAP_VALUE;
+    }
+
+    public Object getValue() {
+      return this.value;
     }
   }
 

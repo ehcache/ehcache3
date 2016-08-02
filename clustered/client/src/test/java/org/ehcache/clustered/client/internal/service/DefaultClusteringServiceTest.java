@@ -47,6 +47,7 @@ import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.persistence.StateRepository;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -77,11 +78,14 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.DEDICATED;
@@ -159,6 +163,7 @@ public class DefaultClusteringServiceTest {
     PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = service.getPersistenceSpaceIdentifier("cacheAlias", null);
     assertThat(spaceIdentifier, is(instanceOf(ClusteredCacheIdentifier.class)));
     assertThat(((ClusteredCacheIdentifier)spaceIdentifier).getId(), is("cacheAlias"));
+    assertThat(service.getPersistenceSpaceIdentifier("cacheAlias", null), sameInstance(spaceIdentifier));
   }
 
   @Test
@@ -1931,6 +1936,63 @@ public class DefaultClusteringServiceTest {
 
     ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
     assertThat(serverStoreProxy, instanceOf(StrongServerStoreProxy.class));
+  }
+
+  @Test
+  public void testGetStateRepositoryWithinTwiceWithSameName() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    DefaultClusteringService service = new DefaultClusteringService(configuration);
+    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
+    StateRepository repository1 = service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
+    StateRepository repository2 = service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
+    assertThat(repository1, sameInstance(repository2));
+  }
+
+  @Test
+  public void testGetStateRepositoryWithinTwiceWithSameNameDifferentPersistenceSpaceIdentifier() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    DefaultClusteringService service = new DefaultClusteringService(configuration);
+    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier1 = service.getPersistenceSpaceIdentifier("myCache1", null);
+    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier2 = service.getPersistenceSpaceIdentifier("myCache2", null);
+    StateRepository repository1 = service.getStateRepositoryWithin(cacheIdentifier1, "myRepo");
+    StateRepository repository2 = service.getStateRepositoryWithin(cacheIdentifier2, "myRepo");
+    assertThat(repository1, not(sameInstance(repository2)));
+  }
+
+  @Test(expected = CachePersistenceException.class)
+  public void testGetStateRepositoryWithinWithNonExistentPersistenceSpaceIdentifier() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    DefaultClusteringService service = new DefaultClusteringService(configuration);
+    ClusteredCacheIdentifier cacheIdentifier = mock(ClusteredCacheIdentifier.class);
+    doReturn("foo").when(cacheIdentifier).getId();
+    service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
+  }
+
+  @Test(expected = CachePersistenceException.class)
+  public void testReleaseNonExistentPersistenceSpaceIdentifierTwice() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    DefaultClusteringService service = new DefaultClusteringService(configuration);
+    ClusteredCacheIdentifier cacheIdentifier = mock(ClusteredCacheIdentifier.class);
+    doReturn("foo").when(cacheIdentifier).getId();
+    service.releasePersistenceSpaceIdentifier(cacheIdentifier);
+  }
+
+  @Test(expected = CachePersistenceException.class)
+  public void testReleasePersistenceSpaceIdentifierTwice() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    DefaultClusteringService service = new DefaultClusteringService(configuration);
+    PersistableResourceService.PersistenceSpaceIdentifier cacheIdentifier = service.getPersistenceSpaceIdentifier("myCache", null);
+    try {
+      service.releasePersistenceSpaceIdentifier(cacheIdentifier);
+    } catch (CachePersistenceException e) {
+      fail("First invocation of releasePersistenceSpaceIdentifier should not have failed");
+    }
+    service.releasePersistenceSpaceIdentifier(cacheIdentifier);
   }
 
   private static Throwable getRootCause(Throwable t) {

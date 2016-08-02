@@ -505,7 +505,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP/GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
     }
   }
 
@@ -541,7 +541,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP/GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
     }
   }
 
@@ -578,7 +578,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP/GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
     }
   }
 
@@ -615,7 +615,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP/CLEAR"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#CLEAR"));
     }
   }
 
