@@ -1185,7 +1185,9 @@ public class DefaultClusteringServiceTest {
     creationService.start(null);
 
     try {
-      creationService.releaseServerStoreProxy(mock(ServerStoreProxy.class));
+      ServerStoreProxy storeProxy = mock(ServerStoreProxy.class);
+      when(storeProxy.getCacheId()).thenReturn("test");
+      creationService.releaseServerStoreProxy(storeProxy);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
       assertThat(getRootCause(e).getMessage(), containsString(" does not exist"));

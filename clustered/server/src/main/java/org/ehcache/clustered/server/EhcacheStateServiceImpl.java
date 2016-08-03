@@ -18,8 +18,11 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.server.state.EhcacheStateService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
@@ -28,8 +31,6 @@ import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
@@ -49,12 +50,9 @@ import java.util.Set;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
-/**
- * Manages storage pools for server entity
- */
-class ServerStoreManager {
+public class EhcacheStateServiceImpl implements EhcacheStateService {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ServerStoreManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheStateServiceImpl.class);
 
   private final ServiceRegistry services;
   private final Set<String> offHeapResourceIdentifiers;
@@ -83,19 +81,32 @@ class ServerStoreManager {
    */
   private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
 
-  ServerStoreManager(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
+  public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
     this.services = services;
     this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
   }
-  ServerStoreImpl getStore(String name) {
+
+  public ServerStoreImpl getStore(String name) {
     return stores.get(name);
   }
 
-  Map<String, ServerStoreImpl> getStores() {
-    return Collections.unmodifiableMap(stores);
+  public Set<String> getStores() {
+    return Collections.unmodifiableSet(stores.keySet());
   }
 
-  void validate(ValidateStoreManager message) throws ClusterException {
+  Set<String> getSharedResourcePoolIds() {
+    return sharedResourcePools == null ? new HashSet<String>() : Collections.unmodifiableSet(sharedResourcePools.keySet());
+  }
+
+  Set<String> getDedicatedResourcePoolIds() {
+    return Collections.unmodifiableSet(dedicatedResourcePools.keySet());
+  }
+
+  String getDefaultServerResource() {
+    return this.defaultServerResource;
+  }
+
+  public void validate(ValidateStoreManager message) throws ClusterException {
     if (!isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
@@ -151,7 +162,7 @@ class ServerStoreManager {
     return Collections.unmodifiableMap(pools);
   }
 
-  void configure(ConfigureStoreManager message) throws ClusterException {
+  public void configure(ConfigureStoreManager message) throws ClusterException {
     if (!isConfigured()) {
       LOGGER.info("Configuring server-side clustered tier manager");
       ServerSideConfiguration configuration = message.getConfiguration();
@@ -236,7 +247,7 @@ class ServerStoreManager {
     }
   }
 
-  void destroy() {
+  public void destroy() {
     for (Map.Entry<String, ServerStoreImpl> storeEntry: stores.entrySet()) {
       storeEntry.getValue().close();
     }
@@ -272,7 +283,7 @@ class ServerStoreManager {
     }
   }
 
-  ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusterException {
+  public ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusterException {
     if (this.stores.containsKey(name)) {
       throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
     }
@@ -283,7 +294,7 @@ class ServerStoreManager {
     return serverStore;
   }
 
-  void destroyServerStore(String name) throws ClusterException {
+  public void destroyServerStore(String name) throws ClusterException {
     final ServerStoreImpl store = stores.remove(name);
     if (store == null) {
       throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
@@ -333,29 +344,12 @@ class ServerStoreManager {
 
   }
 
-  boolean isConfigured() {
+  public boolean isConfigured() {
     return (sharedResourcePools != null);
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {
     return (s1 == null ? s2 == null : s1.equals(s2));
-  }
-
-  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
-  String getDefaultServerResource() {
-    return defaultServerResource;
-  }
-
-  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
-  Set<String> getSharedResourcePoolIds() {
-    return (sharedResourcePools == null
-        ? Collections.<String>emptySet()
-        : Collections.unmodifiableSet(new HashSet<String>(sharedResourcePools.keySet())));
-  }
-
-  // This method is intended for unit test use; modifications are likely needed for other (monitoring) purposes
-  Set<String> getDedicatedResourcePoolIds() {
-    return Collections.unmodifiableSet(new HashSet<String>(dedicatedResourcePools.keySet()));
   }
 
   /**

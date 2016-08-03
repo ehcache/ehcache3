@@ -27,6 +27,7 @@ import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.entity.SyncMessageCodec;
 
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,7 +50,7 @@ public class ObservableEhcacheServerEntityService
    *
    * @return an unmodifiable list of {@code ObservableEhcacheActiveEntity} instances
    */
-  public List<ObservableEhcacheActiveEntity> getServedActiveEntities() {
+  public List<ObservableEhcacheActiveEntity> getServedActiveEntities() throws NoSuchFieldException, IllegalAccessException {
     List<ObservableEhcacheActiveEntity> observables = new ArrayList<ObservableEhcacheActiveEntity>(servedActiveEntities.size());
     for (EhcacheActiveEntity servedActiveEntity : servedActiveEntities) {
       observables.add(new ObservableEhcacheActiveEntity(servedActiveEntity));
@@ -99,9 +100,13 @@ public class ObservableEhcacheServerEntityService
    */
   public static final class ObservableEhcacheActiveEntity {
     private final EhcacheActiveEntity activeEntity;
+    private final EhcacheStateServiceImpl ehcacheStateService;
 
-    private ObservableEhcacheActiveEntity(EhcacheActiveEntity activeEntity) {
+    private ObservableEhcacheActiveEntity(EhcacheActiveEntity activeEntity) throws NoSuchFieldException, IllegalAccessException {
       this.activeEntity = activeEntity;
+      Field field = activeEntity.getClass().getDeclaredField("ehcacheStateService");
+      field.setAccessible(true);
+      this.ehcacheStateService = (EhcacheStateServiceImpl)field.get(activeEntity);
     }
 
     public ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> getActiveEntity() {
@@ -113,7 +118,7 @@ public class ObservableEhcacheServerEntityService
     }
 
     public Set<String> getStores() {
-      return activeEntity.getStores();
+      return ehcacheStateService.getStores();
     }
 
     public Map<String, Set<ClientDescriptor>> getInUseStores() {
@@ -121,15 +126,15 @@ public class ObservableEhcacheServerEntityService
     }
 
     public String getDefaultServerResource() {
-      return activeEntity.getDefaultServerResource();
+      return ehcacheStateService.getDefaultServerResource();
     }
 
     public Set<String> getSharedResourcePoolIds() {
-      return activeEntity.getSharedResourcePoolIds();
+      return ehcacheStateService.getSharedResourcePoolIds();
     }
 
     public Set<String> getDedicatedResourcePoolIds() {
-      return activeEntity.getDedicatedResourcePoolIds();
+      return ehcacheStateService.getDedicatedResourcePoolIds();
     }
   }
 }
