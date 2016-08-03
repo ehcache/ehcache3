@@ -81,6 +81,8 @@ public class UserManagedCaches {
 
     cache.close(); // <4>
     cache.destroy(); // <5>
+
+    persistenceService.stop(); // <6>
     // end::persistentUserManagedCache[]
   }
 

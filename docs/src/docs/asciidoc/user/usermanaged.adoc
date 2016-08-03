@@ -67,6 +67,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[
 <3> As usual, indicate here if the data should outlive the cache
 <4> Closing the cache will not delete the data it saved on disk when marked as persistent.
 <5> To delete the data, after closing the cache, destroy has to be explicitly invoked.
+<6> It is also your responsibility to stop the persistence service once you are done with the cache.
 
 === Cache copier example
 
