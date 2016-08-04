@@ -1,0 +1,29 @@
+<config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns='http://www.ehcache.org/v3'
+    xmlns:mnm='http://www.ehcache.org/v3/management'
+    xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../xml/src/main/resources/ehcache-core.xsd
+                        http://www.ehcache.org/v3/management ../../main/resources/ehcache-management-ext.xsd">
+
+  <service>
+    <mnm:management cache-manager-alias="my-cache-manager-name">
+      <mnm:tags>
+        <mnm:tag>webapp-name</mnm:tag>
+        <mnm:tag>jboss-1</mnm:tag>
+        <mnm:tag>server-node-1</mnm:tag>
+      </mnm:tags>
+      <mnm:statistics-configurations>
+        <mnm:statistics-configuration>
+          <mnm:history-size>500</mnm:history-size>
+        </mnm:statistics-configuration>
+      </mnm:statistics-configurations>
+    </mnm:management>
+  </service>
+
+  <cache alias="my-cache-1">
+    <key-type>java.lang.String</key-type>
+    <value-type>java.lang.String</value-type>
+    <heap unit="entries">20</heap>
+  </cache>
+
+</config>

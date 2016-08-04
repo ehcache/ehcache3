@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
@@ -53,11 +53,11 @@ public class DoubleSerializer implements Serializer<Double> {
    * </P>
    *
    * @param classLoader the classloader to use
-   * @param persistenceContext the persistence context
+   * @param stateRepository the state repository
    *
    * @see Serializer
    */
-  public DoubleSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+  public DoubleSerializer(ClassLoader classLoader, StateRepository stateRepository) {
 
   }
 

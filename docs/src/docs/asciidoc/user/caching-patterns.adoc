@@ -1,9 +1,9 @@
 ---
 ---
 = Cache Usage Patterns
-ifndef::sourcedir[]
+ifndef::sourcedir31[]
 include::common.adoc[]
-endif::sourcedir[]
+endif::sourcedir31[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]

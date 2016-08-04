@@ -15,10 +15,12 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import org.ehcache.Cache;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
+import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.extended.ExposedStatistic;
@@ -27,21 +29,19 @@ import org.terracotta.context.extended.StatisticsRegistry;
 import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
-import org.terracotta.management.capabilities.descriptors.Descriptor;
-import org.terracotta.management.capabilities.descriptors.StatisticDescriptor;
-import org.terracotta.management.capabilities.descriptors.StatisticDescriptorCategory;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.registry.action.ExposedObject;
-import org.terracotta.management.stats.NumberUnit;
-import org.terracotta.management.stats.Sample;
-import org.terracotta.management.stats.Statistic;
-import org.terracotta.management.stats.StatisticType;
-import org.terracotta.management.stats.history.AverageHistory;
-import org.terracotta.management.stats.history.CounterHistory;
-import org.terracotta.management.stats.history.DurationHistory;
-import org.terracotta.management.stats.history.RateHistory;
-import org.terracotta.management.stats.history.RatioHistory;
-import org.terracotta.management.stats.primitive.Counter;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptorCategory;
+import org.terracotta.management.model.stats.NumberUnit;
+import org.terracotta.management.model.stats.Sample;
+import org.terracotta.management.model.stats.Statistic;
+import org.terracotta.management.model.stats.StatisticType;
+import org.terracotta.management.model.stats.history.AverageHistory;
+import org.terracotta.management.model.stats.history.CounterHistory;
+import org.terracotta.management.model.stats.history.DurationHistory;
+import org.terracotta.management.model.stats.history.RateHistory;
+import org.terracotta.management.model.stats.history.RatioHistory;
+import org.terracotta.management.model.stats.primitive.Counter;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.archive.Timestamped;
 import org.terracotta.statistics.extended.Result;
@@ -56,7 +56,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
@@ -67,10 +66,7 @@ import static org.terracotta.context.query.Matchers.identifier;
 import static org.terracotta.context.query.Matchers.subclassOf;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 
-/**
- * @author Ludovic Orban
- */
-class EhcacheStatistics implements ExposedObject<CacheBinding> {
+class EhcacheStatistics extends ExposedCacheBinding {
 
   private static final Set<CacheOperationOutcomes.PutOutcome> ALL_CACHE_PUT_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.PutOutcome.class);
   private static final Set<CacheOperationOutcomes.GetOutcome> ALL_CACHE_GET_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.GetOutcome.class);
@@ -81,17 +77,14 @@ class EhcacheStatistics implements ExposedObject<CacheBinding> {
   private static final Set<CacheOperationOutcomes.CacheLoadingOutcome> ALL_CACHE_LOADER_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.CacheLoadingOutcome.class);
 
   private final StatisticsRegistry statisticsRegistry;
-  private final CacheBinding cacheBinding;
-  private final Context cacheContext;
-  private final ConcurrentMap<String, OperationStatistic<?>> countStatistics;
+  private final Map<String, OperationStatistic<?>> countStatistics;
 
-  EhcacheStatistics(Context cacheContext, CacheBinding cacheBinding, StatisticsProviderConfiguration configuration, ScheduledExecutorService executor) {
-    this.cacheContext = cacheContext;
-    this.cacheBinding = cacheBinding;
-    this.countStatistics = discoverCountStatistics();
-    this.statisticsRegistry = new StatisticsRegistry(StandardOperationStatistic.class, cacheBinding.getCache(), executor, configuration.averageWindowDuration(),
-        configuration.averageWindowUnit(), configuration.historySize(), configuration.historyInterval(), configuration.historyIntervalUnit(),
-        configuration.timeToDisable(), configuration.timeToDisableUnit());
+  EhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsProviderConfiguration statisticsProviderConfiguration, ScheduledExecutorService executor) {
+    super(registryConfiguration, cacheBinding);
+    this.countStatistics = discoverCountStatistics(cacheBinding.getCache());
+    this.statisticsRegistry = new StatisticsRegistry(StandardOperationStatistic.class, cacheBinding.getCache(), executor, statisticsProviderConfiguration.averageWindowDuration(),
+        statisticsProviderConfiguration.averageWindowUnit(), statisticsProviderConfiguration.historySize(), statisticsProviderConfiguration.historyInterval(), statisticsProviderConfiguration.historyIntervalUnit(),
+        statisticsProviderConfiguration.timeToDisable(), statisticsProviderConfiguration.timeToDisableUnit());
 
     statisticsRegistry.registerCompoundOperation("AllCacheGet", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Result"), StandardOperationStatistic.CACHE_GET, ALL_CACHE_GET_OUTCOMES);
     statisticsRegistry.registerCompoundOperation("AllCacheMiss", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Result"), StandardOperationStatistic.CACHE_GET, ALL_CACHE_MISS_OUTCOMES);
@@ -99,23 +92,7 @@ class EhcacheStatistics implements ExposedObject<CacheBinding> {
     statisticsRegistry.registerCompoundOperation("AllCacheRemove", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Result"), StandardOperationStatistic.CACHE_REMOVE, ALL_CACHE_REMOVE_OUTCOMES);
     statisticsRegistry.registerCompoundOperation("GetWithLoader", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Result"), StandardOperationStatistic.CACHE_GET, GET_WITH_LOADER_OUTCOMES);
     statisticsRegistry.registerCompoundOperation("GetNoLoader", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Result"), StandardOperationStatistic.CACHE_GET, GET_NO_LOADER_OUTCOMES);
-    statisticsRegistry.registerCompoundOperation("AllCacheLoader", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Result"), StandardOperationStatistic.CACHE_LOADING, ALL_CACHE_LOADER_OUTCOMES);
     statisticsRegistry.registerRatio("Hit", Collections.singleton("cache"), Collections.<String, Object>singletonMap("type", "Ratio"), StandardOperationStatistic.CACHE_GET, EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER), ALL_CACHE_GET_OUTCOMES);
-  }
-
-  @Override
-  public ClassLoader getClassLoader() {
-    return cacheBinding.getCache().getRuntimeConfiguration().getClassLoader();
-  }
-
-  @Override
-  public CacheBinding getTarget() {
-    return cacheBinding;
-  }
-
-  @Override
-  public boolean matches(Context context) {
-    return context.contains(cacheContext);
   }
 
   @SuppressWarnings("unchecked")
@@ -192,7 +169,8 @@ class EhcacheStatistics implements ExposedObject<CacheBinding> {
     return result;
   }
 
-  public Set<Descriptor> getDescriptors() {
+  @Override
+  public Collection<Descriptor> getDescriptors() {
     Set<Descriptor> capabilities = new HashSet<Descriptor>();
 
     capabilities.addAll(queryStatisticsRegistry());
@@ -241,17 +219,21 @@ class EhcacheStatistics implements ExposedObject<CacheBinding> {
 
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private ConcurrentMap<String, OperationStatistic<?>> discoverCountStatistics() {
-    ConcurrentHashMap<String, OperationStatistic<?>> result = new ConcurrentHashMap<String, OperationStatistic<?>>();
+  private static Map<String, OperationStatistic<?>> discoverCountStatistics(Cache<?, ?> cache) {
+    Map<String, OperationStatistic<?>> result = new HashMap<String, OperationStatistic<?>>();
 
     for (OperationType t : StandardOperationStatistic.class.getEnumConstants()) {
-      OperationStatistic statistic = findOperationObserver(t);
+      OperationStatistic statistic = findOperationObserver(t, cache);
       if (statistic == null) {
         if (t.required()) {
           throw new IllegalStateException("Required statistic " + t + " not found");
         }
       } else {
-        result.putIfAbsent(capitalize(t.operationName()) + "Counter", statistic);
+        String key = capitalize(t.operationName()) + "Counter";
+        if(!result.containsKey(key)) {
+          result.put(key, statistic);
+        }
+
       }
     }
 
@@ -267,8 +249,8 @@ class EhcacheStatistics implements ExposedObject<CacheBinding> {
   }
 
   @SuppressWarnings({"unchecked", "rawtypes"})
-  private OperationStatistic findOperationObserver(OperationType statistic) {
-    Set<OperationStatistic<?>> results = findOperationObserver(statistic.context(), statistic.type(), statistic.operationName(), statistic.tags());
+  private static OperationStatistic findOperationObserver(OperationType statistic, Cache<?, ?> cache) {
+    Set<OperationStatistic<?>> results = findOperationObserver(statistic.context(), statistic.type(), statistic.operationName(), statistic.tags(), cache);
     switch (results.size()) {
       case 0:
         return null;
@@ -280,12 +262,12 @@ class EhcacheStatistics implements ExposedObject<CacheBinding> {
   }
 
   @SuppressWarnings("unchecked")
-  private Set<OperationStatistic<?>> findOperationObserver(Query contextQuery, Class<?> type, String name,
-                                                           final Set<String> tags) {
+  private static Set<OperationStatistic<?>> findOperationObserver(Query contextQuery, Class<?> type, String name,
+                                                           final Set<String> tags, Cache<?, ?> cache) {
     Query q = queryBuilder().chain(contextQuery)
         .children().filter(context(identifier(subclassOf(OperationStatistic.class)))).build();
 
-    Set<TreeNode> operationStatisticNodes = q.execute(Collections.singleton(ContextManager.nodeFor(cacheBinding.getCache())));
+    Set<TreeNode> operationStatisticNodes = q.execute(Collections.singleton(ContextManager.nodeFor(cache)));
     Set<TreeNode> result = queryBuilder()
         .filter(
             context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("type", type),

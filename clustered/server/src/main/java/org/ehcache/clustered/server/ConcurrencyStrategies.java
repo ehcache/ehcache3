@@ -15,31 +15,49 @@
  */
 package org.ehcache.clustered.server;
 
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Set;
+
+import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.terracotta.entity.ConcurrencyStrategy;
 
-import static java.util.Collections.singleton;
 import org.terracotta.entity.EntityMessage;
 
 public final class ConcurrencyStrategies {
 
-  private static final ConcurrencyStrategy NO_CONCURRENCY = new ConcurrencyStrategy<EntityMessage>() {
+  private ConcurrencyStrategies() {
+  }
+
+  public static final <T extends EntityMessage> ConcurrencyStrategy<T> defaultConcurrency(int bucketCount) {
+    return new DefaultConcurrencyStrategy<T>(bucketCount);
+  }
+
+  static class DefaultConcurrencyStrategy<T extends EntityMessage> implements ConcurrencyStrategy<T> {
+    public static final int DEFAULT_KEY = 1;
+
+    private final int bucketCount;
+
+    public DefaultConcurrencyStrategy(int bucketCount) {
+      this.bucketCount = bucketCount;
+    }
+
     @Override
-    public int concurrencyKey(EntityMessage message) {
-      return 0;
+    public int concurrencyKey(EntityMessage entityMessage) {
+      if (entityMessage instanceof ConcurrentEntityMessage) {
+        ConcurrentEntityMessage concurrentEntityMessage = (ConcurrentEntityMessage) entityMessage;
+        return DEFAULT_KEY + Math.abs(concurrentEntityMessage.concurrencyKey() % bucketCount);
+      }
+      return DEFAULT_KEY;
     }
 
     @Override
     public Set<Integer> getKeysForSynchronization() {
-      return singleton(0);
+      Set<Integer> result = new HashSet<Integer>();
+      for (int i = 0; i < bucketCount; i++) {
+        result.add(DEFAULT_KEY + i);
+      }
+      return Collections.unmodifiableSet(result);
     }
-  };
-
-  private ConcurrencyStrategies() {
-
-  }
-
-  public static final <T extends EntityMessage> ConcurrencyStrategy<T> noConcurrency() {
-    return NO_CONCURRENCY;
   }
 }

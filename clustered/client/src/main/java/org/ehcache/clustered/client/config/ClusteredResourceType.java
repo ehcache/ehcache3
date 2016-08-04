@@ -26,10 +26,10 @@ public interface ClusteredResourceType<P extends ClusteredResourcePool> extends 
   final class Types {
 
     /**
-     * Identifies the {@code cluster-fixed} {@link ResourceType}.
+     * Identifies the {@code clustered-dedicated} {@link ResourceType}.
      */
-    public static final ClusteredResourceType<FixedClusteredResourcePool> FIXED =
-        new BaseClusteredResourceType<FixedClusteredResourcePool>("FIXED", FixedClusteredResourcePool.class);
+    public static final ClusteredResourceType<DedicatedClusteredResourcePool> DEDICATED =
+        new BaseClusteredResourceType<DedicatedClusteredResourcePool>("DEDICATED", DedicatedClusteredResourcePool.class);
 
     /**
      * Identifies the {@code cluster-shared} {@link ResourceType}.
@@ -37,6 +37,21 @@ public interface ClusteredResourceType<P extends ClusteredResourcePool> extends 
     public static final ClusteredResourceType<SharedClusteredResourcePool> SHARED =
         new BaseClusteredResourceType<SharedClusteredResourcePool>("SHARED", SharedClusteredResourcePool.class);
 
+    /**
+     * Identifies the {@code clustered} {@link ResourceType}.
+     */
+    public static final ClusteredResourceType<ClusteredResourcePool> UNKNOWN =
+        new BaseClusteredResourceType<ClusteredResourcePool>("UNKNOWN", ClusteredResourcePool.class);
+
+    /**
+     * Returns an array containing the constants of the {@link ClusteredResourceType}.
+     *
+     * @return an array containing the constants of {@code ClusteredResourceType} in the order declared
+     */
+    @SuppressWarnings("unchecked")
+    public static ClusteredResourceType<? extends ClusteredResourcePool>[] values() {
+      return new ClusteredResourceType[] {DEDICATED, SHARED, UNKNOWN};   // unchecked
+    }
 
     /**
      * The base on which {@link ClusteredResourceType} identifiers are built.
@@ -65,6 +80,11 @@ public interface ClusteredResourceType<P extends ClusteredResourcePool> extends 
       @Override
       public boolean requiresSerialization() {
         return true;
+      }
+
+      @Override
+      public int getTierHeight() {
+        return 10;
       }
 
       @Override

@@ -28,6 +28,7 @@ import org.ehcache.spi.copy.Copier;
 
 import java.util.AbstractMap;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Random;
@@ -163,6 +164,19 @@ class KeyCopyBackend<K, V> implements Backend<K, V> {
   @Override
   public Backend<K, V> clear() {
     return new KeyCopyBackend<K, V>(byteSized, keyCopier);
+  }
+
+  @Override
+  public Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash) {
+    Map<K, OnHeapValueHolder<V>> result = new HashMap<K, OnHeapValueHolder<V>>();
+    Map<OnHeapKey<K>, OnHeapValueHolder<V>> removed = keyCopyMap.removeAllWithHash(hash);
+    long delta = 0L;
+    for (Map.Entry<OnHeapKey<K>, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+      delta -= entry.getValue().size();
+      result.put(entry.getKey().getActualKeyObject(), entry.getValue());
+    }
+    updateUsageInBytesIfRequired(delta);
+    return result;
   }
 
   @Override

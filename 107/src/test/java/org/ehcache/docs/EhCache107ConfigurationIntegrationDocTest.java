@@ -84,6 +84,23 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  public void basicConfiguration() throws Exception {
+    // tag::basicConfigurationExample[]
+    CachingProvider provider = Caching.getCachingProvider();  // <1>
+    CacheManager cacheManager = provider.getCacheManager();   // <2>
+    MutableConfiguration<Long, String> configuration =
+        new MutableConfiguration<Long, String>()  // <3>
+            .setTypes(Long.class, String.class)   // <4>
+            .setStoreByValue(false)   // <5>
+            .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE));  // <6>
+    Cache<Long, String> cache = cacheManager.createCache("jCache", configuration); // <7>
+    cache.put(1L, "one"); // <8>
+    String value = cache.get(1L); // <9>
+    // end::basicConfigurationExample[]
+    assertThat(value, is("one"));
+  }
+
+  @Test
   public void testGettingToEhcacheConfiguration() {
     // tag::mutableConfigurationExample[]
     MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
@@ -242,5 +259,12 @@ public class EhCache107ConfigurationIntegrationDocTest {
     myCache = cacheManager.createCache("byValCache", mutableConfiguration);
     myCache.put(1L, client1);
     assertNotSame(client1, myCache.get(1L));
+  }
+
+  @Test
+  public void testCacheThroughAtomicsXMLValid() throws Exception {
+    cacheManager = cachingProvider.getCacheManager(
+        getClass().getResource("/org/ehcache/docs/ehcache-jsr107-cache-through.xml").toURI(),
+        getClass().getClassLoader());
   }
 }

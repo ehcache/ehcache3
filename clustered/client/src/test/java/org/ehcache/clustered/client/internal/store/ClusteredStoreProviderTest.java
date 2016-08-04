@@ -66,54 +66,60 @@ public class ClusteredStoreProviderTest {
         mock(ClusteringService.class));
     provider.start(serviceLocator);
 
-    assertRank(provider, 0, ResourceType.Core.DISK);
-    assertRank(provider, 0, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 1, ClusteredResourceType.Types.DEDICATED);
 
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK);
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.HEAP);
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 1, ClusteredResourceType.Types.SHARED);
 
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, new UnmatchedResourceType());
+  }
 
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 105, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+  @Test
+  public void testRankTiered() throws Exception {
+    TieredStore.Provider provider = new TieredStore.Provider();
+    ServiceLocator serviceLocator = new ServiceLocator(
+        provider,
+        new ClusteredStore.Provider(),
+        new OnHeapStore.Provider(),
+        new OffHeapStore.Provider(),
+        new OffHeapDiskStore.Provider(),
+        mock(ClusteringService.class));
+    serviceLocator.startAllServices();
 
-    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
-      @Override
-      public Class<ResourcePool> getResourcePoolClass() {
-        return ResourcePool.class;
-      }
-      @Override
-      public boolean isPersistable() {
-        return true;
-      }
-      @Override
-      public boolean requiresSerialization() {
-        return true;
-      }
-    };
-    assertRank(provider, 0, unmatchedResourceType);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, unmatchedResourceType);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK);
+    assertRank(provider, 2, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 3, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
+    assertRank(provider, 2, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 3, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    // Multiple clustered resources not currently supported
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+  }
+
+  @Test
+  public void testAuthoritativeRank() throws Exception {
+    ClusteredStore.Provider provider = new ClusteredStore.Provider();
+    ServiceLocator serviceLocator = new ServiceLocator(mock(ClusteringService.class));
+    provider.start(serviceLocator);
+
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.EMPTY_LIST), is(1));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.EMPTY_LIST), is(1));
+    assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.EMPTY_LIST), is(0));
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
@@ -133,4 +139,25 @@ public class ClusteredStoreProviderTest {
     }
   }
 
+  private static class UnmatchedResourceType implements ResourceType<ResourcePool> {
+    @Override
+    public Class<ResourcePool> getResourcePoolClass() {
+      return ResourcePool.class;
+    }
+
+    @Override
+    public boolean isPersistable() {
+      return true;
+    }
+
+    @Override
+    public boolean requiresSerialization() {
+      return true;
+    }
+
+    @Override
+    public int getTierHeight() {
+      return 10;
+    }
+  }
 }

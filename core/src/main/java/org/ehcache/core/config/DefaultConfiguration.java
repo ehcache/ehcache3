@@ -26,6 +26,8 @@ import java.util.concurrent.ConcurrentMap;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.Configuration;
+import org.ehcache.core.HumanReadable;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
 import static java.util.Collections.unmodifiableCollection;
@@ -34,7 +36,7 @@ import static java.util.Collections.unmodifiableMap;
 /**
  * Base implementation of {@link Configuration}.
  */
-public final class DefaultConfiguration implements Configuration {
+public final class DefaultConfiguration implements Configuration, HumanReadable {
 
   private final ConcurrentMap<String,CacheConfiguration<?, ?>> caches;
   private final Collection<ServiceCreationConfiguration<?>> services;
@@ -46,6 +48,9 @@ public final class DefaultConfiguration implements Configuration {
    * @param cfg the configuration to copy
    */
   public DefaultConfiguration(Configuration cfg) {
+    if (cfg.getClassLoader() == null) {
+      throw new NullPointerException();
+    }
     this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(cfg.getCacheConfigurations());
     this.services = unmodifiableCollection(cfg.getServiceCreationConfigurations());
     this.classLoader = cfg.getClassLoader();
@@ -77,7 +82,7 @@ public final class DefaultConfiguration implements Configuration {
   public DefaultConfiguration(Map<String, CacheConfiguration<?, ?>> caches, ClassLoader classLoader, ServiceCreationConfiguration<?>... services) {
     this.services = unmodifiableCollection(Arrays.asList(services));
     this.caches = new ConcurrentHashMap<String, CacheConfiguration<?, ?>>(caches);
-    this.classLoader = classLoader;
+    this.classLoader = classLoader == null ? ClassLoading.getDefaultClassLoader() : classLoader;
   }
 
   /**
@@ -124,13 +129,9 @@ public final class DefaultConfiguration implements Configuration {
    * Removes the {@link CacheConfiguration} tied to the provided alias.
    *
    * @param alias the alias for which to remove configuration
-   *
-   * @throws IllegalStateException if the alias was not in use
    */
   public void removeCacheConfiguration(final String alias) {
-    if (caches.remove(alias) == null) {
-      throw new IllegalStateException("Cache '" + alias + "' unknown!");
-    }
+    caches.remove(alias);
   }
 
   /**
@@ -148,5 +149,44 @@ public final class DefaultConfiguration implements Configuration {
     if (!caches.replace(alias, config, runtimeConfiguration)) {
       throw new IllegalStateException("The expected configuration doesn't match!");
     }
+  }
+
+  @Override
+  public String readableString() {
+    StringBuilder cachesToStringBuilder = new StringBuilder();
+    for (Map.Entry<String, CacheConfiguration<?, ?>> cacheConfigurationEntry : caches.entrySet()) {
+      if(cacheConfigurationEntry.getValue() instanceof HumanReadable) {
+        cachesToStringBuilder
+            .append(cacheConfigurationEntry.getKey())
+            .append(":\n    ")
+            .append(((HumanReadable)cacheConfigurationEntry.getValue()).readableString().replace("\n","\n    "))
+            .append("\n");
+      }
+    }
+
+    if(cachesToStringBuilder.length() > 0) {
+      cachesToStringBuilder.deleteCharAt(cachesToStringBuilder.length() -1);
+    }
+
+    StringBuilder serviceCreationConfigurationsToStringBuilder = new StringBuilder();
+    for (ServiceCreationConfiguration serviceCreationConfiguration : services) {
+      serviceCreationConfigurationsToStringBuilder.append("- ");
+      if(serviceCreationConfiguration instanceof HumanReadable) {
+        serviceCreationConfigurationsToStringBuilder
+            .append(((HumanReadable)serviceCreationConfiguration).readableString())
+            .append("\n");
+      } else {
+        serviceCreationConfigurationsToStringBuilder
+            .append(serviceCreationConfiguration.getClass().getName())
+            .append("\n");
+      }
+    }
+
+    if(serviceCreationConfigurationsToStringBuilder.length() > 0) {
+      serviceCreationConfigurationsToStringBuilder.deleteCharAt(serviceCreationConfigurationsToStringBuilder.length() -1);
+    }
+
+    return "caches:\n    " + cachesToStringBuilder.toString().replace("\n","\n    ") + "\n" +
+        "services: \n    " + serviceCreationConfigurationsToStringBuilder.toString().replace("\n","\n    ") ;
   }
 }

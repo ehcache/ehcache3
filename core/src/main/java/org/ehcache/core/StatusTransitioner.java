@@ -213,14 +213,14 @@ final class StatusTransitioner {
         fireTransitionEvent(st.from().toPublicStatus(), st.to().toPublicStatus());
       } finally {
         maintenanceLease = thread;
-        logger.info("{} successful.", action);
+        logger.debug("{} successful.", action);
       }
     }
 
     public StateTransitionException failed(Throwable t) {
       if (st.done()) {
         if (t != null) {
-          throw new AssertionError("Throwable cannot be null if Transition is done.");
+          throw (AssertionError) new AssertionError("Throwable cannot be thrown if Transition is done.").initCause(t);
         }
         return null;
       }

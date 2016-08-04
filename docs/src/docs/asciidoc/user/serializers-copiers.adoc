@@ -1,9 +1,9 @@
 ---
 ---
 = Serializers and Copiers
-ifndef::sourcedir[]
+ifndef::sourcedir31[]
 include::common.adoc[]
-endif::sourcedir[]
+endif::sourcedir31[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -57,6 +57,7 @@ A `Serializer` configured at the cache level by class name will not be shared to
 
 NOTE: Given the above, it is recommended to limit `Serializer` registration to concrete classes and not aim for generality.
 
+[[serializers-bundled]]
 === Bundled implementations
 
 By default, cache managers are pre-configured with specially optimized `Serializer` that can handle the following types, in the following order:
@@ -71,6 +72,14 @@ By default, cache managers are pre-configured with specially optimized `Serializ
 - `byte[]`
 
 All bundled `Serializer` implementations support both persistent and transient caches.
+
+[NOTE]
+====
+A consequence of providing serializers registered by default is that you will not be able to register a generic `Serializer` for `Number`
+or any other super type and expect it to be picked instead of the default ones for the types listed above.
+
+However, registering a different `Serializer` for one of the given type means it will be used instead of the default.
+====
 
 === Lifecycle: instances vs. class names
 
@@ -100,7 +109,7 @@ Implement the following interface, from package `org.ehcache.spi.serialization`:
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/api/src/main/java/org/ehcache/spi/serialization/Serializer.java[lines=21..-1]
+include::{sourcedir31}/api/src/main/java/org/ehcache/spi/serialization/Serializer.java[lines=21..-1]
 ----
 
 As the javadoc states, there are some constructor rules, see the <<persistent-vs-transient-caches,section on persistent and transient caches>> for that.
@@ -116,13 +125,19 @@ of the serialized types as they might not be available in the current class load
 [[persistent-vs-transient-caches]]
 ==== Persistent vs. transient caches
 
-When configured on a persistent cache, serializers may need to persist and restore their state across restarts, so you have to implement a
-constructor with the following signature:
+When configured on a persistent cache, serializers may need to persist and restore their state across restarts.
+For clustered caches there might be an additional requirement that the state of the serializer must be visible to all clients using the same cache(configured with the same serializer).
+To address these requirement you have to implement a constructor with the following signature:
 ```java
-public MySerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+public MySerializer(ClassLoader classLoader, StateRepository stateRepository) {
 }
 ```
 otherwise persistent caches won't be able to use your serializer.
+
+The `StateRepository.getPersistentConcurrentMap()` provides a `ConcurrentMap` that you can use to store any relevant state.
+The users don't have to worry about the persistence aspects of this map as it is taken care by `Ehcache`.
+In the case of a disk persistent cache, the contents of the map will be persisted locally on to the disk.
+For clustered caches the contents are persisted in the cluster itself so that other clients using the same cache can also access the contents of the map.
 
 Attempting to configure a serializer that lacks such constructor on a persistent cache using either of
 `CacheConfigurationBuilder.withKeySerializer(Class<? extends Serializer<K>> keySerializerClass)` or
@@ -145,6 +160,10 @@ will be sanctioned with an exception upon cache initialization.
 
 Registering a serializer that lacks such constructor at the cache manager level will prevent it from being chosen for persistent caches.
 
+NOTE: The constructor with the signature `(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext)`
+      that existed in v3.0 is still supported to respect backward compatibility but the usage is limited to disk based caches.
+
+[[copiers]]
 == Copiers
 
 As the <<caching-concepts.adoc#storage-tiers,on-heap store>> is capable of storing plain java objects as such,
@@ -188,6 +207,7 @@ A `Copier` configured at the cache level by class name will not be shared to oth
 
 NOTE: Given the above, it is recommended to limit `Copier` registration to concrete classes and not aim for generality.
 
+[[copiers-bundled]]
 === Bundled implementations
 
 A `SerializingCopier` class exists in case you want to configure store _by value_ on-heap using the configured (or default) serializer.
@@ -213,7 +233,7 @@ Implement the following interface:
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/api/src/main/java/org/ehcache/spi/copy/Copier.java[lines=19..-1]
+include::{sourcedir31}/api/src/main/java/org/ehcache/spi/copy/Copier.java[lines=19..-1]
 ----
 
 * `T copyForRead(T obj)` is invoked when a copy must be made upon a read operation (like a cache `get()`),

@@ -20,19 +20,22 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
+import org.ehcache.core.HumanReadable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Implementation of the {@link ResourcePools} interface.
  */
-public class ResourcePoolsImpl implements ResourcePools {
+public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
 
   private final Map<ResourceType<?>, ResourcePool> pools;
 
@@ -122,5 +125,41 @@ public class ResourcePoolsImpl implements ResourcePools {
         }
       }
     }
+  }
+
+  @Override
+  public String readableString() {
+
+    Map<ResourceType<?>, ResourcePool> sortedPools = new TreeMap<ResourceType<?>, ResourcePool>(
+      new Comparator<ResourceType<?>>() {
+        @Override
+        public int compare(ResourceType<?> o1, ResourceType<?> o2) {
+          return o2.getTierHeight() - o1.getTierHeight();
+        }
+      }
+    );
+    sortedPools.putAll(pools);
+
+    StringBuilder poolsToStringBuilder = new StringBuilder();
+
+    for (Map.Entry<ResourceType<?>, ResourcePool> poolEntry : sortedPools.entrySet()) {
+      poolsToStringBuilder
+          .append(poolEntry.getKey())
+          .append(": ")
+          .append("\n        ")
+          .append("size: ")
+          .append(poolEntry.getValue() instanceof HumanReadable ? ((HumanReadable) poolEntry.getValue()).readableString() : poolEntry.getValue())
+          .append("\n        ")
+          .append("tierHeight: ")
+          .append(poolEntry.getKey().getTierHeight())
+          .append("\n    ");
+    }
+
+    if (poolsToStringBuilder.length() > 4) {
+      poolsToStringBuilder.delete(poolsToStringBuilder.length() - 5, poolsToStringBuilder.length());
+    }
+
+    return "pools: " + "\n    " +
+        poolsToStringBuilder.toString();
   }
 }

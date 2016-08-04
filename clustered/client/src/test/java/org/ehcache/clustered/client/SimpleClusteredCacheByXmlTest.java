@@ -19,11 +19,12 @@ package org.ehcache.clustered.client;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
-import org.ehcache.Status;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.config.Configuration;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.xml.XmlConfiguration;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.hamcrest.Matchers.instanceOf;
@@ -35,16 +36,23 @@ import org.junit.Before;
 
 /**
  * Tests basic XML configuration of clustered {@link PersistentCacheManager}.
- *
- * @author Clifford W. Johnson
  */
 public class SimpleClusteredCacheByXmlTest {
 
   private static final String SIMPLE_CLUSTER_XML = "/configs/simple-cluster.xml";
+  private static final String CLUSTER_URI = "terracotta://example.com:9540/cachemanager";
 
   @Before
-  public void resetPassthroughServer() {
-    UnitTestConnectionService.reset();
+  public void resetPassthroughServer() throws Exception {
+    UnitTestConnectionService.add(CLUSTER_URI,
+        new UnitTestConnectionService.PassthroughServerBuilder()
+            .resource("primary-server-resource", 64, MemoryUnit.MB)
+            .build());
+  }
+
+  @After
+  public void removePassthroughServer() throws Exception {
+    UnitTestConnectionService.remove(CLUSTER_URI);
   }
 
   @Test
@@ -59,8 +67,6 @@ public class SimpleClusteredCacheByXmlTest {
     final Cache<Long, String> cache = cacheManager.getCache("simple-cache", Long.class, String.class);
     assertThat(cache, is(not(nullValue())));
 
-    if (cacheManager.getStatus() != Status.UNINITIALIZED) {
-      cacheManager.close();
-    }
+    cacheManager.close();
   }
 }

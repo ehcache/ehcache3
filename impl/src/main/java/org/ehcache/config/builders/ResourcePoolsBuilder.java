@@ -78,7 +78,7 @@ public class ResourcePoolsBuilder implements Builder<ResourcePools> {
   }
 
   /**
-   * Creates a new {@code ResourcePoolsBuilder} with a {@link ResourceType.Core#HEAP heap} pool sized
+   * Creates a new {@code ResourcePoolsBuilder} with a {@link org.ehcache.config.ResourceType.Core#HEAP heap} pool sized
    * in {@link EntryUnit#ENTRIES entries}
    *
    * @param entries the maximum number of mappings to cache

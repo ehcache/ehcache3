@@ -20,6 +20,7 @@ import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.CollectorService;
@@ -27,22 +28,20 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.context.ContextContainer;
-import org.terracotta.management.message.DefaultMessage;
-import org.terracotta.management.notification.ContextualNotification;
-import org.terracotta.management.registry.MessageConsumer;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.notification.ContextualNotification;
+import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.StatisticQuery;
-import org.terracotta.management.stats.ContextualStatistics;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -53,19 +52,23 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
-
-/**
- * @author Mathieu Carbou
- */
 @ServiceDependencies({CacheManagerProviderService.class, ManagementRegistryService.class, ExecutionService.class, TimeSourceService.class})
 public class DefaultCollectorService implements CollectorService, CacheManagerListener {
+
+  private enum EhcacheNotification {
+    CACHE_ADDED,
+    CACHE_REMOVED,
+    CACHE_MANAGER_AVAILABLE,
+    CACHE_MANAGER_MAINTENANCE,
+    CACHE_MANAGER_CLOSED,
+  }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultCollectorService.class);
 
   private ScheduledFuture<?> task;
 
   private final ConcurrentMap<String, StatisticQuery.Builder> selectedStatsPerCapability = new ConcurrentHashMap<String, StatisticQuery.Builder>();
-  private final MessageConsumer messageConsumer;
+  private final Collector collector;
 
   private volatile TimeSource timeSource;
   private volatile ManagementRegistryService managementRegistry;
@@ -73,8 +76,12 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   private volatile InternalCacheManager cacheManager;
   private volatile ManagementRegistryServiceConfiguration configuration;
 
-  public DefaultCollectorService(MessageConsumer messageConsumer) {
-    this.messageConsumer = messageConsumer;
+  public DefaultCollectorService() {
+    this(Collector.EMPTY);
+  }
+
+  public DefaultCollectorService(Collector collector) {
+    this.collector = collector;
   }
 
   @Override
@@ -90,26 +97,28 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
 
   @Override
   public synchronized void stop() {
+    // do not call deregisterListener here because the stateTransition event for UNINITIALIZED won't be caught.
+    // so deregisterListener is done in the stateTransition listener
+    //cacheManager.deregisterListener(this);
+
     stopStatisticCollector();
     shutdownNow(scheduledExecutorService);
   }
 
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
-    messageConsumer.accept(new DefaultMessage(
-        timeSource.getTimeMillis(),
+    collector.onNotification(
         new ContextualNotification(
             configuration.getContext().with("cacheName", alias),
-            EhcacheNotification.CACHE_ADDED.name())));
+            EhcacheNotification.CACHE_ADDED.name()));
   }
 
   @Override
   public void cacheRemoved(String alias, Cache<?, ?> cache) {
-    messageConsumer.accept(new DefaultMessage(
-        timeSource.getTimeMillis(),
+    collector.onNotification(
         new ContextualNotification(
             configuration.getContext().with("cacheName", alias),
-            EhcacheNotification.CACHE_REMOVED.name())));
+            EhcacheNotification.CACHE_REMOVED.name()));
   }
 
   @Override
@@ -117,36 +126,38 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     switch (to) {
 
       case AVAILABLE:
+        // .register() call should be there when CM is AVAILABLE
+        // this is to expose the stats collector for management calls
         managementRegistry.register(this);
 
-        messageConsumer.accept(new DefaultMessage(
-            timeSource.getTimeMillis(),
+        collector.onNotification(
             new ContextualNotification(
                 configuration.getContext(),
-                EhcacheNotification.CACHE_MANAGER_AVAILABLE.name())));
+                EhcacheNotification.CACHE_MANAGER_AVAILABLE.name()));
+
+        // auto-start stat collection
+        startStatisticCollector();
         break;
 
       case MAINTENANCE:
-        messageConsumer.accept(new DefaultMessage(
-            timeSource.getTimeMillis(),
+        collector.onNotification(
             new ContextualNotification(
                 configuration.getContext(),
-                EhcacheNotification.CACHE_MANAGER_MAINTENANCE.name())));
+                EhcacheNotification.CACHE_MANAGER_MAINTENANCE.name()));
         break;
 
       case UNINITIALIZED:
-        messageConsumer.accept(new DefaultMessage(
-            timeSource.getTimeMillis(),
+        collector.onNotification(
             new ContextualNotification(
                 configuration.getContext(),
-                EhcacheNotification.CACHE_MANAGER_CLOSED.name())));
+                EhcacheNotification.CACHE_MANAGER_CLOSED.name()));
 
-        // deregister me
+        // deregister me - should not be in stop() - see other comments
         cacheManager.deregisterListener(this);
         break;
 
       default:
-        throw new AssertionError(to);
+        throw new AssertionError("Unsupported state: " + to);
     }
   }
 
@@ -157,40 +168,40 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
 
       long timeToDisableMs = TimeUnit.MILLISECONDS.convert(providerConfiguration.timeToDisable(), providerConfiguration.timeToDisableUnit());
       long pollingIntervalMs = Math.round(timeToDisableMs * 0.75); // we poll at 75% of the time to disable (before the time to disable happens)
-      final AtomicLong lastPoll = new AtomicLong(System.currentTimeMillis());
+      final AtomicLong lastPoll = new AtomicLong(timeSource.getTimeMillis());
 
       task = scheduledExecutorService.scheduleWithFixedDelay(new Runnable() {
         @Override
         public void run() {
           try {
             // always check if the cache manager is still available
-            if (cacheManager.getStatus() == Status.AVAILABLE) {
+            if (cacheManager.getStatus() == Status.AVAILABLE && !selectedStatsPerCapability.isEmpty()) {
 
               // create the full context list from current caches
               Collection<Context> cacheContexts = new ArrayList<Context>();
-              for (ContextContainer cacheContext : managementRegistry.getContextContainer().getSubContexts()) {
-                cacheContexts.add(configuration.getContext().with(cacheContext.getName(), cacheContext.getValue()));
+              for (String cacheAlias : new HashSet<String>(cacheManager.getRuntimeConfiguration().getCacheConfigurations().keySet())) {
+                cacheContexts.add(configuration.getContext().with("cacheName", cacheAlias));
               }
 
-              long now = timeSource.getTimeMillis();
               Collection<ContextualStatistics> statistics = new ArrayList<ContextualStatistics>();
 
               // for each capability, call the management registry
+              long since = lastPoll.get();
               for (Map.Entry<String, StatisticQuery.Builder> entry : selectedStatsPerCapability.entrySet()) {
-                for (ContextualStatistics contextualStatistics : entry.getValue().since(lastPoll.get()).on(cacheContexts).build().execute()) {
+                for (ContextualStatistics contextualStatistics : entry.getValue().since(since).on(cacheContexts).build().execute()) {
                   statistics.add(contextualStatistics);
                 }
               }
 
               // next time, only poll history from this time
-              lastPoll.set(System.currentTimeMillis());
+              lastPoll.set(timeSource.getTimeMillis());
 
               if (!statistics.isEmpty()) {
-                messageConsumer.accept(new DefaultMessage(now, statistics.toArray(new ContextualStatistics[statistics.size()])));
+                collector.onStatistics(statistics);
               }
             }
           } catch (RuntimeException e) {
-            LOGGER.error(e.getMessage(), e);
+            LOGGER.error("StatisticCollector: " + e.getMessage(), e);
           }
         }
       }, pollingIntervalMs, pollingIntervalMs, TimeUnit.MILLISECONDS);
@@ -207,8 +218,23 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
 
   @Override
   public void updateCollectedStatistics(String capabilityName, Collection<String> statisticNames) {
-    StatisticQuery.Builder builder = managementRegistry.withCapability(capabilityName).queryStatistics(statisticNames);
-    selectedStatsPerCapability.put(capabilityName, builder);
+    if(!statisticNames.isEmpty()) {
+      StatisticQuery.Builder builder = managementRegistry.withCapability(capabilityName).queryStatistics(statisticNames);
+      selectedStatsPerCapability.put(capabilityName, builder);
+    } else {
+      // we clear the stats set
+      selectedStatsPerCapability.remove(capabilityName);
+    }
+  }
+
+  // for test purposes
+  Map<String, StatisticQuery.Builder> getSelectedStatsPerCapability() {
+    return Collections.unmodifiableMap(selectedStatsPerCapability);
+  }
+
+  // for test purposes
+  void setManagementRegistry(ManagementRegistryService managementRegistry) {
+    this.managementRegistry = managementRegistry;
   }
 
 }

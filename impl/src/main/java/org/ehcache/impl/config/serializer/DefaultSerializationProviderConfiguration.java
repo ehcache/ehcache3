@@ -20,6 +20,7 @@ import static java.util.Collections.unmodifiableMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
@@ -104,7 +105,20 @@ public class DefaultSerializationProviderConfiguration implements ServiceCreatio
       }
     }
 
-    if(persistentConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class, FileBasedPersistenceContext.class)) {
+    if (persistentConstructorPresent = isConstructorPresent(serializerClass, ClassLoader.class, StateRepository.class)) {
+      if (!overwrite && persistentSerializers.containsKey(serializableClass)) {
+        throw new IllegalArgumentException("Duplicate persistent serializer for class : " + serializableClass.getName());
+      } else {
+        persistentSerializers.put(serializableClass, serializerClass);
+      }
+    }
+
+    if (isConstructorPresent(serializerClass, ClassLoader.class, FileBasedPersistenceContext.class)) {
+      if (persistentConstructorPresent) {
+        throw new IllegalArgumentException("Serializer cannot have constructors taking (ClassLoader, StateRepository) and (ClassLoader, FileBasedPersistenceContext)" +
+                                           " - you should remove the second one as it is deprecated since version 3.1.0");
+      }
+      persistentConstructorPresent = true;
       if (!overwrite && persistentSerializers.containsKey(serializableClass)) {
         throw new IllegalArgumentException("Duplicate persistent serializer for class : " + serializableClass.getName());
       } else {

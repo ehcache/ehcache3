@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
 
 /**
  * @author teck
@@ -31,19 +31,19 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 class CacheResources<K, V> {
 
   private final Eh107Expiry<K, V> expiryPolicy;
-  private final CacheLoaderWriter<? super K, V> cacheLoaderWriter;
+  private final Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter;
   private final Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources = new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>();
   private final AtomicBoolean closed = new AtomicBoolean();
   private final String cacheName;
 
-  CacheResources(String cacheName, CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry, Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources) {
+  CacheResources(String cacheName, Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry, Map<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>> listenerResources) {
     this.cacheName = cacheName;
     this.cacheLoaderWriter = cacheLoaderWriter;
     this.expiryPolicy = expiry;
     this.listenerResources.putAll(listenerResources);
   }
 
-  CacheResources(String cacheName, CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry) {
+  CacheResources(String cacheName, Jsr107CacheLoaderWriter<? super K, V> cacheLoaderWriter, Eh107Expiry<K, V> expiry) {
     this(cacheName, cacheLoaderWriter, expiry, new ConcurrentHashMap<CacheEntryListenerConfiguration<K, V>, ListenerResources<K, V>>());
   }
 
@@ -51,7 +51,7 @@ class CacheResources<K, V> {
     return expiryPolicy;
   }
 
-  CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
+  Jsr107CacheLoaderWriter<? super K, V> getCacheLoaderWriter() {
     return cacheLoaderWriter;
   }
 

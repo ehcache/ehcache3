@@ -16,15 +16,58 @@
 
 package org.ehcache.clustered.client.service;
 
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.spi.service.PersistableResourceService;
+import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
+import org.ehcache.clustered.common.Consistency;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * @author Clifford W. Johnson
+ * Provides support for accessing server-based resources.
  */
 public interface ClusteringService extends PersistableResourceService {
 
   ClusteringServiceConfiguration getConfiguration();
 
-  void connect();
+  /**
+   * Gets a {@link ServerStoreProxy} though which a server-resident {@code ServerStore} is accessed.
+   *
+   * @param <K> the cache-exposed key type
+   * @param <V> the cache-exposed value type
+   *
+   * @param cacheIdentifier the {@code ClusteredCacheIdentifier} for the cache for which a
+   *                        {@link ServerStoreProxy} is requested
+   * @param storeConfig the configuration used for the {@link Store} for which the {@link ServerStoreProxy}
+   *                    is requested
+   * @param consistency the store's consistency
+   * @return a new {@link ServerStoreProxy}
+   *
+   * @throws CachePersistenceException if the {@code cacheIdentifier} is unknown or the {@code ServerStoreProxy} cannot be created
+   */
+  <K, V> ServerStoreProxy getServerStoreProxy(ClusteredCacheIdentifier cacheIdentifier, final Store.Configuration<K, V> storeConfig, Consistency consistency) throws CachePersistenceException;
+
+  /**
+   * Releases access to a {@link ServerStoreProxy} and the server-resident {@code ServerStore} it represents.
+   *
+   * @param serverStoreProxy a {@link ServerStoreProxy} obtained through {@link #getServerStoreProxy}
+   */
+  void releaseServerStoreProxy(ServerStoreProxy serverStoreProxy);
+
+  /**
+   * A {@link org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier PersistenceSpaceIdentifier}
+   * that can provide an id.
+   */
+  interface ClusteredCacheIdentifier extends PersistenceSpaceIdentifier<ClusteringService> {
+
+    /**
+     * The id associated with this identifier.
+     *
+     * @return an id
+     */
+    String getId();
+  }
+
+
 }
