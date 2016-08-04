@@ -251,13 +251,13 @@ public class GettingStarted {
     // tag::writeThroughCache[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
-    final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
+    Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
             .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .build());
 
-    assertThat(writeThroughCache.get(41L), is("zero"));
-    writeThroughCache.put(42L, "one");
+    assertThat(writeThroughCache.get(41L), is("zero")); // <2>
+    writeThroughCache.put(42L, "one"); // <3>
     assertThat(writeThroughCache.get(42L), equalTo("one"));
 
     cacheManager.close();
@@ -269,7 +269,7 @@ public class GettingStarted {
     // tag::writeBehindCache[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
-    final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
+    Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
             .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .add(WriteBehindConfigurationBuilder // <2>
