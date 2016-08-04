@@ -20,6 +20,7 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
+import org.ehcache.core.HumanReadable;
 
 /**
  * Implementation of the {@link SizedResourcePool} interface.
@@ -27,7 +28,7 @@ import org.ehcache.config.SizedResourcePool;
  * @param <P> resource pool type
  */
 public class SizedResourcePoolImpl<P extends SizedResourcePool> extends AbstractResourcePool<P, ResourceType<P>>
-    implements SizedResourcePool {
+    implements SizedResourcePool, HumanReadable {
 
   private final long size;
   private final ResourceUnit unit;
@@ -44,6 +45,9 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
     super(type, persistent);
     if (unit == null) {
       throw new NullPointerException("ResourceUnit can not be null");
+    }
+    if (size <= 0) {
+      throw new IllegalArgumentException("Size must be greater than 0");
     }
     if (!type.isPersistable() && persistent) {
       throw new IllegalStateException("Non-persistable resource cannot be configured persistent");
@@ -99,4 +103,8 @@ public class SizedResourcePoolImpl<P extends SizedResourcePool> extends Abstract
     return "Pool {" + getSize() + " " + getUnit() + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
   }
 
+  @Override
+  public String readableString() {
+    return getSize() + " " + getUnit() + " " + (isPersistent() ? "(persistent)" : "");
+  }
 }

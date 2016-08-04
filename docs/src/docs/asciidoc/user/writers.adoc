@@ -1,9 +1,9 @@
 ---
 ---
 = Cache Writers
-ifndef::sourcedir[]
+ifndef::sourcedir31[]
 include::common.adoc[]
-endif::sourcedir[]
+endif::sourcedir31[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -11,6 +11,8 @@ include::menu.adoc[]
 == Introduction
 
 endif::notBuildingForSite[]
+
+NOTE: Ehcache 3.1 added clustering support but this is not yet compatible with _cache-through_.
 
 This section documents the specifics behind the <<caching-patterns.adoc#cache-through,cache-through>> implementation in Ehcache 3.
 Please read the linked section if you are not familiar with terms like _cache-through_, _read-through_, _write-through_ or _system of record_.
@@ -67,7 +69,7 @@ maximum write delay::
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
 ----
 
 <1> We register a sample `CacheLoaderWriter` who knows about the mapping `(41L -> "zero")`
@@ -79,7 +81,7 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
 ----
 
 <1> For write-behind you need a configured `CacheLoaderWriter`.

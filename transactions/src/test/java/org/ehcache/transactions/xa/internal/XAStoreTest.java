@@ -60,6 +60,7 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvider;
 import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
+import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.utils.JavaSerializer;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.junit.Test;
@@ -1540,13 +1541,14 @@ public class XAStoreTest {
     XAStore.Provider provider = new XAStore.Provider();
     XAStoreConfiguration configuration = new XAStoreConfiguration("testXAResourceId");
     ServiceLocator serviceLocator = new ServiceLocator(
+        provider,
         new TieredStore.Provider(),
         new OnHeapStore.Provider(),
         new OffHeapStore.Provider(),
         new OffHeapDiskStore.Provider(),
-        new LookupTransactionManagerProvider(new LookupTransactionManagerProviderConfiguration(BitronixTransactionManagerLookup.class)));
+        mock(TransactionManagerProvider.class));
 
-    provider.start(serviceLocator);
+    serviceLocator.startAllServices();
 
     final Set<ServiceConfiguration<?>> xaStoreConfigs = Collections.<ServiceConfiguration<?>>singleton(configuration);
     assertRank(provider, 1001, xaStoreConfigs, ResourceType.Core.HEAP);
@@ -1572,6 +1574,10 @@ public class XAStoreTest {
       @Override
       public boolean requiresSerialization() {
         return true;
+      }
+      @Override
+      public int getTierHeight() {
+        return 10;
       }
     };
 

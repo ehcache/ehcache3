@@ -54,6 +54,7 @@ import javax.cache.integration.CacheWriter;
 import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -277,6 +278,34 @@ public class ConfigurationMergerTest {
     assertThat(factory.called, is(true));
     assertThat(configHolder.cacheResources.getCacheLoaderWriter(), notNullValue());
     assertThat(configHolder.useEhcacheLoaderWriter, is(false));
+  }
+
+  @Test
+  public void setReadThroughWithoutLoaderFails() {
+    MutableConfiguration<Long, String> config = new MutableConfiguration<Long, String>();
+    config.setTypes(Long.class, String.class);
+    config.setReadThrough(true);
+
+    try {
+      merger.mergeConfigurations("cache", config);
+      fail("Expected exception as no CacheLoader factory is configured and read-through is enabled.");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("read-through"));
+    }
+  }
+
+  @Test
+  public void setWriteThroughWithoutWriterFails() {
+    MutableConfiguration<Long, String> config = new MutableConfiguration<Long, String>();
+    config.setTypes(Long.class, String.class);
+    config.setWriteThrough(true);
+
+    try {
+      merger.mergeConfigurations("cache", config);
+      fail("Expected exception as no CacheLoader factory is configured and read-through is enabled.");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), containsString("write-through"));
+    }
   }
 
   @Test

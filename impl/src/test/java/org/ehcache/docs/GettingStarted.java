@@ -19,6 +19,7 @@ package org.ehcache.docs;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -30,6 +31,9 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
@@ -494,6 +498,26 @@ public class GettingStarted {
     // end::cacheEvictionAdvisor[]
   }
 
+  @Test
+  public void expiry() throws Exception {
+    // tag::expiry[]
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.heap(100)) // <1>
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(20, TimeUnit.SECONDS))) // <2>
+        .build();
+    // end::expiry[]
+  }
+
+  @Test
+  public void customExpiry() throws Exception {
+    // tag::customExpiry[]
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.heap(100))
+        .withExpiry(new CustomExpiry()) // <1>
+        .build();
+    // end::customExpiry[]
+  }
+
 
   private static class Description {
     int id;
@@ -588,6 +612,24 @@ public class GettingStarted {
 
   private String getStoragePath() throws URISyntaxException {
     return getClass().getClassLoader().getResource(".").toURI().getPath();
+  }
+
+  public static class CustomExpiry implements Expiry<Long, String> {
+
+    @Override
+    public Duration getExpiryForCreation(Long key, String value) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public Duration getExpiryForAccess(Long key, ValueSupplier<? extends String> value) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public Duration getExpiryForUpdate(Long key, ValueSupplier<? extends String> oldValue, String newValue) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
   }
 
 }

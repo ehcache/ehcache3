@@ -17,6 +17,33 @@
 apply plugin: EhDeploy
 
 dependencies {
-  compile project(':api'), project(':core'), project(':impl')
-  compile group: 'org.terracotta', name: 'management-registry', version: parent.managementVersion
+  compileOnly project(':xml')
+  compileOnly project(':clustered:client')
+
+  compile project(':api')
+  compile project(':core')
+  compile project(':impl')
+  compile "org.terracotta.management:management-entity-client:$parent.managementVersion"
+
+  testCompile project(':xml')
+  testCompile project(':clustered:client')
+  testCompile project(':clustered:server')
+  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+  testCompile "org.terracotta:passthrough-server:$parent.entityTestLibVersion"
+  testCompile "org.terracotta.management:monitoring-service:$parent.managementVersion"
+  testCompile "org.terracotta.management:management-entity-server:$parent.managementVersion"
+  testCompile "org.terracotta.entities:clustered-map-server:$parent.terracottaPlatformVersion"
+  testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"
+}
+
+compileTestJava {
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
+  options.fork = true;
+  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+}
+
+test {
+  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
+  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
 }

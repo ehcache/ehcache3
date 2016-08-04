@@ -104,7 +104,7 @@ public class EhcacheCachingProvider implements CachingProvider {
 
   /**
    * Enables to create a JSR-107 {@link CacheManager} based on the provided Ehcache {@link Configuration} with the
-   * provided {@Link Properties}.
+   * provided {@link Properties}.
    *
    * @param uri the URI identifying this cache manager
    * @param config the Ehcache configuration to use

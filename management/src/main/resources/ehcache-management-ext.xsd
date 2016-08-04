@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+
+<xs:schema version="1.0"
+           xmlns:mnm="http://www.ehcache.org/v3/management"
+           xmlns:eh="http://www.ehcache.org/v3"
+           xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           elementFormDefault="qualified"
+           targetNamespace="http://www.ehcache.org/v3/management">
+
+  <xs:import namespace="http://www.ehcache.org/v3"/>
+
+  <xs:element name="management" type="mnm:management-type" substitutionGroup="eh:service-creation-configuration">
+    <xs:annotation>
+      <xs:documentation xml:lang="en">
+        Used within the /config/service element of an Ehcache configuration, this element
+        describes management service properties.
+      </xs:documentation>
+    </xs:annotation>
+  </xs:element>
+
+  <xs:complexType name="management-type">
+    <xs:all>
+      <xs:element name="tags" type="mnm:tags-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Additional tags passed to the management layer to help identify this cache manager.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="statistics-configurations" type="mnm:statistic-configurations-type" minOccurs="0" maxOccurs="1">
+        <xs:annotation>
+          <xs:documentation>
+            Configures the statistic providers
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:all>
+    <xs:attribute name="cache-manager-alias" type="xs:string" use="optional"/>
+    <xs:attribute name="statistics-executor-alias" type="xs:string" use="optional"/>
+    <xs:attribute name="collector-executor-alias" type="xs:string" use="optional"/>
+  </xs:complexType>
+
+  <xs:complexType name="tags-type">
+    <xs:sequence>
+      <xs:element name="tag" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="statistic-configurations-type">
+    <xs:sequence>
+      <xs:element name="statistics-configuration" type="mnm:statistic-configuration-type" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="statistic-configuration-type">
+    <xs:all>
+      <xs:element name="average-window" type="eh:time-type" minOccurs="0" maxOccurs="1" default="60">
+        <xs:annotation>
+          <xs:documentation>
+            The average window used for statistic computing. Default is 60 seconds.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="history-interval" type="eh:time-type" minOccurs="0" maxOccurs="1" default="1">
+        <xs:annotation>
+          <xs:documentation>
+            Frequency at which the samples are computed. Default is every 1 second.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="history-size" type="xs:positiveInteger" minOccurs="0" maxOccurs="1" default="100">
+        <xs:annotation>
+          <xs:documentation>
+            Maximum number of samples to keep in history for each statistic. Default value is 100.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+      <xs:element name="time-to-disable" type="eh:time-type" minOccurs="0" maxOccurs="1" default="30">
+        <xs:annotation>
+          <xs:documentation>
+            Maximum wait time before a statistic is disabled when not requested. Default is 30 seconds.
+          </xs:documentation>
+        </xs:annotation>
+      </xs:element>
+    </xs:all>
+    <xs:attribute name="provider" use="optional" type="eh:fqcn-type" default="org.ehcache.management.providers.statistics.EhcacheStatisticsProvider"/>
+  </xs:complexType>
+
+</xs:schema>

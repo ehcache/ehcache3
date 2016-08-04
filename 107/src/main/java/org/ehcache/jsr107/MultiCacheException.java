@@ -20,6 +20,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.ListIterator;
 
 import javax.cache.CacheException;
 
@@ -70,6 +71,23 @@ class MultiCacheException extends CacheException {
       }
       return sb.deleteCharAt(sb.length() - 1).toString();
     }
+  }
+
+  MultiCacheException addFirstThrowable(Throwable t) {
+    if (t == null) {
+      throw new NullPointerException();
+    }
+
+    if (t == this) {
+      throw new IllegalArgumentException("cannot add to self");
+    }
+
+    if (t instanceof MultiCacheException) {
+      MultiCacheException mce = (MultiCacheException) t;
+      throwables.addAll(0, mce.getThrowables());
+    }
+    throwables.add(0, t);
+    return this;
   }
 
   @Override

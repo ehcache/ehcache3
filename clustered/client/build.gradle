@@ -17,13 +17,19 @@
 apply plugin: EhDeploy
 
 dependencies {
-  compile project(':api')
-  compile project(':xml')
+  compileOnly project(':api')
+  compileOnly project(':xml')
   compile project(':clustered:common')
-  compile "org.terracotta:coordinator-entity-client:$parent.coordinatorVersion"
+  compile "org.terracotta.entities:clustered-map-client:$parent.clusteredMapVersion"
   compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
 
-  testCompile project(':clustered:server')
-  testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
+  testCompile project(':api')
+  testCompile project(':xml')
+  testCompile project(':transactions')
+  testCompile(project(':clustered:server')) {
+    exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
+  }
+  testCompile "org.terracotta.entities:clustered-map-server:$parent.clusteredMapVersion"
   testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+  testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
 }
