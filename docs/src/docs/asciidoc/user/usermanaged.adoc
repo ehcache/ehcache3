@@ -44,7 +44,7 @@ include::{sourcedir31}/api/src/main/java/org/ehcache/PersistentUserManagedCache.
 
 == Getting started with user managed caches
 
-=== Basic example
+=== Starting example with lifecycle
 
 [source,java,indent=0]
 ----
@@ -56,7 +56,20 @@ include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.jav
 <4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
     managed caches simultaneously, the `CacheManager.close()` operation would not impact the user managed cache(s).
 
-=== Disk persistent example
+From this basic example, explore the API of `UserManagedCacheBuilder` to find all the directly available features.
+
+The following features apply in the exact same way to user managed caches:
+
+* <<serializers-copiers.adoc#,Serializers and copiers>>
+* <<eviction-advisor.adoc#,Eviction advisor>>
+
+Simply use the methods from `UserManagedCacheBuilder` which are equivalent to the ones from `CacheConfigurationBuilder`.
+
+Below we will describe some more advanced setup where there is need to maintain a service instance in order to have working user managed cache.
+
+=== Example with disk persistent and lifecycle
+
+If you want to use disk persistent cache, you will need to create and lifecycle the persistence service.
 
 [source,java,indent=0]
 ----
@@ -67,93 +80,21 @@ include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.jav
 <3> As usual, indicate here if the data should outlive the cache
 <4> Closing the cache will not delete the data it saved on disk when marked as persistent.
 <5> To delete the data, after closing the cache, destroy has to be explicitly invoked.
+<6> It is also your responsibility to stop the persistence service once you are done with the cache.
 
-=== Cache copier example
+=== Example with cache event listeners
 
-[source,java,indent=0]
-----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCopyingCache]
-----
-<1> Configure a key copier.
-<2> Configure a value copier.
+Cache event listeners require executor services to work.
+You will have to provide either a `CacheEventDispatcher` implementation
+or make use of the default one by providing two executor services: one for ordered events and one for un-ordered ones.
 
-=== Cache serializing copier example
+NOTE: The ordered events executor must be single threaded to guarantee ordering.
 
-[source,java,indent=0]
-----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedSerializingCopyingCache]
-----
-<1> Configure a `SerializingCopier` as the key copier.
-<2> Configure a `SerializingCopier` is the value copier.
-
-=== Cache copier and serializer example
-
-[source,java,indent=0]
-----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCopyingAndSerializingCache]
-----
-<1> Configure a key copier.
-<2> Configure a value copier.
-<3> Configure a key serializer.
-<4> Configure a value serializer.
-<5> Configure a heap tier.
-<6> Configure a off-heap tier.
-
-By default, the heap tier stores by reference, unless a copier is configured. The other tiers must use a serializer
-to copy the keys and values.
-
-=== Cache serializing copier and serializer example
-
-[source,java,indent=0]
-----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedSerializingCache]
-----
-<1> Configure a key serializer.
-<2> Configure a value serializer.
-<3> Configure a `SerializingCopier` is the value copier.
-<4> Configure a heap tier.
-<5> Configure a off-heap tier.
-
-In this case, the heap tier is storing keys by reference since no key copier has been configured, and it is storing
-values by value since a serializing copier has been configured. Such copier is going to use the configured
-serializer to perform the necessary copies.
-The off-heap tier will use both the key serializer as well as the value one to make its copies.
-
-=== Write-Through Cache example
-
-[source,java,indent=0]
-----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedLoaderWriterCache]
-----
-<1> If you wish to use a cache in read-through/write-through caching pattern, you'll have to implement
-    `CacheLoaderWriter` and register it.
-
-=== Cache with Eviction Advisor example
-
-[source,java,indent=0]
-----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedEvictionAdvisorCache]
-----
-<1> If you want to hint the eviction algorithm to advise against the eviction of some mappings, you have to
-    configure an instance of `EvictionAdvisor`.
-
-=== Cache with Listeners example
+For more information on cache event listeners, see <<cache-event-listeners.adoc#,the section dedicated to them>>.
 
 [source,java,indent=0]
 ----
 include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
 ----
-<1> Provide ExecutorService for ordered and unordered event delivery. Note, it is required to provide either a 
-    CacheEventDispatcher or ordered/unOrdered ExecutorService for proper event delivery.
+<1> Provide ExecutorService for ordered and unordered events delivery.
 <2> Provide listener configuration using CacheEventListenerConfigurationBuilder.
-
-=== Byte Sized Cache example
-
-[source,java,indent=0]
-----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedByteSizedCache]
-----
-<1> The sizing mechanism can be configured along two axis: The first one specifies the maximum number 
-    of objects to traverse while walking the object graph, the second defines the maximum size of a 
-    single object.
-<2> Size the heap tier in bytes.
