@@ -192,3 +192,52 @@ can explicitly configure the template using `IdentityCopier`. But the usage of `
 a store-by-ref cache. You can use any custom copier implementation that does not perform any "copying" but returns
 the exact same reference that gets passed into the copy methods. `IdentityCopier` is just one that we have provided to
 make your life easier.
+
+== A word on defaults
+
+Ehcache 3 and Ehcache 3 through JCache do not always agree on default behavior.
+While native Ehcache 3 can behave the way JCache specifies, depending on the used configuration mechanism, you may see differences in defaults.
+
+=== _by-reference_ or _by-value_
+
+Ehcache 3 and Ehcache 3 through JCache disagree on the default mode for heap only caching.
+
+==== Ehcache configuration with JCache `MutableConfiguration`
+
+Unless you invoke `MutableConfiguration.setStoreByValue(boolean)`, the default value is `true`.
+This means that you will be limited to `Serializable` keys and values when using Ehcache 3.
+
+Under the cover this will trigger the use of <<serializers-copiers.adoc#copiers-bundled, serializing copiers>>
+and pick the appropriate serializer from the <<serializers-copiers.adoc#serializers-bundled,default ones>>.
+
+==== Ehcache configuration with native XML or code
+
+Heap only::
+    When using heap only caches, the default is _by-reference_ unless you configure a <<serializers-copiers.adoc#copiers,`Copier`>>.
+
+Other tiering configuration::
+    When using any other tiers, since serialization comes into play the default is _by-value_.
+
+See the documentation <<serializers-copiers.adoc#,dedicated to serializers and copiers>> for more information.
+
+=== Cache-through and compare-and-swap operations
+
+Ehcache 3 and Ehcache 3 through JCache disagree on the role of the cache loader for _compare-and-swap_ operations.
+
+==== Ehcache through JCache behaviour
+
+When using _compare-and-swap_ operations, such as `putIfAbsent(K, V)`, the cache loader will not be used if the cache has no mapping present.
+If the `putIfAbsent(K, V)` succeeds then the cache writer will be used to propagate the update to the system of record.
+This could result in the cache behaving like `INSERT` but effectively causing a blind update on the underlying system of record.
+
+==== Native Ehcache 3 behaviour
+
+The `CacheLoaderWriter` will always be used to load missing mappings with and to write updates.
+This enables the `putIfAbsent(K, V)` in _cache-through_ to behave as an `INSERT` on the system of record.
+
+If you need _Ehcache through JCache_ behaviour, the following shows the relevant XML configuration:
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-cache-through.xml[tag=cacheThroughCAS]
+----
