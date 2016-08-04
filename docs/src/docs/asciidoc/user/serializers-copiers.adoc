@@ -204,6 +204,11 @@ NOTE: Given the above, it is recommended to limit `Copier` registration to concr
 A `SerializingCopier` class exists in case you want to configure store _by value_ on-heap using the configured (or default) serializer.
 Note that this implementation performs a serialization / deserialization on each read or write operation.
 
+The `CacheConfigurationBuilder` provides the following methods to make use of this specialized copier:
+
+* `CacheConfigurationBuilder.withKeySerializingCopier()` for the key,
+* `CacheConfigurationBuilder.withValueSerializingCopier()` for the value.
+
 === Lifecycle: instances vs class names
 
 When a `Copier` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
