@@ -1,10 +1,10 @@
 ---
 ---
-= Ehcache 3.0 Documentation
-ifndef::sourcedir[]
+= Ehcache 3.1 Documentation
+ifndef::sourcedir31[]
 include::common.adoc[]
-endif::sourcedir[]
-We feel that the Ehcache 3.0 API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
+endif::sourcedir31[]
+We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -29,7 +29,7 @@ As with the previous versions of Ehcache, the canonical way of dealing with `Cac
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
 ----
 
 <1> Static method `org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.config.builders.CacheManagerBuilder`
@@ -55,16 +55,36 @@ include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag
 <10> In order to release all transient resources (memory, threads, ...) a `CacheManager` provides to `Cache` instances
      it manages, you have to invoke `CacheManager.close()`, which in turns closes all `Cache` instances known at the time.
 
+=== Creating cache manager with clustering support
+
+To enable Clustering with Terracotta, firstly you will have to <<clustered-cache.adoc#starting-terracotta-server, start the Terracotta server>> configured with clustered storage.
+Further, for creating the cache manager with clustering support, you will need to provide the clustering service configuration:
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+----
+
+<1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
+<2> Use the `ClusteringServiceConfigurationBuilder`{empty}'s static method `.cluster(URI)` for connecting the cache manager to the clustering storage at the
+    URI specified that returns the clustering service configuration builder instance.
+    Sample URI provided in the example is pointing to the clustered storage with clustered storage identifier *my-application* on the Terracotta server (Assuming the server is running on localhost and port *9510*); the query-param `auto-create`
+    creates the clustered storage in the server if it doesn't already exist.
+<3> Returns a fully initialized cache manager that can be used to create clustered caches.
+<4> Close the cache manager.
+
+NOTE: See <<clustered-cache.adoc#,the clustered cache documentation>> for more information on this feature.
+
 ==== User managed cache
 
 Ehcache 3 introduces the concept of `UserManagedCache`:
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
 ----
 
-<1> A new feature of Ehcache 3.0 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true or
+<1> A new feature of Ehcache 3 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true or
 <2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
 <3> You can use the cache exactly as a managed cache
 <4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
@@ -85,7 +105,7 @@ the faster tiers.
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=offheapCacheManager]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=offheapCacheManager]
 ----
 
 <1> If you wish to use off-heap, you'll have to define a resource pool, giving the memory size you want to allocate.
@@ -100,7 +120,7 @@ Do not forget to define in the java options the `-XX:MaxDirectMemorySize` option
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=persistentCacheManager]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=persistentCacheManager]
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
@@ -119,7 +139,7 @@ Note that Ehcache 3 only offers persistence in case of clean shutdowns.
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
@@ -136,7 +156,7 @@ NOTE: Byte sizing has a runtime performance impact that depends on the size and 
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=byteSizedTieredCache]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=byteSizedTieredCache]
 ----
 
 <1> You can also size the heap tier in bytes. This will limit the amount of heap used by that tier for
@@ -156,13 +176,28 @@ NOTE: Presently, `updateResourcePools()` only supports updating the heap tier an
 
 [source,java,indent=0]
 ----
-include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
 ----
 
 <1> You will need to create a new `ResourcePools` object with resources of required size, using `ResourcePoolsBuilder`. This object can
     then be passed to the said method so as to trigger the update.
 <2> To update capacity of `ResourcePools`, `updateResourcePools(ResourcePools)` method in `RuntimeConfiguration` can be of help.
     `ResourcePools` object created earlier can then be passed to this method so as to trigger the update.
+
+=== Data freshness
+
+In Ehcache, data freshness is controlled through `Expiry`.
+The following illustrates how to configure a _time-to-live_ expiry.
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
+----
+
+<1> Expiry is configured at the cache level, so start by defining a cache configuration,
+<2> then add to it an `Expiry`, here using the predefined _time-to-live_ one, configured with the required `Duration`.
+
+See the section on <<expiry.adoc#,expiry>> for more information about the options available.
 
 [[configuring-with-xml]]
 === Configuring With XML
@@ -173,7 +208,7 @@ You can create a XML file to configure a `CacheManager`:
 
 [source,xml]
 ----
-include::{sourcedir}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
+include::{sourcedir31}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
 ----
 
 <1> Declares a `Cache` aliased to `foo`
@@ -202,6 +237,7 @@ CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); //
 
 == Current development
 
-For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3.0 project wiki on GitHub].
+For developer information, you might want to go check the https://github.com/ehcache/ehcache3/wiki[Ehcache 3 project wiki on GitHub].
 
-The next version, 3.1, will bring back the http://terracotta.org[Terracotta clustering] option that existed in Ehcache 2.x.
+The next version, 3.2, will finalize http://terracotta.org[Terracotta clustering] support.
+Cache events, cache-through and transactional clustered caches will then be supported.

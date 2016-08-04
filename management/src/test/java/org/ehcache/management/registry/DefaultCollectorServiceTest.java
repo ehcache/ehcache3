@@ -27,12 +27,12 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.junit.Test;
-import org.terracotta.management.call.Parameter;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.message.Message;
-import org.terracotta.management.message.MessageType;
-import org.terracotta.management.notification.ContextualNotification;
-import org.terracotta.management.registry.MessageConsumer;
+import org.terracotta.management.model.call.Parameter;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.notification.ContextualNotification;
+import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.registry.CapabilityManagement;
+import org.terracotta.management.registry.StatisticQuery;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,15 +47,41 @@ import static java.util.Arrays.asList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-/**
- * @author Mathieu Carbou
- */
 public class DefaultCollectorServiceTest {
+
+
+  @Test
+  public void updateCollectedStatisticsTest__should_not_add_stats_when_selection_empty() throws Exception {
+    DefaultCollectorService defaultCollectorService = new DefaultCollectorService();
+    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<>());
+    assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(0));
+  }
+
+  @Test
+  public void updateCollectedStatisticsTest__add_stats_and_then_clear_them() throws Exception {
+    DefaultCollectorService defaultCollectorService = new DefaultCollectorService();
+    ManagementRegistryService managementRegistryService = mock(ManagementRegistryService.class);
+    CapabilityManagement capability =  mock(CapabilityManagement.class);
+    StatisticQuery.Builder builder = mock(StatisticQuery.Builder.class);
+    when(capability.queryStatistics(new ArrayList<String>(){{add("SuperStat");}})).thenReturn(builder);
+    when(managementRegistryService.withCapability("PifCapability")).thenReturn(capability);
+    defaultCollectorService.setManagementRegistry(managementRegistryService);
+    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<String>(){{add("SuperStat");}});
+    assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(1));
+
+
+    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<>());
+    assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(0));
+
+  }
+
 
   @Test(timeout = 6000)
   public void test_collector() throws Exception {
-    final Queue<Message> messages = new ConcurrentLinkedQueue<Message>();
+    final Queue<Object> messages = new ConcurrentLinkedQueue<Object>();
     final List<String> notifs = new ArrayList<String>(6);
     final CountDownLatch num = new CountDownLatch(5);
 
@@ -74,13 +100,21 @@ public class DefaultCollectorServiceTest {
         .addConfiguration(statisticsProviderConfiguration)
         .setCacheManagerAlias("my-cm-1"));
 
-    CollectorService collectorService = new DefaultCollectorService(new MessageConsumer() {
+    CollectorService collectorService = new DefaultCollectorService(new CollectorService.Collector() {
       @Override
-      public void accept(Message message) {
-        System.out.println(message);
-        messages.offer(message);
-        if (message.getType().equals(MessageType.NOTIFICATION.name())) {
-          notifs.add(message.unwrap(ContextualNotification.class).getType());
+      public void onNotification(ContextualNotification notification) {
+        onEvent(notification);
+      }
+
+      @Override
+      public void onStatistics(Collection<ContextualStatistics> statistics) {
+        onEvent(statistics);
+      }
+
+      void onEvent(Object event) {
+        messages.offer(event);
+        if (event instanceof ContextualNotification) {
+          notifs.add(((ContextualNotification) event).getType());
         }
         num.countDown();
       }
@@ -101,13 +135,6 @@ public class DefaultCollectorServiceTest {
         .call("updateCollectedStatistics",
             new Parameter("StatisticsCapability"),
             new Parameter(asList("PutCounter", "InexistingRate"), Collection.class.getName()))
-        .on(Context.create("cacheManagerName", "my-cm-1"))
-        .build()
-        .execute()
-        .getSingleResult();
-
-    managementRegistry.withCapability("StatisticCollectorCapability")
-        .call("startStatisticCollector")
         .on(Context.create("cacheManagerName", "my-cm-1"))
         .build()
         .execute()

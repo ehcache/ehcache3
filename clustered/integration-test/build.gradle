@@ -15,8 +15,36 @@
  */
 
 dependencies {
-  testCompile project(':clustered:server')
-  testCompile project(':clustered:client')
-  testCompile "org.terracotta:coordinator-entity-server:$parent.coordinatorVersion"
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
+  testCompile project(':dist')
+  testCompile project(':clustered:clustered-dist')
+
+  testCompile group:'org.terracotta', name:'galvan-support', version: galvanVersion
+  testCompile group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1'
 }
+
+task unzipKit(type: Copy) {
+  dependsOn project(':clustered:clustered-dist').distZip
+  from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
+  into 'build/ehcache-kit'
+}
+
+def java8 = {
+  JavaVersion.current().isJava8Compatible()
+}
+
+compileTestJava {
+  options.fork = true;
+  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+}
+
+test {
+  dependsOn unzipKit
+  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
+  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
+  environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
+  //If this directory does not exist, tests will fail with a cryptic assert failure
+  systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
+  // Uncomment to include client logging in console output
+  // testLogging.showStandardStreams = true
+}
+

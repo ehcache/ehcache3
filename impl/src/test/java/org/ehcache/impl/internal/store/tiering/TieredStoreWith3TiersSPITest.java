@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -64,12 +65,15 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Test the {@link TieredStore} compliance to the
@@ -133,8 +137,10 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         final OffHeapStore<String, String> offHeapStore = new OffHeapStore<String, String>(config, timeSource, noOpEventDispatcher, offheapSize);
 
         try {
+          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "alias-" + aliasCounter.getAndIncrement();
-          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          LocalPersistenceService.PersistenceSpaceIdentifier space = persistenceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(space, "store");
 
           SizedResourcePool diskPool = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK);
@@ -171,6 +177,11 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
+            public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+              throw new UnsupportedOperationException("Implement me!");
+            }
+
+            @Override
             public void start(final ServiceProvider<Service> serviceProvider) {
               throw new UnsupportedOperationException("Implement me!");
             }
@@ -193,6 +204,11 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
             @Override
             public void initAuthoritativeTier(final AuthoritativeTier<?, ?> resource) {
               OffHeapDiskStoreSPITest.initStore((OffHeapDiskStore<?, ?>)resource);
+            }
+
+            @Override
+            public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+              throw new UnsupportedOperationException("Implement me!");
             }
 
             @Override
@@ -354,6 +370,11 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
+    public int rankCachingTier(Set<ResourceType<?>> resourceTypes, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       throw new UnsupportedOperationException();
     }
@@ -377,6 +398,11 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
     @Override
     public void initAuthoritativeTier(AuthoritativeTier<?, ?> resource) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
       throw new UnsupportedOperationException();
     }
 

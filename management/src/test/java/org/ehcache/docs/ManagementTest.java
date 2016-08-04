@@ -30,21 +30,17 @@ import org.ehcache.management.registry.DefaultSharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Test;
-import org.terracotta.management.capabilities.Capability;
-import org.terracotta.management.capabilities.context.CapabilityContext;
-import org.terracotta.management.capabilities.descriptors.Descriptor;
-import org.terracotta.management.context.Context;
-import org.terracotta.management.context.ContextContainer;
-import org.terracotta.management.stats.ContextualStatistics;
-import org.terracotta.management.stats.primitive.Counter;
+import org.terracotta.management.model.capabilities.Capability;
+import org.terracotta.management.model.capabilities.context.CapabilityContext;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.context.ContextContainer;
+import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.util.Collection;
 import java.util.Iterator;
 
-
-/**
- * @author Ludovic Orban
- */
 public class ManagementTest {
 
   @Test

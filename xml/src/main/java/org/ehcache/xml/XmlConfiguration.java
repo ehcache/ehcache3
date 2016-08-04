@@ -27,7 +27,6 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
-import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
@@ -199,11 +198,9 @@ public class XmlConfiguration implements Configuration {
       serviceConfigs.add(configuration);
     }
     if (configurationParser.getHeapStore() != null) {
-      if (configurationParser.getHeapStore().getMaxObjectSize().getUnit().value().equalsIgnoreCase("entries")) {
-        throw new IllegalArgumentException("SizeOfEngine cannot be configured with entries.");
-      }
-      DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(configurationParser.getHeapStore().getMaxObjectSize().getValue().longValue(),
-        MemoryUnit.valueOf(configurationParser.getHeapStore().getMaxObjectSize().getUnit().value().toUpperCase()), configurationParser.getHeapStore().getMaxObjectGraphSize().getValue().longValue());
+      DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(
+              configurationParser.getHeapStore().getMaxObjectSize(), configurationParser.getHeapStore().getUnit(),
+              configurationParser.getHeapStore().getMaxObjectGraphSize());
       serviceConfigs.add(configuration);
     }
     if (configurationParser.getPersistence() != null) {

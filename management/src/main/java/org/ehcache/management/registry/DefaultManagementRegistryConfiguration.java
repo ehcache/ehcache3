@@ -19,29 +19,29 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.terracotta.management.context.Context;
+import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.ManagementProvider;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * @author Ludovic Orban
- */
 public class DefaultManagementRegistryConfiguration implements ManagementRegistryServiceConfiguration {
 
   private static final AtomicLong COUNTER = new AtomicLong();
 
-  private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
+  private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration> statisticConfigurations = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration>();
+  private final Collection<String> tags = new TreeSet<String>();
   private Context context = Context.empty();
   private String statisticsExecutorAlias;
   private String collectorExecutorAlias;
 
   public DefaultManagementRegistryConfiguration() {
     setCacheManagerAlias("cache-manager-" + COUNTER.getAndIncrement());
-    addConfiguration(new EhcacheStatisticsProviderConfiguration(1, TimeUnit.MINUTES, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS));
+    addConfiguration(new EhcacheStatisticsProviderConfiguration());
   }
 
   public DefaultManagementRegistryConfiguration setCacheManagerAlias(String alias) {
@@ -66,15 +66,28 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
     return this;
   }
 
-  public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration<?> configuration) {
-    Class<? extends ManagementProvider> serviceType = configuration.getStatisticsProviderType();
-    configurationMap.put(serviceType, configuration);
+  public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration configuration) {
+    Class<? extends ManagementProvider> providerType = configuration.getStatisticsProviderType();
+    statisticConfigurations.put(providerType, configuration);
     return this;
+  }
+
+  public DefaultManagementRegistryConfiguration addTags(String... tags) {
+    this.tags.addAll(Arrays.asList(tags));
+    return this;
+  }
+
+  public DefaultManagementRegistryConfiguration addTag(String tag) {
+    return addTags(tag);
   }
 
   @Override
   public Context getContext() {
     return context;
+  }
+
+  public String getCacheManagerAlias() {
+    return getContext().get("cacheManagerName");
   }
 
   @Override
@@ -88,13 +101,53 @@ public class DefaultManagementRegistryConfiguration implements ManagementRegistr
   }
 
   @Override
-  public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider<?>> managementProviderClass) {
-    return configurationMap.get(managementProviderClass);
+  public Collection<String> getTags() {
+    return tags;
+  }
+
+  @Override
+  public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider> providerType) {
+    return statisticConfigurations.get(providerType);
   }
 
   @Override
   public Class<ManagementRegistryService> getServiceType() {
     return ManagementRegistryService.class;
+  }
+
+  @Override
+  public String toString() {
+    return "DefaultManagementRegistryConfiguration{" + "context=" + context +
+        ", tags=" + tags +
+        ", statisticsExecutorAlias='" + statisticsExecutorAlias + '\'' +
+        ", collectorExecutorAlias='" + collectorExecutorAlias + '\'' +
+        ", statisticConfigurations=" + statisticConfigurations +
+        '}';
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    DefaultManagementRegistryConfiguration that = (DefaultManagementRegistryConfiguration) o;
+
+    if (!statisticConfigurations.equals(that.statisticConfigurations)) return false;
+    if (!tags.equals(that.tags)) return false;
+    if (!context.equals(that.context)) return false;
+    if (statisticsExecutorAlias != null ? !statisticsExecutorAlias.equals(that.statisticsExecutorAlias) : that.statisticsExecutorAlias != null) return false;
+    return collectorExecutorAlias != null ? collectorExecutorAlias.equals(that.collectorExecutorAlias) : that.collectorExecutorAlias == null;
+
+  }
+
+  @Override
+  public int hashCode() {
+    int result = statisticConfigurations.hashCode();
+    result = 31 * result + tags.hashCode();
+    result = 31 * result + context.hashCode();
+    result = 31 * result + (statisticsExecutorAlias != null ? statisticsExecutorAlias.hashCode() : 0);
+    result = 31 * result + (collectorExecutorAlias != null ? collectorExecutorAlias.hashCode() : 0);
+    return result;
   }
 
 }

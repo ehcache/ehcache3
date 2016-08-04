@@ -15,18 +15,15 @@
  */
 package org.ehcache.management.providers;
 
-import org.terracotta.management.context.Context;
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
 import org.terracotta.management.registry.collect.StatisticCollector;
 import org.terracotta.management.registry.collect.StatisticCollectorProvider;
 
-/**
- * @author Mathieu Carbou
- */
 @RequiredContext(@Named("cacheManagerName"))
 public class EhcacheStatisticCollectorProvider extends StatisticCollectorProvider<StatisticCollector> {
-  public EhcacheStatisticCollectorProvider(Context context) {
-    super(StatisticCollector.class, context);
+  public EhcacheStatisticCollectorProvider(ManagementRegistryServiceConfiguration configuration) {
+    super(StatisticCollector.class, configuration.getContext());
   }
 }

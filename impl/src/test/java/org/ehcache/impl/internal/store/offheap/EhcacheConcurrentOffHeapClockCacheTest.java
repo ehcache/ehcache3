@@ -51,7 +51,7 @@ public class EhcacheConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHe
     return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
-  private EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+  private EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment(final EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -62,7 +62,26 @@ public class EhcacheConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHe
       Portability<String> keyPortability = new SerializerPortability<String>(keySerializer);
       Portability<String> elementPortability = new SerializerPortability<String>(valueSerializer);
       Factory<OffHeapBufferStorageEngine<String, String>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, pageSource, configuration.getInitialSegmentTableSize(), keyPortability, elementPortability, false, true);
-      EhcacheSegmentFactory<String, String> segmentFactory = new EhcacheSegmentFactory<String, String>(pageSource, storageEngineFactory, 0, evictionPredicate, evictionListener);
+      SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
+
+        private volatile boolean enabled = true;
+
+        @Override
+        public boolean adviseAgainstEviction(String key, String value) {
+          return evictionPredicate.adviseAgainstEviction(key, value);
+        }
+
+        @Override
+        public boolean isSwitchedOn() {
+          return enabled;
+        }
+
+        @Override
+        public void setSwitchedOn(boolean switchedOn) {
+          this.enabled = switchedOn;
+        }
+      };
+      EhcacheSegmentFactory<String, String> segmentFactory = new EhcacheSegmentFactory<String, String>(pageSource, storageEngineFactory, 0, wrappedEvictionAdvisor, evictionListener);
       return new EhcacheConcurrentOffHeapClockCache<String, String>(evictionPredicate, segmentFactory, 1);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);

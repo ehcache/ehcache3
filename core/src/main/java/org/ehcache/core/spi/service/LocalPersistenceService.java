@@ -17,8 +17,7 @@
 package org.ehcache.core.spi.service;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.spi.service.PersistableResourceService;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.persistence.PersistableResourceService;
 
 /**
  * Service to provide persistence context to caches requiring it.
@@ -29,36 +28,11 @@ import org.ehcache.spi.service.ServiceConfiguration;
 public interface LocalPersistenceService extends PersistableResourceService {
 
   /**
-   * Retrieves an existing or creates a new persistence space
-   *
-   * @param name the name to be used for the persistence space
-   *
-   * @return a {@link PersistenceSpaceIdentifier}
-   *
-   * @throws CachePersistenceException if the persistence space cannot be created
-   */
-  PersistenceSpaceIdentifier getOrCreatePersistenceSpace(String name) throws CachePersistenceException;
-
-  /**
    * Creates a new persistence context within the given space.
    *
-   * @param space space to create within
+   * @param identifier space to create within
    * @param name name of the context to create
    * @return a {@link FileBasedPersistenceContext}
    */
-  FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier space, String name) throws CachePersistenceException;
-
-  /**
-   * Destroys all persistence spaces
-   *
-   * Note that this method can be called without creating the persistence space beforehand in the same JVM.
-   * It will nonetheless try to delete any persistent data associated with the root directory provided
-   * in the service.
-   */
-  void destroyAll();
-
-  /**
-   * An identifier for an existing persistence space.
-   */
-  interface PersistenceSpaceIdentifier extends ServiceConfiguration<LocalPersistenceService> {}
+  FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException;
 }

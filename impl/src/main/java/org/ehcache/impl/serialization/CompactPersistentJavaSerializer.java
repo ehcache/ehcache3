@@ -68,11 +68,7 @@ public class CompactPersistentJavaSerializer<T> implements Serializer<T>, Closea
    */
   @Override
   public final void close() throws IOException {
-    try {
-      writeSerializationMappings(stateFile, serializer.getSerializationMappings());
-    } finally {
-      serializer.close();
-    }
+    writeSerializationMappings(stateFile, serializer.getSerializationMappings());
   }
 
   private static Map<Integer, ObjectStreamClass> readSerializationMappings(File stateFile) throws IOException, ClassNotFoundException {

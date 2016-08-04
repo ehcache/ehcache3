@@ -21,21 +21,24 @@ import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.serialization.ByteArraySerializer;
 import org.ehcache.impl.serialization.CharSerializer;
+import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.serialization.DoubleSerializer;
 import org.ehcache.impl.serialization.FloatSerializer;
 import org.ehcache.impl.serialization.IntegerSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
+import org.ehcache.impl.serialization.PlainJavaSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
@@ -66,8 +69,8 @@ public class DefaultSerializationProvider implements SerializationProvider {
   private final TransientProvider transientProvider;
   private final PersistentProvider persistentProvider;
 
-  protected final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger>();
-  protected final Set<Serializer<?>> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Serializer<?>, Boolean>());
+  final ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger> providedVsCount = new ConcurrentWeakIdentityHashMap<Serializer<?>, AtomicInteger>();
+  final Set<Serializer<?>> instantiated = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Serializer<?>, Boolean>());
 
   public DefaultSerializationProvider(DefaultSerializationProviderConfiguration configuration) {
     if (configuration != null) {
@@ -128,8 +131,10 @@ public class DefaultSerializationProvider implements SerializationProvider {
       throw new IllegalArgumentException("Given serializer:" + serializer.getClass().getName() + " is not managed by this provider");
     }
 
-    if(instantiated.remove(serializer) && serializer instanceof Closeable) {
-      ((Closeable)serializer).close();
+    if(instantiated.remove(serializer)) {
+      if (serializer instanceof Closeable) {
+        ((Closeable) serializer).close();
+      }
     }
   }
 
@@ -141,8 +146,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   @Override
   public void stop() {
-    transientProvider.stop();
-    persistentProvider.stop();
+    // no-op
   }
 
   private static <T> void addDefaultSerializerIfNoneRegistered(Map<Class<?>, Class<? extends Serializer<?>>> serializers, Class<T> clazz, Class<? extends Serializer<T>> serializerClass) {
@@ -167,7 +171,6 @@ public class DefaultSerializationProvider implements SerializationProvider {
       }
     }
 
-    @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) CompactJavaSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
@@ -182,7 +185,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   static class PersistentProvider extends AbstractProvider {
 
-    private volatile LocalPersistenceService persistence;
+    private ServiceProvider<Service> serviceProvider;
 
     private PersistentProvider(Map<Class<?>, Class<? extends Serializer<?>>> serializers) {
       super(serializers);
@@ -191,22 +194,37 @@ public class DefaultSerializationProvider implements SerializationProvider {
     @Override
     protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       Class<? extends Serializer<T>> klazz = getClassFor(clazz, config, classLoader);
+      PersistenceSpaceIdentifier<? extends PersistableResourceService> space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs);
+      PersistableResourceService service = serviceProvider.getService(space.getServiceType());
+
+      String subSpaceName = DefaultSerializationProvider.class.getSimpleName() + suffix;
+
       try {
-        Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, FileBasedPersistenceContext.class);
-        PersistenceSpaceIdentifier space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs);
-        FileBasedPersistenceContext context = persistence.createPersistenceContextWithin(space, DefaultSerializationProvider.class.getSimpleName() + suffix);
-        return constructSerializer(clazz, constructor, classLoader, context);
+        Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, StateRepository.class);
+        StateRepository stateRepository = service.getStateRepositoryWithin(space, subSpaceName);
+        return constructSerializer(clazz, constructor, classLoader, stateRepository);
       } catch (NoSuchMethodException e) {
-        throw new RuntimeException(e);
+        if (service instanceof LocalPersistenceService) {
+          try {
+            Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, FileBasedPersistenceContext.class);
+            FileBasedPersistenceContext context = ((LocalPersistenceService) service).createPersistenceContextWithin(space, subSpaceName);
+            return constructSerializer(clazz, constructor, classLoader, context);
+          } catch (NoSuchMethodException nsmex) {
+            throw new RuntimeException(nsmex);
+          } catch (CachePersistenceException cpex) {
+            throw new RuntimeException(cpex);
+          }
+        } else {
+          throw new RuntimeException(e);
+        }
       } catch (CachePersistenceException e) {
         throw new RuntimeException(e);
       }
     }
 
-    @Override
     public void start(ServiceProvider<Service> serviceProvider) {
-      persistence = serviceProvider.getService(LocalPersistenceService.class);
-      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) CompactPersistentJavaSerializer.class);
+      this.serviceProvider = serviceProvider;
+      addDefaultSerializerIfNoneRegistered(serializers, Serializable.class, (Class) CompactJavaSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Long.class, LongSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Integer.class, IntegerSerializer.class);
       addDefaultSerializerIfNoneRegistered(serializers, Float.class, FloatSerializer.class);
@@ -218,7 +236,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
   }
 
-  static abstract class AbstractProvider implements SerializationProvider  {
+  static abstract class AbstractProvider  {
 
     protected final Map<Class<?>, Class<? extends Serializer<?>>> serializers;
 
@@ -226,13 +244,11 @@ public class DefaultSerializationProvider implements SerializationProvider {
       this.serializers = new LinkedHashMap<Class<?>, Class<? extends Serializer<?>>>(serializers);
     }
 
-    @Override
     public <T> Serializer<T> createKeySerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       DefaultSerializerConfiguration<T> conf = find(DefaultSerializerConfiguration.Type.KEY, configs);
       return createSerializer("-Key", clazz, classLoader, conf, configs);
     }
 
-    @Override
     public <T> Serializer<T> createValueSerializer(Class<T> clazz, ClassLoader classLoader, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
       DefaultSerializerConfiguration<T> conf = find(DefaultSerializerConfiguration.Type.VALUE, configs);
       return createSerializer("-Value", clazz, classLoader, conf, configs);
@@ -263,7 +279,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
     protected <T> Serializer<T> constructSerializer(Class<T> clazz, Constructor<? extends Serializer<T>> constructor, Object ... args) {
       try {
         Serializer<T> serializer = constructor.newInstance(args);
-        LOG.info("Serializer for <{}> : {}", clazz.getName(), serializer);
+        LOG.debug("Serializer for <{}> : {}", clazz.getName(), serializer);
         return serializer;
       } catch (InstantiationException e) {
         throw new RuntimeException(e);
@@ -274,16 +290,6 @@ public class DefaultSerializationProvider implements SerializationProvider {
       } catch (InvocationTargetException e) {
         throw new RuntimeException(e);
       }
-    }
-
-    @Override
-    public void stop() {
-      // no-op
-    }
-
-    @Override
-    public void releaseSerializer(final Serializer<?> serializer) {
-      // no-op
     }
   }
 

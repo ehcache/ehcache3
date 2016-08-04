@@ -39,6 +39,8 @@ interface Backend<K, V> {
 
   Backend<K, V> clear();
 
+  Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash);
+
   Iterable<K> keySet();
 
   Iterator<Map.Entry<K,OnHeapValueHolder<V>>> entrySetIterator();
