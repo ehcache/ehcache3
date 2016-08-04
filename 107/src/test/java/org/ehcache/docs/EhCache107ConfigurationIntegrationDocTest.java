@@ -260,4 +260,11 @@ public class EhCache107ConfigurationIntegrationDocTest {
     myCache.put(1L, client1);
     assertNotSame(client1, myCache.get(1L));
   }
+
+  @Test
+  public void testCacheThroughAtomicsXMLValid() throws Exception {
+    cacheManager = cachingProvider.getCacheManager(
+        getClass().getResource("/org/ehcache/docs/ehcache-jsr107-cache-through.xml").toURI(),
+        getClass().getClassLoader());
+  }
 }

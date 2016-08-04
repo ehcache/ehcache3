@@ -57,6 +57,7 @@ A `Serializer` configured at the cache level by class name will not be shared to
 
 NOTE: Given the above, it is recommended to limit `Serializer` registration to concrete classes and not aim for generality.
 
+[[serializers-bundled]]
 === Bundled implementations
 
 By default, cache managers are pre-configured with specially optimized `Serializer` that can handle the following types, in the following order:
@@ -145,6 +146,7 @@ will be sanctioned with an exception upon cache initialization.
 
 Registering a serializer that lacks such constructor at the cache manager level will prevent it from being chosen for persistent caches.
 
+[[copiers]]
 == Copiers
 
 As the <<caching-concepts.adoc#storage-tiers,on-heap store>> is capable of storing plain java objects as such,
@@ -188,6 +190,7 @@ A `Copier` configured at the cache level by class name will not be shared to oth
 
 NOTE: Given the above, it is recommended to limit `Copier` registration to concrete classes and not aim for generality.
 
+[[copiers-bundled]]
 === Bundled implementations
 
 A `SerializingCopier` class exists in case you want to configure store _by value_ on-heap using the configured (or default) serializer.
