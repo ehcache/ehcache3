@@ -72,6 +72,14 @@ By default, cache managers are pre-configured with specially optimized `Serializ
 
 All bundled `Serializer` implementations support both persistent and transient caches.
 
+[NOTE]
+====
+A consequence of providing serializers registered by default is that you will not be able to register a generic `Serializer` for `Number`
+or any other super type and expect it to be picked instead of the default ones for the types listed above.
+
+However, registering a different `Serializer` for one of the given type means it will be used instead of the default.
+====
+
 === Lifecycle: instances vs. class names
 
 When a `Serializer` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
