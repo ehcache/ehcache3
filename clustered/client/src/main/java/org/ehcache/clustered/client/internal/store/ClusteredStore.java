@@ -143,8 +143,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       if(!chain.isEmpty()) {
         ResolvedChain<K, V> resolvedChain = resolver.resolve(chain, key, timeSource.getTimeMillis());
 
-        Chain compactedChain = resolvedChain.getCompactedChain();
-        storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
+        if (resolvedChain.isCompacted()) {
+          Chain compactedChain = resolvedChain.getCompactedChain();
+          storeProxy.replaceAtHead(key.hashCode(), chain, compactedChain);
+        }
 
         Result<V> resolvedResult = resolvedChain.getResolvedResult(key);
         if (resolvedResult != null) {

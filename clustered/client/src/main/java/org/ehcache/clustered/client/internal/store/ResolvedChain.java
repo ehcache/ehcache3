@@ -36,6 +36,14 @@ public interface ResolvedChain<K, V> {
   Result<V> getResolvedResult(K key);
 
   /**
+   * Indicates whether the {@link #getCompactedChain()} is effectively compacted
+   * compared to the original chain it was built from.
+   *
+   * @return {@code true} if the chain has been compacted during resolution, {@code false} otherwise
+   */
+  boolean isCompacted();
+
+  /**
    * Represents the {@link ResolvedChain} result of a resolver that resolves
    * all the keys in a {@link Chain}
    */
@@ -43,14 +51,16 @@ public interface ResolvedChain<K, V> {
 
     private final Chain compactedChain;
     private final Map<K, Result<V>> resolvedOperations;
+    private final boolean compacted;
 
-    public Impl(Chain compactedChain, Map<K, Result<V>> resolvedOperations) {
+    public Impl(Chain compactedChain, Map<K, Result<V>> resolvedOperations, boolean compacted) {
       this.compactedChain = compactedChain;
       this.resolvedOperations = resolvedOperations;
+      this.compacted = compacted;
     }
 
-    public Impl(Chain compactedChain, K key, Result<V> result) {
-      this(compactedChain, Collections.singletonMap(key, result));
+    public Impl(Chain compactedChain, K key, Result<V> result, boolean compacted) {
+      this(compactedChain, Collections.singletonMap(key, result), compacted);
     }
 
     public Chain getCompactedChain() {
@@ -59,6 +69,11 @@ public interface ResolvedChain<K, V> {
 
     public Result<V> getResolvedResult(K key) {
       return resolvedOperations.get(key);
+    }
+
+    @Override
+    public boolean isCompacted() {
+      return compacted;
     }
   }
 }
