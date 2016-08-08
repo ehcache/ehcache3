@@ -27,6 +27,7 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.cluster.Clustering;
 import org.ehcache.management.cluster.ClusteringManagementService;
+import org.ehcache.management.cluster.DefaultClusteringManagementServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.EhcacheStatisticCollectorProvider;
 import org.ehcache.management.providers.actions.EhcacheActionProvider;
@@ -80,7 +81,7 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
     // this feature detection is done to avoid having another "cluster-management" module that would depend on both management and clustering
     this.clusteringManagementService = serviceProvider.getService(ClusteringManagementService.class);
     if (this.clusteringManagementService == null && Clustering.isAvailable(serviceProvider)) {
-      this.clusteringManagementService = Clustering.newClusteringManagementService();
+      this.clusteringManagementService = Clustering.newClusteringManagementService(new DefaultClusteringManagementServiceConfiguration());
       this.clusteringManagementService.start(serviceProvider);
     }
   }
