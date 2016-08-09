@@ -30,6 +30,7 @@ import org.ehcache.management.registry.DefaultCollectorService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
+import org.slf4j.LoggerFactory;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.management.entity.ManagementAgentConfig;
@@ -40,20 +41,37 @@ import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 
 import java.util.Collection;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutorService;
 
-@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class})
+@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class, ExecutionService.class})
 public class DefaultClusteringManagementService implements ClusteringManagementService, CacheManagerListener, CollectorService.Collector {
+
+  private final ClusteringManagementServiceConfiguration configuration;
 
   private volatile ManagementRegistryService managementRegistryService;
   private volatile CollectorService collectorService;
   private volatile ManagementAgentService managementAgentService;
   private volatile ClientEntityFactory<ManagementAgentEntity, ManagementAgentConfig> managementAgentEntityFactory;
   private volatile InternalCacheManager cacheManager;
+  private volatile ExecutorService managementCallExecutor;
+
+  public DefaultClusteringManagementService() {
+    this(new DefaultClusteringManagementServiceConfiguration());
+  }
+
+  public DefaultClusteringManagementService(ClusteringManagementServiceConfiguration configuration) {
+    this.configuration = configuration == null ? new DefaultClusteringManagementServiceConfiguration() : configuration;
+  }
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
     this.managementRegistryService = serviceProvider.getService(ManagementRegistryService.class);
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
+    // get an ordered executor to keep ordering of management call requests
+    this.managementCallExecutor = serviceProvider.getService(ExecutionService.class).getOrderedExecutor(
+        configuration.getManagementCallExecutorAlias(),
+        new ArrayBlockingQueue<Runnable>(configuration.getManagementCallQueueSize()));
 
     this.collectorService = new DefaultCollectorService(this);
     this.collectorService.start(serviceProvider);
@@ -80,6 +98,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     managementAgentService.close();
     managementRegistryService = null;
     managementAgentService = null;
+    managementCallExecutor = null;
   }
 
   @Override
@@ -112,6 +131,10 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
           }
         }
         managementAgentService = new ManagementAgentService(managementAgentEntity);
+        // setup the executor that will handle the management call requests received from the server. We log failures.
+        managementAgentService.setManagementCallExecutor(new LoggingExecutor(
+            managementCallExecutor,
+            LoggerFactory.getLogger(getClass().getName() + ".managementCallExecutor")));
         managementAgentService.bridge(managementRegistryService);
 
         // expose tags
