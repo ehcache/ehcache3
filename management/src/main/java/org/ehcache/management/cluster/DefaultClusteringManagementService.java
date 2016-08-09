@@ -44,6 +44,8 @@ import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 
+import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
+
 @ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class})
 public class DefaultClusteringManagementService implements ClusteringManagementService, CacheManagerListener, CollectorService.Collector {
 
@@ -93,6 +95,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   @Override
   public void stop() {
     collectorService.stop();
+    shutdownNow(managementCallExecutor);
 
     // nullify so that no further actions are done with them (see null-checks below)
     managementAgentService.close();
