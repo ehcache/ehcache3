@@ -43,6 +43,7 @@ import org.terracotta.management.model.stats.ContextualStatistics;
 import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
@@ -134,6 +135,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
           }
         }
         managementAgentService = new ManagementAgentService(managementAgentEntity);
+        managementAgentService.setOperationTimeout(configuration.getManagementCallTimeoutSec(), TimeUnit.SECONDS);
         // setup the executor that will handle the management call requests received from the server. We log failures.
         managementAgentService.setManagementCallExecutor(new LoggingExecutor(
             managementCallExecutor,

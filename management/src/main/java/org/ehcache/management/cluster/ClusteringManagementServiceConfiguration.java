@@ -31,4 +31,9 @@ public interface ClusteringManagementServiceConfiguration extends ServiceCreatio
    * @return The maximum size of the bounded queue used to stock management call requests before executing them
    */
   int getManagementCallQueueSize();
+
+  /**
+   * @return The timeout in seconds for management call operations
+   */
+  long getManagementCallTimeoutSec();
 }

@@ -175,7 +175,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
         public void run() {
           try {
             // always check if the cache manager is still available
-            if (cacheManager.getStatus() == Status.AVAILABLE && !selectedStatsPerCapability.isEmpty()) {
+            if (!selectedStatsPerCapability.isEmpty()) {
 
               // create the full context list from current caches
               Collection<Context> cacheContexts = new ArrayList<Context>();
