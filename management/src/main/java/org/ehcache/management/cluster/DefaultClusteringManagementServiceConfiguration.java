@@ -19,6 +19,7 @@ public class DefaultClusteringManagementServiceConfiguration implements Clusteri
 
   private String managementCallExecutorAlias;
   private int managementCallQueueSize = 1024;
+  private long managementCallTimeoutSec = 5;
 
   @Override
   public String getManagementCallExecutorAlias() {
@@ -37,6 +38,16 @@ public class DefaultClusteringManagementServiceConfiguration implements Clusteri
 
   public DefaultClusteringManagementServiceConfiguration setManagementCallQueueSize(int managementCallQueueSize) {
     this.managementCallQueueSize = managementCallQueueSize;
+    return this;
+  }
+
+  @Override
+  public long getManagementCallTimeoutSec() {
+    return managementCallTimeoutSec;
+  }
+
+  public DefaultClusteringManagementServiceConfiguration setManagementCallTimeoutSec(long managementCallTimeoutSec) {
+    this.managementCallTimeoutSec = managementCallTimeoutSec;
     return this;
   }
 
