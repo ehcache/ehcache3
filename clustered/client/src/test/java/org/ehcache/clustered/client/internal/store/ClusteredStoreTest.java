@@ -27,12 +27,14 @@ import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsC
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.Ehcache;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.StoreAccessTimeoutException;
+import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.Expirations;
@@ -56,13 +58,17 @@ import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
+import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class ClusteredStoreTest {
@@ -158,6 +164,48 @@ public class ClusteredStoreTest {
     ClusteredStore<Long, String> store = new ClusteredStore<Long, String>(null, null, proxy, null);
     assertThat(store.get(1L), nullValue());
     validateStats(store, EnumSet.of(StoreOperationOutcomes.GetOutcome.TIMEOUT));
+  }
+
+  @Test
+  public void testGetThatCompactsInvokesReplace() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(134556L);
+    long now = timeSource.getTimeMillis();
+    OperationsCodec<Long, String> operationsCodec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ResolvedChain<Long, String> resolvedChain = mock(ResolvedChain.class);
+    when(resolvedChain.isCompacted()).thenReturn(true);
+    when(chainResolver.resolve(any(Chain.class), eq(42L), eq(now))).thenReturn(resolvedChain);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    Chain chain = mock(Chain.class);
+    when(chain.isEmpty()).thenReturn(false);
+    when(serverStoreProxy.get(42L)).thenReturn(chain);
+
+    ClusteredStore<Long, String> clusteredStore = new ClusteredStore<Long, String>(operationsCodec, chainResolver,
+                                                                                    serverStoreProxy, timeSource);
+    clusteredStore.get(42L);
+    verify(serverStoreProxy).replaceAtHead(eq(42L), eq(chain), any(Chain.class));
+  }
+
+  @Test
+  public void testGetThatDoesNotCompactsInvokesReplace() throws Exception {
+    TestTimeSource timeSource = new TestTimeSource();
+    timeSource.advanceTime(134556L);
+    long now = timeSource.getTimeMillis();
+    OperationsCodec<Long, String> operationsCodec = new OperationsCodec<Long, String>(new LongSerializer(), new StringSerializer());
+    ChainResolver chainResolver = mock(ChainResolver.class);
+    ResolvedChain<Long, String> resolvedChain = mock(ResolvedChain.class);
+    when(resolvedChain.isCompacted()).thenReturn(false);
+    when(chainResolver.resolve(any(Chain.class), eq(42L), eq(now))).thenReturn(resolvedChain);
+    ServerStoreProxy serverStoreProxy = mock(ServerStoreProxy.class);
+    Chain chain = mock(Chain.class);
+    when(chain.isEmpty()).thenReturn(false);
+    when(serverStoreProxy.get(42L)).thenReturn(chain);
+
+    ClusteredStore<Long, String> clusteredStore = new ClusteredStore<Long, String>(operationsCodec, chainResolver,
+                                                                                    serverStoreProxy, timeSource);
+    clusteredStore.get(42L);
+    verify(serverStoreProxy, never()).replaceAtHead(eq(42L), eq(chain), any(Chain.class));
   }
 
   @Test

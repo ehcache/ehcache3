@@ -60,11 +60,14 @@ public class ChainResolver<K, V> {
     Result<V> result = null;
     ChainBuilder chainBuilder = new ChainBuilder();
     long expirationTime = Long.MIN_VALUE;
+    int keyMatch = 0;
+    boolean compacted = false;
     for (Element element : chain) {
       ByteBuffer payload = element.getPayload();
       Operation<K, V> operation = codec.decode(payload);
       final Result<V> previousResult = result;
       if(key.equals(operation.getKey())) {
+        keyMatch++;
         result = operation.apply(result);
         if(result == null) {
           continue;
@@ -101,6 +104,7 @@ public class ChainResolver<K, V> {
             LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", ex);
             duration = Duration.ZERO;
           }
+          compacted = true;
           if(duration.isInfinite()) {
             expirationTime = Long.MIN_VALUE;
             continue;
@@ -116,11 +120,14 @@ public class ChainResolver<K, V> {
         chainBuilder = chainBuilder.add(payload);
       }
     }
-    if(result != null) {
+    if(result == null) {
+      compacted = keyMatch > 0;
+    } else {
+      compacted = compacted || keyMatch > 1;
       Operation<K, V> resolvedOperation = new PutOperation<K, V>(key, result.getValue(), -expirationTime);
       ByteBuffer payload = codec.encode(resolvedOperation);
       chainBuilder = chainBuilder.add(payload);
     }
-    return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result);
+    return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result, compacted);
   }
 }

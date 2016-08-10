@@ -68,6 +68,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
+    assertThat(resolvedChain.isCompacted(), is(true));
 
     Chain compactedChain = resolvedChain.getCompactedChain();
     List<Operation<Long, String>> operations = getOperationsListFromChain(compactedChain);
@@ -90,7 +91,8 @@ public class ChainResolverTest {
     assertNull(result);
 
     Chain compactedChain = resolvedChain.getCompactedChain();
-    assertTrue(compactedChain.isEmpty());
+    assertThat(compactedChain.isEmpty(), is(true));
+    assertThat(resolvedChain.isCompacted(), is(false));
   }
 
   @Test
@@ -105,6 +107,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 3L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(3L);
     assertNull(result);
+    assertThat(resolvedChain.isCompacted(), is(false));
 
     Chain compactedChain = resolvedChain.getCompactedChain();
     List<Operation<Long, String>> expectedOperations = getOperationsListFromChain(compactedChain);
@@ -122,6 +125,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -138,6 +142,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -150,6 +155,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -163,6 +169,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -176,6 +183,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertNull(result);
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -189,6 +197,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -204,6 +213,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -219,6 +229,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -234,6 +245,7 @@ public class ChainResolverTest {
 
     assertThat(operation.isExpiryAvailable(), is(true));
     assertThat(operation.expirationTime(), is(Long.MIN_VALUE));
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -263,6 +275,7 @@ public class ChainResolverTest {
     } catch (Exception ex) {
       assertThat(ex.getMessage(), is("Timestamp not available"));
     }
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -293,7 +306,7 @@ public class ChainResolverTest {
     } catch (Exception ex) {
       assertThat(ex.getMessage(), is("Timestamp not available"));
     }
-
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   private Chain getChainFromOperations(List<Operation<Long, String>> operations) {

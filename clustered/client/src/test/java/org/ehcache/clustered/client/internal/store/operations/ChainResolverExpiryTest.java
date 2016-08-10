@@ -73,12 +73,13 @@ public class ChainResolverExpiryTest {
 
     Chain chain = getChainFromOperations(list);
 
-    chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    ResolvedChain<Long, String> resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
     verify(expiry, times(0)).getExpiryForAccess(anyLong(), any(ValueSupplier.class));
     verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
     verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
 
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -96,13 +97,14 @@ public class ChainResolverExpiryTest {
 
     Chain chain = getChainFromOperations(list);
 
-    chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    ResolvedChain<Long, String> resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
     InOrder inOrder = inOrder(expiry);
 
     inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
     inOrder.verify(expiry, times(3)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
 
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -120,10 +122,11 @@ public class ChainResolverExpiryTest {
 
     Chain chain = getChainFromOperations(list);
 
-    chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
+    ResolvedChain<Long, String> resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
     verify(expiry, times(0)).getExpiryForCreation(anyLong(), anyString());
     verify(expiry, times(3)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
 
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -142,13 +145,15 @@ public class ChainResolverExpiryTest {
 
     Chain replacedChain = getChainFromOperations(list);
 
-    chainResolver.resolve(replacedChain, 1L, timeSource.getTimeMillis());
+    ResolvedChain<Long, String> resolvedChain = chainResolver.resolve(replacedChain, 1L, timeSource.getTimeMillis());
 
     InOrder inOrder = inOrder(expiry);
 
     verify(expiry, times(0)).getExpiryForAccess(anyLong(), any(ValueSupplier.class));
     inOrder.verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
     inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
+
+    assertThat(resolvedChain.isCompacted(), is(true));
 
     reset(expiry);
 
@@ -171,6 +176,7 @@ public class ChainResolverExpiryTest {
     inOrder.verify(expiry, times(1)).getExpiryForUpdate(anyLong(), any(ValueSupplier.class), anyString());
     inOrder.verify(expiry, times(1)).getExpiryForCreation(anyLong(), anyString());
 
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -188,7 +194,7 @@ public class ChainResolverExpiryTest {
     ResolvedChain resolvedChain = chainResolver.resolve(chain, 1L, timeSource.getTimeMillis());
 
     assertTrue(resolvedChain.getCompactedChain().isEmpty());
-
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -208,6 +214,7 @@ public class ChainResolverExpiryTest {
     assertThat(resolvedChain.getResolvedResult(1L).getValue().toString(), is("New"));
     assertTrue(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).isExpiryAvailable());
     assertThat(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).expirationTime(), is(10L));
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -227,6 +234,7 @@ public class ChainResolverExpiryTest {
     assertThat(resolvedChain.getResolvedResult(1L).getValue().toString(), is("New"));
     assertTrue(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).isExpiryAvailable());
     assertThat(getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0).expirationTime(), is(2L));
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   @Test
@@ -255,6 +263,7 @@ public class ChainResolverExpiryTest {
 
     assertThat(resolvedChain.getResolvedResult(1L), nullValue());
 
+    assertThat(resolvedChain.isCompacted(), is(true));
   }
 
   private Chain getChainFromOperations(List<Operation<Long, String>> operations) {
