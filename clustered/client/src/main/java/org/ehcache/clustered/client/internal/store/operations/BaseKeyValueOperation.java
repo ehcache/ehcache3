@@ -24,7 +24,7 @@ import java.nio.ByteBuffer;
 abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   private final K key;
-  private final V value;
+  private final LazyValueHolder<V> valueHolder;
   private final long timeStamp;
 
   BaseKeyValueOperation(K key, V value, long timeStamp) {
@@ -35,7 +35,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
       throw new NullPointerException("Value can not be null");
     }
     this.key = key;
-    this.value = value;
+    this.valueHolder = new LazyValueHolder<V>(value);
     this.timeStamp = timeStamp;
   }
 
@@ -52,10 +52,10 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     buffer.limit(buffer.capacity());
     try {
       this.key = keySerializer.read(keyBlob);
-      this.value = valueSerializer.read(buffer.slice());
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
+    this.valueHolder = new LazyValueHolder<V>(buffer.slice(), valueSerializer);
   }
 
   public K getKey() {
@@ -63,7 +63,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
   }
 
   public V getValue() {
-    return value;
+    return valueHolder.getValue();
   }
 
   /**
@@ -80,7 +80,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
   @Override
   public ByteBuffer encode(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     ByteBuffer keyBuf = keySerializer.serialize(key);
-    ByteBuffer valueBuf = valueSerializer.serialize(value);
+    ByteBuffer valueBuf = valueHolder.encode(valueSerializer);
 
     int size = BYTE_SIZE_BYTES +   // Operation type
                INT_SIZE_BYTES +    // Size of the key payload
@@ -101,7 +101,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
 
   @Override
   public String toString() {
-    return "{" + getOpCode() + "# key: " + key + ", value: " + value + "}";
+    return "{" + getOpCode() + "# key: " + key + ", value: " + getValue() + "}";
   }
 
   @Override
@@ -130,7 +130,7 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
   public int hashCode() {
     int hash = getOpCode().hashCode();
     hash = hash * 31 + key.hashCode();
-    hash = hash * 31 + value.hashCode();
+    hash = hash * 31 + getValue().hashCode();
     return hash;
   }
 

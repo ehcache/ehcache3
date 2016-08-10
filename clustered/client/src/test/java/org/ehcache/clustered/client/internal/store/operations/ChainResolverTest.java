@@ -30,6 +30,7 @@ import org.hamcrest.collection.IsIterableContainingInOrder;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -37,7 +38,6 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -91,7 +91,6 @@ public class ChainResolverTest {
     assertNull(result);
 
     Chain compactedChain = resolvedChain.getCompactedChain();
-    assertThat(compactedChain.isEmpty(), is(true));
     assertThat(resolvedChain.isCompacted(), is(false));
   }
 
@@ -108,10 +107,6 @@ public class ChainResolverTest {
     Result<String> result = resolvedChain.getResolvedResult(3L);
     assertNull(result);
     assertThat(resolvedChain.isCompacted(), is(false));
-
-    Chain compactedChain = resolvedChain.getCompactedChain();
-    List<Operation<Long, String>> expectedOperations = getOperationsListFromChain(compactedChain);
-    assertThat(expectedOperations, IsIterableContainingInOrder.contains(list.toArray()));
   }
 
   @Test
@@ -125,7 +120,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
+    assertThat(resolvedChain.isCompacted(), is(false));
   }
 
   @Test
@@ -197,7 +192,7 @@ public class ChainResolverTest {
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
     Result<String> result = resolvedChain.getResolvedResult(1L);
     assertEquals(expected, result);
-    assertThat(resolvedChain.isCompacted(), is(true));
+    assertThat(resolvedChain.isCompacted(), is(false));
   }
 
   @Test
@@ -233,19 +228,14 @@ public class ChainResolverTest {
   }
 
   @Test
-  public void testResolveForSingleOperationHasCorrectIsFirstAndTimeStamp() {
+  public void testResolveForSingleOperationDoesNotCompact() {
     ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
     list.add(new PutOperation<Long, String>(1L, "Albin", timeSource.getTimeMillis()));
     Chain chain = getChainFromOperations(list);
 
     ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(codec, Expirations.noExpiration());
     ResolvedChain<Long, String> resolvedChain = resolver.resolve(chain, 1L, timeSource.getTimeMillis());
-
-    Operation<Long, String> operation = getOperationsListFromChain(resolvedChain.getCompactedChain()).get(0);
-
-    assertThat(operation.isExpiryAvailable(), is(true));
-    assertThat(operation.expirationTime(), is(Long.MIN_VALUE));
-    assertThat(resolvedChain.isCompacted(), is(true));
+    assertThat(resolvedChain.isCompacted(), is(false));
   }
 
   @Test
@@ -309,6 +299,46 @@ public class ChainResolverTest {
     assertThat(resolvedChain.isCompacted(), is(true));
   }
 
+  @Test
+  public void testResolveDoesNotDecodeOtherKeyOperationValues() throws Exception {
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new PutOperation<Long, String>(2L, "Albin", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(2L, "Suresh", timeSource.getTimeMillis()));
+    list.add(new PutOperation<Long, String>(2L, "Mathew", timeSource.getTimeMillis()));
+    Chain chain = getChainFromOperations(list);
+
+    CountingLongSerializer keySerializer = new CountingLongSerializer();
+    CountingStringSerializer valueSerializer = new CountingStringSerializer();
+    OperationsCodec<Long, String> customCodec = new OperationsCodec<Long, String>(keySerializer, valueSerializer);
+    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(customCodec, Expirations.noExpiration());
+    resolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(keySerializer.decodeCount, is(3));
+    assertThat(valueSerializer.decodeCount, is(0));
+    assertThat(keySerializer.encodeCount, is(0));
+    assertThat(valueSerializer.encodeCount, is(0));
+  }
+
+  @Test
+  public void testResolveDecodesOperationValueOnlyOnDemand() throws Exception {
+    ArrayList<Operation<Long, String>> list = new ArrayList<Operation<Long, String>>();
+    list.add(new PutOperation<Long, String>(1L, "Albin", 1));
+    list.add(new PutOperation<Long, String>(1L, "Suresh", 2));
+    list.add(new PutOperation<Long, String>(1L, "Mathew", 3));
+    Chain chain = getChainFromOperations(list);
+
+    CountingLongSerializer keySerializer = new CountingLongSerializer();
+    CountingStringSerializer valueSerializer = new CountingStringSerializer();
+    OperationsCodec<Long, String> customCodec = new OperationsCodec<Long, String>(keySerializer, valueSerializer);
+    ChainResolver<Long, String> resolver = new ChainResolver<Long, String>(customCodec, Expirations.noExpiration());
+    resolver.resolve(chain, 1L, timeSource.getTimeMillis());
+
+    assertThat(keySerializer.decodeCount, is(3));
+    assertThat(valueSerializer.decodeCount, is(1)); //Only one decode on creation of the resolved operation
+    assertThat(valueSerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
+    assertThat(keySerializer.encodeCount, is(1)); //One encode from encoding the resolved operation's key
+  }
+
   private Chain getChainFromOperations(List<Operation<Long, String>> operations) {
     ChainBuilder chainBuilder = new ChainBuilder();
     for(Operation<Long, String> operation: operations) {
@@ -324,5 +354,51 @@ public class ChainResolverTest {
       list.add(operation);
     }
     return list;
+  }
+
+  private static class CountingLongSerializer extends LongSerializer {
+
+    private int encodeCount = 0;
+    private int decodeCount = 0;
+
+    @Override
+    public ByteBuffer serialize(final Long object) {
+      encodeCount++;
+      return super.serialize(object);
+    }
+
+    @Override
+    public Long read(final ByteBuffer binary) throws ClassNotFoundException {
+      decodeCount++;
+      return super.read(binary);
+    }
+
+    @Override
+    public boolean equals(final Long object, final ByteBuffer binary) throws ClassNotFoundException {
+      return super.equals(object, binary);
+    }
+  }
+
+  private static class CountingStringSerializer extends StringSerializer {
+
+    private int encodeCount = 0;
+    private int decodeCount = 0;
+
+    @Override
+    public ByteBuffer serialize(final String object) {
+      encodeCount++;
+      return super.serialize(object);
+    }
+
+    @Override
+    public String read(final ByteBuffer binary) throws ClassNotFoundException {
+      decodeCount++;
+      return super.read(binary);
+    }
+
+    @Override
+    public boolean equals(final String object, final ByteBuffer binary) throws ClassNotFoundException {
+      return super.equals(object, binary);
+    }
   }
 }

@@ -23,6 +23,7 @@ import org.ehcache.clustered.client.internal.store.operations.codecs.OperationsC
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +40,9 @@ public class ChainResolver<K, V> {
   private final Expiry<? super K, ? super V> expiry;
 
   public ChainResolver(final OperationsCodec<K, V> codec, Expiry<? super K, ? super V> expiry) {
+    if(expiry == null) {
+      throw new NullPointerException("Expiry can not be null");
+    }
     this.codec = codec;
     this.expiry = expiry;
   }
@@ -72,47 +76,49 @@ public class ChainResolver<K, V> {
         if(result == null) {
           continue;
         }
-        if(operation.isExpiryAvailable()) {
-          expirationTime = operation.expirationTime();
-          if (expirationTime == Long.MIN_VALUE) {
-            continue;
-          }
-          if (now >= expirationTime) {
-            result = null;
-          }
-        } else {
-          Duration duration;
-          try {
-            if(previousResult == null) {
-              duration = expiry.getExpiryForCreation(key, result.getValue());
-              if (duration == null) {
-                result = null;
-                continue;
-              }
-            } else {
-              duration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
-                @Override
-                public V value() {
-                  return previousResult.getValue();
-                }
-              }, result.getValue());
-              if (duration == null) {
-                continue;
-              }
+        if (expiry != Expirations.noExpiration()) {
+          if(operation.isExpiryAvailable()) {
+            expirationTime = operation.expirationTime();
+            if (expirationTime == Long.MIN_VALUE) {
+              continue;
             }
-          } catch (Exception ex) {
-            LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", ex);
-            duration = Duration.ZERO;
-          }
-          compacted = true;
-          if(duration.isInfinite()) {
-            expirationTime = Long.MIN_VALUE;
-            continue;
-          }
-          long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
-          expirationTime = time + operation.timeStamp();
-          if(now >= expirationTime) {
-            result = null;
+            if (now >= expirationTime) {
+              result = null;
+            }
+          } else {
+            Duration duration;
+            try {
+              if(previousResult == null) {
+                duration = expiry.getExpiryForCreation(key, result.getValue());
+                if (duration == null) {
+                  result = null;
+                  continue;
+                }
+              } else {
+                duration = expiry.getExpiryForUpdate(key, new ValueSupplier<V>() {
+                  @Override
+                  public V value() {
+                    return previousResult.getValue();
+                  }
+                }, result.getValue());
+                if (duration == null) {
+                  continue;
+                }
+              }
+            } catch (Exception ex) {
+              LOG.error("Expiry computation caused an exception - Expiry duration will be 0 ", ex);
+              duration = Duration.ZERO;
+            }
+            compacted = true;
+            if(duration.isInfinite()) {
+              expirationTime = Long.MIN_VALUE;
+              continue;
+            }
+            long time = TIME_UNIT.convert(duration.getLength(), duration.getTimeUnit());
+            expirationTime = time + operation.timeStamp();
+            if(now >= expirationTime) {
+              result = null;
+            }
           }
         }
       } else {
@@ -120,14 +126,17 @@ public class ChainResolver<K, V> {
         chainBuilder = chainBuilder.add(payload);
       }
     }
-    if(result == null) {
-      compacted = keyMatch > 0;
+
+    compacted = (result == null) ? (keyMatch > 0) : (compacted || keyMatch > 1);
+    if(compacted) {
+      if(result != null) {
+        Operation<K, V> resolvedOperation = new PutOperation<K, V>(key, result.getValue(), -expirationTime);
+        ByteBuffer payload = codec.encode(resolvedOperation);
+        chainBuilder = chainBuilder.add(payload);
+      }
+      return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result, true);
     } else {
-      compacted = compacted || keyMatch > 1;
-      Operation<K, V> resolvedOperation = new PutOperation<K, V>(key, result.getValue(), -expirationTime);
-      ByteBuffer payload = codec.encode(resolvedOperation);
-      chainBuilder = chainBuilder.add(payload);
+      return new ResolvedChain.Impl<K, V>(chain, key, result, false);
     }
-    return new ResolvedChain.Impl<K, V>(chainBuilder.build(), key, result, compacted);
   }
 }
