@@ -1241,29 +1241,7 @@ public class EhcachePassiveEntityTest {
     passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("sharedCache", sharedStoreConfig));
   }
 
-  public void testCreateServerStoreWithUnknownPool() throws Exception {
 
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .build();
-    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
-        .unknown()
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    try {
-      passiveEntity.invoke(
-          MESSAGE_FACTORY.createServerStore("cacheAlias", serverStoreConfiguration));
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      Assert.assertThat(e.getMessage(), is("Server Store can't be created with an Unknown resource pool"));
-    }
-  }
 
   private static ServerSideConfiguration.Pool pool(String resourceName, int poolSize, MemoryUnit unit) {
     return new ServerSideConfiguration.Pool(unit.toBytes(poolSize), resourceName);

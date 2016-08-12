@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
@@ -2503,6 +2504,7 @@ public class EhcacheActiveEntityTest {
     );
   }
 
+  @Test
   public void testCreateServerStoreWithUnknownPool() throws Exception {
 
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
@@ -2524,9 +2526,10 @@ public class EhcacheActiveEntityTest {
     try {
       assertSuccess(activeEntity.invoke(client,
           MESSAGE_FACTORY.createServerStore("cacheAlias", serverStoreConfiguration)));
-      fail("Expecting IllegalStateException");
-    } catch(IllegalStateException e) {
-      Assert.assertThat(e.getMessage(), is("Server Store can't be created with an Unknown resource pool"));
+      fail("Expecting LifecycleException");
+    } catch(Exception e) {
+      assertThat(e, instanceOf(LifecycleException.class));
+      assertThat(e.getMessage(), is("Clustered tier can't be created with an Unknown resource pool"));
     }
   }
 

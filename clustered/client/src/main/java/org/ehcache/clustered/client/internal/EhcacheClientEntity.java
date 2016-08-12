@@ -34,6 +34,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Fail
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,6 +47,7 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -67,6 +69,9 @@ public class EhcacheClientEntity implements Entity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
 
+  private Set<String> reconnectData = new HashSet<String>();
+  private int reconnectDatalen = 0;
+
   public interface ResponseListener<T extends EhcacheEntityResponse> {
     void onResponse(T response);
   }
@@ -79,6 +84,7 @@ public class EhcacheClientEntity implements Entity {
   private final LifeCycleMessageFactory messageFactory;
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
+  private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private volatile boolean connected = true;
 
   private Timeouts timeouts = Timeouts.builder().build();
@@ -96,7 +102,7 @@ public class EhcacheClientEntity implements Entity {
 
       @Override
       public byte[] createExtendedReconnectData() {
-        return new byte[0];
+        return reconnectDataCodec.encode(reconnectData, reconnectDatalen);
       }
 
       @Override
@@ -178,6 +184,7 @@ public class EhcacheClientEntity implements Entity {
       throws ClusteredTierCreationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.createServerStore(name, serverStoreConfiguration), true);
+      addReconnectData(name);
     } catch (ClusterException e) {
       throw new ClusteredTierCreationException("Error creating clustered tier '" + name + "'", e);
     }
@@ -187,6 +194,7 @@ public class EhcacheClientEntity implements Entity {
       throws ClusteredTierValidationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(name , serverStoreConfiguration), false);
+      addReconnectData(name);
     } catch (ClusterException e) {
       throw new ClusteredTierValidationException("Error validating clustered tier '" + name + "'", e);
     }
@@ -195,6 +203,7 @@ public class EhcacheClientEntity implements Entity {
   public void releaseCache(String name) throws ClusteredTierReleaseException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.releaseServerStore(name), false);
+      removeReconnectData(name);
     } catch (ClusterException e) {
       throw new ClusteredTierReleaseException("Error releasing clustered tier '" + name + "'", e);
     }
@@ -203,10 +212,23 @@ public class EhcacheClientEntity implements Entity {
   public void destroyCache(String name) throws ClusteredTierDestructionException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.destroyServerStore(name), true);
+      removeReconnectData(name);
     } catch (ResourceBusyException e) {
       throw new ClusteredTierDestructionException(e.getMessage(), e);
     } catch (ClusterException e) {
       throw new ClusteredTierDestructionException("Error destroying clustered tier '" + name + "'", e);
+    }
+  }
+
+  private void addReconnectData(String name) {
+    reconnectData.add(name);
+    reconnectDatalen += name.length();
+  }
+
+  private void removeReconnectData(String name) {
+    if (!reconnectData.contains(name)) {
+      reconnectData.remove(name);
+      reconnectDatalen -= name.length();
     }
   }
 
