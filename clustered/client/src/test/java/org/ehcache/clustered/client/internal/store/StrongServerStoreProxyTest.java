@@ -148,27 +148,30 @@ public class StrongServerStoreProxyTest {
     serverStoreProxy1.addInvalidationListener(listener1);
     serverStoreProxy2.addInvalidationListener(listener2);
 
-    final int ITERATIONS = 32;
+    final int ITERATIONS = 40;
     for (int i = 0; i < ITERATIONS; i++) {
       serverStoreProxy1.append(i, createPayload(i, 512 * 1024));
     }
 
-    int nonEmptyCount = 0;
+    int evictionCount = 0;
+    int entryCount = 0;
     for (int i = 0; i < ITERATIONS; i++) {
       Chain elements1 = serverStoreProxy1.get(i);
       Chain elements2 = serverStoreProxy2.get(i);
       assertThat(chainsEqual(elements1, elements2), is(true));
       if (!elements1.isEmpty()) {
-        nonEmptyCount++;
+        entryCount++;
+      } else {
+        evictionCount++;
       }
     }
 
     // there has to be server-side evictions, otherwise this test is useless
     assertThat(store1InvalidatedHashes.size(), greaterThan(0));
     // test that each time the server evicted, the originating client got notified
-    assertThat(store1InvalidatedHashes.size(), is(ITERATIONS - nonEmptyCount));
+    assertThat(store1InvalidatedHashes.size(), is(ITERATIONS - entryCount));
     // test that each time the server evicted, the other client got notified on top of normal invalidations
-    assertThat(store2InvalidatedHashes.size(), is(ITERATIONS + nonEmptyCount));
+    assertThat(store2InvalidatedHashes.size(), is(ITERATIONS + evictionCount));
 
     serverStoreProxy1.removeInvalidationListener(listener1);
     serverStoreProxy2.removeInvalidationListener(listener2);
