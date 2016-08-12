@@ -22,11 +22,8 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -42,9 +39,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -130,12 +127,15 @@ public class EhcachePassiveEntityTest {
 
     passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .sharedPool("primary-new", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary-new", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build()));
 
     assertThat(registry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
+
+    assertThat(registry.getStoreManagerService()
+        .getSharedResourcePoolIds(), hasSize(2));
 
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
@@ -223,59 +223,6 @@ public class EhcachePassiveEntityTest {
   }
 
   @Test
-  public void testValidateAfterConfigure() throws Exception {
-    ServerSideConfiguration serverSideConfig = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfig));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfig));
-
-    assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
-  }
-
-  @Test
-  public void testCreateDedicatedServerStoreBeforeConfigure() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias",
-        new ServerStoreConfigBuilder()
-            .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-            .build()));
-  }
-
-  @Test
-  public void testCreateDedicatedServerStoreBeforeValidate() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build()));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias",
-        new ServerStoreConfigBuilder()
-            .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-            .build()));
-  }
-
-  @Test
   public void testCreateDedicatedServerStore() throws Exception {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
@@ -309,230 +256,6 @@ public class EhcachePassiveEntityTest {
     assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
 
     assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-  }
-
-  @Test
-  public void testCreateDedicatedServerStoreAfterValidate() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfig = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfig));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfig));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias",
-        new ServerStoreConfigBuilder()
-            .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-            .build()));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L + 4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-  }
-
-  @Test
-  public void testCreateDedicatedServerStoreExisting() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-                .build()));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-                .build()));
-  }
-
-  @Test
-  public void testCreateReleaseDedicatedServerStoreMultiple() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-            .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-            .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-            .build()));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-                .build()));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("secondCache",
-            new ServerStoreConfigBuilder()
-                .dedicated("serverResource2", 8, MemoryUnit.MEGABYTES)
-                .build()));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService()
-        .getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias", "secondCache"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L + 4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L + 8L)));
-
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias", "secondCache"));
-
-    /*
-     * Separately release the stores ...
-     */
-    passiveEntity.invoke(MESSAGE_FACTORY.releaseServerStore("cacheAlias"));
-
-    assertThat(registry.getStoreManagerService()
-        .getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias", "secondCache"));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.releaseServerStore("cacheAlias"));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.releaseServerStore("secondCache"));
-
-    assertThat(registry.getStoreManagerService()
-        .getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias", "secondCache"));
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias", "secondCache"));
-  }
-
-  @Test
-  public void testValidateDedicatedServerStore() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
-        .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias", serverStoreConfiguration));
-
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateServerStore("cacheAlias", serverStoreConfiguration));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L + 4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-  }
-
-  @Test
-  public void testValidateDedicatedServerStoreBad() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-                .build()));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.validateServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .dedicated("serverResource1", 8, MemoryUnit.MEGABYTES)
-                .build()));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L + 4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-  }
-
-  @Test
-  public void testValidateDedicatedServerStoreBeforeCreate() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfig = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfig));
-
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfig));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.validateServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-                .build()));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-
-    assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
   }
 
   @Test
@@ -570,335 +293,6 @@ public class EhcachePassiveEntityTest {
   }
 
   @Test
-  public void testCreateSharedServerStoreExisting() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .shared("primary")
-                .build()));
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .shared("primary")
-                .build()));
-  }
-
-  @Test
-  public void testValidateSharedServerStore() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    ServerStoreConfiguration sharedStoreConfig = new ServerStoreConfigBuilder()
-        .shared("primary")
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias", sharedStoreConfig));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.validateServerStore("cacheAlias", sharedStoreConfig));
-
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-  }
-
-  @Test
-  public void testValidateServerStore_DedicatedStoresDifferentSizes() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 4, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder().build();
-
-    ServerStoreConfiguration dedicatedStoreConfig1 = new ServerStoreConfigBuilder()
-        .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-        .build();
-
-    ServerStoreConfiguration dedicatedStoreConfig2 = new ServerStoreConfigBuilder()
-        .dedicated("serverResource1", 2, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias", dedicatedStoreConfig1));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    String expectedMessageContent = "Existing ServerStore configuration is not compatible with the desired configuration: " +
-                                    "\n\t" +
-                                    "resourcePoolDedicatedSize existing: " +
-                                    ((PoolAllocation.Dedicated)dedicatedStoreConfig1.getPoolAllocation()).getSize() +
-                                    ", desired: " +
-                                    ((PoolAllocation.Dedicated)dedicatedStoreConfig2.getPoolAllocation()).getSize();
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateServerStore("cacheAlias", dedicatedStoreConfig2));
-    assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-  }
-
-  @Test
-  public void testValidateServerStore_DedicatedStoresSameSizes() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 4, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder().build();
-
-    ServerStoreConfiguration dedicatedStoreConfig1 = new ServerStoreConfigBuilder()
-        .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-        .build();
-
-    ServerStoreConfiguration dedicatedStoreConfig2 = new ServerStoreConfigBuilder()
-        .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias", dedicatedStoreConfig1));
-
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-    passiveEntity.invoke(MESSAGE_FACTORY.validateServerStore("cacheAlias", dedicatedStoreConfig2));
-
-    assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-  }
-
-  @Test
-  public void testValidateServerStore_DedicatedStoreResourceNamesDifferent() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 4, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder().build();
-
-    ServerStoreConfiguration dedicatedStoreConfig1 = new ServerStoreConfigBuilder()
-        .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-        .build();
-
-    ServerStoreConfiguration dedicatedStoreConfig2 = new ServerStoreConfigBuilder()
-        .dedicated("serverResource2", 4, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias", dedicatedStoreConfig1));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-    String expectedMessageContent = "Existing ServerStore configuration is not compatible with the desired configuration: " +
-                                    "\n\t" +
-                                    "resourcePoolDedicatedResourceName existing: " +
-                                    ((PoolAllocation.Dedicated)dedicatedStoreConfig1.getPoolAllocation()).getResourceName() +
-                                    ", desired: " +
-                                    ((PoolAllocation.Dedicated)dedicatedStoreConfig2.getPoolAllocation()).getResourceName();
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateServerStore("cacheAlias", dedicatedStoreConfig2));
-    assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-  }
-
-  @Test
-  public void testValidateServerStore_DedicatedCacheNameDifferent() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 4, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder().build();
-
-    ServerStoreConfiguration dedicatedStoreConfig1 = new ServerStoreConfigBuilder()
-        .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-        .build();
-
-    ServerStoreConfiguration dedicatedStoreConfig2 = new ServerStoreConfigBuilder()
-        .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias", dedicatedStoreConfig1));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-    passiveEntity.invoke(MESSAGE_FACTORY.validateServerStore("cacheAliasBad", dedicatedStoreConfig2));
-
-    assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-  }
-
-  @Test
-  public void testServerStoreSameNameInDifferentSharedPools() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .shared("primary")
-                .build()));
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .shared("secondary")
-                .build()));
-  }
-
-
-  @Test
-  public void testValidateSharedServerStoreBad() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .shared("primary")
-                .build()));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.validateServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .shared("secondary")
-                .build()));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-    assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-  }
-
-  @Test
-  public void testReleaseServerStoreBeforeAttach() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-            .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-            .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-            .build()));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.releaseServerStore("cacheAlias"));
-  }
-
-  @Test
-  public void testReleaseServerStoreAfterRelease() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-            .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-            .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-            .build()));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.createServerStore("cacheAlias",
-            new ServerStoreConfigBuilder()
-                .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
-                .build()));
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.releaseServerStore("cacheAlias"));
-
-    assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.releaseServerStore("cacheAlias"));
-  }
-
-  @Test
   public void testDestroyServerStore() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
@@ -923,8 +317,6 @@ public class EhcachePassiveEntityTest {
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L + 4L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
 
-    passiveEntity.invoke(MESSAGE_FACTORY.releaseServerStore("dedicatedCache"));
-
     assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("dedicatedCache"));
     assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("dedicatedCache"));
 
@@ -934,8 +326,6 @@ public class EhcachePassiveEntityTest {
                 .shared("secondary")
                 .build()));
     assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("dedicatedCache", "sharedCache"));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.releaseServerStore("sharedCache"));
 
     assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("dedicatedCache", "sharedCache"));
     assertThat(registry.getStoreManagerService().getDedicatedResourcePoolIds(), containsInAnyOrder("dedicatedCache"));
@@ -954,30 +344,6 @@ public class EhcachePassiveEntityTest {
 
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-  }
-
-  /**
-   * Tests the destroy server store operation <b>before</b> the use of either a
-   * {@link LifecycleMessage.CreateServerStore CreateServerStore}
-   * {@link LifecycleMessage.ValidateServerStore ValidateServerStore}
-   * operation.
-   */
-  @Test
-  public void testDestroyServerStoreBeforeAttach() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-            .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-            .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-            .build()));
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.destroyServerStore("cacheAlias"));
   }
 
   /**
@@ -1033,7 +399,6 @@ public class EhcachePassiveEntityTest {
     assertThat(registry.getStoreManagerService()
         .getStores(), containsInAnyOrder("dedicatedCache", "sharedCache", "primary"));
 
-    passiveEntity.invoke(MESSAGE_FACTORY.releaseServerStore("dedicatedCache"));
     assertThat(registry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(registry.getStoreManagerService()
@@ -1041,7 +406,6 @@ public class EhcachePassiveEntityTest {
     assertThat(registry.getStoreManagerService()
         .getStores(), containsInAnyOrder("dedicatedCache", "sharedCache", "primary"));
 
-    passiveEntity.invoke(MESSAGE_FACTORY.releaseServerStore("primary"));
     assertThat(registry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(registry.getStoreManagerService()
@@ -1049,19 +413,12 @@ public class EhcachePassiveEntityTest {
     assertThat(registry.getStoreManagerService()
         .getStores(), containsInAnyOrder("dedicatedCache", "sharedCache", "primary"));
 
-    passiveEntity.invoke(MESSAGE_FACTORY.releaseServerStore("sharedCache"));
     assertThat(registry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
     assertThat(registry.getStoreManagerService()
         .getDedicatedResourcePoolIds(), containsInAnyOrder("dedicatedCache", "primary"));
     assertThat(registry.getStoreManagerService()
         .getStores(), containsInAnyOrder("dedicatedCache", "sharedCache", "primary"));
-  }
-
-  @Test
-  public void testDestroyEmpty() throws Exception {
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(new OffHeapIdentifierRegistry(), ENTITY_ID);
-    passiveEntity.destroy();
   }
 
   @Test
@@ -1109,139 +466,6 @@ public class EhcachePassiveEntityTest {
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(0L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(0L)));
   }
-
-  @Test
-  public void testValidateIdenticalConfiguration() {
-    ServerSideConfiguration configureConfig = new ServerSideConfigBuilder()
-        .defaultResource("primary-server-resource")
-        .sharedPool("foo", null, 8, MemoryUnit.MEGABYTES)
-        .sharedPool("bar", "secondary-server-resource", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    ServerSideConfiguration validateConfig = new ServerSideConfigBuilder()
-        .defaultResource("primary-server-resource")
-        .sharedPool("foo", null, 8, MemoryUnit.MEGABYTES)
-        .sharedPool("bar", "secondary-server-resource", 8, MemoryUnit.MEGABYTES)
-        .build();
-
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("primary-server-resource", 16, MemoryUnit.MEGABYTES);
-    registry.addResource("secondary-server-resource", 16, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(validateConfig));
-  }
-
-  @Test
-  public void testValidateSharedPoolNamesDifferent() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource", 64, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-
-    EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    ServerSideConfiguration configure = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(configure));
-
-    ServerSideConfiguration validate = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("ternary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(validate));
-  }
-
-  @Test
-  public void testValidateDefaultResourceNameDifferent() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    ServerSideConfiguration configure = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource1")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(configure));
-
-    ServerSideConfiguration validate = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource2")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(validate));
-  }
-
-  @Test
-  public void testValidateClientSharedPoolSizeTooBig() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(64, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-
-    EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    ServerSideConfiguration configure = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource1")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 32, MemoryUnit.MEGABYTES)
-        .build();
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(configure));
-
-    ServerSideConfiguration validate = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource1")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 36, MemoryUnit.MEGABYTES)
-        .build();
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(validate));
-  }
-
-  @Test
-  public void testValidateSecondClientInheritsFirstClientConfig() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    ServerSideConfiguration initialConfiguration = new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build();
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(initialConfiguration));
-
-    passiveEntity.invoke(MESSAGE_FACTORY.validateStoreManager(null));
-  }
-
-  @Test
-  public void testValidateNonExistentSharedPool() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-
-    EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
-
-    ServerSideConfiguration configure = new ServerSideConfigBuilder().build();
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(configure));
-
-    ServerStoreConfiguration sharedStoreConfig = new ServerStoreConfigBuilder()
-        .shared("non-existent-pool")
-        .build();
-
-    passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("sharedCache", sharedStoreConfig));
-  }
-
-
 
   private static ServerSideConfiguration.Pool pool(String resourceName, int poolSize, MemoryUnit unit) {
     return new ServerSideConfiguration.Pool(unit.toBytes(poolSize), resourceName);

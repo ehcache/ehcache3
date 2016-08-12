@@ -262,7 +262,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     for (final String cacheId : cacheIds) {
       ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
       if (serverStore == null) {
-        LOGGER.error("Client");
+        //Client only removes the cache's reference when destroy has successfully completed
+        //This happens only when client thinks destroy is still not complete
+        LOGGER.error("ServerStore '{}' does not exist as expected by Client '{}'.", cacheId, clientDescriptor);
+        continue;
       }
       serverStore.setEvictionListener(new ServerStoreEvictionListener() {
         @Override
@@ -272,6 +275,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       });
       attachStore(clientDescriptor, cacheId);
     }
+    LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
   }
 
@@ -733,7 +737,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
 
     if (wasRegistered) {
-      LOGGER.info("Client {} detached from clistered tier '{}'", clientDescriptor, storeId);
+      LOGGER.info("Client {} detached from clustered tier '{}'", clientDescriptor, storeId);
     }
 
     return wasRegistered;

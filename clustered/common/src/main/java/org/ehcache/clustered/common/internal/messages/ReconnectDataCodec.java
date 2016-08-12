@@ -28,7 +28,7 @@ public class ReconnectDataCodec {
   public byte[] encode(Set<String> cacheIds, int length) {
     ByteBuffer reconnectData = ByteBuffer.allocate(2 * length + cacheIds.size() * ENTRY_SIZE);
     for (String cacheId : cacheIds) {
-      reconnectData.putInt(2 * cacheId.length());
+      reconnectData.putInt(cacheId.length());
       CodecUtil.putStringAsCharArray(reconnectData, cacheId);
     }
 

@@ -100,17 +100,8 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       case CONFIGURE:
         ehcacheStateService.configure((ConfigureStoreManager) message);
         break;
-      case VALIDATE:
-        ehcacheStateService.validate((ValidateStoreManager) message);
-        break;
       case CREATE_SERVER_STORE:
         createServerStore((CreateServerStore) message);
-        break;
-      case VALIDATE_SERVER_STORE:
-        validateServerStore((ValidateServerStore) message);
-        break;
-      case RELEASE_SERVER_STORE:
-        releaseServerStore((ReleaseServerStore) message);
         break;
       case DESTROY_SERVER_STORE:
         destroyServerStore((DestroyServerStore) message);
@@ -135,38 +126,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
     ehcacheStateService.createStore(name, storeConfiguration);
 
-  }
-
-  private void validateServerStore(ValidateServerStore validateServerStore) throws ClusterException {
-    if (!ehcacheStateService.isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
-    }
-
-    String name = validateServerStore.getName();
-    ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
-
-    LOGGER.info("Validating clustered tier '{}'", name);
-    ServerStoreImpl store = ehcacheStateService.getStore(name);
-    if (store != null) {
-      storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
-    } else {
-      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
-    }
-  }
-
-  //TODO: Does this even make sense on passive
-  private void releaseServerStore(ReleaseServerStore releaseServerStore) throws ClusterException {
-    if (!ehcacheStateService.isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
-    }
-
-    String name = releaseServerStore.getName();
-
-    LOGGER.info("Releasing clustered tier '{}'", name);
-    ServerStoreImpl store = ehcacheStateService.getStore(name);
-    if (store == null) {
-      throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
-    }
   }
 
   private void destroyServerStore(DestroyServerStore destroyServerStore) throws ClusterException {
