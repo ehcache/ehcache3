@@ -43,6 +43,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.common.internal.store.ServerStore;
@@ -92,6 +93,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final ConcurrentHashMap<String, Set<ClientDescriptor>> storeClientMap =
       new ConcurrentHashMap<String, Set<ClientDescriptor>>();
 
+  private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
   private final EhcacheEntityResponseFactory responseFactory;
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<Integer, InvalidationHolder>();
@@ -250,7 +252,27 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
-    //nothing to do
+    ClientState clientState = this.clientStateMap.get(clientDescriptor);
+    if (clientState == null) {
+      LOGGER.error("Client {} trying to reconnect is not connected to entity.", clientDescriptor);
+      return;
+    }
+    clientState.attach();
+    Set<String> cacheIds = reconnectDataCodec.decode(extendedReconnectData);
+    for (final String cacheId : cacheIds) {
+      ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
+      if (serverStore == null) {
+        LOGGER.error("Client");
+      }
+      serverStore.setEvictionListener(new ServerStoreEvictionListener() {
+        @Override
+        public void onEviction(long key) {
+          invalidateHashAfterEviction(cacheId, key);
+        }
+      });
+      attachStore(clientDescriptor, cacheId);
+    }
+
   }
 
   @Override
