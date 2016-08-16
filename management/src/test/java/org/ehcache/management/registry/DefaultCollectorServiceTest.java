@@ -134,7 +134,7 @@ public class DefaultCollectorServiceTest {
     managementRegistry.withCapability("StatisticCollectorCapability")
         .call("updateCollectedStatistics",
             new Parameter("StatisticsCapability"),
-            new Parameter(asList("PutCounter", "InexistingRate"), Collection.class.getName()))
+            new Parameter(asList("Cache:HitCount", "Cache:MissCount"), Collection.class.getName()))
         .on(Context.create("cacheManagerName", "my-cm-1"))
         .build()
         .execute()
@@ -144,7 +144,6 @@ public class DefaultCollectorServiceTest {
     cache.put("key", "val");
 
     num.await();
-
     cacheManager.removeCache("my-cache");
     cacheManager.close();
 

@@ -48,18 +48,14 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
+import org.terracotta.management.model.stats.StatisticType;
 
 class StandardEhcacheStatistics extends ExposedCacheBinding {
-
-  private static final Set<CacheOperationOutcomes.PutOutcome> ALL_CACHE_PUT_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.PutOutcome.class);
-  private static final Set<CacheOperationOutcomes.GetOutcome> ALL_CACHE_GET_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.GetOutcome.class);
-  private static final Set<CacheOperationOutcomes.GetOutcome> ALL_CACHE_MISS_OUTCOMES = EnumSet.of(CacheOperationOutcomes.GetOutcome.FAILURE, CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER);
-  private static final Set<CacheOperationOutcomes.RemoveOutcome> ALL_CACHE_REMOVE_OUTCOMES = EnumSet.allOf(CacheOperationOutcomes.RemoveOutcome.class);
-  private static final Set<CacheOperationOutcomes.GetOutcome> GET_WITH_LOADER_OUTCOMES = EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER);
-  private static final Set<CacheOperationOutcomes.GetOutcome> GET_NO_LOADER_OUTCOMES = EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
 
   private final StatisticsRegistry statisticsRegistry;
 
@@ -71,6 +67,10 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
 
     statisticsRegistry.registerCompoundOperations("Cache:Hit", OperationStatisticDescriptor.descriptor("get", Collections.singleton("cache"), CacheOperationOutcomes.GetOutcome.class), EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
     statisticsRegistry.registerCompoundOperations("Cache:Miss", OperationStatisticDescriptor.descriptor("get", Collections.singleton("cache"), CacheOperationOutcomes.GetOutcome.class), EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER));
+    statisticsRegistry.registerCompoundOperations("Cache:Clear", OperationStatisticDescriptor.descriptor("clear",Collections.singleton("cache"),CacheOperationOutcomes.ClearOutcome.class), EnumSet.allOf(CacheOperationOutcomes.ClearOutcome.class));
+    statisticsRegistry.registerRatios("Cache:HitRatio", OperationStatisticDescriptor.descriptor("get", Collections.singleton("cache"), CacheOperationOutcomes.GetOutcome.class), EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER), EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER));
+    statisticsRegistry.registerRatios("Cache:MissRatio", OperationStatisticDescriptor.descriptor("get", Collections.singleton("cache"), CacheOperationOutcomes.GetOutcome.class), EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER), EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER));
+
     statisticsRegistry.registerCompoundOperations("Hit", OperationStatisticDescriptor.descriptor("get", Collections.singleton("tier"), TierOperationStatistic.TierOperationOutcomes.GetOutcome.class), EnumSet.of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.HIT));
     statisticsRegistry.registerCompoundOperations("Miss", OperationStatisticDescriptor.descriptor("get", Collections.singleton("tier"), TierOperationStatistic.TierOperationOutcomes.GetOutcome.class), EnumSet.of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.MISS));
     statisticsRegistry.registerCompoundOperations("Eviction", OperationStatisticDescriptor.descriptor("eviction", Collections.singleton("tier"), TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class), EnumSet.allOf(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class));
@@ -155,21 +155,33 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
   @Override
   public Collection<Descriptor> getDescriptors() {
     Set<Descriptor> capabilities = new HashSet<Descriptor>();
-
     capabilities.addAll(queryStatisticsRegistry());
-    capabilities.addAll(operationStatistics());
-
-    return capabilities;
-  }
-
-  private Set<Descriptor> operationStatistics() {
-    Set<Descriptor> capabilities = new HashSet<Descriptor>();
-
     return capabilities;
   }
 
   private Set<Descriptor> queryStatisticsRegistry() {
     Set<Descriptor> capabilities = new HashSet<Descriptor>();
+
+    Map<String, RegisteredStatistic> registrations = statisticsRegistry.getRegistrations();
+
+    for(Entry entry : registrations.entrySet()) {
+      RegisteredStatistic registeredStatistic = registrations.get(entry.getKey().toString());
+
+      if(registeredStatistic instanceof RegisteredCompoundStatistic) {
+        List<StatisticDescriptor> statistics = new ArrayList<StatisticDescriptor>();
+        statistics.add(new StatisticDescriptor(entry.getKey() + "Count", StatisticType.COUNTER_HISTORY));
+        statistics.add(new StatisticDescriptor(entry.getKey() + "Rate", StatisticType.RATE_HISTORY));
+        statistics.add(new StatisticDescriptor(entry.getKey() + "LatencyMinimum", StatisticType.DURATION_HISTORY));
+        statistics.add(new StatisticDescriptor(entry.getKey() + "LatencyMaximum", StatisticType.DURATION_HISTORY));
+        statistics.add(new StatisticDescriptor(entry.getKey() + "LatencyAverage", StatisticType.AVERAGE_HISTORY));
+
+        capabilities.addAll(statistics);
+      } else if(registeredStatistic instanceof RegisteredRatioStatistic) {
+        capabilities.add(new StatisticDescriptor(entry.getKey() + "Ratio", StatisticType.RATIO_HISTORY));
+      } else if(registeredStatistic instanceof RegisteredValueStatistic) {
+        capabilities.add(new StatisticDescriptor(entry.getKey().toString(), StatisticType.COUNTER_HISTORY));
+      }
+    }
 
     return capabilities;
   }

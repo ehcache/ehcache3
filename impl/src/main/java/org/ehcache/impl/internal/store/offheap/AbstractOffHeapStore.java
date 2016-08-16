@@ -56,7 +56,6 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
-import org.terracotta.context.annotations.ContextAttribute;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
@@ -99,7 +98,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private final OperationObserver<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome> getAndRemoveObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.InstallMappingOutcome> installMappingObserver;
 
-  protected final OffHeapStoreStatsSettings offHeapStoreStatsSettings;
 
   private volatile InvalidationValve valve;
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
@@ -114,8 +112,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.timeSource = timeSource;
     this.eventDispatcher = eventDispatcher;
 
-    this.offHeapStoreStatsSettings = new OffHeapStoreStatsSettings(statisticsTag);
-    StatisticsManager.associate(offHeapStoreStatsSettings).withParent(this);
     this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(statisticsTag).build();
     this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(statisticsTag).build();
     this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(statisticsTag).build();
@@ -1315,15 +1311,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
       invalidationListener.onInvalidation(key, value);
       evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
-    }
-  }
-
-  private static final class OffHeapStoreStatsSettings {
-    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("store"));
-    @ContextAttribute("discriminator") private final String discriminator;
-
-    OffHeapStoreStatsSettings(String discriminator) {
-      this.discriminator = discriminator;
     }
   }
 }

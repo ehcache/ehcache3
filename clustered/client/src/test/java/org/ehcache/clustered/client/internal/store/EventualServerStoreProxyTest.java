@@ -81,7 +81,7 @@ public class EventualServerStoreProxyTest {
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
-        .getName(), Consistency.STRONG, 1);
+        .getName(), Consistency.STRONG);
     clientEntity1.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
     // required to attach the store to the client

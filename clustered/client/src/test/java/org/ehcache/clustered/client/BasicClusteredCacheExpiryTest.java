@@ -55,7 +55,7 @@ public class BasicClusteredCacheExpiryTest {
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
               .withExpiry(Expirations.timeToLiveExpiration(new Duration(1L, TimeUnit.MILLISECONDS)))
-              .add(ClusteredStoreConfigurationBuilder.withConsistencyAndConcurrency(Consistency.STRONG, 16)));
+              .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
 
   @Before
   public void definePassthroughServer() throws Exception {

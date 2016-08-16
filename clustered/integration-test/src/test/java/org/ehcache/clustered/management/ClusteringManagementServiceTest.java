@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.management;
 
+
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
@@ -38,8 +39,8 @@ import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.history.CounterHistory;
-import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -51,8 +52,8 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.Assert.assertThat;
 
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
@@ -128,7 +129,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(capabilities[3].getName(), equalTo("SettingsCapability"));
     assertThat(capabilities[4].getName(), equalTo("ManagementAgentService"));
     assertThat(capabilities[0].getDescriptors(), hasSize(4));
-    assertThat(capabilities[1].getDescriptors(), hasSize(13));
+    assertThat(capabilities[1].getDescriptors(), hasSize(75));
   }
 
   @Test
@@ -180,7 +181,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   public void test_stats_collection() throws Exception {
 
-    sendManagementCallToCollectStats("GetCounter", "InexistingRate", "AllCacheGetCount");
+    sendManagementCallToCollectStats("Cache:HitCount");
 
     Cache<String, String> cache1 = cacheManager.getCache("cache-1", String.class, String.class);
     cache1.put("key1", "val");
@@ -191,28 +192,24 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // get the stats (we are getting the primitive counter, not the sample history)
     ContextualStatistics[] stats = waitForNextStats();
+    Sample<Long>[] samples = stats[0].getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
 
     assertThat(stats.length, equalTo(1));
     assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
-    assertThat(stats[0].getStatistic(Counter.class, "GetCounter").getValue(), equalTo(2L));
-
-    // first collect of a sample gives no value because it "triggers" the stat computation
-    // this is how the internal ehcache's stat framework works: first call to a sample activates it.
-    assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
-    assertThat(stats[0].getStatistic(CounterHistory.class, "AllCacheGetCount").getValue().length, equalTo(0));
+    assertThat(samples[0].getValue(), equalTo(2L));
 
     // do some other operations
     cache1.get("key1");
     cache1.get("key2");
 
     stats = waitForNextStats();
+    samples = stats[0].getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
 
     assertThat(stats.length, equalTo(1));
     assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
-    assertThat(stats[0].getStatistic(Counter.class, "GetCounter").getValue(), equalTo(4L));
-    assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
-    assertThat(stats[0].getStatistic(CounterHistory.class, "AllCacheGetCount").getValue().length, greaterThanOrEqualTo(1));
-    assertThat(stats[0].getStatistic(CounterHistory.class, "AllCacheGetCount").getValue()[0].getValue(), equalTo(4L));
+    assertThat(samples.length, greaterThanOrEqualTo(1));
+    assertThat(samples[samples.length - 1].getValue(), equalTo(4L));
+
   }
 
 }

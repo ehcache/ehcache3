@@ -92,9 +92,6 @@ public class GettingStarted {
     myCache.put(1L, "da one!"); // <7>
     String value = myCache.get(1L); // <8>
 
-    System.out.println(StatisticsManager.nodeFor(myCache).toTreeString());
-
-
     cacheManager.removeCache("preConfigured"); // <9>
 
     cacheManager.close(); // <10>
@@ -130,8 +127,6 @@ public class GettingStarted {
 
     Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
 
-    System.out.println(StatisticsManager.nodeFor(tieredCache).toTreeString());
-
     cacheManager.close();
     // end::offheapCacheManager[]
   }
@@ -151,8 +146,6 @@ public class GettingStarted {
         ).build(true);
 
     Cache<Long, String> threeTieredCache = persistentCacheManager.getCache("threeTieredCache", Long.class, String.class);
-
-    System.out.println(StatisticsManager.nodeFor(threeTieredCache).toTreeString());
 
 
     persistentCacheManager.close();

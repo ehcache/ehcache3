@@ -91,7 +91,7 @@ public class BasicClusteredCacheTest {
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
                     .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-                .add(new ClusteredStoreConfiguration(Consistency.STRONG, 1)))
+                .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
         ;
 
     final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);
@@ -120,7 +120,7 @@ public class BasicClusteredCacheTest {
             .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
                 ResourcePoolsBuilder.newResourcePoolsBuilder().heap(1, EntryUnit.ENTRIES).offheap(1, MemoryUnit.MB)
                     .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-                .add(new ClusteredStoreConfiguration(Consistency.STRONG, 1)))
+                .add(new ClusteredStoreConfiguration(Consistency.STRONG)))
         ;
 
     final PersistentCacheManager cacheManager1 = clusteredCacheManagerBuilder.build(true);

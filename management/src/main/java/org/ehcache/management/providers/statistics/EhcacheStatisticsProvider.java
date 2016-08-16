@@ -68,7 +68,11 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
     StandardEhcacheStatistics ehcacheStatistics = (StandardEhcacheStatistics) findExposedObject(context);
     if (ehcacheStatistics != null) {
       for (String statisticName : statisticNames) {
-        statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName, since));
+        try {
+           statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName, since));
+         } catch (IllegalArgumentException ignored) {
+           // ignore when statisticName does not exist and throws an exception
+         }
       }
     }
     return statistics;

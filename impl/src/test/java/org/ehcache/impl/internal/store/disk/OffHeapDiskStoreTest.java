@@ -419,7 +419,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     Query invalidateAllQuery = QueryBuilder.queryBuilder().descendants().filter(context(attributes(hasAttribute("tags", new Matcher<Set<String>>() {
       @Override
       protected boolean matchesSafely(Set<String> object) {
-        return object.contains("local-offheap");
+        return object.contains("OffHeap");
       }
     })))).filter(context(attributes(hasAttribute("name", "invalidateAll")))).ensureUnique().build();
 

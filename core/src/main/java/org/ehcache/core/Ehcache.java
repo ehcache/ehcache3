@@ -51,7 +51,6 @@ import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
-import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
@@ -71,6 +70,8 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
+import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
+import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -92,7 +93,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   private final Jsr107CacheImpl jsr107Cache;
   protected final Logger logger;
 
-  private final OperationObserver<org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome> getObserver = operation(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.class).named("get").of(this).tag("cache").build();
+  private final OperationObserver<GetOutcome> getObserver = operation(GetOutcome.class).named("get").of(this).tag("cache").build();
   private final OperationObserver<GetAllOutcome> getAllObserver = operation(GetAllOutcome.class).named("getAll").of(this).tag("cache").build();
   private final OperationObserver<PutOutcome> putObserver = operation(PutOutcome.class).named("put").of(this).tag("cache").build();
   private final OperationObserver<PutAllOutcome> putAllObserver = operation(PutAllOutcome.class).named("putAll").of(this).tag("cache").build();
@@ -102,6 +103,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   private final OperationObserver<PutIfAbsentOutcome> putIfAbsentObserver = operation(PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("cache").build();
   private final OperationObserver<ReplaceOutcome> replaceObserver = operation(ReplaceOutcome.class).named("replace").of(this).tag("cache").build();
   private final Map<BulkOps, LongAdder> bulkMethodEntries = new EnumMap<BulkOps, LongAdder>(BulkOps.class);
+  private final OperationObserver<ClearOutcome> clearObserver = operation(ClearOutcome.class).named("clear").of(this).tag("cache").build();
 
   /**
    * Creates a new {@code Ehcache} based on the provided parameters.
@@ -169,17 +171,17 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS_NO_LOADER);
         return null;
       } else {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT_NO_LOADER);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
       try {
         return resilienceStrategy.getFailure(key, e);
       } finally {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.FAILURE);
+        getObserver.end(GetOutcome.FAILURE);
       }
     }
   }
@@ -294,10 +296,13 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
    */
   @Override
   public void clear() {
+    this.clearObserver.begin();
     statusTransitioner.checkAvailable();
     try {
       store.clear();
+        this.clearObserver.end(ClearOutcome.SUCCESS);
     } catch (StoreAccessException e) {
+      this.clearObserver.end(ClearOutcome.FAILURE);
       resilienceStrategy.clearFailure(e);
     }
   }

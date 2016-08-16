@@ -99,7 +99,7 @@ public class ClusteredStoreTest {
             Long.class.getName(), String.class.getName(),
             Long.class.getName(), String.class.getName(),
             LongSerializer.class.getName(), StringSerializer.class.getName(),
-            null, 1
+            null
     );
     clientEntity.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
     ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER);

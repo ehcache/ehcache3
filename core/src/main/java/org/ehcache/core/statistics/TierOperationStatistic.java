@@ -18,7 +18,6 @@ package org.ehcache.core.statistics;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.annotations.ContextAttribute;
-import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
@@ -43,7 +42,7 @@ import static org.terracotta.context.query.Queries.self;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
 
 /**
- * @author Ludovic Orban
+ *
  */
 @ContextAttribute("this")
 public class TierOperationStatistic<S extends Enum<S>, D extends Enum<D>> implements OperationStatistic<D> {
@@ -53,59 +52,58 @@ public class TierOperationStatistic<S extends Enum<S>, D extends Enum<D>> implem
   @ContextAttribute("properties") public final Map<String, Object> properties;
   @ContextAttribute("type") public final Class<D> type;
 
-  private final Class<D> aliasing;
+  private final Class<D> tierOperatioOutcome;
   private final OperationStatistic<S> operationStatistic;
-  private final HashMap<D, Set<S>> xlatMap;
+  private final HashMap<D, Set<S>> storeToTierOperationOutcomeMap;
 
-  public TierOperationStatistic(Class<D> aliasing, Class<S> aliased, Object tier, HashMap<D, Set<S>> xlatMap, String sourceOperationName, int priority, String targetOperationName) {
-    this.aliasing = aliasing;
-    this.operationStatistic = TierOperationStatistic.findOperationStat(tier, targetOperationName);;
-    this.xlatMap = xlatMap;
+  public TierOperationStatistic(Class<D> tierOperatioOutcome, Class<S> storeOperatioOutcome, Object tier, HashMap<D, Set<S>> storeToTierOperationOutcomeMap, String sourceOperationName, int tierHeight, String targetOperationName, String discriminator) {
+    this.tierOperatioOutcome = tierOperatioOutcome;
+    this.operationStatistic = TierOperationStatistic.findOperationStat(tier, targetOperationName);
+    this.storeToTierOperationOutcomeMap = storeToTierOperationOutcomeMap;
     this.name = sourceOperationName;
     this.tags = new HashSet<String>();
     this.tags.add("tier");
     this.properties = new HashMap<String, Object>();
-    this.properties.put("priority", priority);
-    String discriminator = TierOperationStatistic.findDiscriminator(tier);
-    if (discriminator != null) {
-      this.properties.put("discriminator", discriminator);
-    }
-    this.type = aliasing;
+    this.properties.put("tierHeight", tierHeight);
+    this.properties.put("discriminator", discriminator);
+    this.type = tierOperatioOutcome;
 
-    EnumSet<D> ds = EnumSet.allOf(aliasing);
-    for (D d : ds) {
-      if (!xlatMap.containsKey(d)) {
-        throw new IllegalArgumentException("xlatMap does not contain key " + d);
+    EnumSet<D> tierOperatioOutcomeSet = EnumSet.allOf(tierOperatioOutcome);
+    //make sure all tierOperatioOutcome enum values are keys in the storeToTierOperationOutcomeMap
+    for (D tierOperatioOutcomeKey : tierOperatioOutcomeSet) {
+      if (!storeToTierOperationOutcomeMap.containsKey(tierOperatioOutcomeKey)) {
+        throw new IllegalArgumentException("storeTierOperationOutcomeMap does not contain key " + tierOperatioOutcomeKey);
       }
     }
 
+    //verify that all storeOperatioOutcomes are tracked
     Set<S> allAliasedValues = new HashSet<S>();
-    Collection<Set<S>> values = xlatMap.values();
+    Collection<Set<S>> values = storeToTierOperationOutcomeMap.values();
     for (Set<S> value : values) {
       allAliasedValues.addAll(value);
     }
-    Set<S> allMissingValues = new HashSet<S>(EnumSet.allOf(aliased));
+    Set<S> allMissingValues = new HashSet<S>(EnumSet.allOf(storeOperatioOutcome));
     allMissingValues.removeAll(allAliasedValues);
     if (!allMissingValues.isEmpty()) {
-      throw new IllegalArgumentException("xlatMap does not contain values " + allMissingValues);
+      throw new IllegalArgumentException("storeTierOperationOutcomeMap does not contain values " + allMissingValues);
     }
   }
 
   @Override
   public Class<D> type() {
-    return aliasing;
+    return tierOperatioOutcome;
   }
 
   @Override
   public ValueStatistic<Long> statistic(D result) {
-    return operationStatistic.statistic(xlatMap.get(result));
+    return operationStatistic.statistic(storeToTierOperationOutcomeMap.get(result));
   }
 
   @Override
   public ValueStatistic<Long> statistic(Set<D> results) {
     Set<S> xlated = new HashSet<S>();
     for (D result : results) {
-      xlated.addAll(xlatMap.get(result));
+      xlated.addAll(storeToTierOperationOutcomeMap.get(result));
     }
     return operationStatistic.statistic(xlated);
   }
@@ -113,7 +111,7 @@ public class TierOperationStatistic<S extends Enum<S>, D extends Enum<D>> implem
   @Override
   public long count(D type) {
     long value = 0L;
-    Set<S> s = xlatMap.get(type);
+    Set<S> s = storeToTierOperationOutcomeMap.get(type);
     for (S s1 : s) {
       value += operationStatistic.count(s1);
     }
@@ -124,7 +122,7 @@ public class TierOperationStatistic<S extends Enum<S>, D extends Enum<D>> implem
   public long sum(Set<D> types) {
     Set<S> xlated = new HashSet<S>();
     for (D type : types) {
-      xlated.addAll(xlatMap.get(type));
+      xlated.addAll(storeToTierOperationOutcomeMap.get(type));
     }
     return operationStatistic.sum(xlated);
   }
@@ -172,27 +170,6 @@ public class TierOperationStatistic<S extends Enum<S>, D extends Enum<D>> implem
   @Override
   public void end(D result, long... parameters) {
     throw new UnsupportedOperationException();
-  }
-
-  private static String findDiscriminator(Object rootNode) {
-    Set<TreeNode> results = queryBuilder().chain(self())
-        .children().filter(
-            context(attributes(Matchers.allOf(
-                hasAttribute("discriminator", new Matcher<Object>() {
-                  @Override
-                  protected boolean matchesSafely(Object object) {
-                    return object instanceof String;
-                  }
-                }))))).build().execute(Collections.singleton(ContextManager.nodeFor(rootNode)));
-
-    if (results.size() > 1) {
-      throw new IllegalStateException("More than one discriminator attribute found");
-    } else if (results.isEmpty()) {
-      return null;
-    } else {
-      TreeNode node = results.iterator().next();
-      return (String) node.getContext().attributes().get("discriminator");
-    }
   }
 
   private static OperationStatistic findOperationStat(Object rootNode, final String statName) {
