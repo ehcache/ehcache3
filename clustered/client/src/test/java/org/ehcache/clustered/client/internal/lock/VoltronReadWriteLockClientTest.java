@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
@@ -52,6 +53,11 @@ public class VoltronReadWriteLockClientTest {
                     .clientEntityService(new VoltronReadWriteLockEntityClientService())
                     .serverEntityService(new VoltronReadWriteLockServerEntityService())
                     .build());
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    UnitTestConnectionService.remove(TEST_URI);
   }
 
   @Before

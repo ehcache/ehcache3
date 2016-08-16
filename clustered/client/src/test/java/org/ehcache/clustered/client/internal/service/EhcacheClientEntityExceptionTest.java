@@ -78,9 +78,9 @@ public class EhcacheClientEntityExceptionTest {
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
             .autoCreate()
             .defaultServerResource("defaultResource")
-            .resourcePool("sharedPrimary", 16, MemoryUnit.MB, "serverResource1")
-            .resourcePool("sharedSecondary", 16, MemoryUnit.MB, "serverResource2")
-            .resourcePool("sharedTertiary", 32, MemoryUnit.MB)
+            .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
+            .resourcePool("sharedSecondary", 2, MemoryUnit.MB, "serverResource2")
+            .resourcePool("sharedTertiary", 4, MemoryUnit.MB)
             .build();
     DefaultClusteringService creationService = new DefaultClusteringService(creationConfig);
     creationService.start(null);
