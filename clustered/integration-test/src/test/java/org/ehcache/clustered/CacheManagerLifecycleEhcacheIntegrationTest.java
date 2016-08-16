@@ -204,7 +204,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
     ASSERTION_CONNECTION.close();
   }
 
-  private static URL substitute(URL input, String variable, String substitution) throws IOException {
+  static URL substitute(URL input, String variable, String substitution) throws IOException {
     File output = File.createTempFile(input.getFile(), ".substituted", new File("build"));
     BufferedWriter writer = new BufferedWriter(new FileWriter(output));
     try {

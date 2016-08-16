@@ -56,6 +56,8 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
 import java.nio.ByteBuffer;
@@ -68,6 +70,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
+import static java.util.Collections.singleton;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.statistics.StatisticBuilder.operation;
@@ -94,6 +97,10 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.ConditionalRemoveOutcome> conditionalRemoveObserver;
   private final OperationObserver<StoreOperationOutcomes.ReplaceOutcome> replaceObserver;
   private final OperationObserver<StoreOperationOutcomes.ConditionalReplaceOutcome> conditionalReplaceObserver;
+  // Needed for JSR-107 compatibility even if unused
+  private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver;
+
+  private final ClusteredStoreStatsSettings clusteredStoreStatsSettings;
 
   private ClusteredStore(final OperationsCodec<K, V> codec, final ChainResolver<K, V> resolver, TimeSource timeSource) {
     this.codec = codec;
@@ -107,6 +114,9 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.conditionalRemoveObserver = operation(StoreOperationOutcomes.ConditionalRemoveOutcome.class).of(this).named("conditionalRemove").tag(STATISTICS_TAG).build();
     this.replaceObserver = operation(StoreOperationOutcomes.ReplaceOutcome.class).of(this).named("replace").tag(STATISTICS_TAG).build();
     this.conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).of(this).named("conditionalReplace").tag(STATISTICS_TAG).build();
+    this.evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).of(this).named("eviction").tag(STATISTICS_TAG).build();
+
+    this.clusteredStoreStatsSettings = new ClusteredStoreStatsSettings(this);
   }
 
   /**
@@ -542,6 +552,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
 
 
       ClusteredStore<K, V> store = new ClusteredStore<K, V>(codec, resolver, timeSource);
+      StatisticsManager.associate(store.clusteredStoreStatsSettings).withParent(store);
       createdStores.put(store, new StoreConfig(cacheId, storeConfig, clusteredStoreConfiguration.getConsistency()));
       return store;
     }
@@ -553,6 +564,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       }
       ClusteredStore clusteredStore = (ClusteredStore)resource;
       this.clusteringService.releaseServerStoreProxy(clusteredStore.storeProxy);
+      StatisticsManager.dissociate(clusteredStore.clusteredStoreStatsSettings).fromParent(clusteredStore);
     }
 
     @Override
@@ -666,4 +678,14 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       return consistency;
     }
   }
+
+  private static final class ClusteredStoreStatsSettings {
+    @ContextAttribute("tags") private final Set<String> tags = singleton("store");
+    @ContextAttribute("authoritativeTier") private final ClusteredStore<?, ?> authoritativeTier;
+
+    ClusteredStoreStatsSettings(ClusteredStore<?, ?> store) {
+      this.authoritativeTier = store;
+    }
+  }
+
 }
