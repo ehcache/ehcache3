@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.management.entity.ManagementAgentConfig;
-import org.terracotta.management.entity.Version;
+import org.terracotta.management.entity.ManagementAgentVersion;
 import org.terracotta.management.entity.client.ManagementAgentEntity;
 import org.terracotta.management.entity.client.ManagementAgentService;
 import org.terracotta.management.model.notification.ContextualNotification;
@@ -83,12 +83,8 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
     this.managementAgentEntityFactory = entityService.newClientEntityFactory(
         "ManagementAgent",
         ManagementAgentEntity.class,
-        Version.LATEST.version(),
-        new ManagementAgentConfig()
-            //TODO: this config is only used once when the management entity is created. It's useless otherwise.
-            // should-we add something in ehcache config to handle the creation case ?
-            .setMaximumUnreadClientNotifications(1024 * 1024)
-            .setMaximumUnreadClientStatistics(1024 * 1024));
+        ManagementAgentVersion.LATEST.version(),
+        new ManagementAgentConfig());
 
     this.cacheManager.registerListener(this);
   }

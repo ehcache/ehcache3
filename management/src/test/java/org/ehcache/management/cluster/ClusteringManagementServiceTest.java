@@ -37,6 +37,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionFactory;
+import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.entity.map.TerracottaClusteredMapClientService;
 import org.terracotta.entity.map.server.TerracottaClusteredMapService;
@@ -56,9 +57,9 @@ import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.primitive.Counter;
 import org.terracotta.management.service.monitoring.IMonitoringConsumer;
-import org.terracotta.management.service.monitoring.MonitoringConsumerConfiguration;
 import org.terracotta.management.service.monitoring.MonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.MonitoringServiceProvider;
+import org.terracotta.management.service.monitoring.ReadOnlyBuffer;
 import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
@@ -66,6 +67,7 @@ import org.terracotta.offheapresource.config.ResourceType;
 import org.terracotta.passthrough.PassthroughClusterControl;
 import org.terracotta.passthrough.PassthroughServer;
 
+import java.io.Serializable;
 import java.math.BigInteger;
 import java.net.URI;
 import java.util.Arrays;
@@ -90,6 +92,8 @@ import static org.junit.Assert.assertThat;
 public class ClusteringManagementServiceTest {
 
   static IMonitoringConsumer consumer;
+  static ReadOnlyBuffer<Serializable[]> notifsBuffer;
+  static ReadOnlyBuffer<Serializable[]> statsBuffer;
   static PassthroughClusterControl stripeControl;
 
   CacheManager cacheManager;
@@ -132,10 +136,6 @@ public class ClusteringManagementServiceTest {
   }
 
   private void runTest() throws Exception {
-    // get the queues where notifs and stats are put in the voltron server
-    BlockingQueue<Object[]> statistics = consumer.getValueForNode(new String[]{"management", "statistics"}, BlockingQueue.class).get();
-    BlockingQueue<Object[]> notifications = consumer.getValueForNode(new String[]{"management", "notifications"}, BlockingQueue.class).get();
-
     // assert management registry has been correctly exposed in voltron
     String clientIdentifier = consumer.getChildNamesForNode("management", "clients").get().iterator().next();
     String[] tags = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "tags"}, String[].class).get();
@@ -177,7 +177,7 @@ public class ClusteringManagementServiceTest {
     assertThat(cNames, equalTo(expectedCNames));
 
     // verify the notification has been received in voltron
-    ContextualNotification notif = (ContextualNotification) notifications.take()[1];
+    ContextualNotification notif = (ContextualNotification) notifsBuffer.take()[1];
     assertThat(notif.getType(), equalTo("CACHE_ADDED"));
 
     // do some put also
@@ -187,7 +187,7 @@ public class ClusteringManagementServiceTest {
     cache2.put("key3", "val");
 
     // verify stats have been received too
-    ContextualStatistics[] stats = (ContextualStatistics[]) statistics.take()[1];
+    ContextualStatistics[] stats = (ContextualStatistics[]) statsBuffer.take()[1];
     assertThat(stats.length, equalTo(2));
     assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
     assertThat(stats[1].getContext().get("cacheName"), equalTo("cache-2"));
@@ -201,7 +201,7 @@ public class ClusteringManagementServiceTest {
     cache2.put("key3", "val");
 
     // wait for next stats and verify
-    stats = (ContextualStatistics[]) statistics.take()[1];
+    stats = (ContextualStatistics[]) statsBuffer.take()[1];
     assertThat(stats.length, equalTo(2));
     assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
     assertThat(stats[1].getContext().get("cacheName"), equalTo("cache-2"));
@@ -212,7 +212,7 @@ public class ClusteringManagementServiceTest {
     cacheManager.removeCache("cache-2");
 
     // ensure we got the notification server-side
-    notif = (ContextualNotification) notifications.take()[1];
+    notif = (ContextualNotification) notifsBuffer.read()[1];
     assertThat(notif.getType(), equalTo("CACHE_REMOVED"));
   }
 
@@ -326,7 +326,9 @@ public class ClusteringManagementServiceTest {
     @Override
     public boolean initialize(ServiceProviderConfiguration configuration) {
       super.initialize(configuration);
-      consumer = getService(0, new MonitoringConsumerConfiguration());
+      consumer = getService(0, new BasicServiceConfiguration<>(IMonitoringConsumer.class));
+      notifsBuffer = consumer.getOrCreateBestEffortBuffer("client-notifications", 1024, Serializable[].class);
+      statsBuffer = consumer.getOrCreateBestEffortBuffer("client-statistics", 1024, Serializable[].class);
       return true;
     }
   }
