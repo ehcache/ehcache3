@@ -828,11 +828,13 @@ public class OffHeapStore<K, V> implements AuthoritativeTier<K, V> {
       close((OffHeapStore)resource);
     }
 
-    static void close(final OffHeapStore resource) {EhcacheConcurrentOffHeapClockCache<Object, OffHeapValueHolder<Object>> localMap = resource.map;
+    static void close(final OffHeapStore resource) {
+      EhcacheConcurrentOffHeapClockCache<Object, OffHeapValueHolder<Object>> localMap = resource.map;
       if (localMap != null) {
         resource.map = null;
         localMap.destroy();
       }
+      StatisticsManager.dissociate(resource.offHeapStoreStatsSettings).fromParent(resource);
     }
 
     @Override
