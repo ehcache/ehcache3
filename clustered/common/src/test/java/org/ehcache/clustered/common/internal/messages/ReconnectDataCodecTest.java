@@ -17,11 +17,13 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertThat;
 
 public class ReconnectDataCodecTest {
 
@@ -36,7 +38,9 @@ public class ReconnectDataCodecTest {
 
     Set<String> decoded = dataCodec.decode(dataCodec.encode(cacheIds, 14));
 
-    Assert.assertThat(decoded, Matchers.hasSize(3));
+    assertThat(decoded, Matchers.hasSize(3));
+    assertThat(decoded, containsInAnyOrder("test", "test1", "test2"));
+
 
   }
 }

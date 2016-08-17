@@ -262,7 +262,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     for (final String cacheId : cacheIds) {
       ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
       if (serverStore == null) {
-        //Client only removes the cache's reference when destroy has successfully completed
+        //Client removes the cache's reference only when destroy has successfully completed
         //This happens only when client thinks destroy is still not complete
         LOGGER.error("ServerStore '{}' does not exist as expected by Client '{}'.", cacheId, clientDescriptor);
         continue;
@@ -291,8 +291,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public void loadExisting() {
-    //TODO : When passive becomes active, load existing should add the eviction listeners to all the stores
-    // if not added already
     //nothing to do
   }
 

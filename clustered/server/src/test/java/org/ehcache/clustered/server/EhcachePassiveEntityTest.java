@@ -630,8 +630,6 @@ public class EhcachePassiveEntityTest {
       if (serviceConfiguration instanceof OffHeapResourceIdentifier) {
         final OffHeapResourceIdentifier resourceIdentifier = (OffHeapResourceIdentifier) serviceConfiguration;
         return (T) this.pools.get(resourceIdentifier);
-//      } else if (serviceConfiguration.getServiceType().equals(ClientCommunicator.class)) {
-//        return (T) mock(ClientCommunicator.class);
       } else if(serviceConfiguration.getServiceType().equals(OffHeapResources.class)) {
         return (T) new OffHeapResources() {
           @Override

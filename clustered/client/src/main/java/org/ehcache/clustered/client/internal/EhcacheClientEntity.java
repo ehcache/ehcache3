@@ -360,7 +360,7 @@ public class EhcacheClientEntity implements Entity {
     public static final class Builder {
       private TimeoutDuration readOperationTimeout = DEFAULT_READ_OPERATION_TIMEOUT;
       private TimeoutDuration mutativeOperationTimeout = TimeoutDuration.of(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-      private TimeoutDuration lifecycleOperationTimeout = TimeoutDuration.of(10, TimeUnit.SECONDS);
+      private TimeoutDuration lifecycleOperationTimeout = TimeoutDuration.of(20, TimeUnit.SECONDS);
 
       /**
        * Sets the timeout for read operations.  The default value for this timeout is

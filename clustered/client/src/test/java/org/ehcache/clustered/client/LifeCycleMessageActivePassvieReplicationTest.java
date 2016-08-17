@@ -27,7 +27,6 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClie
 import org.ehcache.clustered.client.internal.service.ClusteredTierCreationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierReleaseException;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
