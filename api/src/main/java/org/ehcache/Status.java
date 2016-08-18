@@ -17,22 +17,36 @@
 package org.ehcache;
 
 /**
- * @author Alex Snaps
+ * Enumeration of {@link CacheManager} and {@link UserManagedCache} statuses.
+ * <P>
+ *   Instances are allowed the following {@code Status} transitions:
+ *   <DL>
+ *     <DT>{@link #UNINITIALIZED} to {@link #AVAILABLE}
+ *     <DD>In case of transition failure, it will remain {@code UNINITIALIZED}
+ *     <DT>{@link #AVAILABLE} to {@link #UNINITIALIZED}
+ *     <DD>In case of transition failure, it still ends up {@code UNINITIALIZED}
+ *     <DT>{@link #UNINITIALIZED} to {@link #MAINTENANCE}
+ *     <DD>In case of transition failure, it will remain {@code UNINITIALIZED}
+ *     <DT>{@link #MAINTENANCE} to {@link #UNINITIALIZED}
+ *     <DD>In case of transition failure, it still ends up {@code UNINITIALIZED}
+ *   </DL>
+ *   As such the {@code UNINITIALIZED} state is the fallback state.
+ * </P>
  */
 public enum Status {
 
   /**
-   *
+   * Uninitialized, indicates it is not ready for use.
    */
   UNINITIALIZED,
 
   /**
-   *
+   * Maintenance, indicates exclusive access to allow for restricted operations.
    */
   MAINTENANCE,
 
   /**
-   *
+   * Available, indicates it is ready for use.
    */
   AVAILABLE,;
 

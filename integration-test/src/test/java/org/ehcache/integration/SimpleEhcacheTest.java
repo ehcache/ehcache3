@@ -17,8 +17,7 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +28,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
@@ -57,7 +58,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimplePut() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
     assertThat(testCache.get(1), Matchers.<CharSequence>equalTo("one"));
@@ -65,7 +66,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimplePutIfAbsent() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     CharSequence one = testCache.putIfAbsent(1, "one");
     assertThat(one, is(nullValue()));
@@ -76,7 +77,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimplePutAll() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     Map<Integer, String> values = new HashMap<Integer, String>();
     values.put(1, "one");
@@ -92,7 +93,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimpleGetAll() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
     testCache.put(2, "two");
@@ -106,7 +107,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimpleContainsKey() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
 
@@ -116,7 +117,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testClear() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
     testCache.put(2, "two");
@@ -129,7 +130,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimpleRemove() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
     testCache.put(2, "two");
@@ -142,7 +143,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimpleRemoveAll() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
     testCache.put(2, "two");
@@ -157,7 +158,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimpleRemove2Args() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
 
@@ -169,7 +170,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimpleReplace() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
 
@@ -180,7 +181,7 @@ public class SimpleEhcacheTest {
 
   @Test
   public void testSimpleReplace3Args() throws Exception {
-    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    Cache<Number, CharSequence> testCache = cacheManager.createCache("testCache", newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)));
 
     testCache.put(1, "one");
 

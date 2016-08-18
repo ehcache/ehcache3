@@ -1,0 +1,62 @@
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns='http://www.ehcache.org/v3'
+    xsi:schemaLocation="http://www.ehcache.org/v3 ../../../../main/resources/ehcache-core.xsd">
+
+  <!-- tag::gettingStarted[] -->
+  <cache alias="foo"> <!--1-->
+    <key-type>java.lang.String</key-type> <!--2-->
+    <resources>
+      <heap unit="entries">2000</heap> <!--3-->
+      <offheap unit="MB">500</offheap> <!--4-->
+    </resources>
+  </cache>
+
+  <cache-template name="myDefaults"> <!--5-->
+    <key-type>java.lang.Long</key-type>
+    <value-type>java.lang.String</value-type>
+    <heap unit="entries">200</heap>
+  </cache-template>
+
+  <cache alias="bar" uses-template="myDefaults"> <!--6-->
+    <key-type>java.lang.Number</key-type>
+  </cache>
+
+  <cache alias="simpleCache" uses-template="myDefaults" /> <!--7-->
+  <!-- end::gettingStarted[] -->
+
+  <!-- tag::expiry[] -->
+  <cache alias="foo">
+    <expiry>
+      <ttl unit="seconds">20</ttl> <!--1-->
+    </expiry>
+    <heap>100</heap>
+  </cache>
+  <!-- end::expiry[] -->
+
+  <!-- tag::customExpiry[] -->
+  <cache alias="foo">
+    <expiry>
+      <class>com.pany.ehcache.MyExpiry</class> <!--1-->
+    </expiry>
+    <heap>100</heap>
+  </cache>
+  <!-- end::customExpiry[] -->
+
+</config>

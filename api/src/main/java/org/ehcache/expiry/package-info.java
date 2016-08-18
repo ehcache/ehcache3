@@ -15,6 +15,6 @@
  */
 
 /**
- * Package for the expiry API of a {@link org.ehcache.Cache}
+ * {@link org.ehcache.expiry.Expiry Expiry} API of a {@link org.ehcache.Cache Cache}.
  */
 package org.ehcache.expiry;

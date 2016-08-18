@@ -16,7 +16,7 @@
 
 package org.ehcache.internal.store;
 
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
@@ -26,8 +26,8 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.ValueHolder#lastAccessTime(java.util.concurrent.TimeUnit)} contract of the
- * {@link org.ehcache.spi.cache.Store.ValueHolder Store.ValueHolder} interface.
+ * Test the {@link Store.ValueHolder#lastAccessTime(java.util.concurrent.TimeUnit)} contract of the
+ * {@link Store.ValueHolder Store.ValueHolder} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski

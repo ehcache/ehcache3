@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.config;
 
-import org.ehcache.management.providers.ManagementProvider;
+import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.concurrent.TimeUnit;
 

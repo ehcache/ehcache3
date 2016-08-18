@@ -1,0 +1,86 @@
+---
+---
+= Concepts Related to Caching
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+[[data-freshness-and-expiration]]
+== Data Freshness and Expiration
+
+=== Data Freshness
+
+Data _freshness_ refers to aspect of a copy of data (e.g. in a cache) being up-to-date with the source version of the
+data (e.g. in the syste-of-record (SoR)).  A _stale_ copy is considered to be out of sync (or likely to be out of
+sync) with the SoR.
+
+Databases (and other SORs) weren't built with caching outside of the database in mind, and therefore don't normally
+come with any default mechanism for notifying external processes when data has been updated or modified.  Thus external
+components that have loaded data from the SoR have no direct way of ensuring that data is not stale.
+
+=== Cache Entry Expiration
+
+Ehcache can assist you with reducing the likelihood that stale data is used by your application by _expiring_ cache
+entries after some amount of configured time. Once expired, the entry is automatically removed from the cache.
+
+For instance the cache could be configured to expire entries five seconds after they are put in - which is a
+time-to-live _TTL_ setting.  Or to expire entries 17 seconds after the last time the entry was retrieved from the
+cache - which is a time-to-idle _TTI_ setting.
+
+The expiration configuration that would be most appropriate for your cache (if any) would be a mixture of a business
+and technical decision based upon the requirements and assumptions of your application.
+
+[[storage-tiers]]
+== Storage Tiers
+
+You can configure Ehcache to use various data storage areas.  When a cache is configured to use more than one data
+store, they are referred to as tiers.
+
+Data stores supported by Ehcache include:
+
+* On-Heap Store – Utilizes Java's on-heap RAM memory to store cache entries. This tier utilizes the same heap memory as
+your Java application, all of which must be scanned by the JVM's garbage collector.  The more heap space your JVM
+utilizes the more your application's performance will be impacted by garbage collection pauses.  This store is
+extremely fast, but is typically your most limited storage resource.
+* Off-Heap Store – Limited in size only by available RAM (tested to as much as 6TB on a single machine!). Not subject
+to Java garbage collection (GC). Is quite fast, yet slower than the On-Heap Store because data must be moved off and
+on the JVM's heap as it is stored and re-accessed.
+* Disk Store – Utilizes a disk (filesystem) to store cache entries.  This type of storage resource is typically very
+abundant but much slower than the RAM-based stores.
+
+When a cache is configured to use more than one storage area, those areas are arranged and managed as tiers - where
+the _hottest_ (most recently accessed) data is kept in the faster (and typically less abundant) tiers, and data that
+is less hot is moved to the slower (and more abundant) tiers.
+
+== Topology Types
+
+=== Standalone
+
+The data set is held in the application node. Any other application nodes are independent with no
+communication between them. If a standalone topology is used where there are multiple application nodes running the
+same application, then their caches are completely independent.
+
+=== Distributed / Clustered
+
+The data is held in a remote server (or array of servers) with a subset of hot data held in each application node.
+This topology offers offers a selection of consistency options.
+A distributed topology is the recommended approach in a clustered or scaled-out application environment.
+It provides the highest level of performance, availability, and scalability.
+
+NOTE: Support of this topology type will come soon to Ehcache 3
+
+Many production applications are deployed in clusters of multiple instances for availability and scalability.
+However, without a distributed cache, application clusters exhibit a number of undesirable behaviors, such as:
+
+* Cache Drift - If each application instance maintains its own cache, updates made to one cache will not appear in the
+other instances. A distributed or replicated cache ensures that all of the cache instances are kept in sync with each
+other.
+* Database Bottlenecks - In a single-instance application, a cache effectively shields a database from the overhead of
+redundant queries. However, in a distributed application environment, each instance must load and keep its own cache
+fresh. The overhead of loading and refreshing multiple caches leads to database bottlenecks as more application
+instances are added. A distributed or replicated cache eliminates the per-instance overhead of loading and refreshing
+multiple caches from a database.

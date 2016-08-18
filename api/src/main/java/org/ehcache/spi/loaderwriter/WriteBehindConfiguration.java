@@ -16,79 +16,89 @@
 
 package org.ehcache.spi.loaderwriter;
 
+import java.util.concurrent.TimeUnit;
 import org.ehcache.spi.service.ServiceConfiguration;
 
 /**
- * WriteBehindConfiguration
+ * {@link ServiceConfiguration} for the {@link WriteBehindProvider}.
+ * <P>
+ *   The {@code WriteBehindProvider} provides write-behind services to a
+ *   {@link org.ehcache.Cache Cache}.
+ * </P>
  */
-public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindDecoratorLoaderWriterProvider> {
-  /**
-   * the minimum number of seconds to wait before writing behind
-   *
-   * @return Retrieves the minimum number of seconds to wait before writing behind
-   */
-  int getMinWriteDelay();
+public interface WriteBehindConfiguration extends ServiceConfiguration<WriteBehindProvider> {
 
   /**
-   * the maximum number of seconds to wait before writing behind
+   * The concurrency of the write behind engines queues.
    *
-   * @return Retrieves the maximum number of seconds to wait before writing behind
+   * @return the write behind concurrency
    */
-  int getMaxWriteDelay();
+  int getConcurrency();
 
   /**
-   * the maximum number of write operations to allow per second.
+   * The maximum number of operations allowed on each write behind queue.
+   * <P>
+   *   Only positive values are legal.
+   * </P>
    *
-   * @return Retrieves the maximum number of write operations to allow per second.
+   * @return the maximum queue size
    */
-  int getRateLimitPerSecond();
+  int getMaxQueueSize();
 
   /**
-   * whether write operations should be batched
+   * Returns the batching configuration or {@code null} if batching is not enabled.
    *
-   * @return Retrieves whether write operations should be batched
+   * @return the batching configuration
    */
-  boolean isWriteBatching();
+  BatchingConfiguration getBatchingConfiguration();
 
   /**
-   * write coalescing behavior
+   * Returns the alias of the thread resource pool to use for write behind task execution.
    *
-   * @return Retrieves the write coalescing behavior is enabled or not
+   * @return the thread pool alias
    */
-  boolean isWriteCoalescing();
+  String getThreadPoolAlias();
 
   /**
-   * the size of the batch operation.
-   *
-   * @return Retrieves the size of the batch operation.
+   * The batching specific part of {@link WriteBehindConfiguration}.
    */
-  int getWriteBatchSize();
+  interface BatchingConfiguration {
 
-  /**
-   * the number of times the write of element is retried.
-   *
-   * @return Retrieves the number of times the write of element is retried.
-   */
-  int getRetryAttempts();
+    /**
+     * The recommended size of a batch of operations.
+     * <P>
+     *   Only positive values are legal. A value of 1 indicates that no batching
+     *   should happen. Real batch size will be influenced by the write rate and
+     *   the max write delay.
+     * </P>
+     *
+     * @return the batch size
+     */
+    int getBatchSize();
 
-  /**
-   * the number of seconds to wait before retrying an failed operation.
-   *
-   * @return Retrieves the number of seconds to wait before retrying an failed operation.
-   */
-  int getRetryAttemptDelaySeconds();
+    /**
+     * The maximum time to wait before writing behind.
+     *
+     * @return the maximum write delay
+     */
+    long getMaxDelay();
 
-  /**
-   * the amount of bucket/thread pairs configured for this cache's write behind
-   *
-   * @return Retrieves the amount of bucket/thread pairs configured for this cache's write behind
-   */
-  int getWriteBehindConcurrency();
+    /**
+     * The time unit for the maximum delay.
+     *
+     * @return Retrieves the unit for the maximum delay
+     */
+    TimeUnit getMaxDelayUnit();
 
-  /**
-   * the maximum amount of operations allowed on the write behind queue
-   *
-   * @return Retrieves the maximum amount of operations allowed on the write behind queue
-   */
-  int getWriteBehindMaxQueueSize();
+    /**
+     * Whether write operations can be coalesced.
+     * <P>
+     *   Write coalescing ensure that operations within a batch for the same key
+     *   will be coalesced in to a single write operation.
+     * </P>
+     *
+     * @return {@code true} if write coalescing enabled
+     */
+    boolean isCoalescing();
+  }
 }

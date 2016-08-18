@@ -36,7 +36,7 @@ public class DefaultConfigurationResolverTest {
   private static URI makeURI() throws URISyntaxException {
     return new URI("cheese://" + System.nanoTime());
   }
-  
+
   @Before
   public void setUp() {
     // just in case to prevent cross talk between test methods

@@ -16,14 +16,15 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.exceptions.CacheAccessException;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.internal.TestTimeSource;
-import org.ehcache.spi.cache.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.test.After;
 import org.ehcache.spi.test.Before;
 import org.ehcache.spi.test.Ignore;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.concurrent.TimeUnit;
@@ -35,8 +36,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
 /**
- * Test the {@link org.ehcache.spi.cache.tiering.AuthoritativeTier#getAndFault(Object)} contract of the
- * {@link org.ehcache.spi.cache.tiering.AuthoritativeTier AuthoritativeTier} interface.
+ * Test the {@link AuthoritativeTier#getAndFault(Object)} contract of the
+ * {@link AuthoritativeTier AuthoritativeTier} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
@@ -67,12 +68,11 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
    * will be evicted with the default behaviour of the tier.
    */
   @SPITest
-  public void nonMarkedMappingIsEvictable() throws CacheAccessException {
+  public void nonMarkedMappingIsEvictable() throws StoreAccessException {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     tier.put(key, value);
 
@@ -86,12 +86,11 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
    * this one will verify that the eviction doesn't occur under the same condition after a call to getAndFault()
    */
   @SPITest
-  public void marksTheMappingAsNotEvictableAndReturnsValue() {
+  public void marksTheMappingAsNotEvictableAndReturnsValue() throws LegalSPITesterException {
     K key = factory.createKey(1);
     V value = factory.createValue(1);
 
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        1L, null, null, Expirations.noExpiration()));
+    tier = factory.newStoreWithCapacity(1L);
 
     try {
       tier.put(key, value);
@@ -101,18 +100,16 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
 
       assertThat(tier.get(key).value(), is(equalTo(value)));
 
-    } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   @Ignore
-  public void marksTheMappingAsNotExpirable() {
+  public void marksTheMappingAsNotExpirable() throws LegalSPITesterException {
     TestTimeSource timeSource = new TestTimeSource();
-    tier = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(),
-        null, null, null, Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS))), timeSource);
+    tier = factory.newStoreWithExpiry(Expirations.timeToIdleExpiration(new Duration(1, TimeUnit.MILLISECONDS)), timeSource);
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -124,14 +121,13 @@ public class AuthoritativeTierGetAndFault<K, V> extends SPIAuthoritativeTierTest
       timeSource.advanceTime(1);
       assertThat(tier.get(key), is(not(nullValue())));
 
-    } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
-  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws CacheAccessException {
-    for (long seed = 2L; seed < 15000; seed++) {
+  private void fillTierOverCapacity(AuthoritativeTier<K, V> tier, AuthoritativeTierFactory<K, V> factory) throws StoreAccessException {
+    for (long seed = 2L; seed < 10; seed++) {
       tier.put(factory.createKey(seed), factory.createValue(seed));
     }
   }

@@ -1,0 +1,92 @@
+---
+---
+= Cache Writers
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+
+== Introduction
+
+endif::notBuildingForSite[]
+
+This section documents the specifics behind the <<caching-patterns.adoc#cache-through,cache-through>> implementation in Ehcache 3.
+Please read the linked section if you are not familiar with terms like _cache-through_, _read-through_, _write-through_ or _system of record_.
+
+The first thing is that Ehcache merged the concepts of +read-through_ and _write-through_ behind a single interface, the `CacheLoaderWriter`.
+
+As indicated by its API, this interface provides methods with logical grouping:
+
+read-through::
+    The `load(K)` and `loadAll(Iterable<? super K>)` methods cover the _read-through_ part of cache-through.
+write-through::
+    The `write(K, V)`, `writeAll(Iterable<? extends Map.Entry<? extends K, ? extends V>>)`, `delete(K)` and `deleteAll(Iterable<? super K>)` methods
+    cover the _write-through_ part of cache-through.
+
+The reasoning behind having a unified interface is that as soon as you want a _read-through_ only cache, you need to decide what to do about mutative method calls.
+What happens if someone calls `put(K, V)` on the cache?
+This risks making it inconsistent with the underlying system of record.
+
+In this context, the unified interface forces you to make a choice: either no-op `write*` / `delete*` methods or throwing when mutation happens.
+
+As for a _write-through_ only cache, we lacked the imagination to find a valid use case for it.
+It remains possible by simply having no-op `load*` methods.
+
+=== Write-behind
+
+An additional feature provided by Ehcache is _write-behind_ where writes are made asynchronously to the backing system of record.
+The way this works in Ehcache is by simply telling the system to register a wrapper around your provided `CacheLoaderWriter` implementation.
+
+From there, you will have extra configuration options around batching and coalescing of writes.
+
+Ehcache 3 no longer supports retry of failed writes at the write-behind wrapper level.
+We believe, as the application developer and system of record owner, that you know better when a retry should happen and how.
+So if you need that, make it part of your `CacheLoaderWriter` implementation.
+
+Write-behind introduces the following concepts:
+
+queue size::
+    Indicates how many pending write operations there can be before applying back pressure on cache operations.
+concurrency level::
+    Indicates how many parallel processing threads and queues there will be for write behind.
+    Effectively the maximum number of in-flight writes is `concurrency level * queue size`.
+batching and batch size::
+    Mutative operations will be grouped in _batch size_ sets before reaching the `CacheLoaderWriter`.
+    When batching, the queue size is effectively the number of pending batches there can be.
+    This means that the maximum number of in-flight writes becomes `concurrency level * queue size * batch size`.
+coalescing::
+    When batching, coalescing means that you only send the latest mutation on a per key basis to the `CacheLoaderWriter`.
+maximum write delay::
+    When batching, you can indicate the maximum write delay for an incomplete batch.
+    After this time has elapsed, the batch is processed even if incomplete.
+
+
+== Implementing Cache-Through
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
+----
+
+<1> We register a sample `CacheLoaderWriter` who knows about the mapping `(41L -> "zero")`
+<2> Since the cache has no content yet, this will delegate to the `CacheLoaderWriter`.
+    The returned mapping will populate the cache and be returned to the caller.
+<3> While creating this cache mapping, the `CacheLoaderWriter` will be invoked to write the mapping into the system of record.
+
+=== Adding Write-Behind
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
+----
+
+<1> For write-behind you need a configured `CacheLoaderWriter`.
+<2> Additionally, register a `WriteBehindConfiguration` on the cache by using the `WriteBehindConfigurationBuilder`.
+<3> Here we configure write behind or batching with a batch size of 3 and a maximum write delay of 1 second.
+<4> We also set the maximum size of the write-behind queue.
+<5> Define the concurrency level of write-behind queue(s).
+    This indicates how many writer threads work in parallel to update the  underlying system of record asynchronously.
+<6> Enable the write coalescing behavior, which ensures that only one update per key per batch hits the
+    underlying system of record.

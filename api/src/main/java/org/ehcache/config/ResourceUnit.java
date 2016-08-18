@@ -16,7 +16,25 @@
 package org.ehcache.config;
 
 /**
- * @author Ludovic Orban
+ * Represents a unit in which quantity is expressed in a {@link SizedResourcePool}.
  */
 public interface ResourceUnit {
+
+  /**
+   * Compares {@code thisSize} in this unit to {@code thatSize} in {@code thatUnit}.
+   * <P>
+   * Returns 1, 0, or -1 if the {@code thisSize} of {@code this} is greater than,
+   * equal to, or less than {@code thatSize} of {@code thatUnit}
+   * respectively.
+   * </P>
+   *
+   * @param thisSize size in this unit
+   * @param thatSize size in {@code thatUnit}
+   * @param thatUnit other {@code ResourceUnit}
+   *
+   * @return as per the {@link Comparable#compareTo(Object) compareTo} contract
+   *
+   * @throws IllegalArgumentException if the units are not comparable
+   */
+  int compareTo(long thisSize, long thatSize, ResourceUnit thatUnit) throws IllegalArgumentException;
 }

@@ -1,0 +1,100 @@
+---
+---
+= User managed caches
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+== What are user managed caches and what do they offer?
+
+User managed caches is a new concept introduced in Ehcache 3.
+It offers the ability to create caches that are not managed by a `CacheManager`.
+Hence the name of _user managed_ caches.
+
+The objective of this feature is to satisfy cache use cases where the added complexity of a cache manager is of no added value.
+Ideas are: method local caches, thread local caches or any other place where the lifecycle of the cache is shorter than the application lifecycle.
+
+=== Limitations
+
+As there is no longer a cache manager offering up services, the main limitation of user managed caches is that the user has to configure all required services by hand.
+Of course, if you find yourself requiring plenty of services, maybe the cache manager is a better option!
+
+=== API extensions
+
+While a `UserManagedCache` extends `Cache`, it offers additional methods:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/UserManagedCache.java[lines=17..-1]
+----
+
+As can be seen, these methods deal with the lifecycle of the cache and need to be called explicitly.
+
+There is also the following interface which comes into play when a user managed persistent cache is created:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/PersistentUserManagedCache.java[lines=17..-1]
+----
+
+
+== Getting started with user managed caches
+
+=== Starting example with lifecycle
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
+----
+<1> Create a `UserManagedCache` instance, again you can either have the builder `init()` it for you, passing true or
+<2> pass false and it is up to you to `UserManagedCache.init()` them, prior to using them.
+<3> You can use the cache exactly as a managed cache
+<4> In the same vein, a `UserManagedCache` requires you to `UserManagedCache.close()` it explicitly. If you would also use
+    managed caches simultaneously, the `CacheManager.close()` operation would not impact the user managed cache(s).
+
+From this basic example, explore the API of `UserManagedCacheBuilder` to find all the directly available features.
+
+The following features apply in the exact same way to user managed caches:
+
+* <<serializers-copiers.adoc#,Serializers and copiers>>
+* <<eviction-advisor.adoc#,Eviction advisor>>
+
+Simply use the methods from `UserManagedCacheBuilder` which are equivalent to the ones from `CacheConfigurationBuilder`.
+
+Below we will describe some more advanced setup where there is need to maintain a service instance in order to have working user managed cache.
+
+=== Example with disk persistent and lifecycle
+
+If you want to use disk persistent cache, you will need to create and lifecycle the persistence service.
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=persistentUserManagedCache]
+----
+<1> Create the persistence service to be used by the cache for storing data on disk
+<2> Pass the persistence service to the builder next to an id for the cache - note that this will make the builder produce a more specific type: `PersistentUserManagedCache`
+<3> As usual, indicate here if the data should outlive the cache
+<4> Closing the cache will not delete the data it saved on disk when marked as persistent.
+<5> To delete the data, after closing the cache, destroy has to be explicitly invoked.
+<6> It is also your responsibility to stop the persistence service once you are done with the cache.
+
+=== Example with cache event listeners
+
+Cache event listeners require executor services to work.
+You will have to provide either a `CacheEventDispatcher` implementation
+or make use of the default one by providing two executor services: one for ordered events and one for un-ordered ones.
+
+NOTE: The ordered events executor must be single threaded to guarantee ordering.
+
+For more information on cache event listeners, see <<cache-event-listeners.adoc#,the section dedicated to them>>.
+
+[source,java,indent=0]
+----
+include::{sourcedir}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedListenerCache]
+----
+<1> Provide ExecutorService for ordered and unordered events delivery.
+<2> Provide listener configuration using CacheEventListenerConfigurationBuilder.

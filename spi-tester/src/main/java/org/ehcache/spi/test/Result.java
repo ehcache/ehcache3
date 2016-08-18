@@ -29,6 +29,7 @@ public class Result {
   private       int               runCount;
   private final List<ResultState> failedTests  = new ArrayList<ResultState>();
   private final List<ResultState> skippedTests = new ArrayList<ResultState>();
+  private final List<ResultState> testsWithLegalException = new ArrayList<ResultState>();
 
   public Result() {
     //
@@ -67,6 +68,10 @@ public class Result {
     skippedTests.add(skippedTest);
   }
 
+  public void testsOverlookedDueToLegalException(ResultState legalException) {
+    testsWithLegalException.add(legalException);
+  }
+
   public List<ResultState> getFailedTests() {
     return failedTests;
   }
@@ -81,6 +86,7 @@ public class Result {
         .append(getTotalRunCount()).append(" tests ran, ")
         .append("took ").append(runtimeAsString()).append(". ")
         .append("Passed: ").append(getRunCount()).append(". ")
+        .append("Overlooked due to legal exception: ").append(getTestsWithLegalException().size()).append(". ")
         .append("Skipped: ").append(skippedTests.size()).append(". ")
         .append("Failed: ").append(failedTests.size());
     System.out.println(sb.toString());
@@ -89,6 +95,13 @@ public class Result {
       sb = new StringBuilder();
       sb.append("* ").append(skippedTest.getName())
           .append(" skipped: ").append(skippedTest.getReason());
+      System.out.println(sb.toString());
+    }
+
+    for(ResultState overlookedDueToLegalException : testsWithLegalException) {
+      sb = new StringBuilder();
+      sb.append("* ").append(overlookedDueToLegalException.getName())
+          .append(" overlooked due to legal exception: ").append(overlookedDueToLegalException.getReason());
       System.out.println(sb.toString());
     }
 
@@ -106,11 +119,14 @@ public class Result {
   }
 
   private int getTotalRunCount() {
-    return getRunCount() + skippedTests.size()+failedTests.size();
+    return getRunCount() + skippedTests.size()+failedTests.size() + testsWithLegalException.size();
   }
 
   private String runtimeAsString() {
     return (runTime > 1000) ? String.format("%.1f s", (runTime / 1000.0)) : runTime + " ms";
   }
 
+  public List<ResultState> getTestsWithLegalException() {
+    return testsWithLegalException;
+  }
 }

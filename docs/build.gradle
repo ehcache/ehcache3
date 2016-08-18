@@ -26,5 +26,28 @@ buildscript {
 
 apply plugin: 'org.asciidoctor.convert'
 
-uploadArchives.onlyIf { false }
-install.onlyIf { false }
+/*
+ * BEGIN https://github.com/asciidoctor/asciidoctor-gradle-plugin/issues/178
+ */
+task copyResources(type: Copy) {
+  from ("css") {
+    include '**'
+  }
+  into("${buildDir}/asciidoc/user/css")
+}
+asciidoctor.dependsOn copyResources
+/*
+ * END https://github.com/asciidoctor/asciidoctor-gradle-plugin/issues/178
+ */
+
+asciidoctor {
+  separateOutputDirs = false;
+  attributes 'skip-front-matter': 'true'
+
+  resources {
+    from('fonts') {
+      include '*'
+      into('./user/fonts')
+    }
+  }
+}

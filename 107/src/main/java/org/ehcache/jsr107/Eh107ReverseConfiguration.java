@@ -25,9 +25,9 @@ import javax.cache.configuration.CacheEntryListenerConfiguration;
  * Eh107ReverseConfiguration
  */
 class Eh107ReverseConfiguration<K, V> extends Eh107Configuration<K, V> {
-  
+
   private static final long serialVersionUID = 7690458739466020356L;
-  
+
   private final transient Cache<K, V> cache;
   private final boolean readThrough;
   private final boolean writeThrough;

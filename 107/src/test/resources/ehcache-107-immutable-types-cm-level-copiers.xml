@@ -1,0 +1,61 @@
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<ehcache:config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns:ehcache='http://www.ehcache.org/v3'
+    xmlns:jsr107='http://www.ehcache.org/v3/jsr107'>
+
+  <ehcache:service>
+    <jsr107:defaults>
+      <jsr107:cache name="stringCache" template="stringtemplate"/>
+      <jsr107:cache name="floatCache" template="floattemplate"/>
+      <jsr107:cache name="doubleCache" template="doubletemplate"/>
+      <jsr107:cache name="charCache" template="chartemplate"/>
+      <jsr107:cache name="integerCache" template="integertemplate"/>
+    </jsr107:defaults>
+  </ehcache:service>
+
+  <ehcache:default-copiers>
+    <ehcache:copier type="java.lang.Long">org.ehcache.impl.copy.IdentityCopier</ehcache:copier>
+  </ehcache:default-copiers>
+
+  <ehcache:cache-template name="stringtemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>java.lang.String</ehcache:value-type>
+  </ehcache:cache-template>
+
+  <ehcache:cache-template name="chartemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>java.lang.Character</ehcache:value-type>
+  </ehcache:cache-template>
+
+  <ehcache:cache-template name="floattemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>java.lang.Float</ehcache:value-type>
+  </ehcache:cache-template>
+
+  <ehcache:cache-template name="doubletemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>java.lang.Double</ehcache:value-type>
+  </ehcache:cache-template>
+
+  <ehcache:cache-template name="integertemplate">
+    <ehcache:key-type>java.lang.Long</ehcache:key-type>
+    <ehcache:value-type>java.lang.Integer</ehcache:value-type>
+  </ehcache:cache-template>
+
+</ehcache:config>

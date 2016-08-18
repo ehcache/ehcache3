@@ -56,7 +56,12 @@ public abstract class SPITester {
           m.invoke(this, (Object[]) null);
           result.testFinished();
         } catch (InvocationTargetException wrappedExc) {
-          result.testFailed(new ResultState(testClass, m.getName(), wrappedExc.getCause()));
+          if(wrappedExc.getTargetException() instanceof LegalSPITesterException) {
+            result.testsOverlookedDueToLegalException(new ResultState(testClass, m.getName(), wrappedExc.getCause()));
+          }
+          else {
+            result.testFailed(new ResultState(testClass, m.getName(), wrappedExc.getCause()));
+          }
         } catch (Exception e) {
           throw new RuntimeException(e);
         } finally {

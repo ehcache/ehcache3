@@ -34,8 +34,7 @@ Supported nested elements are optional:
  . `<value-type>`: FQCN of the values (`<V>`) held in the `Cache`, defaults to `java.lang.Object`
  . `<capacity>`: a positive numerical value, defaults to `null`, i.e. unconstrained
  . `<expiry>`: lets you control the expiry type and its parameters
- . `<eviction-veto>`: FQCN of a `org.ehcache.config.EvictionVeto<K, V>` implementation, defaults to `null`, i.e. none
- . `<eviction-prioritizer>`: FQCN of a `org.ehcache.config.EvictionPrioritizer<K, V>` implementation, defaults to `null`
+ . `<eviction-advisor>`: FQCN of a `org.ehcache.config.EvictionAdvisor<K, V>` implementation, defaults to `null`, i.e. none
  . `<integration>`: lets you configure a `CacheLoaderWriter` for a _cache-through_ pattern
 
 === `<cache-template>` elements

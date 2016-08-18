@@ -15,6 +15,8 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.ValueSupplier;
+
 import java.io.Closeable;
 import java.io.IOException;
 
@@ -34,7 +36,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
     try {
       Duration duration = expiryPolicy.getExpiryForCreation();
       if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
+        return org.ehcache.expiry.Duration.INFINITE;
       }
       return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
     } catch (Throwable t) {
@@ -43,7 +45,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForAccess(K key, V value) {
+  public org.ehcache.expiry.Duration getExpiryForAccess(K key, ValueSupplier<? extends V> value) {
     if (isShortCircuitAccessCalls()) {
       return null;
     }
@@ -54,7 +56,7 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
         return null;
       }
       if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
+        return org.ehcache.expiry.Duration.INFINITE;
       }
       return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
     } catch (Throwable t) {
@@ -63,21 +65,21 @@ class ExpiryPolicyToEhcacheExpiry<K, V> extends Eh107Expiry<K, V> implements Clo
   }
 
   @Override
-  public org.ehcache.expiry.Duration getExpiryForUpdate(K key, V oldValue, V newValue) {
+  public org.ehcache.expiry.Duration getExpiryForUpdate(K key, ValueSupplier<? extends V> oldValue, V newValue) {
     try {
       Duration duration = expiryPolicy.getExpiryForUpdate();
       if (duration == null) {
         return null;
       }
       if (duration.isEternal()) {
-        return org.ehcache.expiry.Duration.FOREVER;
+        return org.ehcache.expiry.Duration.INFINITE;
       }
       return new org.ehcache.expiry.Duration(duration.getDurationAmount(), duration.getTimeUnit());
     } catch (Throwable t) {
       return org.ehcache.expiry.Duration.ZERO;
     }
   }
-  
+
   @Override
   public void close() throws IOException {
     if (expiryPolicy instanceof Closeable) {

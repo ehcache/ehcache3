@@ -15,19 +15,56 @@
  */
 package org.ehcache.management.registry;
 
+import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
+import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
-import org.ehcache.management.providers.ManagementProvider;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.terracotta.management.context.Context;
+import org.terracotta.management.registry.ManagementProvider;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultManagementRegistryConfiguration implements ServiceConfiguration<DefaultManagementRegistry> {
+public class DefaultManagementRegistryConfiguration implements ManagementRegistryServiceConfiguration {
+
+  private static final AtomicLong COUNTER = new AtomicLong();
 
   private final Map<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>> configurationMap = new HashMap<Class<? extends ManagementProvider>, StatisticsProviderConfiguration<?>>();
+  private Context context = Context.empty();
+  private String statisticsExecutorAlias;
+  private String collectorExecutorAlias;
+
+  public DefaultManagementRegistryConfiguration() {
+    setCacheManagerAlias("cache-manager-" + COUNTER.getAndIncrement());
+    addConfiguration(new EhcacheStatisticsProviderConfiguration(1, TimeUnit.MINUTES, 100, 1, TimeUnit.SECONDS, 30, TimeUnit.SECONDS));
+  }
+
+  public DefaultManagementRegistryConfiguration setCacheManagerAlias(String alias) {
+    return setContext(Context.create("cacheManagerName", alias));
+  }
+
+  public DefaultManagementRegistryConfiguration setContext(Context context) {
+    if (!this.context.contains("cacheManagerName") && !context.contains("cacheManagerName")) {
+      throw new IllegalArgumentException("'cacheManagerName' is missing from context");
+    }
+    this.context = this.context.with(context);
+    return this;
+  }
+
+  public DefaultManagementRegistryConfiguration setStatisticsExecutorAlias(String alias) {
+    this.statisticsExecutorAlias = alias;
+    return this;
+  }
+
+  public DefaultManagementRegistryConfiguration setCollectorExecutorAlias(String collectorExecutorAlias) {
+    this.collectorExecutorAlias = collectorExecutorAlias;
+    return this;
+  }
 
   public DefaultManagementRegistryConfiguration addConfiguration(StatisticsProviderConfiguration<?> configuration) {
     Class<? extends ManagementProvider> serviceType = configuration.getStatisticsProviderType();
@@ -35,12 +72,29 @@ public class DefaultManagementRegistryConfiguration implements ServiceConfigurat
     return this;
   }
 
+  @Override
+  public Context getContext() {
+    return context;
+  }
+
+  @Override
+  public String getStatisticsExecutorAlias() {
+    return this.statisticsExecutorAlias;
+  }
+
+  @Override
+  public String getCollectorExecutorAlias() {
+    return this.collectorExecutorAlias;
+  }
+
+  @Override
   public StatisticsProviderConfiguration getConfigurationFor(Class<? extends ManagementProvider<?>> managementProviderClass) {
     return configurationMap.get(managementProviderClass);
   }
 
   @Override
-  public Class<DefaultManagementRegistry> getServiceType() {
-    return DefaultManagementRegistry.class;
+  public Class<ManagementRegistryService> getServiceType() {
+    return ManagementRegistryService.class;
   }
+
 }

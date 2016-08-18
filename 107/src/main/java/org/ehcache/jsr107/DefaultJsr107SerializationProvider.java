@@ -15,20 +15,19 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.internal.serialization.JavaSerializer;
-import org.ehcache.spi.serialization.DefaultSerializationProvider;
+import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
+import org.ehcache.impl.serialization.CompactJavaSerializer;
+import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
+import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 
 /**
  * @author Ludovic Orban
  */
-public class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
+class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
 
-  @Override
-  protected void addDefaultSerializer() {
-    // add java.lang.Object at the end of the map if it wasn't already there
-    if (!preconfiguredLoaders.containsKey(Object.class.getName())) {
-      preconfiguredLoaders.put(Object.class.getName(), (Class) JavaSerializer.class);
-    }
+  DefaultJsr107SerializationProvider() {
+    super(new DefaultSerializationProviderConfiguration()
+            .addSerializerFor(Object.class, (Class) CompactJavaSerializer.class)
+            .addSerializerFor(Object.class, (Class) CompactPersistentJavaSerializer.class));
   }
-
 }

@@ -14,108 +14,21 @@
  * limitations under the License.
  */
 
-plugins {
-  id 'java'
-  id 'maven'
-  id 'com.github.johnrengelman.shadow' version '1.2.0'
-}
-
-def shadowBaseName = 'ehcache'
-
-
-def projectNamesToInclude = [':api', ':core', ':impl', ':management', ':107', ':xml']
-def projectsToInclude = projectNamesToInclude.collect {project(it)}
+group = 'org.ehcache'
+archivesBaseName = 'ehcache'
 
 dependencies {
-  projectsToInclude.each {compile it}
-  shadow 'org.slf4j:slf4j-api:1.7.7'
-  shadow group: 'org.terracotta', name: 'offheap-store', version: parent.offHeapVersion
-
+  compile project(':api')
+  compile project(':core')
+  compile project(':impl')
+  compile project(':107')
+  compile project(':xml')
+  compile project(':transactions')
 }
 
-shadowJar {
-  baseName = shadowBaseName
-  classifier = ''
-  projectNamesToInclude.each {projName -> dependencies {include(project(projName))}}
-  dependencies {
-    include(dependency('org.terracotta:statistics:1.1.0'))
-  }
-  fillManifest(manifest, shadowBaseName)
-  mergeServiceFiles()
+apply plugin: EhDistribute
+
+dependencies {
+  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadowProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
 }
-
-task shadowSourceJar(type: Jar, dependsOn: shadowJar) {
-  baseName = shadowBaseName
-  classifier = 'sources'
-
-  projectsToInclude.each {from it.sourceSets.main.allSource}
-}
-
-task aggregateJavadoc(type: Javadoc) {
-  title "$shadowBaseName $version API"
-  dependsOn projectsToInclude.javadoc
-  source projectsToInclude.javadoc.source
-  destinationDir file("$buildDir/docs/javadoc")
-  classpath = files(projectsToInclude.javadoc.classpath)
-}
-
-task shadowJavadocJar(type: Jar) {
-  dependsOn shadowJar, aggregateJavadoc
-  baseName = shadowBaseName
-  classifier = 'javadoc'
-
-  from aggregateJavadoc.destinationDir
-}
-
-task asciidocZip(type: Zip, dependsOn: ':docs:asciidoctor') {
-  baseName = shadowBaseName
-  classifier = 'docs'
-
-  from '../docs/build/asciidoc/html5'
-}
-
-artifacts {
-  archives shadowJar
-  archives shadowSourceJar
-  archives shadowJavadocJar
-  archives asciidocZip
-}
-
-def artifactFiltering = {
-  addFilter('shadow') {artifact, file ->
-    artifact.name == shadowBaseName
-  }
-
-  def shadowPom = pom('shadow')
-  shadowPom.groupId = 'org.ehcache'
-  shadowPom.artifactId = shadowBaseName
-  shadowPom.scopeMappings.mappings.remove(project.configurations.compile)
-  shadowPom.scopeMappings.mappings.remove(project.configurations.runtime)
-  shadowPom.scopeMappings.mappings.remove(project.configurations.testCompile)
-  shadowPom.scopeMappings.mappings.remove(project.configurations.testRuntime)
-  shadowPom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.COMPILE)
-  pomFiller(shadowPom, 'Ehcache', 'Ehcache single jar, containing all modules')
-}
-
-install {
-  repositories.mavenInstaller artifactFiltering
-}
-
-uploadArchives {
-  repositories {
-    mavenDeployer ({
-      beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment)}
-
-      if (isReleaseVersion) {
-        repository(id: 'sonatype-nexus-staging', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-          authentication(userName: sonatypeUser, password: sonatypePwd)
-        }
-      } else {
-        repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
-          authentication(userName: sonatypeUser, password: sonatypePwd)
-        }
-      }
-    } << artifactFiltering)
-  }
-}
-

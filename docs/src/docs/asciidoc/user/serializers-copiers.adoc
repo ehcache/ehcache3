@@ -1,0 +1,238 @@
+---
+---
+= Serializers and Copiers
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+While Ehcache is a Java cache, it cannot always store its mapping as Java objects.
+
+The <<caching-concepts.adoc#storage-tiers,on-heap store>> is capable of storing cached objects either by reference (where the given key and value references
+are stored) or by value (where a copy of the given key and value are made and those copies are then stored).
+All other stores are only capable of storing a byte representation of the key/value pair.
+
+`Serializer` and `Copier` are the abstractions to enable these different storage options.
+
+== Serializers
+
+All stores but the on-heap one need some form of serialization/deserialization of objects to be able to store and retrieve mappings.
+This is because they cannot internally store plain java objects but only binary representations of them.
+
+`Serializer` is the Ehcache abstraction solving this: every cache that has at least one store that
+cannot store by reference is going to use a pair of `Serializer` instances, one for the key and another one for the value.
+
+A `Serializer` is scoped at the cache level and all stores of a cache will be using and sharing the same pair of serializers.
+
+=== How is a serializer configured?
+
+There are two places where serializers can be configured:
+
+* at the cache level where one can use
+** `CacheConfigurationBuilder.withKeySerializer(Class<? extends Serializer<K>> keySerializerClass)`,
+** `CacheConfigurationBuilder.withKeySerializer(Serializer<K> keySerializer)`,
+** `CacheConfigurationBuilder.withValueSerializer(Class<? extends Serializer<V>> valueSerializerClass)`,
+** and `CacheConfigurationBuilder.withValueSerializer(Serializer<V> valueSerializer)`
++
+which allow by _instance_ or by _class name_ configuration.
+* at the cache manager level where one can use
+** `CacheManagerBuilder.withSerializer(Class<C> clazz, Class<? extends Serializer<C>> serializer)`
+
+If a serializer is configured directly at the cache level, it will be used, ignoring any cache manager level configuration.
+
+If a serializer is configured at the cache manager level, upon initialization, a cache with no specifically configured serializer will
+search through its cache manager's registered list of serializers and try to find one that directly matches the cache's key or value type.
+If such search fails, all the registered serializers will be tried in the added order to find one that handles compatible types.
+
+For instance, let's say you have a `Person` interface and two subclasses: `Employee` and `Customer`. If you configure your cache manager as follows:
+```java
+CacheManagerBuilder.newCacheManagerBuilder().withSerializer(Employee.class, EmployeeSerializer.class).withSerializer(Person.class, PersonSerializer.class)
+```
+then configuring a `Cache<Long, Employee>` would make it use the `EmployeeSerializer` while a `Cache<Long, Customer>` would make it use the `PersonSerializer`.
+
+A `Serializer` configured at the cache level by class name will not be shared to other caches when instantiated.
+
+NOTE: Given the above, it is recommended to limit `Serializer` registration to concrete classes and not aim for generality.
+
+[[serializers-bundled]]
+=== Bundled implementations
+
+By default, cache managers are pre-configured with specially optimized `Serializer` that can handle the following types, in the following order:
+
+- `java.io.Serializable`
+- `java.lang.Long`
+- `java.lang.Integer`
+- `java.lang.Float`
+- `java.lang.Double`
+- `java.lang.Character`
+- `java.lang.String`
+- `byte[]`
+
+All bundled `Serializer` implementations support both persistent and transient caches.
+
+[NOTE]
+====
+A consequence of providing serializers registered by default is that you will not be able to register a generic `Serializer` for `Number`
+or any other super type and expect it to be picked instead of the default ones for the types listed above.
+
+However, registering a different `Serializer` for one of the given type means it will be used instead of the default.
+====
+
+=== Lifecycle: instances vs. class names
+
+When a `Serializer` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
+It will need to dispose of any resource the serializer might hold upon and/or persisting and reloading the serializer's state.
+
+When a `Serializer` is configured by providing a _class name_ either at the cache or cache manager level, since Ehcache is responsible for creating the
+instance, it also is responsible for disposing of it.
+If the `Serializer` implements `java.io.Closeable` then `close()` will be called when the cache is closed and the `Serializer` no longer needed.
+
+=== Writing your own serializer
+
+`Serializer` defines a very strict contract.
+So if you're planning to write your own implementation you have to keep in mind that the class of the serialized object MUST be retained after deserialization, that is:
+
+```java
+object.getClass().equals( mySerializer.read(mySerializer.serialize(object)).getClass() )
+```
+
+This is especially important when you are planning to write a serializer for an abstract type,
+e.g. a serializer of type `com.pany.MyInterface` should
+
+- deserialize a `com.pany.MyClassImplementingMyInterface` when the serialized object is of class `com.pany.MyClassImplementingMyInterface`
+- return a `com.pany.AnotherClassImplementingMyInterface` object when the serialized object is of class `com.pany.AnotherClassImplementingMyInterface`
+
+Implement the following interface, from package `org.ehcache.spi.serialization`:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/spi/serialization/Serializer.java[lines=21..-1]
+----
+
+As the javadoc states, there are some constructor rules, see the <<persistent-vs-transient-caches,section on persistent and transient caches>> for that.
+
+You can optionally implement `java.io.Closeable`. If you do, Ehcache will call `close()` when a cache using such serializer gets disposed of, but *only if*
+Ehcache instantiated the serializer itself.
+
+=== ClassLoaders
+
+When Ehcache instantiates a serializer itself, it will pass it a `ClassLoader` via the constructor. Such class loader must be used to access the classes
+of the serialized types as they might not be available in the current class loader
+
+[[persistent-vs-transient-caches]]
+==== Persistent vs. transient caches
+
+When configured on a persistent cache, serializers may need to persist and restore their state across restarts, so you have to implement a
+constructor with the following signature:
+```java
+public MySerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
+}
+```
+otherwise persistent caches won't be able to use your serializer.
+
+Attempting to configure a serializer that lacks such constructor on a persistent cache using either of
+`CacheConfigurationBuilder.withKeySerializer(Class<? extends Serializer<K>> keySerializerClass)` or
+`CacheConfigurationBuilder.withValueSerializer(Class<? extends Serializer<V>> valueSerializerClass)`
+will be sanctioned with an exception upon cache initialization.
+
+Configuring a serializer that lacks such constructor by instance on a persistent cache using either of
+`CacheConfigurationBuilder.withKeySerializer(Serializer keySerializer)` or `CacheConfigurationBuilder.withValueSerializer(Serializer valueSerializer)`
+will work, but the responsibility of persisting and restoring the serializer's state across restarts lies on you.
+
+On caches that have no persistent capable store, serializers must have a constructor:
+```java
+public MySerializer(ClassLoader classLoader) {
+}
+```
+Attempting to configure a serializer that lacks such constructor on a transient cache using either of
+`CacheConfigurationBuilder.withKeySerializer(Class<? extends Serializer<K>> keySerializerClass)` or
+`CacheConfigurationBuilder.withValueSerializer(Class<? extends Serializer<V>> valueSerializerClass)`
+will be sanctioned with an exception upon cache initialization.
+
+Registering a serializer that lacks such constructor at the cache manager level will prevent it from being chosen for persistent caches.
+
+[[copiers]]
+== Copiers
+
+As the <<caching-concepts.adoc#storage-tiers,on-heap store>> is capable of storing plain java objects as such,
+it is not necessary to rely on a serialization mechanism to copy keys and values in order to provide _by value_ semantics.
+Other forms of _copy_ mechanism can be a lot more performant, such as using a _copy constructor_ but it requires custom code to be able to copy user classes.
+
+`Copier` is the Ehcache abstraction solving this: it is specific to the on-heap store.
+
+By default, the on-heap mappings are stored _by reference_. The way to store them _by value_ is to configure copier(s)
+on the cache for the key, value or both.
+
+Of course, the exact semantic of _by value_ in this context depends heavily on the `Copier` implementation.
+
+=== How is a copier configured?
+
+There are two places where copiers can be configured:
+
+* at the cache level where one can use
+** `CacheConfigurationBuilder.withKeyCopier(Class<? extends Copier<K>> keyCopierClass)`,
+** `CacheConfigurationBuilder.withKeyCopier(Copier<K> keyCopier)`,
+** `CacheConfigurationBuilder.withValueCopier(Class<? extends Copier<V>> valueCopierClass)`,
+** and `CacheConfigurationBuilder.withValueCopier(Copier<V> valueCopier)`.
++
+which allow by _instance_ or by _class name_ configuration.
+* at the cache manager level where one can use
+** `CacheManagerBuilder.withCopier(Class<C> clazz, Class<? extends Copier<C>> copier)`
+
+If a copier is configured directly at the cache level, it will be used, ignoring any cache manager level configuration.
+
+If a copier is configured at the cache manager level, upon initialization, a cache with no specifically configured copier will
+search through its cache manager's registered list of copiers and try to find one that directly matches the cache's key or value type. If such
+search fails, all the registered copiers will be tried in the added order to find one that handles compatible types.
+
+For instance, let's say you have a `Person` interface and two subclasses: `Employee` and `Customer`. If you configure your cache manager as follows:
+```java
+CacheManagerBuilder.newCacheManagerBuilder().withCopier(Employee.class, EmployeeCopier.class).withCopier(Person.class, PersonCopier.class)
+```
+then configuring a `Cache<Long, Employee>` would make it use the `EmployeeCopier` while a `Cache<Long, Customer>` would make it use the `PersonCopier`.
+
+A `Copier` configured at the cache level by class name will not be shared to other caches when instantiated.
+
+NOTE: Given the above, it is recommended to limit `Copier` registration to concrete classes and not aim for generality.
+
+[[copiers-bundled]]
+=== Bundled implementations
+
+A `SerializingCopier` class exists in case you want to configure store _by value_ on-heap using the configured (or default) serializer.
+Note that this implementation performs a serialization / deserialization on each read or write operation.
+
+The `CacheConfigurationBuilder` provides the following methods to make use of this specialized copier:
+
+* `CacheConfigurationBuilder.withKeySerializingCopier()` for the key,
+* `CacheConfigurationBuilder.withValueSerializingCopier()` for the value.
+
+=== Lifecycle: instances vs class names
+
+When a `Copier` is configured by providing an _instance_, it is up to the provider of that instance to manage its lifecycle.
+It will have dispose of any resource the copier might hold upon.
+
+When a `Copier` is configured by providing a _class name_ either at the cache or cache manager level, since Ehcache is responsible for creating the
+instance, it also is responsible for disposing of it.
+If the `Copier` implements `java.io.Closeable` then `close()` will be called when the cache is closed and the `Copier` no longer needed.
+
+=== Writing your own Copier
+
+Implement the following interface:
+
+[source,java,indent=0]
+----
+include::{sourcedir}/api/src/main/java/org/ehcache/spi/copy/Copier.java[lines=19..-1]
+----
+
+* `T copyForRead(T obj)` is invoked when a copy must be made upon a read operation (like a cache `get()`),
+* `T copyForWrite(T obj)` is invoked when a copy must be made upon a write operation (like a cache `put()`).
+
+The separation between copying for read and for write can be useful when you want to store a lighter version of your objects into the cache.
+
+Alternatively, you can extend from `org.ehcache.impl.copy.ReadWriteCopier` if copying for read and copying for write implementations
+are identical and only have to implement
+
+* `public abstract T copy(T obj)`

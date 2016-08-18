@@ -1,25 +1,68 @@
-include::common.adoc[]
-
+---
+---
 = The Ehcache 3.x JSR-107 Provider
+ifndef::sourcedir[]
+include::common.adoc[]
+endif::sourcedir[]
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
-== Getting started with Ehcache 3.0 & JSR-107
+== JCache overview
 
-There is nothing special for you to do to use Ehcache 3.0 as the caching provider for your application: add the
-`ehcache-3.0.0.jar` to your application's classpath (possibly removing the previous provider's jar) and you are ready to
-go:
+JCache (aka JSR-107) specification defines the standard caching API for Java.
+The specification was developed under the Java Community Process v2.9 by an expert group including members from the Ehcache developer community.
+JCache provides a very simple API set that is easy to use and vendor neutral.
+
+Being one of the pioneers in the Java caching domain, Ehcache had to offer an implementation that is fully compliant with the JCache specification.
+
+For years the biggest problems that application developers have faced while wanting to try cache implementations by different vendors is the stark contrast in the APIs offered by these vendors.
+Developers were forced to rewrite a whole lot of their caching related code in an application just to try out a new caching solution.
+This lead to developers sticking with what they had as the bar to investigating other products was too high.
+
+The availability of the JCache specification gives real added value for developers as there is now a standard caching API they can use.
+So it is easier for an application developer to switch between products by different vendors and choose the one that suits them best without changing a single line of their application code interacting with caches.
+All they have to do is swap the caching library from one vendor with another.
+Unless they use vendor specific APIs or configurations, this swap will be transparent.
+
+This document covers the basic usage of JCache API with Ehcache's implementation.
+Complete details on the JCache specification can be found https://www.jcp.org/en/jsr/detail?id=107[here].
+
+== Getting started with Ehcache 3 & JCache
+
+NOTE: See http://www.ehcache.org/#using_jsr107_api[the section on using Ehcache 3 and JSR-107] for details on required libraries.
+
+In addition to the `Cache` interface, JCache specification has defined two more interfaces: `CachingProvider` and `CacheManager`.
+Applications need to use a `CacheManager` to create/retrieve a `Cache`.
+Similarly a `CachingProvider` is required to get/access a `CacheManager`.
+
+Here is a sample code that demonstrates the usage of basic JCache configuration APIs:
 
 [source,java]
 ----
-CachingProvider provider = Caching.getCachingProvider(); // <1>
-CacheManager cacheManager = provider.getCacheManager(); // <2>
+include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=basicConfigurationExample]
 ----
-<1> Retrieves the default `CachingProvider`, this should be `org.ehcache.EhCachingProvider`.
-    You can also force use of `org.ehcache.EhCachingProvider` by using the `Caching.getCachingProvider(String)` static method instead.
+<1> Retrieves the default `CachingProvider` implementation from the application's classpath.
+    This method will work if and only if there is only one JCache implementation jar in the classpath.
+    If there are multiple providers in your classpath then use the fully qualified name `org.ehcache.jsr107.EhcacheCachingProvider` to retrieve the Ehcache caching provider.
+    You can do this by using the `Caching.getCachingProvider(String)` static method instead.
 <2> Retrieve the default `CacheManager` instance using the provider.
+<3> Create a cache configuration using `MutableConfiguration`...
+<4> with key type and value type as `Long` and `String` respectively...
+<5> configured to store the cache entries by reference(not by value)...
+<6> and with an expiry time of one minute defined for entries from the moment they are created.
+<7> Using the cache manager, create a cache named `jCache` with the configuration created in step <3>
+<8> Put some data into the cache.
+<9> Retrieve the data from the same cache.
 
 == JSR-107 and Ehcache configuration integration
+
+As mentioned already the JCache specification offers a minimal set of configuration that is ideal for an in-memory cache.
+But Ehcache native APIs support topologies that are much more complex and provides more features.
+At times application developers might want to configure caches that are much complex (in terms of topology or features)
+than the ones that JCache `MutableConfiguration` permits and still be able to use the JCache's caching APIs.
+Ehcache provides several ways to achieve that and this section covers the same.
 
 === Starting from JSR-107 created caches
 
@@ -53,7 +96,7 @@ include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationI
 === Getting JSR-107 caches configured through Ehcache XML
 
 Another way to have the full Ehcache configuration options on your caches while having no code dependency on the provider is
-to use XML based configuration. See link:xml{outfilesuffix}[the XML documentation] for more details on configuring `Cache`s in XML.
+to use XML based configuration. See <<xml.adoc#,the XML documentation>> for more details on configuring `Cache`s in XML.
 
 Find below the XML configuration followed by the code to use it from JSR-107:
 
@@ -77,10 +120,31 @@ NOTE: You can also use the `CachingProvider.getCacheManager()` method that takes
       vendor specific values returned by `CachingProvider.getDefaultURI` and `.getDefaultClassLoader` respectively.
       Be aware that these are not entirely specified for Ehcache 3.0 and may change in future releases!
 
+==== Control JSR-107 MBeans from XML
+
+When using Ehcache XML, you may want to enable management and / or statistics MBeans for JSR-107 caches.
+This is giving you control over the following:
+
+* `javax.cache.configuration.CompleteConfiguration.isStatisticsEnabled`
+* `javax.cache.configuration.CompleteConfiguration.isManagementEnabled`
+
+You can do this at two different levels:
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-107-mbeans-cache-manager-config.xml[lines=17..-1]
+----
+
+<1> Using the JSR-107 service extension, you can enable MBeans by default
+<2> The cache _stringCache_ will have both MBeans enabled, according to the service configuration
+<3> The cache _overrideCache_ will have both MBeans disabled, overriding the service configuration
+<4> The cache _overrideOneCache_ will have the statistics MBean disabled, while the management one remains enabled according to the service configuration
+
+[[supplement-jsr-107-configurations]]
 === Supplement JSR-107's configurations
 
 As of Ehcache 3.0, you can also create `cache-templates`.  See the
-link:xml{outfilesuffix}#__code_cache_template_code_elements[Cache Templates] section of the XML Documentation for more details. The Ehcache 3.0
+<<xml.adoc#cache-template-elements,Cache Templates>> section of the XML Documentation for more details. The Ehcache 3.0
 JSR-107 Caching Provider comes with an extension to the regular XML configuration so you can:
 
  . Configure a default template from which all programmatically created `Cache` instances inherit, and
@@ -103,7 +167,7 @@ include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-temp
     creating the `Cache` named `foos` at runtime, Ehcache will enhance its config, giving it a capacity of 2000 entries,
     as well as insuring both key and value types are `String`.
 
-NOTE: See link:xsds{outfilesuffix}#_jsr_107_extension[this xsd] for complete definition
+NOTE: See <<xsds.adoc#jsr-107-extension,this xsd>> for complete definition
 
 Using the above configuration, you can not only supplement but also override the configuration of JSR-107 created caches
 without modifying the application code.
@@ -112,11 +176,68 @@ without modifying the application code.
 ----
 include::{sourcedir}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=jsr107SupplementWithTemplatesExample]
 ----
-<1> Assume existing JSR-107 configuration code
+<1> Assume existing JSR-107 configuration code, which is store-by-value by default
 <2> that creates JSR-107 `Cache`
 <3> If you were to get to the Ehcache `RuntimeConfiguration`
 <4> you could verify that the template configured capacity is applied to the cache and returns _20_ here.
-<5> Templates will also override JSR-107 config, see here a configuration with TTL 1 minute
-<6> used to create a cache where the template says TTL 2 minutes.
-<7> And we can indeed verify that the template provided configuration has been applied, duration will be _2 minutes_ and not _1_.
-<8> One drawback of this is that when getting at the `CompleteConfiguration`, you no longer have access to the factories from JSR-107.
+<5> The cache template will override the JSR-107 cache's store-by-value config to store-by-ref since the `byRefTemplate`
+    template that is used to create the cache is configured explicitly using `IdentityCopier`.
+<6> Templates will also override JSR-107 config, see here a configuration with TTL 1 minute
+<7> used to create a cache where the template says TTL 2 minutes.
+<8> And we can indeed verify that the template provided configuration has been applied, duration will be _2 minutes_ and not _1_.
+<9> One drawback of this is that when getting at the `CompleteConfiguration`, you no longer have access to the factories from JSR-107.
+
+NOTE: As mentioned in step 5, in order to override store-by-value configuration of a JSR-107 cache using templates you
+can explicitly configure the template using `IdentityCopier`. But the usage of `IdentityCopier` is not mandatory to get
+a store-by-ref cache. You can use any custom copier implementation that does not perform any "copying" but returns
+the exact same reference that gets passed into the copy methods. `IdentityCopier` is just one that we have provided to
+make your life easier.
+
+== A word on defaults
+
+Ehcache 3 and Ehcache 3 through JCache do not always agree on default behavior.
+While native Ehcache 3 can behave the way JCache specifies, depending on the used configuration mechanism, you may see differences in defaults.
+
+=== _by-reference_ or _by-value_
+
+Ehcache 3 and Ehcache 3 through JCache disagree on the default mode for heap only caching.
+
+==== Ehcache configuration with JCache `MutableConfiguration`
+
+Unless you invoke `MutableConfiguration.setStoreByValue(boolean)`, the default value is `true`.
+This means that you will be limited to `Serializable` keys and values when using Ehcache 3.
+
+Under the cover this will trigger the use of <<serializers-copiers.adoc#copiers-bundled, serializing copiers>>
+and pick the appropriate serializer from the <<serializers-copiers.adoc#serializers-bundled,default ones>>.
+
+==== Ehcache configuration with native XML or code
+
+Heap only::
+    When using heap only caches, the default is _by-reference_ unless you configure a <<serializers-copiers.adoc#copiers,`Copier`>>.
+
+Other tiering configuration::
+    When using any other tiers, since serialization comes into play the default is _by-value_.
+
+See the documentation <<serializers-copiers.adoc#,dedicated to serializers and copiers>> for more information.
+
+=== Cache-through and compare-and-swap operations
+
+Ehcache 3 and Ehcache 3 through JCache disagree on the role of the cache loader for _compare-and-swap_ operations.
+
+==== Ehcache through JCache behaviour
+
+When using _compare-and-swap_ operations, such as `putIfAbsent(K, V)`, the cache loader will not be used if the cache has no mapping present.
+If the `putIfAbsent(K, V)` succeeds then the cache writer will be used to propagate the update to the system of record.
+This could result in the cache behaving like `INSERT` but effectively causing a blind update on the underlying system of record.
+
+==== Native Ehcache 3 behaviour
+
+The `CacheLoaderWriter` will always be used to load missing mappings with and to write updates.
+This enables the `putIfAbsent(K, V)` in _cache-through_ to behave as an `INSERT` on the system of record.
+
+If you need _Ehcache through JCache_ behaviour, the following shows the relevant XML configuration:
+
+[source,xml,indent=0]
+----
+include::{sourcedir}/107/src/test/resources/org/ehcache/docs/ehcache-jsr107-cache-through.xml[tag=cacheThroughCAS]
+----

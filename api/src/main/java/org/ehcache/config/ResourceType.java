@@ -16,45 +16,84 @@
 package org.ehcache.config;
 
 /**
- * The resource pools type interface.
+ * A resource type.
  *
- * @author Ludovic Orban
+ * @param <T> associated {@code ResourcePool} type
+ *
+ * @see ResourcePool
  */
-public interface ResourceType {
+public interface ResourceType<T extends ResourcePool> {
 
   /**
-   * Whether the resource supports persistence
-   * @return <code>true</code> if it supports persistence
+   * Gets the {@link ResourcePool} type associated with this {@code ResourceType}.
+   *
+   * @return the {@code ResourcePool} type associated with this type
+   */
+  Class<T> getResourcePoolClass();
+
+  /**
+   * Indicates whether this {@code ResourceType} supports persistence.
+   * <P>
+   *   Persistence in this context means that a {@link ResourcePool} of this {@code ResourceType} can be configured
+   *   so that data stored in it will survive a JVM restart.
+   * </P>
+   *
+   * @return {@code true} if it supports persistence, {@code false} otherwise
    */
   boolean isPersistable();
 
   /**
-   * An enumeration of resource types handled by core ehcache.
+   * Indicates whether this {@code ResourceType} requires {@link org.ehcache.spi.serialization.Serializer serialization}
+   * support.
+   *
+   * @return {@code true} if serializers are required, {@code false} otherwise
    */
-  enum Core implements ResourceType {
+  boolean requiresSerialization();
+
+  /**
+   * An enumeration of core {@link ResourceType}s in Ehcache.
+   */
+  enum Core implements ResourceType<SizedResourcePool> {
     /**
-     * Heap resource.
+     * Heap: not persistable, {@link org.ehcache.spi.serialization.Serializer serialization} not required.
      */
-    HEAP(false),
+    HEAP(false, false),
     /**
-     * OffHeap resource.
+     * OffHeap: not persistable, {@link org.ehcache.spi.serialization.Serializer serialization} required.
      */
-    OFFHEAP(false),
+    OFFHEAP(false, true),
     /**
-     * Disk resource.
+     * Disk: persistable, {@link org.ehcache.spi.serialization.Serializer serialization} required.
      */
-    DISK(true);
+    DISK(true, true);
 
 
     private final boolean persistable;
+    private final boolean requiresSerialization;
 
-    Core(boolean persistable) {
+    Core(boolean persistable, final boolean requiresSerialization) {
       this.persistable = persistable;
+      this.requiresSerialization = requiresSerialization;
+    }
+
+    @Override
+    public Class<SizedResourcePool> getResourcePoolClass() {
+      return SizedResourcePool.class;
     }
 
     @Override
     public boolean isPersistable() {
       return persistable;
+    }
+
+    @Override
+    public boolean requiresSerialization() {
+      return requiresSerialization;
+    }
+
+    @Override
+    public String toString() {
+      return name().toLowerCase();
     }
   }
 
