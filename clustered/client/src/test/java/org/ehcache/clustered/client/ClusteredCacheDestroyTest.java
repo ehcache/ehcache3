@@ -82,6 +82,7 @@ public class ClusteredCacheDestroyTest {
 
     assertThat(cache, nullValue());
 
+    persistentCacheManager.close();
   }
 
   @Test
@@ -106,6 +107,8 @@ public class ClusteredCacheDestroyTest {
 
     anotherCache.put(1L, "One");
     assertThat(anotherCache.get(1L), is("One"));
+
+    persistentCacheManager.close();
   }
 
   @Test
@@ -123,6 +126,7 @@ public class ClusteredCacheDestroyTest {
     } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString("clustered-cache"));
     }
+    cacheManager.close();
   }
 
   @Test
@@ -153,6 +157,9 @@ public class ClusteredCacheDestroyTest {
     cache2.put(1L, "One");
 
     assertThat(cache2.get(1L), is("One"));
+
+    persistentCacheManager1.close();
+    persistentCacheManager2.close();
   }
 
   private static Throwable getRootCause(Throwable t) {
