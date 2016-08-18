@@ -26,16 +26,16 @@ ext {
   sizeofVersion = '0.3.0'
 
   // Clustered
-  terracottaPlatformVersion = '5.0.3.beta2'
+  terracottaPlatformVersion = '5.0.4.beta'
   managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.0.3.beta'
-  terracottaCoreVersion = '5.0.3-beta'
+  terracottaApisVersion = '1.0.4.beta'
+  terracottaCoreVersion = '5.0.4-beta'
   clusteredMapVersion = terracottaPlatformVersion
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.0.3.beta'
+  terracottaPassthroughTestingVersion = '1.0.4.beta'
   entityTestLibVersion = terracottaPassthroughTestingVersion
-  galvanVersion = '1.0.3-beta'
+  galvanVersion = '1.0.4-beta'
 
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
