@@ -101,7 +101,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private final OperationObserver<EmergencyValveOutcome> emergencyValveObserver;
 
-  private final OffHeapStoreStatsSettings offHeapStoreStatsSettings;
+  protected final OffHeapStoreStatsSettings offHeapStoreStatsSettings;
 
   private volatile Callable<Void> valve;
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
