@@ -57,6 +57,7 @@ import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -391,6 +392,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         }
         localMap.close();
       }
+      StatisticsManager.dissociate(resource.offHeapStoreStatsSettings).fromParent(resource);
     }
 
     @Override

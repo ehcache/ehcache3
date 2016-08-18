@@ -99,7 +99,7 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private final OperationObserver<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome> getAndRemoveObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.InstallMappingOutcome> installMappingObserver;
 
-  private final OffHeapStoreStatsSettings offHeapStoreStatsSettings;
+  protected final OffHeapStoreStatsSettings offHeapStoreStatsSettings;
 
   private volatile InvalidationValve valve;
   protected BackingMapEvictionListener<K, V> mapEvictionListener;

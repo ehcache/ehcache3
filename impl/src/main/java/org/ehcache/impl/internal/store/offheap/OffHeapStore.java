@@ -50,6 +50,7 @@ import org.terracotta.offheapstore.storage.OffHeapBufferStorageEngine;
 import org.terracotta.offheapstore.storage.PointerSize;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -170,6 +171,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
         resource.map = null;
         localMap.destroy();
       }
+      StatisticsManager.dissociate(resource.offHeapStoreStatsSettings).fromParent(resource);
     }
 
     @Override
