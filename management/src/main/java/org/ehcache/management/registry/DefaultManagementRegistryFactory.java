@@ -15,23 +15,23 @@
  */
 package org.ehcache.management.registry;
 
-import org.ehcache.spi.ServiceLocator;
-import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceFactory;
+import org.ehcache.core.spi.service.ServiceFactory;
+import org.ehcache.management.ManagementRegistryService;
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
+import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-/**
- * @author Ludovic Orban
- */
-public class DefaultManagementRegistryFactory implements ServiceFactory<DefaultManagementRegistry> {
+public class DefaultManagementRegistryFactory implements ServiceFactory<ManagementRegistryService> {
 
   @Override
-  public DefaultManagementRegistry create(ServiceConfiguration<DefaultManagementRegistry> sc, ServiceLocator serviceLocator) {
-    return new DefaultManagementRegistry();
+  public ManagementRegistryService create(ServiceCreationConfiguration<ManagementRegistryService> configuration) {
+    return configuration instanceof ManagementRegistryServiceConfiguration ?
+        new DefaultManagementRegistryService((ManagementRegistryServiceConfiguration) configuration) :
+        new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration());
   }
 
   @Override
-  public Class<DefaultManagementRegistry> getServiceType() {
-    return DefaultManagementRegistry.class;
+  public Class<ManagementRegistryService> getServiceType() {
+    return ManagementRegistryService.class;
   }
 
 }

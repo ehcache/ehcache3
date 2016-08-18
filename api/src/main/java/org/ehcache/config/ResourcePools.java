@@ -18,24 +18,40 @@ package org.ehcache.config;
 import java.util.Set;
 
 /**
- * A collection of {@link ResourcePool resource pools} a cache has at its disposal to store its mappings.
- *
- * @author Ludovic Orban
+ * A collection of {@link ResourcePool resource pools} that a {@link org.ehcache.Cache Cache} has at its disposal
+ * to store its mappings.
+ * <P>
+ *   <EM>Implementations must be immutable.</EM>
+ * </P>
  */
 public interface ResourcePools {
 
   /**
-   * Get a specific {@link ResourcePool} based on its type.
+   * Gets a specific {@link ResourcePool} based on its type.
    *
-   * @param resourceType the type of resource the pool is tracking.
-   * @return the {@link ResourcePool}, or null if there is no pool tracking the requested type.
+   * @param <P> specific resource pool type
+   * @param resourceType the type of resource the pool is tracking
+   *
+   * @return the {@link ResourcePool}, or null if there is no pool of the requested type.
    */
-  ResourcePool getPoolForResource(ResourceType resourceType);
+  <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType);
 
   /**
-   * Get the set of {@link ResourceType} of all the pools present in the ResourcePools
+   * Gets the set of {@link ResourceType}s present in the {@code ResourcePools}.
    *
    * @return the set of {@link ResourceType}
    */
-  Set<ResourceType> getResourceTypeSet();
+  Set<ResourceType<?>> getResourceTypeSet();
+
+  /**
+   * Get a copy of this {@code ResourcePools} merged with the given {@code ResourcePools}, validating that
+   * the updates to the contained {@link ResourcePool}s are legal.
+   *
+   * @param toBeUpdated the {@code ResourcePools} to merge with the current one.
+   * @return a validated and merged {@code ResourcePools}
+   * @throws IllegalArgumentException      thrown when an illegal resource value is being given
+   * @throws UnsupportedOperationException thrown when an unsupported update is requested
+   */
+  ResourcePools validateAndMerge(ResourcePools toBeUpdated) throws IllegalArgumentException, UnsupportedOperationException;
+
 }

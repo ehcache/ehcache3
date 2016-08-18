@@ -1,0 +1,78 @@
+<!--
+  ~ Copyright Terracotta, Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+
+<ehcache:config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns:ehcache='http://www.ehcache.org/v3' xmlns:foo="http://www.example.com/foo"
+    xsi:schemaLocation="http://www.ehcache.org/v3 ../../../main/resources/ehcache-core.xsd">
+
+  <ehcache:service>
+    <foo:foo/>
+  </ehcache:service>
+  <ehcache:default-serializers>
+    <ehcache:serializer type="com.Type">some.class.Serializer</ehcache:serializer>
+  </ehcache:default-serializers>
+  <ehcache:default-copiers>
+    <ehcache:copier type="com.Type">some.class.Copier</ehcache:copier>
+  </ehcache:default-copiers>
+  <ehcache:persistence directory="some/dir"/>
+  <ehcache:thread-pools>
+    <ehcache:thread-pool alias="theone" min-size="1" max-size="4"/>
+  </ehcache:thread-pools>
+  <ehcache:event-dispatch thread-pool="pool-dispatch"/>
+  <ehcache:write-behind thread-pool="wb"/>
+  <ehcache:heap-store>
+    <ehcache:max-object-graph-size>1000</ehcache:max-object-graph-size>
+    <ehcache:max-object-size unit="MB">100</ehcache:max-object-size>
+  </ehcache:heap-store>
+  <ehcache:disk-store thread-pool="pool-disk"/>
+
+  <ehcache:cache alias="test">
+    <ehcache:key-type serializer="some.class.Serializer" copier="some.class.Copier">java.lang.String</ehcache:key-type>
+    <ehcache:value-type serializer="some.class.Serializer" copier="some.class.Copier">java.lang.String</ehcache:value-type>
+    <ehcache:expiry>
+      <ehcache:ttl unit="minutes">1</ehcache:ttl>
+    </ehcache:expiry>
+    <ehcache:eviction-advisor>some.class.Advisor</ehcache:eviction-advisor>
+    <ehcache:loader-writer>
+      <ehcache:class>some.class.LoaderWriter</ehcache:class>
+      <ehcache:write-behind concurrency="10" size="10" thread-pool="toto">
+        <ehcache:batching batch-size="10" coalesce="true">
+          <ehcache:max-write-delay unit="minutes">10</ehcache:max-write-delay>
+        </ehcache:batching>
+      </ehcache:write-behind>
+    </ehcache:loader-writer>
+    <ehcache:listeners dispatcher-concurrency="128" dispatcher-thread-pool="pool-listeners">
+      <ehcache:listener>
+        <ehcache:class>some.class.Listener</ehcache:class>
+        <ehcache:event-firing-mode>ASYNCHRONOUS</ehcache:event-firing-mode>
+        <ehcache:event-ordering-mode>UNORDERED</ehcache:event-ordering-mode>
+        <ehcache:events-to-fire-on>EVICTED</ehcache:events-to-fire-on>
+        <ehcache:events-to-fire-on>EXPIRED</ehcache:events-to-fire-on>
+      </ehcache:listener>
+    </ehcache:listeners>
+    <ehcache:resources>
+      <ehcache:heap unit="MB">100</ehcache:heap>
+      <ehcache:disk unit="GB" persistent="true">100</ehcache:disk>
+    </ehcache:resources>
+    <ehcache:heap-store-settings>
+      <ehcache:max-object-graph-size>10</ehcache:max-object-graph-size>
+      <ehcache:max-object-size unit="MB">100</ehcache:max-object-size>
+    </ehcache:heap-store-settings>
+    <ehcache:disk-store-settings thread-pool="pool-disk" writer-concurrency="10"/>
+    <foo:foo/>
+  </ehcache:cache>
+</ehcache:config>

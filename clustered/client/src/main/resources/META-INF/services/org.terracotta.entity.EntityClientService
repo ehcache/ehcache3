@@ -1,0 +1,2 @@
+org.ehcache.clustered.client.internal.EhcacheClientEntityService
+org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService

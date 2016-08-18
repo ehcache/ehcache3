@@ -21,40 +21,53 @@ import org.ehcache.Cache;
 /**
  * An event resulting from a mutative {@link Cache} operation.
  *
- * @param <K> the type of the keys used to access data within the cache
- * @param <V> the type of the values held within the cache
- *
- * @author Alex Snaps
+ * @param <K> the key type of the source cache
+ * @param <V> the value type of the source cache
  */
 public interface CacheEvent<K, V> {
 
   /**
-   * The type of mutative event
+   * Gets the {@link EventType} of this event.
    *
-   * @return the @{link EventType}
+   * @return the {@code EventType}
    */
   EventType getType();
 
   /**
-   * The {@link org.ehcache.Cache.Entry} affected by the mutative event
+   * The key of the mapping affected by this event.
    *
-   * @return {@link org.ehcache.Cache.Entry Entry} affected by the mutative event
+   * @return the key of the mutated mapping
    */
-  Cache.Entry<K, V> getEntry();
+  K getKey();
 
   /**
-   * Returns the value associated with the key prior to the mutation being applied
+   * The mapped value immediately after the mutative event occurred.
+   * <P>
+   *  If the mutative event removes the mapping then {@code null} is returned.
+   * </P>
    *
-   * @return the previous value associated with the key, prior to the update
+   * @return the mapped value after the mutation
    */
-  V getPreviousValue();
+  V getNewValue();
 
   /**
-   * The cache originating this event
-   * <p>
-   * Don't ever call back into this cache to perform any further operations!
+   * The mapped value immediately before the mutative event occurred.
+   * <P>
+   *  If the mutative event created the mapping then {@code null} is returned.
+   * </P>
    *
-   * @return the cache you should only use to identify the source, not to use it!
+   * @return the mapped value before the mutation
+   */
+  V getOldValue();
+
+  /**
+   * The source cache for this event
+   * <P>
+   *  Calling back into the cache to perform operations is not supported. It is only provided as a way to identify the
+   *  event source.
+   * </P>
+   *
+   * @return the source cache
    */
   @Deprecated
   Cache<K, V> getSource();

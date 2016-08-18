@@ -15,9 +15,7 @@
  */
 package org.ehcache.jsr107;
 
-import org.ehcache.EhcacheManager;
-import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheRuntimeConfiguration;
+import org.ehcache.core.EhcacheManager;
 import org.ehcache.event.CacheEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -51,7 +49,7 @@ public class UnwrapTest {
   public void tearDown() {
     cacheManager.close();
   }
-  
+
   @Test
   public void testCacheUnwrap() {
     MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
@@ -67,16 +65,16 @@ public class UnwrapTest {
     assertThat(cacheManager.unwrap(org.ehcache.CacheManager.class), is(instanceOf(EhcacheManager.class)));
     assertThat(cacheManager.unwrap(cacheManager.getClass()), is(instanceOf(Eh107CacheManager.class)));
   }
-  
+
   @Test
   public void testCacheEntryEventUnwrap() {
     MutableConfiguration<String, String> configuration = new MutableConfiguration<String, String>();
     configuration.setTypes(String.class, String.class);
     Cache<String, String> cache = cacheManager.createCache("cache", configuration);
     org.ehcache.event.CacheEvent<String, String> ehEvent = new EhEvent();
-    Eh107CacheEntryEvent<String, String> cacheEntryEvent = new Eh107CacheEntryEvent<String, String>(cache, EventType.CREATED, ehEvent, false);
+    Eh107CacheEntryEvent<String, String> cacheEntryEvent = new Eh107CacheEntryEvent.NormalEvent<String, String>(cache, EventType.CREATED, ehEvent, false);
     assertThat(cacheEntryEvent.unwrap(org.ehcache.event.CacheEvent.class), is(instanceOf(CacheEvent.class)));
-    assertThat(cacheEntryEvent.unwrap(cacheEntryEvent.getClass()), is(instanceOf(Eh107CacheEntryEvent.class)));
+    assertThat(cacheEntryEvent.unwrap(cacheEntryEvent.getClass()), is(instanceOf(Eh107CacheEntryEvent.NormalEvent.class)));
   }
 
   @SuppressWarnings("unchecked")
@@ -87,12 +85,17 @@ public class UnwrapTest {
     }
 
     @Override
-    public org.ehcache.Cache.Entry getEntry() {
+    public String getKey() {
       throw new UnsupportedOperationException("Implement me!");
     }
 
     @Override
-    public String getPreviousValue() {
+    public String getNewValue() {
+      throw new UnsupportedOperationException("Implement me!");
+    }
+
+    @Override
+    public String getOldValue() {
       throw new UnsupportedOperationException("Implement me!");
     }
 

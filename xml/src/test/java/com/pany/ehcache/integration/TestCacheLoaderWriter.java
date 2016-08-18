@@ -29,7 +29,7 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 public class TestCacheLoaderWriter implements CacheLoaderWriter<Number, String> {
 
   public static Number lastWrittenKey;
-  
+
   public static CountDownLatch latch;
 
   @Override

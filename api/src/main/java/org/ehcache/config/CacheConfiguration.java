@@ -23,72 +23,86 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import java.util.Collection;
 
 /**
- * Represents the minimal read-only configuration for a Cache to be, or an already existing one
+ * Represents the minimal configuration for a {@link Cache}.
+ * <P>
+ *   <EM>Implementations are expected to be read-only.</EM>
+ * </P>
  *
- * @param <K> the type of the keys used to access data within the cache
- * @param <V> the type of the values held within the cache
- *
- * @author Alex Snaps
+ * @param <K> the key type for the cache
+ * @param <V> the value type for the cache
  */
 public interface CacheConfiguration<K, V> {
 
   /**
-   * Not sure whether this should be exposed on this interface really.
+   * The service configurations defined for the {@link Cache}.
+   * <P>
+   *   Implementations must return an unmodifiable collection.
+   * </P>
    *
-   * @return unmodifiable collection of service configuration related to the cache
+   * @return service configurations
    */
   Collection<ServiceConfiguration<?>> getServiceConfigurations();
 
   /**
-   * The type of the key for the cache.
+   * The key type for the {@link Cache}.
+   * <P>
+   *   The key type must not be {@code null}.
+   * </P>
    *
-   * @return a non null value, where {@code Object.class} is the widest type
+   * @return a non {@code null} class
    */
   Class<K> getKeyType();
 
   /**
-   * The type of the value held in the cache.
+   * The value type for the {@link Cache}.
+   * <P>
+   *   The value type must not be {@code null}.
+   * </P>
    *
-   * @return a non null value, where {@code Object.class} is the widest type
+   * @return a non {@code null} class
    */
   Class<V> getValueType();
-  
-  /**
-   * The {@link EvictionVeto} predicate function.
-   * <p>
-   * Entries which pass this predicate must be ignored by the eviction process.
-   * 
-   * @return the eviction veto predicate
-   */
-  EvictionVeto<? super K, ? super V> getEvictionVeto();
 
   /**
-   * The {@link EvictionPrioritizer} comparator.
-   * <p>
-   * This comparator function determines the order in which entries are considered
-   * for eviction.
-   * 
-   * @return the eviction prioritizer
+   * The {@link EvictionAdvisor} predicate function.
+   * <P>
+   * Entries which pass this predicate may be ignored by the eviction process.
+   * <strong>This is only a hint.</strong>
+   * </P>
+   *
+   * @return the eviction advisor predicate
    */
-  EvictionPrioritizer<? super K, ? super V> getEvictionPrioritizer();
+  EvictionAdvisor<? super K, ? super V> getEvictionAdvisor();
 
   /**
-   * The {@link ClassLoader} for this cache. This {@code ClassLoader} will be used to instantiate cache level services
-   * as well as deserializing cache entries when required.
+   * The {@link ClassLoader} for the {@link Cache}.
+   * <P>
+   *   This {@code ClassLoader} will be used to instantiate cache level services
+   *   and for deserializing cache entries when required.
+   * </P>
+   * <P>
+   *   The {@code ClassLoader} must not be null.
+   * </P>
    *
    * @return the cache {@code ClassLoader}
    */
   ClassLoader getClassLoader();
 
   /**
-   *  Get the {@link Expiry expiration policy} instance for the {@link Cache}.
+   * The {@link Expiry} rules for the {@link Cache}.
+   * <P>
+   *   The {@code Expiry} cannot be null.
+   * </P>
    *
-   *  @return the {@code Expiry} to configure
+   *  @return the {@code Expiry}
    */
   Expiry<? super K, ? super V> getExpiry();
 
   /**
-   * Get the {@link ResourcePools resource pools} the {@link Cache} can make use of.
+   * The {@link ResourcePools} for the {@link Cache}.
+   * <P>
+   *   The {@code ResourcePools} cannot be null nor empty.
+   * </P>
    *
    * @return the {@link ResourcePools}
    */

@@ -18,105 +18,121 @@ package org.ehcache.config.units;
 import org.ehcache.config.ResourceUnit;
 
 /**
- * An enumeration implementing {@link ResourceUnit} to represent memory consumption.
- *
- * @author Ludovic Orban
+ * A {@link ResourceUnit} that designates memory quantity.
  */
 public enum MemoryUnit implements ResourceUnit {
 
   /**
-   * Bytes unit.
+   * Bytes.
    */
-  B {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return size;
-    }
-  },
+  B("B", 0),
   /**
-   * Kilobytes unit.
+   * Kilobytes.
    */
-  KB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, KILOBYTE / BYTE, MAX / (KILOBYTE / BYTE));
-    }
-  },
+  KB("kB", 10),
   /**
-   * Megabytes unit.
+   * Megabytes.
    */
-  MB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, MEGABYTE / BYTE, MAX / (MEGABYTE / BYTE));
-    }
-  },
+  MB("MB", 20),
   /**
-   * Gigabytes unit.
+   * Gigabytes.
    */
-  GB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, GIGABYTE / BYTE, MAX / (GIGABYTE / BYTE));
-    }
-  },
+  GB("GB", 30),
   /**
-   * Terabytes unit.
+   * Terabytes.
    */
-  TB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, TERABYTE / BYTE, MAX / (TERABYTE / BYTE));
-    }
-  },
+  TB("TB", 40),
   /**
-   * Petabytes unit.
+   * Petabytes.
    */
-  PB {
-    /**
-     * {@inheritDoc}
-     */
-    public long toBytes(long size) {
-      return x(size, PETABYTE / BYTE, MAX / (PETABYTE / BYTE));
-    }
-  };
+  PB("PB", 50);
 
-  static final long BYTE = 1L;
-  static final long KILOBYTE = 1024L;
-  static final long MEGABYTE = KILOBYTE * 1024L;
-  static final long GIGABYTE = MEGABYTE * 1024L;
-  static final long TERABYTE = GIGABYTE * 1024L;
-  static final long PETABYTE = TERABYTE * 1024L;
+  /** the index of this unit */
+  private final int index;
+  private final String stringForm;
 
-  static final long MAX = Long.MAX_VALUE;
-
-  /**
-   * Scale d by m, checking for overflow.
-   * This has a short name to make above code more readable.
-   */
-  static long x(long d, long m, long over) {
-      if (d >  over) return Long.MAX_VALUE;
-      if (d < -over) return Long.MIN_VALUE;
-      return d * m;
+  /** Internal constructor */
+  MemoryUnit(String stringForm, int index) {
+    this.stringForm = stringForm;
+    this.index = index;
   }
 
   /**
-   * Returns the size in bytes according to the unit this is invoked on.
+   * Computes <pre>amount * 2^delta</pre>.
    *
-   * @param size the size, relative to the unit
-   * @return the size in bytes
+   * The result is always rounded toward zero.
+   *
+   * @param delta log<sub>2</sub>(divisor)
+   * @param amount dividend
+   * @throws ArithmeticException if the result overflows
    */
-  public long toBytes(long size) {
-    throw new AbstractMethodError();
+  private static long doConvert(int delta, long amount) throws ArithmeticException {
+    if (delta == 0 || amount == 0) {
+      return amount;
+    } else if (delta < 0) {
+      // Hacker's Delight : 10-1
+      long t = amount >> (-delta - 1);
+      t >>>= 64 + delta;
+      t += amount;
+      return t >> -delta;
+    } else if (delta >= Long.numberOfLeadingZeros(amount < 0 ? ~amount : amount)) {
+      throw new ArithmeticException("Conversion overflows");
+    } else {
+      return amount << delta;
+    }
+  }
+
+  /**
+   * Converts {@code quantity} in this unit to bytes.
+   *
+   * @param quantity the quantity
+   * @return the quantity in bytes
+   */
+  public long toBytes(long quantity) {
+    return doConvert(index - B.index, quantity);
+  }
+
+  /**
+   * Converts {@code quantity} in {@code unit} into this unit.
+   *
+   * @param quantity quantity to convert
+   * @param unit {@code quantity}'s unit
+   * @return the quantity in this unit
+   */
+  public long convert(long quantity, MemoryUnit unit) {
+    return doConvert(unit.index - index, quantity);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public String toString() {
+    return stringForm;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int compareTo(long thisSize, long thatSize, ResourceUnit thatUnit) throws IllegalArgumentException {
+    if (thatUnit instanceof MemoryUnit) {
+      MemoryUnit mThatUnit = (MemoryUnit) thatUnit;
+      if (index < mThatUnit.index) {
+        try {
+          return Long.signum(thisSize - convert(thatSize, mThatUnit));
+        } catch (ArithmeticException e) {
+          return Long.signum(mThatUnit.convert(thisSize, this) - thatSize);
+        }
+      } else {
+        try {
+          return Long.signum(mThatUnit.convert(thisSize, this) - thatSize);
+        } catch (ArithmeticException e) {
+          return Long.signum(thisSize - convert(thatSize, mThatUnit));
+        }
+      }
+    } else {
+      throw new IllegalArgumentException();
+    }
   }
 }

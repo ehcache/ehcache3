@@ -1,12 +1,17 @@
-include::common.adoc[]
-
+---
+---
 = Examples
+ifndef::sourcedir31[]
+include::common.adoc[]
+endif::sourcedir31[]
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Peeper - a simple message board
 
-The `demo` directory in the Ehcache 3.0 sources includes a sample applications with two (2)
+The `demo` directory in the Ehcache 3 sources includes a sample applications with two (2)
 implementations demonstrating Ehcache use.  Implemented as a simple
 browser-based web service, the sample application, Peeper, displays any messages (_peeps_)
 previously entered and accepts new peeps recording the peeps in a database.  The peeps
@@ -18,7 +23,7 @@ is not running.  While running, information about the operation of Peeper applic
 While the sample application may be run, the application is _very_ simplistic -- the code
 implementing the sample is the interesting bit. Running the sample application requires the
 use of https://gradle.org/[Gradle].  This sample may be accessed from GitHub by _cloning_
-the Ehcache 3.0 git repository:
+the Ehcache 3 git repository:
 
 [source,bash]
 ----
@@ -94,10 +99,10 @@ While running, lines like the following are displayed to the console:
 ----
 Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and +Getting peeps from cache+ lines indicating cache interactions.
 
-
+[[xml-with-107-extension]]
 == XML with 107 extension
 
 [source,xml,indent=0]
 ----
-include::{sourcedir}/107/src/test/resources/ehcache-example.xml[]
+include::{sourcedir31}/107/src/test/resources/ehcache-example.xml[]
 ----

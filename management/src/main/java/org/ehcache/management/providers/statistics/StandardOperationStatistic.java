@@ -15,7 +15,7 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import org.ehcache.statistics.CacheOperationOutcomes;
+import org.ehcache.core.statistics.CacheOperationOutcomes;
 import org.terracotta.context.extended.OperationType;
 import org.terracotta.context.query.Query;
 
@@ -29,8 +29,6 @@ import static org.terracotta.context.query.Queries.self;
 
 /**
  * The Enum OperationType.
- *
- * @author cdennis
  */
 enum StandardOperationStatistic implements OperationType {
   CACHE_LOADING(false, self(), CacheOperationOutcomes.CacheLoadingOutcome.class, "cacheLoading", "cache"),

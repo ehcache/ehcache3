@@ -15,25 +15,65 @@
  */
 package org.ehcache.jsr107;
 
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.internal.store.heap.service.OnHeapStoreServiceConfiguration;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+
+import java.util.Collection;
 
 import javax.cache.configuration.CacheEntryListenerConfiguration;
 import javax.cache.configuration.Configuration;
 
-import static org.ehcache.spi.ServiceLocator.findSingletonAmongst;
+import static org.ehcache.core.internal.service.ServiceLocator.findAmongst;
 
 /**
- * Eh107Configuration
+ * Abstract {@link Configuration} implementation that enables building a JSR-107 compatible configuration from
+ * a native Ehcache {@link CacheConfiguration}.
+ *
+ * @param <K> the key type
+ * @param <V> the value type
  */
 public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
 
   private static final long serialVersionUID = 7324956960962454439L;
 
+  /**
+   * Creates a new JSR-107 {@link Configuration} from the provided {@link CacheConfiguration}.
+   *
+   * @param ehcacheConfig the native Ehcache configuration
+   * @param <K> the key type
+   * @param <V> the value type
+   *
+   * @return a JSR-107 configuration
+   */
   public static <K, V> Configuration<K, V> fromEhcacheCacheConfiguration(CacheConfiguration<K, V> ehcacheConfig) {
     return new Eh107ConfigurationWrapper<K, V> (ehcacheConfig);
   }
 
+  /**
+   * Creates a new JSR-107 {@link Configuration} from the provided {@link CacheConfiguration} obtained through a
+   * {@link Builder}.
+   *
+   * @param ehcacheConfigBuilder the native Ehcache configuration through a builder
+   * @param <K> the key type
+   * @param <V> the value type
+   *
+   * @return a JSR-107 configuration
+   */
+  public static <K, V> Configuration<K, V> fromEhcacheCacheConfiguration(Builder<? extends CacheConfiguration<K, V>> ehcacheConfigBuilder) {
+    return new Eh107ConfigurationWrapper<K, V>(ehcacheConfigBuilder.build());
+  }
+
+  /**
+   * Enables to unwrap the underlying configuration.
+   *
+   * @param clazz the unwrap target class
+   * @param <T> the unwrap target type
+   *
+   * @return unwrapped type
+   *
+   * @throws IllegalArgumentException if the type cannot be unwrapped in the target type
+   */
   public abstract <T> T unwrap(Class<T> clazz);
 
   abstract boolean isReadThrough();
@@ -78,8 +118,8 @@ public abstract class Eh107Configuration<K, V> implements Configuration<K, V> {
 
     @Override
     public boolean isStoreByValue() {
-      OnHeapStoreServiceConfiguration heapConfig = findSingletonAmongst(OnHeapStoreServiceConfiguration.class, cacheConfiguration.getServiceConfigurations());
-      return heapConfig != null && heapConfig.storeByValue();
+      Collection<DefaultCopierConfiguration> copierConfig = findAmongst(DefaultCopierConfiguration.class, cacheConfiguration.getServiceConfigurations());
+      return !copierConfig.isEmpty();
     }
   }
 }

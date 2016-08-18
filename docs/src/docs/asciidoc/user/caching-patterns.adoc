@@ -1,0 +1,82 @@
+---
+---
+= Cache Usage Patterns
+ifndef::sourcedir31[]
+include::common.adoc[]
+endif::sourcedir31[]
+
+ifdef::notBuildingForSite[]
+include::menu.adoc[]
+endif::notBuildingForSite[]
+
+There are several common access patterns when using a cache. Ehcache supports the following patterns:
+
+== Cache-Aside
+With the cache-aside pattern, application code uses the cache directly.
+
+This means that application code which accesses the system-of-record (SOR) should consult the cache first, and if the
+cache contains the data, then return the data directly from the cache, bypassing the SOR.  Otherwise, the application
+code must fetch the data from the system-of-record, store the data in the cache, and then return it. When data is
+written, the cache must be updated along with the system-of-record.
+
+.Pseudocode for reading values
+----
+v = cache.get(k)
+if(v == null) {
+    v = sor.get(k)
+    cache.put(k, v)
+}
+----
+
+
+.Pseudocode for writing values
+----
+v = newV
+sor.put(k, v)
+cache.put(k, v)
+----
+
+[[cache-through]]
+== Cache-As-SoR
+The cache-as-SoR pattern implies using the cache as though it were the primary system-of-record (SoR).
+
+The pattern delegates SOR reading and writing activities to the cache, so that application code is (at least directly)
+absolved of this responsibility. To implement the cache-as-sor pattern, use a combination of the following read and
+write patterns:
+
+* read-through
+* write-through or write-behind
+
+Advantages of using the cache-as-SoR pattern are:
+
+* Less cluttered application code (improved maintainability through centralized SoR read/write operations)
+* Choice of write-through or write-behind strategies on a per-cache basis
+* Allows the cache to solve the _thundering-herd_ problem
+
+A disadvantage of using the cache-as-SoR pattern is:
+
+* Less directly visible code-path
+
+=== Read-Through
+Under the read-through pattern, the cache is configured with a _loader_ component that knows how to load data from the
+system-of-record (SoR).
+
+When the cache is asked for the value associated with a given key and such an entry does not
+exist within the cache, the cache invokes the loader to retrieve the value from the SoR, then caches the value, then
+returns it to the caller.
+
+The next time the cache is asked for the value for the same key it can be returned from the
+cache without using the loader (unless the entry has been evicted or expired).
+
+=== Write-Through
+Under the write-through pattern, the cache is configured with a _writer_ component that knows how to write data to the
+system-of-record (SoR).
+
+When the cache is asked to store a value for a key, the cache invokes the writer to store
+the value in the SoR, as well as updating the cache.
+
+=== Write-Behind
+The write-behind pattern changes the timing of the write to the system-of-record. Rather than writing to the
+system-of-record while the thread making the update waits (as with write-through), write-behind queues the data for
+writing at a later time.  This allows the user's thread to move along more quickly, at the cost of introducing some
+lag in time before the SoR is updated.

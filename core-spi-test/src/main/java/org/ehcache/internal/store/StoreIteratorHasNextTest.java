@@ -17,10 +17,10 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.config.Eviction;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 
@@ -28,8 +28,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.Iterator#hasNext()} contract of the
- * {@link org.ehcache.spi.cache.Store.Iterator Store.Iterator} interface.
+ * Test the {@link Store.Iterator#hasNext()} contract of the
+ * {@link Store.Iterator Store.Iterator} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
@@ -46,16 +46,15 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
   }
 
   @SPITest
   public void hasNext()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
+    kvStore = factory.newStore();
 
     int nbElements = 3;
     for (int i = 0; i < nbElements; i++) {
@@ -65,27 +64,17 @@ public class StoreIteratorHasNextTest<K, V> extends SPIStoreTester<K, V> {
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 
     for (int i = 0; i < nbElements; i++) {
-      try {
-        assertThat(iterator.hasNext(), is(true));
-      } catch (CacheAccessException e) {
-        System.err.println("Warning, an exception is thrown due to the SPI test");
-        e.printStackTrace();
-      }
+      assertThat(iterator.hasNext(), is(true));
     }
   }
 
   @SPITest
   public void hasNextReturnsFalseIfNoElement()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
+    kvStore = factory.newStore();
 
     Store.Iterator<Cache.Entry<K, Store.ValueHolder<V>>> iterator = kvStore.iterator();
 
-    try {
-      assertThat(iterator.hasNext(), is(false));
-    } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
-    }
+    assertThat(iterator.hasNext(), is(false));
   }
 }

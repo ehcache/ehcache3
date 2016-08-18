@@ -16,28 +16,50 @@
 
 package org.ehcache;
 
+import java.io.Closeable;
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.Configuration;
 
 /**
- * A CacheManager that manages {@link Cache} as well as associated {@link org.ehcache.spi.service.Service}
- *
- * @author Alex Snaps
+ * A repository that manages {@link Cache}s and associated {@link org.ehcache.spi.service.Service Service}s.
  */
-public interface CacheManager {
+public interface CacheManager extends Closeable {
 
   /**
    * Creates a {@link Cache} in this {@code CacheManager} according to the specified {@link CacheConfiguration}.
+   * <P>
+   *   The returned {@code Cache} will be in status {@link Status#AVAILABLE AVAILABLE}.
+   * </P>
    *
    * @param alias the alias under which the cache will be created
    * @param config the configuration of the cache to create
-   * @param <K> the type of the keys used to access data within this cache
-   * @param <V> the type of the values held within this cache
-   * @return the created and initialized {@link Cache}
+   * @param <K> the key type for the cache
+   * @param <V> the value type for the cache
+   * @return the created and available {@code Cache}
    *
-   * @throws java.lang.IllegalArgumentException If there is already a cache registered with the given alias.
-   * @throws java.lang.IllegalStateException If the cache creation fails
+   * @throws java.lang.IllegalArgumentException if there is already a cache registered with the given alias
+   * @throws java.lang.IllegalStateException if the cache creation fails
    */
   <K, V> Cache<K, V> createCache(String alias, CacheConfiguration<K, V> config);
+
+  /**
+   * Creates a {@link Cache} in this {@code CacheManager} according to the specified {@link CacheConfiguration} provided
+   * through a {@link Builder}.
+   * <P>
+   *   The returned {@code Cache} will be in status {@link Status#AVAILABLE AVAILABLE}.
+   * </P>
+   *
+   * @param alias the alias under which the cache will be created
+   * @param configBuilder the builder for the configuration of the cache to create
+   * @param <K> the key type for the cache
+   * @param <V> the value type for the cache
+   * @return the created and available {@code Cache}
+   *
+   * @throws java.lang.IllegalArgumentException if there is already a cache registered with the given alias
+   * @throws java.lang.IllegalStateException if the cache creation fails
+   */
+  <K, V> Cache<K, V> createCache(String alias, Builder<? extends CacheConfiguration<K, V>> configBuilder);
 
   /**
    * Retrieves the {@link Cache} associated with the given alias, if one is known.
@@ -45,55 +67,69 @@ public interface CacheManager {
    * @param alias the alias under which to look the {@link Cache} up
    * @param keyType the {@link Cache} key class
    * @param valueType the {@link Cache} value class
-   * @param <K> the type of the keys used to access data within this cache
-   * @param <V> the type of the values held within this cache
-   * @return the {@link Cache} associated with the given alias, {@code null} if no association exists
+   * @param <K> the key type for the cache
+   * @param <V> the value type for the cache
+   * @return the {@link Cache} associated with the given alias, {@code null} if no such cache exists
    *
-   * @throws java.lang.IllegalArgumentException If the keyType or valueType do not match the ones with which the {@link Cache} was created
+   * @throws java.lang.IllegalArgumentException if the keyType or valueType do not match the ones with which the
+   * {@code Cache} was created
    */
   <K, V> Cache<K, V> getCache(String alias, Class<K> keyType, Class<V> valueType);
 
   /**
-   * Removes the {@link Cache} associated with the alias provided, if oe is known.
-   * <P/>
+   * Removes the {@link Cache} associated with the alias provided, if one is known.
+   * <P>
    * When the cache is removed, it will release all resources it used.
+   * </P>
    *
    * @param alias the alias for which to remove the {@link Cache}
    */
   void removeCache(String alias);
 
   /**
-   * Attempts at having this CacheManager go to {@link org.ehcache.Status#AVAILABLE}, starting all
-   * {@link org.ehcache.spi.service.Service} instances managed by this {@link org.ehcache.CacheManager}, as well
-   * as all {@link org.ehcache.Cache} pre registered with it.
-   * <p>
-   * Should this throw, while the CacheManager isn't yet {@link org.ehcache.Status#AVAILABLE}, it will go back
-   * to {@link org.ehcache.Status#UNINITIALIZED} properly (i.e. closing all services it already started,
-   * but which in turn may fail too).
+   * Transitions this {@code CacheManager} to {@link Status#AVAILABLE AVAILABLE}.
+   * <P>
+   *   This will start all {@link org.ehcache.spi.service.Service Service}s managed by this {@code CacheManager}, as well
+   *   as initializing all {@link Cache}s registered with it.
+   * </P>
+   * <P>
+   *   If an error occurs before the {@code CacheManager} is {@code AVAILABLE}, it will revert to
+   *   {@link org.ehcache.Status#UNINITIALIZED UNINITIALIZED} attempting to close all services it had already started.
+   * </P>
    *
-   * @throws java.lang.IllegalStateException if the CacheManager isn't in {@link org.ehcache.Status#UNINITIALIZED} state
-   * @throws org.ehcache.exceptions.StateTransitionException if the CacheManager couldn't be made {@link org.ehcache.Status#AVAILABLE}
-   * @throws java.lang.RuntimeException if any exception is thrown, but still results in the CacheManager transitioning to {@link org.ehcache.Status#AVAILABLE}
+   * @throws IllegalStateException if the {@code CacheManager} is not {@code UNINITIALIZED}
+   * @throws StateTransitionException if the {@code CacheManager} could not be made {@code AVAILABLE}
    */
-  void init();
+  void init() throws StateTransitionException;
 
   /**
-   * Releases all data held in {@link Cache} instances managed by this {@link CacheManager}, as well as all
-   * {@link org.ehcache.spi.service.Service} this instance provides to managed {@link Cache} instances.
-   * <p>
-   * Should this throw, while the CacheManager isn't yet {@link org.ehcache.Status#UNINITIALIZED}, it will keep on
-   * trying to go to {@link org.ehcache.Status#UNINITIALIZED} properly (i.e. closing all other services it didn't yet stop).
+   * Transitions this {@code CacheManager} to {@link Status#UNINITIALIZED UNINITIALIZED}.
+   * <P>
+   *   This will close all {@link Cache}s known to this {@code CacheManager} and stop all
+   *   {@link org.ehcache.spi.service.Service Service}s managed by this {@code CacheManager}.
+   * </P>
+   * <P>
+   *   Failure to close any {@code Cache} or to stop any {@code Service} will not prevent others from being closed or
+   *   stopped.
+   * </P>
    *
-   * @throws org.ehcache.exceptions.StateTransitionException if the CacheManager couldn't be cleanly made
-   *                                                         {@link org.ehcache.Status#UNINITIALIZED},
-   *                                                         wrapping the first exception encountered
-   * @throws java.lang.RuntimeException if any exception is thrown, like from Listeners
+   * @throws StateTransitionException if the {@code CacheManager} could not reach {@code UNINITIALIZED} cleanly
+   * @throws IllegalStateException if the {@code CacheManager} is not {@code AVAILABLE}
    */
-  void close();
+  @Override
+  void close() throws StateTransitionException;
 
   /**
-   * Returns the current {@link org.ehcache.Status} for this CacheManager
-   * @return the current {@link org.ehcache.Status}
+   * Returns the current {@link org.ehcache.Status Status} of this {@code CacheManager}.
+   *
+   * @return the current {@code Status}
    */
   Status getStatus();
+
+  /**
+   * Returns the current {@link Configuration} used by this {@code CacheManager}.
+   *
+   * @return the configuration instance backing this {@code CacheManager}
+   */
+  Configuration getRuntimeConfiguration();
 }

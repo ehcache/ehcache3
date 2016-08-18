@@ -17,10 +17,10 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.Cache;
-import org.ehcache.config.Eviction;
-import org.ehcache.exceptions.CacheAccessException;
-import org.ehcache.spi.cache.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.spi.test.After;
+import org.ehcache.spi.test.LegalSPITesterException;
 import org.ehcache.spi.test.SPITest;
 
 import java.util.NoSuchElementException;
@@ -30,8 +30,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 
 /**
- * Test the {@link org.ehcache.spi.cache.Store.Iterator#next()} contract of the
- * {@link org.ehcache.spi.cache.Store.Iterator Store.Iterator} interface.
+ * Test the {@link Store.Iterator#next()} contract of the
+ * {@link Store.Iterator Store.Iterator} interface.
  * <p/>
  *
  * @author Aurelien Broszniowski
@@ -48,16 +48,15 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
   @After
   public void tearDown() {
     if (kvStore != null) {
-//      kvStore.close();
+      factory.close(kvStore);
       kvStore = null;
     }
   }
 
   @SPITest
   public void nextReturnsNextElement()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction
-        .all(), null));
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
+    kvStore = factory.newStore();
 
     K key = factory.createKey(1);
     V value = factory.createValue(1);
@@ -69,16 +68,15 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
       Cache.Entry<K, Store.ValueHolder<V>> entry = iterator.next();
       assertThat(entry.getKey(), is(equalTo(key)));
       assertThat(entry.getValue().value(), is(equalTo(value)));
-    } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 
   @SPITest
   public void noMoreElementThrowsException()
-      throws IllegalAccessException, InstantiationException, CacheAccessException {
-    kvStore = factory.newStore(factory.newConfiguration(factory.getKeyType(), factory.getValueType(), null, Eviction.all(), null));
+      throws IllegalAccessException, InstantiationException, StoreAccessException, LegalSPITesterException {
+    kvStore = factory.newStore();
 
     kvStore.put(factory.createKey(1), factory.createValue(1));
 
@@ -90,9 +88,8 @@ public class StoreIteratorNextTest<K, V> extends SPIStoreTester<K, V> {
       throw new AssertionError("Expected NoSuchElementException because no more element could be found");
     } catch (NoSuchElementException e) {
       // expected
-    } catch (CacheAccessException e) {
-      System.err.println("Warning, an exception is thrown due to the SPI test");
-      e.printStackTrace();
+    } catch (StoreAccessException e) {
+      throw new LegalSPITesterException("Warning, an exception is thrown due to the SPI test");
     }
   }
 }

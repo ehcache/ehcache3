@@ -1,0 +1,52 @@
+/*
+ * Copyright Terracotta, Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+dependencies {
+  ext {
+    paxExamVersion = '3.5.0'
+    urlVersion = '1.6.0'
+    felixVersion = '4.4.0'
+  }
+
+  testCompile project(':impl'), project(':xml'), project(':107'),
+          'junit:junit:4.11',
+          "org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion",
+          "org.apache.felix:org.apache.felix.framework:$felixVersion",
+          "javax.cache:cache-api:$parent.jcacheVersion"
+
+  testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion",
+          "org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion",
+          "org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion",
+          "org.ops4j.pax.url:pax-url-aether:$urlVersion"
+
+
+}
+
+sourceSets {
+  test {
+    // Needed for PaxExam which makes the dynamic bundle load content of a single dir
+    // matching the package of the test class
+    output.resourcesDir = "$buildDir/classes/test"
+  }
+}
+
+test {
+  systemProperty 'ehcache.osgi.jar', project(':dist').jar.archivePath.getPath()
+  systemProperty 'ehcache.osgi.jcache.version', parent.jcacheVersion
+  systemProperty 'ehcache.osgi.slf4j.version', parent.slf4jVersion
+}
+
+test.dependsOn ':dist:jar'

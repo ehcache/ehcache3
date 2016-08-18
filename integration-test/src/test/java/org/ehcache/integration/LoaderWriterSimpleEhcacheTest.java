@@ -17,9 +17,8 @@ package org.ehcache.integration;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
-import org.ehcache.CacheManagerBuilder;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.hamcrest.Matchers;
@@ -29,6 +28,8 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -54,13 +55,11 @@ public class LoaderWriterSimpleEhcacheTest {
 
   @Before
   public void setUp() throws Exception {
-    CacheManagerBuilder<CacheManager> builder = CacheManagerBuilder.newCacheManagerBuilder();
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
     when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>)anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
-    builder.using(cacheLoaderWriterProvider);
-    cacheManager = builder.build(true);
-    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder().buildConfig(Number.class, CharSequence.class));
+    cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
+    testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)).build());
   }
 
   @After

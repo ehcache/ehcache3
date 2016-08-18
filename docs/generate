@@ -8,7 +8,7 @@
 declare -r syntax="Syntax: ${0} <ehcache.github.io_project_root> <version>"
 
 declare -r contentRoot="$( cd "$(dirname "${0}")" ; pwd )"
-declare -r siteDocDir="${contentRoot}/build/asciidoc/html5/user"
+declare -r siteDocDir="${contentRoot}/build/asciidoc/user"
 
 ## 'adoc' files which don't need direct conversion
 declare -ar adocExclusions=(
@@ -62,7 +62,7 @@ fi
 ## 1) Convert and place
 echo "Converting & installing adocs"
 ../gradlew clean asciidoctor || exit
-cp -p "${siteDocDir}/"* "${docsTarget}/." || exit
+cp -r -p "${siteDocDir}/"* "${docsTarget}/." || exit
 
 echo "Done"
 

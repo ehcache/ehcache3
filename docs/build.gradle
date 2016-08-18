@@ -26,5 +26,30 @@ buildscript {
 
 apply plugin: 'org.asciidoctor.convert'
 
-uploadArchives.onlyIf { false }
-install.onlyIf { false }
+task copyCSS(type: Copy) {
+  from ('css') {
+    include '**'
+  }
+  into("${buildDir}/asciidoc/user/css")
+}
+
+task copyImages(type: Copy) {
+  from('src/docs/asciidoc/user/images') {
+    include '**'
+  }
+  into("${buildDir}/asciidoc/user/images")
+}
+
+asciidoctor.dependsOn copyCSS, copyImages
+
+asciidoctor {
+  separateOutputDirs = false;
+  attributes 'skip-front-matter': 'true'
+
+  resources {
+    from('fonts') {
+      include '*'
+      into('./user/fonts')
+    }
+  }
+}

@@ -1,12 +1,17 @@
-include::common.adoc[]
-
+---
+---
 = Management and Monitoring
+ifndef::sourcedir31[]
+include::common.adoc[]
+endif::sourcedir31[]
 
+ifdef::notBuildingForSite[]
 include::menu.adoc[]
+endif::notBuildingForSite[]
 
 == Intro
 
-Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistry`
+Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistryService`
 instance.
 
 A `ManagementRegistry` implementation has to understand the registered object and provide management and monitoring
@@ -24,39 +29,74 @@ By default, a `ManagementRegistry` is automatically discovered and enabled, but 
 internal services. If you wish to make use of it, you should create your own instance and pass it to the
 cache manager builder as a service:
 
-[source,java]
+[source,java,indent=0]
 ----
-ManagementRegistry managementRegistry = new DefaultManagementRegistry(); // <1>
-CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
-    .withCache("aCache", cacheConfiguration)
-    .using(managementRegistry) // <2>
-    .build(true);
+include::{sourcedir31}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=usingManagementRegistry]
 ----
-<1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
-<2> Pass it as a service to the cache manager
+<1> Optional: give a name to your cache manager by using a custom configuration
+<2> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistryService`. This is only required because the service is used below.
+<3> Pass it as a service to the cache manager (if you only want to configure the ManagementRegistry, you can just pass the configuration instead)
+<4> Perform a few gets to increment the statistic's counter
+<5> Create the target statistic's context
+<6> Collect the get count statistic
+<7> Check that the statistic reports the expected count
 
 Obviously, you may use the above technique to pass your own implementation of `ManagementRegistry`.
 
+== Capabilities and contexts
+
+Capabilities are metadata of what the managed objects are capable of: a collection of statistic that can be queried
+and/or remote actions that can be called.
+Each capability requires a context to run within. For instance, cache-specific statistics require a cache manager name
+and a cache name to uniquely identify the cache on which you want to query stats or call an action.
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=capabilitiesAndContexts]
+----
+<1> Query the `ManagementRegistry` for the registered managed objects' capabilities.
+<2> Each capability has a unique name you will need to refer to it.
+<3> Each capability has a collection of `Descriptor`s that contains the metadata of each statistic or action.
+<4> Each capability requires a context to which it needs to refer to.
+<5> The first attribute of this context is the cache manager name.
+<6> The second attribute of this context is the cache name. With both attributes, the capability can uniquely refer to
+    a unique managed object.
+<7> Query the `ManagementRegistry` for the all the registered managed objects' contexts.
+<8> There is only one context here, and its name is the cache manager's name.
+<9> The above context has a subcontext: the cache's name.
+
+The context containers give you all the attributes of all existing contexts. You can match the values returned by a
+context container to a capability's context by matching their respective names.
+
+== Actions
+
+There are two forms of capabilities: statistics and action ones. The statistic ones offer a set of predefined
+statistics that can be queried at will, while the action ones offer a set of actions that can be taken upon
+a managed object. Examples of actions could be: clear caches, get their config or modify a config setting.
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=actionCall]
+----
+<1> Put something in a cache.
+<2> Call the 'clear' action on the managed cache. Refer to the descriptors of the provider to get the exact list of
+    action names and their required parameters.
+<3> Call the clear action on the cache.
+<4> Make sure that the cache is now empty.
+
+
 == Managing multiple cache managers
 
-The default `ManagementRegistry` instance that is created when none are manually registered only manage a single cache
-manager by default.
+The default `ManagementRegistry` instance that is created when none are manually registered only manages a single cache
+manager by default, but sometimes you may want one `ManagementRegistry` to manage multiple cache managers.
 
 `ManagementRegistry` instances are thread-safe, so one instance can be shared amongst multiple cache managers:
 
-[source,java]
+[source,java,indent=0]
 ----
-ManagementRegistry managementRegistry = new DefaultManagementRegistry(); // <1>
-CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
-    .withCache("aCache", cacheConfiguration)
-    .using(managementRegistry) // <2>
-    .build(true);
-CacheManager cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
-    .withCache("aCache", cacheConfiguration)
-    .using(managementRegistry) // <3>
-    .build(true);
+include::{sourcedir31}/management/src/test/java/org/ehcache/docs/ManagementTest.java[tag=managingMultipleCacheManagers]
 ----
-<1> Create an instance of `org.ehcache.management.registry.DefaultManagementRegistry`
+<1> Create an instance of `org.ehcache.management.SharedManagementService`
 <2> Pass it as a service to the first cache manager
 <3> Pass it as a service to the second cache manager
 
