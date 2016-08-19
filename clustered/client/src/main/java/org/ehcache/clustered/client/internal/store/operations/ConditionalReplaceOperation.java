@@ -26,8 +26,8 @@ import static org.ehcache.clustered.client.internal.store.operations.OperationCo
 public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Result<V> {
 
   private final K key;
-  private final V oldValue;
-  private final V newValue;
+  private final LazyValueHolder<V> oldValueHolder;
+  private final LazyValueHolder<V> newValueHolder;
   private final long timeStamp;
 
   public ConditionalReplaceOperation(final K key, final V oldValue, final V newValue, final long timeStamp) {
@@ -38,11 +38,11 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     if(oldValue == null) {
       throw new NullPointerException("Old value can not be null");
     }
-    this.oldValue = oldValue;
+    this.oldValueHolder = new LazyValueHolder<V>(oldValue);
     if(newValue == null) {
       throw new NullPointerException("New value can not be null");
     }
-    this.newValue = newValue;
+    this.newValueHolder = new LazyValueHolder<V>(newValue);
     this.timeStamp = timeStamp;
   }
 
@@ -68,11 +68,11 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
 
     try {
       this.key = keySerializer.read(keyBlob);
-      this.oldValue = valueSerializer.read(oldValueBlob);
-      this.newValue = valueSerializer.read(valueBlob);
     } catch (ClassNotFoundException e) {
       throw new CodecException(e);
     }
+    this.oldValueHolder = new LazyValueHolder<V>(oldValueBlob, valueSerializer);
+    this.newValueHolder = new LazyValueHolder<V>(valueBlob, valueSerializer);
   }
 
   public K getKey() {
@@ -80,12 +80,12 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
   }
 
   V getOldValue() {
-    return this.oldValue;
+    return this.oldValueHolder.getValue();
   }
 
   @Override
   public V getValue() {
-    return this.newValue;
+    return this.newValueHolder.getValue();
   }
 
   @Override
@@ -98,7 +98,7 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
     if(previousResult == null) {
       return null;
     } else {
-      if(oldValue.equals(previousResult.getValue())) {
+      if(getOldValue().equals(previousResult.getValue())) {
         return this;  // TODO: A new PutOperation can be created and returned here to minimize the size of returned operation
       } else {
         return previousResult;
@@ -109,8 +109,8 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
   @Override
   public ByteBuffer encode(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     ByteBuffer keyBuf = keySerializer.serialize(key);
-    ByteBuffer oldValueBuf = valueSerializer.serialize(oldValue);
-    ByteBuffer valueBuf = valueSerializer.serialize(newValue);
+    ByteBuffer oldValueBuf = oldValueHolder.encode(valueSerializer);
+    ByteBuffer valueBuf = newValueHolder.encode(valueSerializer);
 
     ByteBuffer buffer = ByteBuffer.allocate(BYTE_SIZE_BYTES +   // Operation type
                                             INT_SIZE_BYTES +    // Size of the key payload
@@ -134,7 +134,7 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
 
   @Override
   public String toString() {
-    return "{" + getOpCode() + "# key: " + key + ", oldValue: " + oldValue + ", newValue: " + newValue + "}";
+    return "{" + getOpCode() + "# key: " + key + ", oldValue: " + getOldValue() + ", newValue: " + getValue() + "}";
   }
 
   @Override
@@ -166,8 +166,8 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
   public int hashCode() {
     int hash = getOpCode().hashCode();
     hash = hash * 31 + key.hashCode();
-    hash = hash * 31 + oldValue.hashCode();
-    hash = hash * 31 + newValue.hashCode();
+    hash = hash * 31 + getOldValue().hashCode();
+    hash = hash * 31 + getValue().hashCode();
     return hash;
   }
 
