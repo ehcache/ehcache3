@@ -33,10 +33,10 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.LoggerFactory;
 import org.terracotta.exception.EntityAlreadyExistsException;
 import org.terracotta.exception.EntityNotFoundException;
-import org.terracotta.management.entity.ManagementAgentConfig;
-import org.terracotta.management.entity.ManagementAgentVersion;
-import org.terracotta.management.entity.client.ManagementAgentEntity;
-import org.terracotta.management.entity.client.ManagementAgentService;
+import org.terracotta.management.entity.management.ManagementAgentConfig;
+import org.terracotta.management.entity.management.ManagementAgentVersion;
+import org.terracotta.management.entity.management.client.ManagementAgentEntity;
+import org.terracotta.management.entity.management.client.ManagementAgentService;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 

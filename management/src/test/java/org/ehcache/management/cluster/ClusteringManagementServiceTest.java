@@ -37,16 +37,18 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionFactory;
-import org.terracotta.entity.BasicServiceConfiguration;
-import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.entity.map.TerracottaClusteredMapClientService;
 import org.terracotta.entity.map.server.TerracottaClusteredMapService;
-import org.terracotta.management.entity.ManagementAgentConfig;
-import org.terracotta.management.entity.client.ContextualReturnListener;
-import org.terracotta.management.entity.client.ManagementAgentEntityClientService;
-import org.terracotta.management.entity.client.ManagementAgentEntityFactory;
-import org.terracotta.management.entity.client.ManagementAgentService;
-import org.terracotta.management.entity.server.ManagementAgentEntityServerService;
+import org.terracotta.management.entity.management.ManagementAgentConfig;
+import org.terracotta.management.entity.management.client.ContextualReturnListener;
+import org.terracotta.management.entity.management.client.ManagementAgentEntityClientService;
+import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
+import org.terracotta.management.entity.management.client.ManagementAgentService;
+import org.terracotta.management.entity.management.server.ManagementAgentEntityServerService;
+import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntity;
+import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntityClientService;
+import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntityFactory;
+import org.terracotta.management.entity.monitoring.server.MonitoringServiceEntityServerService;
 import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.capabilities.Capability;
@@ -56,10 +58,6 @@ import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.primitive.Counter;
-import org.terracotta.management.service.monitoring.IMonitoringConsumer;
-import org.terracotta.management.service.monitoring.MonitoringServiceConfiguration;
-import org.terracotta.management.service.monitoring.MonitoringServiceProvider;
-import org.terracotta.management.service.monitoring.ReadOnlyBuffer;
 import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
@@ -91,9 +89,7 @@ import static org.junit.Assert.assertThat;
 
 public class ClusteringManagementServiceTest {
 
-  static IMonitoringConsumer consumer;
-  static ReadOnlyBuffer<Serializable[]> notifsBuffer;
-  static ReadOnlyBuffer<Serializable[]> statsBuffer;
+  static MonitoringServiceEntity consumer;
   static PassthroughClusterControl stripeControl;
 
   CacheManager cacheManager;
@@ -137,14 +133,14 @@ public class ClusteringManagementServiceTest {
 
   private void runTest() throws Exception {
     // assert management registry has been correctly exposed in voltron
-    String clientIdentifier = consumer.getChildNamesForNode("management", "clients").get().iterator().next();
-    String[] tags = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "tags"}, String[].class).get();
+    String clientIdentifier = consumer.getChildNamesForNode("management", "clients").iterator().next();
+    String[] tags = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "tags"}, String[].class);
     assertThat(tags, equalTo(new String[]{"server-node-1", "webapp-1"}));
-    ContextContainer contextContainer = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class).get();
+    ContextContainer contextContainer = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
     assertThat(contextContainer.getValue(), equalTo("my-super-cache-manager"));
     assertThat(contextContainer.getSubContexts(), hasSize(1));
     assertThat(contextContainer.getSubContexts().iterator().next().getValue(), equalTo("cache-1"));
-    Capability[] capabilities = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "capabilities"}, Capability[].class).get();
+    Capability[] capabilities = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "capabilities"}, Capability[].class);
     assertThat(capabilities.length, equalTo(5));
 
     remotelyUpdateCollectedStatistics();
@@ -164,7 +160,7 @@ public class ClusteringManagementServiceTest {
         .build());
 
     // assert that the management registry exposed in voltron has been updated
-    contextContainer = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class).get();
+    contextContainer = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
     assertThat(contextContainer.getValue(), equalTo("my-super-cache-manager"));
     assertThat(contextContainer.getSubContexts(), hasSize(2));
     assertThat(contextContainer.getSubContexts().iterator().next().getValue(), equalTo("cache-1"));
@@ -177,7 +173,7 @@ public class ClusteringManagementServiceTest {
     assertThat(cNames, equalTo(expectedCNames));
 
     // verify the notification has been received in voltron
-    ContextualNotification notif = (ContextualNotification) notifsBuffer.take()[1];
+    ContextualNotification notif = (ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1];
     assertThat(notif.getType(), equalTo("CACHE_ADDED"));
 
     // do some put also
@@ -187,7 +183,10 @@ public class ClusteringManagementServiceTest {
     cache2.put("key3", "val");
 
     // verify stats have been received too
-    ContextualStatistics[] stats = (ContextualStatistics[]) statsBuffer.take()[1];
+    ContextualStatistics[] stats;
+    Serializable[] serializables;
+    while ((serializables = consumer.readBuffer("client-statistics", Serializable[].class)) == null) { Thread.sleep(500); }
+    stats = (ContextualStatistics[]) serializables[1];
     assertThat(stats.length, equalTo(2));
     assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
     assertThat(stats[1].getContext().get("cacheName"), equalTo("cache-2"));
@@ -201,7 +200,8 @@ public class ClusteringManagementServiceTest {
     cache2.put("key3", "val");
 
     // wait for next stats and verify
-    stats = (ContextualStatistics[]) statsBuffer.take()[1];
+    while ((serializables = consumer.readBuffer("client-statistics", Serializable[].class)) == null) { Thread.sleep(500); }
+    stats = (ContextualStatistics[]) serializables[1];
     assertThat(stats.length, equalTo(2));
     assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
     assertThat(stats[1].getContext().get("cacheName"), equalTo("cache-2"));
@@ -212,7 +212,7 @@ public class ClusteringManagementServiceTest {
     cacheManager.removeCache("cache-2");
 
     // ensure we got the notification server-side
-    notif = (ContextualNotification) notifsBuffer.read()[1];
+    notif = (ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1];
     assertThat(notif.getType(), equalTo("CACHE_REMOVED"));
   }
 
@@ -294,8 +294,8 @@ public class ClusteringManagementServiceTest {
     activeServer.registerClientEntityService(new TerracottaClusteredMapClientService());
     activeServer.registerServerEntityService(new TerracottaClusteredMapService());
 
-    // monitoring service
-    activeServer.registerServiceProvider(new HackedMonitoringServiceProvider(), new MonitoringServiceConfiguration().setDebug(false));
+    activeServer.registerServerEntityService(new MonitoringServiceEntityServerService());
+    activeServer.registerClientEntityService(new MonitoringServiceEntityClientService());
 
     // off-heap service
     OffheapResourcesType offheapResourcesType = new OffheapResourcesType();
@@ -307,6 +307,10 @@ public class ClusteringManagementServiceTest {
     activeServer.registerServiceProvider(new OffHeapResourcesProvider(), new OffHeapResourcesConfiguration(offheapResourcesType));
 
     stripeControl = new PassthroughClusterControl("server-1", activeServer);
+
+    consumer = new MonitoringServiceEntityFactory(ConnectionFactory.connect(URI.create("passthrough://server-1:9510/cluster-1"), new Properties())).retrieveOrCreate("MonitoringConsumerEntity");
+    consumer.createBestEffortBuffer("client-notifications", 1024, Serializable[].class);
+    consumer.createBestEffortBuffer("client-statistics", 1024, Serializable[].class);
   }
 
   @AfterClass
@@ -318,18 +322,6 @@ public class ClusteringManagementServiceTest {
   public void after() throws Exception {
     if (cacheManager != null && cacheManager.getStatus() == Status.AVAILABLE) {
       cacheManager.close();
-    }
-  }
-
-  // hack to be able to access the IMonitoringConsumer interface outside of Voltron
-  public static class HackedMonitoringServiceProvider extends MonitoringServiceProvider {
-    @Override
-    public boolean initialize(ServiceProviderConfiguration configuration) {
-      super.initialize(configuration);
-      consumer = getService(0, new BasicServiceConfiguration<>(IMonitoringConsumer.class));
-      notifsBuffer = consumer.getOrCreateBestEffortBuffer("client-notifications", 1024, Serializable[].class);
-      statsBuffer = consumer.getOrCreateBestEffortBuffer("client-statistics", 1024, Serializable[].class);
-      return true;
     }
   }
 

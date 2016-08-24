@@ -73,7 +73,7 @@ public class VoltronReadWriteLock {
 
   private boolean tryDestroy() {
     try {
-      return reference.tryDestroy();
+      return reference.destroy();
     } catch (EntityNotProvidedException e) {
       throw new AssertionError(e);
     } catch (EntityNotFoundException e) {

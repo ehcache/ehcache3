@@ -66,7 +66,7 @@ public class VoltronReadWriteLockClientTest {
     try {
       EntityRef<VoltronReadWriteLockClient, Void> ref = getEntityReference(connection);
       try {
-        assertThat(ref.tryDestroy(), is(true));
+        assertThat(ref.destroy(), is(true));
       } catch (EntityNotFoundException e) {
         //expected
       }

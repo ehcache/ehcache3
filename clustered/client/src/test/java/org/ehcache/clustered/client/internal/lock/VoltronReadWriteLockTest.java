@@ -174,7 +174,7 @@ public class VoltronReadWriteLockTest {
 
     lock.writeLock().unlock();
 
-    verify(entityRef).tryDestroy();
+    verify(entityRef).destroy();
   }
 
   @Test
@@ -190,7 +190,7 @@ public class VoltronReadWriteLockTest {
 
     lock.readLock().unlock();
 
-    verify(entityRef).tryDestroy();
+    verify(entityRef).destroy();
   }
 
   @Test
@@ -307,7 +307,7 @@ public class VoltronReadWriteLockTest {
 
     lock.tryWriteLock().unlock();
 
-    verify(entityRef).tryDestroy();
+    verify(entityRef).destroy();
   }
 
   @Test
@@ -324,7 +324,7 @@ public class VoltronReadWriteLockTest {
 
     lock.tryReadLock().unlock();
 
-    verify(entityRef).tryDestroy();
+    verify(entityRef).destroy();
   }
 
   @Test
@@ -372,7 +372,7 @@ public class VoltronReadWriteLockTest {
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     assertThat(lock.tryWriteLock(), nullValue());
-    verify(entityRef).tryDestroy();
+    verify(entityRef).destroy();
   }
 
   @Test
@@ -388,6 +388,6 @@ public class VoltronReadWriteLockTest {
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
     assertThat(lock.tryReadLock(), nullValue());
-    verify(entityRef).tryDestroy();
+    verify(entityRef).destroy();
   }
 }

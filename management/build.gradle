@@ -31,6 +31,7 @@ dependencies {
   testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
   testCompile "org.terracotta:passthrough-server:$parent.entityTestLibVersion"
   testCompile "org.terracotta.management:monitoring-service:$parent.managementVersion"
+  testCompile "org.terracotta.management:monitoring-service-entity:$parent.managementVersion"
   testCompile "org.terracotta.management:management-entity-server:$parent.managementVersion"
   testCompile "org.terracotta.entities:clustered-map-server:$parent.terracottaPlatformVersion"
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"
