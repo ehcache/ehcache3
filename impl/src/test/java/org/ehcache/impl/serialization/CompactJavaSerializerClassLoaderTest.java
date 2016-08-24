@@ -17,7 +17,6 @@
 package org.ehcache.impl.serialization;
 
 import java.io.Serializable;
-import java.net.URLClassLoader;
 import java.nio.ByteBuffer;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.popTccl;
 import static org.ehcache.impl.serialization.SerializerTestUtilities.pushTccl;
@@ -34,7 +33,7 @@ import org.junit.Test;
 public class CompactJavaSerializerClassLoaderTest {
 
   private static ClassLoader newLoader() {
-    return new URLClassLoader(((URLClassLoader) CompactJavaSerializerClassLoaderTest.class.getClassLoader()).getURLs(), null);
+    return new DuplicateClassLoader(CompactJavaSerializerClassLoaderTest.class.getClassLoader());
   }
 
   @Test
