@@ -49,6 +49,7 @@ import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -786,7 +787,9 @@ public class ByteAccountingTest {
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
     String key1 = "key1";
-    String value1 = new String(new byte[250]);
+    char[] chars = new char[250];
+    Arrays.fill(chars, (char) 0xffff);
+    String value1 = new String(chars);
 
     long requiredSize = getSize(key1, value1);
 
