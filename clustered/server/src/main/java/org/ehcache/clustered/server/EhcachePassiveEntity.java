@@ -29,6 +29,7 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
@@ -50,7 +51,30 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   private final Set<String> offHeapResourceIdentifiers;
   private final EhcacheStateService ehcacheStateService;
 
-  private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
+  @Override
+  public void invoke(EhcacheEntityMessage message) {
+
+    try {
+      if (this.offHeapResourceIdentifiers.isEmpty()) {
+        throw new ServerMisconfigurationException("Server started without any offheap resources defined." +
+                                                  " Check your server configuration and define at least one offheap resource.");
+      }
+
+      switch (message.getType()) {
+        case LIFECYCLE_OP:
+          invokeLifeCycleOperation((LifecycleMessage) message);
+          break;
+        case SERVER_STORE_OP:
+          invokeServerStoreOperation((ServerStoreOpMessage)message);
+          break;
+        default:
+          throw new IllegalMessageException("Unknown message : " + message);
+      }
+    } catch (Exception e) {
+      LOGGER.error("Unexpected exception raised during operation: " + message, e);
+    }
+
+  }
 
   EhcachePassiveEntity(ServiceRegistry services, byte[] config) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
@@ -66,29 +90,37 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
-  @Override
-  public void invoke(EhcacheEntityMessage message) {
-
-    try {
-      if (this.offHeapResourceIdentifiers.isEmpty()) {
-        throw new ServerMisconfigurationException("Server started without any offheap resources defined." +
-                                                  " Check your server configuration and define at least one offheap resource.");
-      }
-
-      switch (message.getType()) {
-        case LIFECYCLE_OP:
-          invokeLifeCycleOperation((LifecycleMessage) message);
-          break;
-        case SERVER_STORE_OP:
-          //TODO : #1211
-          break;
-        default:
-          throw new IllegalMessageException("Unknown message : " + message);
-      }
-    } catch (Exception e) {
-      LOGGER.error("Unexpected exception raised during operation: " + message, e);
+  private void invokeServerStoreOperation(ServerStoreOpMessage message) throws ClusterException {
+    ServerStoreImpl cacheStore = ehcacheStateService.getStore(message.getCacheId());
+    if (cacheStore == null) {
+      // An operation on a non-existent store should never get out of the client
+      throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
     }
 
+    switch (message.operation()) {
+      //TODO: check if append and getandappend can be combined
+      case APPEND: {
+        ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
+        cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
+        break;
+      }
+      case GET_AND_APPEND: {
+        ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
+        cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
+        break;
+      }
+      case REPLACE: {
+        ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
+        cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
+        break;
+      }
+      case CLEAR: {
+        cacheStore.clear();
+        break;
+      }
+      default:
+        throw new IllegalMessageException("Unknown ServerStore operation : " + message);
+    }
   }
 
   private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException{
