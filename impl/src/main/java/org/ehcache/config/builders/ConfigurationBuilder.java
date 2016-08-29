@@ -101,7 +101,7 @@ class ConfigurationBuilder implements Builder<Configuration> {
   <T> T findServiceByClass(Class<T> type) {
     for (ServiceCreationConfiguration<?> serviceConfiguration : serviceConfigurations) {
       if (serviceConfiguration.getClass().equals(type)) {
-        return (T) serviceConfiguration;
+        return type.cast(serviceConfiguration);
       }
     }
     return null;

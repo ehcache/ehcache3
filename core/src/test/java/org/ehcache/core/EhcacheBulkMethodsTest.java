@@ -107,7 +107,7 @@ public class EhcacheBulkMethodsTest {
     return new Ehcache<Number, CharSequence>(cacheConfig, store, cacheEventDispatcher, LoggerFactory.getLogger(Ehcache.class + "-" + "EhcacheBulkMethodsTest"));
   }
 
-  static <K, V> Map.Entry<? extends K, ? extends V> entry(final K key, final V value) {
+  static <K, V> Map.Entry<K, V> entry(final K key, final V value) {
     return new Map.Entry<K, V>() {
 
       @Override

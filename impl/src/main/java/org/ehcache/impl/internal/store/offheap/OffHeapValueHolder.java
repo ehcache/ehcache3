@@ -40,9 +40,9 @@ public abstract class OffHeapValueHolder<V> extends AbstractValueHolder<V> {
   @Override
   public boolean equals(Object other) {
     if (this == other) return true;
-    if (other == null || !(other instanceof OffHeapValueHolder)) return false;
+    if (other == null || !(other instanceof OffHeapValueHolder<?>)) return false;
 
-    OffHeapValueHolder that = (OffHeapValueHolder)other;
+    OffHeapValueHolder<?> that = (OffHeapValueHolder<?>)other;
 
     if (!super.equals(that)) return false;
     return value().equals(that.value());

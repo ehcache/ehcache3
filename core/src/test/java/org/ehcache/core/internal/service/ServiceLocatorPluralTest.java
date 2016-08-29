@@ -148,10 +148,10 @@ public class ServiceLocatorPluralTest {
   public void testDependencyDiscoveryOverService() throws Exception {
     final ServiceLocator serviceLocator = new ServiceLocator();
 
-    final Collection<Class<?>> concreteServiceDependencies =
+    final Collection<Class<? extends Service>> concreteServiceDependencies =
         serviceLocator.identifyTransitiveDependenciesOf(ConcreteService.class);
     assertThat(concreteServiceDependencies,
-        everyItem(Matchers.<Class<?>>isOneOf(
+        everyItem(Matchers.<Class<? extends Service>>isOneOf(
             BetaService.class,
             BetaServiceProvider.class,
             InitialService.class,
@@ -171,11 +171,11 @@ public class ServiceLocatorPluralTest {
   public void testDependencyDiscoveryOverNonService() throws Exception {
     final ServiceLocator serviceLocator = new ServiceLocator();
 
-    final Collection<Class<?>> nonServiceDependencies =
+    final Collection<Class<? extends Service>> nonServiceDependencies =
         serviceLocator.identifyTransitiveDependenciesOf(NotAService.class);
     System.out.printf("NotAService dependencies : %s%n", nonServiceDependencies);
     assertThat(nonServiceDependencies,
-        everyItem(Matchers.<Class<?>>isOneOf(
+        everyItem(Matchers.<Class<? extends Service>>isOneOf(
             BetaService.class,
             BetaServiceProvider.class,
             AlphaService.class,
@@ -183,20 +183,6 @@ public class ServiceLocatorPluralTest {
         )));
   }
 
-  /**
-   * Ensures dependencies declared in {@link ServiceDependencies} is a {@link Service} subtype.
-   */
-  @Test
-  public void testNonServiceDependency() throws Exception {
-    final ServiceLocator serviceLocator = new ServiceLocator();
-
-    try {
-      serviceLocator.identifyTransitiveDependenciesOf(BadDependencies.class);
-      fail();
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), endsWith(NonService.class.getName()));
-    }
-  }
 }
 
 class StartStopCounter {
@@ -347,12 +333,7 @@ class NotAService extends AlsoNotAService {
 class AlsoNotAService  implements NotAServiceInterface {
 }
 
-@ServiceDependencies({ NotAServiceInterface.class })
 interface NotAServiceInterface {
-}
-
-@ServiceDependencies({ NonService.class })
-class BadDependencies {
 }
 
 interface NonService {

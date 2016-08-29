@@ -38,12 +38,12 @@ class OutOfBandScheduledExecutor {
 
     @Override
     protected <V> RunnableScheduledFuture<V> decorateTask(Callable<V> clbl, RunnableScheduledFuture<V> rsf) {
-      return new OutOfBandRsf(((ExecutorCarrier) clbl).executor(), rsf);
+      return new OutOfBandRsf<V>(((ExecutorCarrier) clbl).executor(), rsf);
     }
 
     @Override
     protected <V> RunnableScheduledFuture<V> decorateTask(Runnable r, RunnableScheduledFuture<V> rsf) {
-      return new OutOfBandRsf(((ExecutorCarrier) r).executor(), rsf);
+      return new OutOfBandRsf<V>(((ExecutorCarrier) r).executor(), rsf);
     }
   };
 

@@ -101,6 +101,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     }
   }
 
+  @SuppressWarnings("unchecked")
   @Override
   public K readKey(long encoding, int hashCode) {
     return (K) keyPortability.decode(readKeyBuffer(encoding));

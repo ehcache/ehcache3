@@ -63,7 +63,7 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   @Override
   public <K, V> CacheEventDispatcher<K, V> createCacheEventDispatcher(Store<K, V> store, ServiceConfiguration<?>... serviceConfigs) {
     String threadPoolAlias = defaultThreadPoolAlias;
-    DefaultCacheEventDispatcherConfiguration config = findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, serviceConfigs);
+    DefaultCacheEventDispatcherConfiguration config = findSingletonAmongst(DefaultCacheEventDispatcherConfiguration.class, (Object[]) serviceConfigs);
     if (config != null) {
       threadPoolAlias = config.getThreadPoolAlias();
     }

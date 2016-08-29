@@ -45,6 +45,11 @@ import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
 
+  @SuppressWarnings("unchecked")
+  private OffHeapChainMap<Object> getOffHeapChainMapMock() {
+    return mock(OffHeapChainMap.class);
+  }
+
   @Override
   public ServerStore newStore() {
     return new OffHeapServerStore(new UnlimitedPageSource(new OffHeapBufferSource()), 16);
@@ -82,8 +87,8 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
   @Test
   public void test_append_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
     OffHeapServerStore store = (OffHeapServerStore) spy(newStore());
-    final OffHeapChainMap offHeapChainMap = mock(OffHeapChainMap.class);
-    doThrow(OversizeMappingException.class).when(offHeapChainMap).append(Matchers.any(), any(ByteBuffer.class));
+    final OffHeapChainMap<Object> offHeapChainMap = getOffHeapChainMapMock();
+    doThrow(OversizeMappingException.class).when(offHeapChainMap).append(any(Object.class), any(ByteBuffer.class));
 
     when(store.segmentFor(anyLong())).then(new Answer<Object>() {
       int invocations = 0;
@@ -108,8 +113,8 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
   @Test
   public void test_getAndAppend_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
     OffHeapServerStore store = (OffHeapServerStore) spy(newStore());
-    final OffHeapChainMap offHeapChainMap = mock(OffHeapChainMap.class);
-    doThrow(OversizeMappingException.class).when(offHeapChainMap).getAndAppend(Matchers.any(), any(ByteBuffer.class));
+    final OffHeapChainMap<Object> offHeapChainMap = getOffHeapChainMapMock();
+    doThrow(OversizeMappingException.class).when(offHeapChainMap).getAndAppend(any(), any(ByteBuffer.class));
 
     when(store.segmentFor(anyLong())).then(new Answer<Object>() {
       int invocations = 0;
@@ -139,8 +144,8 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
   @Test
   public void test_replaceAtHead_doesNotConsumeBuffer_evenWhenOversizeMappingException() throws Exception {
     OffHeapServerStore store = (OffHeapServerStore) spy(newStore());
-    final OffHeapChainMap offHeapChainMap = mock(OffHeapChainMap.class);
-    doThrow(OversizeMappingException.class).when(offHeapChainMap).replaceAtHead(Matchers.any(), any(Chain.class), any(Chain.class));
+    final OffHeapChainMap<Object> offHeapChainMap = getOffHeapChainMapMock();
+    doThrow(OversizeMappingException.class).when(offHeapChainMap).replaceAtHead(any(), any(Chain.class), any(Chain.class));
 
     when(store.segmentFor(anyLong())).then(new Answer<Object>() {
       int invocations = 0;

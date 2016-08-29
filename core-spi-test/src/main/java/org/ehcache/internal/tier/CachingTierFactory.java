@@ -47,5 +47,5 @@ public interface CachingTierFactory<K, V> {
 
   V createValue(long seed);
 
-  void disposeOf(CachingTier tier);
+  void disposeOf(CachingTier<K, V> tier);
 }

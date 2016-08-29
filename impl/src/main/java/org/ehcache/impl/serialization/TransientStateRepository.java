@@ -27,16 +27,17 @@ import java.util.concurrent.ConcurrentMap;
  */
 class TransientStateRepository implements StateRepository {
 
-  private ConcurrentMap<String, ConcurrentMap> knownMaps = new ConcurrentHashMap<String, ConcurrentMap>();
+  private ConcurrentMap<String, ConcurrentMap<?, ?>> knownMaps = new ConcurrentHashMap<String, ConcurrentMap<?, ?>>();
 
   @Override
+  @SuppressWarnings("unchecked")
   public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
-    ConcurrentMap concurrentMap = knownMaps.get(name);
+    ConcurrentMap<K, V> concurrentMap = (ConcurrentMap<K, V>) knownMaps.get(name);
     if (concurrentMap != null) {
       return concurrentMap;
     } else {
       ConcurrentHashMap<K, V> newMap = new ConcurrentHashMap<K, V>();
-      concurrentMap = knownMaps.putIfAbsent(name, newMap);
+      concurrentMap = (ConcurrentMap<K, V>) knownMaps.putIfAbsent(name, newMap);
       if (concurrentMap == null) {
         return newMap;
       } else {

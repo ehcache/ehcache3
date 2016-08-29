@@ -43,11 +43,11 @@ class OffHeapChainMap<K> implements MapInternals {
   }
 
   private final ReadWriteLockedOffHeapClockCache<K, InternalChain> heads;
-  private final OffHeapChainStorageEngine chainStorage;
+  private final OffHeapChainStorageEngine<K> chainStorage;
   private volatile ChainMapEvictionListener<K> evictionListener;;
 
   public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean shareByThieving) {
-    this.chainStorage = new OffHeapChainStorageEngine(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving);
+    this.chainStorage = new OffHeapChainStorageEngine<K>(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving);
     EvictionListener<K, InternalChain> listener = new EvictionListener<K, InternalChain>() {
       @Override
       public void evicting(Callable<Map.Entry<K, InternalChain>> callable) {

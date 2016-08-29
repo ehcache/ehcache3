@@ -375,8 +375,8 @@ public final class ServiceLocator implements ServiceProvider<Service> {
    * @param clazz the class for which dependency availability is checked
    */
   public void loadDependenciesOf(Class<?> clazz) {
-    final Collection<Class<?>> transitiveDependencies = identifyTransitiveDependenciesOf(clazz);
-    for (Class aClass : transitiveDependencies) {
+    final Collection<Class<? extends Service>> transitiveDependencies = identifyTransitiveDependenciesOf(clazz);
+    for (Class<? extends Service> aClass : transitiveDependencies) {
       if (findServices(aClass, null, true).isEmpty()) {
         throw new IllegalStateException("Unable to resolve dependent service: " + aClass.getName());
       }
@@ -398,8 +398,8 @@ public final class ServiceLocator implements ServiceProvider<Service> {
    * @see #identifyTransitiveDependenciesOf(Class, Set)
    */
   // Package-private for unit tests
-  Collection<Class<?>> identifyTransitiveDependenciesOf(final Class<?> clazz) {
-    return identifyTransitiveDependenciesOf(clazz, new LinkedHashSet<Class<?>>());
+  Collection<Class<? extends Service>> identifyTransitiveDependenciesOf(final Class<?> clazz) {
+    return identifyTransitiveDependenciesOf(clazz, new LinkedHashSet<Class<? extends Service>>());
   }
 
   /**
@@ -413,7 +413,8 @@ public final class ServiceLocator implements ServiceProvider<Service> {
    *
    * @see #identifyTransitiveDependenciesOf(Class)
    */
-  private Collection<Class<?>> identifyTransitiveDependenciesOf(final Class<?> clazz, final Set<Class<?>> dependencies) {
+  @SuppressWarnings("unchecked")
+  private Collection<Class<? extends Service>> identifyTransitiveDependenciesOf(final Class<?> clazz, final Set<Class<? extends Service>> dependencies) {
     if (clazz == null || clazz == Object.class) {
       return dependencies;
     }
@@ -426,7 +427,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
             throw new IllegalStateException("Service dependency declared by " + clazz.getName() +
                 " is not a Service: " + dependency.getName());
           }
-          dependencies.add(dependency);
+          dependencies.add((Class<? extends Service>) dependency);
           identifyTransitiveDependenciesOf(dependency, dependencies);
         }
       }
@@ -443,7 +444,7 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     return dependencies;
   }
 
-  public boolean knowsServiceFor(ServiceConfiguration serviceConfig) {
+  public boolean knowsServiceFor(ServiceConfiguration<?> serviceConfig) {
     return !getServicesOfType(serviceConfig.getServiceType()).isEmpty();
   }
 
