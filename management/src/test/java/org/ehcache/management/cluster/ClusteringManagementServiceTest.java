@@ -81,6 +81,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -131,14 +132,15 @@ public class ClusteringManagementServiceTest {
 
   private void runTest() throws Exception {
     // assert management registry has been correctly exposed in voltron
-    String clientIdentifier = consumer.getChildNamesForNode("management", "clients").iterator().next();
-    String[] tags = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "tags"}, String[].class);
+    long consumerId = consumer.getConsumerId(ManagementAgentConfig.ENTITY_TYPE, ManagementAgentEntityFactory.ENTITYNAME);
+    String clientIdentifier = consumer.getChildNamesForNode(consumerId, "management", "clients").iterator().next();
+    String[] tags = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "tags"}, String[].class);
     assertThat(tags, equalTo(new String[]{"server-node-1", "webapp-1"}));
-    ContextContainer contextContainer = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
+    ContextContainer contextContainer = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
     assertThat(contextContainer.getValue(), equalTo("my-super-cache-manager"));
     assertThat(contextContainer.getSubContexts(), hasSize(1));
     assertThat(contextContainer.getSubContexts().iterator().next().getValue(), equalTo("cache-1"));
-    Capability[] capabilities = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "capabilities"}, Capability[].class);
+    Capability[] capabilities = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "registry", "capabilities"}, Capability[].class);
     assertThat(capabilities.length, equalTo(5));
 
     remotelyUpdateCollectedStatistics();
@@ -158,7 +160,7 @@ public class ClusteringManagementServiceTest {
         .build());
 
     // assert that the management registry exposed in voltron has been updated
-    contextContainer = consumer.getValueForNode(new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
+    contextContainer = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
     assertThat(contextContainer.getValue(), equalTo("my-super-cache-manager"));
     assertThat(contextContainer.getSubContexts(), hasSize(2));
     assertThat(contextContainer.getSubContexts().iterator().next().getValue(), equalTo("cache-1"));
@@ -171,8 +173,12 @@ public class ClusteringManagementServiceTest {
     assertThat(cNames, equalTo(expectedCNames));
 
     // verify the notification has been received in voltron
-    ContextualNotification notif = (ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1];
-    assertThat(notif.getType(), equalTo("CACHE_ADDED"));
+    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_TAGS_UPDATED"));
+    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CACHE_ADDED"));
+    assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
 
     // do some put also
     Cache<String, String> cache2 = cacheManager.getCache("cache-2", String.class, String.class);
@@ -210,8 +216,10 @@ public class ClusteringManagementServiceTest {
     cacheManager.removeCache("cache-2");
 
     // ensure we got the notification server-side
-    notif = (ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1];
-    assertThat(notif.getType(), equalTo("CACHE_REMOVED"));
+    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CACHE_REMOVED"));
+    assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
   }
 
   private void remotelyUpdateCollectedStatistics() throws Exception {
