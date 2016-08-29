@@ -103,7 +103,7 @@ abstract class AbstractClientEntityFactory<E extends Entity, C> implements Clien
   public void destroy() throws EntityNotFoundException, EntityBusyException {
     EntityRef<E, C> ref = getEntityRef();
     try {
-      if (!ref.tryDestroy()) {
+      if (!ref.destroy()) {
         throw new EntityBusyException("Destroy operation failed; " + entityIdentifier + " clustered tier in use by other clients");
       }
     } catch (EntityNotProvidedException e) {

@@ -31,7 +31,6 @@ import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.management.cluster.ClusteringManagementServiceTest;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
@@ -41,10 +40,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.terracotta.entity.map.TerracottaClusteredMapClientService;
 import org.terracotta.entity.map.server.TerracottaClusteredMapService;
-import org.terracotta.management.entity.client.ManagementAgentEntityClientService;
-import org.terracotta.management.entity.server.ManagementAgentEntityServerService;
+import org.terracotta.management.entity.management.client.ManagementAgentEntityClientService;
+import org.terracotta.management.entity.management.server.ManagementAgentEntityServerService;
 import org.terracotta.management.service.monitoring.IMonitoringConsumer;
-import org.terracotta.management.service.monitoring.MonitoringServiceConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
@@ -63,7 +61,6 @@ import java.util.concurrent.TimeUnit;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 
 public class EhcacheManagerToStringTest {
 
@@ -179,9 +176,6 @@ public class EhcacheManagerToStringTest {
     // clustered map (required by ehcache)
     activeServer.registerClientEntityService(new TerracottaClusteredMapClientService());
     activeServer.registerServerEntityService(new TerracottaClusteredMapService());
-
-    // monitoring service
-    activeServer.registerServiceProvider(new ClusteringManagementServiceTest.HackedMonitoringServiceProvider(), new MonitoringServiceConfiguration().setDebug(false));
 
     // off-heap service
     OffheapResourcesType offheapResourcesType = new OffheapResourcesType();

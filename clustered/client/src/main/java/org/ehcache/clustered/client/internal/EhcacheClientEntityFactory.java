@@ -117,7 +117,7 @@ public class EhcacheClientEntityFactory {
               }
             } catch (ClusteredTierManagerConfigurationException e) {
               try {
-                ref.tryDestroy();
+                ref.destroy();
               } catch (EntityNotFoundException f) {
                 //ignore
               }
@@ -197,7 +197,7 @@ public class EhcacheClientEntityFactory {
       try {
         EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
         try {
-          if (!ref.tryDestroy()) {
+          if (!ref.destroy()) {
             throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
           }
         } catch (EntityNotProvidedException e) {

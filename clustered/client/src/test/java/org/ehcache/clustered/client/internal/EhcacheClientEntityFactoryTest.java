@@ -82,7 +82,7 @@ public class EhcacheClientEntityFactoryTest {
     verify(entityRef).create(any(UUID.class));
     verify(entity).configure(any(ServerSideConfiguration.class));
     verify(entity).close();
-    verify(entityRef).tryDestroy();
+    verify(entityRef).destroy();
   }
 
   @Test
@@ -163,7 +163,7 @@ public class EhcacheClientEntityFactoryTest {
   @Test
   public void testDestroy() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
-    doReturn(Boolean.TRUE).when(entityRef).tryDestroy();
+    doReturn(Boolean.TRUE).when(entityRef).destroy();
     Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
@@ -171,13 +171,13 @@ public class EhcacheClientEntityFactoryTest {
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     factory.destroy("test");
-    verify(entityRef).tryDestroy();
+    verify(entityRef).destroy();
   }
 
   @Test
   public void testDestroyWhenNotExisting() throws Exception {
     EntityRef<EhcacheClientEntity, Object> entityRef = mock(EntityRef.class);
-    doThrow(EntityNotFoundException.class).when(entityRef).tryDestroy();
+    doThrow(EntityNotFoundException.class).when(entityRef).destroy();
     Connection connection = mock(Connection.class);
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
