@@ -51,7 +51,9 @@ import org.ehcache.spi.persistence.StateRepository;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.exception.EntityNotFoundException;
@@ -94,6 +96,9 @@ public class DefaultClusteringServiceTest {
 
   private static final String CLUSTER_URI_BASE = "terracotta://example.com:9540/";
   private ObservableEhcacheServerEntityService observableEhcacheServerEntityService;
+
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
   @Before
   public void definePassthroughServer() throws Exception {
@@ -1961,8 +1966,10 @@ public class DefaultClusteringServiceTest {
     assertThat(repository1, not(sameInstance(repository2)));
   }
 
-  @Test(expected = CachePersistenceException.class)
+  @Test
   public void testGetStateRepositoryWithinWithNonExistentPersistenceSpaceIdentifier() throws Exception {
+    expectedException.expect(CachePersistenceException.class);
+    expectedException.expectMessage("Clustered space not found for identifier");
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -1971,8 +1978,10 @@ public class DefaultClusteringServiceTest {
     service.getStateRepositoryWithin(cacheIdentifier, "myRepo");
   }
 
-  @Test(expected = CachePersistenceException.class)
+  @Test
   public void testReleaseNonExistentPersistenceSpaceIdentifierTwice() throws Exception {
+    expectedException.expect(CachePersistenceException.class);
+    expectedException.expectMessage("Unknown identifier");
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
@@ -1981,8 +1990,10 @@ public class DefaultClusteringServiceTest {
     service.releasePersistenceSpaceIdentifier(cacheIdentifier);
   }
 
-  @Test(expected = CachePersistenceException.class)
+  @Test
   public void testReleasePersistenceSpaceIdentifierTwice() throws Exception {
+    expectedException.expect(CachePersistenceException.class);
+    expectedException.expectMessage("Unknown identifier");
     ClusteringServiceConfiguration configuration =
         new ClusteringServiceConfiguration(URI.create(CLUSTER_URI_BASE), true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     DefaultClusteringService service = new DefaultClusteringService(configuration);
