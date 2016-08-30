@@ -44,6 +44,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
@@ -234,6 +235,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
         case SERVER_STORE_OP:
           return invokeServerStoreOperation(clientDescriptor, (ServerStoreOpMessage) message);
+        case STATE_REPO_OP:
+          return invokeStateRepositoryOperation(clientDescriptor, (StateRepositoryOpMessage) message);
         default:
           throw new IllegalMessageException("Unknown message : " + message);
       }
@@ -265,6 +268,27 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     //nothing to do
   }
 
+  private void validateClientConnected(ClientDescriptor clientDescriptor) throws ClusterException {
+    ClientState clientState = this.clientStateMap.get(clientDescriptor);
+    if (clientState == null) {
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
+    }
+  }
+
+  private void validateClientAttached(ClientDescriptor clientDescriptor) throws ClusterException {
+    validateClientConnected(clientDescriptor);
+    if (!clientStateMap.get(clientDescriptor).isAttached()) {
+      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
+    }
+  }
+
+  private void validateClusteredTierManagerConfigured(ClientDescriptor clientDescriptor) throws ClusterException {
+    validateClientAttached(clientDescriptor);
+    if (!ehcacheStateService.isConfigured()) {
+      throw new LifecycleException("Clustered Tier Manager is not configured");
+    }
+  }
+
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) throws ClusterException {
     switch (message.operation()) {
       case CONFIGURE:
@@ -292,15 +316,12 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {
+    validateClusteredTierManagerConfigured(clientDescriptor);
+
     ServerStoreImpl cacheStore = ehcacheStateService.getStore(message.getCacheId());
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
       throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
-    }
-
-    if (!clientStateMap.get(clientDescriptor).isAttached()) {
-      // An operation on a store should never happen from an unattached client
-      throw new LifecycleException("Client not attached");
     }
 
     if (!storeClientMap.get(message.getCacheId()).contains(clientDescriptor)) {
@@ -347,6 +368,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       default:
         throw new IllegalMessageException("Unknown ServerStore operation : " + message);
     }
+  }
+
+  private EhcacheEntityResponse invokeStateRepositoryOperation(ClientDescriptor clientDescriptor, StateRepositoryOpMessage message) throws ClusterException {
+    validateClusteredTierManagerConfigured(clientDescriptor);
+    return ehcacheStateService.getStateRepositoryManager().invoke(message);
   }
 
   private void invalidateHashAfterEviction(String cacheId, long key) {
@@ -483,12 +509,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * @param message the {@code ConfigureStoreManager} message carrying the desired shared resource pool configuration
    */
   private void configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) throws ClusterException {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
-    }
+    validateClientConnected(clientDescriptor);
     ehcacheStateService.configure(message);
-    clientState.attach();
+    this.clientStateMap.get(clientDescriptor).attach();
   }
 
   /**
@@ -500,12 +523,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * @param message the {@code ValidateStoreManager} message carrying the client expected resource pool configuration
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
-    }
+    validateClientConnected(clientDescriptor);
     ehcacheStateService.validate(message);
-    clientState.attach();
+    this.clientStateMap.get(clientDescriptor).attach();
   }
 
   /**
@@ -527,16 +547,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * @param createServerStore the {@code CreateServerStore} message carrying the desire store configuration
    */
   private void createServerStore(ClientDescriptor clientDescriptor, CreateServerStore createServerStore) throws ClusterException {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
-    }
-    if (!clientState.isAttached()) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
-    }
-    if (!ehcacheStateService.isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
-    }
+    validateClusteredTierManagerConfigured(clientDescriptor);
     if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
       throw new LifecycleException("Clustered tier can't be created with an Unknown resource pool");
     }
@@ -569,16 +580,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * @param validateServerStore the {@code ValidateServerStore} message carrying the desired store configuration
    */
   private void validateServerStore(ClientDescriptor clientDescriptor, ValidateServerStore validateServerStore) throws ClusterException {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
-    }
-    if (!clientState.isAttached()) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
-    }
-    if (!ehcacheStateService.isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
-    }
+    validateClusteredTierManagerConfigured(clientDescriptor);
 
     String name = validateServerStore.getName();
     ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
@@ -602,17 +604,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * @param releaseServerStore the {@code ReleaseServerStore} message identifying the store to release
    */
   private void releaseServerStore(ClientDescriptor clientDescriptor, ReleaseServerStore releaseServerStore) throws ClusterException {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
-    }
-    if (!clientState.isAttached()) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
-    }
-    if (!ehcacheStateService.isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
-    }
+    validateClusteredTierManagerConfigured(clientDescriptor);
 
+    ClientState clientState = this.clientStateMap.get(clientDescriptor);
     String name = releaseServerStore.getName();
 
     LOGGER.info("Client {} releasing clustered tier '{}'", clientDescriptor, name);
@@ -639,19 +633,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * @param destroyServerStore the {@code DestroyServerStore} message identifying the store to release
    */
   private void destroyServerStore(ClientDescriptor clientDescriptor, DestroyServerStore destroyServerStore) throws ClusterException {
-    ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
-    }
-    if (!clientState.isAttached()) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
-    }
-    if (!ehcacheStateService.isConfigured()) {
-      throw new LifecycleException("Clustered Tier Manager is not configured");
-    }
+    validateClusteredTierManagerConfigured(clientDescriptor);
 
     String name = destroyServerStore.getName();
-
     final Set<ClientDescriptor> clients = storeClientMap.get(name);
     if (clients != null && !clients.isEmpty()) {
       throw new ResourceBusyException("Cannot destroy clustered tier '" + name + "': in use by " + clients.size() + " other client(s)");

@@ -50,8 +50,6 @@ import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderConfiguration;
-import org.terracotta.entity.map.TerracottaClusteredMapClientService;
-import org.terracotta.entity.map.server.TerracottaClusteredMapService;
 import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
@@ -204,8 +202,6 @@ public class UnitTestConnectionService implements ConnectionService {
    *   <li>{@link EhcacheClientEntityService}</li>
    *   <li>{@link VoltronReadWriteLockServerEntityService}</li>
    *   <li>{@link VoltronReadWriteLockEntityClientService}</li>
-   *   <li>{@link TerracottaClusteredMapClientService}</li>
-   *   <li>{@link TerracottaClusteredMapService}</li>
    * </ul>
    */
   @SuppressWarnings("unused")
@@ -284,8 +280,6 @@ public class UnitTestConnectionService implements ConnectionService {
         newServer.registerClientEntityService(new EhcacheClientEntityService());
         newServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         newServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-        newServer.registerClientEntityService(new TerracottaClusteredMapClientService());
-        newServer.registerServerEntityService(new TerracottaClusteredMapService());
       }
 
       for (EntityServerService<?, ?> service : serverEntityServices) {

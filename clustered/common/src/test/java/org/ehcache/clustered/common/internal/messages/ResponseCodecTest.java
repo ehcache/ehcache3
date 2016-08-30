@@ -20,8 +20,11 @@ import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.junit.Test;
 
+import java.util.Date;
+
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -52,5 +55,14 @@ public class ResponseCodecTest {
     Chain decodedChain = ((EhcacheEntityResponse.GetResponse) decoded).getChain();
 
     Util.assertChainHas(decodedChain, 1L, 11L, 111L);
+  }
+
+  @Test
+  public void testMapValueCodec() throws Exception {
+    Object subject = new Date();
+    EhcacheEntityResponse mapValue = EhcacheEntityResponse.mapValue(subject);
+    EhcacheEntityResponse.MapValue decoded =
+        (EhcacheEntityResponse.MapValue) RESPONSE_CODEC.decode(RESPONSE_CODEC.encode(mapValue));
+    assertThat(decoded.getValue(), equalTo(subject));
   }
 }

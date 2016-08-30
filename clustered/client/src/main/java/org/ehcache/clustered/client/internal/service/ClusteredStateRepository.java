@@ -16,7 +16,9 @@
 
 package org.ehcache.clustered.client.internal.service;
 
+import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Serializable;
@@ -28,17 +30,17 @@ import java.util.concurrent.ConcurrentMap;
 class ClusteredStateRepository implements StateRepository {
 
   private final ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier;
+  private final EhcacheClientEntity clientEntity;
   private final String composedId;
-  private final DefaultClusteringService defaultClusteringService;
 
-  ClusteredStateRepository(ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier, String id, DefaultClusteringService defaultClusteringService) {
+  ClusteredStateRepository(ClusteringService.ClusteredCacheIdentifier clusterCacheIdentifier, String id, EhcacheClientEntity clientEntity) {
     this.clusterCacheIdentifier = clusterCacheIdentifier;
     this.composedId = clusterCacheIdentifier.getId() + "-" + id;
-    this.defaultClusteringService = defaultClusteringService;
+    this.clientEntity = clientEntity;
   }
 
   @Override
   public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
-    return defaultClusteringService.getConcurrentMap(clusterCacheIdentifier, composedId + "-" + name, keyClass, valueClass);
+    return new ConcurrentClusteredMap<K, V>(clusterCacheIdentifier.getId(), composedId + "-" + name, clientEntity);
   }
 }

@@ -30,7 +30,6 @@ ext {
   managementVersion = terracottaPlatformVersion
   terracottaApisVersion = '1.0.6.beta'
   terracottaCoreVersion = '5.0.6-beta'
-  clusteredMapVersion = terracottaPlatformVersion
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
   terracottaPassthroughTestingVersion = '1.0.6.beta'

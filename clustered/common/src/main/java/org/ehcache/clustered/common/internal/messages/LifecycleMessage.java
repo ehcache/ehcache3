@@ -23,20 +23,18 @@ import java.io.Serializable;
 
 public abstract class LifecycleMessage extends EhcacheEntityMessage implements Serializable {
 
-  public static final int LIFECYCLE_MSG_OP_CODE = 1;
-
   public enum LifeCycleOp {
     CONFIGURE,
     VALIDATE,
     CREATE_SERVER_STORE,
     VALIDATE_SERVER_STORE,
     RELEASE_SERVER_STORE,
-    DESTROY_SERVER_STORE
+    DESTROY_SERVER_STORE,
   }
 
   @Override
   public byte getOpCode() {
-    return LIFECYCLE_MSG_OP_CODE;
+    return getType().getCode();
   }
 
   @Override

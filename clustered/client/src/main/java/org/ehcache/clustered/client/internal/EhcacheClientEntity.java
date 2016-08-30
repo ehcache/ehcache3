@@ -251,7 +251,7 @@ public class EhcacheClientEntity implements Entity {
     } catch (MessageCodecException e) {
       throw new RuntimeException(message + " error: " + e.toString(), e);
     } catch (TimeoutException e) {
-      String msg = "Timeout exceeded for " + getMessageOp(message) + " message; " + timeLimit;
+      String msg = "Timeout exceeded for " + message + " message; " + timeLimit;
       TimeoutException timeoutException = new TimeoutException(msg);
       timeoutException.initCause(e);
       LOGGER.info(msg, timeoutException);
@@ -285,25 +285,6 @@ public class EhcacheClientEntity implements Entity {
       if (interrupted) {
         Thread.currentThread().interrupt();
       }
-    }
-  }
-
-  private String getMessageOp(EhcacheEntityMessage message) {
-    switch (message.getType()) {
-      case SERVER_STORE_OP:
-        try {
-          return message.getType() + "/" + getServerStoreOp(message.getOpCode());
-        } catch (IllegalArgumentException e) {
-          return message.getType() + "/" + message.getOpCode();
-        }
-      case LIFECYCLE_OP:
-        try {
-          return message.getType() + "/" + ((LifecycleMessage)message).operation();
-        } catch (ArrayIndexOutOfBoundsException e) {
-          return message.getType() + "/" + message.getOpCode();
-         }
-      default:
-        return message.getType() + "/" + message.getOpCode();
     }
   }
 

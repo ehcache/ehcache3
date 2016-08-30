@@ -20,11 +20,11 @@ import org.ehcache.clustered.common.internal.store.Util;
 
 import java.nio.ByteBuffer;
 
-class LifeCycleMessageCodec {
+public class StateRepositoryOpCodec {
 
   private static final byte OPCODE_SIZE = 1;
 
-  public byte[] encode(LifecycleMessage message) {
+  public byte[] encode(StateRepositoryOpMessage message) {
     byte[] encodedMsg = Util.marshall(message);
     ByteBuffer buffer = ByteBuffer.allocate(OPCODE_SIZE + encodedMsg.length);
     buffer.put(message.getOpCode());
@@ -32,17 +32,16 @@ class LifeCycleMessageCodec {
     return buffer.array();
   }
 
-  public EhcacheEntityMessage decode(byte[] payload) {
+  public StateRepositoryOpMessage decode(byte[] payload) {
     ByteBuffer message = ByteBuffer.wrap(payload);
     byte[] encodedMsg = new byte[message.capacity() - OPCODE_SIZE];
     byte opCode = message.get();
-    if (opCode == EhcacheEntityMessage.Type.LIFECYCLE_OP.getCode()) {
+    if (opCode == EhcacheEntityMessage.Type.STATE_REPO_OP.getCode()) {
       message.get(encodedMsg, 0, encodedMsg.length);
-      EhcacheEntityMessage entityMessage = (EhcacheEntityMessage) Util.unmarshall(encodedMsg);
+      StateRepositoryOpMessage entityMessage = (StateRepositoryOpMessage) Util.unmarshall(encodedMsg);
       return entityMessage;
     } else {
-      throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + opCode);
+      throw new UnsupportedOperationException("State repository operation not defined for : " + opCode);
     }
   }
-
 }

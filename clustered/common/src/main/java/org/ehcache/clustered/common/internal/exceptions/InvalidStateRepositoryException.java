@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+package org.ehcache.clustered.common.internal.exceptions;
 
-dependencies {
-  compileOnly project(':api')
-  compileOnly project(':xml')
-  compile project(':clustered:common')
-  compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
+public class InvalidStateRepositoryException extends ClusterException {
 
-  testCompile project(':api')
-  testCompile project(':xml')
-  testCompile project(':transactions')
-  testCompile(project(':clustered:server')) {
-    exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
+  private static final long serialVersionUID = 7717112794546075917L;
+
+  public InvalidStateRepositoryException(String message) {
+    super(message);
   }
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
-  testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
+
+  public InvalidStateRepositoryException(InvalidStateRepositoryException cause) {
+    super(cause.getMessage(), cause);
+  }
+
+
+  @Override
+  public ClusterException withClientStackTrace() {
+    return new InvalidStateRepositoryException(this);
+  }
 }

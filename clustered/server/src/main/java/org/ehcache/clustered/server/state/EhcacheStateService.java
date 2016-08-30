@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 import org.ehcache.clustered.server.ServerStoreImpl;
+import org.ehcache.clustered.server.repo.StateRepositoryManager;
 
 import com.tc.classloader.CommonComponent;
 
@@ -44,4 +45,7 @@ public interface EhcacheStateService {
   void destroyServerStore(String name) throws ClusterException;
 
   boolean isConfigured();
+
+  StateRepositoryManager getStateRepositoryManager() throws ClusterException;
+
 }

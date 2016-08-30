@@ -23,12 +23,12 @@ import java.nio.ByteBuffer;
 public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implements ConcurrentEntityMessage {
   public enum ServerStoreOp {
 
-    GET((byte) 10),
     GET_AND_APPEND((byte) 11),
     APPEND((byte) 12),
     REPLACE((byte) 13),
     CLIENT_INVALIDATION_ACK((byte) 14),
     CLEAR((byte) 15),
+    GET((byte) 16),
     ;
 
     private final byte storeOpCode;
@@ -43,8 +43,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
     public static ServerStoreOp getServerStoreOp(byte storeOpCode) {
       switch (storeOpCode) {
-        case 10:
-          return GET;
         case 11:
           return GET_AND_APPEND;
         case 12:
@@ -55,6 +53,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
           return CLIENT_INVALIDATION_ACK;
         case 15:
           return CLEAR;
+        case 16:
+          return GET;
         default:
           throw new IllegalArgumentException("Store operation not defined for : " + storeOpCode);
       }
@@ -207,11 +207,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     public ServerStoreOp operation() {
       return ServerStoreOp.CLIENT_INVALIDATION_ACK;
     }
-
-    @Override
-    public byte getOpCode() {
-      return ServerStoreOp.CLIENT_INVALIDATION_ACK.getStoreOpCode();
-    }
   }
 
   static class ClearMessage extends ServerStoreOpMessage {
@@ -223,11 +218,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.CLEAR;
-    }
-
-    @Override
-    public byte getOpCode() {
-      return ServerStoreOp.CLEAR.getStoreOpCode();
     }
   }
 

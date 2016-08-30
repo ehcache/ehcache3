@@ -296,7 +296,7 @@ public class EhcacheActiveEntityTest {
 
     assertFailure(
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
-        LifecycleException.class, "Client not attached"
+        LifecycleException.class, "not attached"
     );
   }
 
