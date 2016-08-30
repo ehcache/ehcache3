@@ -254,8 +254,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   public void handleReconnect(ClientDescriptor clientDescriptor, byte[] extendedReconnectData) {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
     if (clientState == null) {
-      LOGGER.error("Client {} trying to reconnect is not connected to entity.", clientDescriptor);
-      return;
+      throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
     }
     clientState.attach();
     Set<String> cacheIds = reconnectDataCodec.decode(extendedReconnectData);
@@ -264,7 +263,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       if (serverStore == null) {
         //Client removes the cache's reference only when destroy has successfully completed
         //This happens only when client thinks destroy is still not complete
-        LOGGER.error("ServerStore '{}' does not exist as expected by Client '{}'.", cacheId, clientDescriptor);
+        LOGGER.warn("ServerStore '{}' does not exist as expected by Client '{}'.", cacheId, clientDescriptor);
         continue;
       }
       serverStore.setEvictionListener(new ServerStoreEvictionListener() {

@@ -284,9 +284,10 @@ public class EhcacheClientEntity implements Entity {
   public InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
       throws MessageCodecException {
     if (replicate) {
-      return endpoint.beginInvoke().message(message).replicate(true).invoke();
+      return endpoint.beginInvoke().message(message).replicate(true).invoke(); //TODO: remove replicate call once
+      //https://github.com/Terracotta-OSS/terracotta-apis/issues/139 is fixed
     } else {
-      return endpoint.beginInvoke().message(message).invoke();
+      return endpoint.beginInvoke().message(message).replicate(false).invoke();
     }
   }
 

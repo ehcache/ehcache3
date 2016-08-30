@@ -39,8 +39,6 @@ import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.entity.map.TerracottaClusteredMapClientService;
-import org.terracotta.entity.map.server.TerracottaClusteredMapService;
 import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
@@ -76,8 +74,6 @@ public class LifeCycleMessageActivePassvieReplicationTest {
             server.registerClientEntityService(new EhcacheClientEntityService());
             server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
             server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-            server.registerClientEntityService(new TerracottaClusteredMapClientService());
-            server.registerServerEntityService(new TerracottaClusteredMapService());
             server.registerServiceProvider(new OffHeapResourcesProvider(), new OffHeapResourcesConfiguration(resource("test", 32, MemoryUnit.MB)));
 
             UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
