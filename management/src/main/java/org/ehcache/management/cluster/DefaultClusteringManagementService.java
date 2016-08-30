@@ -36,6 +36,7 @@ import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.management.entity.management.ManagementAgentConfig;
 import org.terracotta.management.entity.management.ManagementAgentVersion;
 import org.terracotta.management.entity.management.client.ManagementAgentEntity;
+import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
 import org.terracotta.management.entity.management.client.ManagementAgentService;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
@@ -81,7 +82,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
 
     EntityService entityService = serviceProvider.getService(EntityService.class);
     this.managementAgentEntityFactory = entityService.newClientEntityFactory(
-        "ManagementAgent",
+        ManagementAgentEntityFactory.ENTITYNAME,
         ManagementAgentEntity.class,
         ManagementAgentVersion.LATEST.version(),
         new ManagementAgentConfig());
