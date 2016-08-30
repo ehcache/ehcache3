@@ -116,7 +116,7 @@ This is what happens underneath that call when the `CacheManager` looks up `Serv
 For each `ServiceCreationConfiguration`
 
  . The service subsystem looks up whether it already has that `Service`
- .. If it does, that instance is being retuned
+ .. If it does, that instance returned
  .. If it doesn't, it looks up all `ServiceFactory` it has for one that creates instances of that `Service` type.
  ... If one is found in that `ServiceFactory` repository, it uses that to create the instance with the configuration
  ... If none is found, it uses the JDK's `java.util.ServiceLoader` service to load `ServiceFactory` and recheck
