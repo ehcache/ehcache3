@@ -30,6 +30,7 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage.Configure
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
@@ -66,6 +67,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           break;
         case SERVER_STORE_OP:
           invokeServerStoreOperation((ServerStoreOpMessage)message);
+          break;
+        case STATE_REPO_OP:
+          ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
           break;
         default:
           throw new IllegalMessageException("Unknown message : " + message);

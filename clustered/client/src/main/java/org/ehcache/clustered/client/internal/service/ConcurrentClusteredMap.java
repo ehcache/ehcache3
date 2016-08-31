@@ -65,7 +65,7 @@ public class ConcurrentClusteredMap<K, V> implements ConcurrentMap<K, V> {
 
   private Object getResponse(StateRepositoryOpMessage message) {
     try {
-      EhcacheEntityResponse response = entity.invoke(message, false);
+      EhcacheEntityResponse response = entity.invoke(message, true);
       return ((EhcacheEntityResponse.MapValue)response).getValue();
     } catch (ClusterException ce) {
       throw new ClusteredMapException(ce);

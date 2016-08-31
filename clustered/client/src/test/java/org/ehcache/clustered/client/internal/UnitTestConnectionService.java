@@ -167,6 +167,20 @@ public class UnitTestConnectionService implements ConnectionService {
     stripeDescriptor.removeConnections();
   }
 
+  public static OffheapResourcesType getOffheapResourcesType(String resourceName, int size, MemoryUnit unit) {
+    OffheapResourcesType resources = new OffheapResourcesType();
+    resources.getResource().add(getResource(resourceName, size, unit));
+    return resources;
+  }
+
+  private static ResourceType getResource(String resourceName, int size, MemoryUnit unit) {
+    final ResourceType resource = new ResourceType();
+    resource.setName(resourceName);
+    resource.setUnit(unit);
+    resource.setValue(BigInteger.valueOf((long)size));
+    return resource;
+  }
+
   /**
    * Adds a {@link PassthroughServer} if, and only if, a mapping for the URI supplied does not
    * already exist.  The server is started as it is added.
@@ -277,11 +291,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     private PassthroughServerBuilder resource(String resourceName, int size, MemoryUnit unit) {
-      final ResourceType resource = new ResourceType();
-      resource.setName(resourceName);
-      resource.setUnit(unit);
-      resource.setValue(BigInteger.valueOf((long)size));
-      this.resources.getResource().add(resource);
+      this.resources.getResource().add(getResource(resourceName, size, unit));
       return this;
     }
 

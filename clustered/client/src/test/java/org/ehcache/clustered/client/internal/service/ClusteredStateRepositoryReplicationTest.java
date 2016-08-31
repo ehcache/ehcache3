@@ -14,28 +14,17 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client;
+package org.ehcache.clustered.client.internal.service;
 
-import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.client.internal.service.ClusteredTierCreationException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
-import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
-import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,15 +37,13 @@ import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.lang.reflect.Field;
 import java.net.URI;
+import java.util.concurrent.ConcurrentMap;
 
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
-import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
-public class LifeCycleMessageActivePassvieReplicationTest {
+public class ClusteredStateRepositoryReplicationTest {
 
   private PassthroughClusterControl clusterControl;
   private static String STRIPENAME = "stripe";
@@ -91,7 +78,7 @@ public class LifeCycleMessageActivePassvieReplicationTest {
   }
 
   @Test
-  public void testConfigureReplication() throws Exception {
+  public void testClusteredStateRepositoryReplication() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
             .autoCreate()
@@ -102,95 +89,36 @@ public class LifeCycleMessageActivePassvieReplicationTest {
     service.start(null);
 
     EhcacheClientEntity clientEntity = getEntity(service);
+
+    ClusteredStateRepository stateRepository = new ClusteredStateRepository(new ClusteringService.ClusteredCacheIdentifier() {
+      @Override
+      public String getId() {
+        return "testStateRepo";
+      }
+
+      @Override
+      public Class<ClusteringService> getServiceType() {
+        return ClusteringService.class;
+      }
+    }, "test", clientEntity);
+
+    ConcurrentMap<String, String> testMap = stateRepository.getPersistentConcurrentMap("testMap", String.class, String.class);
+    testMap.putIfAbsent("One", "One");
+    testMap.putIfAbsent("Two", "Two");
 
     clusterControl.terminateActive();
     clusterControl.waitForActive();
 
-    try {
-      clientEntity.configure(configuration.getServerConfiguration());
-      fail("ClusteredTierManagerConfigurationException Expected.");
-    } catch (ClusteredTierManagerConfigurationException e) {
-      assertThat(e.getCause(), instanceOf(InvalidStoreManagerException.class));
-      assertThat(e.getCause().getMessage(), is("Clustered Tier Manager already configured"));
-    }
+    assertThat(testMap.get("One"), is("One"));
+    assertThat(testMap.get("Two"), is("Two"));
 
     service.stop();
-  }
-
-  @Test
-  public void testCreateServerStoreReplication() throws Exception {
-
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-            .autoCreate()
-            .build();
-
-    ClusteringService service = new ClusteringServiceFactory().create(configuration);
-
-    service.start(null);
-
-    EhcacheClientEntity clientEntity = getEntity(service);
-
-    clientEntity.createCache("testCache", getServerStoreConfiguration("test"));
-
-    clusterControl.terminateActive();
-    clusterControl.waitForActive();
-
-    try {
-      clientEntity.createCache("testCache", getServerStoreConfiguration("test"));
-      fail("ClusteredTierCreationException Expected.");
-    } catch (ClusteredTierCreationException e) {
-      assertThat(e.getCause(), instanceOf(InvalidStoreException.class));
-      assertThat(e.getCause().getMessage(), is("Clustered tier 'testCache' already exists"));
-    }
-
-    service.stop();
-
-  }
-
-  @Test
-  public void testDestroyServerStoreReplication() throws Exception {
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
-            .autoCreate()
-            .build();
-
-    ClusteringService service = new ClusteringServiceFactory().create(configuration);
-
-    service.start(null);
-
-    EhcacheClientEntity clientEntity = getEntity(service);
-
-    clientEntity.createCache("testCache", getServerStoreConfiguration("test"));
-
-    clientEntity.releaseCache("testCache");
-    clientEntity.destroyCache("testCache");
-
-    clusterControl.terminateActive();
-
-    try {
-      clientEntity.destroyCache("testCache");
-      fail("ClusteredTierReleaseException Expected.");
-    } catch (ClusteredTierDestructionException e) {
-      assertThat(e.getCause(), instanceOf(InvalidStoreException.class));
-      assertThat(e.getCause().getMessage(), is("Clustered tier 'testCache' does not exist"));
-    }
-
-    service.stop();
-
   }
 
   private static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
     return (EhcacheClientEntity)entity.get(clusteringService);
-  }
-
-  private static ServerStoreConfiguration getServerStoreConfiguration(String resourceName) {
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(resourceName, 8, MB);
-    return new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
-        String.class.getName(), String.class.getName(), null, null, CompactJavaSerializer.class.getName(), CompactJavaSerializer.class
-        .getName(), Consistency.STRONG);
   }
 
 }
