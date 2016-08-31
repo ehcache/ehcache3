@@ -15,12 +15,7 @@
  */
 package org.ehcache.core;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
@@ -49,15 +44,17 @@ import static org.ehcache.core.EhcacheBulkMethodsTest.valueHolder;
  * @author Abhilash
  *
  */
+@SuppressWarnings("unchecked")
 public class EhcacheWithLoaderWriterBulkMethodsTest {
 
   @Test
   public void testPutAllWithWriter() throws Exception {
     Store<Number, CharSequence> store = mock(Store.class);
-    when(store.bulkCompute((Set<? extends Number>) argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
+    when(store.bulkCompute((Set<Integer>) argThat(hasItems(1, 2, 3)), any(Function.class))).thenAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function function = (Function)invocation.getArguments()[1];
+        Function<List<Map.Entry<Integer, String>>, Object> function =
+          (Function<List<Map.Entry<Integer, String>>, Object>)invocation.getArguments()[1];
         function.apply(Arrays.asList(entry(1, "one"), entry(2, "two"), entry(3, "three")));
         return null;
       }

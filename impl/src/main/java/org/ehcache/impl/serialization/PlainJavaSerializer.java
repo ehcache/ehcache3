@@ -116,7 +116,7 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
 
     @Override
     protected Class<?> resolveProxyClass(String[] interfaces) throws IOException, ClassNotFoundException {
-      Class<?>[] interfaceClasses = new Class[interfaces.length];
+      Class<?>[] interfaceClasses = new Class<?>[interfaces.length];
       for (int i = 0; i < interfaces.length; i++) {
         interfaceClasses[i] = Class.forName(interfaces[i], false, classLoader);
       }

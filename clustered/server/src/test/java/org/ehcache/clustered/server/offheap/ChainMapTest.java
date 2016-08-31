@@ -46,6 +46,7 @@ import static org.junit.Assert.fail;
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 
 @RunWith(Parameterized.class)
+@SuppressWarnings("unchecked") // To replace by @SafeVarargs in JDK7
 public class ChainMapTest {
 
   @Parameters(name = "stealing={0}, min-page-size={1}, max-page-size={2}")

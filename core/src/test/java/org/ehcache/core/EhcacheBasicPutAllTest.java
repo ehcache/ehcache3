@@ -284,15 +284,16 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void putAllStoreCallsMethodTwice() throws Exception {
     this.store = mock(Store.class);
-    CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     final List<Map.Entry> written = new ArrayList<Map.Entry>();
     doAnswer(new Answer() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        Iterable<Map.Entry> i = (Iterable) invocation.getArguments()[0];
-        for (Map.Entry entry : i) {
+        Iterable<Map.Entry<?, ?>> i = (Iterable<Map.Entry<?, ?>>) invocation.getArguments()[0];
+        for (Map.Entry<?, ?> entry : i) {
           if (entry.getKey() == null) fail("null key is forbidden in CacheLoaderWriter.writeAll()");
           if (entry.getValue() == null) fail("null value is forbidden in CacheLoaderWriter.writeAll()");
           written.add(entry);
@@ -307,7 +308,7 @@ public class EhcacheBasicPutAllTest extends EhcacheBasicCrudBase {
     when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function function = functionArgumentCaptor.getValue();
+        Function<Iterable, Object> function = functionArgumentCaptor.getValue();
         Iterable arg = new HashMap((Map) function.getClass().getDeclaredField("val$entriesToRemap").get(function)).entrySet();
         function.apply(arg);
         function.apply(arg);

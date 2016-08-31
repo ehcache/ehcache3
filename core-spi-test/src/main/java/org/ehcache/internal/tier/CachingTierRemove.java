@@ -40,7 +40,7 @@ import static org.mockito.Mockito.when;
  */
 public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
 
-  private CachingTier tier;
+  private CachingTier<K, V> tier;
 
   public CachingTierRemove(final CachingTierFactory<K, V> factory) {
     super(factory);
@@ -83,9 +83,9 @@ public class CachingTierRemove<K, V> extends CachingTierTester<K, V> {
 
       final Store.ValueHolder<V> newValueHolder = mock(Store.ValueHolder.class);
       when(newValueHolder.value()).thenReturn(newValue);
-      Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function() {
+      Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
         @Override
-        public Object apply(final Object o) {
+        public Store.ValueHolder<V> apply(final K o) {
           return newValueHolder;
         }
       });

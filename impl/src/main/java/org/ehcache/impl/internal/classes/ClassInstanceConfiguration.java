@@ -37,7 +37,7 @@ public class ClassInstanceConfiguration<T> {
 
   public ClassInstanceConfiguration(T instance) {
     this.instance = instance;
-    this.clazz = (Class) instance.getClass();
+    this.clazz = (Class<? extends T>) instance.getClass();
     this.arguments = null;
   }
 

@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
  */
 public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
 
-  private CachingTier tier;
+  private CachingTier<K, V> tier;
 
   public CachingTierClear(final CachingTierFactory<K, V> factory) {
     super(factory);
@@ -95,9 +95,9 @@ public class CachingTierClear<K, V> extends CachingTierTester<K, V> {
 
       for (K key : keys) {
         tier.invalidate(key);
-        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function() {
+        Store.ValueHolder<V> newReturnedValueHolder = tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {
           @Override
-          public Object apply(final Object o) {
+          public Store.ValueHolder<V> apply(final K o) {
             return newValueHolder;
           }
         });

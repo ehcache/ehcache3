@@ -115,7 +115,6 @@ public class XmlConfigurationTest {
   @Rule
   public ExpectedException thrown= ExpectedException.none();
 
-  @SuppressWarnings("rawtypes")
   @Test
   public void testDefaultTypesConfig() throws Exception {
     XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/defaultTypes-cache.xml"));
@@ -171,7 +170,6 @@ public class XmlConfigurationTest {
     assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
   }
 
-  @SuppressWarnings("rawtypes")
   @Test
   public void testOneCacheConfigWithTemplate() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/template-cache.xml");
@@ -204,7 +202,6 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("bar", Object.class, Object.class), nullValue());
   }
 
-  @SuppressWarnings("rawtypes")
   @Test
   public void testExpiryIsParsed() throws Exception {
     final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
@@ -595,14 +592,14 @@ public class XmlConfigurationTest {
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The url can not be null");
-    XmlConfiguration xmlConfig = new XmlConfiguration(null, mock(ClassLoader.class), mock(Map.class));
+    XmlConfiguration xmlConfig = new XmlConfiguration(null, mock(ClassLoader.class), getClassLoaderMapMock());
   }
 
   @Test
   public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The classLoader can not be null");
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, mock(Map.class));
+    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock());
   }
 
   @Test
@@ -690,4 +687,8 @@ public class XmlConfigurationTest {
     assertThat(count, is(1));
   }
 
+  @SuppressWarnings("unchecked")
+  private Map<String, ClassLoader> getClassLoaderMapMock() {
+    return (Map<String, ClassLoader>) mock(Map.class);
+  }
 }

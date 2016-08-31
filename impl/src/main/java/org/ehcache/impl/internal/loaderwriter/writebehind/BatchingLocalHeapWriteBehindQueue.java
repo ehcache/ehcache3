@@ -63,7 +63,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
 
   private final ConcurrentMap<K, SingleOperation<K, V>> latest = new ConcurrentHashMap<K, SingleOperation<K, V>>();
 
-  private final BlockingQueue executorQueue;
+  private final BlockingQueue<Runnable> executorQueue;
   private final ExecutorService executor;
   private final ScheduledExecutorService scheduledExecutor;
 

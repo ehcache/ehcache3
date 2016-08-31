@@ -211,7 +211,7 @@ class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Clo
     @Override
     public boolean equals(Object obj) {
       if (obj instanceof Entry) {
-        Entry other = (Entry) obj;
+        Entry<?, ?> other = (Entry<?, ?>) obj;
 
         Object key1 = getKey();
         Object key2 = other.getKey();

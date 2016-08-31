@@ -65,7 +65,7 @@ public class LoaderWriterErrorEhcacheTest {
   private Cache<Number, CharSequence> testCache;
   private CacheLoaderWriter<? super Number, ? super CharSequence> cacheLoaderWriter;
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
+  @SuppressWarnings("unchecked")
   @Before
   public void setUp() throws Exception {
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
@@ -98,14 +98,15 @@ public class LoaderWriterErrorEhcacheTest {
 
   @Test
   public void testGetAllWithLoaderException() throws Exception {
-    when(cacheLoaderWriter.loadAll((Iterable)any())).thenAnswer(new Answer() {
+    when(cacheLoaderWriter.loadAll(Matchers.<Iterable<Number>>any())).thenAnswer(new Answer() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        Iterable<Integer> iterable = (Iterable) invocation.getArguments()[0];
+        @SuppressWarnings("unchecked")
+        Iterable<Integer> iterable = (Iterable<Integer>) invocation.getArguments()[0];
 
         Map<Number, CharSequence> result = new HashMap<Number, CharSequence>();
 
-        for (Integer i : iterable) {
+        for (int i : iterable) {
           switch (i) {
             case 1:
               result.put(1, "one");

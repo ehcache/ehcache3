@@ -51,13 +51,15 @@ public class LoaderWriterSimpleEhcacheTest {
 
   private CacheManager cacheManager;
   private Cache<Number, CharSequence> testCache;
-  private CacheLoaderWriter<? super Number, ? super CharSequence> cacheLoaderWriter;
+  private CacheLoaderWriter<Number, CharSequence> cacheLoaderWriter;
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() throws Exception {
     CacheLoaderWriterProvider cacheLoaderWriterProvider = mock(CacheLoaderWriterProvider.class);
     cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), (CacheConfiguration<Number, CharSequence>)anyObject())).thenReturn((CacheLoaderWriter) cacheLoaderWriter);
+    when(cacheLoaderWriterProvider.createCacheLoaderWriter(anyString(), org.mockito.Matchers.<CacheConfiguration<Number, CharSequence>>any()))
+      .thenReturn(CacheLoaderWriter.class.cast(cacheLoaderWriter));
     cacheManager = newCacheManagerBuilder().using(cacheLoaderWriterProvider).build(true);
     testCache = cacheManager.createCache("testCache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Number.class, CharSequence.class, heap(10)).build());
   }
@@ -98,6 +100,7 @@ public class LoaderWriterSimpleEhcacheTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testSimplePutIfAbsentWithLoaderAndWriter_existsInStore() throws Exception {
     testCache.put(1, "un");
     reset(cacheLoaderWriter);
@@ -142,6 +145,7 @@ public class LoaderWriterSimpleEhcacheTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testSimpleReplace2ArgsWithLoaderAndWriter_existsInStore() throws Exception {
     testCache.put(1, "un");
     reset(cacheLoaderWriter);
@@ -204,6 +208,7 @@ public class LoaderWriterSimpleEhcacheTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testSimpleReplace3ArgsWithLoaderAndWriter_existsInStore() throws Exception {
     testCache.put(1, "un");
     reset(cacheLoaderWriter);
@@ -216,6 +221,7 @@ public class LoaderWriterSimpleEhcacheTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testSimpleReplace3ArgsWithLoaderAndWriter_existsInStore_notEquals() throws Exception {
     testCache.put(1, "un");
     reset(cacheLoaderWriter);
@@ -275,6 +281,7 @@ public class LoaderWriterSimpleEhcacheTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testSimpleRemove2ArgsWithLoaderAndWriter_existsInStore() throws Exception {
     testCache.put(1, "un");
     reset(cacheLoaderWriter);
@@ -286,6 +293,7 @@ public class LoaderWriterSimpleEhcacheTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testSimpleRemove2ArgsWithLoaderAndWriter_existsInStore_notEquals() throws Exception {
     testCache.put(1, "un");
     reset(cacheLoaderWriter);
