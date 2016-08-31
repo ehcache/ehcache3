@@ -117,5 +117,4 @@ distZip {
   classifier = 'kit'
 }
 
-distTar.dependsOn copyDocs, javadocJar, project(':dist').javadocJar
-distZip.dependsOn copyDocs, javadocJar, project(':dist').javadocJar
+[distTar, distZip, installDist]*.dependsOn copyDocs, javadocJar, project(':dist').jar, project(':dist').javadocJar
