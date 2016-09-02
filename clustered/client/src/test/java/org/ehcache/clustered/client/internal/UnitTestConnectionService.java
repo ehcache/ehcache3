@@ -56,6 +56,8 @@ import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
 import org.terracotta.offheapresource.config.ResourceType;
 import org.terracotta.passthrough.PassthroughServer;
+import org.terracotta.passthrough.PassthroughServerRegistry;
+
 
 /**
  * A {@link ConnectionService} implementation used to simulate Voltron server connections for unit testing purposes.
@@ -115,7 +117,10 @@ public class UnitTestConnectionService implements ConnectionService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnitTestConnectionService.class);
 
+  private static final Map<String, StripeDescriptor> STRIPES = new HashMap<String, StripeDescriptor>();
   private static final Map<URI, ServerDescriptor> SERVERS = new HashMap<URI, ServerDescriptor>();
+
+  private static final String PASSTHROUGH = "passthrough";
 
   /**
    * Adds a {@link PassthroughServer} if, and only if, a mapping for the {@code URI} supplied does not
@@ -134,6 +139,46 @@ public class UnitTestConnectionService implements ConnectionService {
     SERVERS.put(keyURI, new ServerDescriptor(server));
     server.start(true, false);
     LOGGER.info("Started PassthroughServer at {}", keyURI);
+  }
+
+  public static void addServerToStripe(String stripeName, PassthroughServer server) {
+
+    if (STRIPES.get(stripeName) == null) {
+      StripeDescriptor stripeDescriptor = new StripeDescriptor();
+      STRIPES.put(stripeName, stripeDescriptor);
+    }
+
+    STRIPES.get(stripeName).addServer(server);
+  }
+
+  public static void removeStripe(String stripeName) {
+    StripeDescriptor stripeDescriptor = STRIPES.remove(stripeName);
+
+    for (Connection connection : stripeDescriptor.getConnections()) {
+      try {
+        LOGGER.warn("Force close {}", formatConnectionId(connection));
+        connection.close();
+      } catch (IllegalStateException e) {
+        // Ignored in case connection is already closed
+      } catch (IOException e) {
+        // Ignored
+      }
+    }
+    stripeDescriptor.removeConnections();
+  }
+
+  public static OffheapResourcesType getOffheapResourcesType(String resourceName, int size, MemoryUnit unit) {
+    OffheapResourcesType resources = new OffheapResourcesType();
+    resources.getResource().add(getResource(resourceName, size, unit));
+    return resources;
+  }
+
+  private static ResourceType getResource(String resourceName, int size, MemoryUnit unit) {
+    final ResourceType resource = new ResourceType();
+    resource.setName(resourceName);
+    resource.setUnit(unit);
+    resource.setValue(BigInteger.valueOf((long)size));
+    return resource;
   }
 
   /**
@@ -246,11 +291,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     private PassthroughServerBuilder resource(String resourceName, int size, MemoryUnit unit) {
-      final ResourceType resource = new ResourceType();
-      resource.setName(resourceName);
-      resource.setUnit(unit);
-      resource.setValue(BigInteger.valueOf((long)size));
-      this.resources.getResource().add(resource);
+      this.resources.getResource().add(getResource(resourceName, size, unit));
       return this;
     }
 
@@ -313,12 +354,35 @@ public class UnitTestConnectionService implements ConnectionService {
 
   @Override
   public boolean handlesURI(URI uri) {
+    if (PASSTHROUGH.equals(uri.getScheme())) {
+      return STRIPES.containsKey(uri.getAuthority());
+    }
     checkURI(uri);
     return SERVERS.containsKey(uri);
   }
 
   @Override
   public Connection connect(URI uri, Properties properties) throws ConnectionException {
+
+    if (PASSTHROUGH.equals(uri.getScheme())) {
+      if(STRIPES.containsKey(uri.getAuthority())) {
+        String serverName = uri.getHost();
+        PassthroughServer server = PassthroughServerRegistry.getSharedInstance().getServerForName(serverName);
+        if(null != server) {
+          String connectionName = properties.getProperty("connection.name");
+          if (null == connectionName) {
+            connectionName = "Ehcache:ACTIVE-PASSIVE";
+          }
+
+          Connection connection = server.connectNewClient(connectionName);
+          STRIPES.get(uri.getAuthority()).add(connection);
+          return connection;
+        }
+      } else {
+        throw new IllegalArgumentException("UnitTestConnectionService failed to find stripe" + uri.getAuthority());
+      }
+    }
+
     checkURI(uri);
 
     ServerDescriptor serverDescriptor = SERVERS.get(uri);
@@ -374,6 +438,28 @@ public class UnitTestConnectionService implements ConnectionService {
     } catch (URISyntaxException e) {
       throw new IllegalArgumentException(e);
     }
+  }
+
+  private static final class StripeDescriptor {
+    private final List<PassthroughServer> servers = new ArrayList<PassthroughServer>();
+    private final List<Connection> connections = new ArrayList<Connection>();
+
+    synchronized void addServer (PassthroughServer server) {
+      servers.add(server);
+    }
+
+    synchronized List<Connection> getConnections() {
+      return this.connections;
+    }
+
+    synchronized void add(Connection connection) {
+      this.connections.add(connection);
+    }
+
+    synchronized void removeConnections() {
+      this.connections.clear();
+    }
+
   }
 
   private static final class ServerDescriptor {

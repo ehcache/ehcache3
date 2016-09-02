@@ -29,4 +29,12 @@ final class CodecUtil {
     byteBuffer.position(byteBuffer.position() + (s.length() * 2));
   }
 
+  public static String getStringFromBuffer(ByteBuffer buffer, int length) {
+    char[] arr = new char[length];
+    for (int i = 0; i < length; i++) {
+      arr[i] = buffer.getChar();
+    }
+    return new String(arr);
+  }
+
 }

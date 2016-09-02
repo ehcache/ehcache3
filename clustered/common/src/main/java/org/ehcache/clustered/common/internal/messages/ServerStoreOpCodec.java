@@ -115,7 +115,7 @@ class ServerStoreOpCodec {
     switch (storeOp) {
       case GET:
         key = msg.getLong();
-        cacheId = getStringFromBuffer(msg, msg.remaining() / 2);
+        cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
         return new GetMessage(cacheId, key);
       case GET_AND_APPEND:
         cacheId = readStringFromBufferWithSize(msg);
@@ -138,10 +138,10 @@ class ServerStoreOpCodec {
             chainCodec.decode(encodedUpdateChain));
       case CLIENT_INVALIDATION_ACK:
         int invalidationId = msg.getInt();
-        cacheId = getStringFromBuffer(msg, msg.remaining() / 2);
+        cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
         return new ClientInvalidationAck(cacheId, invalidationId);
       case CLEAR:
-        cacheId = getStringFromBuffer(msg, msg.remaining() / 2);
+        cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
         return new ClearMessage(cacheId);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + opCode);
@@ -150,14 +150,7 @@ class ServerStoreOpCodec {
 
   private static String readStringFromBufferWithSize(ByteBuffer buffer) {
     int length = buffer.getInt();
-    return getStringFromBuffer(buffer, length);
+    return CodecUtil.getStringFromBuffer(buffer, length);
   }
 
-  private static String getStringFromBuffer(ByteBuffer buffer, int length) {
-    char[] arr = new char[length];
-    for (int i = 0; i < length; i++) {
-      arr[i] = buffer.getChar();
-    }
-    return new String(arr);
-  }
 }
