@@ -17,21 +17,22 @@
 package org.ehcache.impl.persistence;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
+import org.ehcache.CachePersistenceException;
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.CachePersistenceException;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.channels.FileLock;
@@ -44,13 +45,10 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentMap;
 
 import static java.lang.Integer.toHexString;
 import static java.nio.charset.Charset.forName;
-
-import java.util.concurrent.ConcurrentMap;
-
-import org.ehcache.config.CacheConfiguration;
 
 /**
  * Default implementation of the {@link LocalPersistenceService} which can be used explicitly when
@@ -121,8 +119,18 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
         rw = new RandomAccessFile(lockFile, "rw");
+      } catch (FileNotFoundException e) {
+        // should not happen normally since we checked that everything is fine right above
+        throw new RuntimeException(e);
+      }
+      try {
         lock = rw.getChannel().lock();
-      } catch (IOException e) {
+      } catch (Exception e) {
+        try {
+          rw.close();
+        } catch (IOException e1) {
+          // ignore silently
+        }
         throw new RuntimeException("Couldn't lock rootDir: " + rootDirectory.getAbsolutePath(), e);
       }
       started = true;
