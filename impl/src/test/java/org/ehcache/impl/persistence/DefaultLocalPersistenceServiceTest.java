@@ -19,6 +19,7 @@ package org.ehcache.impl.persistence;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
@@ -34,6 +35,9 @@ public class DefaultLocalPersistenceServiceTest {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Test
   public void testFailsIfDirectoryExistsButNotWritable() throws IOException {
@@ -90,5 +94,18 @@ public class DefaultLocalPersistenceServiceTest {
     assertThat(service.getLockFile().exists(), is(true));
     service.stop();
     assertThat(service.getLockFile().exists(), is(false));
+  }
+
+  @Test
+  public void testExclusiveLock() throws IOException {
+    File f = folder.newFolder();
+    DefaultLocalPersistenceService service1 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    DefaultLocalPersistenceService service2 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    service1.start(null);
+
+    // We should not be able to lock the same directory twice
+    // And we should receive a meaningful exception about it
+    expectedException.expectMessage("Couldn't lock rootDir: " + f.getAbsolutePath());
+    service2.start(null);
   }
 }
