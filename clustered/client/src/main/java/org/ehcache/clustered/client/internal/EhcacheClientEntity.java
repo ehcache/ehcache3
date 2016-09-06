@@ -33,7 +33,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectData;
 import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp;
 import org.slf4j.Logger;
@@ -47,7 +47,6 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -56,6 +55,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp.GET;
 import static org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp.getServerStoreOp;
@@ -69,8 +69,7 @@ public class EhcacheClientEntity implements Entity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
 
-  private Set<String> reconnectData = new HashSet<String>();
-  private int reconnectDatalen = 0;
+  private ReconnectData reconnectData = new ReconnectData();
 
   public interface ResponseListener<T extends EhcacheEntityResponse> {
     void onResponse(T response);
@@ -80,12 +79,15 @@ public class EhcacheClientEntity implements Entity {
     void onDisconnection();
   }
 
+  private final AtomicLong sequenceGenerator = new AtomicLong(0L);
+
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
   private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private volatile boolean connected = true;
+  private volatile UUID clientId;
 
   private Timeouts timeouts = Timeouts.builder().build();
 
@@ -102,7 +104,7 @@ public class EhcacheClientEntity implements Entity {
 
       @Override
       public byte[] createExtendedReconnectData() {
-        return reconnectDataCodec.encode(reconnectData, reconnectDatalen);
+        return reconnectDataCodec.encode(reconnectData);
       }
 
       @Override
@@ -136,6 +138,12 @@ public class EhcacheClientEntity implements Entity {
     for (ResponseListener responseListener : responseListeners) {
       responseListener.onResponse(response);
     }
+  }
+
+  public void setClientId(UUID clientId) {
+    this.clientId = clientId;
+    this.messageFactory.setClientId(clientId);
+    this.reconnectData.setClientId(clientId);
   }
 
   public boolean isConnected() {
@@ -184,7 +192,7 @@ public class EhcacheClientEntity implements Entity {
       throws ClusteredTierCreationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.createServerStore(name, serverStoreConfiguration), true);
-      addReconnectData(name);
+      reconnectData.add(name);
     } catch (ClusterException e) {
       throw new ClusteredTierCreationException("Error creating clustered tier '" + name + "'", e);
     }
@@ -194,7 +202,7 @@ public class EhcacheClientEntity implements Entity {
       throws ClusteredTierValidationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(name , serverStoreConfiguration), false);
-      addReconnectData(name);
+      reconnectData.add(name);
     } catch (ClusterException e) {
       throw new ClusteredTierValidationException("Error validating clustered tier '" + name + "'", e);
     }
@@ -203,7 +211,7 @@ public class EhcacheClientEntity implements Entity {
   public void releaseCache(String name) throws ClusteredTierReleaseException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.releaseServerStore(name), false);
-      removeReconnectData(name);
+      reconnectData.remove(name);
     } catch (ClusterException e) {
       throw new ClusteredTierReleaseException("Error releasing clustered tier '" + name + "'", e);
     }
@@ -212,23 +220,11 @@ public class EhcacheClientEntity implements Entity {
   public void destroyCache(String name) throws ClusteredTierDestructionException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.destroyServerStore(name), true);
-      removeReconnectData(name);
+      reconnectData.remove(name);
     } catch (ResourceBusyException e) {
       throw new ClusteredTierDestructionException(e.getMessage(), e);
     } catch (ClusterException e) {
       throw new ClusteredTierDestructionException("Error destroying clustered tier '" + name + "'", e);
-    }
-  }
-
-  private void addReconnectData(String name) {
-    reconnectData.add(name);
-    reconnectDatalen += name.length();
-  }
-
-  private void removeReconnectData(String name) {
-    if (!reconnectData.contains(name)) {
-      reconnectData.remove(name);
-      reconnectDatalen -= name.length();
     }
   }
 
@@ -283,12 +279,18 @@ public class EhcacheClientEntity implements Entity {
 
   public InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
       throws MessageCodecException {
-    if (replicate) {
-      return endpoint.beginInvoke().message(message).replicate(true).invoke(); //TODO: remove replicate call once
-      //https://github.com/Terracotta-OSS/terracotta-apis/issues/139 is fixed
-    } else {
-      return endpoint.beginInvoke().message(message).replicate(false).invoke();
+    InvokeFuture<EhcacheEntityResponse> invoke;
+    if (clientId == null) {
+      throw new IllegalStateException("Client ID cannot be null");
     }
+    if (replicate) {
+      message.setId(sequenceGenerator.incrementAndGet());
+      //TODO: remove the replicate call with latest passthrough upgrade
+      invoke = endpoint.beginInvoke().message(message).replicate(true).invoke();
+    } else {
+      invoke = endpoint.beginInvoke().message(message).replicate(false).invoke();
+    }
+    return invoke;
   }
 
   private static <T> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)

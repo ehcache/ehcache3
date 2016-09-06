@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal;
 
+import org.ehcache.clustered.client.internal.EhcacheClientEntity.Timeouts;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.service.EntityBusyException;
@@ -45,15 +46,17 @@ public class EhcacheClientEntityFactory {
   private final Connection connection;
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
 
-  private final EhcacheClientEntity.Timeouts entityTimeouts;
+  private final Timeouts entityTimeouts;
+  private final UUID clientId;
 
-  public EhcacheClientEntityFactory(Connection connection) {
-    this(connection, EhcacheClientEntity.Timeouts.builder().build());
+  public EhcacheClientEntityFactory(Connection connection, UUID clientId) {
+    this(connection, clientId, Timeouts.builder().build());
   }
 
-  public EhcacheClientEntityFactory(Connection connection, EhcacheClientEntity.Timeouts entityTimeouts) {
+  public EhcacheClientEntityFactory(Connection connection, UUID clientId, Timeouts entityTimeouts) {
     this.connection = connection;
     this.entityTimeouts = entityTimeouts;
+    this.clientId = clientId;
   }
 
   public boolean acquireLeadership(String entityIdentifier) {
@@ -110,6 +113,7 @@ public class EhcacheClientEntityFactory {
               EhcacheClientEntity entity = ref.fetchEntity();
               try {
                 entity.setTimeouts(entityTimeouts);
+                entity.setClientId(clientId);
                 entity.configure(config);
                 return;
               } finally {
@@ -168,6 +172,7 @@ public class EhcacheClientEntityFactory {
       boolean validated = false;
       try {
         entity.setTimeouts(entityTimeouts);
+        entity.setClientId(clientId);
         entity.validate(config);
         validated = true;
         return entity;

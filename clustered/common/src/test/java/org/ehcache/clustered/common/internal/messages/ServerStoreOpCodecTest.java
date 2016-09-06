@@ -18,15 +18,13 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.junit.Test;
 
+
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.ehcache.clustered.common.internal.store.Util.readPayLoad;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-/**
- *
- */
 public class ServerStoreOpCodecTest {
 
   private static final ServerStoreMessageFactory MESSAGE_FACTORY = new ServerStoreMessageFactory("test");
@@ -43,6 +41,7 @@ public class ServerStoreOpCodecTest {
     assertThat(decodedAppendMessage.getCacheId(), is("test"));
     assertThat(decodedAppendMessage.getKey(), is(1L));
     assertThat(readPayLoad(decodedAppendMessage.getPayload()), is(1L));
+    assertThat(decodedAppendMessage.getId(), is(-1L));
   }
 
   @Test
@@ -66,6 +65,7 @@ public class ServerStoreOpCodecTest {
     assertThat(decodedGetAndAppendMessage.getCacheId(), is("test"));
     assertThat(decodedGetAndAppendMessage.getKey(), is(10L));
     assertThat(readPayLoad(decodedGetAndAppendMessage.getPayload()), is(10L));
+    assertThat(decodedGetAndAppendMessage.getId(), is(-1L));
   }
 
   @Test
@@ -79,6 +79,7 @@ public class ServerStoreOpCodecTest {
 
     assertThat(decodedReplaceAtHeadMessage.getCacheId(), is("test"));
     assertThat(decodedReplaceAtHeadMessage.getKey(), is(10L));
+    assertThat(decodedReplaceAtHeadMessage.getId(), is(-1L));
     Util.assertChainHas(decodedReplaceAtHeadMessage.getExpect(), 10L, 100L, 1000L);
     Util.assertChainHas(decodedReplaceAtHeadMessage.getUpdate(), 2000L);
   }
@@ -89,6 +90,7 @@ public class ServerStoreOpCodecTest {
     byte[] encodedBytes = STORE_OP_CODEC.encode((ServerStoreOpMessage)clearMessage);
     EhcacheEntityMessage decodedMsg = STORE_OP_CODEC.decode(encodedBytes);
     assertThat(((ServerStoreOpMessage)decodedMsg).getCacheId(), is("test"));
+    assertThat(decodedMsg.getId(), is(-1L));
   }
 
   @Test

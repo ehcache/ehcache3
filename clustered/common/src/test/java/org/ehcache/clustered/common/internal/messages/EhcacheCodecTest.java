@@ -18,6 +18,8 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.junit.Test;
 
+import java.util.UUID;
+
 import static org.junit.Assert.*;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
@@ -29,6 +31,8 @@ import static org.mockito.Mockito.when;
 
 public class EhcacheCodecTest {
 
+  private static final UUID clientId = UUID.randomUUID();
+
   @Test
   public void encodeMessage() throws Exception {
     ServerStoreOpCodec serverStoreOpCodec = mock(ServerStoreOpCodec.class);
@@ -36,7 +40,7 @@ public class EhcacheCodecTest {
     StateRepositoryOpCodec stateRepositoryOpCodec = mock(StateRepositoryOpCodec.class);
     EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null);
 
-    LifecycleMessage.DestroyServerStore lifecycleMessage = new LifecycleMessage.DestroyServerStore("foo");
+    LifecycleMessage.DestroyServerStore lifecycleMessage = new LifecycleMessage.DestroyServerStore("foo", clientId);
     codec.encodeMessage(lifecycleMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, never()).encode(any(ServerStoreOpMessage.class));

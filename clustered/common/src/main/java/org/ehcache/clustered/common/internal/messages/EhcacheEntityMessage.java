@@ -18,10 +18,16 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.terracotta.entity.EntityMessage;
 
+import java.util.UUID;
+
 /**
  * Defines messages for interactions with an {@code EhcacheActiveEntity}.
  */
 public abstract class EhcacheEntityMessage implements EntityMessage {
+
+  public static final long NOT_REPLICATED = -1;
+
+  private long id = NOT_REPLICATED;
 
   /**
    * These types represent the top level Ehcache entity message types.
@@ -62,4 +68,13 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
   public String toString() {
     return getType().toString();
   }
+
+  public void setId(long id) {
+    this.id = id;
+  }
+
+  public long getId() {
+    return this.id;
+  }
+
 }

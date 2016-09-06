@@ -37,6 +37,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -54,6 +55,7 @@ public class EventualServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   private static EhcacheClientEntity clientEntity1;
   private static EhcacheClientEntity clientEntity2;
@@ -68,7 +70,7 @@ public class EventualServerStoreProxyTest {
             .build());
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
+    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
 
     entityFactory.create("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));

@@ -16,31 +16,33 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 public class ReconnectDataCodecTest {
 
   @Test
   public void testCodec() {
-    Set<String> cacheIds = new HashSet<String>();
-    cacheIds.add("test");
-    cacheIds.add("test1");
-    cacheIds.add("test2");
+    ReconnectData reconnectData = new ReconnectData();
+    reconnectData.add("test");
+    reconnectData.add("test1");
+    reconnectData.add("test2");
+
+    reconnectData.setClientId(UUID.randomUUID());
 
     ReconnectDataCodec dataCodec = new ReconnectDataCodec();
 
-    Set<String> decoded = dataCodec.decode(dataCodec.encode(cacheIds, 14));
+    ReconnectData decoded = dataCodec.decode(dataCodec.encode(reconnectData));
 
-    assertThat(decoded, Matchers.hasSize(3));
-    assertThat(decoded, containsInAnyOrder("test", "test1", "test2"));
-
+    assertThat(decoded, notNullValue());
+    assertThat(decoded.getClientId(), is(reconnectData.getClientId()));
+    assertThat(decoded.getAllCaches(), containsInAnyOrder("test", "test1", "test2"));
 
   }
 }

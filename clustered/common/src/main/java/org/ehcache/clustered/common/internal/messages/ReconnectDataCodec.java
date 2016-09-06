@@ -17,32 +17,36 @@
 package org.ehcache.clustered.common.internal.messages;
 
 
+import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
+
 import java.nio.ByteBuffer;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.UUID;
 
 public class ReconnectDataCodec {
 
-  private static final byte ENTRY_SIZE = 4;
-
-  public byte[] encode(Set<String> cacheIds, int length) {
-    ByteBuffer reconnectData = ByteBuffer.allocate(2 * length + cacheIds.size() * ENTRY_SIZE);
-    for (String cacheId : cacheIds) {
-      reconnectData.putInt(cacheId.length());
-      CodecUtil.putStringAsCharArray(reconnectData, cacheId);
+  public byte[] encode(ReconnectData reconnectData) {
+    ByteBuffer encodedMsg = ByteBuffer.allocate(reconnectData.getDataLength());
+    encodedMsg.put(ClusteredEhcacheIdentity.serialize(reconnectData.getClientId()));
+    for (String cacheId : reconnectData.getAllCaches()) {
+      encodedMsg.putInt(cacheId.length());
+      CodecUtil.putStringAsCharArray(encodedMsg, cacheId);
     }
 
-    return reconnectData.array();
+    return encodedMsg.array();
   }
 
-  public Set<String> decode(byte[] payload) {
-    Set<String> cacheIds = new HashSet<String>();
+  public ReconnectData decode(byte[] payload) {
+    ReconnectData reconnectData = new ReconnectData();
     ByteBuffer byteBuffer = ByteBuffer.wrap(payload);
+    long msb = byteBuffer.getLong();
+    long lsb = byteBuffer.getLong();
+    reconnectData.setClientId(new UUID(msb, lsb));
+
     while (byteBuffer.hasRemaining()) {
       int cacheIdSize = byteBuffer.getInt();
-      cacheIds.add(CodecUtil.getStringFromBuffer(byteBuffer, cacheIdSize));
+      reconnectData.add(CodecUtil.getStringFromBuffer(byteBuffer, cacheIdSize));
     }
-    return cacheIds;
+    return reconnectData;
   }
 
 }

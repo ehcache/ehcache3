@@ -19,6 +19,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.UUID;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntityFactory;
 import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
@@ -44,6 +45,7 @@ import static org.junit.Assert.fail;
 public class EhcacheClientEntityFactoryIntegrationTest {
 
   private static final Map<String, Pool> EMPTY_RESOURCE_MAP = Collections.emptyMap();
+  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   private static final String RESOURCE_CONFIG =
       "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
@@ -70,14 +72,14 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testCreate() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
 
     factory.create("testCreate", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
   }
 
   @Test
   public void testCreateWhenExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     factory.create("testCreateWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
     try {
       factory.create("testCreateWhenExisting",
@@ -90,7 +92,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testCreateWithBadConfigCleansUp() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
 
     try {
       factory.create("testCreateWithBadConfigCleansUp", new ServerSideConfiguration("flargle", EMPTY_RESOURCE_MAP));
@@ -107,7 +109,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testRetrieveWithGoodConfig() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     factory.create("testRetrieveWithGoodConfig",
         new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary"))));
     assertThat(factory.retrieve("testRetrieveWithGoodConfig",
@@ -116,7 +118,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testRetrieveWithBadConfig() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     factory.create("testRetrieveWithBadConfig",
         new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "primary"))));
     try {
@@ -130,7 +132,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testRetrieveWhenNotExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     try {
       factory.retrieve("testRetrieveWhenNotExisting", null);
       fail("Expected EntityNotFoundException");
@@ -141,14 +143,14 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testDestroy() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     factory.create("testDestroy", new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
     factory.destroy("testDestroy");
   }
 
   @Test
   public void testDestroyWhenNotExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     try {
       factory.destroy("testDestroyWhenNotExisting");
       fail("Expected EhcacheEntityNotFoundException");
@@ -159,7 +161,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testAbandonLeadershipWhenNotOwning() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     try {
       factory.abandonLeadership("testAbandonLeadershipWhenNotOwning");
       fail("Expected IllegalMonitorStateException");
@@ -170,18 +172,18 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testAcquireLeadershipWhenAlone() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     assertThat(factory.acquireLeadership("testAcquireLeadershipWhenAlone"), is(true));
   }
 
   @Test
   public void testAcquireLeadershipWhenTaken() throws Exception {
-    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     assertThat(factoryA.acquireLeadership("testAcquireLeadershipWhenTaken"), is(true));
 
     Connection clientB = CLUSTER.newConnection();
     try {
-      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
+      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB, UUID.randomUUID());
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipWhenTaken"), is(false));
     } finally {
       clientB.close();
@@ -190,13 +192,13 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testAcquireLeadershipAfterAbandoned() throws Exception {
-    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION);
+    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
     factoryA.acquireLeadership("testAcquireLeadershipAfterAbandoned");
     factoryA.abandonLeadership("testAcquireLeadershipAfterAbandoned");
 
     Connection clientB = CLUSTER.newConnection();
     try {
-      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
+      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB, UUID.randomUUID());
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipAfterAbandoned"), is(true));
     } finally {
       clientB.close();

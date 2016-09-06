@@ -62,6 +62,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 
@@ -80,6 +81,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
   private final EhcacheClientEntity.Timeouts operationTimeouts;
+  private final UUID clientId = UUID.randomUUID();
 
   private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
@@ -208,7 +210,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
     initClusterConnection();
     createEntityFactory();
-
     if (!entityFactory.acquireLeadership(entityIdentifier)) {
       entityFactory = null;
       closeConnection();

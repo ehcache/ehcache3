@@ -38,6 +38,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -58,7 +59,8 @@ import static org.junit.Assert.fail;
 
 public class StrongServerStoreProxyTest {
 
-  private static final ExecutorService executorService = Executors.newCachedThreadPool();
+  private static final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
+  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
@@ -76,7 +78,7 @@ public class StrongServerStoreProxyTest {
             .build());
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
+    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
 
     entityFactory.create("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
@@ -115,7 +117,7 @@ public class StrongServerStoreProxyTest {
     }
 
     UnitTestConnectionService.remove(CLUSTER_URI);
-    executorService.shutdown();
+    EXECUTOR_SERVICE.shutdown();
   }
 
   @Test
@@ -227,14 +229,14 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    executorService.submit(new Callable<Object>() {
+    EXECUTOR_SERVICE.submit(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         serverStoreProxy1.append(1L, createPayload(1L));
         return null;
       }
     });
-    executorService.submit(new Callable<Object>() {
+    EXECUTOR_SERVICE.submit(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         serverStoreProxy1.append(1L, createPayload(1L));
@@ -320,14 +322,14 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    executorService.submit(new Callable<Future>() {
+    EXECUTOR_SERVICE.submit(new Callable<Future>() {
       @Override
       public Future call() throws Exception {
         serverStoreProxy1.clear();
         return null;
       }
     });
-    executorService.submit(new Callable<Future>() {
+    EXECUTOR_SERVICE.submit(new Callable<Future>() {
       @Override
       public Future call() throws Exception {
         serverStoreProxy1.clear();

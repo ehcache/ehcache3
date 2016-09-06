@@ -54,6 +54,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
@@ -75,6 +76,7 @@ public class ClusteredStoreTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   ClusteredStore<Long, String> store;
 
@@ -86,7 +88,7 @@ public class ClusteredStoreTest {
     );
 
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
+    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
 
     ServerSideConfiguration serverConfig =
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());

@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.server.repo;
 
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.junit.Test;

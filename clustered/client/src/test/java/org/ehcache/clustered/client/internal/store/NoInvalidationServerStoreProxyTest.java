@@ -37,6 +37,7 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
+import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
@@ -48,6 +49,7 @@ public class NoInvalidationServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
+  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   private static EhcacheClientEntity clientEntity;
   private static NoInvalidationServerStoreProxy serverStoreProxy;
@@ -60,7 +62,7 @@ public class NoInvalidationServerStoreProxyTest {
             .build());
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
+    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
 
     ServerSideConfiguration serverConfig =
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());

@@ -43,6 +43,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectData;
 import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
@@ -257,7 +258,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
     }
     clientState.attach();
-    Set<String> cacheIds = reconnectDataCodec.decode(extendedReconnectData);
+    ReconnectData reconnectData = reconnectDataCodec.decode(extendedReconnectData);
+    Set<String> cacheIds = reconnectData.getAllCaches();
     for (final String cacheId : cacheIds) {
       ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
       if (serverStore == null) {
