@@ -55,6 +55,7 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 
@@ -241,7 +242,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
     assertThat(stats[0].getStatistic(Counter.class, "GetCounter").getValue(), equalTo(4L));
     assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
-    assertThat(stats[0].getStatistic(CounterHistory.class, "AllCacheGetCount").getValue().length, equalTo(1));
+    assertThat(stats[0].getStatistic(CounterHistory.class, "AllCacheGetCount").getValue().length, greaterThanOrEqualTo(1));
     assertThat(stats[0].getStatistic(CounterHistory.class, "AllCacheGetCount").getValue()[0].getValue(), equalTo(4L));
   }
 
