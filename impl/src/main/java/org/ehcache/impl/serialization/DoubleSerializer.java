@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
@@ -44,21 +43,6 @@ public class DoubleSerializer implements Serializer<Double> {
    * @see Serializer
    */
   public DoubleSerializer(ClassLoader classLoader) {
-  }
-
-  /**
-   * Constructor to enable this serializer as a persistent one.
-   * <P>
-   *   Parameters are ignored as {@link Double} is a base java type and this implementation requires no state.
-   * </P>
-   *
-   * @param classLoader the classloader to use
-   * @param stateRepository the state repository
-   *
-   * @see Serializer
-   */
-  public DoubleSerializer(ClassLoader classLoader, StateRepository stateRepository) {
-
   }
 
   /**

@@ -37,6 +37,8 @@ import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -72,6 +74,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -297,9 +300,10 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
-    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+    private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, PersistenceSpaceIdentifier>();
     private final String defaultThreadPool;
     private volatile ServiceProvider<Service> serviceProvider;
+    private volatile LocalPersistenceService localPersistenceService;
 
     public Provider() {
       this(null);
@@ -337,7 +341,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       }
       MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
-      LocalPersistenceService localPersistenceService = serviceProvider.getService(LocalPersistenceService.class);
+      this.localPersistenceService = serviceProvider.getService(LocalPersistenceService.class);
       if (localPersistenceService == null) {
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
       }
@@ -359,7 +363,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext,
                 executionService, threadPoolAlias, writerConcurrency,
                 storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()));
-        createdStores.add(offHeapStore);
+        createdStores.put(offHeapStore, space);
         return offHeapStore;
       } catch (CachePersistenceException cpex) {
         throw new RuntimeException("Unable to create persistence context in " + space, cpex);
@@ -368,7 +372,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      if (!createdStores.contains(resource)) {
+      if (createdStores.remove(resource) == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       try {
@@ -397,10 +401,34 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      if (!createdStores.contains(resource)) {
+      PersistenceSpaceIdentifier identifier = createdStores.get(resource);
+      if (identifier == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      init((OffHeapDiskStore)resource);
+      OffHeapDiskStore diskStore = (OffHeapDiskStore) resource;
+
+      Serializer keySerializer = diskStore.keySerializer;
+      if (keySerializer instanceof StatefulSerializer) {
+        StateRepository stateRepository = null;
+        try {
+          stateRepository = localPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException(e);
+        }
+        ((StatefulSerializer)keySerializer).init(stateRepository);
+      }
+      Serializer valueSerializer = diskStore.valueSerializer;
+      if (valueSerializer instanceof StatefulSerializer) {
+        StateRepository stateRepository = null;
+        try {
+          stateRepository = localPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException(e);
+        }
+        ((StatefulSerializer)valueSerializer).init(stateRepository);
+      }
+
+      init(diskStore);
     }
 
     static <K, V> void init(final OffHeapDiskStore<K, V> resource) {

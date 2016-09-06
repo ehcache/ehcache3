@@ -18,7 +18,6 @@ package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Serializable;

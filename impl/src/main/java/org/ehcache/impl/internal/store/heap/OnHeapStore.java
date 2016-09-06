@@ -46,7 +46,10 @@ import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.serialization.TransientStateRepository;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -413,7 +416,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         case MISS:
           return false;
         default:
-          throw new AssertionError("Unknow enum value " + outcome);
+          throw new AssertionError("Unknown enum value " + outcome);
       }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
@@ -1684,6 +1687,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public void initStore(Store<?, ?> resource) {
       checkResource(resource);
+
+      List<Copier> copiers = createdStores.get(resource);
+      for (Copier copier : copiers) {
+        if(copier instanceof SerializingCopier) {
+          Serializer serializer = ((SerializingCopier)copier).getSerializer();
+          if(serializer instanceof StatefulSerializer) {
+            ((StatefulSerializer)serializer).init(new TransientStateRepository());
+          }
+        }
+      }
     }
 
     private void checkResource(Object resource) {
@@ -1721,7 +1734,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public void initCachingTier(CachingTier<?, ?> resource) {
-      initStore((Store<?, ?>) resource);
+      checkResource(resource);
     }
 
     @Override
@@ -1736,7 +1749,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public void initHigherCachingTier(HigherCachingTier<?, ?> resource) {
-      initStore((Store<?, ?>) resource);
+      checkResource(resource);
     }
   }
 

@@ -23,16 +23,14 @@ import org.ehcache.impl.serialization.ByteArraySerializer;
 import org.ehcache.impl.serialization.CharSerializer;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.impl.serialization.CompactPersistentJavaSerializer;
 import org.ehcache.impl.serialization.DoubleSerializer;
 import org.ehcache.impl.serialization.FloatSerializer;
 import org.ehcache.impl.serialization.IntegerSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
-import org.ehcache.impl.serialization.PlainJavaSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
-import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
@@ -163,11 +161,11 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     @Override
     protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
+      Class<? extends Serializer<T>> klazz = getSerializerClassFor(clazz, config, classLoader);
       try {
-        Class<? extends Serializer<T>> klazz = getClassFor(clazz, config, classLoader);
         return constructSerializer(clazz, klazz.getConstructor(ClassLoader.class), classLoader);
       } catch (NoSuchMethodException e) {
-        throw new RuntimeException(e);
+        throw new RuntimeException(klazz + " does not meet the constructor requirement for transient caches", e);
       }
     }
 
@@ -193,32 +191,44 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     @Override
     protected <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException {
-      Class<? extends Serializer<T>> klazz = getClassFor(clazz, config, classLoader);
-      PersistenceSpaceIdentifier<? extends PersistableResourceService> space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs);
-      PersistableResourceService service = serviceProvider.getService(space.getServiceType());
+      Class<? extends Serializer<T>> klazz = getSerializerClassFor(clazz, config, classLoader);
+      String errorMessage = klazz + " does not meet the constructor requirements for persistent caches";
 
-      String subSpaceName = DefaultSerializationProvider.class.getSimpleName() + suffix;
+      if (StatefulSerializer.class.isAssignableFrom(klazz)) {
+        try {
+          Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class);
+          return constructSerializer(clazz, constructor, classLoader);
+        } catch (NoSuchMethodException e) {
+          throw new RuntimeException(errorMessage, e);
+        }
+      } else {
+        PersistenceSpaceIdentifier<? extends PersistableResourceService> space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) configs);
+        PersistableResourceService service = serviceProvider.getService(space.getServiceType());
 
-      try {
-        Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, StateRepository.class);
-        StateRepository stateRepository = service.getStateRepositoryWithin(space, subSpaceName);
-        return constructSerializer(clazz, constructor, classLoader, stateRepository);
-      } catch (NoSuchMethodException e) {
         if (service instanceof LocalPersistenceService) {
           try {
             Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class, FileBasedPersistenceContext.class);
+            String subSpaceName = DefaultSerializationProvider.class.getSimpleName() + suffix;
             FileBasedPersistenceContext context = ((LocalPersistenceService) service).createPersistenceContextWithin(space, subSpaceName);
             return constructSerializer(clazz, constructor, classLoader, context);
           } catch (NoSuchMethodException nsmex) {
-            throw new RuntimeException(nsmex);
+            try {
+              Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class);
+              return constructSerializer(clazz, constructor, classLoader);
+            } catch (NoSuchMethodException e) {
+              throw new RuntimeException(errorMessage, e);
+            }
           } catch (CachePersistenceException cpex) {
             throw new RuntimeException(cpex);
           }
         } else {
-          throw new RuntimeException(e);
+          try {
+            Constructor<? extends Serializer<T>> constructor = klazz.getConstructor(ClassLoader.class);
+            return constructSerializer(clazz, constructor, classLoader);
+          } catch (NoSuchMethodException e) {
+            throw new RuntimeException(errorMessage, e);
+          }
         }
-      } catch (CachePersistenceException e) {
-        throw new RuntimeException(e);
       }
     }
 
@@ -256,7 +266,7 @@ public class DefaultSerializationProvider implements SerializationProvider {
 
     protected abstract <T> Serializer<T> createSerializer(String suffix, Class<T> clazz, ClassLoader classLoader, DefaultSerializerConfiguration<T> config, ServiceConfiguration<?>... configs) throws UnsupportedTypeException;
 
-    protected <T> Class<? extends Serializer<T>> getClassFor(Class<T> clazz, DefaultSerializerConfiguration<T> config, ClassLoader classLoader) throws UnsupportedTypeException {
+    protected <T> Class<? extends Serializer<T>> getSerializerClassFor(Class<T> clazz, DefaultSerializerConfiguration<T> config, ClassLoader classLoader) throws UnsupportedTypeException {
       if (config != null) {
         Class<? extends Serializer<T>> configured = config.getClazz();
         if (configured != null) {

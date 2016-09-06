@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 /**
  * TransientStateRepository
  */
-class TransientStateRepository implements StateRepository {
+public class TransientStateRepository implements StateRepository {
 
   private ConcurrentMap<String, ConcurrentMap<?, ?>> knownMaps = new ConcurrentHashMap<String, ConcurrentMap<?, ?>>();
 

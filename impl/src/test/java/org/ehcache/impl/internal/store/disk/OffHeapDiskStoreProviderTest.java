@@ -32,6 +32,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -65,7 +66,7 @@ public class OffHeapDiskStoreProviderTest {
 
     provider.start(serviceLocator);
 
-    OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig());
+    OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
 
      Query storeQuery = queryBuilder()
          .children()
