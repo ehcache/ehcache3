@@ -17,6 +17,7 @@
 package org.ehcache.impl.persistence;
 
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -34,25 +35,31 @@ import static org.junit.Assume.assumeTrue;
 public class DefaultLocalPersistenceServiceTest {
 
   @Rule
-  public final TemporaryFolder folder = new TemporaryFolder();
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Rule
-  public final ExpectedException expectedException = ExpectedException.none();
+  public final TemporaryFolder folder = new TemporaryFolder();
+
+  private File testFolder;
+
+  @Before
+  public void setup() throws IOException {
+    testFolder = folder.newFolder("testFolder");
+  }
 
   @Test
   public void testFailsIfDirectoryExistsButNotWritable() throws IOException {
-    File f = folder.newFolder("testFailsIfDirectoryExistsButNotWritable");
-    assumeTrue(f.setWritable(false));
+    assumeTrue(testFolder.setWritable(false));
     try {
       try {
-        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+        final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
         service.start(null);
         fail("Expected IllegalArgumentException");
       } catch(IllegalArgumentException e) {
-        assertThat(e.getMessage(), equalTo("Location isn't writable: " + f.getAbsolutePath()));
+        assertThat(e.getMessage(), equalTo("Location isn't writable: " + testFolder.getAbsolutePath()));
       }
     } finally {
-      f.setWritable(true);
+      testFolder.setWritable(true);
     }
   }
 
@@ -70,10 +77,9 @@ public class DefaultLocalPersistenceServiceTest {
 
   @Test
   public void testFailsIfDirectoryDoesNotExistsAndIsNotCreated() throws IOException {
-    File fdr = folder.newFolder("testFailsIfDirectoryDoesNotExistsAndIsNotCreated");
-    assumeTrue(fdr.setWritable(false));
+    assumeTrue(testFolder.setWritable(false));
     try {
-      File f = new File(fdr, "notallowed");
+      File f = new File(testFolder, "notallowed");
       try {
         final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
         service.start(null);
@@ -82,14 +88,13 @@ public class DefaultLocalPersistenceServiceTest {
         assertThat(e.getMessage(), equalTo("Directory couldn't be created: " + f.getAbsolutePath()));
       }
     } finally {
-      fdr.setWritable(true);
+      testFolder.setWritable(true);
     }
   }
 
   @Test
   public void testLocksDirectoryAndUnlocks() throws IOException {
-    final File f = folder.newFolder("testLocksDirectoryAndUnlocks");
-    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
     service.start(null);
     assertThat(service.getLockFile().exists(), is(true));
     service.stop();
@@ -98,14 +103,21 @@ public class DefaultLocalPersistenceServiceTest {
 
   @Test
   public void testExclusiveLock() throws IOException {
-    File f = folder.newFolder();
-    DefaultLocalPersistenceService service1 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
-    DefaultLocalPersistenceService service2 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
+    DefaultLocalPersistenceService service1 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+    DefaultLocalPersistenceService service2 = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
     service1.start(null);
 
     // We should not be able to lock the same directory twice
     // And we should receive a meaningful exception about it
-    expectedException.expectMessage("Couldn't lock rootDir: " + f.getAbsolutePath());
+    expectedException.expectMessage("Couldn't lock rootDir: " + testFolder.getAbsolutePath());
     service2.start(null);
+  }
+
+  @Test
+  public void testCantDestroyAllIfServiceNotStarted() {
+    DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+    expectedException.expect(IllegalStateException.class);
+    expectedException.expectMessage("Service must be started");
+    service.destroyAll();
   }
 }

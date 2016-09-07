@@ -248,6 +248,8 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   @Override
   public void destroy(String name) throws CachePersistenceException {
+    if(!started)
+      internalStart();
     PersistenceSpace space = knownPersistenceSpaces.remove(name);
     if (space == null) {
       destroy(name, new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name)), true);
@@ -261,6 +263,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   @Override
   public void destroyAll() {
+    if (!started) {
+      throw new IllegalStateException("Service must be started");
+    }
     if(recursiveDeleteDirectoryContent(rootDirectory)){
       LOGGER.debug("Destroyed all file based persistence contexts");
     } else {
