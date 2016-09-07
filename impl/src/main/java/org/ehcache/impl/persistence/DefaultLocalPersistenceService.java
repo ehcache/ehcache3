@@ -248,8 +248,10 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    if(!started)
+    if (!started) {
       internalStart();
+    }
+
     PersistenceSpace space = knownPersistenceSpaces.remove(name);
     if (space == null) {
       destroy(name, new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name)), true);
