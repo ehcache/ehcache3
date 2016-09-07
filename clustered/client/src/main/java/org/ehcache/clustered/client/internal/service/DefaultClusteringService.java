@@ -338,15 +338,14 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     } catch (TimeoutException e) {
       throw new CachePersistenceException("Could not destroy clustered tier '" + name + "' on " + clusterUri
           + "; destroy operation timed out" + clusterUri, e);
-    }
-    finally {
+    } finally {
       if (!wasStarted) {
         stop();
       }
     }
   }
 
-  private boolean isStarted() {
+  protected boolean isStarted() {
     return entity != null;
   }
 
