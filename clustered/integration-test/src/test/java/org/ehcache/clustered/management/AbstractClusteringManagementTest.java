@@ -13,43 +13,33 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.cluster;
+package org.ehcache.clustered.management;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
-import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.ehcache.clustered.server.EhcacheServerEntityService;
 import org.junit.After;
-import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
+import org.junit.ClassRule;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.management.entity.management.ManagementAgentConfig;
 import org.terracotta.management.entity.management.client.ContextualReturnListener;
-import org.terracotta.management.entity.management.client.ManagementAgentEntityClientService;
 import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
 import org.terracotta.management.entity.management.client.ManagementAgentService;
-import org.terracotta.management.entity.management.server.ManagementAgentEntityServerService;
 import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntity;
-import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntityClientService;
 import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntityFactory;
-import org.terracotta.management.entity.monitoring.server.MonitoringServiceEntityServerService;
 import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
-import org.terracotta.offheapresource.OffHeapResourcesProvider;
-import org.terracotta.offheapresource.config.OffheapResourcesType;
-import org.terracotta.offheapresource.config.ResourceType;
-import org.terracotta.passthrough.PassthroughClusterControl;
-import org.terracotta.passthrough.PassthroughServer;
+import org.terracotta.testing.rules.BasicExternalCluster;
+import org.terracotta.testing.rules.Cluster;
 
+import java.io.File;
 import java.io.Serializable;
-import java.math.BigInteger;
-import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
@@ -66,53 +56,31 @@ import static org.junit.Assert.assertThat;
 
 public abstract class AbstractClusteringManagementTest {
 
+  private static final String RESOURCE_CONFIG =
+    "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+      + "<ohr:offheap-resources>"
+      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
+      + "</ohr:offheap-resources>" +
+      "</service>\n";
+
   protected static MonitoringServiceEntity consumer;
 
-  private static PassthroughClusterControl stripeControl;
+  @ClassRule
+  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, getManagementPlugins(), "", RESOURCE_CONFIG, "");
 
   @BeforeClass
   public static void beforeClass() throws Exception {
-    PassthroughServer activeServer = new PassthroughServer();
-    activeServer.setServerName("server-1");
-    activeServer.setBindPort(9510);
-    activeServer.setGroupPort(9610);
+    CLUSTER.getClusterControl().waitForActive();
 
-    // management agent entity
-    activeServer.registerServerEntityService(new ManagementAgentEntityServerService());
-    activeServer.registerClientEntityService(new ManagementAgentEntityClientService());
-
-    // ehcache entity
-    activeServer.registerServerEntityService(new EhcacheServerEntityService());
-    activeServer.registerClientEntityService(new EhcacheClientEntityService());
-
-    // RW lock entity (required by ehcache)
-    activeServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
-    activeServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-
-    activeServer.registerServerEntityService(new MonitoringServiceEntityServerService());
-    activeServer.registerClientEntityService(new MonitoringServiceEntityClientService());
-
-    // off-heap service
-    OffheapResourcesType offheapResourcesType = new OffheapResourcesType();
-    ResourceType resourceType = new ResourceType();
-    resourceType.setName("primary-server-resource");
-    resourceType.setUnit(org.terracotta.offheapresource.config.MemoryUnit.MB);
-    resourceType.setValue(BigInteger.TEN);
-    offheapResourcesType.getResource().add(resourceType);
-    activeServer.registerServiceProvider(new OffHeapResourcesProvider(), new OffHeapResourcesConfiguration(offheapResourcesType));
-
-    stripeControl = new PassthroughClusterControl("server-1", activeServer);
-
-    consumer = new MonitoringServiceEntityFactory(ConnectionFactory.connect(URI.create("passthrough://server-1:9510/cluster-1"), new Properties())).retrieveOrCreate("MonitoringConsumerEntity");
+    consumer = new MonitoringServiceEntityFactory(ConnectionFactory.connect(CLUSTER.getConnectionURI(), new Properties())).retrieveOrCreate("MonitoringConsumerEntity");
+    // buffer for client-side notifications
     consumer.createBestEffortBuffer("client-notifications", 1024, Serializable[].class);
+    // buffer for client-side stats
     consumer.createBestEffortBuffer("client-statistics", 1024, Serializable[].class);
-  }
-
-  @AfterClass
-  public static void afterClass() throws Exception {
-    if (stripeControl != null) {
-      stripeControl.tearDown();
-    }
+    // buffer for platform topology changes
+    consumer.createBestEffortBuffer("platform-notifications", 1024, Serializable[].class);
+    // buffer for entity notifications
+    consumer.createBestEffortBuffer("entity-notifications", 1024, Serializable[].class);
   }
 
   @After
@@ -126,8 +94,9 @@ public abstract class AbstractClusteringManagementTest {
   }
 
   protected static void sendManagementCallToCollectStats(String... statNames) throws Exception {
-    try (Connection managementConsole = ConnectionFactory.connect(URI.create("passthrough://server-1:9510/"), new Properties())) {
-      ManagementAgentService agent = new ManagementAgentService(new ManagementAgentEntityFactory(managementConsole).retrieveOrCreate(new ManagementAgentConfig()));
+    Connection managementConnection = CLUSTER.newConnection();
+    try {
+      ManagementAgentService agent = new ManagementAgentService(new ManagementAgentEntityFactory(managementConnection).retrieveOrCreate(new ManagementAgentConfig()));
 
       assertThat(agent.getManageableClients().size(), equalTo(2));
 
@@ -143,15 +112,15 @@ public abstract class AbstractClusteringManagementTest {
       assertThat(client, is(notNullValue()));
       final ClientIdentifier ehcacheClientIdentifier = client;
 
-      CountDownLatch callCompleted = new CountDownLatch(1);
-      AtomicReference<String> managementCallId = new AtomicReference<>();
-      BlockingQueue<ContextualReturn<?>> returns = new LinkedBlockingQueue<>();
+      final CountDownLatch callCompleted = new CountDownLatch(1);
+      final AtomicReference<String> managementCallId = new AtomicReference<String>();
+      final BlockingQueue<ContextualReturn<?>> returns = new LinkedBlockingQueue<ContextualReturn<?>>();
 
       agent.setContextualReturnListener(new ContextualReturnListener() {
         @Override
         public void onContextualReturn(ClientIdentifier from, String id, ContextualReturn<?> aReturn) {
           try {
-            assertEquals(ehcacheClientIdentifier, from);
+            Assert.assertEquals(ehcacheClientIdentifier, from);
             // make sure the call completed
             callCompleted.await(10, TimeUnit.SECONDS);
             assertEquals(managementCallId.get(), id);
@@ -176,6 +145,8 @@ public abstract class AbstractClusteringManagementTest {
 
       // ensure the call is made
       returns.take();
+    } finally {
+      managementConnection.close();
     }
   }
 
@@ -184,6 +155,15 @@ public abstract class AbstractClusteringManagementTest {
     Serializable[] serializables;
     while ((serializables = consumer.readBuffer("client-statistics", Serializable[].class)) == null) { Thread.yield(); }
     return (ContextualStatistics[]) serializables[1];
+  }
+
+  private static List<File> getManagementPlugins() {
+    String[] paths = System.getProperty("managementPlugins").split(":");
+    List<File> plugins = new ArrayList<File>(paths.length);
+    for (String path : paths) {
+      plugins.add(new File(path));
+    }
+    return plugins;
   }
 
 }

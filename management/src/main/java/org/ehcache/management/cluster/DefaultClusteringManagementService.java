@@ -18,6 +18,7 @@ package org.ehcache.management.cluster;
 import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.clustered.client.service.ClientEntityFactory;
+import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
@@ -48,7 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
-@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class})
+@ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class, TimeSourceService.class, ManagementRegistryService.class, EntityService.class, ClusteringService.class})
 public class DefaultClusteringManagementService implements ClusteringManagementService, CacheManagerListener, CollectorService.Collector {
 
   private final ClusteringManagementServiceConfiguration configuration;
@@ -59,6 +60,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   private volatile ClientEntityFactory<ManagementAgentEntity, ManagementAgentConfig> managementAgentEntityFactory;
   private volatile InternalCacheManager cacheManager;
   private volatile ExecutorService managementCallExecutor;
+  private volatile ClusteringService clusteringService;
 
   public DefaultClusteringManagementService() {
     this(new DefaultClusteringManagementServiceConfiguration());
@@ -70,6 +72,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
+    this.clusteringService = serviceProvider.getService(ClusteringService.class);
     this.managementRegistryService = serviceProvider.getService(ManagementRegistryService.class);
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
     // get an ordered executor to keep ordering of management call requests
@@ -163,7 +166,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   @Override
   public void onNotification(ContextualNotification notification) {
     ManagementAgentService service = managementAgentService;
-    if (service != null) {
+    if (service != null && clusteringService.isConnected()) {
       service.pushNotification(notification);
     }
   }
@@ -171,7 +174,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   @Override
   public void onStatistics(Collection<ContextualStatistics> statistics) {
     ManagementAgentService service = managementAgentService;
-    if (service != null) {
+    if (service != null && clusteringService.isConnected()) {
       service.pushStatistics(statistics);
     }
   }
