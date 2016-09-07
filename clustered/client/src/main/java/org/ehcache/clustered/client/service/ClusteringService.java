@@ -32,6 +32,11 @@ public interface ClusteringService extends PersistableResourceService {
   ClusteringServiceConfiguration getConfiguration();
 
   /**
+   * @return true if a connection to a cluster exists
+   */
+  boolean isConnected();
+
+  /**
    * Gets a {@link ServerStoreProxy} though which a server-resident {@code ServerStore} is accessed.
    *
    * @param <K> the cache-exposed key type

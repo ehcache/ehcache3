@@ -81,7 +81,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
   private final EhcacheClientEntity.Timeouts operationTimeouts;
 
-  private Connection clusterConnection;
+  private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
   private EhcacheClientEntity entity;
 
@@ -125,12 +125,17 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     return new AbstractClientEntityFactory<E, C>(entityIdentifier, entityType, entityVersion, configuration) {
       @Override
       protected Connection getConnection() {
-        if (clusterConnection == null) {
+        if (!isConnected()) {
           throw new IllegalStateException(getClass().getSimpleName() + " not started.");
         }
         return clusterConnection;
       }
     };
+  }
+
+  @Override
+  public boolean isConnected() {
+    return clusterConnection != null;
   }
 
   @Override
@@ -153,12 +158,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       }
     } catch (RuntimeException e) {
       entityFactory = null;
-      try {
-        clusterConnection.close();
-        clusterConnection = null;
-      } catch (IOException ex) {
-        LOGGER.warn("Error closing cluster connection: " + ex);
-      }
+      closeConnection();
       throw e;
     }
   }
@@ -211,12 +211,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     if (!entityFactory.acquireLeadership(entityIdentifier)) {
       entityFactory = null;
-      try {
-        clusterConnection.close();
-        clusterConnection = null;
-      } catch (IOException e) {
-        LOGGER.warn("Error closing cluster connection: " + e);
-      }
+      closeConnection();
       throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
     }
     inMaintenance = true;
@@ -238,14 +233,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     entity = null;
 
-    try {
-      if (clusterConnection != null) {
-        clusterConnection.close();
-        clusterConnection = null;
-      }
-    } catch (IOException ex) {
-      throw new RuntimeException(ex);
-    }
+    closeConnection();
   }
 
   @Override
@@ -441,6 +429,18 @@ class DefaultClusteringService implements ClusteringService, EntityService {
        * communication is only delayed, the message will eventually be presented and acted upon.
        */
       LOGGER.warn("Timed out trying to release clustered tier proxy for '{}'", cacheId, e);
+    }
+  }
+
+  private void closeConnection() {
+    Connection conn = clusterConnection;
+    clusterConnection = null;
+    if(conn != null) {
+      try {
+        conn.close();
+      } catch (IOException e) {
+        LOGGER.warn("Error closing cluster connection: " + e);
+      }
     }
   }
 
