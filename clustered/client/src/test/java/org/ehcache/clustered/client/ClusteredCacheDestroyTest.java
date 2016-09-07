@@ -19,6 +19,7 @@ package org.ehcache.clustered.client;
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.Status;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
@@ -181,6 +182,7 @@ public class ClusteredCacheDestroyTest {
     PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
     persistentCacheManager.close();
     persistentCacheManager.destroyCache(CLUSTERED_CACHE);
+    assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
   }
 
   @Test
@@ -194,7 +196,7 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheWithCacheManagerStopped_ForbiddenWhenInUse() throws CachePersistenceException {
+  public void testDestroyCacheWithCacheManagerStopped_forbiddenWhenInUse() throws CachePersistenceException {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
 

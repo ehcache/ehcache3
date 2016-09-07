@@ -654,9 +654,27 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     if (alias == null) {
       throw new NullPointerException("Alias cannot be null");
     }
+
     LOGGER.debug("Destroying Cache '{}' in {}.", alias, simpleName);
-    removeAndCloseWithoutNotice(alias);
-    destroyPersistenceSpace(alias);
+
+    StatusTransitioner.Transition maintenance = null;
+    try {
+      maintenance = statusTransitioner.maintenance();
+      maintenance.succeeded();
+    } catch(IllegalStateException e) {
+      // the cache manager is already started, no need to put it in maintenance
+    }
+
+    try {
+      removeAndCloseWithoutNotice(alias);
+      destroyPersistenceSpace(alias);
+    } finally {
+      if(maintenance != null) {
+        statusTransitioner.exitMaintenance().succeeded();
+      }
+    }
+
+    // if was started, stop it
     LOGGER.info("Cache '{}' successfully destroyed in {}.", alias, simpleName);
   }
 
