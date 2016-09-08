@@ -135,16 +135,8 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    try {
-      Properties properties = new Properties();
-      properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + this.entityIdentifier);
-      properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT,
-          Long.toString(operationTimeouts.getLifecycleOperationTimeout().toMillis()));
-      clusterConnection = ConnectionFactory.connect(clusterUri, properties);
-    } catch (ConnectionException ex) {
-      throw new RuntimeException(ex);
-    }
-    entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
+    initClusterConnection();
+    createEntityFactory();
     try {
       if (configuration.isAutoCreate()) {
         entity = autoCreateEntity();
@@ -168,6 +160,22 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         LOGGER.warn("Error closing cluster connection: " + ex);
       }
       throw e;
+    }
+  }
+
+  private void createEntityFactory() {
+    entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
+  }
+
+  private void initClusterConnection() {
+    try {
+      Properties properties = new Properties();
+      properties.put(ConnectionPropertyNames.CONNECTION_NAME, CONNECTION_PREFIX + entityIdentifier);
+      properties.put(ConnectionPropertyNames.CONNECTION_TIMEOUT,
+          Long.toString(operationTimeouts.getLifecycleOperationTimeout().toMillis()));
+      clusterConnection = ConnectionFactory.connect(clusterUri, properties);
+    } catch (ConnectionException ex) {
+      throw new RuntimeException(ex);
     }
   }
 
@@ -198,12 +206,9 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
-    try {
-      clusterConnection = ConnectionFactory.connect(clusterUri, new Properties());
-    } catch (ConnectionException ex) {
-      throw new RuntimeException(ex);
-    }
-    entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
+    initClusterConnection();
+    createEntityFactory();
+
     if (!entityFactory.acquireLeadership(entityIdentifier)) {
       entityFactory = null;
       try {
@@ -312,6 +317,20 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
   @Override
   public void destroy(String name) throws CachePersistenceException {
+    boolean wasStarted = isStarted();
+    // If the cluster isn't started, start it first to be able to destroy the cache
+    if(!wasStarted) {
+      initClusterConnection();
+      createEntityFactory();
+      try {
+        entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
+      } catch (EntityNotFoundException e) {
+        // No entity on the server, so no need to destroy anything
+      } catch (TimeoutException e) {
+        throw new CachePersistenceException("Could not connect to the clustered tier manager '" + entityIdentifier
+            + "'; retrieve operation timed out", e);
+      }
+    }
     try {
       entity.destroyCache(name);
     } catch (ClusteredTierDestructionException e) {
@@ -319,7 +338,15 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     } catch (TimeoutException e) {
       throw new CachePersistenceException("Could not destroy clustered tier '" + name + "' on " + clusterUri
           + "; destroy operation timed out" + clusterUri, e);
+    } finally {
+      if (!wasStarted) {
+        stop();
+      }
     }
+  }
+
+  protected boolean isStarted() {
+    return entity != null;
   }
 
   @Override

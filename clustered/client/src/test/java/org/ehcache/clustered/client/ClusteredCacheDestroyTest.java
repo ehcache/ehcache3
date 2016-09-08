@@ -19,6 +19,7 @@ package org.ehcache.clustered.client;
 import org.ehcache.Cache;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.Status;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteredStoreConfigurationBuilder;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
@@ -30,7 +31,9 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import java.net.URI;
 
@@ -43,17 +46,22 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 public class ClusteredCacheDestroyTest {
 
   private static final URI CLUSTER_URI = URI.create("terracotta://example.com:9540/my-application");
+  private static final String CLUSTERED_CACHE = "clustered-cache";
+
+  @Rule
+  public ExpectedException expectedException = ExpectedException.none();
 
   private static final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder =
       newCacheManagerBuilder()
           .with(cluster(CLUSTER_URI).autoCreate())
-          .withCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class,
+          .withCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class,
               ResourcePoolsBuilder.newResourcePoolsBuilder()
                   .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 32, MemoryUnit.MB)))
               .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG)));
@@ -76,9 +84,9 @@ public class ClusteredCacheDestroyTest {
   public void testDestroyCacheWhenSingleClientIsConnected() throws CachePersistenceException {
     PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
 
-    persistentCacheManager.destroyCache("clustered-cache");
+    persistentCacheManager.destroyCache(CLUSTERED_CACHE);
 
-    final Cache<Long, String> cache = persistentCacheManager.getCache("clustered-cache", Long.class, String.class);
+    final Cache<Long, String> cache = persistentCacheManager.getCache(CLUSTERED_CACHE, Long.class, String.class);
 
     assertThat(cache, nullValue());
 
@@ -101,7 +109,7 @@ public class ClusteredCacheDestroyTest {
       assertThat(e.getMessage(), is("Cache 'another-cache' creation in EhcacheManager failed."));
     }
 
-    persistentCacheManager.destroyCache("clustered-cache");
+    persistentCacheManager.destroyCache(CLUSTERED_CACHE);
 
     Cache<Long, String> anotherCache = persistentCacheManager.createCache("another-cache", configBuilder);
 
@@ -117,14 +125,14 @@ public class ClusteredCacheDestroyTest {
 
     PersistentCacheManager cacheManager = newCacheManagerBuilder().with(cluster(CLUSTER_URI).expecting()).build(true);
 
-    cacheManager.destroyCache("clustered-cache");
+    cacheManager.destroyCache(CLUSTERED_CACHE);
 
     try {
-      cacheManager.createCache("clustered-cache", newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder()
+      cacheManager.createCache(CLUSTERED_CACHE, newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder()
           .with(clustered())));
       fail("Expected exception as clustered store no longer exists");
     } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("clustered-cache"));
+      assertThat(e.getMessage(), containsString(CLUSTERED_CACHE));
     }
     cacheManager.close();
   }
@@ -134,12 +142,12 @@ public class ClusteredCacheDestroyTest {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
 
-    final Cache<Long, String> cache1 = persistentCacheManager1.getCache("clustered-cache", Long.class, String.class);
+    final Cache<Long, String> cache1 = persistentCacheManager1.getCache(CLUSTERED_CACHE, Long.class, String.class);
 
-    final Cache<Long, String> cache2 = persistentCacheManager2.getCache("clustered-cache", Long.class, String.class);
+    final Cache<Long, String> cache2 = persistentCacheManager2.getCache(CLUSTERED_CACHE, Long.class, String.class);
 
     try {
-      persistentCacheManager1.destroyCache("clustered-cache");
+      persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
       fail();
     } catch (CachePersistenceException e) {
       assertThat(e.getMessage(), containsString("Cannot destroy clustered tier"));
@@ -169,5 +177,32 @@ public class ClusteredCacheDestroyTest {
     return getRootCause(t.getCause());
   }
 
+  @Test
+  public void testDestroyCacheWithCacheManagerStopped() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager = clusteredCacheManagerBuilder.build(true);
+    persistentCacheManager.close();
+    persistentCacheManager.destroyCache(CLUSTERED_CACHE);
+    assertThat(persistentCacheManager.getStatus(), is(Status.UNINITIALIZED));
+  }
+
+  @Test
+  public void testDestroyCacheWithCacheManagerStopped_whenUsedExclusively() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
+    PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
+
+    persistentCacheManager2.removeCache(CLUSTERED_CACHE);
+
+    persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
+  }
+
+  @Test
+  public void testDestroyCacheWithCacheManagerStopped_forbiddenWhenInUse() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
+    PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
+
+    expectedException.expect(CachePersistenceException.class);
+    expectedException.expectMessage("Cannot destroy clustered tier 'clustered-cache': in use by 1 other client(s) (on terracotta://example.com:9540)");
+    persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
+  }
 }
 

@@ -85,6 +85,15 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   private boolean started;
 
   /**
+   * Tells if the service is currently started
+   *
+   * @return if the service is started
+   */
+  public boolean isStarted() {
+    return started;
+  }
+
+  /**
    * Creates a new service instance using the provided configuration.
    *
    * @param persistenceConfiguration the configuration to use
@@ -114,7 +123,10 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     internalStart();
   }
 
-  private void internalStart() {
+  /**
+   * Default scope for testing
+   */
+  void internalStart() {
     if (!started) {
       createLocationIfRequiredAndVerify(rootDirectory);
       try {
@@ -248,11 +260,23 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    PersistenceSpace space = knownPersistenceSpaces.remove(name);
-    if (space == null) {
-      destroy(name, new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name)), true);
-    } else {
-      destroy(name, space.identifier, true);
+    boolean wasStarted = false;
+    if (!started) {
+      internalStart();
+      wasStarted = true;
+    }
+
+    try {
+      PersistenceSpace space = knownPersistenceSpaces.remove(name);
+      if (space == null) {
+        destroy(name, new DefaultPersistenceSpaceIdentifier(getDirectoryFor(name)), true);
+      } else {
+        destroy(name, space.identifier, true);
+      }
+    } finally {
+      if (wasStarted) {
+        stop();
+      }
     }
   }
 
@@ -261,6 +285,9 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    */
   @Override
   public void destroyAll() {
+    if (!started) {
+      throw new IllegalStateException("Service must be started");
+    }
     if(recursiveDeleteDirectoryContent(rootDirectory)){
       LOGGER.debug("Destroyed all file based persistence contexts");
     } else {

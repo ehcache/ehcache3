@@ -1318,6 +1318,40 @@ public class DefaultClusteringServiceTest {
   }
 
   @Test
+  public void testDestroyWhenStoppedWorks() throws Exception {
+    String cacheAlias = "cacheAlias";
+    String targetResource = "serverResource2";
+    ClusteringServiceConfiguration configuration =
+      ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+        .autoCreate()
+        .defaultServerResource("defaultResource")
+        .build();
+    DefaultClusteringService creationService = new DefaultClusteringService(configuration);
+    creationService.start(null);
+
+    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
+    serializationProvider.start(providerContaining());
+    Store.Configuration<Long, String> storeConfiguration =
+      getDedicatedStoreConfig(targetResource, serializationProvider, Long.class, String.class);
+
+    ServerStoreProxy serverStoreProxy = creationService.getServerStoreProxy(
+      getClusteredCacheIdentifier(creationService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
+    assertThat(serverStoreProxy.getCacheId(), is(cacheAlias));
+
+    creationService.stop();
+    creationService.destroy(cacheAlias);
+
+    List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
+    ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
+
+    assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
+    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
+
+    assertThat("Service must be stopped after destroying the cache", creationService.isStarted(), is(false));
+  }
+
+  @Test
   public void testFullDestroyAll() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
