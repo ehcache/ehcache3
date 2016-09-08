@@ -663,18 +663,21 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
       maintenance.succeeded();
     } catch(IllegalStateException e) {
       // the cache manager is already started, no need to put it in maintenance
+      // however, we need to check that we are in maintenance. Note that right after the check, the is a window
+      // for someone to go in maintenance
+      statusTransitioner.checkAvailable();
     }
 
     try {
       removeAndCloseWithoutNotice(alias);
       destroyPersistenceSpace(alias);
     } finally {
+      // if it was started, stop it
       if(maintenance != null) {
         statusTransitioner.exitMaintenance().succeeded();
       }
     }
 
-    // if was started, stop it
     LOGGER.info("Cache '{}' successfully destroyed in {}.", alias, simpleName);
   }
 
