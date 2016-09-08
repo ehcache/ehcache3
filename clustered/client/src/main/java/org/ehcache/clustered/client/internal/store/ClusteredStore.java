@@ -59,6 +59,7 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.ContextManager;
 import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;

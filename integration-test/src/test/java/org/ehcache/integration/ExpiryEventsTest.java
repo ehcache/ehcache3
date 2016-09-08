@@ -179,7 +179,7 @@ public class ExpiryEventsTest {
 
     testCache.getRuntimeConfiguration().registerCacheEventListener(new CacheEventListener<Long, String>() {
       @Override
-      public void onEvent(CacheEvent<Long, String> event) {
+      public void onEvent(CacheEvent<? extends Long, ? extends String> event) {
         expiredKeys.add(event.getKey());
       }
     }, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EXPIRED));
