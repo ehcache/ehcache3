@@ -16,12 +16,20 @@
 
 package org.ehcache.impl.persistence;
 
+import org.ehcache.CachePersistenceException;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +39,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
+import static org.mockito.Mockito.never;
 
 public class DefaultLocalPersistenceServiceTest {
 
@@ -119,5 +128,73 @@ public class DefaultLocalPersistenceServiceTest {
     expectedException.expect(IllegalStateException.class);
     expectedException.expectMessage("Service must be started");
     service.destroyAll();
+  }
+
+  @Test
+  public void testDestroyWhenStarted() throws CachePersistenceException {
+    DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+    service.start(null);
+
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder
+      .newCacheConfigurationBuilder(Object.class, Object.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB))
+      .build();
+    PersistableResourceService.PersistenceSpaceIdentifier<LocalPersistenceService> id =
+      service.getPersistenceSpaceIdentifier("test", cacheConfiguration);
+
+    service = Mockito.spy(service);
+    service.destroy("test");
+
+    // Make sure we haven't tried to start the service
+    Mockito.verify(service, never()).internalStart();
+
+    // Make sure we are still started
+    assertThat(service.isStarted(), is(true));
+
+    // Make sure the cache was deleted
+    expectedException.expect(CachePersistenceException.class);
+    service.getStateRepositoryWithin(id, "test");
+  }
+
+  @Test
+  public void testDestroyWhenStopped() throws CachePersistenceException {
+    DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+    service.start(null);
+
+    CacheConfiguration<Object, Object> cacheConfiguration = CacheConfigurationBuilder
+      .newCacheConfigurationBuilder(Object.class, Object.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB))
+      .build();
+    PersistableResourceService.PersistenceSpaceIdentifier<LocalPersistenceService> id =
+      service.getPersistenceSpaceIdentifier("test", cacheConfiguration);
+
+    service.stop();
+
+    service = Mockito.spy(service);
+    service.destroy("test");
+
+    // Make sure it was started
+    Mockito.verify(service).internalStart();
+
+    // Make sure the service is still stopped
+    assertThat(service.isStarted(), is(false));
+
+    // Make sure the cache was deleted
+    expectedException.expect(CachePersistenceException.class);
+    service.getStateRepositoryWithin(id, "test");
+  }
+
+  @Test
+  public void testIsStarted() {
+    DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(testFolder));
+    assertThat(service.isStarted(), is(false));
+    service.start(null);
+    assertThat(service.isStarted(), is(true));
+    service.stop();
+    assertThat(service.isStarted(), is(false));
+    service.startForMaintenance(null);
+    assertThat(service.isStarted(), is(true));
+    service.stop();
+    assertThat(service.isStarted(), is(false));
   }
 }
