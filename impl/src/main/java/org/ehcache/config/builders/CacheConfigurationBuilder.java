@@ -63,8 +63,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   private ClassLoader classLoader = null;
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private ResourcePools resourcePools;
-  private Class<? super K> keyType;
-  private Class<? super V> valueType;
+  private Class<K> keyType;
+  private Class<V> valueType;
 
   /**
    * Creates a new instance ready to produce a {@link CacheConfiguration} with key type {@code <K>} and with value type
@@ -102,7 +102,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     this.resourcePools = resourcePools;
   }
 
-  private CacheConfigurationBuilder(CacheConfigurationBuilder<? super K, ? super V> other) {
+  private CacheConfigurationBuilder(CacheConfigurationBuilder<K, V> other) {
     this.keyType = other.keyType;
     this.valueType = other.valueType;
     this.expiry = other.expiry;
