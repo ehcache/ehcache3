@@ -31,12 +31,12 @@ import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -74,13 +74,13 @@ public abstract class AbstractClusteringManagementTest {
 
     consumer = new MonitoringServiceEntityFactory(ConnectionFactory.connect(CLUSTER.getConnectionURI(), new Properties())).retrieveOrCreate("MonitoringConsumerEntity");
     // buffer for client-side notifications
-    consumer.createBestEffortBuffer("client-notifications", 1024, Serializable[].class);
+    consumer.createBestEffortBuffer("client-notifications", 1024, Message.class);
     // buffer for client-side stats
-    consumer.createBestEffortBuffer("client-statistics", 1024, Serializable[].class);
+    consumer.createBestEffortBuffer("client-statistics", 1024, Message.class);
     // buffer for platform topology changes
-    consumer.createBestEffortBuffer("platform-notifications", 1024, Serializable[].class);
+    consumer.createBestEffortBuffer("platform-notifications", 1024, Message.class);
     // buffer for entity notifications
-    consumer.createBestEffortBuffer("entity-notifications", 1024, Serializable[].class);
+    consumer.createBestEffortBuffer("entity-notifications", 1024, Message.class);
   }
 
   @After
@@ -89,8 +89,8 @@ public abstract class AbstractClusteringManagementTest {
   }
 
   protected final void clear() {
-    while (consumer.readBuffer("client-notifications", Serializable[].class) != null) ;
-    while (consumer.readBuffer("client-statistics", Serializable[].class) != null) ;
+    while (consumer.readBuffer("client-notifications", Message.class) != null) ;
+    while (consumer.readBuffer("client-statistics", Message.class) != null) ;
   }
 
   protected static void sendManagementCallToCollectStats(String... statNames) throws Exception {
@@ -152,9 +152,9 @@ public abstract class AbstractClusteringManagementTest {
 
   protected static ContextualStatistics[] waitForNextStats() {
     // uses the monitoring consumre entity to get the content of the stat buffer when some stats are collected
-    Serializable[] serializables;
-    while ((serializables = consumer.readBuffer("client-statistics", Serializable[].class)) == null) { Thread.yield(); }
-    return (ContextualStatistics[]) serializables[1];
+    Message message;
+    while ((message = consumer.readBuffer("client-statistics", Message.class)) == null) { Thread.yield(); }
+    return message.unwrap(ContextualStatistics[].class);
   }
 
   private static List<File> getManagementPlugins() {

@@ -35,6 +35,7 @@ import org.terracotta.management.entity.management.ManagementAgentConfig;
 import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.context.ContextContainer;
+import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.history.CounterHistory;
@@ -132,8 +133,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @Test
   public void test_notifs_sent_at_CM_init() throws Exception {
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_TAGS_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_TAGS_UPDATED"));
     assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
   }
 
@@ -158,10 +159,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     }
     assertThat(cNames, equalTo(new TreeSet<String>(Arrays.asList("cache-1", "cache-2"))));
 
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CACHE_ADDED"));
-    assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CACHE_ADDED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class), is(nullValue()));
   }
 
   @Test
@@ -170,10 +171,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     cacheManager.removeCache("cache-2");
 
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CACHE_REMOVED"));
-    assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CACHE_REMOVED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class), is(nullValue()));
   }
 
   @Test
