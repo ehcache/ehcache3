@@ -24,7 +24,7 @@ public interface PersistentCacheManager extends CacheManager {
   /**
    * Destroys all persistent data associated with this {@code PersistentCacheManager}.
    * <P>
-   *   This is achieved by putting the {@code CacheManager} in {@link org.ehcache.Status#MAINTENANCE MAINTENANCE} mode,
+   *   This is achieved by putting the {@code CacheManager} in {@link Status#MAINTENANCE MAINTENANCE} mode,
    *   executing the destroy and then exiting the {@code MAINTENANCE} mode.
    * </P>
    *
@@ -35,7 +35,17 @@ public interface PersistentCacheManager extends CacheManager {
 
   /**
    * Destroys all data persistent data associated with the aliased {@link Cache} instance managed
-   * by this {@link org.ehcache.CacheManager}
+   * by this {@link org.ehcache.CacheManager}.
+   * <P>
+   *   This requires the {@code CacheManager} to be either in {@link Status#AVAILABLE AVAILABLE} or
+   *   {@link Status#MAINTENANCE MAINTENANCE} mode.
+   *   <UL>
+   *     <LI>If the {@code CacheManager} is {@code AVAILABLE}, the operation is executed without lifecycle interactions.</LI>
+   *     <LI>If the {@code CacheManager} is not {@code AVAILABLE} then it attempts to go into {@code MAINTENANCE}.
+   *     Upon success, the {@code destroyCache} operation is performed and then {@code MAINTENANCE} mode is exited.
+   *     On failure, an exception will be thrown and no destroy will have happened.</LI>
+   *   </UL>
+   * </P>
    *
    * @param alias the {@link org.ehcache.Cache}'s alias to destroy all persistent data from
    *
