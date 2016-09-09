@@ -16,7 +16,7 @@
 import scripts.*
 
 ext {
-  baseVersion = '3.1.2-SNAPSHOT'
+  baseVersion = '3.1.2'
 
   // Third parties
   offheapVersion = '2.2.2'
