@@ -12,16 +12,17 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released 3.1.1 on July 18th 2016.
+We released 3.1.2 on September 9th 2016.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.1.1[release notes] contain the links to the artifacts and the documentation to help you get started.
+The https://github.com/ehcache/ehcache3/releases/tag/v3.1.2[release notes] contain the links to the artifacts and the documentation to help you get started.
 
 You should consider upgrading to 3.1.x as it does all 3.0.x does and more with a fully compatible API.
 The only thing to note is that transactional support has been moved to a separate jar.
 
 == Current development & next release
 
-We are now working on the missing features of the clustering tier of Ehcache 3 which will be included in upcoming 3.1.x releases.
-We may still do a last 3.0.x release to include all fixes that have been made on it, but this is now less a priority.
+We are now working on the missing features of the clustering tier of Ehcache 3 which will be included in upcoming 3.2.x releases.
+We may still do 3.1.x release to include all fixes that have been made on it, but this is now less a priority.
+There is no longer any plan for a 3.0.x release.
 
 See the https://github.com/ehcache/ehcache3/milestones[milestones on GitHub] for more details on the current status.
