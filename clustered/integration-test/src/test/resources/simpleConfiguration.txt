@@ -5,7 +5,7 @@ caches:
         serviceConfigurations:
             - org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration
             - org.ehcache.impl.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration
-        evictionAdvisor: org.ehcache.core.EhcacheManagerToStringTest$1
+        evictionAdvisor: org.ehcache.clustered.management.EhcacheManagerToStringTest$1
         expiry: NoExpiry
         resourcePools:
             pools:
@@ -15,7 +15,7 @@ caches:
                 offheap:
                     size: 1 MB
                     tierHeight: 1000
-                disk: 
+                disk:
                     size: 2 MB (persistent)
                     tierHeight: 100
 services:

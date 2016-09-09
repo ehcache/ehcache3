@@ -216,7 +216,9 @@ public class DefaultClusteringServiceTest {
             .autoCreate()
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
+    assertThat(service.isConnected(), is(false));
     service.start(null);
+    assertThat(service.isConnected(), is(true));
 
     assertThat(UnitTestConnectionService.getConnectionProperties(clusterUri).size(), is(1));
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -326,7 +328,9 @@ public class DefaultClusteringServiceTest {
             .autoCreate()
             .build();
     DefaultClusteringService service = new DefaultClusteringService(configuration);
+    assertThat(service.isConnected(), is(false));
     service.startForMaintenance(null);
+    assertThat(service.isConnected(), is(true));
 
     assertThat(UnitTestConnectionService.getConnectionProperties(clusterUri).size(), is(1));
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();

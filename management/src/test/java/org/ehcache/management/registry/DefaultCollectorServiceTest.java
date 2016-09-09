@@ -56,7 +56,7 @@ public class DefaultCollectorServiceTest {
   @Test
   public void updateCollectedStatisticsTest__should_not_add_stats_when_selection_empty() throws Exception {
     DefaultCollectorService defaultCollectorService = new DefaultCollectorService();
-    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<>());
+    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<String>());
     assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(0));
   }
 
@@ -73,7 +73,7 @@ public class DefaultCollectorServiceTest {
     assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(1));
 
 
-    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<>());
+    defaultCollectorService.updateCollectedStatistics("PifCapability", new ArrayList<String>());
     assertThat(defaultCollectorService.getSelectedStatsPerCapability().size(), equalTo(0));
 
   }

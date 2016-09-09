@@ -14,43 +14,28 @@
  * limitations under the License.
  */
 
-package org.ehcache.core;
+package org.ehcache.clustered.management;
 
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
-import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
-import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
-import org.ehcache.clustered.server.EhcacheServerEntityService;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.HumanReadable;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.junit.AfterClass;
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.terracotta.management.entity.management.client.ManagementAgentEntityClientService;
-import org.terracotta.management.entity.management.server.ManagementAgentEntityServerService;
-import org.terracotta.management.service.monitoring.IMonitoringConsumer;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
-import org.terracotta.offheapresource.OffHeapResourcesProvider;
-import org.terracotta.offheapresource.config.OffheapResourcesType;
-import org.terracotta.offheapresource.config.ResourceType;
-import org.terracotta.passthrough.PassthroughClusterControl;
-import org.terracotta.passthrough.PassthroughServer;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.math.BigInteger;
 import java.net.URI;
 import java.util.Map;
 import java.util.Scanner;
@@ -59,11 +44,9 @@ import java.util.concurrent.TimeUnit;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
+import static org.junit.Assert.*;
 
-public class EhcacheManagerToStringTest {
-
-  static IMonitoringConsumer consumer;
-  static PassthroughClusterControl stripeControl;
+public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest {
 
   @Test
   public void simpleOnHeapToString() throws Exception {
@@ -93,23 +76,28 @@ public class EhcacheManagerToStringTest {
             .build())
         .build(true);
 
-    String actual = ((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString();
-    String expected = read("/simpleConfiguration.txt");
+    try {
+      String actual = ((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString();
+      String expected = read("/simpleConfiguration.txt");
 
-    // only testing part of the string, to avoid collections ordering clashes
-    Assert.assertThat(
-        actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replaceAll("\\\\|/", "|"),
-        equalTo(
-            expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replaceAll("\\\\|/", "|")
-        )
-    );
+      // only testing part of the string, to avoid collections ordering clashes
+      assertThat(
+          actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replaceAll("\\\\|/", "|"),
+          equalTo(
+              expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replaceAll("\\\\|/", "|")
+          )
+      );
+    } finally {
+      cacheManager.close();
+    }
   }
 
   @Test
   public void clusteredToString() throws Exception {
+    URI uri = CLUSTER.getConnectionURI().resolve("/my-server-entity-1");
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         // cluster config
-        .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("passthrough://server-1:9510/my-server-entity-1"))
+        .with(ClusteringServiceConfigurationBuilder.cluster(uri)
             .autoCreate()
             .defaultServerResource("primary-server-resource"))
         // management config
@@ -130,63 +118,25 @@ public class EhcacheManagerToStringTest {
             .build())
         .build(true);
 
-    String actual = ((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString();
-    String expected = read("/clusteredConfiguration.txt");
+    try {
+      String actual = ((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString();
+      String expected = read("/clusteredConfiguration.txt");
 
-    System.out.println(actual);
+      // only testing part of the string, to avoid collections ordering clashes
+      assertThat(
+          actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", ""),
+          equalTo(
+              expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "").replace("server-1:9510", uri.getAuthority())
+          )
+      );
 
-    // only testing part of the string, to avoid collections ordering clashes
-    Assert.assertThat(
-        actual.substring(actual.indexOf("resourcePools")).replace(" ", "").replace("\n", ""),
-        equalTo(
-            expected.substring(expected.indexOf("resourcePools")).replace(" ", "").replace("\n", "")
-        )
-    );
-
-    Assert.assertThat(actual.indexOf("serviceConfigurations: None"), greaterThan(1));
-    Assert.assertThat(actual.indexOf("evictionAdvisor: None"), greaterThan(1));
-
-    if (cacheManager != null && cacheManager.getStatus() == Status.AVAILABLE) {
+      assertThat(actual.indexOf("serviceConfigurations: None"), greaterThan(1));
+      assertThat(actual.indexOf("evictionAdvisor: None"), greaterThan(1));
+    } finally {
       cacheManager.close();
     }
   }
 
-
-  @BeforeClass
-  public static void beforeClass() throws Exception {
-    PassthroughServer activeServer = new PassthroughServer();
-    activeServer.setServerName("server-1");
-    activeServer.setBindPort(9510);
-    activeServer.setGroupPort(9610);
-
-    // management agent entity
-    activeServer.registerServerEntityService(new ManagementAgentEntityServerService());
-    activeServer.registerClientEntityService(new ManagementAgentEntityClientService());
-
-    // ehcache entity
-    activeServer.registerServerEntityService(new EhcacheServerEntityService());
-    activeServer.registerClientEntityService(new EhcacheClientEntityService());
-
-    // RW lock entity (required by ehcache)
-    activeServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
-    activeServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-
-    // off-heap service
-    OffheapResourcesType offheapResourcesType = new OffheapResourcesType();
-    ResourceType resourceType = new ResourceType();
-    resourceType.setName("primary-server-resource");
-    resourceType.setUnit(org.terracotta.offheapresource.config.MemoryUnit.MB);
-    resourceType.setValue(BigInteger.TEN);
-    offheapResourcesType.getResource().add(resourceType);
-    activeServer.registerServiceProvider(new OffHeapResourcesProvider(), new OffHeapResourcesConfiguration(offheapResourcesType));
-
-    stripeControl = new PassthroughClusterControl("server-1", activeServer);
-  }
-
-  @AfterClass
-  public static void afterClass() throws Exception {
-    stripeControl.tearDown();
-  }
 
   public static class SampleLoaderWriter<K, V> implements CacheLoaderWriter<K, V> {
 

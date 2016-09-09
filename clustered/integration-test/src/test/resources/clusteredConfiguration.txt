@@ -18,7 +18,7 @@ caches:
                     tierHeight: 10
 services:
     - org.ehcache.clustered.client.config.ClusteringServiceConfiguration:
-        clusterUri: passthrough://server-1:9510/my-server-entity-1
+        clusterUri: terracotta://server-1:9510/my-server-entity-1
         readOperationTimeout: TimeoutDuration{5 SECONDS}
         autoCreate: true
     - org.ehcache.management.registry.DefaultManagementRegistryConfiguration

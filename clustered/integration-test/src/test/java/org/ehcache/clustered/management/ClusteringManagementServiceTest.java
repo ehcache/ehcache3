@@ -13,12 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.management.cluster;
+package org.ehcache.clustered.management;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
-import org.ehcache.ValueSupplier;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
@@ -27,29 +26,26 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.ehcache.xml.XmlConfiguration;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 import org.terracotta.management.entity.management.ManagementAgentConfig;
 import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.context.ContextContainer;
+import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.history.CounterHistory;
 import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.io.Serializable;
-import java.net.URI;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -59,68 +55,41 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 
-@RunWith(Parameterized.class)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
 
-  @Parameterized.Parameters
-  public static Collection<Object[]> data() {
-    return Arrays.asList(new Object[][]{
-      {
-        new ValueSupplier<CacheManager>() {
-          @Override
-          public CacheManager value() {
-            return CacheManagerBuilder.newCacheManagerBuilder()
-              // cluster config
-              .with(ClusteringServiceConfigurationBuilder.cluster(URI.create("passthrough://server-1:9510/my-server-entity-1"))
-                .autoCreate()
-                .defaultServerResource("primary-server-resource"))
-              // management config
-              .using(new DefaultManagementRegistryConfiguration()
-                .addTags("webapp-1", "server-node-1")
-                .setCacheManagerAlias("my-super-cache-manager")
-                .addConfiguration(new EhcacheStatisticsProviderConfiguration(
-                  1, TimeUnit.MINUTES,
-                  100, 1, TimeUnit.SECONDS,
-                  2, TimeUnit.SECONDS))) // TTD reduce to 2 seconds so that the stat collector runs faster
-              // cache config
-              .withCache("cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(
-                String.class, String.class,
-                newResourcePoolsBuilder()
-                  .heap(10, EntryUnit.ENTRIES)
-                  .offheap(1, MemoryUnit.MB)
-                  .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
-                .build())
-              .build(true);
-          }
-        }
-      }, {
-      new ValueSupplier<CacheManager>() {
-        @Override
-        public CacheManager value() {
-          CacheManager cacheManager = CacheManagerBuilder.newCacheManager(new XmlConfiguration(getClass().getResource("/ehcache-management-clustered.xml")));
-          cacheManager.init();
-          return cacheManager;
-        }
-      }
-    }});
-  }
+  private static AtomicInteger N = new AtomicInteger();
 
   @Rule
-  public final Timeout globalTimeout = new Timeout(10000);
-
-  private final ValueSupplier<CacheManager> cacheManagerValueSupplier;
+  public final Timeout globalTimeout = Timeout.seconds(60);
 
   private CacheManager cacheManager;
   private String clientIdentifier;
   private long consumerId;
 
-  public ClusteringManagementServiceTest(ValueSupplier<CacheManager> cacheManagerValueSupplier) {
-    this.cacheManagerValueSupplier = cacheManagerValueSupplier;
-  }
-
   @Before
   public void init() throws Exception {
-    this.cacheManager = cacheManagerValueSupplier.value();
+    this.cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+      // cluster config
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-" + N.incrementAndGet()))
+        .autoCreate()
+        .defaultServerResource("primary-server-resource"))
+      // management config
+      .using(new DefaultManagementRegistryConfiguration()
+        .addTags("webapp-1", "server-node-1")
+        .setCacheManagerAlias("my-super-cache-manager")
+        .addConfiguration(new EhcacheStatisticsProviderConfiguration(
+          1, TimeUnit.MINUTES,
+          100, 1, TimeUnit.SECONDS,
+          2, TimeUnit.SECONDS))) // TTD reduce to 2 seconds so that the stat collector runs faster
+      // cache config
+      .withCache("cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(
+        String.class, String.class,
+        newResourcePoolsBuilder()
+          .heap(10, EntryUnit.ENTRIES)
+          .offheap(1, MemoryUnit.MB)
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
+        .build())
+      .build(true);
 
     // ensure the CM is running and get its client id
     assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
@@ -164,8 +133,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @Test
   public void test_notifs_sent_at_CM_init() throws Exception {
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_TAGS_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_TAGS_UPDATED"));
     assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
   }
 
@@ -184,16 +153,16 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     ContextContainer contextContainer = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
     assertThat(contextContainer.getSubContexts(), hasSize(2));
 
-    Collection<String> cNames = new TreeSet<String>();
+    TreeSet<String> cNames = new TreeSet<String>();
     for (ContextContainer container : contextContainer.getSubContexts()) {
       cNames.add(container.getValue());
     }
     assertThat(cNames, equalTo(new TreeSet<String>(Arrays.asList("cache-1", "cache-2"))));
 
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CACHE_ADDED"));
-    assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CACHE_ADDED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class), is(nullValue()));
   }
 
   @Test
@@ -202,10 +171,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     cacheManager.removeCache("cache-2");
 
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(((ContextualNotification) consumer.readBuffer("client-notifications", Serializable[].class)[1]).getType(), equalTo("CACHE_REMOVED"));
-    assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CACHE_REMOVED"));
+    assertThat(consumer.readBuffer("client-notifications", Message.class), is(nullValue()));
   }
 
   @Test
