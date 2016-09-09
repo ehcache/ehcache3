@@ -173,7 +173,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
     }
   }
 
-  static void createLocationIfRequiredAndVerify(final File rootDirectory) {
+  private static void createLocationIfRequiredAndVerify(final File rootDirectory) {
     if(!rootDirectory.exists()) {
       if(!rootDirectory.mkdirs()) {
         throw new IllegalArgumentException("Directory couldn't be created: " + rootDirectory.getAbsolutePath());
@@ -259,7 +259,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    */
   @Override
-  public void destroy(String name) throws CachePersistenceException {
+  public synchronized void destroy(String name) throws CachePersistenceException {
     boolean wasStarted = false;
     if (!started) {
       internalStart();
@@ -284,7 +284,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
    * {@inheritDoc}
    */
   @Override
-  public void destroyAll() {
+  public synchronized void destroyAll() {
     if (!started) {
       throw new IllegalStateException("Service must be started");
     }
