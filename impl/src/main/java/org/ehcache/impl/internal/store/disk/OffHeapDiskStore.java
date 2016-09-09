@@ -81,6 +81,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.Math.max;
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
@@ -124,7 +125,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      this.evictionAdvisor = wrap(Eviction.noAdvice());
+      this.evictionAdvisor = wrap(noAdvice());
     }
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
