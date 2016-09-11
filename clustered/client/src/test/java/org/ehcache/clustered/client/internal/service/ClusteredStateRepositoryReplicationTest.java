@@ -37,7 +37,6 @@ import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.lang.reflect.Field;
 import java.net.URI;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;

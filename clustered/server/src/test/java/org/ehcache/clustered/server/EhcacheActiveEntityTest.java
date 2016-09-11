@@ -77,7 +77,6 @@ import static org.mockito.Mockito.mock;
  */
 public class EhcacheActiveEntityTest {
 
-  private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final byte[] ENTITY_ID = ClusteredEhcacheIdentity.serialize(UUID.randomUUID());
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
 

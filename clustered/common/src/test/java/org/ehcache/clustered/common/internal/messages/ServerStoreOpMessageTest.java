@@ -27,6 +27,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 
+/**
+ * @author Ludovic Orban
+ */
 public class ServerStoreOpMessageTest {
 
   @Test

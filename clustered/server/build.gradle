@@ -29,6 +29,13 @@ dependencies {
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
 }
 
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+checkstyle {
+  toolVersion = '7.1'
+}
+
 sourceSets {
     main { 
       compileClasspath += configurations.provided
