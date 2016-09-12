@@ -342,7 +342,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   public CacheConfigurationBuilder<K, V> withKeySerializingCopier() {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -356,7 +356,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   public CacheConfigurationBuilder<K, V> withValueSerializingCopier() {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(SerializingCopier.<V>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 

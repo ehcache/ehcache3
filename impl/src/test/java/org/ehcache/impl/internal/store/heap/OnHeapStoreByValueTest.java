@@ -160,8 +160,8 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(false);
     cacheManager.init();
 
-    DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration(
-        SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
+    DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration<String>(
+        SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
             .build());

@@ -878,14 +878,14 @@ public class XAStore<K, V> implements Store<K, V> {
 
       // force-in a key copier if none is configured
       if (keyCopierConfig == null) {
-        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
       } else {
         underlyingServiceConfigs.add(keyCopierConfig);
       }
 
       // force-in a value copier if none is configured, or wrap the configured one in a soft lock copier
       if (valueCopierConfig == null) {
-        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
       } else {
         CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
         Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);

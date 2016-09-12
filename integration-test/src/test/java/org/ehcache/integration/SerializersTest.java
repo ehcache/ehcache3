@@ -94,7 +94,7 @@ public class SerializersTest {
       newCacheManagerBuilder()
         .withCache("heapByValueCache",
           newCacheConfigurationBuilder(Long.class, Person.class, newResourcePoolsBuilder().heap(10))
-            .withKeyCopier((Class)SerializingCopier.class)
+            .withKeyCopier(SerializingCopier.<Long>asCopierClass())
             .withKeySerializer(serializer)
         );
     cmBuilder.build(true);

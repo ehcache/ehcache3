@@ -64,7 +64,7 @@ public class ExpiryEventsTest {
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
       byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<String>(
-          (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));;
+          SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));;
 
   private static final TestTimeSource testTimeSource = new TestTimeSource();
 
