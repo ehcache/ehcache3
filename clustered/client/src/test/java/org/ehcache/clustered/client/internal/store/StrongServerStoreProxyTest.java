@@ -60,7 +60,6 @@ import static org.junit.Assert.fail;
 public class StrongServerStoreProxyTest {
 
   private static final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
-  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
@@ -76,16 +75,22 @@ public class StrongServerStoreProxyTest {
         new PassthroughServerBuilder()
             .resource("defaultResource", 128, MemoryUnit.MB)
             .build());
-    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
+    UnitTestConnectionService unitTestConnectionService = new UnitTestConnectionService();
+    Connection connection1 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
+    Connection connection2 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory entityFactory1 = new EhcacheClientEntityFactory(connection1);
+    EhcacheClientEntityFactory entityFactory2 = new EhcacheClientEntityFactory(connection2);
 
-    entityFactory.create("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity1 = entityFactory.retrieve("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity2 = entityFactory.retrieve("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
+    UUID clientId1 = UUID.randomUUID();
+    UUID clientId2 = UUID.randomUUID();
+
+    entityFactory1.create("TestCacheManager",
+        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()), clientId1);
+    clientEntity1 = entityFactory1.retrieve("TestCacheManager",
+        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()), clientId1);
+    clientEntity2 = entityFactory2.retrieve("TestCacheManager",
+        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()), clientId2);
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4L, MemoryUnit.MB);
 

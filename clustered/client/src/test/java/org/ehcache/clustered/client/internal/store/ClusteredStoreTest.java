@@ -34,7 +34,6 @@ import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.StoreAccessTimeoutException;
-import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.Expirations;
@@ -59,7 +58,6 @@ import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
-import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
@@ -88,13 +86,13 @@ public class ClusteredStoreTest {
     );
 
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
 
     ServerSideConfiguration serverConfig =
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());
-    entityFactory.create("TestCacheManager", serverConfig);
+    entityFactory.create("TestCacheManager", serverConfig, CLIENT_ID);
 
-    EhcacheClientEntity clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig);
+    EhcacheClientEntity clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig, CLIENT_ID);
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4, MemoryUnit.MB);
     ServerStoreConfiguration serverStoreConfiguration =
         new ServerStoreConfiguration(resourcePool.getPoolAllocation(),

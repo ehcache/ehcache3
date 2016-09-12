@@ -72,18 +72,18 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testCreate() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
 
-    factory.create("testCreate", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
+    factory.create("testCreate", new ServerSideConfiguration(EMPTY_RESOURCE_MAP), CLIENT_ID);
   }
 
   @Test
   public void testCreateWhenExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
-    factory.create("testCreateWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP));
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    factory.create("testCreateWhenExisting", new ServerSideConfiguration(EMPTY_RESOURCE_MAP), CLIENT_ID);
     try {
       factory.create("testCreateWhenExisting",
-          new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "bar"))));
+          new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "bar"))), CLIENT_ID);
       fail("Expected EntityAlreadyExistsException");
     } catch (EntityAlreadyExistsException e) {
       //expected
@@ -92,14 +92,14 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testCreateWithBadConfigCleansUp() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
 
     try {
-      factory.create("testCreateWithBadConfigCleansUp", new ServerSideConfiguration("flargle", EMPTY_RESOURCE_MAP));
+      factory.create("testCreateWithBadConfigCleansUp", new ServerSideConfiguration("flargle", EMPTY_RESOURCE_MAP), CLIENT_ID);
       fail("Expected EhcacheEntityCreationException");
     } catch (EhcacheEntityCreationException e) {
       try {
-        factory.retrieve("testCreateWithBadConfigCleansUp", null);
+        factory.retrieve("testCreateWithBadConfigCleansUp", null, CLIENT_ID);
         fail("Expected EntityNotFoundException");
       } catch (EntityNotFoundException f) {
         //expected
@@ -109,21 +109,21 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testRetrieveWithGoodConfig() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithGoodConfig",
-        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary"))));
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary"))), CLIENT_ID);
     assertThat(factory.retrieve("testRetrieveWithGoodConfig",
-        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary")))), notNullValue());
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(43L, "primary"))), CLIENT_ID), notNullValue());
   }
 
   @Test
   public void testRetrieveWithBadConfig() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     factory.create("testRetrieveWithBadConfig",
-        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "primary"))));
+        new ServerSideConfiguration(Collections.singletonMap("foo", new Pool(42L, "primary"))), CLIENT_ID);
     try {
       factory.retrieve("testRetrieveWithBadConfig",
-          new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, "primary"))));
+          new ServerSideConfiguration(Collections.singletonMap("bar", new Pool(42L, "primary"))), CLIENT_ID);
       fail("Expected EhcacheEntityValidationException");
     } catch (EhcacheEntityValidationException e) {
       //expected
@@ -132,9 +132,9 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testRetrieveWhenNotExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     try {
-      factory.retrieve("testRetrieveWhenNotExisting", null);
+      factory.retrieve("testRetrieveWhenNotExisting", null, CLIENT_ID);
       fail("Expected EntityNotFoundException");
     } catch (EntityNotFoundException e) {
       //expected
@@ -143,14 +143,14 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testDestroy() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
-    factory.create("testDestroy", new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
+    factory.create("testDestroy", new ServerSideConfiguration(Collections.<String, Pool>emptyMap()), CLIENT_ID);
     factory.destroy("testDestroy");
   }
 
   @Test
   public void testDestroyWhenNotExisting() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     try {
       factory.destroy("testDestroyWhenNotExisting");
       fail("Expected EhcacheEntityNotFoundException");
@@ -161,7 +161,7 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testAbandonLeadershipWhenNotOwning() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     try {
       factory.abandonLeadership("testAbandonLeadershipWhenNotOwning");
       fail("Expected IllegalMonitorStateException");
@@ -172,18 +172,18 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testAcquireLeadershipWhenAlone() throws Exception {
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(CONNECTION);
     assertThat(factory.acquireLeadership("testAcquireLeadershipWhenAlone"), is(true));
   }
 
   @Test
   public void testAcquireLeadershipWhenTaken() throws Exception {
-    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION);
     assertThat(factoryA.acquireLeadership("testAcquireLeadershipWhenTaken"), is(true));
 
     Connection clientB = CLUSTER.newConnection();
     try {
-      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB, UUID.randomUUID());
+      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipWhenTaken"), is(false));
     } finally {
       clientB.close();
@@ -192,13 +192,13 @@ public class EhcacheClientEntityFactoryIntegrationTest {
 
   @Test
   public void testAcquireLeadershipAfterAbandoned() throws Exception {
-    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION, CLIENT_ID);
+    EhcacheClientEntityFactory factoryA = new EhcacheClientEntityFactory(CONNECTION);
     factoryA.acquireLeadership("testAcquireLeadershipAfterAbandoned");
     factoryA.abandonLeadership("testAcquireLeadershipAfterAbandoned");
 
     Connection clientB = CLUSTER.newConnection();
     try {
-      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB, UUID.randomUUID());
+      EhcacheClientEntityFactory factoryB = new EhcacheClientEntityFactory(clientB);
       assertThat(factoryB.acquireLeadership("testAcquireLeadershipAfterAbandoned"), is(true));
     } finally {
       clientB.close();

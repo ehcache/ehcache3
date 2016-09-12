@@ -62,12 +62,12 @@ public class NoInvalidationServerStoreProxyTest {
             .build());
     Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
 
     ServerSideConfiguration serverConfig =
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());
-    entityFactory.create("TestCacheManager", serverConfig);
-    clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig);
+    entityFactory.create("TestCacheManager", serverConfig, CLIENT_ID);
+    clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig, CLIENT_ID);
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
 

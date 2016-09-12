@@ -44,11 +44,15 @@ compileTestJava {
   options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
 }
 
+javadoc {
+  options.addStringOption('Xdoclint:none', '-quiet')
+}
+
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 checkstyle {
-  toolVersion = '7.1'
+  toolVersion = '5.9'
 }
 
 sourceSets {
@@ -59,4 +63,9 @@ sourceSets {
       compileClasspath += configurations.provided
       runtimeClasspath += configurations.provided
     }
+}
+
+test {
+  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
+  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
 }

@@ -97,6 +97,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       new ConcurrentHashMap<String, Set<ClientDescriptor>>();
 
   private final ConcurrentHashMap<ClientDescriptor, UUID> clientIdMap = new ConcurrentHashMap<>();
+  private final Set<UUID> invalidIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
   private final EhcacheEntityResponseFactory responseFactory;
@@ -226,6 +227,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         detachStore(clientDescriptor, storeId);
       }
     }
+    UUID clientId = clientIdMap.remove(clientDescriptor);
+    if (clientId != null) {
+      invalidIds.remove(clientId);
+      ehcacheStateService.getClientMessageTracker().remove(clientId);
+    }
   }
 
   @Override
@@ -263,6 +269,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     clientState.attach();
     ReconnectData reconnectData = reconnectDataCodec.decode(extendedReconnectData);
     clientIdMap.put(clientDescriptor, reconnectData.getClientId());
+    invalidIds.add(reconnectData.getClientId());
     Set<String> cacheIds = reconnectData.getAllCaches();
     for (final String cacheId : cacheIds) {
       ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
@@ -557,10 +564,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
-    if (clientIdMap.get(clientDescriptor) != null && clientIdMap.get(clientDescriptor).equals(message.getClientId())) {
+    if (invalidIds.contains(message.getClientId())) {
       throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active");
     }
     clientIdMap.put(clientDescriptor, message.getClientId());
+    invalidIds.add(message.getClientId());
     ehcacheStateService.validate(message);
     this.clientStateMap.get(clientDescriptor).attach();
   }

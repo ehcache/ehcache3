@@ -47,16 +47,14 @@ public class EhcacheClientEntityFactory {
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
 
   private final Timeouts entityTimeouts;
-  private final UUID clientId;
 
-  public EhcacheClientEntityFactory(Connection connection, UUID clientId) {
-    this(connection, clientId, Timeouts.builder().build());
+  public EhcacheClientEntityFactory(Connection connection) {
+    this(connection, Timeouts.builder().build());
   }
 
-  public EhcacheClientEntityFactory(Connection connection, UUID clientId, Timeouts entityTimeouts) {
+  public EhcacheClientEntityFactory(Connection connection, Timeouts entityTimeouts) {
     this.connection = connection;
     this.entityTimeouts = entityTimeouts;
-    this.clientId = clientId;
   }
 
   public boolean acquireLeadership(String entityIdentifier) {
@@ -85,6 +83,7 @@ public class EhcacheClientEntityFactory {
    *
    * @param identifier the instance identifier for the {@code EhcacheActiveEntity}
    * @param config the {@code EhcacheActiveEntity} configuration to use for creation
+   * @param clientId UUID generated for the client
    *
    * @throws EntityAlreadyExistsException if the {@code EhcacheActiveEntity} for {@code identifier} already exists
    * @throws EhcacheEntityCreationException if an error preventing {@code EhcacheActiveEntity} creation was raised
@@ -93,7 +92,7 @@ public class EhcacheClientEntityFactory {
    * @throws TimeoutException if the creation and configuration of the {@code EhcacheActiveEntity} exceed the
    *        lifecycle operation timeout
    */
-  public void create(final String identifier, final ServerSideConfiguration config)
+  public void create(final String identifier, final ServerSideConfiguration config, final UUID clientId)
       throws EntityAlreadyExistsException, EhcacheEntityCreationException, EntityBusyException, TimeoutException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
@@ -150,6 +149,7 @@ public class EhcacheClientEntityFactory {
    *
    * @param identifier the instance identifier for the {@code EhcacheActiveEntity}
    * @param config the {@code EhcacheActiveEntity} configuration to use for access checking
+   * @param clientId UUID generated for the client
    *
    * @return an {@code EhcacheClientEntity} providing access to the {@code EhcacheActiveEntity} identified by
    *      {@code identifier}
@@ -159,7 +159,7 @@ public class EhcacheClientEntityFactory {
    * @throws TimeoutException if the creation and configuration of the {@code EhcacheActiveEntity} exceed the
    *        lifecycle operation timeout
    */
-  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config)
+  public EhcacheClientEntity retrieve(String identifier, ServerSideConfiguration config,  UUID clientId)
       throws EntityNotFoundException, EhcacheEntityValidationException, TimeoutException {
     try {
       Hold fetchHold = createAccessLockFor(identifier).readLock();

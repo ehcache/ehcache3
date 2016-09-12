@@ -56,8 +56,8 @@ public class EhcacheClientEntityFactoryTest {
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
-    factory.create("test", null);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
+    factory.create("test", null, CLIENT_ID);
     verify(entityRef).create(any(UUID.class));
     verify(entity).configure(any(ServerSideConfiguration.class));
     verify(entity).close();
@@ -74,9 +74,9 @@ public class EhcacheClientEntityFactoryTest {
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
-      factory.create("test", null);
+      factory.create("test", null, CLIENT_ID);
       fail("Expecting EhcacheEntityCreationException");
     } catch (EhcacheEntityCreationException e) {
       // expected
@@ -96,9 +96,9 @@ public class EhcacheClientEntityFactoryTest {
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
-      factory.create("test", null);
+      factory.create("test", null, CLIENT_ID);
       fail("Expected EntityAlreadyExistsException");
     } catch (EntityAlreadyExistsException e) {
       //expected
@@ -115,8 +115,8 @@ public class EhcacheClientEntityFactoryTest {
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
-    assertThat(factory.retrieve("test", null), is(entity));
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
+    assertThat(factory.retrieve("test", null, CLIENT_ID), is(entity));
     verify(entity).validate(any(ServerSideConfiguration.class));
     verify(entity, never()).close();
   }
@@ -132,9 +132,9 @@ public class EhcacheClientEntityFactoryTest {
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
-      factory.retrieve("test", null);
+      factory.retrieve("test", null, CLIENT_ID);
       fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       // expected
@@ -153,9 +153,9 @@ public class EhcacheClientEntityFactoryTest {
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
-      factory.retrieve("test", null);
+      factory.retrieve("test", null, CLIENT_ID);
       fail("Expected EntityNotFoundException");
     } catch (EntityNotFoundException e) {
       //expected
@@ -171,7 +171,7 @@ public class EhcacheClientEntityFactoryTest {
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     factory.destroy("test");
     verify(entityRef).destroy();
   }
@@ -185,7 +185,7 @@ public class EhcacheClientEntityFactoryTest {
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
-    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection, CLIENT_ID);
+    EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
       factory.destroy("test");
       fail("Expected EhcacheEntityNotFoundException");

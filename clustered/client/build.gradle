@@ -40,3 +40,8 @@ compileTestJava {
   options.fork = true;
   options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
 }
+
+test {
+  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
+  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
+}
