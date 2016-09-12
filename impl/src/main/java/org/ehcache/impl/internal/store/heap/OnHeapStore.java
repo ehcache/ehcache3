@@ -141,9 +141,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   };
 
-  private static final InvalidationListener NULL_INVALIDATION_LISTENER = new InvalidationListener() {
+  private static final InvalidationListener<?, ?> NULL_INVALIDATION_LISTENER = new InvalidationListener<Object, Object>() {
     @Override
-    public void onInvalidation(Object key, ValueHolder valueHolder) {
+    public void onInvalidation(Object key, ValueHolder<Object> valueHolder) {
       // Do nothing
     }
   };
@@ -163,7 +163,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> storeEventDispatcher;
   @SuppressWarnings("unchecked")
-  private volatile InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
+  private volatile InvalidationListener<K, V> invalidationListener = (InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
   private CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
     @Override
