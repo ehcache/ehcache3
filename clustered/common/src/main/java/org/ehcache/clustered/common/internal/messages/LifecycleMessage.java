@@ -34,12 +34,24 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
   }
 
   protected UUID clientId;
+  protected long id = NOT_REPLICATED;
 
+  @Override
   public UUID getClientId() {
     if (clientId == null) {
       throw new AssertionError("Client Id cannot be null for lifecycle messages");
     }
     return this.clientId;
+  }
+
+  @Override
+  public long getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(long id) {
+    this.id = id;
   }
 
   @Override
@@ -105,7 +117,7 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     private final String name;
     private final ServerStoreConfiguration storeConfiguration;
 
-    protected BaseServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
+    BaseServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
       this.name = name;
       this.storeConfiguration = storeConfiguration;
       this.clientId = clientId;

@@ -27,8 +27,6 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
 
   public static final long NOT_REPLICATED = -1;
 
-  private long id = NOT_REPLICATED;
-
   /**
    * These types represent the top level Ehcache entity message types.
    * Each of these top level types can have subtypes of messages.
@@ -69,12 +67,10 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
     return getType().toString();
   }
 
-  public void setId(long id) {
-    this.id = id;
-  }
+  public abstract void setId(long id);
 
-  public long getId() {
-    return this.id;
-  }
+  public abstract long getId();
+
+  public abstract UUID getClientId();
 
 }

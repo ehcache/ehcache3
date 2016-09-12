@@ -166,7 +166,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   private void createEntityFactory() {
-    entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
+    entityFactory = new EhcacheClientEntityFactory(clusterConnection, clientId, operationTimeouts);
   }
 
   private void initClusterConnection() {

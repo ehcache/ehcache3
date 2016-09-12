@@ -24,6 +24,7 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -51,6 +52,12 @@ public class EhcachePassiveEntityTest {
 
   private static final byte[] ENTITY_ID = ClusteredEhcacheIdentity.serialize(UUID.randomUUID());
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
+  private static final UUID CLIENT_ID = UUID.randomUUID();
+
+  @Before
+  public void setClientId() {
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
+  }
 
   @Test
   public void testConfigTooShort() {

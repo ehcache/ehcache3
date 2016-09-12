@@ -17,6 +17,7 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import java.io.Serializable;
+import java.util.UUID;
 
 public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage implements Serializable {
 
@@ -29,9 +30,30 @@ public abstract class StateRepositoryOpMessage extends EhcacheEntityMessage impl
   private final String cacheId;
   private final String mapId;
 
+  protected UUID clientId = null; //TODO: #1211
+  protected long id = NOT_REPLICATED;
+
   private StateRepositoryOpMessage(String cacheId, String mapId) {
     this.cacheId = cacheId;
     this.mapId = mapId;
+  }
+
+  @Override
+  public UUID getClientId() {
+    if (clientId == null) {
+      throw new AssertionError("Client Id cannot be null for lifecycle messages");
+    }
+    return this.clientId;
+  }
+
+  @Override
+  public long getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(long id) {
+    this.id = id;
   }
 
   public String getCacheId() {

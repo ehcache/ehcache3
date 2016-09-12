@@ -284,7 +284,7 @@ public class EhcacheClientEntity implements Entity {
       throw new IllegalStateException("Client ID cannot be null");
     }
     if (replicate) {
-      message.setId(sequenceGenerator.incrementAndGet());
+      message.setId(sequenceGenerator.getAndIncrement());
       //TODO: remove the replicate call with latest passthrough upgrade
       invoke = endpoint.beginInvoke().message(message).replicate(true).invoke();
     } else {

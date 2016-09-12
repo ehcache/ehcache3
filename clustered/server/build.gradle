@@ -29,6 +29,21 @@ dependencies {
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
 }
 
+def java8 = {
+  JavaVersion.current().isJava8Compatible()
+}
+
+
+compileJava {
+  options.fork = true;
+  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+}
+
+compileTestJava {
+  options.fork = true;
+  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+}
+
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 

@@ -19,6 +19,7 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implements ConcurrentEntityMessage {
   public enum ServerStoreOp {
@@ -60,6 +61,27 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
       }
     }
 
+  }
+
+  protected UUID clientId = null; //TODO: #1211
+  protected long id = NOT_REPLICATED;
+
+  @Override
+  public UUID getClientId() {
+    if (clientId == null) {
+      throw new AssertionError("Client Id cannot be null for lifecycle messages");
+    }
+    return this.clientId;
+  }
+
+  @Override
+  public long getId() {
+    return this.id;
+  }
+
+  @Override
+  public void setId(long id) {
+    this.id = id;
   }
 
   private final String cacheId;

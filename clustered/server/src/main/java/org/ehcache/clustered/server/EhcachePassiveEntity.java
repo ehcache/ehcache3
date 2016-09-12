@@ -31,6 +31,7 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateSer
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
+import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
@@ -127,10 +128,10 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
-  private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException{
+  private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
     switch (message.operation()) {
       case CONFIGURE:
-        ehcacheStateService.configure((ConfigureStoreManager) message);
+        configure((ConfigureStoreManager) message);
         break;
       case CREATE_SERVER_STORE:
         createServerStore((CreateServerStore) message);
@@ -143,6 +144,20 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
+  private void configure(ConfigureStoreManager message) throws ClusterException {
+    ehcacheStateService.configure(message);
+    ehcacheStateService.getClientMessageTracker().setEntityConfiguredStamp(message.getClientId(), message.getId());
+  }
+
+  private void trackAndApplyMessage(LifecycleMessage message) {
+    ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker();
+    if (!clientMessageTracker.isAdded(message.getClientId())) {
+      clientMessageTracker.add(message.getClientId());
+    }
+    clientMessageTracker.track(message.getId(), message.getClientId());
+    clientMessageTracker.applied(message.getId(), message.getClientId());
+  }
+
   private void createServerStore(CreateServerStore createServerStore) throws ClusterException {
     if (!ehcacheStateService.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
@@ -150,6 +165,8 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
       throw new LifecycleException("Clustered tier can't be created with an Unknown resource pool");
     }
+
+    trackAndApplyMessage(createServerStore);
 
     final String name = createServerStore.getName();    // client cache identifier/name
 
@@ -164,6 +181,8 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     if (!ehcacheStateService.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
+
+    trackAndApplyMessage(destroyServerStore);
 
     String name = destroyServerStore.getName();
 
