@@ -162,6 +162,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> storeEventDispatcher;
+  @SuppressWarnings("unchecked")
   private volatile InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
 
   private CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
@@ -298,7 +299,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private OnHeapValueHolder getQuiet(final K key) throws StoreAccessException {
+  private OnHeapValueHolder<V> getQuiet(final K key) throws StoreAccessException {
     try {
       OnHeapValueHolder<V> mapping = map.get(key);
       if (mapping == null) {

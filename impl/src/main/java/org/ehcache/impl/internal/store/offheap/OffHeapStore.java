@@ -171,7 +171,8 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       close((OffHeapStore)resource);
     }
 
-    static void close(final OffHeapStore resource) {EhcacheConcurrentOffHeapClockCache<Object, OffHeapValueHolder<Object>> localMap = resource.map;
+    static void close(final OffHeapStore<?, ?> resource) {
+      EhcacheConcurrentOffHeapClockCache<?, ?> localMap = resource.map;
       if (localMap != null) {
         resource.map = null;
         localMap.destroy();
@@ -185,7 +186,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
 
-      OffHeapStore offHeapStore = (OffHeapStore) resource;
+      OffHeapStore<?, ?> offHeapStore = (OffHeapStore<?, ?>) resource;
       Serializer keySerializer = offHeapStore.keySerializer;
       if (keySerializer instanceof StatefulSerializer) {
         ((StatefulSerializer)keySerializer).init(new TransientStateRepository());
@@ -195,7 +196,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
         ((StatefulSerializer)valueSerializer).init(new TransientStateRepository());
       }
 
-      init((OffHeapStore)resource);
+      init(offHeapStore);
     }
 
     static <K, V> void init(final OffHeapStore<K, V> resource) {
@@ -234,6 +235,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void releaseCachingTier(LowerCachingTier<?, ?> resource) {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
