@@ -32,7 +32,7 @@ import java.util.concurrent.LinkedBlockingQueue;
  */
 abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatcher<K, V> {
 
-  protected static final StoreEventSink NO_OP_EVENT_SINK = new CloseableStoreEventSink() {
+  protected static final StoreEventSink<?, ?> NO_OP_EVENT_SINK = new CloseableStoreEventSink<Object, Object>() {
     @Override
     public void close() {
       // Do nothing
@@ -49,17 +49,17 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void removed(Object key, ValueSupplier value) {
+    public void removed(Object key, ValueSupplier<Object> value) {
       // Do nothing
     }
 
     @Override
-    public void updated(Object key, ValueSupplier oldValue, Object newValue) {
+    public void updated(Object key, ValueSupplier<Object> oldValue, Object newValue) {
       // Do nothing
     }
 
     @Override
-    public void expired(Object key, ValueSupplier value) {
+    public void expired(Object key, ValueSupplier<Object> value) {
       // Do nothing
     }
 
@@ -69,7 +69,7 @@ abstract class AbstractStoreEventDispatcher<K, V> implements StoreEventDispatche
     }
 
     @Override
-    public void evicted(Object key, ValueSupplier value) {
+    public void evicted(Object key, ValueSupplier<Object> value) {
       // Do nothing
     }
   };
