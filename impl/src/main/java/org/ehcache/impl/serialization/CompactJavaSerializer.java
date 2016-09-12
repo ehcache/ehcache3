@@ -18,7 +18,6 @@ package org.ehcache.impl.serialization;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -35,15 +34,14 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 
 /**
  * A trivially compressed Java serialization based serializer.
@@ -53,9 +51,9 @@ import org.ehcache.spi.serialization.Serializer;
  * {@code Class} and the integer representation are stored in a single on-heap
  * map.
  */
-public class CompactJavaSerializer<T> implements Serializer<T> {
+public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
-  private final ConcurrentMap<Integer, ObjectStreamClass> readLookup;
+  private volatile ConcurrentMap<Integer, ObjectStreamClass> readLookup;
   private final ConcurrentMap<Integer, ObjectStreamClass> readLookupLocalCache = new ConcurrentHashMap<Integer, ObjectStreamClass>();
   private final ConcurrentMap<SerializableDataKey, Integer> writeLookup = new ConcurrentHashMap<SerializableDataKey, Integer>();
 
@@ -72,13 +70,8 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
    * @see Serializer
    */
   public CompactJavaSerializer(ClassLoader loader) {
-    this(loader, new TransientStateRepository());
-  }
-
-  public CompactJavaSerializer(ClassLoader loader, StateRepository stateRepository) {
     this.loader = loader;
-    this.readLookup = stateRepository.getPersistentConcurrentMap("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
-    loadMappingsInWriteContext(readLookup.entrySet(), true);
+    init(new TransientStateRepository());
   }
 
   CompactJavaSerializer(ClassLoader loader, Map<Integer, ObjectStreamClass> mappings) {
@@ -95,6 +88,12 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
         nextStreamIndex = encoding + 1;
       }
     }
+  }
+
+  @Override
+  public void init(final StateRepository stateRepository) {
+    this.readLookup = stateRepository.getPersistentConcurrentMap("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
+    loadMappingsInWriteContext(readLookup.entrySet(), true);
   }
 
   Map<Integer, ObjectStreamClass> getSerializationMappings() {

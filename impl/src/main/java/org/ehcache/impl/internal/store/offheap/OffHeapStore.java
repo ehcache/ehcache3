@@ -31,6 +31,9 @@ import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPor
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.serialization.TransientStateRepository;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -55,6 +58,7 @@ import org.terracotta.statistics.StatisticsManager;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.impl.internal.store.offheap.OffHeapStoreUtils.getBufferSource;
@@ -179,6 +183,17 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
+
+      OffHeapStore offHeapStore = (OffHeapStore) resource;
+      Serializer keySerializer = offHeapStore.keySerializer;
+      if (keySerializer instanceof StatefulSerializer) {
+        ((StatefulSerializer)keySerializer).init(new TransientStateRepository());
+      }
+      Serializer valueSerializer = offHeapStore.valueSerializer;
+      if (valueSerializer instanceof StatefulSerializer) {
+        ((StatefulSerializer)valueSerializer).init(new TransientStateRepository());
+      }
+
       init((OffHeapStore)resource);
     }
 
@@ -251,7 +266,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
       if (!createdStores.contains(resource)) {
         throw new IllegalArgumentException("Given caching tier is not managed by this provider : " + resource);
       }
-      initStore((Store<?, ?>) resource);
+      init((OffHeapStore<?, ?>) resource);
     }
   }
 }

@@ -51,6 +51,9 @@ import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -574,11 +577,34 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
       }
       final ClusteredStore clusteredStore = (ClusteredStore) resource;
+      ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
       try {
-        clusteredStore.storeProxy = clusteringService.getServerStoreProxy(storeConfig.getCacheIdentifier(), storeConfig.getStoreConfig(), storeConfig.getConsistency());
+        clusteredStore.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency());
       } catch (CachePersistenceException e) {
-        throw new RuntimeException("Unable to create clustered tier proxy - " + storeConfig.getCacheIdentifier(), e);
+        throw new RuntimeException("Unable to create clustered tier proxy - " + cacheIdentifier, e);
       }
+
+      Serializer keySerializer = clusteredStore.codec.getKeySerializer();
+      if (keySerializer instanceof StatefulSerializer) {
+        StateRepository stateRepository = null;
+        try {
+          stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Key");
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException(e);
+        }
+        ((StatefulSerializer)keySerializer).init(stateRepository);
+      }
+      Serializer valueSerializer = clusteredStore.codec.getValueSerializer();
+      if (valueSerializer instanceof StatefulSerializer) {
+        StateRepository stateRepository = null;
+        try {
+          stateRepository = clusteringService.getStateRepositoryWithin(cacheIdentifier, cacheIdentifier.getId() + "-Value");
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException(e);
+        }
+        ((StatefulSerializer)valueSerializer).init(stateRepository);
+      }
+
       clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
         @Override
         public void onInvalidateHash(long hash) {
