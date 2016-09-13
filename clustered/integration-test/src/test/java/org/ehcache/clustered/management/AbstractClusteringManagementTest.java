@@ -158,7 +158,7 @@ public abstract class AbstractClusteringManagementTest {
   }
 
   private static List<File> getManagementPlugins() {
-    String[] paths = System.getProperty("managementPlugins").split(":");
+    String[] paths = System.getProperty("managementPlugins").split(File.pathSeparator);
     List<File> plugins = new ArrayList<File>(paths.length);
     for (String path : paths) {
       plugins.add(new File(path));
