@@ -27,6 +27,7 @@ import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
@@ -69,8 +70,6 @@ public class EhcacheClientEntity implements Entity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
 
-  private ReconnectData reconnectData = new ReconnectData();
-
   public interface ResponseListener<T extends EhcacheEntityResponse> {
     void onResponse(T response);
   }
@@ -87,6 +86,7 @@ public class EhcacheClientEntity implements Entity {
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
   private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private volatile boolean connected = true;
+  private final ReconnectData reconnectData = new ReconnectData();
   private volatile UUID clientId;
 
   private Timeouts timeouts = Timeouts.builder().build();
@@ -140,12 +140,6 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  public void setClientId(UUID clientId) {
-    this.clientId = clientId;
-    this.messageFactory.setClientId(clientId);
-    this.reconnectData.setClientId(clientId);
-  }
-
   public UUID getClientId() {
     if (clientId == null) {
       throw new IllegalStateException("Client Id cannot be null");
@@ -181,7 +175,17 @@ public class EhcacheClientEntity implements Entity {
 
   public void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException, TimeoutException {
     try {
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
+      while (true) {
+        try {
+          clientId = UUID.randomUUID();
+          this.messageFactory.setClientId(clientId);
+          this.reconnectData.setClientId(clientId);
+          invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
+          break;
+        } catch (InvalidClientIdException e) {
+          //nothing to do - loop again since the earlier generated UUID is being already tracked by the server
+        }
+      }
     } catch (ClusterException e) {
       throw new ClusteredTierManagerValidationException("Error validating server clustered tier manager", e);
     }
@@ -189,6 +193,9 @@ public class EhcacheClientEntity implements Entity {
 
   public void configure(ServerSideConfiguration config) throws ClusteredTierManagerConfigurationException, TimeoutException {
     try {
+      clientId = UUID.randomUUID();
+      this.messageFactory.setClientId(clientId);
+      this.reconnectData.setClientId(clientId);
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.configureStoreManager(config), true);
     } catch (ClusterException e) {
       throw new ClusteredTierManagerConfigurationException("Error configuring clustered tier manager", e);
@@ -287,17 +294,11 @@ public class EhcacheClientEntity implements Entity {
   public InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
       throws MessageCodecException {
     InvokeFuture<EhcacheEntityResponse> invoke;
-    if (clientId == null) {
-      throw new IllegalStateException("Client ID cannot be null");
-    }
+    getClientId();
     if (replicate) {
       message.setId(sequenceGenerator.getAndIncrement());
-      //TODO: remove the replicate call with latest passthrough upgrade
-      invoke = endpoint.beginInvoke().message(message).replicate(true).invoke();
-    } else {
-      invoke = endpoint.beginInvoke().message(message).replicate(false).invoke();
     }
-    return invoke;
+    return endpoint.beginInvoke().message(message).replicate(replicate).invoke();
   }
 
   private static <T> T waitFor(TimeoutDuration timeLimit, InvokeFuture<T> future)

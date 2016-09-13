@@ -38,7 +38,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
@@ -82,15 +81,12 @@ public class StrongServerStoreProxyTest {
     EhcacheClientEntityFactory entityFactory1 = new EhcacheClientEntityFactory(connection1);
     EhcacheClientEntityFactory entityFactory2 = new EhcacheClientEntityFactory(connection2);
 
-    UUID clientId1 = UUID.randomUUID();
-    UUID clientId2 = UUID.randomUUID();
-
     entityFactory1.create("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()), clientId1);
+        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
     clientEntity1 = entityFactory1.retrieve("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()), clientId1);
+        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
     clientEntity2 = entityFactory2.retrieve("TestCacheManager",
-        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()), clientId2);
+        new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4L, MemoryUnit.MB);
 
@@ -103,8 +99,8 @@ public class StrongServerStoreProxyTest {
     clientEntity1.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
     clientEntity2.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
-    serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientId1), clientEntity1);
-    serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientId2), clientEntity2);
+    serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity1.getClientId()), clientEntity1);
+    serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity2.getClientId()), clientEntity2);
   }
 
   @AfterClass

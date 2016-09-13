@@ -133,7 +133,7 @@ public class MessageTrackerTest {
 
     nonAppliedMsgs.forEach(x -> assertThat(messageTracker.shouldApply(x), is(true)));
 
-//TODO: #1211    assertThat(messageTracker.isEmpty(), is(true));
+    assertThat(messageTracker.isEmpty(), is(true));
 
     LongStream.of(input).filter(x -> !nonAppliedMsgs.contains(x)).forEach(x -> assertThat(messageTracker.shouldApply(x), is(false)));
 

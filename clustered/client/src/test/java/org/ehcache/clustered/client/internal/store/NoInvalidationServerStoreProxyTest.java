@@ -37,7 +37,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Properties;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
@@ -49,7 +48,6 @@ public class NoInvalidationServerStoreProxyTest {
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
-  private static final UUID CLIENT_ID = UUID.randomUUID();
 
   private static EhcacheClientEntity clientEntity;
   private static NoInvalidationServerStoreProxy serverStoreProxy;
@@ -66,15 +64,15 @@ public class NoInvalidationServerStoreProxyTest {
 
     ServerSideConfiguration serverConfig =
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap());
-    entityFactory.create("TestCacheManager", serverConfig, CLIENT_ID);
-    clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig, CLIENT_ID);
+    entityFactory.create("TestCacheManager", serverConfig);
+    clientEntity = entityFactory.retrieve("TestCacheManager", serverConfig);
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(16L, MemoryUnit.MB);
 
     clientEntity.createCache(CACHE_IDENTIFIER, new ServerStoreConfiguration(resourcePool.getPoolAllocation(), Long.class.getName(),
         Long.class.getName(), Long.class.getName(), Long.class.getName(), LongSerializer.class.getName(), LongSerializer.class
         .getName(), null));
-    serverStoreProxy = new NoInvalidationServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, CLIENT_ID), clientEntity);
+    serverStoreProxy = new NoInvalidationServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId()), clientEntity);
   }
 
   @AfterClass

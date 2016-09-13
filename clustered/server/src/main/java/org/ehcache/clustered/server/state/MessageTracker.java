@@ -19,15 +19,17 @@ package org.ehcache.clustered.server.state;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 public class MessageTracker {
 
   private final ConcurrentHashMap<Long, Boolean> inProgressMessages = new ConcurrentHashMap<>();
 
-  private long lowerWaterMark = -1L;   //Always to be updated under lock below
-  private final AtomicLong higerWaterMark = new AtomicLong(-1L);
-  private final ReentrantLock lwmLock = new ReentrantLock();
+  private long lowerWaterMark = -1L;
+  private final AtomicLong higherWaterMark = new AtomicLong(-1L);
+  private final ReadWriteLock lwmLock = new ReentrantReadWriteLock();
 
   /**
    * This method is only meant to be called by the Active Entity.
@@ -41,19 +43,26 @@ public class MessageTracker {
    * @return whether the entity should apply the message or not
    */
   boolean shouldApply(long msgId) {
-    if (msgId < lowerWaterMark) {
-      return false;
+    Lock lock = lwmLock.readLock();
+    try {
+      lock.lock();
+      if (msgId < lowerWaterMark) {
+        return false;
+      }
+    } finally {
+      lock.unlock();
     }
-    if (msgId > higerWaterMark.get()) {
+    if (msgId > higherWaterMark.get()) {
       return true;
     }
     final AtomicBoolean shouldApply = new AtomicBoolean(false);
     inProgressMessages.computeIfPresent(msgId, (id, state) -> {
-      if (state != true) {
+      if (!state) {
         shouldApply.set(true);
       }
-      return null;
+      return true;
     });
+    updateLowerWaterMark();
     return shouldApply.get();
   }
 
@@ -74,12 +83,33 @@ public class MessageTracker {
    */
   void applied(long msgId) {
     inProgressMessages.computeIfPresent(msgId, ((id, state) -> state = true));
-    if (lwmLock.tryLock()) {
+    updateLowerWaterMark();
+  }
+
+  boolean isEmpty() {
+    return inProgressMessages.isEmpty();
+  }
+
+  private void updateHigherWaterMark(long msgId) {
+    while(true) {
+      long old = higherWaterMark.get();
+      if (msgId < old) {
+        return;
+      }
+      if (higherWaterMark.compareAndSet(old, msgId)) {
+        break;
+      }
+    }
+  }
+
+  private void updateLowerWaterMark() {
+    Lock lock = lwmLock.writeLock();
+    if (lock.tryLock()) {
       try {
-        for (long i = lowerWaterMark + 1; i<= higerWaterMark.get(); i++) {
+        for (long i = lowerWaterMark + 1; i <= higherWaterMark.get(); i++) {
           final AtomicBoolean removed = new AtomicBoolean(false);
           inProgressMessages.computeIfPresent(i, (id, state) -> {
-            if (state == true) {
+            if (state) {
               removed.set(true);
               return null;
             }
@@ -92,24 +122,7 @@ public class MessageTracker {
           }
         }
       } finally {
-        lwmLock.unlock();
-      }
-    }
-
-  }
-
-  boolean isEmpty() {
-    return inProgressMessages.isEmpty();
-  }
-
-  private void updateHigherWaterMark(long msgId) {
-    if (msgId < higerWaterMark.get()) {
-      return;
-    }
-    while(true) {
-      long old = higerWaterMark.get();
-      if (higerWaterMark.compareAndSet(old, msgId)) {
-        break;
+        lock.unlock();
       }
     }
   }

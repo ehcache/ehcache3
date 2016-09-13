@@ -25,7 +25,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.Consistency;
@@ -268,8 +267,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
     clientState.attach();
     ReconnectData reconnectData = reconnectDataCodec.decode(extendedReconnectData);
-    clientIdMap.put(clientDescriptor, reconnectData.getClientId());
-    invalidIds.add(reconnectData.getClientId());
+    addClientId(clientDescriptor, reconnectData.getClientId());
     Set<String> cacheIds = reconnectData.getAllCaches();
     for (final String cacheId : cacheIds) {
       ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
@@ -548,7 +546,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   private void configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
-    if (ehcacheStateService.getClientMessageTracker().shouldConfigure(message.getClientId(), message.getId())) {
+    if (ehcacheStateService.getClientMessageTracker().isConfigureApplicable(message.getClientId(), message.getId())) {
       ehcacheStateService.configure(message);
     }
     this.clientStateMap.get(clientDescriptor).attach();
@@ -567,10 +565,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (invalidIds.contains(message.getClientId())) {
       throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active");
     }
-    clientIdMap.put(clientDescriptor, message.getClientId());
-    invalidIds.add(message.getClientId());
+    addClientId(clientDescriptor, message.getClientId());
     ehcacheStateService.validate(message);
     this.clientStateMap.get(clientDescriptor).attach();
+  }
+
+  private void addClientId(ClientDescriptor clientDescriptor, UUID clientId) {
+    clientIdMap.put(clientDescriptor, clientId);
+    invalidIds.add(clientId);
   }
 
   /**

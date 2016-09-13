@@ -44,8 +44,6 @@ import org.terracotta.exception.EntityNotFoundException;
 
 public class EhcacheClientEntityFactoryTest {
 
-  private static final UUID CLIENT_ID = UUID.randomUUID();
-
   @Test
   public void testCreate() throws Exception {
     EhcacheClientEntity entity = mock(EhcacheClientEntity.class);
@@ -57,7 +55,7 @@ public class EhcacheClientEntityFactoryTest {
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
-    factory.create("test", null, CLIENT_ID);
+    factory.create("test", null);
     verify(entityRef).create(any(UUID.class));
     verify(entity).configure(any(ServerSideConfiguration.class));
     verify(entity).close();
@@ -76,7 +74,7 @@ public class EhcacheClientEntityFactoryTest {
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
-      factory.create("test", null, CLIENT_ID);
+      factory.create("test", null);
       fail("Expecting EhcacheEntityCreationException");
     } catch (EhcacheEntityCreationException e) {
       // expected
@@ -98,7 +96,7 @@ public class EhcacheClientEntityFactoryTest {
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
-      factory.create("test", null, CLIENT_ID);
+      factory.create("test", null);
       fail("Expected EntityAlreadyExistsException");
     } catch (EntityAlreadyExistsException e) {
       //expected
@@ -116,7 +114,7 @@ public class EhcacheClientEntityFactoryTest {
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
-    assertThat(factory.retrieve("test", null, CLIENT_ID), is(entity));
+    assertThat(factory.retrieve("test", null), is(entity));
     verify(entity).validate(any(ServerSideConfiguration.class));
     verify(entity, never()).close();
   }
@@ -134,7 +132,7 @@ public class EhcacheClientEntityFactoryTest {
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
-      factory.retrieve("test", null, CLIENT_ID);
+      factory.retrieve("test", null);
       fail("Expecting IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       // expected
@@ -155,7 +153,7 @@ public class EhcacheClientEntityFactoryTest {
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     try {
-      factory.retrieve("test", null, CLIENT_ID);
+      factory.retrieve("test", null);
       fail("Expected EntityNotFoundException");
     } catch (EntityNotFoundException e) {
       //expected

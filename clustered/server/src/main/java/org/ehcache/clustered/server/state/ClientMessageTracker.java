@@ -63,7 +63,7 @@ public class ClientMessageTracker {
     this.configuredTimestamp = timestamp;
   }
 
-  public boolean shouldConfigure(UUID clientId, long timestamp) {
+  public boolean isConfigureApplicable(UUID clientId, long timestamp) {
     if (entityConfiguredStamp == null) {
       return true;
     }

@@ -32,10 +32,6 @@ dependencies {
   testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
 }
 
-def java8 = {
-  JavaVersion.current().isJava8Compatible()
-}
-
 compileTestJava {
   options.fork = true;
   options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')

@@ -36,7 +36,6 @@ import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.client.service.EntityService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.config.CacheConfiguration;
@@ -63,7 +62,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.Properties;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 
@@ -82,7 +80,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final String entityIdentifier;
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
   private final EhcacheClientEntity.Timeouts operationTimeouts;
-  private UUID clientId = UUID.randomUUID();
 
   private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
@@ -150,7 +147,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
         entity = autoCreateEntity();
       } else {
         try {
-          entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration(), clientId);
+          entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
         } catch (EntityNotFoundException e) {
           throw new IllegalStateException("The clustered tier manager '" + entityIdentifier + "' does not exist."
               + " Please review your configuration.", e);
@@ -185,7 +182,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private EhcacheClientEntity autoCreateEntity() throws EhcacheEntityValidationException, IllegalStateException {
     while (true) {
       try {
-        entityFactory.create(entityIdentifier, configuration.getServerConfiguration(), clientId);
+        entityFactory.create(entityIdentifier, configuration.getServerConfiguration());
       } catch (EhcacheEntityCreationException e) {
         throw new IllegalStateException("Could not create the clustered tier manager '" + entityIdentifier + "'.", e);
       } catch (EntityAlreadyExistsException e) {
@@ -197,26 +194,12 @@ class DefaultClusteringService implements ClusteringService, EntityService {
             + "'; create operation timed out", e);
       }
       try {
-        return retrieveUntilClientIdIsUnique();
+        return entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
       } catch (EntityNotFoundException e) {
         //ignore - loop and try to create
       } catch (TimeoutException e) {
         throw new RuntimeException("Could not connect to the clustered tier manager '" + entityIdentifier
             + "'; retrieve operation timed out", e);
-      }
-    }
-  }
-
-  private EhcacheClientEntity retrieveUntilClientIdIsUnique() throws TimeoutException, EntityNotFoundException {
-    while(true) {
-      try {
-        return entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration(), clientId);
-      } catch (EhcacheEntityValidationException e) {
-        if (!(e.getCause().getCause() instanceof InvalidClientIdException)) {
-          throw e;
-        } else {
-          this.clientId = UUID.randomUUID();
-        }
       }
     }
   }
@@ -327,7 +310,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       initClusterConnection();
       createEntityFactory();
       try {
-        entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration(), clientId);
+        entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
       } catch (EntityNotFoundException e) {
         // No entity on the server, so no need to destroy anything
       } catch (TimeoutException e) {
@@ -419,7 +402,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
           + "'; validate operation timed out", e);
     }
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, clientId);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
     switch (configuredConsistency) {
       case STRONG:
         return new StrongServerStoreProxy(messageFactory, entity);
