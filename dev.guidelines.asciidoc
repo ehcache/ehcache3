@@ -34,9 +34,9 @@ Once your change is implemented (see coding guidelines below), you will want to 
 === Commit comment
 
 * Make sure the issue the commit relates is referenced in the commit comment.
-** If your commit closes an issue, think about using the [GitHub options](https://help.github.com/articles/closing-issues-via-commit-messages/) for automatically closing the issue when the commit reaches master.
-* For your commit comment, you are strongly encouraged to follow the recommendations found [here}(http://chris.beams.io/posts/git-commit/#seven-rules)
-** Feel free also to use emoji - current ones used are based on [the following](https://github.com/atom/atom/blob/master/CONTRIBUTING.md#git-commit-messages)
+** If your commit closes an issue, think about using the https://help.github.com/articles/closing-issues-via-commit-messages/[GitHub options] for automatically closing the issue when the commit reaches master.
+* For your commit comment, you are strongly encouraged to follow the recommendations found http://chris.beams.io/posts/git-commit/#seven-rules[here]
+** Feel free also to use emoji - current ones used are based on https://github.com/atom/atom/blob/master/CONTRIBUTING.md#git-commit-messages[the following]
 
 === Formatting
 
