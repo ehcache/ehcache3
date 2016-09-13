@@ -52,7 +52,7 @@ test {
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
-  systemProperty 'managementPlugins', ["management-model", "management-registry", "sequence-generator", "management-entity-server", "monitoring-service", "monitoring-service-entity"].collect { String artifact -> project.configurations.testCompile.find { it.name.startsWith("$artifact-$parent.managementVersion") } }.join(':')
+  systemProperty 'managementPlugins', ["management-model", "management-registry", "sequence-generator", "management-entity-server", "monitoring-service", "monitoring-service-entity"].collect { String artifact -> project.configurations.testCompile.find { it.name.startsWith("$artifact-$parent.managementVersion") } }.join(File.pathSeparator)
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }
