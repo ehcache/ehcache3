@@ -31,6 +31,13 @@ Once your change is implemented (see coding guidelines below), you will want to 
 
 == Coding guidelines
 
+=== Commit comment
+
+* Make sure the issue the commit relates is referenced in the commit comment.
+** If your commit closes an issue, think about using the [GitHub options](https://help.github.com/articles/closing-issues-via-commit-messages/) for automatically closing the issue when the commit reaches master.
+* For your commit comment, you are strongly encouraged to follow the recommendations found [here}(http://chris.beams.io/posts/git-commit/#seven-rules)
+** Feel free also to use emoji - current ones used are based on [the following](https://github.com/atom/atom/blob/master/CONTRIBUTING.md#git-commit-messages)
+
 === Formatting
 
 See what's there for now... Ping us on the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list]. We'll export settings for majors IDEs here asap.
