@@ -38,6 +38,15 @@ Once your change is implemented (see coding guidelines below), you will want to 
 * For your commit comment, you are strongly encouraged to follow the recommendations found http://chris.beams.io/posts/git-commit/#seven-rules[here]
 ** Feel free also to use emoji - current ones used are based on https://github.com/atom/atom/blob/master/CONTRIBUTING.md#git-commit-messages[the following]
 
+Here is an example:
+
+----
+:bug: Fix #1354 JSR-107 support in ClusteredStore stats
+     
+Some context registrations are required to get the proper statistics
+discovered by the JCache stats MBean
+----
+
 === Formatting
 
 See what's there for now... Ping us on the https://groups.google.com/forum/#!forum/ehcache-dev[developer mailing list]. We'll export settings for majors IDEs here asap.
