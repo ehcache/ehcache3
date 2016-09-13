@@ -17,7 +17,6 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.CacheManager;
-import org.ehcache.Status;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.config.EvictionAdvisor;
@@ -31,7 +30,6 @@ import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.junit.Assert;
 import org.junit.Test;
 
 import java.io.File;
@@ -77,8 +75,8 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
         .build(true);
 
     try {
-      String actual = ((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString();
-      String expected = read("/simpleConfiguration.txt");
+      String actual = normalizeForLineEndings(((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString());
+      String expected = normalizeForLineEndings(read("/simpleConfiguration.txt"));
 
       // only testing part of the string, to avoid collections ordering clashes
       assertThat(
@@ -119,8 +117,8 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
         .build(true);
 
     try {
-      String actual = ((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString();
-      String expected = read("/clusteredConfiguration.txt");
+      String actual = normalizeForLineEndings(((HumanReadable) cacheManager.getRuntimeConfiguration()).readableString());
+      String expected = normalizeForLineEndings(read("/clusteredConfiguration.txt"));
 
       // only testing part of the string, to avoid collections ordering clashes
       assertThat(
@@ -180,4 +178,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
     }
   }
 
+  private static String normalizeForLineEndings(String stringToNormalize) {
+    return stringToNormalize.replace("\r\n","\n").replace("\r","\n");
+  }
 }
