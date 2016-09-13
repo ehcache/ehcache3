@@ -102,7 +102,7 @@ public class ClusteredStoreTest {
             null
     );
     clientEntity.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
-    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER);
+    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER, CLIENT_ID);
     ServerStoreProxy serverStoreProxy = new NoInvalidationServerStoreProxy(factory, clientEntity);
 
     TestTimeSource testTimeSource = new TestTimeSource();

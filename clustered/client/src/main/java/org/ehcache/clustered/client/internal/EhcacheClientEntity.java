@@ -146,6 +146,13 @@ public class EhcacheClientEntity implements Entity {
     this.reconnectData.setClientId(clientId);
   }
 
+  public UUID getClientId() {
+    if (clientId == null) {
+      throw new IllegalStateException("Client Id cannot be null");
+    }
+    return this.clientId;
+  }
+
   public boolean isConnected() {
     return connected;
   }

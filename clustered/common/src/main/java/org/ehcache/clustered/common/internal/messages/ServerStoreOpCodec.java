@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.AppendMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ClearMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.GetAndAppendMessage;
@@ -25,6 +26,7 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.Clien
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp;
 
 import java.nio.ByteBuffer;
+import java.util.UUID;
 
 class ServerStoreOpCodec {
 
@@ -33,7 +35,7 @@ class ServerStoreOpCodec {
   private static final byte KEY_SIZE = 8;
   private static final byte CHAIN_LEN_SIZE = 4;
   private static final byte INVALIDATION_ID_LEN_SIZE = 4;
-  private static final byte MESSAGE_ID_SIZE = 8;
+  private static final byte MESSAGE_ID_SIZE = 24;
 
   private final ChainCodec chainCodec;
 
@@ -90,6 +92,7 @@ class ServerStoreOpCodec {
         ClearMessage clearMessage = (ClearMessage)message;
         encodedMsg = ByteBuffer.allocate(STORE_OP_CODE_SIZE + MESSAGE_ID_SIZE + 2 * cacheIdLen);
         encodedMsg.put(clearMessage.getOpCode());
+        encodedMsg.put(ClusteredEhcacheIdentity.serialize(message.getClientId()));
         encodedMsg.putLong(message.getId());
         CodecUtil.putStringAsCharArray(encodedMsg, clearMessage.getCacheId());
         return encodedMsg.array();
@@ -101,6 +104,7 @@ class ServerStoreOpCodec {
   // This assumes correct allocation and puts extracts common code
   private static void putCacheIdKeyAndOpCode(ByteBuffer byteBuffer, ServerStoreOpMessage message, long key) {
     byteBuffer.put(message.getOpCode());
+    byteBuffer.put(ClusteredEhcacheIdentity.serialize(message.getClientId()));
     byteBuffer.putLong(message.getId());
     byteBuffer.putInt(message.getCacheId().length());
     CodecUtil.putStringAsCharArray(byteBuffer, message.getCacheId());
@@ -114,6 +118,7 @@ class ServerStoreOpCodec {
 
     long key;
     String cacheId;
+    UUID clientId;
     long msgId;
 
     EhcacheEntityMessage decodecMsg;
@@ -123,20 +128,23 @@ class ServerStoreOpCodec {
         cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
         return new GetMessage(cacheId, key);
       case GET_AND_APPEND:
+        clientId = getClientId(msg);
         msgId = msg.getLong();
         cacheId = readStringFromBufferWithSize(msg);
         key = msg.getLong();
-        decodecMsg = new GetAndAppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer());
+        decodecMsg = new GetAndAppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer(), clientId);
         decodecMsg.setId(msgId);
         return decodecMsg;
       case APPEND:
+        clientId = getClientId(msg);
         msgId = msg.getLong();
         cacheId = readStringFromBufferWithSize(msg);
         key = msg.getLong();
-        decodecMsg = new AppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer());
+        decodecMsg = new AppendMessage(cacheId, key, msg.slice().asReadOnlyBuffer(), clientId);
         decodecMsg.setId(msgId);
         return decodecMsg;
       case REPLACE:
+        clientId = getClientId(msg);
         msgId = msg.getLong();
         cacheId = readStringFromBufferWithSize(msg);
         key = msg.getLong();
@@ -147,7 +155,7 @@ class ServerStoreOpCodec {
         byte[] encodedUpdateChain = new byte[updateChainLen];
         msg.get(encodedUpdateChain);
         decodecMsg = new ReplaceAtHeadMessage(cacheId, key, chainCodec.decode(encodedExpectChain),
-            chainCodec.decode(encodedUpdateChain));
+            chainCodec.decode(encodedUpdateChain), clientId);
         decodecMsg.setId(msgId);
         return decodecMsg;
       case CLIENT_INVALIDATION_ACK:
@@ -155,9 +163,10 @@ class ServerStoreOpCodec {
         cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
         return new ClientInvalidationAck(cacheId, invalidationId);
       case CLEAR:
+        clientId = getClientId(msg);
         msgId = msg.getLong();
         cacheId = CodecUtil.getStringFromBuffer(msg, msg.remaining() / 2);
-        decodecMsg = new ClearMessage(cacheId);
+        decodecMsg = new ClearMessage(cacheId, clientId);
         decodecMsg.setId(msgId);
         return decodecMsg;
       default:
@@ -168,6 +177,12 @@ class ServerStoreOpCodec {
   private static String readStringFromBufferWithSize(ByteBuffer buffer) {
     int length = buffer.getInt();
     return CodecUtil.getStringFromBuffer(buffer, length);
+  }
+
+  private static UUID getClientId(ByteBuffer payload) {
+    long msb = payload.getLong();
+    long lsb = payload.getLong();
+    return new UUID(msb, lsb);
   }
 
 }

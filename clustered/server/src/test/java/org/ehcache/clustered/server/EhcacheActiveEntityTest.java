@@ -295,7 +295,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testNoAttachementFailsToInvokeServerStoreOperation");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testNoAttachementFailsToInvokeServerStoreOperation", CLIENT_ID);
 
     assertFailure(
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
@@ -340,7 +340,7 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
@@ -439,7 +439,7 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
@@ -538,7 +538,7 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
@@ -633,7 +633,7 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
@@ -728,7 +728,7 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
@@ -813,7 +813,7 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
@@ -897,7 +897,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testAttachedClientButNotStoreFailsInvokingServerStoreOperation");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testAttachedClientButNotStoreFailsInvokingServerStoreOperation", CLIENT_ID);
 
     // attach the client
     assertSuccess(
@@ -946,7 +946,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testWithAttachmentSucceedsInvokingServerStoreOperation");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testWithAttachmentSucceedsInvokingServerStoreOperation", CLIENT_ID);
 
     // attach the client
     assertSuccess(

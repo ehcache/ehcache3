@@ -419,7 +419,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
           + "'; validate operation timed out", e);
     }
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, clientId);
     switch (configuredConsistency) {
       case STRONG:
         return new StrongServerStoreProxy(messageFactory, entity);

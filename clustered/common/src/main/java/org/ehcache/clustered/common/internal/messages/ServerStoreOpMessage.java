@@ -63,13 +63,13 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
   }
 
-  protected UUID clientId = null; //TODO: #1211
+  protected UUID clientId;
   protected long id = NOT_REPLICATED;
 
   @Override
   public UUID getClientId() {
     if (clientId == null) {
-      throw new AssertionError("Client Id cannot be null for lifecycle messages");
+      throw new AssertionError("Client Id is not supported for message type " + this.operation() );
     }
     return this.clientId;
   }
@@ -151,9 +151,10 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
     private final ByteBuffer payload;
 
-    GetAndAppendMessage(String cacheId, long key, ByteBuffer payload) {
+    GetAndAppendMessage(String cacheId, long key, ByteBuffer payload, UUID clientId) {
       super(cacheId, key);
       this.payload = payload;
+      this.clientId = clientId;
     }
 
     @Override
@@ -171,9 +172,10 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
     private final ByteBuffer payload;
 
-    AppendMessage(String cacheId, long key, ByteBuffer payload) {
+    AppendMessage(String cacheId, long key, ByteBuffer payload, UUID clientId) {
       super(cacheId, key);
       this.payload = payload;
+      this.clientId = clientId;
     }
 
     @Override
@@ -192,10 +194,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     private final Chain expect;
     private final Chain update;
 
-    ReplaceAtHeadMessage(String cacheId, long key, Chain expect, Chain update) {
+    ReplaceAtHeadMessage(String cacheId, long key, Chain expect, Chain update, UUID clientId) {
       super(cacheId, key);
       this.expect = expect;
       this.update = update;
+      this.clientId = clientId;
     }
 
     @Override
@@ -233,8 +236,9 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
 
   static class ClearMessage extends ServerStoreOpMessage {
 
-    ClearMessage(final String cacheId) {
+    ClearMessage(String cacheId, UUID clientId) {
       super(cacheId);
+      this.clientId = clientId;
     }
 
     @Override

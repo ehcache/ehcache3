@@ -103,8 +103,8 @@ public class StrongServerStoreProxyTest {
     clientEntity1.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
     clientEntity2.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
-    serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity1);
-    serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity2);
+    serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientId1), clientEntity1);
+    serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientId2), clientEntity2);
   }
 
   @AfterClass
