@@ -87,7 +87,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         newResourcePoolsBuilder()
           .heap(10, EntryUnit.ENTRIES)
           .offheap(1, MemoryUnit.MB)
-          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
         .build())
       .build(true);
 
@@ -147,7 +147,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       newResourcePoolsBuilder()
         .heap(10, EntryUnit.ENTRIES)
         .offheap(1, MemoryUnit.MB)
-        .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
+        .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
       .build());
 
     ContextContainer contextContainer = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);

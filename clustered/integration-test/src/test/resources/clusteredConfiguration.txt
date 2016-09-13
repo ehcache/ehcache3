@@ -14,7 +14,7 @@ caches:
                     size: 1 MB
                     tierHeight: 1000
                 clustered-dedicated:
-                    size: 1 MB (persistent)
+                    size: 2 MB (persistent)
                     tierHeight: 10
 services:
     - org.ehcache.clustered.client.config.ClusteringServiceConfiguration:

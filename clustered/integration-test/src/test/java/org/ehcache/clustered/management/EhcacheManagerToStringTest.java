@@ -114,7 +114,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
             newResourcePoolsBuilder()
                 .heap(10, EntryUnit.ENTRIES)
                 .offheap(1, MemoryUnit.MB)
-                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB)))
+                .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
             .build())
         .build(true);
 
