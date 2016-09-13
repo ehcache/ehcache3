@@ -294,7 +294,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateTransientSerializerWithoutConstructor() throws Exception {
     expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("does not meet the constructor requirement for transient caches");
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());
 
@@ -305,7 +305,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreatePersistentSerializerWithoutConstructor() throws Exception {
     expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("does not meet the constructor requirements for persistent caches");
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());
 
@@ -316,7 +316,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreateTransientStatefulSerializerWithoutConstructor() throws Exception {
     expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("does not meet the constructor requirement for transient caches");
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());
 
@@ -327,7 +327,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreatePersistentStatefulSerializerWithoutConstructor() throws Exception {
     expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("does not meet the constructor requirements for persistent caches");
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());
 
@@ -390,7 +390,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testTransientLegacySerializer() throws Exception {
     expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("does not meet the constructor requirement for transient caches");
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());
 
@@ -404,6 +404,8 @@ public class DefaultSerializationProviderTest {
 
     LegacySerializer.legacyConstructorInvoked = false;
     DefaultSerializerConfiguration configuration = new DefaultSerializerConfiguration(LegacySerializer.class, DefaultSerializerConfiguration.Type.VALUE);
+    expectedException.expect(RuntimeException.class);
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     Serializer<Object> valueSerializer =
       provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
     assertThat(valueSerializer, instanceOf(LegacySerializer.class));
@@ -435,14 +437,14 @@ public class DefaultSerializationProviderTest {
     Serializer<Object> valueSerializer =
       provider.createValueSerializer(Object.class, ClassLoader.getSystemClassLoader(), configuration, getPersistenceSpaceIdentifierMock());
     assertThat(valueSerializer, instanceOf(LegacyComboSerializer.class));
-    assertThat(LegacyComboSerializer.baseConstructorInvoked, is(false));
-    assertThat(LegacyComboSerializer.legacyConstructorInvoked, is(true));
+    assertThat(LegacyComboSerializer.baseConstructorInvoked, is(true));
+    assertThat(LegacyComboSerializer.legacyConstructorInvoked, is(false));
   }
 
   @Test
   public void testCreateTransientStatefulLegacySerializer() throws Exception {
     expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("does not meet the constructor requirement for transient caches");
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());
 
@@ -453,7 +455,7 @@ public class DefaultSerializationProviderTest {
   @Test
   public void testCreatePersistentStatefulLegacySerializer() throws Exception {
     expectedException.expect(RuntimeException.class);
-    expectedException.expectMessage("does not meet the constructor requirements for persistent caches");
+    expectedException.expectMessage("does not have a constructor that takes in a ClassLoader.");
     DefaultSerializationProvider provider = new DefaultSerializationProvider(null);
     provider.start(providerContaining());
 

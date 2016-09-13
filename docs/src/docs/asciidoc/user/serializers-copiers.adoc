@@ -159,7 +159,7 @@ For persistent caches it is highly recommended that all state is stored in these
 * For clustered caches the contents are persisted in the cluster itself so that other clients using the same cache can also access the contents of the map.
 
 NOTE: The constructor with the signature `(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext)`
-      that existed in v3.0 is still supported to respect backward compatibility but the usage is limited to disk based caches.
+      that existed till v3.1 has been removed since v3.2 in favor of `StatefulSerializer`s.
 
 [[copiers]]
 == Copiers
