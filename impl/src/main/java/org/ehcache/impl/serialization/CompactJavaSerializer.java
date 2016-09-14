@@ -71,33 +71,17 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
    */
   public CompactJavaSerializer(ClassLoader loader) {
     this.loader = loader;
-    init(new TransientStateRepository());
   }
 
-  CompactJavaSerializer(ClassLoader loader, Map<Integer, ObjectStreamClass> mappings) {
-    this(loader);
-    for (Entry<Integer, ObjectStreamClass> e : mappings.entrySet()) {
-      Integer encoding = e.getKey();
-      ObjectStreamClass disconnectedOsc = disconnect(e.getValue());
-      readLookup.put(encoding, disconnectedOsc);
-      readLookupLocalCache.put(encoding, disconnectedOsc);
-      if (writeLookup.putIfAbsent(new SerializableDataKey(disconnectedOsc, true), encoding) != null) {
-        throw new AssertionError("Corrupted data " + mappings);
-      }
-      if (nextStreamIndex < encoding + 1) {
-        nextStreamIndex = encoding + 1;
-      }
-    }
+  @SuppressWarnings("unchecked")
+  public static <T> Class<? extends Serializer<T>> asTypedSerializer() {
+    return (Class) CompactJavaSerializer.class;
   }
 
   @Override
   public void init(final StateRepository stateRepository) {
     this.readLookup = stateRepository.getPersistentConcurrentMap("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
     loadMappingsInWriteContext(readLookup.entrySet(), true);
-  }
-
-  Map<Integer, ObjectStreamClass> getSerializationMappings() {
-    return Collections.unmodifiableMap(new HashMap<Integer, ObjectStreamClass>(readLookup));
   }
 
   /**
