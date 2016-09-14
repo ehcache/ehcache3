@@ -18,10 +18,10 @@ package org.ehcache.clustered.client.internal.service;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Serializable;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * ClusteredStateRepository
@@ -39,7 +39,7 @@ class ClusteredStateRepository implements StateRepository {
   }
 
   @Override
-  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
-    return new ConcurrentClusteredMap<K, V>(clusterCacheIdentifier.getId(), composedId + "-" + name, clientEntity);
+  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
+    return new ClusteredStateHolder<K, V>(clusterCacheIdentifier.getId(), composedId + "-" + name, clientEntity);
   }
 }
