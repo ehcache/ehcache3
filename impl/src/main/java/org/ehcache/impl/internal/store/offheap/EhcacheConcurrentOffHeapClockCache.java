@@ -42,7 +42,7 @@ public class EhcacheConcurrentOffHeapClockCache<K, V> extends AbstractConcurrent
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final AtomicLong[] counters;
 
-  protected EhcacheConcurrentOffHeapClockCache(EvictionAdvisor<? super K, ? super V> evictionAdvisor, Factory<? extends PinnableSegment<K, V>> segmentFactory, int ssize) {
+  public EhcacheConcurrentOffHeapClockCache(EvictionAdvisor<? super K, ? super V> evictionAdvisor, Factory<? extends PinnableSegment<K, V>> segmentFactory, int ssize) {
     super(segmentFactory, ssize);
     this.evictionAdvisor = evictionAdvisor;
     this.counters = new AtomicLong[segments.length];
