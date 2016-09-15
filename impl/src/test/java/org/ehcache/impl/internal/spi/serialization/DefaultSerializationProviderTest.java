@@ -16,6 +16,7 @@
 package org.ehcache.impl.internal.spi.serialization;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
@@ -60,6 +61,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -493,8 +495,8 @@ public class DefaultSerializationProviderTest {
   }
 
   private PersistableResourceService.PersistenceSpaceIdentifier getPersistenceSpaceIdentifierMock() {
-    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = mock(LocalPersistenceService.PersistenceSpaceIdentifier.class);
-    when(spaceIdentifier.getServiceType()).thenReturn(LocalPersistenceService.class);
+    PersistableResourceService.PersistenceSpaceIdentifier spaceIdentifier = mock(DiskResourceService.PersistenceSpaceIdentifier.class);
+    when(spaceIdentifier.getServiceType()).thenReturn(DiskResourceService.class);
     return spaceIdentifier;
   }
 
@@ -502,8 +504,9 @@ public class DefaultSerializationProviderTest {
     DefaultSerializationProvider defaultProvider = new DefaultSerializationProvider(null);
 
     ServiceProvider serviceProvider = mock(ServiceProvider.class);
-    LocalPersistenceService persistenceService = mock(LocalPersistenceService.class);
-    when(persistenceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
+    DiskResourceService diskResourceService = mock(DiskResourceService.class);
+    StateRepository stateRepository = mock(StateRepository.class);
+    when(diskResourceService.createPersistenceContextWithin(any(PersistableResourceService.PersistenceSpaceIdentifier.class), anyString()))
           .thenReturn(new FileBasedPersistenceContext() {
             @Override
             public File getDirectory() {
@@ -515,7 +518,7 @@ public class DefaultSerializationProviderTest {
               }
             }
           });
-    when(serviceProvider.getService(LocalPersistenceService.class)).thenReturn(persistenceService);
+    when(serviceProvider.getService(DiskResourceService.class)).thenReturn(diskResourceService);
     defaultProvider.start(serviceProvider);
     return defaultProvider;
   }

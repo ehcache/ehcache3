@@ -23,6 +23,7 @@ import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.expiry.Duration;
@@ -40,7 +41,6 @@ import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -861,7 +861,7 @@ public class XAStore<K, V> implements Store<K, V> {
       };
 
       // get the PersistenceSpaceIdentifier if the cache is persistent, null otherwise
-      LocalPersistenceService.PersistenceSpaceIdentifier persistenceSpaceId = findSingletonAmongst(LocalPersistenceService.PersistenceSpaceIdentifier.class, serviceConfigs);
+      DiskResourceService.PersistenceSpaceIdentifier persistenceSpaceId = findSingletonAmongst(DiskResourceService.PersistenceSpaceIdentifier.class, serviceConfigs);
 
       // find the copiers
       Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs);

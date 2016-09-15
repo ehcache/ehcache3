@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.internal.spi.serialization;
 
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.serialization.ByteArraySerializer;

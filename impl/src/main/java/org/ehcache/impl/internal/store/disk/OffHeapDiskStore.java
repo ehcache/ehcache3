@@ -22,6 +22,7 @@ import org.ehcache.Status;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
@@ -46,7 +47,6 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
@@ -297,13 +297,13 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.meta");
   }
 
-  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class})
+  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, PersistenceSpaceIdentifier>();
     private final String defaultThreadPool;
     private volatile ServiceProvider<Service> serviceProvider;
-    private volatile LocalPersistenceService localPersistenceService;
+    private volatile DiskResourceService diskPersistenceService;
 
     public Provider() {
       this(null);
@@ -341,11 +341,6 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       }
       MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
-      this.localPersistenceService = serviceProvider.getService(LocalPersistenceService.class);
-      if (localPersistenceService == null) {
-        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
-      }
-
       String threadPoolAlias;
       int writerConcurrency;
       OffHeapDiskStoreConfiguration config = findSingletonAmongst(OffHeapDiskStoreConfiguration.class, (Object[]) serviceConfigs);
@@ -357,8 +352,11 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         writerConcurrency = config.getWriterConcurrency();
       }
       PersistenceSpaceIdentifier<?> space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) serviceConfigs);
+      if (space == null) {
+        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
+      }
       try {
-        FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
+        FileBasedPersistenceContext persistenceContext = diskPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
 
         OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext,
                 executionService, threadPoolAlias, writerConcurrency,
@@ -411,7 +409,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (keySerializer instanceof StatefulSerializer) {
         StateRepository stateRepository = null;
         try {
-          stateRepository = localPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
+          stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
         } catch (CachePersistenceException e) {
           throw new RuntimeException(e);
         }
@@ -421,7 +419,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (valueSerializer instanceof StatefulSerializer) {
         StateRepository stateRepository = null;
         try {
-          stateRepository = localPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
+          stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
         } catch (CachePersistenceException e) {
           throw new RuntimeException(e);
         }
@@ -438,12 +436,17 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
+      diskPersistenceService = serviceProvider.getService(DiskResourceService.class);
+      if (diskPersistenceService == null) {
+        throw new IllegalStateException("Unable to find file based persistence service");
+      }
     }
 
     @Override
     public void stop() {
       this.serviceProvider = null;
       createdStores.clear();
+      diskPersistenceService = null;
     }
 
     @Override
