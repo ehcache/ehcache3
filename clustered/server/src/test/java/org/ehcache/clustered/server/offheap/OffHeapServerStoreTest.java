@@ -103,7 +103,6 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
     });
     when(store.handleOversizeMappingException(anyLong())).thenReturn(true);
 
-
     ByteBuffer payload = createPayload(1L);
 
     store.append(1L, payload);
