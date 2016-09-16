@@ -46,7 +46,8 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.terracotta.context.query.Matchers.attributes;
@@ -58,6 +59,7 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
  * OffHeapStoreProviderTest
  */
 public class OffHeapDiskStoreProviderTest {
+
   @Test
    public void testStatisticsAssociations() throws Exception {
      OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
@@ -73,7 +75,7 @@ public class OffHeapDiskStoreProviderTest {
              hasAttribute("tags", new Matcher<Set<String>>() {
                @Override
                protected boolean matchesSafely(Set<String> object) {
-                 return object.containsAll(singleton("store"));
+                 return object.containsAll(singleton("Disk"));
                }
              })))))
          .build();
@@ -81,12 +83,12 @@ public class OffHeapDiskStoreProviderTest {
      Set<TreeNode> nodes = singleton(ContextManager.nodeFor(store));
 
      Set<TreeNode> storeResult = storeQuery.execute(nodes);
-     assertThat(storeResult.isEmpty(), is(false));
+     assertThat(storeResult, not(empty()));
 
      provider.releaseStore(store);
 
      storeResult = storeQuery.execute(nodes);
-     assertThat(storeResult.isEmpty(), is(true));
+     assertThat(storeResult, empty());
    }
 
    private Store.Configuration<Long, String> getStoreConfig() {

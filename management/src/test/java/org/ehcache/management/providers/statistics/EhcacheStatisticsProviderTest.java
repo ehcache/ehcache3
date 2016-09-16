@@ -64,7 +64,7 @@ public class EhcacheStatisticsProviderTest {
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, executor) {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
-        EhcacheStatistics mock = mock(EhcacheStatistics.class);
+        StandardEhcacheStatistics mock = mock(StandardEhcacheStatistics.class);
         Set<Descriptor> descriptors = new HashSet<Descriptor>();
         descriptors.add(new StatisticDescriptor("aCounter", StatisticType.COUNTER));
         descriptors.add(new StatisticDescriptor("aDuration", StatisticType.DURATION));
@@ -90,7 +90,7 @@ public class EhcacheStatisticsProviderTest {
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, executor) {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
-        return mock(EhcacheStatistics.class);
+        return mock(StandardEhcacheStatistics.class);
       }
     };
 
