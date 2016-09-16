@@ -177,6 +177,23 @@ class OffHeapChainMap<K> implements MapInternals {
     }
   }
 
+  public void put(K key, Chain chain) {
+    final Lock lock = heads.writeLock();
+    lock.lock();
+    try {
+      InternalChain current = heads.get(key);
+      if (current != null) {
+        replaceAtHead(key, current.detach(), chain);
+      } else {
+        for (Element x : chain) {
+          append(key, x.getPayload());
+        }
+      }
+    } finally {
+      lock.unlock();
+    }
+  }
+
   public void clear() {
     heads.writeLock().lock();
     try {
