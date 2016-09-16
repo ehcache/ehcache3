@@ -59,6 +59,7 @@ import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.context.ContextManager;
 import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
@@ -409,7 +410,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       throws StoreAccessException {
     Map<K, ValueHolder<V>> valueHolderMap = new HashMap<K, ValueHolder<V>>();
     if(remappingFunction instanceof Ehcache.PutAllFunction) {
-      Ehcache.PutAllFunction<K, V> putAllFunction = (Ehcache.PutAllFunction)remappingFunction;
+      Ehcache.PutAllFunction<K, V> putAllFunction = (Ehcache.PutAllFunction<K, V>)remappingFunction;
       Map<K, V> entriesToRemap = putAllFunction.getEntriesToRemap();
       for(Map.Entry<K, V> entry: entriesToRemap.entrySet()) {
         PutStatus putStatus = silentPut(entry.getKey(), entry.getValue());
@@ -419,7 +420,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         }
       }
     } else if(remappingFunction instanceof Ehcache.RemoveAllFunction) {
-      Ehcache.RemoveAllFunction<K, V> removeAllFunction = (Ehcache.RemoveAllFunction)remappingFunction;
+      Ehcache.RemoveAllFunction<K, V> removeAllFunction = (Ehcache.RemoveAllFunction<K, V>)remappingFunction;
       for (K key : keys) {
         boolean removed = silentRemove(key);
         if(removed) {

@@ -81,6 +81,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static java.lang.Math.max;
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
@@ -124,7 +125,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      this.evictionAdvisor = wrap(Eviction.noAdvice());
+      this.evictionAdvisor = wrap(noAdvice());
     }
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
@@ -225,10 +226,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
             64,
             evictionAdvisor,
             mapEvictionListener, false);
-            EhcachePersistentConcurrentOffHeapClockCache m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, evictionAdvisor, factory);
-
-
-
+        EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, evictionAdvisor, factory);
 
         m.bootstrap(input);
         return m;
@@ -374,7 +372,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       try {
-        close((OffHeapDiskStore)resource);
+        close((OffHeapDiskStore<?, ?>)resource);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -403,7 +401,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       if (identifier == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      OffHeapDiskStore diskStore = (OffHeapDiskStore) resource;
+      OffHeapDiskStore<?, ?> diskStore = (OffHeapDiskStore) resource;
 
       Serializer keySerializer = diskStore.keySerializer;
       if (keySerializer instanceof StatefulSerializer) {
@@ -469,6 +467,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
    * This is kind of a hack, but it's safe to use this if the regular portability
    * is stateless.
    */
+  @SuppressWarnings("unchecked")
   public static <T> PersistentPortability<T> persistent(final Portability<T> normal) {
     final Class<?> normalKlazz = normal.getClass();
     Class<?>[] delegateInterfaces = normalKlazz.getInterfaces();

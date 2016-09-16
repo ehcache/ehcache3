@@ -49,6 +49,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
 
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -95,7 +96,7 @@ public class OnHeapStoreEvictionTest {
   public void testFaultsDoNotGetToEvictionAdvisor() throws StoreAccessException {
     final Semaphore semaphore = new Semaphore(0);
 
-    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, Eviction.noAdvice());
+    final OnHeapStoreForTests<String, String> store = newStore(SystemTimeSource.INSTANCE, noAdvice());
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try {
@@ -129,7 +130,7 @@ public class OnHeapStoreEvictionTest {
   public void testEvictionCandidateLimits() throws Exception {
     TestTimeSource timeSource = new TestTimeSource();
     StoreConfigurationImpl<String, String> configuration = new StoreConfigurationImpl<String, String>(
-        String.class, String.class, Eviction.<String, String>noAdvice(),
+        String.class, String.class, noAdvice(),
         getClass().getClassLoader(), Expirations.noExpiration(), heap(1).build(), 1, null, null);
     TestStoreEventDispatcher<String, String> eventDispatcher = new TestStoreEventDispatcher<String, String>();
     final String firstKey = "daFirst";

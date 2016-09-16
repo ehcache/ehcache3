@@ -74,7 +74,7 @@ public class SimpleOsgiTest {
   public void testEhcache3WithSerializationAndClientClass() {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("myCache", newCacheConfigurationBuilder(Long.class, Person.class, heap(10))
-            .add(new DefaultCopierConfiguration<Person>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
+            .add(new DefaultCopierConfiguration<Person>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
             .withClassLoader(getClass().getClassLoader())
             .build())
         .build(true);

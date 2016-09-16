@@ -59,7 +59,7 @@ public class DefaultCopyProviderTest {
   public void testCreateKeyCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.KEY);
+        SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.KEY);
 
     assertThat(copyProvider.createKeyCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
   }
@@ -85,7 +85,7 @@ public class DefaultCopyProviderTest {
   public void testCreateValueCopierWithSerializer() {
     DefaultCopyProvider copyProvider = new DefaultCopyProvider(null);
     DefaultCopierConfiguration<Long> config = new DefaultCopierConfiguration<Long>(
-        (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
+        SerializingCopier.<Long>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
 
     assertThat(copyProvider.createValueCopier(Long.class, mock(Serializer.class), config), instanceOf(SerializingCopier.class));
   }

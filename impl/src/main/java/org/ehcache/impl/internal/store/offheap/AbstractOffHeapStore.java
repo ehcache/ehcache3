@@ -63,9 +63,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private static final Logger LOG = LoggerFactory.getLogger(AbstractOffHeapStore.class);
 
-  private static final CachingTier.InvalidationListener NULL_INVALIDATION_LISTENER = new CachingTier.InvalidationListener() {
+  private static final CachingTier.InvalidationListener<?, ?> NULL_INVALIDATION_LISTENER = new CachingTier.InvalidationListener<Object, Object>() {
     @Override
-    public void onInvalidation(Object key, ValueHolder valueHolder) {
+    public void onInvalidation(Object key, ValueHolder<Object> valueHolder) {
       // Do nothing
     }
   };
@@ -103,7 +103,8 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
 
   private volatile InvalidationValve valve;
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
-  private volatile CachingTier.InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
+  @SuppressWarnings("unchecked")
+  private volatile CachingTier.InvalidationListener<K, V> invalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
   public AbstractOffHeapStore(String statisticsTag, Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher) {
     keyType = config.getKeyType();
@@ -1281,7 +1282,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     private BackingMapEvictionListener(StoreEventDispatcher<K, V> eventDispatcher, OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver) {
       this.eventDispatcher = eventDispatcher;
       this.evictionObserver = evictionObserver;
-      this.invalidationListener = NULL_INVALIDATION_LISTENER;
+      @SuppressWarnings("unchecked")
+      CachingTier.InvalidationListener<K, V> nullInvalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
+      this.invalidationListener = nullInvalidationListener;
     }
 
     public void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {

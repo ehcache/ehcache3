@@ -63,8 +63,8 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   private ClassLoader classLoader = null;
   private EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private ResourcePools resourcePools;
-  private Class<? super K> keyType;
-  private Class<? super V> valueType;
+  private Class<K> keyType;
+  private Class<V> valueType;
 
   /**
    * Creates a new instance ready to produce a {@link CacheConfiguration} with key type {@code <K>} and with value type
@@ -102,7 +102,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
     this.resourcePools = resourcePools;
   }
 
-  private CacheConfigurationBuilder(CacheConfigurationBuilder<? super K, ? super V> other) {
+  private CacheConfigurationBuilder(CacheConfigurationBuilder<K, V> other) {
     this.keyType = other.keyType;
     this.valueType = other.valueType;
     this.expiry = other.expiry;
@@ -342,7 +342,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   public CacheConfigurationBuilder<K, V> withKeySerializingCopier() {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.KEY, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     return otherBuilder;
   }
 
@@ -356,7 +356,7 @@ public class CacheConfigurationBuilder<K, V> implements Builder<CacheConfigurati
   public CacheConfigurationBuilder<K, V> withValueSerializingCopier() {
     CacheConfigurationBuilder<K, V> otherBuilder = new CacheConfigurationBuilder<K, V>(this);
     removeExistingCopierConfigFor(DefaultCopierConfiguration.Type.VALUE, otherBuilder);
-    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+    otherBuilder.serviceConfigurations.add(new DefaultCopierConfiguration<V>(SerializingCopier.<V>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     return otherBuilder;
   }
 
