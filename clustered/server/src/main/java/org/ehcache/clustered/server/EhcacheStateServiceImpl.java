@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
+import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -81,6 +82,8 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
    * The index is the cache alias/identifier.
    */
   private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
+
+  private final ClientMessageTracker messageTracker = new ClientMessageTracker();
 
   private final StateRepositoryManager stateRepositoryManager;
 
@@ -356,6 +359,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   @Override
   public StateRepositoryManager getStateRepositoryManager() throws ClusterException {
     return this.stateRepositoryManager;
+  }
+
+  @Override
+  public ClientMessageTracker getClientMessageTracker() {
+    return this.messageTracker;
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {

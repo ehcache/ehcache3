@@ -208,7 +208,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
     initClusterConnection();
     createEntityFactory();
-
     if (!entityFactory.acquireLeadership(entityIdentifier)) {
       entityFactory = null;
       closeConnection();
@@ -403,7 +402,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
           + "'; validate operation timed out", e);
     }
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
     switch (configuredConsistency) {
       case STRONG:
         return new StrongServerStoreProxy(messageFactory, entity);

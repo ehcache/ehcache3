@@ -29,6 +29,27 @@ dependencies {
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
 }
 
+compileJava {
+  options.fork = true;
+  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+}
+
+compileTestJava {
+  options.fork = true;
+  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+}
+
+javadoc {
+  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javadoc')
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+checkstyle {
+  toolVersion = '5.9'
+}
+
 sourceSets {
     main { 
       compileClasspath += configurations.provided
@@ -37,4 +58,9 @@ sourceSets {
       compileClasspath += configurations.provided
       runtimeClasspath += configurations.provided
     }
+}
+
+test {
+  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
+  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
 }

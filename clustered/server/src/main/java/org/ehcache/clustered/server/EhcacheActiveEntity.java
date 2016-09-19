@@ -33,6 +33,7 @@ import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
@@ -43,6 +44,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectData;
 import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
@@ -93,6 +95,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final ConcurrentHashMap<String, Set<ClientDescriptor>> storeClientMap =
       new ConcurrentHashMap<String, Set<ClientDescriptor>>();
 
+  private final ConcurrentHashMap<ClientDescriptor, UUID> clientIdMap = new ConcurrentHashMap<>();
+  private final Set<UUID> invalidIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
   private final EhcacheEntityResponseFactory responseFactory;
@@ -222,6 +226,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         detachStore(clientDescriptor, storeId);
       }
     }
+    UUID clientId = clientIdMap.remove(clientDescriptor);
+    if (clientId != null) {
+      invalidIds.remove(clientId);
+      ehcacheStateService.getClientMessageTracker().remove(clientId);
+    }
   }
 
   @Override
@@ -257,7 +266,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       throw new AssertionError("Client "+ clientDescriptor +" trying to reconnect is not connected to entity");
     }
     clientState.attach();
-    Set<String> cacheIds = reconnectDataCodec.decode(extendedReconnectData);
+    ReconnectData reconnectData = reconnectDataCodec.decode(extendedReconnectData);
+    addClientId(clientDescriptor, reconnectData.getClientId());
+    Set<String> cacheIds = reconnectData.getAllCaches();
     for (final String cacheId : cacheIds) {
       ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
       if (serverStore == null) {
@@ -535,7 +546,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   private void configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
-    ehcacheStateService.configure(message);
+    if (ehcacheStateService.getClientMessageTracker().isConfigureApplicable(message.getClientId(), message.getId())) {
+      ehcacheStateService.configure(message);
+    }
     this.clientStateMap.get(clientDescriptor).attach();
   }
 
@@ -549,8 +562,17 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
+    if (invalidIds.contains(message.getClientId())) {
+      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active");
+    }
+    addClientId(clientDescriptor, message.getClientId());
     ehcacheStateService.validate(message);
     this.clientStateMap.get(clientDescriptor).attach();
+  }
+
+  private void addClientId(ClientDescriptor clientDescriptor, UUID clientId) {
+    clientIdMap.put(clientDescriptor, clientId);
+    invalidIds.add(clientId);
   }
 
   /**
@@ -576,14 +598,20 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
       throw new LifecycleException("Clustered tier can't be created with an Unknown resource pool");
     }
-
+    boolean isDuplicate = isLifeCycleMessageDuplicate(createServerStore);
     final String name = createServerStore.getName();    // client cache identifier/name
+    ServerStoreImpl serverStore;
+    if (!isDuplicate) {
 
-    LOGGER.info("Client {} creating new clustered tier '{}'", clientDescriptor, name);
+      LOGGER.info("Client {} creating new clustered tier '{}'", clientDescriptor, name);
 
-    ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
+      ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
 
-    ServerStoreImpl serverStore = ehcacheStateService.createStore(name, storeConfiguration);
+      serverStore = ehcacheStateService.createStore(name, storeConfiguration);
+    } else {
+      serverStore = ehcacheStateService.getStore(name);
+    }
+
     serverStore.setEvictionListener(new ServerStoreEvictionListener() {
       @Override
       public void onEviction(long key) {
@@ -666,9 +694,18 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       throw new ResourceBusyException("Cannot destroy clustered tier '" + name + "': in use by " + clients.size() + " other client(s)");
     }
 
-    LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
-    ehcacheStateService.destroyServerStore(name);
+    boolean isDuplicate = isLifeCycleMessageDuplicate(destroyServerStore);
+
+    if (!isDuplicate) {
+      LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
+      ehcacheStateService.destroyServerStore(name);
+    }
+
     storeClientMap.remove(name);
+  }
+
+  private boolean isLifeCycleMessageDuplicate(LifecycleMessage message) {
+    return ehcacheStateService.getClientMessageTracker().isDuplicate(message.getId(), message.getClientId());
   }
 
   /**

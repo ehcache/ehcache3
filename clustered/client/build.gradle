@@ -31,3 +31,13 @@ dependencies {
   testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
   testCompile "org.terracotta:passthrough-server:$parent.terracottaPassthroughTestingVersion"
 }
+
+compileTestJava {
+  options.fork = true;
+  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+}
+
+test {
+  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
+  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
+}

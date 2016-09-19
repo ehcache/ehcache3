@@ -25,6 +25,7 @@ import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 
@@ -34,7 +35,7 @@ public class ConcurrentClusteredMap<K, V> implements ConcurrentMap<K, V> {
   private final EhcacheClientEntity entity;
 
   public ConcurrentClusteredMap(final String cacheId, final String mapId, final EhcacheClientEntity entity) {
-    this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId);
+    this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId, entity.getClientId());
     this.entity = entity;
   }
 
