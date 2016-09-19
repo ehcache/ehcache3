@@ -24,6 +24,8 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
+import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
+import org.ehcache.management.providers.statistics.StatsUtil;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.management.registry.DefaultSharedManagementService;
@@ -38,13 +40,11 @@ import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.history.CounterHistory;
 import org.terracotta.management.registry.ResultSet;
+import org.terracotta.management.registry.StatisticQuery;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
-import org.ehcache.config.units.EntryUnit;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.providers.statistics.StatsUtil;
 
 public class ManagementTest {
 
@@ -78,26 +78,31 @@ public class ManagementTest {
       aCache.get(0L);
       aCache.get(0L);
 
-      Thread.sleep(1000);
-
       Context context = StatsUtil.createContext(managementRegistry); // <5>
 
-      ResultSet<ContextualStatistics> counters = managementRegistry.withCapability("StatisticsCapability") // <6>
+      StatisticQuery query = managementRegistry.withCapability("StatisticsCapability") // <6>
           .queryStatistic("Cache:HitCount")
           .on(context)
-          .build()
-          .execute();
+          .build();
 
-      ContextualStatistics statisticsContext = counters.getResult(context);
+      long onHeapHitCount;
+      // it could be several seconds before the sampled stats could become available
+      // let's try until we find the correct value : 4
+      do {
+        ResultSet<ContextualStatistics> counters = query.execute();
 
-      Assert.assertThat(counters.size(), Matchers.is(1));
+        ContextualStatistics statisticsContext = counters.getResult(context);
 
-      CounterHistory onHeapStore_Hit_Count = statisticsContext.getStatistic(CounterHistory.class, "Cache:HitCount");
-      while(!StatsUtil.isHistoryReady(onHeapStore_Hit_Count, 0L)) {}
-      int mostRecentIndex = onHeapStore_Hit_Count.getValue().length - 1;
-      long onHeapHitCount = onHeapStore_Hit_Count.getValue()[mostRecentIndex].getValue();
+        Assert.assertThat(counters.size(), Matchers.is(1));
 
-      Assert.assertThat(onHeapHitCount, Matchers.equalTo(4L)); // <7>
+        CounterHistory onHeapStore_Hit_Count = statisticsContext.getStatistic(CounterHistory.class, "Cache:HitCount");
+
+        // hit count is a sampled stat, for example its values could be [0,0,3,4].
+        // In the present case, only the last value is important to us , the cache was eventually hit 4 times
+        int mostRecentIndex = onHeapStore_Hit_Count.getValue().length - 1;
+        onHeapHitCount = onHeapStore_Hit_Count.getValue()[mostRecentIndex].getValue();
+
+      } while (onHeapHitCount != 4L);
     }
     finally {
       if(cacheManager != null) cacheManager.close();
@@ -221,22 +226,27 @@ public class ManagementTest {
       cache.get(1L);//cache miss
       cache.get(2L);//cache miss
 
-       Thread.sleep(1000);
+      StatisticQuery query = sharedManagementService.withCapability("StatisticsCapability")
+        .queryStatistic("Cache:MissCount")
+        .on(context1)
+        .on(context2)
+        .build();
 
-      ResultSet<ContextualStatistics> counters = sharedManagementService.withCapability("StatisticsCapability")
-          .queryStatistic("Cache:MissCount")
-          .on(context1)
-          .on(context2)
-          .build()
-          .execute();
+      long val;
+      // it could be several seconds before the sampled stats could become available
+      // let's try until we find the correct value : 2
+      do {
+        ResultSet<ContextualStatistics> counters = query.execute();
 
-      ContextualStatistics statisticsContext1 = counters.getResult(context1);
+        ContextualStatistics statisticsContext1 = counters.getResult(context1);
 
-      CounterHistory counterContext1 = statisticsContext1.getStatistic(CounterHistory.class, "Cache:MissCount");;
+        CounterHistory counterContext1 = statisticsContext1.getStatistic(CounterHistory.class, "Cache:MissCount");
 
-      while(!StatsUtil.isHistoryReady(counterContext1, 0L)) {}
-      int mostRecentSampleIndex = counterContext1.getValue().length - 1;
-      Assert.assertEquals(2L, counterContext1.getValue()[mostRecentSampleIndex].getValue().longValue());
+        // miss count is a sampled stat, for example its values could be [0,1,2].
+        // In the present case, only the last value is important to us , the cache was eventually missed 2 times
+        int mostRecentSampleIndex = counterContext1.getValue().length - 1;
+        val = counterContext1.getValue()[mostRecentSampleIndex].getValue();
+      } while(val != 2);
     }
     finally {
       if(cacheManager2 != null) cacheManager2.close();
