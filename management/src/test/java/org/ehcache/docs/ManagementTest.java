@@ -86,6 +86,8 @@ public class ManagementTest {
           .build();
 
       long onHeapHitCount;
+      // it could be several seconds before the sampled stats could become available
+      // let's try until we find the correct value : 4
       do {
         ResultSet<ContextualStatistics> counters = query.execute();
 
@@ -95,6 +97,8 @@ public class ManagementTest {
 
         CounterHistory onHeapStore_Hit_Count = statisticsContext.getStatistic(CounterHistory.class, "Cache:HitCount");
 
+        // hit count is a sampled stat, for example its values could be [0,0,3,4].
+        // In the present case, only the last value is important to us , the cache was eventually hit 4 times
         int mostRecentIndex = onHeapStore_Hit_Count.getValue().length - 1;
         onHeapHitCount = onHeapStore_Hit_Count.getValue()[mostRecentIndex].getValue();
 
@@ -229,6 +233,8 @@ public class ManagementTest {
         .build();
 
       long val;
+      // it could be several seconds before the sampled stats could become available
+      // let's try until we find the correct value : 2
       do {
         ResultSet<ContextualStatistics> counters = query.execute();
 
@@ -236,6 +242,8 @@ public class ManagementTest {
 
         CounterHistory counterContext1 = statisticsContext1.getStatistic(CounterHistory.class, "Cache:MissCount");
 
+        // miss count is a sampled stat, for example its values could be [0,1,2].
+        // In the present case, only the last value is important to us , the cache was eventually missed 2 times
         int mostRecentSampleIndex = counterContext1.getValue().length - 1;
         val = counterContext1.getValue()[mostRecentSampleIndex].getValue();
       } while(val != 2);
