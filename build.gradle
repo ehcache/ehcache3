@@ -19,7 +19,7 @@ ext {
   baseVersion = '3.2.0-SNAPSHOT'
 
   // Third parties
-  offheapVersion = '2.2.2'
+  offheapVersion = '2.3.0'
   statisticVersion = '1.2.0'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
