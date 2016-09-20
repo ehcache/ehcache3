@@ -41,6 +41,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
@@ -2789,6 +2790,8 @@ public class EhcacheActiveEntityTest {
           this.storeManagerService = new EhcacheStateServiceImpl(this, getIdentifiers(pools.keySet()));
         }
         return (T) (this.storeManagerService);
+      } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
+        return (T) mock(IEntityMessenger.class);
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

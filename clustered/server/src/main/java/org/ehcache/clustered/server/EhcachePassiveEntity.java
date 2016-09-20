@@ -29,6 +29,9 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
+import org.ehcache.clustered.common.internal.messages.RetirementMessage;
+import org.ehcache.clustered.common.internal.messages.RetirementMessage.ServerStoreRetirementMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
@@ -72,6 +75,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         case STATE_REPO_OP:
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
           break;
+        case RETIREMENT_OP:
+          invokeRetirementMessages((RetirementMessage)message);
+          break;
         default:
           throw new IllegalMessageException("Unknown message : " + message);
       }
@@ -95,6 +101,27 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
+  private void invokeRetirementMessages(RetirementMessage message) throws ClusterException {
+
+    switch (message.operation()) {
+      case SERVERSTORE_RETIRE:
+        ServerStoreRetirementMessage retirementMessage = (ServerStoreRetirementMessage)message;
+        ServerStoreImpl cacheStore = ehcacheStateService.getStore(retirementMessage.getCacheId());
+        if (cacheStore == null) {
+          // An operation on a non-existent store should never get out of the client
+          throw new LifecycleException("Clustered tier does not exist : '" + retirementMessage.getCacheId() + "'");
+        }
+        cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
+        ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
+        break;
+      case RETIRE:
+        ehcacheStateService.getClientMessageTracker().add(message.getClientId());
+        break;
+      default:
+        throw new IllegalMessageException("Unknown Retirement Message : " + message);
+    }
+  }
+
   private void invokeServerStoreOperation(ServerStoreOpMessage message) throws ClusterException {
     ServerStoreImpl cacheStore = ehcacheStateService.getStore(message.getCacheId());
     if (cacheStore == null) {
@@ -103,15 +130,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
 
     switch (message.operation()) {
-      //TODO: check if append and getandappend can be combined
-      case APPEND: {
-        ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
-        cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
-        break;
-      }
+      case APPEND:
       case GET_AND_APPEND: {
-        ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
-        cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
+        ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
         break;
       }
       case REPLACE: {
@@ -133,6 +154,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       case CONFIGURE:
         configure((ConfigureStoreManager) message);
         break;
+      case VALIDATE:
+        trackAndApplyMessage(message);
+        break;
       case CREATE_SERVER_STORE:
         createServerStore((CreateServerStore) message);
         break;
@@ -152,7 +176,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   private void trackAndApplyMessage(LifecycleMessage message) {
     ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker();
     if (!clientMessageTracker.isAdded(message.getClientId())) {
-      clientMessageTracker.add(message.getClientId());
+      throw new IllegalStateException("Untracked client id " + message.getClientId());
     }
     clientMessageTracker.track(message.getId(), message.getClientId());
     clientMessageTracker.applied(message.getId(), message.getClientId());
