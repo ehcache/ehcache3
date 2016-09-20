@@ -47,8 +47,12 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFacto
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectData;
 import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
+import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage;
+import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage.ChainReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.KeyBasedServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.messages.EntityStateSyncMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
@@ -57,8 +61,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.terracotta.entity.ActiveServerEntity;
+import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
@@ -106,6 +112,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final AtomicInteger invalidationIdGenerator = new AtomicInteger();
   private final ClientCommunicator clientCommunicator;
   private final EhcacheStateService ehcacheStateService;
+  private final IEntityMessenger entityMessenger;
 
   static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
@@ -157,6 +164,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
+    }
+    entityMessenger = services.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
+    if (entityMessenger == null) {
+      throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
   }
 
@@ -250,6 +261,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           return invokeServerStoreOperation(clientDescriptor, (ServerStoreOpMessage) message);
         case STATE_REPO_OP:
           return invokeStateRepositoryOperation(clientDescriptor, (StateRepositoryOpMessage) message);
+        case REPLICATION_OP:
+          return responseFactory.success();
         default:
           throw new IllegalMessageException("Unknown message : " + message);
       }
@@ -385,13 +398,16 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
       case APPEND: {
         ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
-        cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
+        cacheStore.getAndAppend(appendMessage.getKey(), appendMessage.getPayload());
+        sendMessageToSelfAndDeferRetirement(appendMessage, cacheStore.get(appendMessage.getKey()));
         invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
         return responseFactory.success();
       }
       case GET_AND_APPEND: {
         ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
-        EhcacheEntityResponse response = responseFactory.response(cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload()));
+        Chain result = cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
+        sendMessageToSelfAndDeferRetirement(getAndAppendMessage, cacheStore.get(getAndAppendMessage.getKey()));
+        EhcacheEntityResponse response = responseFactory.response(result);
         invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
         return response;
       }
@@ -416,6 +432,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
       default:
         throw new IllegalMessageException("Unknown ServerStore operation : " + message);
+    }
+  }
+
+  private void sendMessageToSelfAndDeferRetirement(KeyBasedServerStoreOpMessage message, Chain result) {
+    try {
+      entityMessenger.messageSelfAndDeferRetirement(message, new ChainReplicationMessage(message.getCacheId(), message.getKey(), result, message.getId(), message.getClientId()));
+    } catch (MessageCodecException e) {
+      LOGGER.error("Codec Exception", e);
     }
   }
 
@@ -576,7 +600,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
     if (trackedClients.contains(message.getClientId())) {
-      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active");
+      throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active paired with Client : " + clientDescriptor);
+    } else if (clientIdMap.get(clientDescriptor) != null) {
+      throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client Id : " + clientIdMap.get(clientDescriptor));
+    }
+    try {
+      entityMessenger.messageSelfAndDeferRetirement(message, new ClientIDTrackerMessage(message.getId(), message.getClientId()));
+    } catch (MessageCodecException e) {
+      LOGGER.error("Codec Exception", e);
     }
     addClientId(clientDescriptor, message.getClientId());
     ehcacheStateService.validate(message.getConfiguration());
@@ -584,6 +615,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private void addClientId(ClientDescriptor clientDescriptor, UUID clientId) {
+    LOGGER.info("Adding Client {} with client ID : {} ", clientDescriptor, clientId);
     clientIdMap.put(clientDescriptor, clientId);
     trackedClients.add(clientId);
   }
