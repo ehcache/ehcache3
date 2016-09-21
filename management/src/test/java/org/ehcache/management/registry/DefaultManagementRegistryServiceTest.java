@@ -58,7 +58,6 @@ import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.junit.Rule;
 import org.junit.rules.TemporaryFolder;
-import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.registry.StatisticQuery.Builder;
 
 public class DefaultManagementRegistryServiceTest {

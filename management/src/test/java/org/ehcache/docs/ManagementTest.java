@@ -31,7 +31,9 @@ import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.management.registry.DefaultSharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.context.CapabilityContext;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
@@ -50,7 +52,10 @@ public class ManagementTest {
 
   private final EhcacheStatisticsProviderConfiguration EHCACHE_STATS_CONFIG = new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES);
 
-  @Test (timeout=5000)
+
+  @Rule
+  public final Timeout globalTimeout = Timeout.seconds(10);
+
   public void usingManagementRegistry() throws Exception {
     // tag::usingManagementRegistry[]
 
@@ -85,7 +90,7 @@ public class ManagementTest {
           .on(context)
           .build();
 
-      long onHeapHitCount;
+      long onHeapHitCount = 0;
       // it could be several seconds before the sampled stats could become available
       // let's try until we find the correct value : 4
       do {
@@ -99,8 +104,10 @@ public class ManagementTest {
 
         // hit count is a sampled stat, for example its values could be [0,0,3,4].
         // In the present case, only the last value is important to us , the cache was eventually hit 4 times
-        int mostRecentIndex = onHeapStore_Hit_Count.getValue().length - 1;
-        onHeapHitCount = onHeapStore_Hit_Count.getValue()[mostRecentIndex].getValue();
+        if (onHeapStore_Hit_Count.getValue().length > 0) {
+          int mostRecentIndex = onHeapStore_Hit_Count.getValue().length - 1;
+          onHeapHitCount = onHeapStore_Hit_Count.getValue()[mostRecentIndex].getValue();
+        }
 
       } while (onHeapHitCount != 4L);
     }
@@ -192,7 +199,6 @@ public class ManagementTest {
   }
 
   //TODO update managingMultipleCacheManagers() documentation/asciidoc
-  @Test (timeout = 5000)
   public void managingMultipleCacheManagers() throws Exception {
     // tag::managingMultipleCacheManagers[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
@@ -232,7 +238,7 @@ public class ManagementTest {
         .on(context2)
         .build();
 
-      long val;
+      long val = 0;
       // it could be several seconds before the sampled stats could become available
       // let's try until we find the correct value : 2
       do {
@@ -244,8 +250,10 @@ public class ManagementTest {
 
         // miss count is a sampled stat, for example its values could be [0,1,2].
         // In the present case, only the last value is important to us , the cache was eventually missed 2 times
-        int mostRecentSampleIndex = counterContext1.getValue().length - 1;
-        val = counterContext1.getValue()[mostRecentSampleIndex].getValue();
+        if (counterContext1.getValue().length > 0) {
+          int mostRecentSampleIndex = counterContext1.getValue().length - 1;
+          val = counterContext1.getValue()[mostRecentSampleIndex].getValue();
+        }
       } while(val != 2);
     }
     finally {

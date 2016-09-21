@@ -757,7 +757,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
         put(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.FAILURE, set(StoreOperationOutcomes.EvictionOutcome.FAILURE));
       }}, "eviction", TIER_HEIGHT, "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(authoritativeTier);
-      tieredOps.add(get);
+      tieredOps.add(evict);
 
       tierOperationStatistics.put(authoritativeTier, tieredOps);
       return authoritativeTier;
