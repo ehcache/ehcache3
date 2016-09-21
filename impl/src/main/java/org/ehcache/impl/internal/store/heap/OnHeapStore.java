@@ -1775,7 +1775,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         put(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.FAILURE, set(StoreOperationOutcomes.EvictionOutcome.FAILURE));
       }}, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(cachingTier);
-      tieredOps.add(get);
+      tieredOps.add(evict);
 
       this.tierOperationStatistics.put(cachingTier, tieredOps);
       return cachingTier;

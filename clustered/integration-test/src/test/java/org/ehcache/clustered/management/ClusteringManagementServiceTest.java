@@ -190,25 +190,37 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     cache1.get("key1");
     cache1.get("key2");
 
-    // get the stats (we are getting the primitive counter, not the sample history)
-    ContextualStatistics[] stats = waitForNextStats();
-    Sample<Long>[] samples = stats[0].getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
 
-    assertThat(stats.length, equalTo(1));
-    assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
-    assertThat(samples[0].getValue(), equalTo(2L));
+    long val = 0;
+
+    // it could be several seconds before the sampled stats could become available
+    // let's try until we find the correct value : 2
+    do {
+
+      // get the stats (we are getting the primitive counter, not the sample history)
+      ContextualStatistics[] stats = waitForNextStats();
+      Sample<Long>[] samples = stats[0].getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+
+      if(stats.length == 1 && stats[0].getContext().get("cacheName").equals("cache-1") && samples.length > 0) {
+        val = samples[samples.length - 1].getValue();
+      }
+    } while(val != 2);
 
     // do some other operations
     cache1.get("key1");
     cache1.get("key2");
 
-    stats = waitForNextStats();
-    samples = stats[0].getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+    do {
 
-    assertThat(stats.length, equalTo(1));
-    assertThat(stats[0].getContext().get("cacheName"), equalTo("cache-1"));
-    assertThat(samples.length, greaterThanOrEqualTo(1));
-    assertThat(samples[samples.length - 1].getValue(), equalTo(4L));
+      ContextualStatistics[] stats = waitForNextStats();
+      Sample<Long>[] samples = stats[0].getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+
+      if(stats.length == 1 && stats[0].getContext().get("cacheName").equals("cache-1") && samples.length > 0) {
+        val = samples[samples.length - 1].getValue();
+      }
+
+    } while(val != 4);
+
 
   }
 
