@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered.management;
 
-
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.Status;
@@ -29,6 +28,7 @@ import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -43,7 +43,9 @@ import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.history.CounterHistory;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -52,11 +54,21 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.Assert.assertThat;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
+import org.terracotta.management.model.stats.StatisticType;
 
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
+
+  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> DISK_DESCRIPTORS =  new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> CLUSTERED_DESCRIPTORS =  new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<Descriptor>();
 
   private static AtomicInteger N = new AtomicInteger();
 
@@ -129,7 +141,17 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(capabilities[3].getName(), equalTo("SettingsCapability"));
     assertThat(capabilities[4].getName(), equalTo("ManagementAgentService"));
     assertThat(capabilities[0].getDescriptors(), hasSize(4));
-    assertThat(capabilities[1].getDescriptors(), hasSize(75));
+
+    Collection<Descriptor> descriptors = capabilities[1].getDescriptors();
+    Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+    allDescriptors.addAll(CACHE_DESCRIPTORS);
+    allDescriptors.addAll(ONHEAP_DESCRIPTORS);
+    allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
+    allDescriptors.addAll(CLUSTERED_DESCRIPTORS);
+
+    assertThat(descriptors, containsInAnyOrder(allDescriptors.toArray()));
+    assertThat(descriptors, hasSize(allDescriptors.size()));
+
   }
 
   @Test
@@ -221,6 +243,110 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     } while(val != 4);
 
+
+  }
+
+  @BeforeClass
+  public static void initDescriptors() throws ClassNotFoundException {
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissLatencyMinimum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionLatencyMinimum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissLatencyMaximum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionRate" , StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitRatioRatio" , StatisticType.RATIO_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitLatencyAverage" , StatisticType.AVERAGE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitLatencyMinimum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:OccupiedBytesCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissRate" , StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionLatencyAverage" , StatisticType.AVERAGE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitRate" , StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissLatencyAverage" , StatisticType.AVERAGE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionLatencyMaximum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitLatencyMaximum" , StatisticType.DURATION_HISTORY));
+
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitLatencyMinimum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedBytesCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitLatencyMaximum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedBytesCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionLatencyMaximum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MappingCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRatioRatio", StatisticType.RATIO_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionLatencyMinimum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissLatencyMaximum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MaxMappingCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissLatencyAverage", StatisticType.AVERAGE_HISTORY));
+
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissLatencyMaximum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitLatencyMinimum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MaxMappingCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitRate", StatisticType.RATE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedBytesCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionLatencyMinimum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionRate", StatisticType.RATE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionLatencyMaximum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedBytesCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitLatencyMaximum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitRatioRatio", StatisticType.RATIO_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissRate", StatisticType.RATE_HISTORY));
+
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissCount", StatisticType.COUNTER_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionLatencyMinimum", StatisticType.DURATION_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitCount", StatisticType.COUNTER_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MaxMappingCount", StatisticType.COUNTER_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitRate", StatisticType.RATE_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionCount", StatisticType.COUNTER_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissRate", StatisticType.RATE_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:OccupiedBytesCount", StatisticType.COUNTER_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitRatioRatio", StatisticType.RATIO_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:AllocatedBytesCount", StatisticType.COUNTER_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MappingCount", StatisticType.COUNTER_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionRate", StatisticType.RATE_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitLatencyMinimum", StatisticType.DURATION_HISTORY));
+
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitLatencyMinimum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRatioRatio", StatisticType.RATIO_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatencyMinimum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRatioRatio", StatisticType.RATIO_HISTORY));
 
   }
 
