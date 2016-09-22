@@ -21,42 +21,20 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryMessageFactory;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
+import org.ehcache.spi.persistence.StateHolder;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 
-public class ConcurrentClusteredMap<K, V> implements ConcurrentMap<K, V> {
+public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
 
   private final StateRepositoryMessageFactory messageFactory;
   private final EhcacheClientEntity entity;
 
-  public ConcurrentClusteredMap(final String cacheId, final String mapId, final EhcacheClientEntity entity) {
+  public ClusteredStateHolder(final String cacheId, final String mapId, final EhcacheClientEntity entity) {
     this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId, entity.getClientId());
     this.entity = entity;
-  }
-
-  @Override
-  public int size() {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public boolean isEmpty() {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public boolean containsKey(final Object key) {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public boolean containsValue(final Object value) {
-    throw new UnsupportedOperationException("TODO");
   }
 
   @Override
@@ -76,38 +54,8 @@ public class ConcurrentClusteredMap<K, V> implements ConcurrentMap<K, V> {
   }
 
   @Override
-  public V put(final K key, final V value) {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public V remove(final Object key) {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public void putAll(final Map<? extends K, ? extends V> m) {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public void clear() {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public Set<K> keySet() {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public Collection<V> values() {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public Set<Entry<K, V>> entrySet() {
-    return (Set<Entry<K, V>>) getResponse(messageFactory.entrySetMessage());
+  public Set<Map.Entry<K, V>> entrySet() {
+    return (Set<Map.Entry<K, V>>) getResponse(messageFactory.entrySetMessage());
   }
 
   @Override
@@ -115,18 +63,4 @@ public class ConcurrentClusteredMap<K, V> implements ConcurrentMap<K, V> {
     return (V) getResponse(messageFactory.putIfAbsentMessage(key, value));
   }
 
-  @Override
-  public boolean remove(final Object key, final Object value) {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public boolean replace(final K key, final V oldValue, final V newValue) {
-    throw new UnsupportedOperationException("TODO");
-  }
-
-  @Override
-  public V replace(final K key, final V value) {
-    throw new UnsupportedOperationException("TODO");
-  }
 }

@@ -17,6 +17,7 @@
 package org.ehcache.impl.serialization;
 
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 
 import java.io.Serializable;
@@ -27,21 +28,21 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class TransientStateRepository implements StateRepository {
 
-  private ConcurrentMap<String, ConcurrentMap<?, ?>> knownMaps = new ConcurrentHashMap<String, ConcurrentMap<?, ?>>();
+  private ConcurrentMap<String, StateHolder<?, ?>> knownHolders = new ConcurrentHashMap<String, StateHolder<?, ?>>();
 
   @Override
   @SuppressWarnings("unchecked")
-  public <K extends Serializable, V extends Serializable> ConcurrentMap<K, V> getPersistentConcurrentMap(String name, Class<K> keyClass, Class<V> valueClass) {
-    ConcurrentMap<K, V> concurrentMap = (ConcurrentMap<K, V>) knownMaps.get(name);
-    if (concurrentMap != null) {
-      return concurrentMap;
+  public <K extends Serializable, V extends Serializable> StateHolder<K, V> getPersistentStateHolder(String name, Class<K> keyClass, Class<V> valueClass) {
+    StateHolder<K, V> stateHolder = (StateHolder<K, V>) knownHolders.get(name);
+    if (stateHolder != null) {
+      return stateHolder;
     } else {
-      ConcurrentHashMap<K, V> newMap = new ConcurrentHashMap<K, V>();
-      concurrentMap = (ConcurrentMap<K, V>) knownMaps.putIfAbsent(name, newMap);
-      if (concurrentMap == null) {
-        return newMap;
+      StateHolder<K, V> newHolder = new TransientStateHolder<K, V>();
+      stateHolder = (StateHolder<K, V>) knownHolders.putIfAbsent(name, newHolder);
+      if (stateHolder == null) {
+        return newHolder;
       } else {
-        return concurrentMap;
+        return stateHolder;
       }
     }
   }

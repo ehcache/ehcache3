@@ -151,12 +151,12 @@ To address these requirements you can have a `StatefulSerializer` implementation
 public void init(StateRepository repository) {
 }
 ```
-The `StateRepository.getPersistentConcurrentMap(String, Class<K>, Class<V>)` provides a `ConcurrentMap` that you can use to store any relevant state.
+The `StateRepository.getPersistentStateHolder(String, Class<K>, Class<V>)` provides a `StateHolder` (a map like structure) that you can use to store any relevant state.
 The `StateRepository` is provided by the authoritative tier of the cache and hence will have the same persistence properties of that tier.
-For persistent caches it is highly recommended that all state is stored in these maps as the users won't have to worry about the persistence aspects of this map as it is taken care by `Ehcache`.
+For persistent caches it is highly recommended that all state is stored in these holders as the users won't have to worry about the persistence aspects of this state holder as it is taken care by `Ehcache`.
 
-* In the case of a disk persistent cache, the contents of the map will be persisted locally on to the disk.
-* For clustered caches the contents are persisted in the cluster itself so that other clients using the same cache can also access the contents of the map.
+* In the case of a disk persistent cache, the contents of the state holder will be persisted locally on to the disk.
+* For clustered caches the contents are persisted in the cluster itself so that other clients using the same cache can also access the contents of the state holder.
 
 NOTE: The constructor with the signature `(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext)`
       that existed till v3.1 has been removed since v3.2 in favor of `StatefulSerializer`s.
