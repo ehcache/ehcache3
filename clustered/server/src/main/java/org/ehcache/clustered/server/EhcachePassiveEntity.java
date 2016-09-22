@@ -31,6 +31,7 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateSer
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
+import org.ehcache.clustered.server.messages.EntityStateSyncMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
@@ -42,6 +43,7 @@ import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResources;
 
 import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -71,6 +73,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           break;
         case STATE_REPO_OP:
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
+          break;
+        case SYNC_OP:
+          invokeSyncOperation((EntityStateSyncMessage) message);
           break;
         default:
           throw new IllegalMessageException("Unknown message : " + message);
@@ -128,6 +133,15 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
+  private void invokeSyncOperation(EntityStateSyncMessage message) throws ClusterException {
+    ehcacheStateService.configure(message.getConfiguration());
+    for (Map.Entry<String, ServerStoreConfiguration> entry : message.getStoreConfigs().entrySet()) {
+      ehcacheStateService.createStore(entry.getKey(), entry.getValue());
+    }
+    message.getTrackedClients().stream().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
+    ehcacheStateService.getClientMessageTracker().setEntityConfiguredStamp(message.getClientId(), message.getId());
+  }
+
   private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
     switch (message.operation()) {
       case CONFIGURE:
@@ -145,7 +159,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   }
 
   private void configure(ConfigureStoreManager message) throws ClusterException {
-    ehcacheStateService.configure(message);
+    ehcacheStateService.configure(message.getConfiguration());
     ehcacheStateService.getClientMessageTracker().setEntityConfiguredStamp(message.getClientId(), message.getId());
   }
 

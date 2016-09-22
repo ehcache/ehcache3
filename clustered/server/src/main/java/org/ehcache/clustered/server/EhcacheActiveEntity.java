@@ -28,6 +28,7 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.Consistency;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.PoolAllocation;
@@ -49,6 +50,7 @@ import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.common.internal.store.ServerStore;
+import org.ehcache.clustered.server.messages.EntityStateSyncMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
@@ -96,7 +98,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       new ConcurrentHashMap<String, Set<ClientDescriptor>>();
 
   private final ConcurrentHashMap<ClientDescriptor, UUID> clientIdMap = new ConcurrentHashMap<>();
-  private final Set<UUID> invalidIds = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private final Set<UUID> trackedClients = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private final ServerStoreCompatibility storeCompatibility = new ServerStoreCompatibility();
   private final EhcacheEntityResponseFactory responseFactory;
@@ -228,7 +230,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
     UUID clientId = clientIdMap.remove(clientDescriptor);
     if (clientId != null) {
-      invalidIds.remove(clientId);
+      trackedClients.remove(clientId);
       ehcacheStateService.getClientMessageTracker().remove(clientId);
     }
   }
@@ -291,7 +293,18 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public void synchronizeKeyToPassive(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
-    throw new UnsupportedOperationException("Active/passive is not supported yet");
+    if (concurrencyKey == ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY) {
+      ServerSideConfiguration configuration =
+        new ServerSideConfiguration(ehcacheStateService.getDefaultServerResource(), ehcacheStateService.getSharedResourcePools());
+
+      Map<String, ServerStoreConfiguration> storeConfigs = new HashMap<>();
+      for (String storeName : ehcacheStateService.getStores()) {
+        ServerStoreImpl store = ehcacheStateService.getStore(storeName);
+        storeConfigs.put(storeName, store.getStoreConfiguration());
+      }
+
+      syncChannel.synchronizeToPassive(new EntityStateSyncMessage(configuration, storeConfigs, trackedClients));
+    }
   }
 
   @Override
@@ -547,7 +560,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
     if (ehcacheStateService.getClientMessageTracker().isConfigureApplicable(message.getClientId(), message.getId())) {
-      ehcacheStateService.configure(message);
+      ehcacheStateService.configure(message.getConfiguration());
     }
     this.clientStateMap.get(clientDescriptor).attach();
   }
@@ -562,17 +575,17 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   private void validate(ClientDescriptor clientDescriptor, ValidateStoreManager message) throws ClusterException {
     validateClientConnected(clientDescriptor);
-    if (invalidIds.contains(message.getClientId())) {
+    if (trackedClients.contains(message.getClientId())) {
       throw new InvalidClientIdException("Client ID : " + message.getClientId() + " is already being tracked by Active");
     }
     addClientId(clientDescriptor, message.getClientId());
-    ehcacheStateService.validate(message);
+    ehcacheStateService.validate(message.getConfiguration());
     this.clientStateMap.get(clientDescriptor).attach();
   }
 
   private void addClientId(ClientDescriptor clientDescriptor, UUID clientId) {
     clientIdMap.put(clientDescriptor, clientId);
-    invalidIds.add(clientId);
+    trackedClients.add(clientId);
   }
 
   /**
