@@ -26,7 +26,6 @@ import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import com.tc.classloader.CommonComponent;
 
 import java.util.Set;
-import java.util.UUID;
 
 @CommonComponent
 public interface EhcacheStateService {
@@ -51,5 +50,4 @@ public interface EhcacheStateService {
 
   ClientMessageTracker getClientMessageTracker();
 
-  EvictionTracker getEvictionTracker();
 }

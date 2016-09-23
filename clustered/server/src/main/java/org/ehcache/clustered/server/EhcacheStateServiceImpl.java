@@ -23,7 +23,6 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.ehcache.clustered.server.state.EvictionTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
@@ -85,7 +84,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
 
   private final ClientMessageTracker messageTracker = new ClientMessageTracker();
-  private final EvictionTracker evictionTracker = new EvictionTracker();
   private final StateRepositoryManager stateRepositoryManager;
 
   public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
@@ -365,11 +363,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   @Override
   public ClientMessageTracker getClientMessageTracker() {
     return this.messageTracker;
-  }
-
-  @Override
-  public EvictionTracker getEvictionTracker() {
-    return this.evictionTracker;
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {
