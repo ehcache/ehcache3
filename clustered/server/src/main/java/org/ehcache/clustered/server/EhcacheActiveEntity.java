@@ -27,8 +27,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -115,7 +117,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final EhcacheStateService ehcacheStateService;
   private final IEntityMessenger entityMessenger;
 
-  private volatile ConcurrentHashMap<String, List<Tuple<ClientDescriptor, Set<Long>>>> inflightInvalidations;
+  private volatile ConcurrentHashMap<String, List<InvalidationTuple<ClientDescriptor, Set<Long>>>> inflightInvalidations;
+  //This gets reset to false whenever loadExisting is called.
+  private final AtomicBoolean invalidationForPassiveEvictedKeysSent = new AtomicBoolean(true);
+  private final Lock evictionInvalidationsInProgress = new ReentrantLock();
 
   static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
@@ -257,6 +262,31 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
                                                   " Check your server configuration and define at least one offheap resource.");
       }
 
+      //All the invokes are blocked till passive evicted keys are invalidated by server under lock
+      //Once invalidations are done, other threads will just move on by checking the status
+      if (!invalidationForPassiveEvictedKeysSent.get()) {
+        try {
+          evictionInvalidationsInProgress.lock();
+          if (!invalidationForPassiveEvictedKeysSent.get()) {
+            //TODO: this marks point where we assert that reconnect is complete as the first invoke
+            // is received which implies we can do some clean up in client ID states.
+            Set<String> caches = ehcacheStateService.getStores();
+            caches.stream()
+                .flatMap(cache -> ehcacheStateService.getEvictionTracker(cache)
+                    .getTrackedEvictedKeys()
+                    .stream()
+                    .map(key -> new InvalidationTuple<>(cache, key, false)))
+                .forEach(x -> {
+                  invalidateHashAfterEviction(x.getK(), x.getV());
+                  LOGGER.debug("Sending invalidation for key {} and cache {} since it was evicted by Passive", x.getV(), x.getK());
+                });
+            invalidationForPassiveEvictedKeysSent.set(true);
+          }
+        } finally {
+          evictionInvalidationsInProgress.unlock();
+        }
+      }
+
       switch (message.getType()) {
         case LIFECYCLE_OP:
           return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
@@ -290,6 +320,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ReconnectData reconnectData = reconnectDataCodec.decode(extendedReconnectData);
     addClientId(clientDescriptor, reconnectData.getClientId());
     Set<String> cacheIds = reconnectData.getAllCaches();
+    Set<String> clearInProgressCaches = reconnectData.getClearInProgressCaches();
     for (final String cacheId : cacheIds) {
       ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
       if (serverStore == null) {
@@ -307,7 +338,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           if (tuples == null) {
             tuples = new ArrayList<>();
           }
-          tuples.add(new Tuple<>(clientDescriptor, invalidationsInProgress));
+          tuples.add(new InvalidationTuple<>(clientDescriptor, invalidationsInProgress, clearInProgressCaches.contains(cacheId)));
           return tuples;
         });
       }
@@ -330,7 +361,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public void loadExisting() {
+    LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = new ConcurrentHashMap<>();
+    invalidationForPassiveEvictedKeysSent.set(false);
   }
 
   private void validateClientConnected(ClientDescriptor clientDescriptor) throws ClusterException {
@@ -395,6 +428,9 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       inflightInvalidations.computeIfPresent(message.getCacheId(), (cacheId, tuples) -> {
         LOGGER.debug("Stalling all operations for cache {} for firing inflight invalidations again.", cacheId);
         tuples.forEach(tupleOfClientAndSetOfHash -> {
+          if (tupleOfClientAndSetOfHash.isClearInProgress()) {
+            invalidateAll(tupleOfClientAndSetOfHash.getK(), cacheId);
+          }
           tupleOfClientAndSetOfHash.getV()
               .forEach(hashInvalidationToBeResent -> invalidateHashForClient(tupleOfClientAndSetOfHash.getK(), cacheId, hashInvalidationToBeResent));
         });
@@ -539,6 +575,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void clientInvalidated(ClientDescriptor clientDescriptor, int invalidationId) {
     InvalidationHolder invalidationHolder = clientsWaitingForInvalidation.get(invalidationId);
 
+    if (invalidationHolder == null) { // Happens when client is re-sending/sending invalidations for which server has lost track since fail-over happened.
+      LOGGER.warn("Ignoring invalidation from client {} " + clientDescriptor);
+      return;
+    }
+
     if (ehcacheStateService.getStore(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
       invalidationHolder.clientsHavingToInvalidate.remove(clientDescriptor);
       if (invalidationHolder.clientsHavingToInvalidate.isEmpty()) {
@@ -632,7 +673,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private void addClientId(ClientDescriptor clientDescriptor, UUID clientId) {
-    LOGGER.info("Adding : " + clientId);
+    LOGGER.info("Adding Client {} with client id : {} ", clientDescriptor, clientId);
     clientIdMap.put(clientDescriptor, clientId);
     invalidIds.add(clientId);
   }
@@ -878,13 +919,15 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
-  private static class Tuple<K, V> {
+  private static class InvalidationTuple<K, V> {
     private final K k;
     private final V v;
+    private final boolean isClearInProgress;
 
-    Tuple(K k, V v) {
+    InvalidationTuple(K k, V v, boolean isClearInProgress) {
       this.k = k;
       this.v = v;
+      this.isClearInProgress = isClearInProgress;
     }
 
     public K getK() {
@@ -893,6 +936,10 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     public V getV() {
       return v;
+    }
+
+    public boolean isClearInProgress() {
+      return isClearInProgress;
     }
   }
 

@@ -108,13 +108,13 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         ServerStoreRetirementMessage retirementMessage = (ServerStoreRetirementMessage)message;
         ServerStoreImpl cacheStore = ehcacheStateService.getStore(retirementMessage.getCacheId());
         if (cacheStore == null) {
-          // An operation on a non-existent store should never get out of the client
           throw new LifecycleException("Clustered tier does not exist : '" + retirementMessage.getCacheId() + "'");
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
-        boolean result = ehcacheStateService.getEvictionTracker().remove(retirementMessage.getKey());
-        LOGGER.debug("Result of removing key {} for msgID {} & client Id {} was : {} ", result);
+        boolean result = ehcacheStateService.getEvictionTracker(retirementMessage.getCacheId()).remove(retirementMessage.getKey());
+        LOGGER.debug("Result of removing key {} for cache {} with msgID {} & client Id {} was : {} ", retirementMessage.getKey(), retirementMessage
+            .getCacheId(), retirementMessage.getId(), retirementMessage.getClientId(), result);
         break;
       }
       case RETIRE: {
@@ -137,7 +137,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     switch (message.operation()) {
       case APPEND:
       case GET_AND_APPEND: {
-        LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {}", message.getId(), message.getClientId());
+        LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {} is tracked now.", message.getId(), message.getClientId());
         ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
         break;
       }
@@ -205,8 +205,8 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
     ServerStoreImpl serverStore = ehcacheStateService.createStore(name, storeConfiguration);
     serverStore.setEvictionListener( evictedKey -> {
-      ehcacheStateService.getEvictionTracker().add(evictedKey);
-      LOGGER.debug("Tracking evicted key {}.", evictedKey);
+      ehcacheStateService.getEvictionTracker(name).add(evictedKey);
+      LOGGER.debug("Tracking evicted key {} by passive for cache {}.", evictedKey, name);
     });
   }
 

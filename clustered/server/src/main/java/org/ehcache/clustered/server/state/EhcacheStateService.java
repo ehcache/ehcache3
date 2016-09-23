@@ -51,5 +51,5 @@ public interface EhcacheStateService {
 
   ClientMessageTracker getClientMessageTracker();
 
-  EvictionTracker getEvictionTracker();
+  EvictionTracker getEvictionTracker(String cacheId);
 }

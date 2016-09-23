@@ -44,7 +44,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final ServerStoreProxy delegate;
   private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
   private final Lock invalidateAllLock = new ReentrantLock();
-  private CountDownLatch invalidateAllLatch;
+  private volatile CountDownLatch invalidateAllLatch;
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
   private final EhcacheClientEntity entity;
 
@@ -56,6 +56,9 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
       public void onHandleReconnect(ReconnectData reconnectData) {
         Set<Long> inflightInvalidations = new HashSet<Long>(hashInvalidationsInProgress.keySet());
         reconnectData.addInvalidationsInProgress(delegate.getCacheId(), inflightInvalidations);
+        if (invalidateAllLatch == null) {
+          reconnectData.addClearInProgress(delegate.getCacheId());
+        }
       }
     });
     entity.addResponseListener(EhcacheEntityResponse.HashInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {

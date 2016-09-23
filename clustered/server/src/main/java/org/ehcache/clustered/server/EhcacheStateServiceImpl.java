@@ -49,6 +49,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
@@ -85,7 +86,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
 
   private final ClientMessageTracker messageTracker = new ClientMessageTracker();
-  private final EvictionTracker evictionTracker = new EvictionTracker();
+  private final ConcurrentHashMap<String, EvictionTracker> evictionTrackers = new ConcurrentHashMap<>();
   private final StateRepositoryManager stateRepositoryManager;
 
   public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
@@ -368,8 +369,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public EvictionTracker getEvictionTracker() {
-    return this.evictionTracker;
+  public EvictionTracker getEvictionTracker(String cacheId) {
+    return this.evictionTrackers.compute(cacheId, (cache, evictionTracker) -> {
+      if (evictionTracker == null) {
+        evictionTracker = new EvictionTracker();
+      }
+      return evictionTracker;
+    });
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {
