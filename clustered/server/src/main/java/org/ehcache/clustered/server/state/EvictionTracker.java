@@ -16,6 +16,8 @@
 
 package org.ehcache.clustered.server.state;
 
+import com.tc.classloader.CommonComponent;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -26,6 +28,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Whenever passive evicts a key, the keys is added to the tracker.
  * The same is removed when passive receives a put for that key.
  */
+@CommonComponent
 public class EvictionTracker {
 
   private Set<Long> trackedEvictedKeys = Collections.newSetFromMap(new ConcurrentHashMap<>());

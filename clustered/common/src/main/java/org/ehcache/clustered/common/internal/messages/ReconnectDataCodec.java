@@ -20,6 +20,9 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 
 import java.nio.ByteBuffer;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 public class ReconnectDataCodec {
@@ -30,6 +33,11 @@ public class ReconnectDataCodec {
     for (String cacheId : reconnectData.getAllCaches()) {
       encodedMsg.putInt(cacheId.length());
       CodecUtil.putStringAsCharArray(encodedMsg, cacheId);
+      Set<Long> hashToInvalidate = reconnectData.removeInvalidationsInProgress(cacheId);
+      encodedMsg.putInt(hashToInvalidate.size());
+      for (Long hash : hashToInvalidate) {
+        encodedMsg.putLong(hash);
+      }
     }
 
     return encodedMsg.array();
@@ -44,7 +52,14 @@ public class ReconnectDataCodec {
 
     while (byteBuffer.hasRemaining()) {
       int cacheIdSize = byteBuffer.getInt();
-      reconnectData.add(CodecUtil.getStringFromBuffer(byteBuffer, cacheIdSize));
+      String cacheId = CodecUtil.getStringFromBuffer(byteBuffer, cacheIdSize);
+      reconnectData.add(cacheId);
+      Set<Long> hashToInvalidate = new HashSet<Long>();
+      int numOfHash = byteBuffer.getInt();
+      for (int i = 0; i < numOfHash; i++) {
+        hashToInvalidate.add(byteBuffer.getLong());
+      }
+      reconnectData.addInvalidationsInProgress(cacheId, hashToInvalidate);
     }
     return reconnectData;
   }
