@@ -15,186 +15,184 @@
  */
 package org.ehcache.core.statistics;
 
+import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes.GetAndFaultOutcome;
+import org.ehcache.core.statistics.CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome;
+import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome.GetAndRemoveOutcome;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
 import org.terracotta.context.annotations.ContextAttribute;
+import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.ValueStatistic;
 import org.terracotta.statistics.observer.ChainedOperationObserver;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
+import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 
+import static java.util.Collections.unmodifiableMap;
+import static java.util.EnumSet.of;
+import static org.terracotta.context.query.Matchers.allOf;
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
-import static org.terracotta.context.query.Matchers.hasAttribute;
 import static org.terracotta.context.query.Matchers.identifier;
 import static org.terracotta.context.query.Matchers.subclassOf;
-import static org.terracotta.context.query.Queries.self;
 import static org.terracotta.context.query.QueryBuilder.queryBuilder;
+import static org.terracotta.context.query.Matchers.hasAttribute;
 
-/**
- *
- */
 @ContextAttribute("this")
 public class TierOperationStatistic<S extends Enum<S>, D extends Enum<D>> implements OperationStatistic<D> {
 
   @ContextAttribute("name") public final String name;
   @ContextAttribute("tags") public final Set<String> tags;
   @ContextAttribute("properties") public final Map<String, Object> properties;
-  @ContextAttribute("type") public final Class<D> type;
+  @ContextAttribute("type") public final Class<D> tierOutcomeType;
 
-  private final Class<D> tierOperatioOutcome;
-  private final OperationStatistic<S> operationStatistic;
-  private final HashMap<D, Set<S>> storeToTierOperationOutcomeMap;
+  private final StatisticMapper<S, D> mapper;
 
-  public TierOperationStatistic(Class<D> tierOperatioOutcome, Class<S> storeOperatioOutcome, Object tier, HashMap<D, Set<S>> storeToTierOperationOutcomeMap, String sourceOperationName, int tierHeight, String targetOperationName, String discriminator) {
-    this.tierOperatioOutcome = tierOperatioOutcome;
-    this.operationStatistic = TierOperationStatistic.findOperationStat(tier, targetOperationName);
-    this.storeToTierOperationOutcomeMap = storeToTierOperationOutcomeMap;
-    this.name = sourceOperationName;
-    this.tags = new HashSet<String>();
-    this.tags.add("tier");
+  public TierOperationStatistic(Object tier, Map<D, Set<S>> translation, String statisticName, int tierHeight, String targetName, String discriminator) {
+
+    this.name = statisticName;
+    this.tags = Collections.singleton("tier");
     this.properties = new HashMap<String, Object>();
     this.properties.put("tierHeight", tierHeight);
     this.properties.put("discriminator", discriminator);
-    this.type = tierOperatioOutcome;
 
-    EnumSet<D> tierOperatioOutcomeSet = EnumSet.allOf(tierOperatioOutcome);
-    //make sure all tierOperatioOutcome enum values are keys in the storeToTierOperationOutcomeMap
-    for (D tierOperatioOutcomeKey : tierOperatioOutcomeSet) {
-      if (!storeToTierOperationOutcomeMap.containsKey(tierOperatioOutcomeKey)) {
-        throw new IllegalArgumentException("storeTierOperationOutcomeMap does not contain key " + tierOperatioOutcomeKey);
-      }
-    }
+    Entry<D, Set<S>> first = translation.entrySet().iterator().next();
+    Class<S> storeOutcomeType = first.getValue().iterator().next().getDeclaringClass();
+    this.tierOutcomeType = first.getKey().getDeclaringClass();
 
-    //verify that all storeOperatioOutcomes are tracked
-    Set<S> allAliasedValues = new HashSet<S>();
-    Collection<Set<S>> values = storeToTierOperationOutcomeMap.values();
-    for (Set<S> value : values) {
-      allAliasedValues.addAll(value);
-    }
-    Set<S> allMissingValues = new HashSet<S>(EnumSet.allOf(storeOperatioOutcome));
-    allMissingValues.removeAll(allAliasedValues);
-    if (!allMissingValues.isEmpty()) {
-      throw new IllegalArgumentException("storeTierOperationOutcomeMap does not contain values " + allMissingValues);
-    }
+    this.mapper = new StatisticMapper<S, D>(translation, findOperationStat(tier, storeOutcomeType, targetName));
   }
 
   @Override
   public Class<D> type() {
-    return tierOperatioOutcome;
+    return tierOutcomeType;
   }
 
   @Override
   public ValueStatistic<Long> statistic(D result) {
-    return operationStatistic.statistic(storeToTierOperationOutcomeMap.get(result));
+    return mapper.statistic(result);
   }
 
   @Override
   public ValueStatistic<Long> statistic(Set<D> results) {
-    Set<S> xlated = new HashSet<S>();
-    for (D result : results) {
-      xlated.addAll(storeToTierOperationOutcomeMap.get(result));
-    }
-    return operationStatistic.statistic(xlated);
+    return mapper.statistic(results);
   }
 
   @Override
   public long count(D type) {
-    long value = 0L;
-    Set<S> s = storeToTierOperationOutcomeMap.get(type);
-    for (S s1 : s) {
-      value += operationStatistic.count(s1);
-    }
-    return value;
+    return mapper.count(type);
   }
 
   @Override
   public long sum(Set<D> types) {
-    Set<S> xlated = new HashSet<S>();
-    for (D type : types) {
-      xlated.addAll(storeToTierOperationOutcomeMap.get(type));
-    }
-    return operationStatistic.sum(xlated);
+    return mapper.sum(types);
   }
 
   @Override
   public long sum() {
-    return operationStatistic.sum();
+    return mapper.sum();
   }
 
   @Override
   public void addDerivedStatistic(final ChainedOperationObserver<? super D> derived) {
-    operationStatistic.addDerivedStatistic(new ChainedOperationObserver<S>() {
-      @Override
-      public void begin(long time) {
-        derived.begin(time);
-      }
-
-      @Override
-      public void end(long time, S result) {
-        derived.end(time, (D) result);
-      }
-
-      @Override
-      public void end(long time, S result, long... parameters) {
-        derived.end(time, (D) result, parameters);
-      }
-    });
+    mapper.addDerivedStatistic(derived);
   }
 
   @Override
   public void removeDerivedStatistic(ChainedOperationObserver<? super D> derived) {
-    operationStatistic.removeDerivedStatistic((ChainedOperationObserver<? super S>) derived);
+    mapper.removeDerivedStatistic(derived);
   }
 
   @Override
   public void begin() {
-    throw new UnsupportedOperationException();
+    mapper.begin();
   }
 
   @Override
   public void end(D result) {
-    throw new UnsupportedOperationException();
+    mapper.end(result);
   }
 
   @Override
   public void end(D result, long... parameters) {
-    throw new UnsupportedOperationException();
+    mapper.end(result, parameters);
   }
 
-  private static OperationStatistic findOperationStat(Object rootNode, final String statName) {
-    Query q = queryBuilder().chain(self())
-        .descendants().filter(context(identifier(subclassOf(OperationStatistic.class)))).build();
+  @SuppressWarnings("unchecked")
+  private static <S extends Enum<S>> OperationStatistic<S> findOperationStat(Object rootNode, final Class<S> statisticType, final String statName) {
+    Query q = queryBuilder().descendants()
+            .filter(context(identifier(subclassOf(OperationStatistic.class))))
+            .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+                    hasAttribute("name", statName),
+                    hasAttribute("this", new Matcher<OperationStatistic>() {
+                      @Override
+                      protected boolean matchesSafely(OperationStatistic object) {
+                        return object.type().equals(statisticType);
+                      }
+                    })
+            )))).build();
 
-    Set<TreeNode> operationStatisticNodes = q.execute(Collections.singleton(ContextManager.nodeFor(rootNode)));
-    Set<TreeNode> result = queryBuilder()
-        .filter(
-            context(attributes(Matchers.<Map<String, Object>>allOf(
-                hasAttribute("name", statName))))).build().execute(operationStatisticNodes);
+
+    Set<TreeNode> result = q.execute(Collections.singleton(ContextManager.nodeFor(rootNode)));
 
     if (result.size() != 1) {
       throw new RuntimeException("a single stat was expected; found " + result.size());
     }
 
     TreeNode node = result.iterator().next();
-    return (OperationStatistic) node.getContext().attributes().get("this");
-  }
-
-  public static <X> Set<X> set(X... xs) {
-    return new HashSet<X>(Arrays.asList(xs));
+    return (OperationStatistic<S>) node.getContext().attributes().get("this");
   }
 
   public static class TierOperationOutcomes {
+
+    public static final Map<GetOutcome, Set<StoreOperationOutcomes.GetOutcome>> GET_TRANSLATION;
+    static {
+      Map<GetOutcome, Set<StoreOperationOutcomes.GetOutcome>> translation = new EnumMap<GetOutcome, Set<StoreOperationOutcomes.GetOutcome>>(GetOutcome.class);
+      translation.put(GetOutcome.HIT, of(StoreOperationOutcomes.GetOutcome.HIT));
+      translation.put(GetOutcome.MISS, of(StoreOperationOutcomes.GetOutcome.MISS, StoreOperationOutcomes.GetOutcome.TIMEOUT));
+      GET_TRANSLATION = unmodifiableMap(translation);
+    }
+
+    public static final Map<GetOutcome, Set<GetAndFaultOutcome>> GET_AND_FAULT_TRANSLATION;
+
+    static {
+      Map<GetOutcome, Set<GetAndFaultOutcome>> translation = new EnumMap<GetOutcome, Set<GetAndFaultOutcome>>(GetOutcome.class);
+      translation.put(GetOutcome.HIT, of(GetAndFaultOutcome.HIT));
+      translation.put(GetOutcome.MISS, of(GetAndFaultOutcome.MISS, GetAndFaultOutcome.TIMEOUT));
+      GET_AND_FAULT_TRANSLATION = unmodifiableMap(translation);
+    }
+
+    public static final Map<GetOutcome, Set<GetAndRemoveOutcome>> GET_AND_REMOVE_TRANSLATION;
+    static {
+      Map<GetOutcome, Set<GetAndRemoveOutcome>> translation = new EnumMap<GetOutcome, Set<GetAndRemoveOutcome>>(GetOutcome.class);
+      translation.put(GetOutcome.HIT, of(GetAndRemoveOutcome.HIT_REMOVED));
+      translation.put(GetOutcome.MISS, of(GetAndRemoveOutcome.MISS));
+      GET_AND_REMOVE_TRANSLATION = unmodifiableMap(translation);
+    }
+
+    public static final Map<GetOutcome, Set<GetOrComputeIfAbsentOutcome>> GET_OR_COMPUTEIFABSENT_TRANSLATION;
+    static {
+      Map<GetOutcome, Set<GetOrComputeIfAbsentOutcome>> translation = new EnumMap<GetOutcome, Set<GetOrComputeIfAbsentOutcome>>(GetOutcome.class);
+      translation.put(GetOutcome.HIT, of(GetOrComputeIfAbsentOutcome.HIT));
+      translation.put(GetOutcome.MISS, of(GetOrComputeIfAbsentOutcome.FAULTED, GetOrComputeIfAbsentOutcome.FAULT_FAILED,
+              GetOrComputeIfAbsentOutcome.FAULT_FAILED_MISS, GetOrComputeIfAbsentOutcome.MISS));
+      GET_OR_COMPUTEIFABSENT_TRANSLATION = unmodifiableMap(translation);
+    }
+
+    public static final Map<EvictionOutcome, Set<StoreOperationOutcomes.EvictionOutcome>> EVICTION_TRANSLATION;
+    static {
+      Map<EvictionOutcome, Set<StoreOperationOutcomes.EvictionOutcome>> translation = new EnumMap<EvictionOutcome, Set<StoreOperationOutcomes.EvictionOutcome>>(EvictionOutcome.class);
+      translation.put(EvictionOutcome.SUCCESS, of(StoreOperationOutcomes.EvictionOutcome.SUCCESS));
+      translation.put(EvictionOutcome.FAILURE, of(StoreOperationOutcomes.EvictionOutcome.FAILURE));
+      EVICTION_TRANSLATION = unmodifiableMap(translation);
+    };
 
     public enum GetOutcome {
       HIT,
