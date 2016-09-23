@@ -16,11 +16,16 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.hamcrest.Matcher;
 import org.junit.Test;
 
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -36,6 +41,20 @@ public class ReconnectDataCodecTest {
 
     reconnectData.setClientId(UUID.randomUUID());
 
+    Set<Long> firstSetToInvalidate = new HashSet<Long>();
+    firstSetToInvalidate.add(1L);
+    firstSetToInvalidate.add(11L);
+    firstSetToInvalidate.add(111L);
+
+    Set<Long> secondSetToInvalidate = new HashSet<Long>();
+    secondSetToInvalidate.add(2L);
+    secondSetToInvalidate.add(22L);
+    secondSetToInvalidate.add(222L);
+    secondSetToInvalidate.add(2222L);
+    reconnectData.addInvalidationsInProgress("test", firstSetToInvalidate);
+    reconnectData.addInvalidationsInProgress("test1", Collections.EMPTY_SET);
+    reconnectData.addInvalidationsInProgress("test2", secondSetToInvalidate);
+
     ReconnectDataCodec dataCodec = new ReconnectDataCodec();
 
     ReconnectData decoded = dataCodec.decode(dataCodec.encode(reconnectData));
@@ -43,6 +62,10 @@ public class ReconnectDataCodecTest {
     assertThat(decoded, notNullValue());
     assertThat(decoded.getClientId(), is(reconnectData.getClientId()));
     assertThat(decoded.getAllCaches(), containsInAnyOrder("test", "test1", "test2"));
+
+    assertThat(decoded.removeInvalidationsInProgress("test"), containsInAnyOrder(firstSetToInvalidate.toArray()));
+    assertThat(decoded.removeInvalidationsInProgress("test1").isEmpty(), is(true));
+    assertThat(decoded.removeInvalidationsInProgress("test2"), containsInAnyOrder(secondSetToInvalidate.toArray()));
 
   }
 }
