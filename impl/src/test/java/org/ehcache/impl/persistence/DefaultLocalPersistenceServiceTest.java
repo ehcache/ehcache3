@@ -17,28 +17,25 @@
 package org.ehcache.impl.persistence;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
-import org.mockito.Mockito;
 
 import java.io.File;
 import java.io.IOException;
 
-import static org.ehcache.core.spi.service.LocalPersistenceService.SafeSpaceIdentifier;
-import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistOwnerClosed;
-import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistsOwnerOpen;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.fail;
 import static org.junit.Assume.assumeTrue;
-import static org.mockito.Mockito.never;
-import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistOwnerClosed;
-import static org.ehcache.impl.internal.util.FileExistenceMatchers.fileExistsOwnerOpen;
 
 public class DefaultLocalPersistenceServiceTest {
 
@@ -114,17 +111,24 @@ public class DefaultLocalPersistenceServiceTest {
     final File f = folder.newFolder("testPhysicalDestroy");
     final DefaultLocalPersistenceService service = new DefaultLocalPersistenceService(new DefaultPersistenceConfiguration(f));
     service.start(null);
+
     assertThat(service.getLockFile().exists(), is(true));
-    SafeSpaceIdentifier id = service.createSafeSpaceIdentifier("test", "test");
+    assertThat(f, isLocked());
+
+    LocalPersistenceService.SafeSpaceIdentifier id = service.createSafeSpaceIdentifier("test", "test");
     service.createSafeSpace(id);
-    assertThat(f, fileExistsOwnerOpen(1));
+
+    assertThat(f, containsCacheDirectory("test", "test"));
+
     // try to destroy the physical space without the logical id
-    SafeSpaceIdentifier newId = service.createSafeSpaceIdentifier("test", "test");
+    LocalPersistenceService.SafeSpaceIdentifier newId = service.createSafeSpaceIdentifier("test", "test");
     service.destroySafeSpace(newId, false);
-    assertThat(f, fileExistsOwnerOpen(0));
+
+    assertThat(f, not(containsCacheDirectory("test", "test")));
+
     service.stop();
-    assertThat(f, fileExistOwnerClosed(0));
-    assertThat(service.getLockFile().exists(), is(false));
+
+    assertThat(f, not(isLocked()));
   }
 
   @Test

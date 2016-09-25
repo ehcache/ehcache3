@@ -51,6 +51,10 @@ public class DefaultDiskResourceService implements DiskResourceService {
     this.knownPersistenceSpaces = new ConcurrentHashMap<String, PersistenceSpace>();
   }
 
+  private boolean isStarted() {
+    return persistenceService != null;
+  }
+
   /**
    * {@inheritDoc}
    */
@@ -88,7 +92,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public PersistenceSpaceIdentifier<DiskResourceService> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    if (persistenceService == null) {
+    if (!isStarted()) {
       return null;
     }
     boolean persistent = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent();
@@ -152,17 +156,22 @@ public class DefaultDiskResourceService implements DiskResourceService {
     }
   }
 
+  private void checkStarted() {
+    if(!isStarted()) {
+      throw new IllegalStateException(getClass().getName() + " should be started to call destroy");
+    }
+  }
+
   /**
    * {@inheritDoc}
    */
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    if (persistenceService == null) {
-      return;
-    }
+    checkStarted();
+
     PersistenceSpace space = knownPersistenceSpaces.remove(name);
     SafeSpaceIdentifier identifier = (space == null) ?
-        persistenceService.createSafeSpaceIdentifier(PERSISTENCE_SPACE_OWNER, name) : space.identifier.persistentSpaceId;
+      persistenceService.createSafeSpaceIdentifier(PERSISTENCE_SPACE_OWNER, name) : space.identifier.persistentSpaceId;
     persistenceService.destroySafeSpace(identifier, true);
   }
 
@@ -171,9 +180,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public void destroyAll() {
-    if (persistenceService == null) {
-      return;
-    }
+    checkStarted();
     persistenceService.destroyAll(PERSISTENCE_SPACE_OWNER);
   }
 
