@@ -52,6 +52,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -78,8 +81,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.ehcache.xml.model.ThreadPoolReferenceType;
 import org.ehcache.xml.model.ThreadPoolsType;
@@ -92,6 +99,7 @@ import static java.util.Collections.singleton;
  */
 class ConfigurationParser {
 
+  private static final Pattern SYSPROP = Pattern.compile("\\$\\{([^}]+)\\}");
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
@@ -104,6 +112,23 @@ class ConfigurationParser {
   private final Unmarshaller unmarshaller;
   private final Map<URI, CacheResourceConfigurationParser> resourceXmlParsers = new HashMap<URI, CacheResourceConfigurationParser>();
   private final ConfigType config;
+
+  static String replaceProperties(String originalValue, final Properties properties) {
+    Matcher matcher = SYSPROP.matcher(originalValue);
+
+    StringBuffer sb = new StringBuffer();
+    while (matcher.find()) {
+      final String property = matcher.group(1);
+      final String value = properties.getProperty(property);
+      if (value == null) {
+        throw new IllegalStateException(String.format("Replacement for ${%s} not found!", property));
+      }
+      matcher.appendReplacement(sb, Matcher.quoteReplacement(value));
+    }
+    matcher.appendTail(sb);
+    final String resolvedValue = sb.toString();
+    return resolvedValue.equals(originalValue) ? null : resolvedValue;
+  }
 
   public ConfigurationParser(String xml) throws IOException, SAXException, JAXBException, ParserConfigurationException {
     Collection<Source> schemaSources = new ArrayList<Source>();
@@ -132,6 +157,9 @@ class ConfigurationParser {
     DocumentBuilder domBuilder = factory.newDocumentBuilder();
     domBuilder.setErrorHandler(new FatalErrorHandler());
     Element dom = domBuilder.parse(xml).getDocumentElement();
+
+    substituteSystemProperties(dom);
+
     if (!CORE_SCHEMA_ROOT_ELEMENT.equals(dom.getLocalName()) || !CORE_SCHEMA_NAMESPACE.equals(dom.getNamespaceURI())) {
       throw new XmlConfigurationException("Expecting {" + CORE_SCHEMA_NAMESPACE + "}" + CORE_SCHEMA_ROOT_ELEMENT
           + " element; found {" + dom.getNamespaceURI() + "}" + dom.getLocalName());
@@ -141,6 +169,37 @@ class ConfigurationParser {
     JAXBContext jc = JAXBContext.newInstance(CORE_SCHEMA_JAXB_MODEL_PACKAGE, configTypeClass.getClassLoader());
     this.unmarshaller = jc.createUnmarshaller();
     this.config = unmarshaller.unmarshal(dom, configTypeClass).getValue();
+  }
+
+  private void substituteSystemProperties(final Element dom) {
+    final Properties properties = System.getProperties();
+    Stack<NodeList> nodeLists = new Stack<NodeList>();
+    nodeLists.push(dom.getChildNodes());
+    while (!nodeLists.isEmpty()) {
+      NodeList nodeList = nodeLists.pop();
+      for (int i = 0; i < nodeList.getLength(); ++i) {
+        Node currentNode = nodeList.item(i);
+        if (currentNode.hasChildNodes()) {
+          nodeLists.push(currentNode.getChildNodes());
+        }
+        final NamedNodeMap attributes = currentNode.getAttributes();
+        if (attributes != null) {
+          for (int j = 0; j < attributes.getLength(); ++j) {
+            final Node attributeNode = attributes.item(j);
+            final String newValue = replaceProperties(attributeNode.getNodeValue(), properties);
+            if (newValue != null) {
+              attributeNode.setNodeValue(newValue);
+            }
+          }
+        }
+        if (currentNode.getNodeType() == Node.TEXT_NODE) {
+          final String newValue = replaceProperties(currentNode.getNodeValue(), properties);
+          if (newValue != null) {
+            currentNode.setNodeValue(newValue);
+          }
+        }
+      }
+    }
   }
 
   public Iterable<ServiceType> getServiceElements() {
