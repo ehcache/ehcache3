@@ -27,7 +27,7 @@ import scripts.Utils
  *   Removes all implicit dependencies from the pom
  *   and adds only what is specified in (from shadowJar)
  *
- *   project.configurations.shadow  (as compile)
+ *   project.configurations.shadowCompile  (as compile)
  *   project.configurations.shadowProvided (as provided)
  *
  *   as well as (these do not affect shadow)
@@ -49,7 +49,7 @@ class EhPomMangle implements Plugin<Project> {
     project.plugins.apply 'signing'
 
     project.configurations {
-      shadow
+      shadowCompile
       shadowProvided
       pomOnlyCompile
       pomOnlyProvided
@@ -60,7 +60,7 @@ class EhPomMangle implements Plugin<Project> {
       pom.scopeMappings.mappings.remove(project.configurations.runtime)
       pom.scopeMappings.mappings.remove(project.configurations.testCompile)
       pom.scopeMappings.mappings.remove(project.configurations.testRuntime)
-      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.COMPILE)
+      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowCompile, Conf2ScopeMappingContainer.COMPILE)
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowProvided, Conf2ScopeMappingContainer.PROVIDED)
 
       //Anything extra to add to pom that isn't in the shadowed jar or compilation
