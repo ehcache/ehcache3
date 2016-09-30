@@ -12,9 +12,9 @@ For samples, documentation, and usage information, please see http://ehcache.org
 
 == Current release
 
-We released 3.1.2 on September 9th 2016.
+We released 3.1.3 on September 30th 2016.
 
-The https://github.com/ehcache/ehcache3/releases/tag/v3.1.2[release notes] contain the links to the artifacts and the documentation to help you get started.
+The https://github.com/ehcache/ehcache3/releases/tag/v3.1.3[release notes] contain the links to the artifacts and the documentation to help you get started.
 
 You should consider upgrading to 3.1.x as it does all 3.0.x does and more with a fully compatible API.
 The only thing to note is that transactional support has been moved to a separate jar.
