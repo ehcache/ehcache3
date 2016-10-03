@@ -1,0 +1,20 @@
+= JSR-107(JCache) Annotations
+
+If you are familiar with Spring, you know that it provides annotations to assist in developing applications.  In regards to caching, Spring offers support for two sets of annotations that can be used to implement caching.  You have the original Spring annotations and the new JSR-107 annotations.  The original Spring annotations are available to use with Spring versions 3.1+, while the JSR-107 annotations are only available in Spring 4.1+.  In this example we are going to use the JSR-107 annotations.  Below I have listed the most commonly used JSR-107(JCache) annotations, with brief descriptions as well as links to their API's.
+
+* *@CacheDefaults* - allows configuration of defaults at the class level.  For instance, you can define a cache name at the class level and this will be used as the default.
+** http://ignite.apache.org/jcache/1.0.0/javadoc/javax/cache/annotation/CacheDefaults.html
+* *@CacheResult* - Cache the return value of the method.  The first time the method is invoked it will be run and the value will be cached.  On subsequent calls if the value is still cached it will be taken from the cache instead of running the method.
+** http://ignite.apache.org/jcache/1.0.0/javadoc/javax/cache/annotation/CacheResult.html
+
+IMPORTANT: Remember that the value is not cached forever.  The length of time will be influenced by how you set your eviction policy, TTL and TTI.  Please see this discussion for the difference between TTL and TTI: http://stackoverflow.com/questions/2583429/how-to-differentiate-between-time-to-live-and-time-to-idle-in-ehcache
+
+* *@CachePut* - Cache the value specified as the @CacheValue.  This is similar to @CacheResult but the difference is it will cache the @CacheValue every time the method is called.
+** http://ignite.apache.org/jcache/1.0.0/javadoc/javax/cache/annotation/CachePut.html
+* *@CacheRemove* - removes entries from the specified cache that match the provided/generated key
+** http://ignite.apache.org/jcache/1.0.0/javadoc/javax/cache/annotation/CacheRemove.html
+* *@CacheRemoveAll* - removes all elements in the specified cache
+** http://ignite.apache.org/jcache/1.0.0/javadoc/javax/cache/annotation/CacheRemoveAll.html
+* The *javax.cache.annotation* package which includes all the JSR-107 annotations:
+** http://ignite.apache.org/jcache/1.0.0/javadoc/javax/cache/annotation/package-summary.html
+

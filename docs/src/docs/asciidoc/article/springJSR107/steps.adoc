@@ -1,0 +1,117 @@
+= Steps
+
+Let's get started!  Below are a few quick steps to get you up and running with Ehcache 3, Spring 4.1+ and JSR-107.  The entire example can be found on GitHub at https://github.com/gibsong/ehcache3_jsr107_spring
+
+. Create a maven Spring project
+. Add the Ehcache 3 to your pom.xml.
++
+  <dependency>
+    <groupId>org.ehcache</groupId>
+    <artifactId>ehcache</artifactId>
+    <version>3.0.0</version>
+  </dependency>
++
+NOTE: Be sure to substitute the version number above with the version number of Ehcache that you want to use.
++
+IMPORTANT: The Ehcache 3 jar must be on the classpath!  Remove all existing caching provider jars from the classpath to ensure that the right implementation is used.
+. Add the jar for the JSR-107 API to pom.xml
++
+  <dependency>
+    <groupId>javax.cache</groupId>
+    <artifactId>cache-api</artifactId>
+  </dependency>
+
+. Enable caching.  This can be done in 1 of 2 ways:
+.. Enable by annotation:
++
+....
+  @EnableCaching
+  public class SpringJsr107Ehcache3Application
+  {
+    public static void main(String[] args)
+    {
+        SpringApplication.run(SpringJsr107Ehcache3Application.class, args);
+    }
+  }
+....
+.. Or enable from the Spring xml configuration file by adding the following annotation: <cache:annotation-driven />
++
+....
+  <beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:cache="http://www.springframework.org/schema/cache"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+    http://www.springframework.org/schema/cache http://www.springframework.org/schema/cache/spring-cache.xsd">
+
+    <cache:annotation-driven />
+
+  </beans>
+....
+. Declare caching on methods.
++
+....
+  @CacheResult
+  Person getPerson(int ssn)
+  {
+    switch (ssn)
+    {
+      case 123456789:
+        return new Person(ssn, "Geoff", "Gibson");
+      case 987654321:
+        return new Person(ssn, "Cory", "Beck");
+      default:
+        return new Person(ssn,"John","Doe");
+    }
+  }
+....
+. Configure ehcache.xml
++
+[source,xml]
+.ehcache.xml
+----
+<config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns='http://www.ehcache.org/v3'
+    xmlns:jsr107='http://www.ehcache.org/v3/jsr107'>
+
+  <service>
+    <jsr107:defaults>
+      <jsr107:cache name="people" template="heap-cache"/>
+    </jsr107:defaults>
+  </service>
+
+  <cache-template name="heap-cache">
+    <listeners>
+      <listener>
+        <class>org.terracotta.ehcache.EvictionLogger</class>
+        <event-firing-mode>ASYNCHRONOUS</event-firing-mode>
+        <event-ordering-mode>UNORDERED</event-ordering-mode>
+        <events-to-fire-on>EVICTED</events-to-fire-on>
+      </listener>
+    </listeners>
+    <resources>
+      <heap unit="entries">2000</heap>
+      <offheap unit="MB">100</offheap> <!-- unit of measure is case sensitive! -->
+    </resources>
+  </cache-template>
+</config>
+----
++
+NOTE: XML Configuration Documentation: http://www.ehcache.org/documentation/3.0/xml.html
+. Create a cache by implementing the JCacheManagerCustomizer.customzie(CacheManager cacheManagegr) method, which will be invoked before the CacheManager is used.
++
+....
+  @Component
+  public static class CachingSetup implements JCacheManagerCustomizer
+  {
+    @Override
+    public void customize(CacheManager cacheManager)
+    {
+      cacheManager.createCache("people", new MutableConfiguration<>()
+        .setExpiryPolicyFactory(TouchedExpiryPolicy.factoryOf(new Duration(SECONDS, 5)))
+        .setStoreByValue(false)
+        .setStatisticsEnabled(true));
+    }
+  }
+....
++
+NOTE: JCacheManagerCustomizer API: https://docs.spring.io/spring-boot/docs/current/api/org/springframework/boot/autoconfigure/cache/JCacheManagerCustomizer.html
