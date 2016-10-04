@@ -42,17 +42,18 @@ import java.util.concurrent.ConcurrentMap;
  */
 public class DefaultDiskResourceService implements DiskResourceService {
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultDiskResourceService.class);
-  private static final String PERSISTENCE_SPACE_OWNER = "file";
+  static final String PERSISTENCE_SPACE_OWNER = "file";
 
   private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces;
   private volatile LocalPersistenceService persistenceService;
+  private volatile boolean isStarted;
 
   public DefaultDiskResourceService() {
     this.knownPersistenceSpaces = new ConcurrentHashMap<String, PersistenceSpace>();
   }
 
   private boolean isStarted() {
-    return persistenceService != null;
+    return isStarted;
   }
 
   /**
@@ -61,14 +62,16 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
     persistenceService = serviceProvider.getService(LocalPersistenceService.class);
+    isStarted = true;
   }
 
   /**
    * {@inheritDoc}
    */
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
+  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
     persistenceService = serviceProvider.getService(LocalPersistenceService.class);
+    isStarted = true;
   }
 
   /**
@@ -76,6 +79,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public void stop() {
+    isStarted = false;
     persistenceService = null;
   }
 
@@ -92,7 +96,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public PersistenceSpaceIdentifier<DiskResourceService> getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    if (!isStarted()) {
+    if (persistenceService == null) {
       return null;
     }
     boolean persistent = config.getResourcePools().getPoolForResource(ResourceType.Core.DISK).isPersistent();
@@ -117,7 +121,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
       }
     }
     if (name == null) {
-      throw new CachePersistenceException("Unknown space " + identifier);
+      throw newCachePersistenceException(identifier);
     }
     PersistenceSpace persistenceSpace = knownPersistenceSpaces.remove(name);
     if (persistenceSpace != null) {
@@ -169,6 +173,10 @@ public class DefaultDiskResourceService implements DiskResourceService {
   public void destroy(String name) throws CachePersistenceException {
     checkStarted();
 
+    if(persistenceService == null) {
+      return;
+    }
+
     PersistenceSpace space = knownPersistenceSpaces.remove(name);
     SafeSpaceIdentifier identifier = (space == null) ?
       persistenceService.createSafeSpaceIdentifier(PERSISTENCE_SPACE_OWNER, name) : space.identifier.persistentSpaceId;
@@ -181,6 +189,11 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public void destroyAll() {
     checkStarted();
+
+    if(persistenceService == null) {
+      return;
+    }
+
     persistenceService.destroyAll(PERSISTENCE_SPACE_OWNER);
   }
 
@@ -197,11 +210,14 @@ public class DefaultDiskResourceService implements DiskResourceService {
       FileBasedStateRepository previous = persistenceSpace.stateRepositories.putIfAbsent(name, stateRepository);
       if (previous != null) {
         return previous;
-      } else {
-        return stateRepository;
       }
+      return stateRepository;
     }
-    throw new CachePersistenceException("Unknown space " + identifier);
+    throw newCachePersistenceException(identifier);
+  }
+
+  private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) {
+    return new CachePersistenceException("Unknown space: " + identifier);
   }
 
   private PersistenceSpace getPersistenceSpace(PersistenceSpaceIdentifier<?> identifier) {
@@ -222,9 +238,8 @@ public class DefaultDiskResourceService implements DiskResourceService {
     if (containsSpace(identifier)) {
       return new DefaultFileBasedPersistenceContext(
           FileUtils.createSubDirectory(((DefaultPersistenceSpaceIdentifier)identifier).persistentSpaceId.getRoot(), name));
-    } else {
-      throw new CachePersistenceException("Unknown space: " + identifier);
     }
+    throw newCachePersistenceException(identifier);
   }
 
   private boolean containsSpace(PersistenceSpaceIdentifier<?> identifier) {

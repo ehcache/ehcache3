@@ -77,6 +77,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyCollection;
 import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -855,7 +856,8 @@ public class EhcacheManagerTest {
     DefaultConfiguration config = new DefaultConfiguration(caches, null);
     List<Service> services = minimunCacheManagerServices();
     MaintainableService service = mock(MaintainableService.class);
-    doThrow(new RuntimeException("failed")).when(service).startForMaintenance(Mockito.<ServiceProvider<MaintainableService>>anyObject());
+    doThrow(new RuntimeException("failed")).when(service)
+      .startForMaintenance(Mockito.<ServiceProvider<MaintainableService>>anyObject(), eq(MaintainableService.MaintenanceScope.CACHE));
     services.add(service);
 
     EhcacheManager manager = new EhcacheManager(config, services);

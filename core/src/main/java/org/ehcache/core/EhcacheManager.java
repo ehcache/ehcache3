@@ -678,7 +678,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
 
     if(maintenance != null) {
       try {
-        startMaintainableServices();
+        startMaintainableServices(MaintainableService.MaintenanceScope.CACHE);
         maintenance.succeeded();
       } catch (Throwable t) {
         throw maintenance.failed(t);
@@ -715,7 +715,7 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   public void destroy() throws CachePersistenceException {
     StatusTransitioner.Transition st = statusTransitioner.maintenance();
     try {
-      startMaintainableServices();
+      startMaintainableServices(MaintainableService.MaintenanceScope.CACHE_MANAGER);
       st.succeeded();
     } catch (Throwable t) {
       throw st.failed(t);
@@ -731,11 +731,11 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     LOGGER.info("All persistent data destroyed for {}", simpleName);
   }
 
-  private void startMaintainableServices() {
+  private void startMaintainableServices(MaintainableService.MaintenanceScope maintenanceScope) {
     ServiceProvider<MaintainableService> provider = getMaintainableServiceProvider();
     Collection<MaintainableService> services = serviceLocator.getServicesOfType(MaintainableService.class);
     for (MaintainableService service : services) {
-      service.startForMaintenance(provider);
+      service.startForMaintenance(provider, maintenanceScope);
     }
   }
 
