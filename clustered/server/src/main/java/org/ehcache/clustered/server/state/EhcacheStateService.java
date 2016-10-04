@@ -50,4 +50,6 @@ public interface EhcacheStateService {
   StateRepositoryManager getStateRepositoryManager() throws ClusterException;
 
   ClientMessageTracker getClientMessageTracker();
+
+  EvictionTracker getEvictionTracker(String cacheId);
 }

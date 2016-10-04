@@ -22,10 +22,12 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
+import org.ehcache.clustered.common.internal.messages.RetirementMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
@@ -47,6 +49,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
 
 public class EhcachePassiveEntityTest {
 
@@ -241,7 +244,7 @@ public class EhcachePassiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build()));
-
+    passiveEntity.invoke(new RetirementMessage(0L, CLIENT_ID));
     passiveEntity.invoke(MESSAGE_FACTORY.createServerStore("cacheAlias",
         new ServerStoreConfigBuilder()
             .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -278,6 +281,7 @@ public class EhcachePassiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build()));
+    passiveEntity.invoke(new RetirementMessage(0L, CLIENT_ID));
 
     passiveEntity.invoke(
         MESSAGE_FACTORY.createServerStore("cacheAlias",
@@ -312,6 +316,7 @@ public class EhcachePassiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build()));
+    passiveEntity.invoke(new RetirementMessage(0L, CLIENT_ID));
 
     passiveEntity.invoke(
         MESSAGE_FACTORY.createServerStore("dedicatedCache",
@@ -372,6 +377,7 @@ public class EhcachePassiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build()));
+    passiveEntity.invoke(new RetirementMessage(0L, CLIENT_ID));
     assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
 
     passiveEntity.invoke(
@@ -436,11 +442,11 @@ public class EhcachePassiveEntityTest {
 
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
 
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-            .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-            .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-            .build()));
+    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+        .build()));
+    passiveEntity.invoke(new RetirementMessage(0L, CLIENT_ID));
 
     passiveEntity.invoke(
         MESSAGE_FACTORY.createServerStore("dedicatedCache",
@@ -649,6 +655,8 @@ public class EhcachePassiveEntityTest {
           this.storeManagerService = new EhcacheStateServiceImpl(this, getIdentifiers(pools.keySet()));
         }
         return (T) (this.storeManagerService);
+      } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
+        return (T) mock(IEntityMessenger.class);
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

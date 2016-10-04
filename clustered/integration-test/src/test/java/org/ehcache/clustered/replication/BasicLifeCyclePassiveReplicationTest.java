@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered;
+package org.ehcache.clustered.replication;
 
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
@@ -24,12 +24,14 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.service.ClusteredTierCreationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
+import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
+import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.junit.After;
 import org.junit.Before;
@@ -43,6 +45,7 @@ import java.lang.reflect.Field;
 import java.util.Collections;
 
 import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -157,6 +160,32 @@ public class BasicLifeCyclePassiveReplicationTest {
     } catch (ClusteredTierManagerConfigurationException e) {
       assertThat(e.getCause(), instanceOf(InvalidStoreManagerException.class));
       assertThat(e.getCause().getMessage(), is("Clustered Tier Manager already configured"));
+    }
+
+    service.stop();
+  }
+
+  @Test
+  public void testValidateReplication() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
+            .autoCreate()
+            .build();
+
+    ClusteringService service = new ClusteringServiceFactory().create(configuration);
+
+    service.start(null);
+
+    EhcacheClientEntity clientEntity = getEntity(service);
+
+    CLUSTER.getClusterControl().terminateActive();
+
+    try {
+      clientEntity.validate(configuration.getServerConfiguration());
+      fail("LifecycleException Expected.");
+    } catch (ClusteredTierManagerValidationException e) {
+      assertThat(e.getCause(), instanceOf(LifecycleException.class));
+      assertThat(e.getCause().getMessage(), containsString("is already being tracked with Client Id"));
     }
 
     service.stop();

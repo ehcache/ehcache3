@@ -78,12 +78,17 @@ public class EhcacheClientEntity implements Entity {
     void onDisconnection();
   }
 
+  public interface ReconnectListener {
+    void onHandleReconnect(ReconnectData reconnectData);
+  }
+
   private final AtomicLong sequenceGenerator = new AtomicLong(0L);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
+  private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<ReconnectListener>();
   private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private volatile boolean connected = true;
   private final ReconnectData reconnectData = new ReconnectData();
@@ -104,6 +109,9 @@ public class EhcacheClientEntity implements Entity {
 
       @Override
       public byte[] createExtendedReconnectData() {
+        for (ReconnectListener reconnectListener : reconnectListeners) {
+          reconnectListener.onHandleReconnect(reconnectData);
+        }
         return reconnectDataCodec.encode(reconnectData);
       }
 
@@ -153,6 +161,10 @@ public class EhcacheClientEntity implements Entity {
 
   public void addDisconnectionListener(DisconnectionListener listener) {
     disconnectionListeners.add(listener);
+  }
+
+  public void addReconnectListener(ReconnectListener listener) {
+    reconnectListeners.add(listener);
   }
 
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
@@ -293,7 +305,6 @@ public class EhcacheClientEntity implements Entity {
 
   public InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
       throws MessageCodecException {
-    InvokeFuture<EhcacheEntityResponse> invoke;
     getClientId();
     if (replicate) {
       message.setId(sequenceGenerator.getAndIncrement());
@@ -327,7 +338,7 @@ public class EhcacheClientEntity implements Entity {
    */
   public static final class Timeouts {
 
-    public static final TimeoutDuration DEFAULT_READ_OPERATION_TIMEOUT = TimeoutDuration.of(5, TimeUnit.SECONDS);
+    public static final TimeoutDuration DEFAULT_READ_OPERATION_TIMEOUT = TimeoutDuration.of(20, TimeUnit.SECONDS);
 
     private final TimeoutDuration readOperationTimeout;
     private final TimeoutDuration mutativeOperationTimeout;

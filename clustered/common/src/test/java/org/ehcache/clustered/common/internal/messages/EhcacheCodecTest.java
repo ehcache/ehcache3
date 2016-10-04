@@ -36,25 +36,37 @@ public class EhcacheCodecTest {
     ServerStoreOpCodec serverStoreOpCodec = mock(ServerStoreOpCodec.class);
     LifeCycleMessageCodec lifeCycleMessageCodec = mock(LifeCycleMessageCodec.class);
     StateRepositoryOpCodec stateRepositoryOpCodec = mock(StateRepositoryOpCodec.class);
-    EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null);
+    RetirementMessageCodec retirementMessageCodec = mock(RetirementMessageCodec.class);
+    EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null, retirementMessageCodec);
 
     LifecycleMessage.DestroyServerStore lifecycleMessage = new LifecycleMessage.DestroyServerStore("foo", CLIENT_ID);
     codec.encodeMessage(lifecycleMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, never()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, never()).encode(any(StateRepositoryOpMessage.class));
+    verify(retirementMessageCodec, never()).encode(any(RetirementMessage.class));
 
     ServerStoreOpMessage.ClearMessage serverStoreOpMessage = new ServerStoreOpMessage.ClearMessage("foo", CLIENT_ID);
     codec.encodeMessage(serverStoreOpMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, never()).encode(any(StateRepositoryOpMessage.class));
+    verify(retirementMessageCodec, never()).encode(any(RetirementMessage.class));
 
     StateRepositoryOpMessage.EntrySetMessage stateRepositoryOpMessage = new StateRepositoryOpMessage.EntrySetMessage("foo", "bar", CLIENT_ID);
     codec.encodeMessage(stateRepositoryOpMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, only()).encode(any(StateRepositoryOpMessage.class));
+    verify(retirementMessageCodec, never()).encode(any(RetirementMessage.class));
+
+    RetirementMessage retirementMessage = new RetirementMessage(20L, CLIENT_ID);
+    codec.encodeMessage(retirementMessage);
+    verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
+    verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
+    verify(stateRepositoryOpCodec, only()).encode(any(StateRepositoryOpMessage.class));
+    verify(retirementMessageCodec, only()).encode(any(RetirementMessage.class));
+
   }
 
   @Test
@@ -62,7 +74,8 @@ public class EhcacheCodecTest {
     ServerStoreOpCodec serverStoreOpCodec = mock(ServerStoreOpCodec.class);
     LifeCycleMessageCodec lifeCycleMessageCodec = mock(LifeCycleMessageCodec.class);
     StateRepositoryOpCodec stateRepositoryOpCodec = mock(StateRepositoryOpCodec.class);
-    EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null);
+    RetirementMessageCodec retirementMessageCodec = mock(RetirementMessageCodec.class);
+    EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null, retirementMessageCodec);
 
     byte[] payload = new byte[1];
 
@@ -73,6 +86,7 @@ public class EhcacheCodecTest {
     verify(lifeCycleMessageCodec, times(10)).decode(payload);
     verify(serverStoreOpCodec, never()).decode(payload);
     verify(stateRepositoryOpCodec, never()).decode(payload);
+    verify(retirementMessageCodec, never()).decode(payload);
 
     for (byte i = 11; i <= EhcacheEntityMessage.Type.SERVER_STORE_OP.getCode(); i++) {
       payload[0] = i;
@@ -81,6 +95,7 @@ public class EhcacheCodecTest {
     verify(lifeCycleMessageCodec, times(10)).decode(payload);
     verify(serverStoreOpCodec, times(10)).decode(payload);
     verify(stateRepositoryOpCodec, never()).decode(payload);
+    verify(retirementMessageCodec, never()).decode(payload);
 
     for (byte i = 21; i <= EhcacheEntityMessage.Type.STATE_REPO_OP.getCode(); i++) {
       payload[0] = i;
@@ -89,6 +104,16 @@ public class EhcacheCodecTest {
     verify(lifeCycleMessageCodec, times(10)).decode(payload);
     verify(serverStoreOpCodec, times(10)).decode(payload);
     verify(stateRepositoryOpCodec, times(10)).decode(payload);
+    verify(retirementMessageCodec, never()).decode(payload);
+
+    for (byte i = 31; i <= EhcacheEntityMessage.Type.RETIREMENT_OP.getCode(); i++) {
+      payload[0] = i;
+      codec.decodeMessage(payload);
+    }
+    verify(lifeCycleMessageCodec, times(10)).decode(payload);
+    verify(serverStoreOpCodec, times(10)).decode(payload);
+    verify(stateRepositoryOpCodec, times(10)).decode(payload);
+    verify(retirementMessageCodec, times(10)).decode(payload);
 
   }
 }

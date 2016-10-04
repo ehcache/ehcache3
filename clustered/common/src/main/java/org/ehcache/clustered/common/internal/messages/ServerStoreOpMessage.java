@@ -116,7 +116,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     return getType() + "#" + operation();
   }
 
-  static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage {
+  public static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage {
 
     private final long key;
 

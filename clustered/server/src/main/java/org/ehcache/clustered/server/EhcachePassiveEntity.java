@@ -29,6 +29,8 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
+import org.ehcache.clustered.common.internal.messages.RetirementMessage;
+import org.ehcache.clustered.common.internal.messages.RetirementMessage.ServerStoreRetirementMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
@@ -72,6 +74,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         case STATE_REPO_OP:
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
           break;
+        case RETIREMENT_OP:
+          invokeRetirementMessages((RetirementMessage)message);
+          break;
         default:
           throw new IllegalMessageException("Unknown message : " + message);
       }
@@ -95,6 +100,33 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
+  private void invokeRetirementMessages(RetirementMessage message) throws ClusterException {
+
+    switch (message.operation()) {
+      case SERVERSTORE_RETIRE: {
+        LOGGER.debug("ServerStore retirement message for msgId {} & client Id {}", message.getId(), message.getClientId());
+        ServerStoreRetirementMessage retirementMessage = (ServerStoreRetirementMessage)message;
+        ServerStoreImpl cacheStore = ehcacheStateService.getStore(retirementMessage.getCacheId());
+        if (cacheStore == null) {
+          throw new LifecycleException("Clustered tier does not exist : '" + retirementMessage.getCacheId() + "'");
+        }
+        cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
+        ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
+        boolean result = ehcacheStateService.getEvictionTracker(retirementMessage.getCacheId()).remove(retirementMessage.getKey());
+        LOGGER.debug("Result of removing key {} for cache {} with msgID {} & client Id {} was : {} ", retirementMessage.getKey(), retirementMessage
+            .getCacheId(), retirementMessage.getId(), retirementMessage.getClientId(), result);
+        break;
+      }
+      case RETIRE: {
+        LOGGER.debug("Retirement message for msgId {} & client Id {}", message.getId(), message.getClientId());
+        ehcacheStateService.getClientMessageTracker().add(message.getClientId());
+        break;
+      }
+      default:
+        throw new IllegalMessageException("Unknown Retirement Message : " + message);
+    }
+  }
+
   private void invokeServerStoreOperation(ServerStoreOpMessage message) throws ClusterException {
     ServerStoreImpl cacheStore = ehcacheStateService.getStore(message.getCacheId());
     if (cacheStore == null) {
@@ -103,19 +135,14 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
 
     switch (message.operation()) {
-      //TODO: check if append and getandappend can be combined
-      case APPEND: {
-        ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
-        cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
-        break;
-      }
+      case APPEND:
       case GET_AND_APPEND: {
-        ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
-        cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
+        LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {} is tracked now.", message.getId(), message.getClientId());
+        ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
         break;
       }
       case REPLACE: {
-        ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
+        ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
         cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
         break;
       }
@@ -132,6 +159,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     switch (message.operation()) {
       case CONFIGURE:
         configure((ConfigureStoreManager) message);
+        break;
+      case VALIDATE:
+        trackAndApplyMessage(message);
         break;
       case CREATE_SERVER_STORE:
         createServerStore((CreateServerStore) message);
@@ -152,7 +182,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   private void trackAndApplyMessage(LifecycleMessage message) {
     ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker();
     if (!clientMessageTracker.isAdded(message.getClientId())) {
-      clientMessageTracker.add(message.getClientId());
+      throw new IllegalStateException("Untracked client id " + message.getClientId());
     }
     clientMessageTracker.track(message.getId(), message.getClientId());
     clientMessageTracker.applied(message.getId(), message.getClientId());
@@ -173,8 +203,11 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     LOGGER.info("Creating new clustered tier '{}'", name);
 
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
-    ehcacheStateService.createStore(name, storeConfiguration);
-
+    ServerStoreImpl serverStore = ehcacheStateService.createStore(name, storeConfiguration);
+    serverStore.setEvictionListener( evictedKey -> {
+      ehcacheStateService.getEvictionTracker(name).add(evictedKey);
+      LOGGER.debug("Tracking evicted key {} by passive for cache {}.", evictedKey, name);
+    });
   }
 
   private void destroyServerStore(DestroyServerStore destroyServerStore) throws ClusterException {
