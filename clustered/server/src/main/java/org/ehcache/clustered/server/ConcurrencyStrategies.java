@@ -33,7 +33,7 @@ public final class ConcurrencyStrategies {
     return new DefaultConcurrencyStrategy<T>(bucketCount);
   }
 
-  static class DefaultConcurrencyStrategy<T extends EntityMessage> implements ConcurrencyStrategy<T> {
+  public static class DefaultConcurrencyStrategy<T extends EntityMessage> implements ConcurrencyStrategy<T> {
     public static final int DEFAULT_KEY = 1;
 
     private final int bucketCount;
