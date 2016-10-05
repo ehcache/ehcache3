@@ -18,42 +18,41 @@ package org.ehcache.transactions.xa.internal;
 
 import org.ehcache.Cache;
 import org.ehcache.ValueSupplier;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.core.spi.service.DiskResourceService;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.events.StoreEventSource;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
+import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.transactions.xa.XACacheException;
+import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.internal.commands.StoreEvictCommand;
 import org.ehcache.transactions.xa.internal.commands.StorePutCommand;
 import org.ehcache.transactions.xa.internal.commands.StoreRemoveCommand;
-import org.ehcache.transactions.xa.configuration.XAStoreConfiguration;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.transactions.xa.internal.journal.JournalProvider;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -733,7 +732,7 @@ public class XAStore<K, V> implements Store<K, V> {
   @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class})
   public static class Provider implements Store.Provider {
 
-    private volatile ServiceProvider<Service> serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private volatile TransactionManagerProvider transactionManagerProvider;
     private final Map<Store<?, ?>, CreatedStoreRef> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, CreatedStoreRef>();
 
@@ -971,7 +970,7 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
       this.transactionManagerProvider = serviceProvider.getService(TransactionManagerProvider.class);
     }

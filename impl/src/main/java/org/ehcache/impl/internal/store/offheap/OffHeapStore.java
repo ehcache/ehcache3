@@ -16,37 +16,36 @@
 
 package org.ehcache.impl.internal.store.offheap;
 
-import org.ehcache.config.SizedResourcePool;
-import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.LowerCachingTier;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.LowerCachingTierOperationsOutcome;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
+import org.ehcache.core.statistics.TierOperationStatistic;
+import org.ehcache.core.statistics.TierOperationStatistic.TierOperationOutcomes;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
-import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.impl.serialization.TransientStateRepository;
-import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
-import org.ehcache.core.spi.store.tiering.LowerCachingTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.Service;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
-import org.ehcache.core.statistics.TierOperationStatistic;
-import org.ehcache.core.statistics.TierOperationStatistic.TierOperationOutcomes;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.paging.PageSource;
@@ -133,7 +132,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);
 
-    private volatile ServiceProvider<Service> serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
     private final Map<OffHeapStore<?, ?>, Collection<TierOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OffHeapStore<?, ?>, Collection<TierOperationStatistic<?, ?>>>();
 
@@ -229,7 +228,7 @@ public class OffHeapStore<K, V> extends AbstractOffHeapStore<K, V> {
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

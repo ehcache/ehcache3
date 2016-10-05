@@ -17,6 +17,7 @@
 package org.ehcache.core;
 
 import org.ehcache.Cache;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.Status;
 import org.ehcache.config.Builder;
@@ -27,32 +28,30 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.config.BaseCacheConfiguration;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.config.store.StoreEventSourceConfiguration;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventDispatcherFactory;
-import org.ehcache.core.events.CacheManagerListener;
-import org.ehcache.core.spi.LifeCycledAdapter;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.spi.store.InternalCacheManager;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.core.spi.service.CacheManagerProviderService;
-import org.ehcache.core.internal.util.ClassLoading;
-import org.ehcache.event.CacheEventListener;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
-import org.ehcache.CachePersistenceException;
+import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreSupport;
+import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.core.spi.LifeCycled;
-import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.core.spi.LifeCycledAdapter;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
+import org.ehcache.core.spi.store.InternalCacheManager;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.event.CacheEventListener;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindProvider;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
 import org.ehcache.spi.service.MaintainableService;
-import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
@@ -709,24 +708,10 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
   }
 
   private void startMaintainableServices() {
-    ServiceProvider<MaintainableService> provider = getMaintainableServiceProvider();
     Collection<MaintainableService> services = serviceLocator.getServicesOfType(MaintainableService.class);
     for (MaintainableService service : services) {
-      service.startForMaintenance(provider);
+      service.startForMaintenance(serviceLocator);
     }
-  }
-
-  private ServiceProvider<MaintainableService> getMaintainableServiceProvider() {
-    return new ServiceProvider<MaintainableService>() {
-      @Override
-      public <U extends MaintainableService> U getService(Class<U> serviceType) {
-        return serviceLocator.getService(serviceType);
-      }
-      @Override
-      public <U extends MaintainableService> Collection<U> getServicesOfType(final Class<U> serviceType) {
-        return serviceLocator.getServicesOfType(serviceType);
-      }
-    };
   }
 
   private void stopMaintainableServices() {

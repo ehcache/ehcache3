@@ -17,26 +17,25 @@
 package org.ehcache.impl.internal.store.heap.bytesized;
 
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.DefaultSizeOfEngine;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
-import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.junit.Before;
 
 import java.util.Arrays;
@@ -129,7 +128,7 @@ public class OnHeapStoreCachingTierByValueSPITest extends CachingTierSPITest<Str
       }
 
       @Override
-      public ServiceProvider<Service> getServiceProvider() {
+      public ServiceProvider getServiceProvider() {
         return new ServiceLocator();
       }
 

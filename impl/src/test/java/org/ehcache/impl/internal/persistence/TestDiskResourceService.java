@@ -16,25 +16,22 @@
 
 package org.ehcache.impl.internal.persistence;
 
-import java.io.File;
-
+import org.ehcache.CachePersistenceException;
 import org.ehcache.config.CacheConfiguration;
-
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
-import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.spi.service.MaintainableService;
-import org.ehcache.spi.service.Service;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
 import org.mockito.Mockito;
+
+import java.io.File;
 
 import static org.mockito.Mockito.mock;
 
@@ -119,12 +116,12 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     //ignore
   }
 
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
+  public void startForMaintenance(ServiceProvider serviceProvider) {
     //ignore
   }
 

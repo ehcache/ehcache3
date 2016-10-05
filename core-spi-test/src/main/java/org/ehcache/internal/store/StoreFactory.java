@@ -17,12 +17,11 @@
 package org.ehcache.internal.store;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.service.Service;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 
 /**
  * @author Alex Snaps
@@ -45,7 +44,7 @@ public interface StoreFactory<K, V> {
 
   ServiceConfiguration<?>[] getServiceConfigurations();
 
-  ServiceProvider<Service> getServiceProvider();
+  ServiceProvider getServiceProvider();
 
   K createKey(long seed);
 

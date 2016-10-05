@@ -15,20 +15,20 @@
  */
 package org.ehcache.impl.internal.executor;
 
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.impl.internal.util.ThreadFactoryUtil;
+import org.ehcache.spi.service.ServiceProvider;
+
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import static java.util.concurrent.Executors.unconfigurableExecutorService;
-import static java.util.concurrent.Executors.unconfigurableScheduledExecutorService;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.ehcache.impl.internal.util.ThreadFactoryUtil;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.spi.service.Service;
+import static java.util.concurrent.Executors.unconfigurableExecutorService;
+import static java.util.concurrent.Executors.unconfigurableScheduledExecutorService;
 
 /**
  *
@@ -78,7 +78,7 @@ public class OnDemandExecutionService implements ExecutionService {
   }
 
   @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     //no-op
   }
 

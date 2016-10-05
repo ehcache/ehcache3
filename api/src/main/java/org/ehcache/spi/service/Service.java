@@ -40,7 +40,7 @@ public interface Service {
    *
    * @param serviceProvider the service provider
    */
-  void start(ServiceProvider<Service> serviceProvider);
+  void start(ServiceProvider serviceProvider);
 
   /**
    * Stops this service.

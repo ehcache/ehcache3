@@ -16,26 +16,26 @@
 
 package org.ehcache.impl.internal.spi;
 
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceProvider;
+
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.service.Service;
 
 /**
  *
  */
 public final class TestServiceProvider {
 
-  public static ServiceProvider<Service> providerContaining(final Service... services) {
+  public static ServiceProvider providerContaining(final Service... services) {
     final Map<Class<? extends Service>, Service> servicesMap = new HashMap<Class<? extends Service>, Service>();
 
     for (Service s : services) {
       servicesMap.put(s.getClass(), s);
     }
 
-    return new ServiceProvider<Service>() {
+    return new ServiceProvider() {
 
       @Override
       public <T extends Service> T getService(Class<T> serviceType) {

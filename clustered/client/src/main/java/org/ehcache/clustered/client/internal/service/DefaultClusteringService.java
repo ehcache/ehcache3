@@ -43,8 +43,6 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.service.MaintainableService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
@@ -139,7 +137,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     initClusterConnection();
     createEntityFactory();
     try {
@@ -205,7 +203,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
+  public void startForMaintenance(ServiceProvider serviceProvider) {
     initClusterConnection();
     createEntityFactory();
     if (!entityFactory.acquireLeadership(entityIdentifier)) {

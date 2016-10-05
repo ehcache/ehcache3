@@ -28,7 +28,6 @@ import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.management.CollectorService;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultCollectorService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.LoggerFactory;
@@ -71,7 +70,7 @@ public class DefaultClusteringManagementService implements ClusteringManagementS
   }
 
   @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     this.clusteringService = serviceProvider.getService(ClusteringService.class);
     this.managementRegistryService = serviceProvider.getService(ManagementRegistryService.class);
     this.cacheManager = serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();

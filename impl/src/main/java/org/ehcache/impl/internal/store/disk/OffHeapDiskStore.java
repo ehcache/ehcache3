@@ -16,44 +16,43 @@
 
 package org.ehcache.impl.internal.store.disk;
 
-import org.ehcache.config.SizedResourcePool;
-import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.Status;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.events.StoreEventDispatcher;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
+import org.ehcache.core.statistics.TierOperationStatistic;
+import org.ehcache.core.statistics.TierOperationStatistic.TierOperationOutcomes;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.events.StoreEventDispatcher;
-import org.ehcache.CachePersistenceException;
 import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
-import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
+import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
-import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.Service;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
-import org.ehcache.core.statistics.TierOperationStatistic;
-import org.ehcache.core.statistics.TierOperationStatistic.TierOperationOutcomes;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
@@ -307,7 +306,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     private final Map<OffHeapDiskStore<?, ?>, Collection<TierOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OffHeapDiskStore<?, ?>, Collection<TierOperationStatistic<?, ?>>>();
     private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, PersistenceSpaceIdentifier>();
     private final String defaultThreadPool;
-    private volatile ServiceProvider<Service> serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private volatile DiskResourceService diskPersistenceService;
 
     public Provider() {
@@ -457,7 +456,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
       diskPersistenceService = serviceProvider.getService(DiskResourceService.class);
       if (diskPersistenceService == null) {

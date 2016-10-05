@@ -28,7 +28,6 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
@@ -85,7 +84,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   }
 
   @Override
-  public synchronized void start(ServiceProvider<Service> serviceProvider) {
+  public synchronized void start(ServiceProvider serviceProvider) {
     timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
     managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     configuration = managementRegistry.getConfiguration();

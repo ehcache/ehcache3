@@ -42,14 +42,14 @@ import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.StoreAccessTimeoutException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
-import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
-import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.TierOperationStatistic;
 import org.ehcache.core.statistics.TierOperationStatistic.TierOperationOutcomes;
 import org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration;
@@ -57,9 +57,8 @@ import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.StatisticsManager;
@@ -556,7 +555,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       CLUSTER_RESOURCES = Collections.unmodifiableSet(resourceTypes);
     }
 
-    private volatile ServiceProvider<Service> serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private volatile ClusteringService clusteringService;
 
     private final Map<Store<?, ?>, StoreConfig> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, StoreConfig>();
@@ -725,7 +724,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     }
 
     @Override
-    public void start(final ServiceProvider<Service> serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
       this.clusteringService = this.serviceProvider.getService(ClusteringService.class);
     }

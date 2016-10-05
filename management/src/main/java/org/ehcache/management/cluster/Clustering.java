@@ -39,7 +39,7 @@ public class Clustering {
   /**
    * Check if clustering is active for this cache manager
    */
-  public static boolean isAvailable(ServiceProvider<Service> serviceProvider) {
+  public static boolean isAvailable(ServiceProvider serviceProvider) {
     return ENTITY_SERVICE_CLASS != null && serviceProvider.getService(ENTITY_SERVICE_CLASS) != null;
   }
 

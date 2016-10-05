@@ -25,8 +25,6 @@ import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.spi.service.LocalPersistenceService.SafeSpaceIdentifier;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.service.MaintainableService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +53,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    * {@inheritDoc}
    */
   @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     persistenceService = serviceProvider.getService(LocalPersistenceService.class);
   }
 
@@ -63,7 +61,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    * {@inheritDoc}
    */
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
+  public void startForMaintenance(ServiceProvider serviceProvider) {
     persistenceService = serviceProvider.getService(LocalPersistenceService.class);
   }
 

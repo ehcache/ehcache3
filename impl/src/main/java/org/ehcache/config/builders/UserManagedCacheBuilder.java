@@ -350,7 +350,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     }
   }
 
-  private void registerListeners(Cache<K, V> cache, ServiceProvider<Service> serviceProvider, List<LifeCycled> lifeCycledList) {
+  private void registerListeners(Cache<K, V> cache, ServiceProvider serviceProvider, List<LifeCycled> lifeCycledList) {
     if (!eventListenerConfigurations.isEmpty()) {
       final CacheEventListenerProvider listenerProvider;
       CacheEventListenerProvider provider;

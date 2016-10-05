@@ -16,20 +16,27 @@
 
 package org.ehcache.impl.internal.store.tiering;
 
+import org.ehcache.CachePersistenceException;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
-import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.CachePersistenceException;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.service.FileBasedPersistenceContext;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
+import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.core.spi.time.SystemTimeSource;
+import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.copy.IdentityCopier;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
@@ -39,21 +46,13 @@ import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStoreSPITest;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStoreByValueSPITest;
-import org.ehcache.core.spi.time.SystemTimeSource;
-import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.internal.store.StoreFactory;
 import org.ehcache.internal.store.StoreSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
-import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -168,7 +167,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public void start(final ServiceProvider<Service> serviceProvider) {
+            public void start(final ServiceProvider serviceProvider) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -198,7 +197,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
             }
 
             @Override
-            public void start(final ServiceProvider<Service> serviceProvider) {
+            public void start(final ServiceProvider serviceProvider) {
               throw new UnsupportedOperationException("Implement me!");
             }
 
@@ -303,7 +302,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
-      public ServiceProvider<Service> getServiceProvider() {
+      public ServiceProvider getServiceProvider() {
         ServiceLocator serviceLocator = new ServiceLocator();
         serviceLocator.addService(new FakeCachingTierProvider());
         serviceLocator.addService(new FakeAuthoritativeTierProvider());
@@ -349,7 +348,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException();
     }
 
@@ -381,7 +380,7 @@ public class TieredStoreSPITest extends StoreSPITest<String, String> {
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException();
     }
 
