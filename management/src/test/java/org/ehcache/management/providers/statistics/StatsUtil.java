@@ -15,10 +15,17 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import java.util.Arrays;
 import org.ehcache.management.ManagementRegistryService;
+import org.hamcrest.Matchers;
+import org.junit.Assert;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.AbstractStatisticHistory;
+import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.model.stats.history.CounterHistory;
+import org.terracotta.management.registry.ResultSet;
+import org.terracotta.management.registry.StatisticQuery;
 
 /**
  *
@@ -67,5 +74,35 @@ public class StatsUtil {
     return Context.empty()
         .with(cacheManagerCtx.getName(), cacheManagerCtx.getValue())
         .with(firstCacheCtx.getName(), firstCacheCtx.getValue());
+  }
+
+  public static long getStatValue(String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
+
+    StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
+          .queryStatistics(Arrays.asList(statName))
+          .on(context)
+          .build();
+
+    long value = 0;
+    do {
+      ResultSet<ContextualStatistics> counters = query.execute();
+
+      ContextualStatistics statisticsContext = counters.getResult(context);
+
+        Assert.assertThat(counters.size(), Matchers.is(1));
+
+        CounterHistory counterHistory = statisticsContext.getStatistic(CounterHistory.class, statName);
+
+        if (counterHistory.getValue().length > 0) {
+          int mostRecentIndex = counterHistory.getValue().length - 1;
+          value = counterHistory.getValue()[mostRecentIndex].getValue();
+          System.out.println("statName: " + statName + " value: " + value + " expectedResult: " + expectedResult);
+        }
+
+    }while(value != expectedResult);
+
+    Assert.assertThat(value, Matchers.is(expectedResult));
+
+    return value;
   }
 }
