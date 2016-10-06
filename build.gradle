@@ -14,9 +14,19 @@
  * limitations under the License.
  */
 import scripts.*
+import org.gradle.internal.jvm.Jvm
+
+if (hasProperty('overrideVersion')) {
+  ext {
+    baseVersion = overrideVersion
+  }
+} else {
+  ext {
+    baseVersion = '3.1.4-SNAPSHOT'
+  }
+}
 
 ext {
-  baseVersion = '3.1.4-SNAPSHOT'
 
   // Third parties
   offheapVersion = '2.2.2'
@@ -36,10 +46,47 @@ ext {
   entityTestLibVersion = terracottaPassthroughTestingVersion
   galvanVersion = '1.0.6-beta2'
 
+  // Tools
+  findbugsVersion = '3.0.1'
+
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
   isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
-  logger.info("Is cloudbees? $isCloudbees")
+}
+
+if (deployUrl.contains('nexus')) {
+  ext {
+    deployUser = tcDeployUser
+    deployPwd = tcDeployPassword
+  }
+} else {
+  ext {
+    deployUser = sonatypeUser
+    deployPwd = sonatypePwd
+  }
+}
+
+// Java 6 build setup
+def java6Error = 'Set the poperty \'java6Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 6 installation'
+assert (JavaVersion.current().isJava8Compatible()) : 'The Ehcache 3 build requires Java 8 to run and a configured Java 6 installation\n' + java6Error
+assert hasProperty('java6Home') : 'The Ehcache 3 build requires a configured Java 6 installation\n' + java6Error
+def java6HomeLocation = new File(java6Home)
+def testJavaHomeLocation = java6HomeLocation
+
+if (hasProperty('testVM')) {
+  switch (testVM) {
+    case '6':
+      break
+    case '7':
+      assert hasProperty('java7Home') : 'Set the poperty \'java7Home\' in your $HOME/.gradle/gradle.properties pointing to a Java 7 installation'
+      testJavaHomeLocation = new File(java7Home)
+      break
+    case '8':
+      testJavaHomeLocation = Jvm.current().javaHome
+      break
+    default:
+      throw new AssertionError("Unrecognized 'testVM' value $testVM - Accepted values are 7 or 8")
+  }
 }
 
 subprojects {
@@ -72,12 +119,11 @@ subprojects {
   }
 
   dependencies {
-    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
-      compileOnly 'com.google.code.findbugs:annotations:3.0.0'
-    } else {
-      compileOnly 'com.google.code.findbugs:annotations:2.0.3'
+    compileOnly "com.google.code.findbugs:annotations:$parent.findbugsVersion"
+    testCompile 'junit:junit:4.12', 'org.hamcrest:hamcrest-library:1.3'
+    testCompile('org.mockito:mockito-core:1.9.5') {
+      exclude group:'org.hamcrest', module:'hamcrest-core'
     }
-    testCompile 'junit:junit:4.11', 'org.hamcrest:hamcrest-library:1.3', 'org.mockito:mockito-core:1.9.5'
     testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion"
   }
 
@@ -113,14 +159,6 @@ subprojects {
     exclude '**/internal/**'
   }
 
-  if (JavaVersion.current().isJava8Compatible()) {
-    allprojects {
-      tasks.withType(Javadoc) {
-        options.addStringOption('Xdoclint:none', '-quiet')
-      }
-    }
-  }
-
   task javadocJar(type: Jar, dependsOn: javadoc) {
     from javadoc.destinationDir
     classifier = 'javadoc'
@@ -136,17 +174,13 @@ subprojects {
   checkstyle {
     configFile = file("$rootDir/config/checkstyle.xml")
     configProperties = ['projectDir':projectDir, 'rootDir':rootDir]
-    toolVersion = '5.7'
+    toolVersion = '5.9'
   }
 
   findbugs {
     ignoreFailures = false
     sourceSets = [sourceSets.main]
-    if (JavaVersion.current().compareTo(JavaVersion.VERSION_1_7) >= 0) {
-      findbugs.toolVersion = '3.0.1'
-    } else {
-      findbugs.toolVersion = '2.0.3'
-    }
+    findbugs.toolVersion = parent.findbugsVersion
   }
 
   jacoco {
@@ -159,6 +193,23 @@ subprojects {
       csv.enabled false
     }
   }
+
+  tasks.withType(AbstractCompile) {
+    options.with {
+      fork = true
+      forkOptions.executable = utils.executables(java6HomeLocation).javac
+    }
+  }
+  tasks.withType(Test) {
+    executable = utils.executables(testJavaHomeLocation).java
+  }
+  tasks.withType(JavaExec) {
+    executable = utils.executables(testJavaHomeLocation).java
+  }
+  tasks.withType(Javadoc) {
+    options.addStringOption('Xdoclint:none', '-quiet')
+  }
+
 }
 
 allprojects {
