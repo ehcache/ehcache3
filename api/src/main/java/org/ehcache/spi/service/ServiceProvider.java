@@ -18,18 +18,17 @@ package org.ehcache.spi.service;
 
 import java.util.Collection;
 
+import static javafx.scene.input.KeyCode.T;
+
 /**
  * A repository of {@link Service} instances that can be used to look them up by type.
- *
- * @param <T> The type of services this provider returns
  */
-public interface ServiceProvider<T extends Service> {
+public interface ServiceProvider {
 
   /**
    * Looks up the {@link Service} of the given {@code serviceType}.
-   * <P>
-   *   There is no guarantee that services returned here will be started.
-   * </P>
+   * <p>
+   * There is no guarantee the service returned here will be started.
    *
    * @param serviceType the {@code class} of the service being looked up
    * @param <U> the {@link Service} type
@@ -38,20 +37,19 @@ public interface ServiceProvider<T extends Service> {
    * @throws IllegalArgumentException if {@code serviceType} is marked with the
    *        {@link org.ehcache.spi.service.PluralService PluralService} annotation
    *
-   * @see Service#start(ServiceProvider)
+   * @see Service#start(ServiceProvider<S>)
    */
-  <U extends T> U getService(Class<U> serviceType);
+  <U extends Service> U getService(Class<U> serviceType);
 
   /**
    * Looks up all {@link Service} instances that are subtypes of the given {@code serviceType} supplied.
-   * <P>
+   * <p>
    * This method must be used to retrieves service types marked with the
    * {@link org.ehcache.spi.service.PluralService PluralService} annotation.
-   * </P>
    *
    * @param serviceType the {@code class} of the service being looked up
    * @param <U> the {@link Service} type
    * @return all the service instances assignable to {@code serviceType}
    */
-  <U extends T> Collection<U> getServicesOfType(Class<U> serviceType);
+  <U extends Service> Collection<U> getServicesOfType(Class<U> serviceType);
 }

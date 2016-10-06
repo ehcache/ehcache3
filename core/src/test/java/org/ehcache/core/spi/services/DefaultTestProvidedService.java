@@ -17,7 +17,6 @@
 package org.ehcache.core.spi.services;
 
 import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.service.Service;
 
 /**
  * DefaultTestService
@@ -33,7 +32,7 @@ public class DefaultTestProvidedService implements TestProvidedService {
   }
 
   @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     starts++;
   }
 

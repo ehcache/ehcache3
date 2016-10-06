@@ -48,7 +48,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 /**
  * Provides discovery and tracking services for {@link Service} implementations.
  */
-public final class ServiceLocator implements ServiceProvider<Service> {
+public final class ServiceLocator implements ServiceProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServiceLocator.class);
   private final ConcurrentMap<Class<? extends Service>, Set<Service>> services =

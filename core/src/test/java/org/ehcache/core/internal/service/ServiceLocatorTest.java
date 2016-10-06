@@ -16,6 +16,21 @@
 
 package org.ehcache.core.internal.service;
 
+import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.spi.services.DefaultTestProvidedService;
+import org.ehcache.core.spi.services.DefaultTestService;
+import org.ehcache.core.spi.services.FancyCacheProvider;
+import org.ehcache.core.spi.services.TestProvidedService;
+import org.ehcache.core.spi.services.TestService;
+import org.ehcache.core.spi.store.CacheProvider;
+import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
+import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
+import org.hamcrest.CoreMatchers;
+import org.junit.Test;
+
 import java.io.IOException;
 import java.net.URL;
 import java.util.Collection;
@@ -24,26 +39,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.core.spi.store.CacheProvider;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.loaderwriter.CacheLoaderWriterProvider;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.spi.services.DefaultTestProvidedService;
-import org.ehcache.core.spi.services.DefaultTestService;
-import org.ehcache.core.spi.services.FancyCacheProvider;
-import org.ehcache.core.spi.services.TestProvidedService;
-import org.ehcache.core.spi.services.TestService;
-import org.hamcrest.CoreMatchers;
-import org.junit.Test;
-
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doThrow;
@@ -156,7 +159,7 @@ public class ServiceLocatorTest {
     ServiceLocator serviceLocator = new ServiceLocator(new TestServiceConsumerService());
     serviceLocator.addService(new TestService() {
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
         started.set(true);
       }
 
@@ -175,7 +178,7 @@ public class ServiceLocatorTest {
     @ServiceDependencies(TestProvidedService.class)
     class Consumer1 implements Service {
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
       }
 
       @Override
@@ -188,7 +191,7 @@ public class ServiceLocatorTest {
     class Consumer2 implements Service {
       TestProvidedService testProvidedService;
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
         testProvidedService = serviceProvider.getService(TestProvidedService.class);
       }
 
@@ -207,7 +210,7 @@ public class ServiceLocatorTest {
     serviceLocator.addService(consumer2);
     serviceLocator.addService(new TestService() {
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
       }
 
       @Override
@@ -242,9 +245,9 @@ public class ServiceLocatorTest {
 
     final class StartStopCounter {
       final AtomicInteger startCounter = new AtomicInteger(0);
-      final AtomicReference<ServiceProvider<Service>> startServiceProvider = new AtomicReference<ServiceProvider<Service>>();
+      final AtomicReference<ServiceProvider> startServiceProvider = new AtomicReference<ServiceProvider>();
       final AtomicInteger stopCounter = new AtomicInteger(0);
-      public void countStart(ServiceProvider<Service> serviceProvider) {
+      public void countStart(ServiceProvider serviceProvider) {
         startCounter.incrementAndGet();
         startServiceProvider.set(serviceProvider);
       }
@@ -257,7 +260,7 @@ public class ServiceLocatorTest {
     class Consumer1 implements Service {
       final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
         assertThat(serviceProvider.getService(TestProvidedService.class), is(notNullValue()));
         startStopCounter.countStart(serviceProvider);
       }
@@ -271,7 +274,7 @@ public class ServiceLocatorTest {
     class Consumer2 implements Service {
       final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
         assertThat(serviceProvider.getService(Consumer1.class), is(notNullValue()));
         startStopCounter.countStart(serviceProvider);
       }
@@ -285,7 +288,7 @@ public class ServiceLocatorTest {
     class MyTestProvidedService extends DefaultTestProvidedService {
       final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
         assertThat(serviceProvider.getService(Consumer2.class), is(notNullValue()));
         startStopCounter.countStart(serviceProvider);
         super.start(serviceProvider);
@@ -301,7 +304,7 @@ public class ServiceLocatorTest {
     class DependsOnMe implements Service {
       final StartStopCounter startStopCounter = new StartStopCounter();
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
         assertThat(serviceProvider.getService(DependsOnMe.class), sameInstance(this));
         startStopCounter.countStart(serviceProvider);
       }
@@ -330,13 +333,13 @@ public class ServiceLocatorTest {
     serviceLocator.stopAllServices();
 
     assertThat(consumer1.startStopCounter.startCounter.get(), is(1));
-    assertThat(consumer1.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(consumer1.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider>is(serviceLocator));
     assertThat(consumer2.startStopCounter.startCounter.get(), is(1));
-    assertThat(consumer2.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(consumer2.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider>is(serviceLocator));
     assertThat(myTestProvidedService.startStopCounter.startCounter.get(), is(1));
-    assertThat(myTestProvidedService.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(myTestProvidedService.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider>is(serviceLocator));
     assertThat(dependsOnMe.startStopCounter.startCounter.get(), is(1));
-    assertThat(dependsOnMe.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider<Service>>is(serviceLocator));
+    assertThat(dependsOnMe.startStopCounter.startServiceProvider.get(), CoreMatchers.<ServiceProvider>is(serviceLocator));
 
     assertThat(consumer1.startStopCounter.stopCounter.get(), is(1));
     assertThat(consumer2.startStopCounter.stopCounter.get(), is(1));
@@ -359,7 +362,7 @@ class YetAnotherCacheProvider implements CacheProvider {
   }
 
   @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     // no-op
   }
 
@@ -381,7 +384,7 @@ interface FooProvider extends Service {
 class TestServiceConsumerService implements Service {
 
   @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     assertThat(serviceProvider.getService(TestService.class), notNullValue());
   }
 
@@ -394,7 +397,7 @@ class TestServiceConsumerService implements Service {
 class ParentTestService implements FooProvider {
 
   @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 
@@ -406,7 +409,7 @@ class ParentTestService implements FooProvider {
 class ChildTestService extends ParentTestService {
 
   @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     throw new UnsupportedOperationException("Implement me!");
   }
 }

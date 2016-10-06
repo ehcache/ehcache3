@@ -16,10 +16,10 @@
 
 package org.ehcache.core.internal.service;
 
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -29,7 +29,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.Assert.assertThat;
@@ -188,9 +187,9 @@ public class ServiceLocatorPluralTest {
 class StartStopCounter {
   private AtomicInteger startCounter = new AtomicInteger(0);
   private AtomicInteger stopCounter = new AtomicInteger(0);
-  private AtomicReference<ServiceProvider<Service>> serviceProvider = new AtomicReference<ServiceProvider<Service>>();
+  private AtomicReference<ServiceProvider> serviceProvider = new AtomicReference<ServiceProvider>();
 
-  public void countStart(final ServiceProvider<Service> serviceProvider) {
+  public void countStart(final ServiceProvider serviceProvider) {
     this.startCounter.incrementAndGet();
     this.serviceProvider.set(serviceProvider);
   }
@@ -207,7 +206,7 @@ class StartStopCounter {
     return stopCounter.get();
   }
 
-  public ServiceProvider<Service> getServiceProvider() {
+  public ServiceProvider getServiceProvider() {
     return serviceProvider.get();
   }
 }
@@ -258,7 +257,7 @@ class BaseService implements Service {
   final StartStopCounter counter = new StartStopCounter();
 
   @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     this.counter.countStart(serviceProvider);
   }
 

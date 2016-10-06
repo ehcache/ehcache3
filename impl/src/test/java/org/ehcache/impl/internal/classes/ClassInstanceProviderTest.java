@@ -193,7 +193,7 @@ public class ClassInstanceProviderTest {
     }
 
     @Override
-    public void start(ServiceProvider<Service> serviceProvider) {
+    public void start(ServiceProvider serviceProvider) {
     }
 
     @Override

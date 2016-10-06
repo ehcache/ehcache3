@@ -20,9 +20,8 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -35,7 +34,8 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Tests functionality of {@link StoreSupport} methods.
@@ -243,7 +243,7 @@ public class StoreSupportTest {
     }
 
     @Override
-    public void start(final ServiceProvider<Service> serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException("TestBaseProvider.start not implemented");
     }
 

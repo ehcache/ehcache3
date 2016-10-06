@@ -18,11 +18,10 @@ package org.ehcache.transactions.xa.internal.journal;
 
 import org.ehcache.CachePersistenceException;
 import org.ehcache.core.spi.service.DiskResourceService;
-import org.ehcache.spi.persistence.PersistableResourceService;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.spi.service.Service;
+import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +35,7 @@ public class DefaultJournalProvider implements JournalProvider {
   private volatile DiskResourceService diskResourceService;
 
   @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     this.diskResourceService = serviceProvider.getService(DiskResourceService.class);
   }
 

@@ -27,6 +27,6 @@ public interface MaintainableService extends Service {
    *
    * @param serviceProvider enables to depend on other maintainable services
    */
-  void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider);
+  void startForMaintenance(ServiceProvider serviceProvider);
 
 }

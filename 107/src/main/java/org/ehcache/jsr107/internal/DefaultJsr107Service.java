@@ -20,7 +20,6 @@ import org.ehcache.jsr107.config.ConfigurationElementState;
 import org.ehcache.jsr107.config.Jsr107Configuration;
 import org.ehcache.jsr107.config.Jsr107Service;
 import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.service.Service;
 
 public class DefaultJsr107Service implements Jsr107Service {
 
@@ -31,7 +30,7 @@ public class DefaultJsr107Service implements Jsr107Service {
   }
 
   @Override
-  public void start(final ServiceProvider<Service> serviceProvider) {
+  public void start(final ServiceProvider serviceProvider) {
     // no-op
   }
 

@@ -17,57 +17,56 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.Cache;
-import org.ehcache.config.SizedResourcePool;
-import org.ehcache.core.CacheConfigurationChangeEvent;
-import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.CacheConfigurationChangeEvent;
+import org.ehcache.core.CacheConfigurationChangeListener;
+import org.ehcache.core.CacheConfigurationProperty;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.events.StoreEventSink;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.core.spi.store.heap.LimitExceededException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expiry;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.impl.copy.IdentityCopier;
-import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
-import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
-import org.ehcache.impl.internal.events.ScopedStoreEventDispatcher;
-import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
-import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
-import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
-import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
-import org.ehcache.core.spi.time.TimeSource;
-import org.ehcache.core.spi.time.TimeSourceService;
-import org.ehcache.impl.serialization.TransientStateRepository;
-import org.ehcache.sizeof.annotations.IgnoreSizeOf;
-import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.spi.serialization.StatefulSerializer;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
-import org.ehcache.core.spi.store.tiering.CachingTier;
-import org.ehcache.core.spi.store.tiering.HigherCachingTier;
-import org.ehcache.impl.internal.store.BinaryValueHolder;
-import org.ehcache.spi.copy.Copier;
-import org.ehcache.spi.copy.CopyProvider;
-import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.core.spi.store.heap.LimitExceededException;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
+import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.core.spi.store.tiering.HigherCachingTier;
+import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.HigherCachingTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.statistics.TierOperationStatistic;
 import org.ehcache.core.statistics.TierOperationStatistic.TierOperationOutcomes;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expiry;
+import org.ehcache.impl.copy.IdentityCopier;
+import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
+import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
+import org.ehcache.impl.internal.events.ScopedStoreEventDispatcher;
+import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
+import org.ehcache.impl.internal.store.BinaryValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
+import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
+import org.ehcache.impl.serialization.TransientStateRepository;
+import org.ehcache.sizeof.annotations.IgnoreSizeOf;
+import org.ehcache.spi.copy.Copier;
+import org.ehcache.spi.copy.CopyProvider;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
@@ -1643,7 +1642,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   @ServiceDependencies({TimeSourceService.class, CopyProvider.class, SizeOfEngineProvider.class})
   public static class Provider implements Store.Provider, CachingTier.Provider, HigherCachingTier.Provider {
 
-    private volatile ServiceProvider<Service> serviceProvider;
+    private volatile ServiceProvider serviceProvider;
     private final Map<Store<?, ?>, List<Copier>> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, List<Copier>>();
     private final Map<OnHeapStore<?, ?>, Collection<TierOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OnHeapStore<?, ?>, Collection<TierOperationStatistic<?, ?>>>();
 
@@ -1744,7 +1743,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
 
     @Override
-    public void start(final ServiceProvider<Service> serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
       this.serviceProvider = serviceProvider;
     }
 

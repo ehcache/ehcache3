@@ -28,14 +28,14 @@ import java.util.Map;
  */
 public final class TestServiceProvider {
 
-  public static ServiceProvider<Service> providerContaining(final Service... services) {
+  public static ServiceProvider providerContaining(final Service... services) {
     final Map<Class<? extends Service>, Service> servicesMap = new HashMap<Class<? extends Service>, Service>();
 
     for (Service s : services) {
       servicesMap.put(s.getClass(), s);
     }
 
-    return new ServiceProvider<Service>() {
+    return new ServiceProvider() {
 
       @Override
       public <T extends Service> T getService(Class<T> serviceType) {

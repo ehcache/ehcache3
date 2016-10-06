@@ -16,13 +16,12 @@
 
 package org.ehcache.impl.internal.events;
 
-import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.spi.service.Service;
 import org.junit.Test;
 
 import java.util.concurrent.BlockingQueue;
@@ -45,7 +44,7 @@ public class CacheEventDispatcherFactoryImplTest {
 
   @Test
   public void testConfigurationOfThreadPoolAlias() {
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider serviceProvider = mock(ServiceProvider.class);
     when(serviceProvider.getService(ExecutionService.class)).thenReturn(mock(ExecutionService.class));
     CacheEventDispatcherFactoryImpl factory = new CacheEventDispatcherFactoryImpl();
     factory.start(serviceProvider);
@@ -56,7 +55,7 @@ public class CacheEventDispatcherFactoryImplTest {
 
   @Test
   public void testCreateCacheEventDispatcherReturnsDisabledDispatcherWhenNoThreadPool() throws Exception {
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider serviceProvider = mock(ServiceProvider.class);
     ExecutionService executionService = mock(ExecutionService.class);
     when(serviceProvider.getService(ExecutionService.class)).thenReturn(executionService);
     when(executionService.getOrderedExecutor(eq("myAlias"), (BlockingQueue) anyObject())).thenThrow(IllegalArgumentException.class);
@@ -75,7 +74,7 @@ public class CacheEventDispatcherFactoryImplTest {
 
   @Test
   public void testCreateCacheEventReturnsDisabledDispatcherWhenThreadPoolFound() throws Exception {
-    ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
+    ServiceProvider serviceProvider = mock(ServiceProvider.class);
     ExecutionService executionService = mock(ExecutionService.class);
     when(serviceProvider.getService(ExecutionService.class)).thenReturn(executionService);
     when(executionService.getOrderedExecutor(eq("myAlias"), (BlockingQueue) anyObject())).thenReturn(mock(ExecutorService.class));

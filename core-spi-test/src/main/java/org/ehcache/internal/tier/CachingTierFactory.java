@@ -16,11 +16,10 @@
 
 package org.ehcache.internal.tier;
 
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 
 /**
  * @author Aurelien Broszniowski
@@ -41,7 +40,7 @@ public interface CachingTierFactory<K, V> {
 
   ServiceConfiguration<?>[] getServiceConfigurations();
 
-  ServiceProvider<Service> getServiceProvider();
+  ServiceProvider getServiceProvider();
 
   K createKey(long seed);
 

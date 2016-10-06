@@ -19,9 +19,8 @@ package org.ehcache.core.internal.store;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,7 +55,7 @@ public final class StoreSupport {
    *        multiple {@code Store.Provider} implementations return the same top ranking
    */
   public static Store.Provider selectStoreProvider(
-      final ServiceProvider<Service> serviceProvider, final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
+    final ServiceProvider serviceProvider, final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
 
     final Collection<Store.Provider> storeProviders = serviceProvider.getServicesOfType(Store.Provider.class);
     int highRank = 0;

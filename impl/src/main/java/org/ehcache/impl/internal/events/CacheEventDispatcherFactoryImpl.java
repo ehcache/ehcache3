@@ -15,17 +15,16 @@
  */
 package org.ehcache.impl.internal.events;
 
+import org.ehcache.core.events.CacheEventDispatcher;
+import org.ehcache.core.events.CacheEventDispatcherFactory;
+import org.ehcache.core.spi.service.ExecutionService;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.config.event.CacheEventDispatcherFactoryConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventDispatcherConfiguration;
-import org.ehcache.core.events.CacheEventDispatcherFactory;
-import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.service.ExecutionService;
-import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -52,7 +51,7 @@ public class CacheEventDispatcherFactoryImpl implements CacheEventDispatcherFact
   }
 
   @Override
-  public void start(ServiceProvider<Service> serviceProvider) {
+  public void start(ServiceProvider serviceProvider) {
     executionService = serviceProvider.getService(ExecutionService.class);
   }
 

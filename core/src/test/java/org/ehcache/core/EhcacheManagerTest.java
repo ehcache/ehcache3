@@ -589,7 +589,7 @@ public class EhcacheManagerTest {
       }
 
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
       }
 
       @Override
@@ -610,7 +610,7 @@ public class EhcacheManagerTest {
 
     final CacheEventDispatcherFactory cenlProvider = spy(new CacheEventDispatcherFactory() {
       @Override
-      public void start(ServiceProvider<Service> serviceProvider) {
+      public void start(ServiceProvider serviceProvider) {
       }
 
       @Override
@@ -829,7 +829,7 @@ public class EhcacheManagerTest {
   static class NoSuchService implements Service {
 
     @Override
-    public void start(final ServiceProvider<Service> serviceProvider) {
+    public void start(final ServiceProvider serviceProvider) {
       throw new UnsupportedOperationException("Implement me!");
     }
 
