@@ -39,6 +39,6 @@ public interface MaintainableService extends Service {
    * @param maintenanceScope the scope of the maintenance
    *
    */
-  void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope);
+  void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope);
 
 }

@@ -164,7 +164,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+  public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
     initClusterConnection();
     createEntityFactory();
     if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {

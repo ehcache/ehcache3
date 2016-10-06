@@ -69,7 +69,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    * {@inheritDoc}
    */
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+  public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
     persistenceService = serviceProvider.getService(LocalPersistenceService.class);
     isStarted = true;
   }
