@@ -32,7 +32,7 @@ public abstract class CacheEventAdapter<K, V> implements CacheEventListener<K, V
    * {@inheritDoc}
    */
   @Override
-  public final void onEvent(CacheEvent<K, V> event) {
+  public final void onEvent(CacheEvent<? extends K, ? extends V> event) {
     switch (event.getType()) {
       case CREATED:
         onCreation(event.getKey(), event.getNewValue());

@@ -24,9 +24,9 @@ import org.slf4j.LoggerFactory;
 class EventDispatchTask<K, V> implements Runnable {
   private static final Logger LOGGER = LoggerFactory.getLogger(EventDispatchTask.class);
   private final CacheEvent<K, V> cacheEvent;
-  private final Iterable<EventListenerWrapper> listenerWrappers;
+  private final Iterable<EventListenerWrapper<K, V>> listenerWrappers;
 
-  EventDispatchTask(CacheEvent<K, V> cacheEvent, Iterable<EventListenerWrapper> listener) {
+  EventDispatchTask(CacheEvent<K, V> cacheEvent, Iterable<EventListenerWrapper<K, V>> listener) {
     if (cacheEvent == null) {
       throw new NullPointerException("cache event cannot be null");
     }
@@ -39,7 +39,7 @@ class EventDispatchTask<K, V> implements Runnable {
 
   @Override
   public void run() {
-    for(EventListenerWrapper listenerWrapper : listenerWrappers) {
+    for(EventListenerWrapper<K, V> listenerWrapper : listenerWrappers) {
       if (listenerWrapper.isForEventType(cacheEvent.getType())) {
         try {
           listenerWrapper.onEvent(cacheEvent);

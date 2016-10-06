@@ -21,7 +21,6 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.PoolAllocation;
-import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
@@ -38,9 +37,11 @@ import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
@@ -67,18 +68,20 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import org.junit.Assert;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
-/**
- * @author cdennis
- */
 public class EhcacheActiveEntityTest {
 
   private static final byte[] ENTITY_ID = ClusteredEhcacheIdentity.serialize(UUID.randomUUID());
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
+  private static final UUID CLIENT_ID = UUID.randomUUID();
+
+  @Before
+  public void setClientId() {
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
+  }
 
   @Test
   public void testConfigTooShort() {
@@ -293,7 +296,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testNoAttachementFailsToInvokeServerStoreOperation");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testNoAttachementFailsToInvokeServerStoreOperation", CLIENT_ID);
 
     assertFailure(
         activeEntity.invoke(client, messageFactory.appendOperation(1L, createPayload(1L))),
@@ -316,6 +319,9 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     activeEntity.connected(client3);
 
+    UUID client2Id = UUID.randomUUID();
+    UUID client3Id = UUID.randomUUID();
+
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -335,26 +341,31 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
 
     // attach to the store
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
@@ -407,6 +418,9 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     activeEntity.connected(client3);
 
+    UUID client2Id = UUID.randomUUID();
+    UUID client3Id = UUID.randomUUID();
+
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -426,26 +440,31 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
 
     // attach to the store
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
@@ -498,6 +517,9 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     activeEntity.connected(client3);
 
+    UUID client2Id = UUID.randomUUID();
+    UUID client3Id = UUID.randomUUID();
+
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -517,26 +539,31 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
 
     // attach to the store
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
@@ -585,6 +612,9 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     activeEntity.connected(client3);
 
+    UUID client2Id = UUID.randomUUID();
+    UUID client3Id = UUID.randomUUID();
+
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -604,26 +634,31 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
 
     // attach to the store
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
@@ -672,6 +707,9 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     activeEntity.connected(client3);
 
+    UUID client2Id = UUID.randomUUID();
+    UUID client3Id = UUID.randomUUID();
+
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -691,26 +729,31 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
 
     // attach to the store
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
@@ -749,6 +792,9 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
     activeEntity.connected(client3);
 
+    UUID client2Id = UUID.randomUUID();
+    UUID client3Id = UUID.randomUUID();
+
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -768,26 +814,31 @@ public class EhcacheActiveEntityTest {
             MESSAGE_FACTORY.createServerStore("testDisconnection", serverStoreConfiguration))
     );
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testDisconnection", CLIENT_ID);
 
     // attach the clients
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration))
     );
 
     // attach to the store
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
     assertSuccess(
         activeEntity.invoke(client1, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(
         activeEntity.invoke(client2, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
+    MESSAGE_FACTORY.setClientId(client3Id);
     assertSuccess(
         activeEntity.invoke(client3, MESSAGE_FACTORY.validateServerStore("testDisconnection", serverStoreConfiguration))
     );
@@ -847,7 +898,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testAttachedClientButNotStoreFailsInvokingServerStoreOperation");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testAttachedClientButNotStoreFailsInvokingServerStoreOperation", CLIENT_ID);
 
     // attach the client
     assertSuccess(
@@ -896,7 +947,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testWithAttachmentSucceedsInvokingServerStoreOperation");
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testWithAttachmentSucceedsInvokingServerStoreOperation", CLIENT_ID);
 
     // attach the client
     assertSuccess(
@@ -2739,6 +2790,8 @@ public class EhcacheActiveEntityTest {
           this.storeManagerService = new EhcacheStateServiceImpl(this, getIdentifiers(pools.keySet()));
         }
         return (T) (this.storeManagerService);
+      } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
+        return (T) mock(IEntityMessenger.class);
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

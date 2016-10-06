@@ -65,7 +65,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultCollectorService.class);
 
-  private ScheduledFuture<?> task;
+  private volatile ScheduledFuture<?> task;
 
   private final ConcurrentMap<String, StatisticQuery.Builder> selectedStatsPerCapability = new ConcurrentHashMap<String, StatisticQuery.Builder>();
   private final Collector collector;
@@ -174,8 +174,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
         @Override
         public void run() {
           try {
-            // always check if the cache manager is still available
-            if (!selectedStatsPerCapability.isEmpty()) {
+            if (task != null && !selectedStatsPerCapability.isEmpty()) {
 
               // create the full context list from current caches
               Collection<Context> cacheContexts = new ArrayList<Context>();
@@ -196,7 +195,7 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
               // next time, only poll history from this time
               lastPoll.set(timeSource.getTimeMillis());
 
-              if (!statistics.isEmpty()) {
+              if (task != null && !statistics.isEmpty()) {
                 collector.onStatistics(statistics);
               }
             }
@@ -211,8 +210,9 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
   @Override
   public synchronized void stopStatisticCollector() {
     if (task != null) {
-      task.cancel(false);
+      ScheduledFuture<?> _task = task;
       task = null;
+      _task.cancel(false);
     }
   }
 

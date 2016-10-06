@@ -69,7 +69,7 @@ public class StoreStatisticsTest {
 
     assertNull(cache.get(0L));
 
-    long onHeapMisses = StoreStatisticsTest.<StoreOperationOutcomes.GetOutcome>findStat(cache, "get", "onheap-store").count(StoreOperationOutcomes.GetOutcome.MISS);
+    long onHeapMisses = StoreStatisticsTest.<StoreOperationOutcomes.GetOutcome>findStat(cache, "get", "OnHeap").count(StoreOperationOutcomes.GetOutcome.MISS);
     assertThat(onHeapMisses, equalTo(1L));
 
     cacheManager.close();
@@ -90,9 +90,9 @@ public class StoreStatisticsTest {
 
     assertNull(cache.get(0L));
 
-    long onHeapMisses = StoreStatisticsTest.<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome>findStat(cache, "getOrComputeIfAbsent", "onheap-store").count(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
+    long onHeapMisses = StoreStatisticsTest.<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome>findStat(cache, "getOrComputeIfAbsent", "OnHeap").count(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
     assertThat(onHeapMisses, equalTo(1L));
-    long offheapMisses = StoreStatisticsTest.<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome>findStat(cache, "getAndFault", "local-offheap").count(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.MISS);
+    long offheapMisses = StoreStatisticsTest.<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome>findStat(cache, "getAndFault", "OffHeap").count(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.MISS);
     assertThat(offheapMisses, equalTo(1L));
 
     cacheManager.close();
@@ -115,11 +115,11 @@ public class StoreStatisticsTest {
 
     assertNull(cache.get(0L));
 
-    long onHeapMisses = StoreStatisticsTest.<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome>findStat(cache, "getOrComputeIfAbsent", "onheap-store").count(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
+    long onHeapMisses = StoreStatisticsTest.<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome>findStat(cache, "getOrComputeIfAbsent", "OnHeap").count(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
     assertThat(onHeapMisses, equalTo(1L));
-    long offHeapMisses = StoreStatisticsTest.<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome>findStat(cache, "getAndRemove", "local-offheap").count(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.MISS);
+    long offHeapMisses = StoreStatisticsTest.<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome>findStat(cache, "getAndRemove", "OffHeap").count(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.MISS);
     assertThat(offHeapMisses, equalTo(1L));
-    long diskMisses = StoreStatisticsTest.<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome>findStat(cache, "getAndFault", "local-disk").count(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.MISS);
+    long diskMisses = StoreStatisticsTest.<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome>findStat(cache, "getAndFault", "Disk").count(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.MISS);
     assertThat(diskMisses, equalTo(1L));
 
     cacheManager.close();

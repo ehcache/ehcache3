@@ -81,7 +81,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   private final ConcurrentMap<String, ClusteredSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, ClusteredSpace>();
   private final EhcacheClientEntity.Timeouts operationTimeouts;
 
-  private Connection clusterConnection;
+  private volatile Connection clusterConnection;
   private EhcacheClientEntityFactory entityFactory;
   private EhcacheClientEntity entity;
 
@@ -125,12 +125,17 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     return new AbstractClientEntityFactory<E, C>(entityIdentifier, entityType, entityVersion, configuration) {
       @Override
       protected Connection getConnection() {
-        if (clusterConnection == null) {
+        if (!isConnected()) {
           throw new IllegalStateException(getClass().getSimpleName() + " not started.");
         }
         return clusterConnection;
       }
     };
+  }
+
+  @Override
+  public boolean isConnected() {
+    return clusterConnection != null;
   }
 
   @Override
@@ -153,14 +158,23 @@ class DefaultClusteringService implements ClusteringService, EntityService {
       }
     } catch (RuntimeException e) {
       entityFactory = null;
-      try {
-        clusterConnection.close();
-        clusterConnection = null;
-      } catch (IOException ex) {
-        LOGGER.warn("Error closing cluster connection: " + ex);
-      }
+      closeConnection();
       throw e;
     }
+  }
+
+  @Override
+  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+    initClusterConnection();
+    createEntityFactory();
+    if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {
+      if (!entityFactory.acquireLeadership(entityIdentifier)) {
+        entityFactory = null;
+        closeConnection();
+        throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
+      }
+    }
+    inMaintenance = true;
   }
 
   private void createEntityFactory() {
@@ -205,24 +219,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
   }
 
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
-    initClusterConnection();
-    createEntityFactory();
-
-    if (!entityFactory.acquireLeadership(entityIdentifier)) {
-      entityFactory = null;
-      try {
-        clusterConnection.close();
-        clusterConnection = null;
-      } catch (IOException e) {
-        LOGGER.warn("Error closing cluster connection: " + e);
-      }
-      throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
-    }
-    inMaintenance = true;
-  }
-
-  @Override
   public void stop() {
     LOGGER.info("stop called for clustered tiers on {}", this.clusterUri);
 
@@ -238,14 +234,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
 
     entity = null;
 
-    try {
-      if (clusterConnection != null) {
-        clusterConnection.close();
-        clusterConnection = null;
-      }
-    } catch (IOException ex) {
-      throw new RuntimeException(ex);
-    }
+    closeConnection();
   }
 
   @Override
@@ -315,38 +304,42 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
+  private void checkStarted() {
+    if(!isStarted()) {
+      throw new IllegalStateException(getClass().getName() + " should be started to call destroy");
+    }
+  }
+
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    boolean wasStarted = isStarted();
-    // If the cluster isn't started, start it first to be able to destroy the cache
-    if(!wasStarted) {
-      initClusterConnection();
-      createEntityFactory();
+    checkStarted();
+
+    // will happen when in maintenance mode
+    if(entity == null) {
       try {
         entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
       } catch (EntityNotFoundException e) {
         // No entity on the server, so no need to destroy anything
       } catch (TimeoutException e) {
         throw new CachePersistenceException("Could not connect to the clustered tier manager '" + entityIdentifier
-            + "'; retrieve operation timed out", e);
+                                            + "'; retrieve operation timed out", e);
       }
     }
+
     try {
-      entity.destroyCache(name);
+      if (entity != null) {
+        entity.destroyCache(name);
+      }
     } catch (ClusteredTierDestructionException e) {
       throw new CachePersistenceException(e.getMessage() + " (on " + clusterUri + ")", e);
     } catch (TimeoutException e) {
       throw new CachePersistenceException("Could not destroy clustered tier '" + name + "' on " + clusterUri
           + "; destroy operation timed out" + clusterUri, e);
-    } finally {
-      if (!wasStarted) {
-        stop();
-      }
     }
   }
 
   protected boolean isStarted() {
-    return entity != null;
+    return entityFactory != null;
   }
 
   @Override
@@ -415,7 +408,7 @@ class DefaultClusteringService implements ClusteringService, EntityService {
           + "'; validate operation timed out", e);
     }
 
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory(cacheId, entity.getClientId());
     switch (configuredConsistency) {
       case STRONG:
         return new StrongServerStoreProxy(messageFactory, entity);
@@ -441,6 +434,18 @@ class DefaultClusteringService implements ClusteringService, EntityService {
        * communication is only delayed, the message will eventually be presented and acted upon.
        */
       LOGGER.warn("Timed out trying to release clustered tier proxy for '{}'", cacheId, e);
+    }
+  }
+
+  private void closeConnection() {
+    Connection conn = clusterConnection;
+    clusterConnection = null;
+    if(conn != null) {
+      try {
+        conn.close();
+      } catch (IOException e) {
+        LOGGER.warn("Error closing cluster connection: " + e);
+      }
     }
   }
 

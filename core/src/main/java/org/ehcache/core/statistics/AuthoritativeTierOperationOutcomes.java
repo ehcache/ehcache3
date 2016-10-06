@@ -31,7 +31,11 @@ public interface AuthoritativeTierOperationOutcomes {
     /**
      * miss
      */
-    MISS
+    MISS,
+    /**
+     * timeout
+     */
+    TIMEOUT
   }
 
   /**

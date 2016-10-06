@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
+import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +49,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.stream.Collectors.toMap;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
@@ -82,6 +84,8 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
    */
   private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
 
+  private final ClientMessageTracker messageTracker = new ClientMessageTracker();
+
   private final StateRepositoryManager stateRepositoryManager;
 
   public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
@@ -106,18 +110,22 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return Collections.unmodifiableSet(dedicatedResourcePools.keySet());
   }
 
-  String getDefaultServerResource() {
+  public String getDefaultServerResource() {
     return this.defaultServerResource;
   }
 
-  public void validate(ValidateStoreManager message) throws ClusterException {
+  @Override
+  public Map<String, ServerSideConfiguration.Pool> getSharedResourcePools() {
+    return sharedResourcePools.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> e.getValue().getPool()));
+  }
+
+  public void validate(ServerSideConfiguration configuration) throws ClusterException {
     if (!isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
-    ServerSideConfiguration incomingConfig = message.getConfiguration();
 
-    if (incomingConfig != null) {
-      checkConfigurationCompatibility(incomingConfig);
+    if (configuration != null) {
+      checkConfigurationCompatibility(configuration);
     }
   }
 
@@ -166,10 +174,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return Collections.unmodifiableMap(pools);
   }
 
-  public void configure(ConfigureStoreManager message) throws ClusterException {
+  public void configure(ServerSideConfiguration configuration) throws ClusterException {
     if (!isConfigured()) {
       LOGGER.info("Configuring server-side clustered tier manager");
-      ServerSideConfiguration configuration = message.getConfiguration();
 
       this.defaultServerResource = configuration.getDefaultServerResource();
       if (this.defaultServerResource != null) {
@@ -356,6 +363,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   @Override
   public StateRepositoryManager getStateRepositoryManager() throws ClusterException {
     return this.stateRepositoryManager;
+  }
+
+  @Override
+  public ClientMessageTracker getClientMessageTracker() {
+    return this.messageTracker;
   }
 
   private static boolean nullSafeEquals(Object s1, Object s2) {

@@ -54,7 +54,7 @@ dependencies {
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip" changing true
 
-  shadow "org.slf4j:slf4j-api:$parent.slf4jVersion"
+  shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
 }
 
@@ -99,7 +99,7 @@ distributions {
         from project(':dist').javadocJar.archivePath.getPath()
       }
       into ('client/lib') {
-        from configurations.shadow
+        from configurations.shadowCompile
       }
       into ('') {
         from 'src/assemble'

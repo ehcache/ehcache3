@@ -16,19 +16,23 @@
 
 package org.ehcache.clustered.server.state;
 
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 import org.ehcache.clustered.server.ServerStoreImpl;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
 
 import com.tc.classloader.CommonComponent;
 
+import java.util.Map;
 import java.util.Set;
 
 @CommonComponent
 public interface EhcacheStateService {
+
+  String getDefaultServerResource();
+
+  Map<String, ServerSideConfiguration.Pool> getSharedResourcePools();
 
   ServerStoreImpl getStore(String name);
 
@@ -36,9 +40,9 @@ public interface EhcacheStateService {
 
   void destroy();
 
-  void validate(ValidateStoreManager message) throws ClusterException;
+  void validate(ServerSideConfiguration configuration) throws ClusterException;
 
-  void configure(ConfigureStoreManager message) throws ClusterException;
+  void configure(ServerSideConfiguration configuration) throws ClusterException;
 
   ServerStoreImpl createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusterException;
 
@@ -48,4 +52,5 @@ public interface EhcacheStateService {
 
   StateRepositoryManager getStateRepositoryManager() throws ClusterException;
 
+  ClientMessageTracker getClientMessageTracker();
 }

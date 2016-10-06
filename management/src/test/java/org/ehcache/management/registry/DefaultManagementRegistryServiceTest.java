@@ -15,6 +15,20 @@
  */
 package org.ehcache.management.registry;
 
+import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.everyItem;
+import static org.hamcrest.CoreMatchers.instanceOf;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+
+import java.io.File;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
@@ -31,47 +45,175 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.history.CounterHistory;
-import org.terracotta.management.model.stats.primitive.Counter;
-
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import org.ehcache.Cache;
+import org.ehcache.PersistentCacheManager;
+import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.rules.TemporaryFolder;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
+import org.terracotta.management.model.stats.StatisticType;
+import org.terracotta.management.registry.StatisticQuery.Builder;
 
-import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.everyItem;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 public class DefaultManagementRegistryServiceTest {
 
+  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> DISK_DESCRIPTORS =  new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<Descriptor>();
+
+  @Rule
+  public final TemporaryFolder diskPath = new TemporaryFolder();
+
   @Test
   public void testCanGetContext() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+    CacheManager cacheManager1 = null;
+    try {
+      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
-    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
 
-    CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("aCache", cacheConfiguration)
-        .using(managementRegistry)
-        .build(true);
+      cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+          .withCache("aCache", cacheConfiguration)
+          .using(managementRegistry)
+          .build(true);
 
-    assertThat(managementRegistry.getContextContainer().getName(), equalTo("cacheManagerName"));
-    assertThat(managementRegistry.getContextContainer().getValue(), equalTo("myCM"));
-    assertThat(managementRegistry.getContextContainer().getSubContexts(), hasSize(1));
-    assertThat(managementRegistry.getContextContainer().getSubContexts().iterator().next().getName(), equalTo("cacheName"));
-    assertThat(managementRegistry.getContextContainer().getSubContexts().iterator().next().getValue(), equalTo("aCache"));
-
-    cacheManager1.close();
+      assertThat(managementRegistry.getContextContainer().getName(), equalTo("cacheManagerName"));
+      assertThat(managementRegistry.getContextContainer().getValue(), equalTo("myCM"));
+      assertThat(managementRegistry.getContextContainer().getSubContexts(), hasSize(1));
+      assertThat(managementRegistry.getContextContainer().getSubContexts().iterator().next().getName(), equalTo("cacheName"));
+      assertThat(managementRegistry.getContextContainer().getSubContexts().iterator().next().getValue(), equalTo("aCache"));
+    }
+    finally {
+      if(cacheManager1 != null) cacheManager1.close();
+    }
   }
+
+  @Test
+  public void descriptorOnHeapTest() {
+    CacheManager cacheManager1 = null;
+    try {
+      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+          .build();
+
+      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+
+      cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+          .withCache("aCache", cacheConfiguration)
+          .using(managementRegistry)
+          .build(true);
+
+      assertThat(managementRegistry.getCapabilities(), hasSize(4));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("StatisticsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("SettingsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
+
+      Collection<Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors();
+      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      allDescriptors.addAll(ONHEAP_DESCRIPTORS);
+      allDescriptors.addAll(CACHE_DESCRIPTORS);
+
+      assertThat(descriptors, containsInAnyOrder(allDescriptors.toArray()));
+      assertThat(descriptors, hasSize(allDescriptors.size()));
+    }
+    finally {
+      if(cacheManager1 != null) cacheManager1.close();
+    }
+
+  }
+
+  @Test
+  public void descriptorOffHeapTest() {
+    CacheManager cacheManager1 = null;
+    try {
+      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, newResourcePoolsBuilder().heap(5, MB).offheap(10, MB))
+          .build();
+
+      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+
+      cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+          .withCache("aCache", cacheConfiguration)
+          .using(managementRegistry)
+          .build(true);
+
+      assertThat(managementRegistry.getCapabilities(), hasSize(4));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("StatisticsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("SettingsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
+
+      Collection<Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors();
+      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      allDescriptors.addAll(ONHEAP_DESCRIPTORS);
+      allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
+      allDescriptors.addAll(CACHE_DESCRIPTORS);
+
+      assertThat(descriptors, containsInAnyOrder(allDescriptors.toArray()));
+      assertThat(descriptors, hasSize(allDescriptors.size()));
+    }
+    finally {
+      if(cacheManager1 != null) cacheManager1.close();
+    }
+
+  }
+
+  @Test
+  public void descriptorDiskStoreTest() throws URISyntaxException {
+    PersistentCacheManager persistentCacheManager = null;
+    try {
+      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+
+      persistentCacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+          .with(CacheManagerBuilder.persistence(getStoragePath() + File.separator + "myData"))
+          .withCache("persistent-cache", CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+              ResourcePoolsBuilder.newResourcePoolsBuilder()
+                  .heap(10, EntryUnit.ENTRIES)
+                  .disk(10, MemoryUnit.MB, true))
+              )
+          .using(managementRegistry)
+          .build(true);
+
+      assertThat(managementRegistry.getCapabilities(), hasSize(4));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("StatisticsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("SettingsCapability"));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
+
+      Collection<Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors();
+      Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+      allDescriptors.addAll(ONHEAP_DESCRIPTORS);
+      allDescriptors.addAll(DISK_DESCRIPTORS);
+      allDescriptors.addAll(CACHE_DESCRIPTORS);
+
+      assertThat(descriptors, containsInAnyOrder(allDescriptors.toArray()));
+      assertThat(descriptors, hasSize(allDescriptors.size()));
+    }
+    finally {
+      if(persistentCacheManager != null) persistentCacheManager.close();
+    }
+  }
+
+  private String getStoragePath() throws URISyntaxException {
+    return getClass().getClassLoader().getResource(".").toURI().getPath();
+  }
+
 
   @Test
   public void testCanGetCapabilities() {
@@ -92,7 +234,7 @@ public class DefaultManagementRegistryServiceTest {
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("SettingsCapability"));
 
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors(), hasSize(13));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getDescriptors(), hasSize(ONHEAP_DESCRIPTORS.size() + CACHE_DESCRIPTORS.size()));
 
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getCapabilityContext().getAttributes(), hasSize(2));
     assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getCapabilityContext().getAttributes(), hasSize(2));
@@ -100,12 +242,23 @@ public class DefaultManagementRegistryServiceTest {
     cacheManager1.close();
   }
 
-  @Test
+  @Test (timeout = 5000)
   public void testCanGetStats() {
+    String queryStatisticName = "Cache:HitCount";
+
+    long averageWindowDuration = 1;
+    TimeUnit averageWindowUnit = TimeUnit.MINUTES;
+    int historySize = 100;
+    long historyInterval = 1;
+    TimeUnit historyIntervalUnit = TimeUnit.MILLISECONDS;
+    long timeToDisable = 10;
+    TimeUnit timeToDisableUnit = TimeUnit.MINUTES;
+    EhcacheStatisticsProviderConfiguration config = new EhcacheStatisticsProviderConfiguration(averageWindowDuration,averageWindowUnit,historySize,historyInterval,historyIntervalUnit,timeToDisable,timeToDisableUnit);
+
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
-    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM").addConfiguration(config));
 
     CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache1", cacheConfiguration)
@@ -121,40 +274,86 @@ public class DefaultManagementRegistryServiceTest {
       .with("cacheManagerName", "myCM")
       .with("cacheName", "aCache2");
 
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
-    cacheManager1.getCache("aCache2", Long.class, String.class).put(3L, "3");
-    cacheManager1.getCache("aCache2", Long.class, String.class).put(4L, "4");
-    cacheManager1.getCache("aCache2", Long.class, String.class).put(5L, "5");
+    Cache cache1 = cacheManager1.getCache("aCache1", Long.class, String.class);
+    Cache cache2 = cacheManager1.getCache("aCache2", Long.class, String.class);
 
-    ContextualStatistics counters = managementRegistry.withCapability("StatisticsCapability")
-        .queryStatistic("PutCounter")
-        .on(context1)
-        .build()
-        .execute()
-        .getResult(context1);
+    cache1.put(1L, "one");
+    cache2.put(3L, "three");
+
+    cache1.get(1L);
+    cache1.get(2L);
+    cache2.get(3L);
+    cache2.get(4L);
+
+    Builder builder1 = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistic(queryStatisticName)
+        .on(context1);
+
+    ContextualStatistics counters = getResultSet(builder1, context1, null, CounterHistory.class, queryStatisticName).getResult(context1);
+    CounterHistory counterHistory1 = counters.getStatistic(CounterHistory.class, queryStatisticName);
 
     assertThat(counters.size(), equalTo(1));
-    assertThat(counters.getStatistic(Counter.class).getValue(), equalTo(2L));
+    int mostRecentSampleIndex = counterHistory1.getValue().length - 1;
+    assertThat(counterHistory1.getValue()[mostRecentSampleIndex].getValue(), equalTo(1L));
 
-    ResultSet<ContextualStatistics> allCounters = managementRegistry.withCapability("StatisticsCapability")
-        .queryStatistic("PutCounter")
+    Builder builder2 = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistic(queryStatisticName)
         .on(context1)
-        .on(context2)
-        .build()
-        .execute();
+        .on(context2);
+    ResultSet<ContextualStatistics> allCounters = getResultSet(builder2, context1, context2, CounterHistory.class, queryStatisticName);
 
     assertThat(allCounters.size(), equalTo(2));
     assertThat(allCounters.getResult(context1).size(), equalTo(1));
-    assertThat(allCounters.getResult(context2).size(), Matchers.equalTo(1));
-    assertThat(allCounters.getResult(context1).getStatistic(Counter.class).getValue(), equalTo(2L));
-    assertThat(allCounters.getResult(context2).getStatistic(Counter.class).getValue(), equalTo(3L));
+    assertThat(allCounters.getResult(context2).size(), equalTo(1));
+
+    mostRecentSampleIndex = allCounters.getResult(context1).getStatistic(CounterHistory.class, queryStatisticName).getValue().length - 1;
+    assertThat(allCounters.getResult(context1).getStatistic(CounterHistory.class, queryStatisticName).getValue()[mostRecentSampleIndex].getValue(), equalTo(1L));
+
+    mostRecentSampleIndex = allCounters.getResult(context2).getStatistic(CounterHistory.class, queryStatisticName).getValue().length - 1;
+    assertThat(allCounters.getResult(context2).getStatistic(CounterHistory.class, queryStatisticName).getValue()[mostRecentSampleIndex].getValue(), equalTo(1L));
 
     cacheManager1.close();
   }
 
-  @Test
+  private static ResultSet<ContextualStatistics> getResultSet(Builder builder, Context context1, Context context2, Class<CounterHistory> type, String statisticsName) {
+    ResultSet<ContextualStatistics> counters;
+
+    while(true)  //wait till Counter history(s) is initialized and contains values.
+    {
+      counters = builder.build().execute();
+
+      ContextualStatistics statisticsContext1 = counters.getResult(context1);
+      CounterHistory counterHistoryContext1 = statisticsContext1.getStatistic(type, statisticsName);
+
+      if(context2 != null)
+      {
+        ContextualStatistics statisticsContext2 = counters.getResult(context2);
+        CounterHistory counterHistoryContext2 = statisticsContext2.getStatistic(type, statisticsName);
+
+        if(counterHistoryContext2.getValue().length > 0 &&
+           counterHistoryContext2.getValue()[counterHistoryContext2.getValue().length - 1].getValue() > 0 &&
+           counterHistoryContext1.getValue().length > 0 &&
+           counterHistoryContext1.getValue()[counterHistoryContext1.getValue().length - 1].getValue() > 0)
+        {
+          break;
+        }
+      }
+      else
+      {
+        if(counterHistoryContext1.getValue().length > 0 &&
+           counterHistoryContext1.getValue()[counterHistoryContext1.getValue().length - 1].getValue() > 0)
+        {
+          break;
+        }
+      }
+    }
+
+    return counters;
+  }
+
+  @Test (timeout=5000)
   public void testCanGetStatsSinceTime() throws InterruptedException {
+
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
@@ -172,11 +371,11 @@ public class DefaultManagementRegistryServiceTest {
       .with("cacheName", "aCache1");
 
     StatisticQuery.Builder builder = managementRegistry.withCapability("StatisticsCapability")
-        .queryStatistic("AllCachePutCount")
+        .queryStatistic("Cache:MissCount")
         .on(context);
 
     ContextualStatistics statistics;
-    CounterHistory putCount;
+    CounterHistory getCount;
     long timestamp;
 
     // ------
@@ -186,32 +385,33 @@ public class DefaultManagementRegistryServiceTest {
     builder.build().execute();
 
     // ------
-    // 3 puts and we wait more than 1 second (history frequency) to be sure the scheduler thread has computed a new stat in the history
+    // 3 gets and we wait more than 1 second (history frequency) to be sure the scheduler thread has computed a new stat in the history
     // ------
 
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
+    cacheManager1.getCache("aCache1", Long.class, String.class).get(1L);
+    cacheManager1.getCache("aCache1", Long.class, String.class).get(2L);
+    cacheManager1.getCache("aCache1", Long.class, String.class).get(2L);
 
     do {
       Thread.sleep(100);
       statistics = builder.build().execute().getResult(context);
-      putCount = statistics.getStatistic(CounterHistory.class);
-    } while (putCount.getValue().length < 1);
+      getCount = statistics.getStatistic(CounterHistory.class);
+    } while (getCount.getValue().length < 1);
 
-    // within 1 second of history there has been 3 puts
-    assertThat(putCount.getValue()[0].getValue(), equalTo(3L));
+    // within 1 second of history there has been 3 gets
+    int mostRecentIndex = getCount.getValue().length - 1;
+    assertThat(getCount.getValue()[mostRecentIndex].getValue(), equalTo(3L));
 
     // keep time for next call (since)
-    timestamp = putCount.getValue()[0].getTimestamp();
+    timestamp = getCount.getValue()[mostRecentIndex].getTimestamp();
 
     // ------
-    // 2 puts and we wait more than 1 second (history frequency) to be sure the scheduler thread has computed a new stat in the history
+    // 2 gets and we wait more than 1 second (history frequency) to be sure the scheduler thread has computed a new stat in the history
     // We will get only the stats SINCE last time
     // ------
 
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(2L, "2");
+    cacheManager1.getCache("aCache1", Long.class, String.class).get(1L);
+    cacheManager1.getCache("aCache1", Long.class, String.class).get(2L);
 
     // ------
     // WITHOUT using since: the history will have 2 values
@@ -220,30 +420,32 @@ public class DefaultManagementRegistryServiceTest {
     do {
       Thread.sleep(100);
       statistics = builder.build().execute().getResult(context);
-      putCount = statistics.getStatistic(CounterHistory.class);
-    } while (putCount.getValue().length < 2);
+      getCount = statistics.getStatistic(CounterHistory.class);
+    } while (getCount.getValue().length < 2);
 
     // ------
     // WITH since: the history will have 1 value
     // ------
 
     statistics = builder.since(timestamp + 1).build().execute().getResult(context);
-    putCount = statistics.getStatistic(CounterHistory.class);
+    getCount = statistics.getStatistic(CounterHistory.class);
 
     // get the counter for each computation at each 1 second
-    assertThat(Arrays.asList(putCount.getValue()), everyItem(Matchers.<Sample<Long>>hasProperty("timestamp", greaterThan(timestamp))));
+    assertThat(Arrays.asList(getCount.getValue()), everyItem(Matchers.<Sample<Long>>hasProperty("timestamp", greaterThan(timestamp))));
 
     cacheManager1.close();
   }
 
   @Test
   public void testCall() throws ExecutionException {
+    CacheManager cacheManager1 = null;
+    try {
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
 
-    CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+    cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache1", cacheConfiguration)
         .withCache("aCache2", cacheConfiguration)
         .using(managementRegistry)
@@ -268,44 +470,136 @@ public class DefaultManagementRegistryServiceTest {
     assertThat(result.getValue(), is(nullValue()));
 
     assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), is(Matchers.nullValue()));
+    }
+    finally {
+      if(cacheManager1 != null) cacheManager1.close();
+    }
 
-    cacheManager1.close();
   }
 
   @Test
   public void testCallOnInexistignContext() {
-    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
-        .build();
-
-    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
-
-    CacheManager cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
-        .withCache("aCache1", cacheConfiguration)
-        .withCache("aCache2", cacheConfiguration)
-        .using(managementRegistry)
-        .build(true);
-
-    Context inexisting = Context.empty()
-        .with("cacheManagerName", "myCM2")
-        .with("cacheName", "aCache2");
-
-    ResultSet<? extends ContextualReturn<?>> results = managementRegistry.withCapability("ActionsCapability")
-        .call("clear")
-        .on(inexisting)
-        .build()
-        .execute();
-
-    assertThat(results.size(), equalTo(1));
-    assertThat(results.getSingleResult().hasExecuted(), is(false));
-
+    CacheManager cacheManager1 = null;
     try {
-      results.getSingleResult().getValue();
-      fail();
-    } catch (Exception e) {
-      assertThat(e, instanceOf(NoSuchElementException.class));
+      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
+          .build();
+
+      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM"));
+
+      cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
+          .withCache("aCache1", cacheConfiguration)
+          .withCache("aCache2", cacheConfiguration)
+          .using(managementRegistry)
+          .build(true);
+
+      Context inexisting = Context.empty()
+          .with("cacheManagerName", "myCM2")
+          .with("cacheName", "aCache2");
+
+      ResultSet<? extends ContextualReturn<?>> results = managementRegistry.withCapability("ActionsCapability")
+          .call("clear")
+          .on(inexisting)
+          .build()
+          .execute();
+
+      assertThat(results.size(), equalTo(1));
+      assertThat(results.getSingleResult().hasExecuted(), is(false));
+
+      try {
+        results.getSingleResult().getValue();
+        fail();
+      } catch (Exception e) {
+        assertThat(e, instanceOf(NoSuchElementException.class));
+      }
+    }
+    finally {
+      if(cacheManager1 != null) cacheManager1.close();
     }
 
-    cacheManager1.close();
   }
+
+  @BeforeClass
+  public static void loadStatsUtil() throws ClassNotFoundException {
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissLatencyMinimum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionLatencyMinimum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissLatencyMaximum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionRate" , StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitRatioRatio" , StatisticType.RATIO_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitLatencyAverage" , StatisticType.AVERAGE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitLatencyMinimum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:OccupiedBytesCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissRate" , StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionLatencyAverage" , StatisticType.AVERAGE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitCount" , StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitRate" , StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissLatencyAverage" , StatisticType.AVERAGE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionLatencyMaximum" , StatisticType.DURATION_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitLatencyMaximum" , StatisticType.DURATION_HISTORY));
+
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitLatencyMinimum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedBytesCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitLatencyMaximum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedBytesCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionLatencyMaximum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MappingCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRatioRatio", StatisticType.RATIO_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionLatencyMinimum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissLatencyMaximum", StatisticType.DURATION_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MaxMappingCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissLatencyAverage", StatisticType.AVERAGE_HISTORY));
+
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissLatencyMaximum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitLatencyMinimum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MaxMappingCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitRate", StatisticType.RATE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedBytesCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionLatencyMinimum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionRate", StatisticType.RATE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionLatencyMaximum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedBytesCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitLatencyMaximum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitRatioRatio", StatisticType.RATIO_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissRate", StatisticType.RATE_HISTORY));
+
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitLatencyMinimum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRatioRatio", StatisticType.RATIO_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitLatencyAverage", StatisticType.AVERAGE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatencyMaximum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatencyMinimum", StatisticType.DURATION_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRatioRatio", StatisticType.RATIO_HISTORY));
+
+  }
+
 
 }

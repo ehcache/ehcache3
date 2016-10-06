@@ -323,6 +323,23 @@ public class ChainMapTest {
     }
   }
 
+  @Test
+  public void testPutWhenKeyIsNotNull() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.append("key", buffer(3));
+    map.put("key", chain(buffer(1), buffer(2)));
+
+    assertThat(map.get("key"), contains(element(1), element(2)));
+  }
+
+  @Test
+  public void testPutWhenKeyIsNull() {
+    OffHeapChainMap<String> map = new OffHeapChainMap<String>(new UnlimitedPageSource(new OffHeapBufferSource()), StringPortability.INSTANCE, minPageSize, maxPageSize, steal);
+    map.put("key", chain(buffer(1), buffer(2)));
+
+    assertThat(map.get("key"), contains(element(1), element(2)));
+  }
+
   private static ByteBuffer buffer(int i) {
     ByteBuffer buffer = ByteBuffer.allocate(i);
     while (buffer.hasRemaining()) {
