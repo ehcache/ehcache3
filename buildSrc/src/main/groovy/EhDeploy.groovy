@@ -43,8 +43,8 @@ class EhDeploy implements Plugin<Project> {
           beforeDeployment { MavenDeployment deployment -> project.signing.signPom(deployment)}
 
           if (project.isReleaseVersion) {
-            repository(id: 'sonatype-nexus-staging', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-              authentication(userName: project.sonatypeUser, password: project.sonatypePwd)
+            repository(url: project.deployUrl) {
+              authentication(userName: project.deployUser, password: project.deployPwd)
             }
           } else {
             repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {
