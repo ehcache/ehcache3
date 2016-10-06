@@ -16,8 +16,17 @@
 import scripts.*
 import org.gradle.internal.jvm.Jvm
 
+if (hasProperty('overrideVersion')) {
+  ext {
+    baseVersion = overrideVersion
+  }
+} else {
+  ext {
+    baseVersion = '3.1.2-SNAPSHOT'
+  }
+}
+
 ext {
-  baseVersion = '3.1.2-SNAPSHOT'
 
   // Third parties
   offheapVersion = '2.2.2'
@@ -43,7 +52,18 @@ ext {
   utils = new Utils(baseVersion, logger)
   isReleaseVersion = !baseVersion.endsWith('SNAPSHOT')
   isCloudbees = System.getenv('JENKINS_URL')?.contains('cloudbees')
-  logger.info("Is cloudbees? $isCloudbees")
+}
+
+if (deployUrl.contains('nexus')) {
+  ext {
+    deployUser = tcDeployUser
+    deployPwd = tcDeployPassword
+  }
+} else {
+  ext {
+    deployUser = sonatypeUser
+    deployPwd = sonatypePwd
+  }
 }
 
 // Java 6 build setup
