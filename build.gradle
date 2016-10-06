@@ -32,7 +32,7 @@ ext {
   terracottaCoreVersion = '5.0.7-beta'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.0.7.beta'
+  terracottaPassthroughTestingVersion = '1.0.7.beta2'
   entityTestLibVersion = terracottaPassthroughTestingVersion
   galvanVersion = '1.0.7-beta'
 

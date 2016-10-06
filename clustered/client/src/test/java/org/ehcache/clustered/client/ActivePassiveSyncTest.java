@@ -24,14 +24,18 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
+import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
@@ -43,9 +47,14 @@ import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.lang.reflect.Field;
 import java.net.URI;
+import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 public class ActivePassiveSyncTest {
 
@@ -100,7 +109,13 @@ public class ActivePassiveSyncTest {
     clusterControl.waitForRunningPassivesInStandby();
     clusterControl.terminateActive();
 
-    clientEntity.validate(configuration.getServerConfiguration());
+    try {
+      clientEntity.validate(configuration.getServerConfiguration());
+      fail("ClusteredTierManagerValidationException Expected.");
+    } catch (ClusteredTierManagerValidationException e) {
+      assertThat(e.getCause(), instanceOf(LifecycleException.class));
+      assertThat(e.getCause().getMessage(), containsString("is already being tracked with Client Id"));
+    }
     service.stop();
   }
 

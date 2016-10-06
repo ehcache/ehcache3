@@ -327,7 +327,7 @@ public class EhcacheClientEntity implements Entity {
    */
   public static final class Timeouts {
 
-    public static final TimeoutDuration DEFAULT_READ_OPERATION_TIMEOUT = TimeoutDuration.of(5, TimeUnit.SECONDS);
+    public static final TimeoutDuration DEFAULT_READ_OPERATION_TIMEOUT = TimeoutDuration.of(20, TimeUnit.SECONDS);
 
     private final TimeoutDuration readOperationTimeout;
     private final TimeoutDuration mutativeOperationTimeout;
