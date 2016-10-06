@@ -327,7 +327,9 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
 
     try {
-      entity.destroyCache(name);
+      if (entity != null) {
+        entity.destroyCache(name);
+      }
     } catch (ClusteredTierDestructionException e) {
       throw new CachePersistenceException(e.getMessage() + " (on " + clusterUri + ")", e);
     } catch (TimeoutException e) {
