@@ -23,6 +23,9 @@ package org.ehcache.spi.service;
 @PluralService
 public interface MaintainableService extends Service {
 
+  /**
+   * Defines Maintenance scope
+   */
   enum MaintenanceScope {
     /** Will impact the cache manager */
     CACHE_MANAGER,
