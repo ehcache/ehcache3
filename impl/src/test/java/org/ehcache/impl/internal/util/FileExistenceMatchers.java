@@ -24,129 +24,106 @@ import java.io.File;
 import java.io.FilenameFilter;
 
 /**
- * Matcher(s) for file existence in the persistence directory..
+ * Matchers for file locks and existence in the persistence directory.
  *
  * @author RKAV
  */
 public class FileExistenceMatchers {
-  public static Matcher<File> fileExistsOwnerOpen(final int numExpectedFiles) {
-    return new TypeSafeMatcher<File>() {
-      @Override
-      protected boolean matchesSafely(File item) {
-        return fileExistsOwnerOpenWithName(item, numExpectedFiles, null);
-      }
 
-      @Override
-      public void describeTo(Description description) {
-
-      }
-    };
-  }
-
-  public static Matcher<File> fileExistsOwnerOpenExpected(final int numExpectedFiles, final String expected) {
-    return new TypeSafeMatcher<File>() {
-      @Override
-      protected boolean matchesSafely(File item) {
-        return fileExistsOwnerOpenWithName(item, numExpectedFiles, expected);
-      }
-
-      @Override
-      public void describeTo(Description description) {
-      }
-    };
-  }
-
-  public static Matcher<File> fileExistOwnerClosed(final int numExpectedFiles) {
-    return new TypeSafeMatcher<File>() {
-      @Override
-      protected boolean matchesSafely(File item) {
-        return fileExistsOwnerClosedWithName(item, numExpectedFiles, null);
-      }
-
-      @Override
-      public void describeTo(Description description) {
-      }
-    };
-  }
-
-  public static Matcher<File> fileExistOwnerClosedExpected(final int numExpectedFiles, final String expected) {
-    return new TypeSafeMatcher<File>() {
-      @Override
-      protected boolean matchesSafely(File item) {
-        return fileExistsOwnerClosedWithName(item, numExpectedFiles, expected);
-      }
-
-      @Override
-      public void describeTo(Description description) {
-      }
-    };
-  }
-
-  public static Matcher<File> fileExistNoOwner() {
-    return new TypeSafeMatcher<File>() {
-      @Override
-      protected boolean matchesSafely(File item) {
-        File[] files = item.listFiles();
-        return files == null || files.length == 0;
-      }
-
-      @Override
-      public void describeTo(Description description) {
-
-      }
-    };
-  }
-
-  private static boolean fileExistsOwnerOpenWithName(final File item, final int numExpectedFiles, final String expected) {
-    boolean matches = false;
-    File[] files = item.listFiles();
-    if (files == null) {
-      return false;
+  private static class DirectoryIsLockedMatcher extends TypeSafeMatcher<File> {
+    @Override
+    protected boolean matchesSafely(File dir) {
+      File[] files = dir.listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+          return name.equals(".lock");
+        }
+      });
+      return files != null && files.length == 1;
     }
-    if (files.length == 2) {
-      int i = files[0].isDirectory() ? 0 : 1;
-      if (expected != null) {
-        files = files[i].listFiles(new FilenameFilter() {
-          @Override
-          public boolean accept(File dir, String name) {
-            return name.startsWith(expected);
-          }
-        });
-      } else {
-        files = files[i].isDirectory() ? files[i].listFiles() : null;
-      }
-      if (numExpectedFiles > 0) {
-        matches = files != null && files.length == numExpectedFiles;
-      } else {
-        matches = files == null || files.length == 0;
-      }
+
+    @Override
+    public void describeMismatchSafely(File item, Description mismatchDescription) {
+      mismatchDescription.appendValue(item)
+        .appendText(" doesn't contain a .lock file");
     }
-    return matches;
+
+    @Override
+    public void describeTo(Description description) {
+      description.appendText("a .lock file in the directory");
+    }
   }
 
-  private static boolean fileExistsOwnerClosedWithName(final File item, final int numExpectedFiles, final String expected) {
-    boolean matches = false;
-    File[] files = item.listFiles();
-    if (files == null) {
-      return false;
+  private static class ContainsCacheDirectoryMatcher extends TypeSafeMatcher<File> {
+
+    private String parentDirectory;
+    private String startWith;
+
+    public ContainsCacheDirectoryMatcher(String safeSpaceOwner, String cacheAlias) {
+      this.parentDirectory = safeSpaceOwner;
+      this.startWith = cacheAlias + "_";
     }
-    if (files.length == 1) {
-      if (expected != null) {
-        files = files[0].listFiles(new FilenameFilter() {
-          @Override
-          public boolean accept(File dir, String name) {
-            return name.startsWith(expected);
-          }
-        });
-      } else {
-        files = files[0].isDirectory() ? files[0].listFiles() : null;
+
+    @Override
+    protected boolean matchesSafely(File item) {
+      // The directory layout is that there will be a directory named 'file'
+      // If the cache directory exists, it will contain a directory starting with 'cacheAlias_'
+
+      File file = new File(item, parentDirectory);
+      if(!file.exists() || !file.isAbsolute()) {
+        return false;
       }
-      if (numExpectedFiles > 0) {
-        matches = files != null && files.length == numExpectedFiles;
-      } else {
-        matches = files == null || files.length == 0;
-      }
+
+      File[] files = file.listFiles(new FilenameFilter() {
+        @Override
+        public boolean accept(File dir, String name) {
+          return name.startsWith(startWith);
+        }
+      });
+
+      return files != null && files.length == 1 && files[0].isDirectory();
     }
-    return matches;
+
+    @Override
+    public void describeMismatchSafely(File item, Description mismatchDescription) {
+      mismatchDescription.appendValue(item)
+        .appendText(" doesn't contains a file starting with " + startWith);
+    }
+
+    @Override
+    public void describeTo(Description description) {
+      description.appendText("contains a file starting with '" + "'");
+    }
   }
+
+  /**
+   * Matcher checking if the persistence directory is locked by a cache manager
+   *
+   * @return the matcher
+   */
+  public static Matcher<File> isLocked() {
+    return new DirectoryIsLockedMatcher();
+  }
+
+  /**
+   * Matcher checking if a cache directory starting with this name exists in the 'file' safe space
+   *
+   * @param cacheAlias cache alias that will be the prefix of the cache directory
+   * @return the matcher
+   */
+  public static Matcher<File> containsCacheDirectory(String cacheAlias) {
+    return new ContainsCacheDirectoryMatcher("file", cacheAlias);
+  }
+
+  /**
+   * Matcher checking if a cache directory starting within the safe space
+   *
+   * @param safeSpaceOwner name of the same space owner. It is also the name of the safe space root directory
+   * @param cacheAlias cache alias that will be the prefix of the cache directory
+   * @return the matcher
+   */
+  public static Matcher<File> containsCacheDirectory(String safeSpaceOwner, String cacheAlias) {
+    return new ContainsCacheDirectoryMatcher(safeSpaceOwner, cacheAlias);
+  }
+
 }

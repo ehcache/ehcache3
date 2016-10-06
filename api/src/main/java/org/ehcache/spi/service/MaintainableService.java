@@ -22,11 +22,20 @@ package org.ehcache.spi.service;
  */
 @PluralService
 public interface MaintainableService extends Service {
+
+  enum MaintenanceScope {
+    /** Will impact the cache manager */
+    CACHE_MANAGER,
+    /** Will impact one or many caches */
+    CACHE
+  }
+
   /**
    * Start this service for maintenance, based on its default configuration.
-   *
    * @param serviceProvider enables to depend on other maintainable services
+   * @param maintenanceScope the scope of the maintenance
+   *
    */
-  void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider);
+  void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope);
 
 }

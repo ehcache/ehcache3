@@ -163,6 +163,20 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
+  @Override
+  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+    initClusterConnection();
+    createEntityFactory();
+    if(maintenanceScope == MaintenanceScope.CACHE_MANAGER) {
+      if (!entityFactory.acquireLeadership(entityIdentifier)) {
+        entityFactory = null;
+        closeConnection();
+        throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
+      }
+    }
+    inMaintenance = true;
+  }
+
   private void createEntityFactory() {
     entityFactory = new EhcacheClientEntityFactory(clusterConnection, operationTimeouts);
   }
@@ -202,18 +216,6 @@ class DefaultClusteringService implements ClusteringService, EntityService {
             + "'; retrieve operation timed out", e);
       }
     }
-  }
-
-  @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
-    initClusterConnection();
-    createEntityFactory();
-    if (!entityFactory.acquireLeadership(entityIdentifier)) {
-      entityFactory = null;
-      closeConnection();
-      throw new IllegalStateException("Couldn't acquire cluster-wide maintenance lease");
-    }
-    inMaintenance = true;
   }
 
   @Override
@@ -302,22 +304,28 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     }
   }
 
+  private void checkStarted() {
+    if(!isStarted()) {
+      throw new IllegalStateException(getClass().getName() + " should be started to call destroy");
+    }
+  }
+
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    boolean wasStarted = isStarted();
-    // If the cluster isn't started, start it first to be able to destroy the cache
-    if(!wasStarted) {
-      initClusterConnection();
-      createEntityFactory();
+    checkStarted();
+
+    // will happen when in maintenance mode
+    if(entity == null) {
       try {
         entity = entityFactory.retrieve(entityIdentifier, configuration.getServerConfiguration());
       } catch (EntityNotFoundException e) {
         // No entity on the server, so no need to destroy anything
       } catch (TimeoutException e) {
         throw new CachePersistenceException("Could not connect to the clustered tier manager '" + entityIdentifier
-            + "'; retrieve operation timed out", e);
+                                            + "'; retrieve operation timed out", e);
       }
     }
+
     try {
       entity.destroyCache(name);
     } catch (ClusteredTierDestructionException e) {
@@ -325,15 +333,11 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     } catch (TimeoutException e) {
       throw new CachePersistenceException("Could not destroy clustered tier '" + name + "' on " + clusterUri
           + "; destroy operation timed out" + clusterUri, e);
-    } finally {
-      if (!wasStarted) {
-        stop();
-      }
     }
   }
 
   protected boolean isStarted() {
-    return entity != null;
+    return entityFactory != null;
   }
 
   @Override

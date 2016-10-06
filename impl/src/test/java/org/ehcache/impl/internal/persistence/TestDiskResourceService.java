@@ -124,7 +124,7 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
   }
 
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
+  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
     //ignore
   }
 

@@ -164,7 +164,7 @@ public class DefaultLocalPersistenceService implements LocalPersistenceService {
   }
 
   @Override
-  public synchronized void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
+  public synchronized void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
     internalStart();
   }
 
