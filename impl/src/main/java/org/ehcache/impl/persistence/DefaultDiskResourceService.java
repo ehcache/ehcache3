@@ -44,13 +44,9 @@ public class DefaultDiskResourceService implements DiskResourceService {
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultDiskResourceService.class);
   static final String PERSISTENCE_SPACE_OWNER = "file";
 
-  private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces;
+  private final ConcurrentMap<String, PersistenceSpace> knownPersistenceSpaces = new ConcurrentHashMap<String, PersistenceSpace>();
   private volatile LocalPersistenceService persistenceService;
   private volatile boolean isStarted;
-
-  public DefaultDiskResourceService() {
-    this.knownPersistenceSpaces = new ConcurrentHashMap<String, PersistenceSpace>();
-  }
 
   private boolean isStarted() {
     return isStarted;
@@ -61,8 +57,7 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public void start(final ServiceProvider<Service> serviceProvider) {
-    persistenceService = serviceProvider.getService(LocalPersistenceService.class);
-    isStarted = true;
+    innerStart(serviceProvider);
   }
 
   /**
@@ -70,6 +65,10 @@ public class DefaultDiskResourceService implements DiskResourceService {
    */
   @Override
   public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
+    innerStart(serviceProvider);
+  }
+
+  private void innerStart(ServiceProvider<? super MaintainableService> serviceProvider) {
     persistenceService = serviceProvider.getService(LocalPersistenceService.class);
     isStarted = true;
   }
@@ -155,9 +154,8 @@ public class DefaultDiskResourceService implements DiskResourceService {
         }
       }
       return persistenceSpace;
-    } else {
-      return null;
     }
+    return null;
   }
 
   private void checkStarted() {
@@ -203,20 +201,22 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name)
       throws CachePersistenceException {
+
     PersistenceSpace persistenceSpace = getPersistenceSpace(identifier);
-    if (persistenceSpace != null) {
-      FileBasedStateRepository stateRepository = new FileBasedStateRepository(
-          FileUtils.createSubDirectory(persistenceSpace.identifier.persistentSpaceId.getRoot(), name));
-      FileBasedStateRepository previous = persistenceSpace.stateRepositories.putIfAbsent(name, stateRepository);
-      if (previous != null) {
-        return previous;
-      }
-      return stateRepository;
+    if(persistenceSpace == null) {
+      throw newCachePersistenceException(identifier);
     }
-    throw newCachePersistenceException(identifier);
+
+    FileBasedStateRepository stateRepository = new FileBasedStateRepository(
+        FileUtils.createSubDirectory(persistenceSpace.identifier.persistentSpaceId.getRoot(), name));
+    FileBasedStateRepository previous = persistenceSpace.stateRepositories.putIfAbsent(name, stateRepository);
+    if (previous != null) {
+      return previous;
+    }
+    return stateRepository;
   }
 
-  private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) {
+  private CachePersistenceException newCachePersistenceException(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
     return new CachePersistenceException("Unknown space: " + identifier);
   }
 
@@ -235,20 +235,11 @@ public class DefaultDiskResourceService implements DiskResourceService {
   @Override
   public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier<?> identifier, String name)
       throws CachePersistenceException {
-    if (containsSpace(identifier)) {
-      return new DefaultFileBasedPersistenceContext(
-          FileUtils.createSubDirectory(((DefaultPersistenceSpaceIdentifier)identifier).persistentSpaceId.getRoot(), name));
+    if(getPersistenceSpace(identifier) == null) {
+      throw newCachePersistenceException(identifier);
     }
-    throw newCachePersistenceException(identifier);
-  }
-
-  private boolean containsSpace(PersistenceSpaceIdentifier<?> identifier) {
-    for (PersistenceSpace persistenceSpace : knownPersistenceSpaces.values()) {
-      if (persistenceSpace.identifier.equals(identifier)) {
-        return true;
-      }
-    }
-    return false;
+    return new DefaultFileBasedPersistenceContext(
+        FileUtils.createSubDirectory(((DefaultPersistenceSpaceIdentifier)identifier).persistentSpaceId.getRoot(), name));
   }
 
   private static class PersistenceSpace {
