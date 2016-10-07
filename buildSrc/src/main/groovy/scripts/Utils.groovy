@@ -91,7 +91,12 @@ class Utils {
     def execMap = executablesPath.get(path)
     if (execMap == null) {
       execMap = [:].withDefault { execName ->
-        def executable = new File(path, 'bin' + File.separator + execName)
+        def executable
+        if (System.getProperty("os.name").toLowerCase().contains("windows")) {
+          executable = new File(path, 'bin' + File.separator + execName + ".exe")
+        } else {
+          executable = new File(path, 'bin' + File.separator + execName)
+        }
         assert executable.exists(): "There is no ${execName} executable in ${path}"
         executable
       }
