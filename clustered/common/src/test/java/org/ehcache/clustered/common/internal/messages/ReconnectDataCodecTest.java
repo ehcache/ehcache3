@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -25,7 +24,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;

@@ -140,7 +140,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     switch (message.operation()) {
       case APPEND:
       case GET_AND_APPEND: {
-        LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {}", message.getId(), message.getClientId());
+        LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {} is tracked now.", message.getId(), message.getClientId());
         ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
         break;
       }
