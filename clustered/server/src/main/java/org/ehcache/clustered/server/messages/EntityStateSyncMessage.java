@@ -20,11 +20,14 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 
+import com.tc.classloader.CommonComponent;
+
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+@CommonComponent
 public class EntityStateSyncMessage extends EhcacheEntityMessage implements Serializable {
 
   private final ServerSideConfiguration configuration;
