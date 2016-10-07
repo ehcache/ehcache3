@@ -16,17 +16,9 @@
 import scripts.*
 import org.gradle.internal.jvm.Jvm
 
-if (hasProperty('overrideVersion')) {
-  ext {
-    baseVersion = overrideVersion
-  }
-} else {
-  ext {
-    baseVersion = '3.2.0-SNAPSHOT'
-  }
-}
-
 ext {
+
+  baseVersion = findProperty('overrideVersion') ?: '3.2.0-SNAPSHOT'
 
   // Third parties
   offheapVersion = '2.3.0'

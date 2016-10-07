@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package scripts;
+package scripts
+
+import org.gradle.internal.os.OperatingSystem
 
 class Utils {
 
@@ -91,7 +93,8 @@ class Utils {
     def execMap = executablesPath.get(path)
     if (execMap == null) {
       execMap = [:].withDefault { execName ->
-        def executable = new File(path, 'bin' + File.separator + execName)
+        def extension = OperatingSystem.current().isWindows() ? ".exe" : ""
+        def executable = new File(path, 'bin' + File.separator + execName + extension)
         assert executable.exists(): "There is no ${execName} executable in ${path}"
         executable
       }
