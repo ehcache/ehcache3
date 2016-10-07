@@ -111,6 +111,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
     switch (message.operation()) {
       case CHAIN_REPLICATION_OP:
+        LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ChainReplicationMessage retirementMessage = (ChainReplicationMessage)message;
         ServerStoreImpl cacheStore = ehcacheStateService.getStore(retirementMessage.getCacheId());
         if (cacheStore == null) {
@@ -121,6 +122,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
         break;
       case CLIENTID_TRACK_OP:
+        LOGGER.debug("ClientIDTrackerMessage message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ehcacheStateService.getClientMessageTracker().add(message.getClientId());
         break;
       default:
@@ -138,11 +140,12 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     switch (message.operation()) {
       case APPEND:
       case GET_AND_APPEND: {
+        LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
         break;
       }
       case REPLACE: {
-        ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
+        ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
         cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
         break;
       }
@@ -224,7 +227,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
     ehcacheStateService.createStore(name, storeConfiguration);
-
   }
 
   private void destroyServerStore(DestroyServerStore destroyServerStore) throws ClusterException {
