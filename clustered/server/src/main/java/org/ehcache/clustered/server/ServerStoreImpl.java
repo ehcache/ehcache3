@@ -78,6 +78,10 @@ public class ServerStoreImpl implements ServerStore {
     store.replaceAtHead(key, expect, update);
   }
 
+  public void put(long key, Chain chain) {
+    store.put(key, chain);
+  }
+
   @Override
   public void clear() {
     store.clear();

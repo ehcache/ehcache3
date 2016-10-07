@@ -17,7 +17,6 @@
 package org.ehcache.impl.serialization;
 
 import org.ehcache.impl.internal.util.ByteBufferInputStream;
-import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 
@@ -41,10 +40,6 @@ public class PlainJavaSerializer<T> implements Serializer<T> {
 
   public PlainJavaSerializer(ClassLoader classLoader) {
     this.classLoader = classLoader;
-  }
-
-  public PlainJavaSerializer(ClassLoader classLoader, StateRepository stateRepository) throws IOException, ClassNotFoundException {
-    this(classLoader);
   }
 
   @Override

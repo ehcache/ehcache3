@@ -39,7 +39,6 @@ include::{sourcedir31}/management/src/test/java/org/ehcache/docs/ManagementTest.
 <4> Perform a few gets to increment the statistic's counter
 <5> Create the target statistic's context
 <6> Collect the get count statistic
-<7> Check that the statistic reports the expected count
 
 Obviously, you may use the above technique to pass your own implementation of `ManagementRegistry`.
 

@@ -23,9 +23,7 @@ import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.spi.serialization.Serializer;
-
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -54,7 +52,8 @@ public class CompactJavaSerializerClassUnloadingTest {
 
   @Test
   public void testClassUnloadingAfterSerialization() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+    serializer.init(new TransientStateRepository());
 
     serializer.serialize(specialObject);
 
@@ -74,7 +73,8 @@ public class CompactJavaSerializerClassUnloadingTest {
   public void testClassUnloadingAfterSerializationAndDeserialization() throws Exception {
     Thread.currentThread().setContextClassLoader(specialObject.getClass().getClassLoader());
     try {
-      Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+      StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+      serializer.init(new TransientStateRepository());
       specialObject = serializer.read(serializer.serialize(specialObject));
       Assert.assertEquals(SpecialClass.class.getName(), specialObject.getClass().getName());
       Assert.assertNotSame(SpecialClass.class, specialObject.getClass());

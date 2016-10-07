@@ -21,6 +21,16 @@ import java.util.concurrent.TimeUnit;
 
 public class EhcacheStatisticsProviderConfiguration extends DefaultStatisticsProviderConfiguration {
 
+  /**
+   *
+   * @param averageWindowDuration Time window to calculate average.
+   * @param averageWindowUnit TimeUnit of averageWindowDuration.  E.g. TimeUnit.MILLISECONDS, TimeUnit.MINUTES etc
+   * @param historySize Number of statistics to keep in memory.  E.g. if set to 20 then the last 20 statistic values will be stored.
+   * @param historyInterval The interval in which a sample is taken
+   * @param historyIntervalUnit the time interval in which a sample is taken.
+   * @param timeToDisable the time period in which a statistic is valid.  After this amount of time the statistic is removed.
+   * @param timeToDisableUnit the TimeUnit associated with the timeToDisable parameter
+   */
   public EhcacheStatisticsProviderConfiguration(long averageWindowDuration, TimeUnit averageWindowUnit, int historySize, long historyInterval, TimeUnit historyIntervalUnit, long timeToDisable, TimeUnit timeToDisableUnit) {
     super(EhcacheStatisticsProvider.class, averageWindowDuration, averageWindowUnit, historySize, historyInterval, historyIntervalUnit, timeToDisable, timeToDisableUnit);
   }

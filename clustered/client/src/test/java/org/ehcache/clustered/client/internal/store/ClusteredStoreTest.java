@@ -34,7 +34,6 @@ import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.StoreAccessTimeoutException;
-import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.expiry.Expirations;
@@ -58,7 +57,6 @@ import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStat;
 import static org.ehcache.clustered.util.StatisticsTestUtils.validateStats;
-import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.*;
@@ -102,7 +100,7 @@ public class ClusteredStoreTest {
             null
     );
     clientEntity.createCache(CACHE_IDENTIFIER, serverStoreConfiguration);
-    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER);
+    ServerStoreMessageFactory factory = new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity.getClientId());
     ServerStoreProxy serverStoreProxy = new NoInvalidationServerStoreProxy(factory, clientEntity);
 
     TestTimeSource testTimeSource = new TestTimeSource();

@@ -16,58 +16,67 @@
 
 package org.ehcache.impl.internal.persistence;
 
-import java.io.File;
-import java.util.Collection;
-import org.ehcache.config.CacheConfiguration;
-
-import org.ehcache.config.ResourcePool;
-import org.ehcache.config.ResourceType;
-import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
 import org.ehcache.CachePersistenceException;
-import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
-import org.ehcache.spi.persistence.PersistableResourceService;
-import org.ehcache.spi.persistence.StateRepository;
-import org.ehcache.spi.service.ServiceProvider;
+import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration;
+import org.ehcache.impl.persistence.DefaultDiskResourceService;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
+import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.junit.rules.ExternalResource;
 import org.junit.rules.TemporaryFolder;
+import org.mockito.Mockito;
+
+import java.io.File;
+
+import static org.mockito.Mockito.mock;
 
 /**
  *
  * @author cdennis
  */
-public class TestLocalPersistenceService extends ExternalResource implements LocalPersistenceService {
+public class TestDiskResourceService extends ExternalResource implements DiskResourceService {
 
   private final TemporaryFolder folder;
 
-  private LocalPersistenceService persistenceService;
+  private LocalPersistenceService fileService;
+  private DiskResourceService diskResourceService;
 
-  public TestLocalPersistenceService(File folder) {
+  public TestDiskResourceService(File folder) {
     this.folder = new TemporaryFolder(folder);
   }
 
-  public TestLocalPersistenceService() {
+  public TestDiskResourceService() {
     this.folder = new TemporaryFolder();
   }
 
   @Override
   protected void before() throws Throwable {
     folder.create();
-    persistenceService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
-    persistenceService.start(null);
+    fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
+    fileService.start(null);
+    diskResourceService = new DefaultDiskResourceService();
+    ServiceProvider sp = mock(ServiceProvider.class);
+    Mockito.when(sp.getService(LocalPersistenceService.class)).thenReturn(fileService);
+    diskResourceService.start(sp);
   }
 
 
   @Override
   protected void after() {
-    LocalPersistenceService ps = persistenceService;
-    persistenceService = null;
+    DiskResourceService ps = diskResourceService;
+    LocalPersistenceService ls = fileService;
+    diskResourceService = null;
+    fileService = null;
     try {
       ps.stop();
+      ls.stop();
     } finally {
       folder.delete();
     }
@@ -75,37 +84,37 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
 
   @Override
   public boolean handlesResourceType(ResourceType<?> resourceType) {
-    return persistenceService.handlesResourceType(resourceType);
+    return diskResourceService.handlesResourceType(resourceType);
   }
 
   @Override
   public PersistenceSpaceIdentifier getPersistenceSpaceIdentifier(String name, CacheConfiguration<?, ?> config) throws CachePersistenceException {
-    return persistenceService.getPersistenceSpaceIdentifier(name, config);
+    return diskResourceService.getPersistenceSpaceIdentifier(name, config);
   }
 
   @Override
   public void releasePersistenceSpaceIdentifier(PersistenceSpaceIdentifier<?> identifier) throws CachePersistenceException {
-    persistenceService.releasePersistenceSpaceIdentifier(identifier);
+    diskResourceService.releasePersistenceSpaceIdentifier(identifier);
   }
 
   @Override
   public StateRepository getStateRepositoryWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException {
-    return persistenceService.getStateRepositoryWithin(identifier, name);
+    return diskResourceService.getStateRepositoryWithin(identifier, name);
   }
 
   @Override
   public void destroy(String name) throws CachePersistenceException {
-    persistenceService.destroy(name);
+    diskResourceService.destroy(name);
   }
 
   @Override
   public FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier identifier, String name) throws CachePersistenceException {
-    return persistenceService.createPersistenceContextWithin(identifier, name);
+    return diskResourceService.createPersistenceContextWithin(identifier, name);
   }
 
   @Override
   public void destroyAll() throws CachePersistenceException {
-    persistenceService.destroyAll();
+    diskResourceService.destroyAll();
   }
 
   @Override
@@ -114,7 +123,7 @@ public class TestLocalPersistenceService extends ExternalResource implements Loc
   }
 
   @Override
-  public void startForMaintenance(ServiceProvider<MaintainableService> serviceProvider) {
+  public void startForMaintenance(ServiceProvider<? super MaintainableService> serviceProvider, MaintenanceScope maintenanceScope) {
     //ignore
   }
 

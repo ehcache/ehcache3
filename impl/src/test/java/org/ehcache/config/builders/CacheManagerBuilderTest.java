@@ -58,7 +58,7 @@ public class CacheManagerBuilderTest {
   public void testCanOverrideCopierInConfig() {
     CacheManagerBuilder<CacheManager> managerBuilder = newCacheManagerBuilder()
         .withCopier(Long.class, (Class) IdentityCopier.class);
-    assertNotNull(managerBuilder.withCopier(Long.class, (Class) SerializingCopier.class));
+    assertNotNull(managerBuilder.withCopier(Long.class, SerializingCopier.<Long>asCopierClass()));
   }
 
   @Test
