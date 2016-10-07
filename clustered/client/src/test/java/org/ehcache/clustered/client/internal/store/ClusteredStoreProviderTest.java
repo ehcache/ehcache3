@@ -46,6 +46,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
@@ -59,12 +61,12 @@ public class ClusteredStoreProviderTest {
   @Test
   public void testRank() throws Exception {
     ClusteredStore.Provider provider = new ClusteredStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator(
-        new TieredStore.Provider(),
-        new OnHeapStore.Provider(),
-        new OffHeapStore.Provider(),
-        new OffHeapDiskStore.Provider(),
-        mock(ClusteringService.class));
+    ServiceLocator serviceLocator = dependencySet()
+      .with(new TieredStore.Provider())
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(new OffHeapDiskStore.Provider())
+      .with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
     assertRank(provider, 1, ClusteredResourceType.Types.DEDICATED);
@@ -77,13 +79,13 @@ public class ClusteredStoreProviderTest {
   @Test
   public void testRankTiered() throws Exception {
     TieredStore.Provider provider = new TieredStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator(
-        provider,
-        new ClusteredStore.Provider(),
-        new OnHeapStore.Provider(),
-        new OffHeapStore.Provider(),
-        new OffHeapDiskStore.Provider(),
-        mock(ClusteringService.class));
+    ServiceLocator serviceLocator = dependencySet()
+      .with(provider)
+      .with(new ClusteredStore.Provider())
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(new OffHeapDiskStore.Provider())
+      .with(mock(ClusteringService.class)).build();
     serviceLocator.startAllServices();
 
     assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK);
@@ -115,7 +117,7 @@ public class ClusteredStoreProviderTest {
   @Test
   public void testAuthoritativeRank() throws Exception {
     ClusteredStore.Provider provider = new ClusteredStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator(mock(ClusteringService.class));
+    ServiceLocator serviceLocator = dependencySet().with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
     assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.EMPTY_LIST), is(1));

@@ -79,6 +79,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
@@ -100,13 +101,6 @@ import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmon
  * @param <T>  the specific {@code UserManagedCache} type
  */
 public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> implements Builder<T> {
-
-  @ServiceDependencies(Store.Provider.class)
-  private static class ServiceDeps {
-    private ServiceDeps() {
-      throw new UnsupportedOperationException("This is an annotation placeholder, not to be instantiated");
-    }
-  }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UserManagedCacheBuilder.class);
 
@@ -169,18 +163,17 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.sizeOfUnit = toCopy.sizeOfUnit;
   }
 
-  T build(ServiceLocator serviceLocator) throws IllegalStateException {
+  T build(ServiceLocator.DependencySet serviceLocatorBuilder) throws IllegalStateException {
 
     validateListenerConfig();
 
+    ServiceLocator serviceLocator;
     try {
       for (ServiceCreationConfiguration<?> serviceCreationConfig : serviceCreationConfigurations) {
-        Service service = serviceLocator.getOrCreateServiceFor(serviceCreationConfig);
-        if (service == null) {
-          throw new IllegalArgumentException("Couldn't resolve Service " + serviceCreationConfig.getServiceType().getName());
-        }
+        serviceLocatorBuilder = serviceLocatorBuilder.with(serviceCreationConfig);
       }
-      serviceLocator.loadDependenciesOf(ServiceDeps.class);
+      serviceLocatorBuilder = serviceLocatorBuilder.with(Store.Provider.class);
+      serviceLocator = serviceLocatorBuilder.build();
       serviceLocator.startAllServices();
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
@@ -394,7 +387,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @throws IllegalStateException if the user managed cache cannot be built
    */
   public final T build(final boolean init) throws IllegalStateException {
-    final T build = build(new ServiceLocator(services.toArray(new Service[services.size()])));
+    final T build = build(dependencySet().with(services));
     if (init) {
       build.init();
     }

@@ -152,7 +152,7 @@ public class EhcacheManagerTest {
     try {
       new EhcacheManager(config);
       fail("Should have thrown...");
-    } catch (IllegalArgumentException e) {
+    } catch (IllegalStateException e) {
       assertThat(e.getMessage(), containsString(NoSuchService.class.getName()));
     }
   }

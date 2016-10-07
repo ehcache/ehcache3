@@ -55,6 +55,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -165,7 +166,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public ServiceLocator getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
+        ServiceLocator serviceLocator = dependencySet().build();
         try {
           serviceLocator.startAllServices();
         } catch (Exception e) {

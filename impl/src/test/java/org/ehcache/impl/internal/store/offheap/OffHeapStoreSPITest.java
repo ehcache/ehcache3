@@ -41,6 +41,7 @@ import org.junit.Before;
 import java.util.Arrays;
 
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 /**
  * OffHeapStoreSPITest
@@ -117,7 +118,7 @@ public class OffHeapStoreSPITest extends AuthoritativeTierSPITest<String, String
 
       @Override
       public ServiceLocator getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
+        ServiceLocator serviceLocator = dependencySet().build();
         try {
           serviceLocator.startAllServices();
         } catch (Exception e) {

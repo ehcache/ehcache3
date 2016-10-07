@@ -43,6 +43,7 @@ import java.io.File;
 import java.io.Serializable;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -151,11 +152,11 @@ public class TieredStoreFlushWhileShutdownTest {
     DefaultPersistenceConfiguration persistenceConfiguration = new DefaultPersistenceConfiguration(location);
     DefaultLocalPersistenceService fileService = new DefaultLocalPersistenceService(persistenceConfiguration);
     DefaultDiskResourceService diskResourceService = new DefaultDiskResourceService();
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(fileService);
-    serviceLocator.addService(diskResourceService);
-    serviceLocator.addService(new OnHeapStore.Provider());
-    serviceLocator.addService(new OffHeapDiskStore.Provider());
-    return serviceLocator;
+    ServiceLocator.DependencySet dependencySet = dependencySet();
+    dependencySet.with(fileService);
+    dependencySet.with(diskResourceService);
+    dependencySet.with(new OnHeapStore.Provider());
+    dependencySet.with(new OffHeapDiskStore.Provider());
+    return dependencySet.build();
   }
 }

@@ -95,6 +95,7 @@ import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
 
 import static java.util.Collections.emptySet;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -1540,13 +1541,13 @@ public class XAStoreTest {
   public void testRank() throws Exception {
     XAStore.Provider provider = new XAStore.Provider();
     XAStoreConfiguration configuration = new XAStoreConfiguration("testXAResourceId");
-    ServiceLocator serviceLocator = new ServiceLocator(
-        provider,
-        new TieredStore.Provider(),
-        new OnHeapStore.Provider(),
-        new OffHeapStore.Provider(),
-        new OffHeapDiskStore.Provider(),
-        mock(TransactionManagerProvider.class));
+    ServiceLocator serviceLocator = dependencySet()
+      .with(provider)
+      .with(new TieredStore.Provider())
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(new OffHeapDiskStore.Provider())
+      .with(mock(TransactionManagerProvider.class)).build();
 
     serviceLocator.startAllServices();
 

@@ -78,6 +78,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -119,9 +120,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testRecoveryFailureWhenValueTypeChangesToIncompatibleClass() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(diskResourceService);
-    serviceLocator.addService(provider);
+    ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
     CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
@@ -169,9 +168,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testRecoveryWithArrayType() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(diskResourceService);
-    serviceLocator.addService(provider);
+    ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
     CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
@@ -269,8 +266,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testStoreInitFailsWithoutLocalPersistenceService() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(provider);
+    ServiceLocator serviceLocator = dependencySet().with(provider).build();
     serviceLocator.startAllServices();
     Store.Configuration<String, String> storeConfig = mock(Store.Configuration.class);
     when(storeConfig.getKeyType()).thenReturn(String.class);

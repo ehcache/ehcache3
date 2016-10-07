@@ -58,6 +58,7 @@ import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singleton;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -596,7 +597,7 @@ public class TieredStoreTest {
   @Test
   public void testRank() throws Exception {
     TieredStore.Provider provider = new TieredStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator(provider);
+    ServiceLocator serviceLocator = dependencySet().with(provider).build();
     serviceLocator.startAllServices();
 
     assertRank(provider, 0, ResourceType.Core.DISK);
