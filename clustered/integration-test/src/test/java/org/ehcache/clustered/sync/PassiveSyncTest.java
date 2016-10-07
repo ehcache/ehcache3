@@ -28,12 +28,15 @@ import org.ehcache.config.units.MemoryUnit;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.util.Collections;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
@@ -81,11 +84,71 @@ public class PassiveSyncTest {
 
       Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
 
+      for (long i = -5; i < 5; i++) {
+        cache.put(i, "value" + i);
+      }
+
       CLUSTER.getClusterControl().startOneServer();
       CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
 
-      cache.put(1L, "The one");   //If this doesn't throw it means that the state replication worked
+      for (long i = -5; i < 5; i++) {
+        assertThat(cache.get(i), equalTo("value" + i));
+      }
+    } finally {
+      cacheManager.close();
+    }
+  }
+
+  @Ignore
+  @Test
+  public void testLifeCycleOperationsOnSync() throws Exception {
+    CLUSTER.getClusterControl().terminateOnePassive();
+
+    final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
+      = CacheManagerBuilder.newCacheManagerBuilder()
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"))
+        .autoCreate()
+        .defaultServerResource("primary-server-resource"));
+    final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);
+
+    try {
+      CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+        ResourcePoolsBuilder.newResourcePoolsBuilder()
+          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 1, MemoryUnit.MB))).build();
+
+      final Cache<Long, String> cache = cacheManager.createCache("clustered-cache", config);
+
+      for (long i = 0; i < 100; i++) {
+        cache.put(i, "value" + i);
+      }
+
+      final CountDownLatch latch = new CountDownLatch(1);
+      final AtomicBoolean complete = new AtomicBoolean(false);
+      Thread lifeCycleThread = new Thread(new Runnable() {
+        @Override
+        public void run() {
+          while (!complete.get()) {
+            try {
+              latch.await();
+              clusteredCacheManagerBuilder.build(true);
+              Thread.sleep(200);
+            } catch (InterruptedException e) {
+              throw new RuntimeException(e);
+            }
+          }
+        }
+      });
+      lifeCycleThread.start();
+      CLUSTER.getClusterControl().startOneServer();
+      latch.countDown();
+      CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
+      CLUSTER.getClusterControl().terminateActive();
+      complete.set(true);
+
+      for (long i = 0; i < 100; i++) {
+        assertThat(cache.get(i), equalTo("value" + i));
+      }
     } finally {
       cacheManager.close();
     }

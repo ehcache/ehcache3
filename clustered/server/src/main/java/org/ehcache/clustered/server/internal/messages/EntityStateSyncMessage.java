@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.server.messages;
+package org.ehcache.clustered.server.internal.messages;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
+
+import com.tc.classloader.CommonComponent;
 
 import com.tc.classloader.CommonComponent;
 
@@ -28,7 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @CommonComponent
-public class EntityStateSyncMessage extends EhcacheEntityMessage implements Serializable {
+public class EntityStateSyncMessage extends EntitySyncMessage implements Serializable {
 
   private final ServerSideConfiguration configuration;
   private final Map<String, ServerStoreConfiguration> storeConfigs;
@@ -55,28 +56,7 @@ public class EntityStateSyncMessage extends EhcacheEntityMessage implements Seri
   }
 
   @Override
-  public Type getType() {
-    return Type.SYNC_OP;
+  public SyncOp operation() {
+    return SyncOp.STATE;
   }
-
-  @Override
-  public byte getOpCode() {
-    return getType().getCode();
-  }
-
-  @Override
-  public void setId(final long id) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public long getId() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public UUID getClientId() {
-    throw new UnsupportedOperationException();
-  }
-
 }

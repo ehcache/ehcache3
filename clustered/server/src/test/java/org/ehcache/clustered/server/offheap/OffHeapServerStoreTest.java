@@ -20,6 +20,7 @@ import java.util.Random;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
+import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.store.ChainBuilder;
 import org.ehcache.clustered.server.store.ElementBuilder;
 import org.ehcache.clustered.common.internal.store.ServerStore;
@@ -45,6 +46,8 @@ import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 public class OffHeapServerStoreTest extends ServerStoreTest {
 
+  private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
+
   @SuppressWarnings("unchecked")
   private OffHeapChainMap<Object> getOffHeapChainMapMock() {
     return mock(OffHeapChainMap.class);
@@ -52,7 +55,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
 
   @Override
   public ServerStore newStore() {
-    return new OffHeapServerStore(new UnlimitedPageSource(new OffHeapBufferSource()), 16);
+    return new OffHeapServerStore(new UnlimitedPageSource(new OffHeapBufferSource()), DEFAULT_MAPPER);
   }
 
   @Override
@@ -173,7 +176,7 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
     long seed = System.nanoTime();
     Random random = new Random(seed);
     try {
-      OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), MEGABYTES.toBytes(1L), MEGABYTES.toBytes(1)), 16);
+      OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), MEGABYTES.toBytes(1L), MEGABYTES.toBytes(1)), DEFAULT_MAPPER);
 
       ByteBuffer smallValue = ByteBuffer.allocate(1024);
       for (int i = 0; i < 10000; i++) {

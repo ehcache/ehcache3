@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
+import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerStoreEvictionListener;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
@@ -31,12 +32,18 @@ import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 public class OffHeapServerStore implements ServerStore {
 
   private final List<OffHeapChainMap<Long>> segments;
+  private final KeySegmentMapper mapper;
 
-  public OffHeapServerStore(PageSource source, int concurrency) {
-    segments = new ArrayList<OffHeapChainMap<Long>>(concurrency);
-    for (int i = 0; i < concurrency; i++) {
+  public OffHeapServerStore(PageSource source, KeySegmentMapper mapper) {
+    this.mapper = mapper;
+    segments = new ArrayList<OffHeapChainMap<Long>>(mapper.getSegments());
+    for (int i = 0; i < mapper.getSegments(); i++) {
       segments.add(new OffHeapChainMap<Long>(source, LongPortability.INSTANCE, KILOBYTES.toBytes(4), MEGABYTES.toBytes(8), false));
     }
+  }
+
+  public List<OffHeapChainMap<Long>> getSegments() {
+    return segments;
   }
 
   public void setEvictionListener(final ServerStoreEvictionListener listener) {
@@ -184,7 +191,7 @@ public class OffHeapServerStore implements ServerStore {
   }
 
   OffHeapChainMap<Long> segmentFor(long key) {
-    return segments.get(Math.abs((int) (key % segments.size())));
+    return segments.get(mapper.getSegmentForKey(key));
   }
 
   private void writeLockAll() {

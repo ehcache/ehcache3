@@ -18,7 +18,7 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
-import org.ehcache.clustered.server.messages.EhcacheSyncMessageCodec;
+import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessageCodec;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.MessageCodec;
@@ -31,7 +31,8 @@ import org.terracotta.entity.SyncMessageCodec;
 public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final long ENTITY_VERSION = 1L;
-  private static final int DEFAULT_CONCURRENCY = 1024;
+  private static final int DEFAULT_CONCURRENCY = 16;
+  private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(DEFAULT_CONCURRENCY);
 
   @Override
   public long getVersion() {
@@ -45,17 +46,17 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
 
   @Override
   public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcacheActiveEntity(registry, configuration);
+    return new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
   }
 
   @Override
   public PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcachePassiveEntity(registry, configuration);
+    return new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
   }
 
   @Override
   public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
-    return defaultConcurrency(DEFAULT_CONCURRENCY);
+    return defaultConcurrency(DEFAULT_MAPPER);
   }
 
   @Override

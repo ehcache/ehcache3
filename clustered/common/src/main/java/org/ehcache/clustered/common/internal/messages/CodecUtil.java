@@ -18,7 +18,7 @@ package org.ehcache.clustered.common.internal.messages;
 
 import java.nio.ByteBuffer;
 
-final class CodecUtil {
+public final class CodecUtil {
 
   private CodecUtil() {
   }

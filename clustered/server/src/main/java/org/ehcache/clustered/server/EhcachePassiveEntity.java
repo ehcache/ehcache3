@@ -33,7 +33,9 @@ import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage.ChainReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
-import org.ehcache.clustered.server.messages.EntityStateSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EntityDataSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EntitySyncMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
@@ -77,7 +79,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
           break;
         case SYNC_OP:
-          invokeSyncOperation((EntityStateSyncMessage) message);
+          invokeSyncOperation((EntitySyncMessage) message);
           break;
         case REPLICATION_OP:
           invokeRetirementMessages((ClientIDTrackerMessage)message);
@@ -91,7 +93,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   }
 
-  EhcachePassiveEntity(ServiceRegistry services, byte[] config) {
+  EhcachePassiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
     OffHeapResources offHeapResources = services.getService(new BasicServiceConfiguration<OffHeapResources>(OffHeapResources.class));
     if (offHeapResources == null) {
@@ -99,7 +101,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     } else {
       this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
     }
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers));
+    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
@@ -153,12 +155,24 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
-  private void invokeSyncOperation(EntityStateSyncMessage message) throws ClusterException {
-    ehcacheStateService.configure(message.getConfiguration());
-    for (Map.Entry<String, ServerStoreConfiguration> entry : message.getStoreConfigs().entrySet()) {
-      ehcacheStateService.createStore(entry.getKey(), entry.getValue());
+  private void invokeSyncOperation(EntitySyncMessage message) throws ClusterException {
+    switch (message.operation()) {
+      case STATE:
+        EntityStateSyncMessage stateSyncMessage = (EntityStateSyncMessage) message;
+
+        ehcacheStateService.configure(stateSyncMessage.getConfiguration());
+        for (Map.Entry<String, ServerStoreConfiguration> entry : stateSyncMessage.getStoreConfigs().entrySet()) {
+          ehcacheStateService.createStore(entry.getKey(), entry.getValue());
+        }
+        stateSyncMessage.getTrackedClients().stream().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
+        break;
+      case DATA:
+        EntityDataSyncMessage dataSyncMessage = (EntityDataSyncMessage) message;
+        ehcacheStateService.getStore(dataSyncMessage.getCacheId()).put(dataSyncMessage.getKey(), dataSyncMessage.getChain());
+        break;
+      default:
+        throw new IllegalMessageException("Unknown Sync operation " + message.operation());
     }
-    message.getTrackedClients().stream().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
   }
 
   private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
@@ -228,22 +242,22 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   @Override
   public void startSyncEntity() {
-
+    LOGGER.info("Sync started.");
   }
 
   @Override
   public void endSyncEntity() {
-
+    LOGGER.info("Sync completed.");
   }
 
   @Override
   public void startSyncConcurrencyKey(int concurrencyKey) {
-
+    LOGGER.info("Sync started for concurrency key {}.", concurrencyKey);
   }
 
   @Override
   public void endSyncConcurrencyKey(int concurrencyKey) {
-
+    LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
   }
 
   @Override
