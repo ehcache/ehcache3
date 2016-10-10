@@ -19,6 +19,7 @@ package org.ehcache.transactions.xa.internal.journal;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
@@ -29,6 +30,7 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Ludovic Orban
  */
+@ServiceDependencies(DiskResourceService.class)
 public class DefaultJournalProvider implements JournalProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJournalProvider.class);

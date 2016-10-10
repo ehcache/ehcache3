@@ -57,6 +57,7 @@ import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.StatefulSerializer;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -545,6 +546,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   /**
    * Provider of {@link ClusteredStore} instances.
    */
+  @ServiceDependencies({TimeSourceService.class, ClusteringService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Provider.class);

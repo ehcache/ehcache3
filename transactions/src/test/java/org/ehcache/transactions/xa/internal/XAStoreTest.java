@@ -27,6 +27,7 @@ import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.core.events.StoreEventDispatcher;
 import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expirations;
@@ -1543,10 +1544,8 @@ public class XAStoreTest {
     XAStoreConfiguration configuration = new XAStoreConfiguration("testXAResourceId");
     ServiceLocator serviceLocator = dependencySet()
       .with(provider)
-      .with(new TieredStore.Provider())
-      .with(new OnHeapStore.Provider())
-      .with(new OffHeapStore.Provider())
-      .with(new OffHeapDiskStore.Provider())
+      .with(Store.Provider.class)
+      .with(mock(DiskResourceService.class))
       .with(mock(TransactionManagerProvider.class)).build();
 
     serviceLocator.startAllServices();

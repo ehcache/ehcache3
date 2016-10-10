@@ -266,20 +266,12 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testStoreInitFailsWithoutLocalPersistenceService() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = dependencySet().with(provider).build();
-    serviceLocator.startAllServices();
-    Store.Configuration<String, String> storeConfig = mock(Store.Configuration.class);
-    when(storeConfig.getKeyType()).thenReturn(String.class);
-    when(storeConfig.getValueType()).thenReturn(String.class);
-    when(storeConfig.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
-        .disk(10, MB)
-        .build());
-    when(storeConfig.getDispatcherConcurrency()).thenReturn(1);
     try {
-      provider.createStore(storeConfig);
+      ServiceLocator serviceLocator = dependencySet().with(provider).build();
       fail("IllegalStateException expected");
     } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("No LocalPersistenceService could be found - did you configure it at the CacheManager level?"));
+      assertThat(e.getMessage(), containsString("Failed to find provider with satisfied dependency set for interface" +
+        " org.ehcache.core.spi.service.DiskResourceService"));
     }
   }
 
