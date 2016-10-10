@@ -35,13 +35,16 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Fail
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
+import org.ehcache.clustered.server.messages.EntityStateSyncMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.IEntityMessenger;
+import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
@@ -64,6 +67,7 @@ import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -71,6 +75,8 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class EhcacheActiveEntityTest {
 
@@ -2582,6 +2588,52 @@ public class EhcacheActiveEntityTest {
       assertThat(e, instanceOf(LifecycleException.class));
       assertThat(e.getMessage(), is("Clustered tier can't be created with an Unknown resource pool"));
     }
+  }
+
+  @Test
+  public void testSyncToPassive() throws Exception {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .defaultResource("serverResource1")
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.createServerStore("myCache",
+        new ServerStoreConfigBuilder()
+          .shared("primary")
+          .build()));
+
+    PassiveSynchronizationChannel syncChannel = mock(PassiveSynchronizationChannel.class);
+    activeEntity.synchronizeKeyToPassive(syncChannel, 1);
+
+    ArgumentCaptor<EntityStateSyncMessage> captor = ArgumentCaptor.forClass(EntityStateSyncMessage.class);
+    verify(syncChannel).synchronizeToPassive(captor.capture());
+
+    EntityStateSyncMessage capturedSyncMessage = captor.getValue();
+    ServerSideConfiguration configuration = capturedSyncMessage.getConfiguration();
+    assertThat(configuration.getDefaultServerResource(), is("serverResource1"));
+    assertThat(configuration.getResourcePools().keySet(), containsInAnyOrder("primary", "secondary"));
+
+    Map<String, ServerStoreConfiguration> storeConfigs = capturedSyncMessage.getStoreConfigs();
+    assertThat(storeConfigs.keySet(), containsInAnyOrder("myCache"));
+    assertThat(storeConfigs.get("myCache").getPoolAllocation(), instanceOf(PoolAllocation.Shared.class));
+    assertThat(capturedSyncMessage.getTrackedClients(), containsInAnyOrder(CLIENT_ID));
+
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
