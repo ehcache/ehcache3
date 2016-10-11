@@ -197,7 +197,7 @@ public class BatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBehind
         // execute the batch operations
         for (BatchOperation<K, V> batch : batches) {
           try {
-            batch.performBatchOperation(cacheLoaderWriter);
+            batch.performOperation(cacheLoaderWriter);
           } catch (Exception e) {
             LOGGER.warn("Exception while bulk processing in write behind queue", e);
           }

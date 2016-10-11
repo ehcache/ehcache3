@@ -42,4 +42,12 @@ public class OperationsCodec<K, V> {
     buffer.rewind();
     return opCode.decode(buffer, keySerializer, valueSerializer);
   }
+
+  public Serializer<K> getKeySerializer() {
+    return keySerializer;
+  }
+
+  public Serializer<V> getValueSerializer() {
+    return valueSerializer;
+  }
 }

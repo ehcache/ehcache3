@@ -15,10 +15,6 @@
  */
 package org.ehcache.impl.internal.loaderwriter.writebehind.operations;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 
 /**
@@ -54,33 +50,8 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
   }
 
   @Override
-  public void performSingleOperation(CacheLoaderWriter<K, V> cacheWriter) throws Exception {
+  public void performOperation(CacheLoaderWriter<K, V> cacheWriter) throws Exception {
     cacheWriter.write(key, value);
-  }
-
-  @Override
-  public BatchOperation<K, V> createBatchOperation(List<? extends SingleOperation<K, V>> operations) {
-    final List<Map.Entry<K, V>> entries = new ArrayList<Map.Entry<K, V>>();
-    for (final KeyBasedOperation<K> operation : operations) {
-      entries.add(new Map.Entry<K, V>() {
-
-        @Override
-        public K getKey() {
-          return ((WriteOperation<K, V>)operation).key;
-        }
-
-        @Override
-        public V getValue() {
-          return ((WriteOperation<K, V>)operation).value;
-        }
-
-        @Override
-        public V setValue(V value) {
-          throw new UnsupportedOperationException("Not Supported.");
-        }
-      });
-    }
-    return new WriteAllOperation<K, V>(entries);
   }
 
   @Override
@@ -107,7 +78,7 @@ public class WriteOperation<K, V> implements SingleOperation<K, V> {
   @Override
   public boolean equals(Object other) {
     if (other instanceof WriteOperation) {
-      return getCreationTime() == ((WriteOperation) other).getCreationTime() && getKey().equals(((WriteOperation) other).getKey());
+      return getCreationTime() == ((WriteOperation<?, ?>) other).getCreationTime() && getKey().equals(((WriteOperation<?, ?>) other).getKey());
     } else {
       return false;
     }

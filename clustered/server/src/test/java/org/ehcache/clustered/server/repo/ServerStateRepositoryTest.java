@@ -23,6 +23,7 @@ import org.junit.Test;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -31,14 +32,16 @@ import static org.junit.Assert.*;
 
 public class ServerStateRepositoryTest {
 
+  private static final UUID CLIENT_ID = UUID.randomUUID();
+
   @Test
   public void testInvokeOnNonExistentRepositorySucceeds() throws Exception {
     ServerStateRepository repository = new ServerStateRepository();
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
+        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
     assertThat(response.getValue(), nullValue());
     response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1"));
+        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1", CLIENT_ID));
     assertThat(response.getValue(), is((Object)"value1"));
   }
 
@@ -46,33 +49,33 @@ public class ServerStateRepositoryTest {
   public void testInvokePutIfAbsent() throws Exception {
     ServerStateRepository repository = new ServerStateRepository();
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
+        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
     assertThat(response.getValue(), nullValue());
 
     response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value2"));
+        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value2", CLIENT_ID));
     assertThat(response.getValue(), is((Object)"value1"));
   }
 
   @Test
   public void testInvokeGet() throws Exception {
     ServerStateRepository repository = new ServerStateRepository();
-    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
+    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
 
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1"));
+        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1", CLIENT_ID));
     assertThat(response.getValue(), is((Object)"value1"));
   }
 
   @Test
   public void testInvokeEntrySet() throws Exception {
     ServerStateRepository repository = new ServerStateRepository();
-    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
-    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key2", "value2"));
-    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key3", "value3"));
+    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
+    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key2", "value2", CLIENT_ID));
+    repository.invoke(new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key3", "value3", CLIENT_ID));
 
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) repository.invoke(
-        new StateRepositoryOpMessage.EntrySetMessage("foo", "bar"));
+        new StateRepositoryOpMessage.EntrySetMessage("foo", "bar", CLIENT_ID));
     Set<Map.Entry<String, String>> entrySet = (Set<Map.Entry<String, String>>) response.getValue();
     assertThat(entrySet.size(), is(3));
     Map.Entry<String, String> entry1 = new AbstractMap.SimpleEntry<String, String>("key1", "value1");

@@ -76,5 +76,5 @@ interface Backend<K, V> {
 
   void updateUsageInBytesIfRequired(long delta);
 
-  Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, OnHeapValueHolder<?>> evictionAdvisor);
+  Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, ? super OnHeapValueHolder<?>> evictionAdvisor);
 }

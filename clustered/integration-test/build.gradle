@@ -14,13 +14,24 @@
  * limitations under the License.
  */
 
+import org.gradle.internal.jvm.Jvm
+
 dependencies {
   testCompile project(':dist')
   testCompile project(':clustered:clustered-dist')
+  testCompile project(':management')
+  testCompile "org.terracotta.management:management-entity-client:$parent.managementVersion"
 
   testCompile group:'org.terracotta', name:'galvan-support', version: galvanVersion
-  testCompile group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1'
+  testCompile (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
+    exclude group:'junit', module:'junit'
+    exclude group:'org.hamcrest', module:'hamcrest-core'
+  }
   testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
+
+  testCompile "org.terracotta.management:management-entity-server:$parent.managementVersion:plugin"
+  testCompile "org.terracotta.management:monitoring-service:$parent.managementVersion:plugin"
+  testCompile "org.terracotta.management:monitoring-service-entity:$parent.managementVersion:plugin"
 }
 
 task unzipKit(type: Copy) {
@@ -29,22 +40,18 @@ task unzipKit(type: Copy) {
   into 'build/ehcache-kit'
 }
 
-def java8 = {
-  JavaVersion.current().isJava8Compatible()
-}
-
 compileTestJava {
-  options.fork = true;
-  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+  options.forkOptions.executable = Jvm.current().javacExecutable
 }
 
 test {
   dependsOn unzipKit
-  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
-  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
+  executable = Jvm.current().javaExecutable
+  // If you want to see all mutations of the voltron monitoring tree, add to JAVA_OPTS: -Dorg.terracotta.management.service.monitoring.VoltronMonitoringService.DEBUG=true
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
+  systemProperty 'managementPlugins', ["management-model", "management-registry", "sequence-generator", "management-entity-server", "monitoring-service", "monitoring-service-entity"].collect { String artifact -> project.configurations.testCompile.find { it.name.startsWith("$artifact-$parent.managementVersion") } }.join(File.pathSeparator)
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }

@@ -24,9 +24,6 @@ import org.ehcache.clustered.common.PoolAllocation.Shared;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.PoolAllocation.Unknown;
 import org.junit.Test;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;

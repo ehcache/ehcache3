@@ -20,7 +20,6 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
-import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.SerializerException;
 
@@ -47,20 +46,6 @@ public class StringSerializer implements Serializer<String> {
    * @see Serializer
    */
   public StringSerializer(ClassLoader classLoader) {
-  }
-
-  /**
-   * Constructor to enable this serializer as a persistent one.
-   * <P>
-   *   Parameters are ignored as {@link String} is a base java type and this implementation requires no state.
-   * </P>
-   *
-   * @param classLoader the classloader to use
-   * @param stateRepository the state repository
-   *
-   * @see Serializer
-   */
-  public StringSerializer(ClassLoader classLoader, StateRepository stateRepository) {
   }
 
   /**

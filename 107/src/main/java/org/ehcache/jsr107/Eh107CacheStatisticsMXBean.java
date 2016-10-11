@@ -22,11 +22,9 @@ import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.statistics.BulkOps;
 import org.terracotta.context.ContextManager;
 import org.terracotta.context.TreeNode;
-import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
-import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.derived.LatencySampling;
 import org.terracotta.statistics.derived.MinMaxAverage;
 import org.terracotta.statistics.jsr166e.LongAdder;
@@ -55,7 +53,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
   private final OperationStatistic<CacheOperationOutcomes.PutIfAbsentOutcome> putIfAbsent;
   private final OperationStatistic<CacheOperationOutcomes.ReplaceOutcome> replace;
   private final OperationStatistic<CacheOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
-  private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> authorityEviction;
+  private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> lowestTierEviction;
   private final Map<BulkOps, LongAdder> bulkMethodEntries;
   private final LatencyMonitor<CacheOperationOutcomes.GetOutcome> averageGetTime;
   private final LatencyMonitor<CacheOperationOutcomes.PutOutcome> averagePutTime;
@@ -71,7 +69,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
     putIfAbsent = findCacheStatistic(cache, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
     replace = findCacheStatistic(cache, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
     conditionalRemove = findCacheStatistic(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
-    authorityEviction = findAuthoritativeTierStatistic(cache, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
+    lowestTierEviction = findLowestTierStatistic(cache, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
 
     averageGetTime = new LatencyMonitor<CacheOperationOutcomes.GetOutcome>(allOf(CacheOperationOutcomes.GetOutcome.class));
     get.addDerivedStatistic(averageGetTime);
@@ -139,7 +137,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
 
   @Override
   public long getCacheEvictions() {
-    return normalize(authorityEviction.sum(EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS)) - compensatingCounters.cacheEvictions);
+    return normalize(lowestTierEviction.sum(EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS)) - compensatingCounters.cacheEvictions);
   }
 
   @Override
@@ -204,42 +202,39 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
     return (OperationStatistic<T>) result.iterator().next().getContext().attributes().get("this");
   }
 
-  <T extends Enum<T>> OperationStatistic<T> findAuthoritativeTierStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
-    Query storeQuery = queryBuilder()
-        .children()
-        .children()
-        .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
-            hasAttribute("tags", new Matcher<Set<String>>() {
-              @Override
-              protected boolean matchesSafely(Set<String> object) {
-                return object.containsAll(Collections.singleton("store"));
-              }
-            })))))
-        .build();
-
-    Set<TreeNode> storeResult = storeQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));
-    if (storeResult.size() > 1) {
-      throw new RuntimeException("store result must be unique");
-    }
-    if (storeResult.isEmpty()) {
-      throw new RuntimeException("store result must not be null");
-    }
-    Object authoritativeTier = storeResult.iterator().next().getContext().attributes().get("authoritativeTier");
+  <T extends Enum<T>> OperationStatistic<T> findLowestTierStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
 
     Query statQuery = queryBuilder()
-        .children()
+        .descendants()
         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
         .build();
 
-    Set<TreeNode> statResult = statQuery.execute(Collections.singleton(StatisticsManager.nodeFor(authoritativeTier)));
-    if (statResult.size() > 1) {
-      throw new RuntimeException("stat result must be unique");
-    }
-    if (statResult.isEmpty()) {
-      throw new RuntimeException("stat result must not be null");
+    Set<TreeNode> statResult = statQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));
+
+    if(statResult.size() < 1) {
+      throw new RuntimeException("Failed to find lowest tier statistic: " + statName + " , valid result Set sizes must 1 or more.  Found result Set size of: " + statResult.size());
     }
 
-    return (OperationStatistic) statResult.iterator().next().getContext().attributes().get("this");
+    //if only 1 store then you don't need to find the lowest tier
+    if(statResult.size() == 1) {
+      return (OperationStatistic) statResult.iterator().next().getContext().attributes().get("this");
+    }
+
+    String lowestStoreType = "onheap";
+    TreeNode lowestTierNode = null;
+    for(TreeNode treeNode : statResult) {
+      if(((Set)treeNode.getContext().attributes().get("tags")).size() != 1) {
+        throw new RuntimeException("Failed to find lowest tier statistic. \"tags\" set must be size 1");
+      }
+
+      String storeType = treeNode.getContext().attributes().get("tags").toString();
+      if(storeType.compareToIgnoreCase(lowestStoreType) < 0) {
+        lowestStoreType = treeNode.getContext().attributes().get("tags").toString();
+        lowestTierNode = treeNode;
+      }
+    }
+
+    return (OperationStatistic)lowestTierNode.getContext().attributes().get("this");
   }
 
   class CompensatingCounters {

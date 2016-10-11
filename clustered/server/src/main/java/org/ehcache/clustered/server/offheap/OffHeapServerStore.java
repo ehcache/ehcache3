@@ -147,6 +147,35 @@ public class OffHeapServerStore implements ServerStore {
     }
   }
 
+  public void put(long key, Chain chain) {
+    try {
+      segmentFor(key).put(key, chain);
+    } catch (OversizeMappingException e) {
+      if (handleOversizeMappingException(key)) {
+        try {
+          segmentFor(key).put(key, chain);
+        } catch (OversizeMappingException ex) {
+          //ignore
+        }
+      }
+
+      writeLockAll();
+      try {
+        do {
+          try {
+            segmentFor(key).put(key, chain);
+          } catch (OversizeMappingException ex) {
+            e = ex;
+          }
+        } while (handleOversizeMappingException(key));
+        throw e;
+      } finally {
+        writeUnlockAll();
+      }
+    }
+  }
+
+
   @Override
   public void clear() {
     for (OffHeapChainMap<Long> segment : segments) {

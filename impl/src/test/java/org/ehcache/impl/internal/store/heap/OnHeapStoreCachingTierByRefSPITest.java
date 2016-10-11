@@ -37,6 +37,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 /**
  * This factory instantiates a CachingTier
@@ -124,7 +125,7 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
 
       @Override
       public ServiceProvider<Service> getServiceProvider() {
-        return new ServiceLocator();
+        return dependencySet().build();
       }
 
     };

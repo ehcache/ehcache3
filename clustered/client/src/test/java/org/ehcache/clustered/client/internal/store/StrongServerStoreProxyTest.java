@@ -58,7 +58,7 @@ import static org.junit.Assert.fail;
 
 public class StrongServerStoreProxyTest {
 
-  private static final ExecutorService executorService = Executors.newCachedThreadPool();
+  private static final ExecutorService EXECUTOR_SERVICE = Executors.newCachedThreadPool();
 
   private static final String CACHE_IDENTIFIER = "testCache";
   private static final URI CLUSTER_URI = URI.create("terracotta://localhost:9510");
@@ -74,15 +74,18 @@ public class StrongServerStoreProxyTest {
         new PassthroughServerBuilder()
             .resource("defaultResource", 128, MemoryUnit.MB)
             .build());
-    Connection connection = new UnitTestConnectionService().connect(CLUSTER_URI, new Properties());
+    UnitTestConnectionService unitTestConnectionService = new UnitTestConnectionService();
+    Connection connection1 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
+    Connection connection2 = unitTestConnectionService.connect(CLUSTER_URI, new Properties());
 
-    EhcacheClientEntityFactory entityFactory = new EhcacheClientEntityFactory(connection);
+    EhcacheClientEntityFactory entityFactory1 = new EhcacheClientEntityFactory(connection1);
+    EhcacheClientEntityFactory entityFactory2 = new EhcacheClientEntityFactory(connection2);
 
-    entityFactory.create("TestCacheManager",
+    entityFactory1.create("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity1 = entityFactory.retrieve("TestCacheManager",
+    clientEntity1 = entityFactory1.retrieve("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
-    clientEntity2 = entityFactory.retrieve("TestCacheManager",
+    clientEntity2 = entityFactory2.retrieve("TestCacheManager",
         new ServerSideConfiguration("defaultResource", Collections.<String, ServerSideConfiguration.Pool>emptyMap()));
 
     ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(4L, MemoryUnit.MB);
@@ -96,8 +99,8 @@ public class StrongServerStoreProxyTest {
     clientEntity1.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
     clientEntity2.validateCache(CACHE_IDENTIFIER, serverStoreConfiguration);
 
-    serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity1);
-    serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER), clientEntity2);
+    serverStoreProxy1 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity1.getClientId()), clientEntity1);
+    serverStoreProxy2 = new StrongServerStoreProxy(new ServerStoreMessageFactory(CACHE_IDENTIFIER, clientEntity2.getClientId()), clientEntity2);
   }
 
   @AfterClass
@@ -115,7 +118,7 @@ public class StrongServerStoreProxyTest {
     }
 
     UnitTestConnectionService.remove(CLUSTER_URI);
-    executorService.shutdown();
+    EXECUTOR_SERVICE.shutdown();
   }
 
   @Test
@@ -227,14 +230,14 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    executorService.submit(new Callable<Object>() {
+    EXECUTOR_SERVICE.submit(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         serverStoreProxy1.append(1L, createPayload(1L));
         return null;
       }
     });
-    executorService.submit(new Callable<Object>() {
+    EXECUTOR_SERVICE.submit(new Callable<Object>() {
       @Override
       public Object call() throws Exception {
         serverStoreProxy1.append(1L, createPayload(1L));
@@ -320,14 +323,14 @@ public class StrongServerStoreProxyTest {
     };
     serverStoreProxy2.addInvalidationListener(listener);
 
-    executorService.submit(new Callable<Future>() {
+    EXECUTOR_SERVICE.submit(new Callable<Future>() {
       @Override
       public Future call() throws Exception {
         serverStoreProxy1.clear();
         return null;
       }
     });
-    executorService.submit(new Callable<Future>() {
+    EXECUTOR_SERVICE.submit(new Callable<Future>() {
       @Override
       public Future call() throws Exception {
         serverStoreProxy1.clear();

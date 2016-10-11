@@ -18,10 +18,14 @@ package org.ehcache.clustered.common.internal.messages;
 
 import org.terracotta.entity.EntityMessage;
 
+import java.util.UUID;
+
 /**
  * Defines messages for interactions with an {@code EhcacheActiveEntity}.
  */
 public abstract class EhcacheEntityMessage implements EntityMessage {
+
+  public static final long NOT_REPLICATED = -1;
 
   /**
    * These types represent the top level Ehcache entity message types.
@@ -32,6 +36,8 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
     LIFECYCLE_OP((byte) 10),
     SERVER_STORE_OP((byte) 20),
     STATE_REPO_OP((byte) 30),
+    SYNC_OP((byte) 40),
+    REPLICATION_OP((byte) 50)
     ;
 
     private final byte code;
@@ -62,4 +68,11 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
   public String toString() {
     return getType().toString();
   }
+
+  public abstract void setId(long id);
+
+  public abstract long getId();
+
+  public abstract UUID getClientId();
+
 }

@@ -211,7 +211,7 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
   }
 
 
-  @ServiceDependencies({OnHeapStore.Provider.class, OffHeapStore.Provider.class})
+  @ServiceDependencies({HigherCachingTier.Provider.class, LowerCachingTier.Provider.class})
   public static class Provider implements CachingTier.Provider {
     private volatile ServiceProvider<Service> serviceProvider;
     private final ConcurrentMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>> providersMap = new ConcurrentWeakIdentityHashMap<CachingTier<?, ?>, Map.Entry<HigherCachingTier.Provider, LowerCachingTier.Provider>>();
@@ -222,10 +222,18 @@ public class CompoundCachingTier<K, V> implements CachingTier<K, V> {
         throw new RuntimeException("ServiceProvider is null.");
       }
 
-      HigherCachingTier.Provider higherProvider = serviceProvider.getService(HigherCachingTier.Provider.class);
+      Collection<HigherCachingTier.Provider> higherProviders = serviceProvider.getServicesOfType(HigherCachingTier.Provider.class);
+      if (higherProviders.size() != 1) {
+        throw new IllegalStateException("Cannot handle multiple higher tier providers");
+      }
+      HigherCachingTier.Provider higherProvider = higherProviders.iterator().next();
       HigherCachingTier<K, V> higherCachingTier = higherProvider.createHigherCachingTier(storeConfig, serviceConfigs);
 
-      LowerCachingTier.Provider lowerProvider = serviceProvider.getService(LowerCachingTier.Provider.class);
+      Collection<LowerCachingTier.Provider> lowerProviders = serviceProvider.getServicesOfType(LowerCachingTier.Provider.class);
+      if (lowerProviders.size() != 1) {
+        throw new IllegalStateException("Cannot handle multiple lower tier providers");
+      }
+      LowerCachingTier.Provider lowerProvider = lowerProviders.iterator().next();
       LowerCachingTier<K, V> lowerCachingTier = lowerProvider.createCachingTier(storeConfig, serviceConfigs);
 
       CompoundCachingTier<K, V> compoundCachingTier = new CompoundCachingTier<K, V>(higherCachingTier, lowerCachingTier);

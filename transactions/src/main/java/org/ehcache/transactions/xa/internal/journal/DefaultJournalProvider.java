@@ -17,11 +17,12 @@
 package org.ehcache.transactions.xa.internal.journal;
 
 import org.ehcache.CachePersistenceException;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.spi.service.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,20 +30,21 @@ import org.slf4j.LoggerFactory;
 /**
  * @author Ludovic Orban
  */
+@ServiceDependencies(DiskResourceService.class)
 public class DefaultJournalProvider implements JournalProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultJournalProvider.class);
 
-  private volatile LocalPersistenceService persistenceService;
+  private volatile DiskResourceService diskResourceService;
 
   @Override
   public void start(ServiceProvider<Service> serviceProvider) {
-    this.persistenceService = serviceProvider.getService(LocalPersistenceService.class);
+    this.diskResourceService = serviceProvider.getService(DiskResourceService.class);
   }
 
   @Override
   public void stop() {
-    this.persistenceService = null;
+    this.diskResourceService = null;
   }
 
   @Override
@@ -54,7 +56,7 @@ public class DefaultJournalProvider implements JournalProvider {
 
     try {
       LOGGER.info("Using persistent XAStore journal");
-      FileBasedPersistenceContext persistenceContext = persistenceService.createPersistenceContextWithin(persistentSpaceId, "XAJournal");
+      FileBasedPersistenceContext persistenceContext = diskResourceService.createPersistenceContextWithin(persistentSpaceId, "XAJournal");
       return new PersistentJournal<K>(persistenceContext.getDirectory(), keySerializer);
     } catch (CachePersistenceException cpe) {
       throw new RuntimeException(cpe);

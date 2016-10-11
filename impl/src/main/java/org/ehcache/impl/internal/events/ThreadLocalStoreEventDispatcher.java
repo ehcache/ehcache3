@@ -33,7 +33,9 @@ public class ThreadLocalStoreEventDispatcher<K, V> extends AbstractStoreEventDis
   @Override
   public StoreEventSink<K, V> eventSink() {
     if (getListeners().isEmpty()) {
-      return NO_OP_EVENT_SINK;
+      @SuppressWarnings("unchecked")
+      StoreEventSink<K, V> noOpEventSink = (StoreEventSink<K, V>) NO_OP_EVENT_SINK;
+      return noOpEventSink;
     } else {
       StoreEventSink<K, V> eventSink = tlEventSink.get();
       if (eventSink == null) {

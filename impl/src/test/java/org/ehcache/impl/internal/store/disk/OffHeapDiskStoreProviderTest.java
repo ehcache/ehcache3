@@ -25,13 +25,14 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -45,7 +46,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
-import static org.hamcrest.Matchers.is;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.terracotta.context.query.Matchers.attributes;
@@ -57,15 +60,16 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
  * OffHeapStoreProviderTest
  */
 public class OffHeapDiskStoreProviderTest {
+
   @Test
    public void testStatisticsAssociations() throws Exception {
      OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
 
-    ServiceLocator serviceLocator = new ServiceLocator(mock(SerializationProvider.class), new DefaultTimeSourceService(null), mock(LocalPersistenceService.class));
-
+    ServiceLocator serviceLocator = dependencySet().with(mock(SerializationProvider.class))
+      .with(new DefaultTimeSourceService(null)).with(mock(DiskResourceService.class)).build();
     provider.start(serviceLocator);
 
-    OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig());
+    OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
 
      Query storeQuery = queryBuilder()
          .children()
@@ -73,7 +77,7 @@ public class OffHeapDiskStoreProviderTest {
              hasAttribute("tags", new Matcher<Set<String>>() {
                @Override
                protected boolean matchesSafely(Set<String> object) {
-                 return object.containsAll(singleton("store"));
+                 return object.containsAll(singleton("Disk"));
                }
              })))))
          .build();
@@ -81,12 +85,12 @@ public class OffHeapDiskStoreProviderTest {
      Set<TreeNode> nodes = singleton(ContextManager.nodeFor(store));
 
      Set<TreeNode> storeResult = storeQuery.execute(nodes);
-     assertThat(storeResult.isEmpty(), is(false));
+     assertThat(storeResult, not(empty()));
 
      provider.releaseStore(store);
 
      storeResult = storeQuery.execute(nodes);
-     assertThat(storeResult.isEmpty(), is(true));
+     assertThat(storeResult, empty());
    }
 
    private Store.Configuration<Long, String> getStoreConfig() {

@@ -16,7 +16,6 @@
 package org.ehcache.impl.internal.store.tiering;
 
 import org.ehcache.Cache;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
@@ -38,7 +37,6 @@ import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.util.AbstractMap;
@@ -52,10 +50,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.ehcache.config.ResourceType.Core.DISK;
-import static org.ehcache.config.ResourceType.Core.HEAP;
-import static org.ehcache.config.ResourceType.Core.OFFHEAP;
-
 /**
  * A {@link Store} implementation supporting a tiered caching model.
  */
@@ -67,9 +61,6 @@ public class TieredStore<K, V> implements Store<K, V> {
   private final CachingTier<K, V> noopCachingTier;
   private final CachingTier<K, V> realCachingTier;
   private final AuthoritativeTier<K, V> authoritativeTier;
-
-  private final TieringStoreStatsSettings tieringStoreStatsSettings;
-
 
   public TieredStore(CachingTier<K, V> cachingTier, AuthoritativeTier<K, V> authoritativeTier) {
     this.cachingTierRef = new AtomicReference<CachingTier<K, V>>(cachingTier);
@@ -99,8 +90,6 @@ public class TieredStore<K, V> implements Store<K, V> {
 
     StatisticsManager.associate(cachingTier).withParent(this);
     StatisticsManager.associate(authoritativeTier).withParent(this);
-    tieringStoreStatsSettings = new TieringStoreStatsSettings(cachingTier, authoritativeTier);
-    StatisticsManager.associate(tieringStoreStatsSettings).withParent(this);
   }
 
 
@@ -367,8 +356,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     return cachingTierRef.get();
   }
 
-  @ServiceDependencies({CompoundCachingTier.Provider.class,
-      OnHeapStore.Provider.class, OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})
+  @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
@@ -514,17 +502,6 @@ public class TieredStore<K, V> implements Store<K, V> {
     public void stop() {
       this.serviceProvider = null;
       providersMap.clear();
-    }
-  }
-
-  private static final class TieringStoreStatsSettings {
-    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("store"));
-    @ContextAttribute("cachingTier") private final CachingTier<?, ?> cachingTier;
-    @ContextAttribute("authoritativeTier") private final AuthoritativeTier<?, ?> authoritativeTier;
-
-    TieringStoreStatsSettings(CachingTier<?, ?> cachingTier, AuthoritativeTier<?, ?> authoritativeTier) {
-      this.cachingTier = cachingTier;
-      this.authoritativeTier = authoritativeTier;
     }
   }
 

@@ -29,6 +29,7 @@ import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.ehcache.impl.events.CacheEventDispatcherImpl;
 import org.ehcache.core.internal.store.StoreSupport;
@@ -58,7 +59,6 @@ import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.ehcache.core.spi.service.LocalPersistenceService;
 import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
@@ -79,6 +79,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
@@ -100,13 +101,6 @@ import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmon
  * @param <T>  the specific {@code UserManagedCache} type
  */
 public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> implements Builder<T> {
-
-  @ServiceDependencies(Store.Provider.class)
-  private static class ServiceDeps {
-    private ServiceDeps() {
-      throw new UnsupportedOperationException("This is an annotation placeholder, not to be instantiated");
-    }
-  }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UserManagedCacheBuilder.class);
 
@@ -169,18 +163,17 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     this.sizeOfUnit = toCopy.sizeOfUnit;
   }
 
-  T build(ServiceLocator serviceLocator) throws IllegalStateException {
+  T build(ServiceLocator.DependencySet serviceLocatorBuilder) throws IllegalStateException {
 
     validateListenerConfig();
 
+    ServiceLocator serviceLocator;
     try {
       for (ServiceCreationConfiguration<?> serviceCreationConfig : serviceCreationConfigurations) {
-        Service service = serviceLocator.getOrCreateServiceFor(serviceCreationConfig);
-        if (service == null) {
-          throw new IllegalArgumentException("Couldn't resolve Service " + serviceCreationConfig.getServiceType().getName());
-        }
+        serviceLocatorBuilder = serviceLocatorBuilder.with(serviceCreationConfig);
       }
-      serviceLocator.loadDependenciesOf(ServiceDeps.class);
+      serviceLocatorBuilder = serviceLocatorBuilder.with(Store.Provider.class);
+      serviceLocator = serviceLocatorBuilder.build();
       serviceLocator.startAllServices();
     } catch (Exception e) {
       throw new IllegalStateException("UserManagedCacheBuilder failed to build.", e);
@@ -191,12 +184,12 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     if (keyCopier != null) {
       serviceConfigsList.add(new DefaultCopierConfiguration<K>(keyCopier, DefaultCopierConfiguration.Type.KEY));
     } else if (useKeySerializingCopier) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+      serviceConfigsList.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     }
     if (valueCopier != null) {
       serviceConfigsList.add(new DefaultCopierConfiguration<V>(valueCopier, DefaultCopierConfiguration.Type.VALUE));
     } else if (useValueSerializingCopier) {
-      serviceConfigsList.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+      serviceConfigsList.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     }
 
     CacheConfiguration<K, V> cacheConfig = new BaseCacheConfiguration<K, V>(keyType, valueType, evictionAdvisor,
@@ -210,20 +203,20 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
       if (id == null) {
         throw new IllegalStateException("Persistent user managed caches must have an id set");
       }
-      final LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
+      final DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
       if (!resourcePools.getPoolForResource(ResourceType.Core.DISK).isPersistent()) {
         try {
-          persistenceService.destroy(id);
+          diskResourceService.destroy(id);
         } catch (CachePersistenceException cpex) {
           throw new RuntimeException("Unable to clean-up persistence space for non-restartable cache " + id, cpex);
         }
       }
       try {
-        final PersistableResourceService.PersistenceSpaceIdentifier<?> identifier = persistenceService.getPersistenceSpaceIdentifier(id, cacheConfig);
+        final PersistableResourceService.PersistenceSpaceIdentifier<?> identifier = diskResourceService.getPersistenceSpaceIdentifier(id, cacheConfig);
         lifeCycledList.add(new LifeCycledAdapter() {
           @Override
           public void close() throws Exception {
-            persistenceService.releasePersistenceSpaceIdentifier(identifier);
+            diskResourceService.releasePersistenceSpaceIdentifier(identifier);
           }
         });
         serviceConfigsList.add(identifier);
@@ -304,13 +297,13 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
     eventDispatcher.setStoreEventSource(store.getStoreEventSource());
 
     if (persistent) {
-      LocalPersistenceService persistenceService = serviceLocator
-          .getService(LocalPersistenceService.class);
-      if (persistenceService == null) {
+      DiskResourceService diskResourceService = serviceLocator
+          .getService(DiskResourceService.class);
+      if (diskResourceService == null) {
         throw new IllegalStateException("No LocalPersistenceService could be found - did you configure one?");
       }
 
-      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, persistenceService, cacheLoaderWriter, eventDispatcher, id);
+      PersistentUserManagedEhcache<K, V> cache = new PersistentUserManagedEhcache<K, V>(cacheConfig, store, diskResourceService, cacheLoaderWriter, eventDispatcher, id);
       registerListeners(cache, serviceLocator, lifeCycledList);
       for (LifeCycled lifeCycled : lifeCycledList) {
         cache.addHook(lifeCycled);
@@ -394,7 +387,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
    * @throws IllegalStateException if the user managed cache cannot be built
    */
   public final T build(final boolean init) throws IllegalStateException {
-    final T build = build(new ServiceLocator(services.toArray(new Service[services.size()])));
+    final T build = build(dependencySet().with(services));
     if (init) {
       build.init();
     }
