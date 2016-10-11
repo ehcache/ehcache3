@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
+import org.gradle.internal.jvm.Jvm
+
 apply plugin: EhDeploy
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 dependencies {
   compile project(':clustered:common')
@@ -23,4 +28,16 @@ dependencies {
   compile group: 'org.slf4j', name: 'slf4j-api', version: parent.slf4jVersion
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
+}
+
+compileJava {
+  options.forkOptions.executable = Jvm.current().javacExecutable
+}
+
+compileTestJava {
+  options.forkOptions.executable = Jvm.current().javacExecutable
+}
+
+test {
+  executable = Jvm.current().javaExecutable
 }

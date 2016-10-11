@@ -54,7 +54,7 @@ class EhOsgi implements Plugin<Project> {
 
         if (project.hasProperty('shadowJar')) {
           classesDir = project.shadowJar.archivePath
-          classpath = project.files(project.configurations.shadow, project.configurations.shadowProvided)
+          classpath = project.files(project.configurations.shadowCompile, project.configurations.shadowProvided)
         } else {
           classesDir = new File(project.buildDir, 'classes/main') //can't figure out where to get this value
           classpath = project.sourceSets.main.compileClasspath

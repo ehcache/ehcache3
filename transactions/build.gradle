@@ -17,7 +17,6 @@
 group = 'org.ehcache'
 
 apply plugin: EhOsgi
-apply plugin: EhDeploy
 apply plugin: EhPomMangle
 
 dependencies {
