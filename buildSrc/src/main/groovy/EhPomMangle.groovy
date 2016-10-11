@@ -67,7 +67,7 @@ class EhPomMangle implements Plugin<Project> {
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.pomOnlyCompile, Conf2ScopeMappingContainer.COMPILE)
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.pomOnlyProvided, Conf2ScopeMappingContainer.PROVIDED)
 
-      utils.pomFiller(pom, 'Ehcache', 'Ehcache single jar, containing all modules')
+      utils.pomFiller(pom, project.subPomName, project.subPomDesc)
 
     }
 
