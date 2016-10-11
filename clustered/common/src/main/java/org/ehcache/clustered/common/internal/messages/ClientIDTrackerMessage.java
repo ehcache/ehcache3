@@ -26,8 +26,8 @@ import java.util.UUID;
 public class ClientIDTrackerMessage extends EhcacheEntityMessage {
 
   public enum ReplicationOp {
-    CHAIN_REPLICATION_OP((byte) 31),
-    CLIENTID_TRACK_OP((byte) 32)
+    CHAIN_REPLICATION_OP((byte) 41),
+    CLIENTID_TRACK_OP((byte) 42)
     ;
 
     private final byte replicationOpCode;
@@ -43,9 +43,9 @@ public class ClientIDTrackerMessage extends EhcacheEntityMessage {
 
     public static ReplicationOp getReplicationOp(byte replicationOpCode) {
       switch (replicationOpCode) {
-        case 31:
+        case 41:
           return CHAIN_REPLICATION_OP;
-        case 32:
+        case 42:
           return CLIENTID_TRACK_OP;
         default:
           throw new IllegalArgumentException("Replication operation not defined for : " + replicationOpCode);
