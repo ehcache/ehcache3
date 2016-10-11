@@ -26,7 +26,6 @@ import org.ehcache.clustered.client.internal.EhcacheEntityCreationException;
 import org.ehcache.clustered.client.internal.EhcacheEntityNotFoundException;
 import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
 import org.ehcache.clustered.client.internal.config.ExperimentalClusteringServiceConfiguration;
-import org.ehcache.clustered.client.internal.store.ClusteredStore;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
@@ -45,7 +44,6 @@ import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.service.MaintainableService;
 import org.ehcache.spi.service.Service;
-import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -382,22 +380,16 @@ class DefaultClusteringService implements ClusteringService, EntityService {
     try {
       if (configuration.isAutoCreate()) {
         try {
-          this.entity.validateCache(cacheId, clientStoreConfiguration);
-        } catch (ClusteredTierValidationException ex) {
-          if (ex.getCause() instanceof InvalidStoreException) {
-            try {
-              this.entity.createCache(cacheId, clientStoreConfiguration);
-            } catch (TimeoutException e) {
-              throw new CachePersistenceException("Unable to create clustered tier proxy '"
-                  + cacheIdentifier.getId() + "' for entity '" + entityIdentifier
-                  + "'; create operation timed out", e);
-            }
-          } else {
-            throw ex;
+          entity.createCache(cacheId, clientStoreConfiguration);
+        } catch (ClusteredTierCreationException e) {
+          // An InvalidStoreException means the cache already exists. That's fine, the validateCache will then work
+          if (!(e.getCause() instanceof InvalidStoreException)) {
+            throw e;
           }
+          entity.validateCache(cacheId, clientStoreConfiguration);
         }
       } else {
-        this.entity.validateCache(cacheId, clientStoreConfiguration);
+        entity.validateCache(cacheId, clientStoreConfiguration);
       }
     } catch (ClusteredTierException e) {
       throw new CachePersistenceException("Unable to create clustered tier proxy '" + cacheIdentifier.getId() + "' for entity '" + entityIdentifier + "'", e);
