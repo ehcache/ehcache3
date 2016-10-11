@@ -20,6 +20,7 @@ import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -100,6 +101,7 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   /**
    * {@link Service} interface for providing {@link LowerCachingTier} instances.
    */
+  @PluralService
   interface Provider extends Service {
 
     /**

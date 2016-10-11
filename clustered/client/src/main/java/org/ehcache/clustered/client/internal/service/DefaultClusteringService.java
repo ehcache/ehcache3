@@ -68,7 +68,6 @@ import java.util.concurrent.TimeoutException;
 /**
  * Provides support for accessing server-based cluster services.
  */
-@ServiceDependencies(ClusteredStore.Provider.class)
 class DefaultClusteringService implements ClusteringService, EntityService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultClusteringService.class);

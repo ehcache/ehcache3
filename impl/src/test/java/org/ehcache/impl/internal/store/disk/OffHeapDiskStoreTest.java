@@ -78,6 +78,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.persistence;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.ehcache.expiry.Expirations.noExpiration;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.containsString;
@@ -119,9 +120,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testRecoveryFailureWhenValueTypeChangesToIncompatibleClass() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(diskResourceService);
-    serviceLocator.addService(provider);
+    ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
     CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
@@ -169,9 +168,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testRecoveryWithArrayType() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(diskResourceService);
-    serviceLocator.addService(provider);
+    ServiceLocator serviceLocator = dependencySet().with(diskResourceService).with(provider).build();
     serviceLocator.startAllServices();
 
     CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
@@ -269,21 +266,12 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   @Test
   public void testStoreInitFailsWithoutLocalPersistenceService() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(provider);
-    serviceLocator.startAllServices();
-    Store.Configuration<String, String> storeConfig = mock(Store.Configuration.class);
-    when(storeConfig.getKeyType()).thenReturn(String.class);
-    when(storeConfig.getValueType()).thenReturn(String.class);
-    when(storeConfig.getResourcePools()).thenReturn(ResourcePoolsBuilder.newResourcePoolsBuilder()
-        .disk(10, MB)
-        .build());
-    when(storeConfig.getDispatcherConcurrency()).thenReturn(1);
     try {
-      provider.createStore(storeConfig);
+      ServiceLocator serviceLocator = dependencySet().with(provider).build();
       fail("IllegalStateException expected");
     } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("No LocalPersistenceService could be found - did you configure it at the CacheManager level?"));
+      assertThat(e.getMessage(), containsString("Failed to find provider with satisfied dependency set for interface" +
+        " org.ehcache.core.spi.service.DiskResourceService"));
     }
   }
 

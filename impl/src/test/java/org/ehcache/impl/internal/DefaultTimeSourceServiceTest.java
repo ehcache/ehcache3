@@ -20,9 +20,11 @@ import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
 import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.junit.Test;
 
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -30,13 +32,12 @@ import static org.mockito.Mockito.mock;
 /**
  * DefaultTimeSourceServiceTest
  */
-@ServiceDependencies(TimeSourceService.class)
 public class DefaultTimeSourceServiceTest {
 
   @Test
   public void testResolvesDefaultTimeSource() {
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.loadDependenciesOf(this.getClass());
+    ServiceLocator.DependencySet dependencySet = dependencySet().with(TimeSourceService.class);
+    ServiceLocator serviceLocator = dependencySet.build();
     assertThat(serviceLocator.getService(TimeSourceService.class).getTimeSource(),
         sameInstance(SystemTimeSource.INSTANCE));
   }
@@ -44,8 +45,8 @@ public class DefaultTimeSourceServiceTest {
   @Test
   public void testCanConfigureAlternateTimeSource() {
     TimeSource timeSource = mock(TimeSource.class);
-    ServiceLocator serviceLocator = new ServiceLocator();
-    TimeSourceService timeSourceService = serviceLocator.getOrCreateServiceFor(new TimeSourceConfiguration(timeSource));
+    ServiceLocator serviceLocator = dependencySet().with(new TimeSourceConfiguration(timeSource)).build();
+    TimeSourceService timeSourceService = serviceLocator.getService(TimeSourceService.class);
     assertThat(timeSourceService.getTimeSource(), sameInstance(timeSource));
   }
 

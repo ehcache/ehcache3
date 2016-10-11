@@ -20,6 +20,13 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
 /**
  * A factory abstraction that can create {@link Service} instances.
  */
@@ -41,5 +48,12 @@ public interface ServiceFactory<T extends Service> {
    *
    * @return the class of the produced service.
    */
-  Class<T> getServiceType();
+  Class<? extends T> getServiceType();
+
+
+  @Retention(RUNTIME)
+  @Target(ElementType.TYPE)
+  @interface RequiresConfiguration {
+
+  }
 }

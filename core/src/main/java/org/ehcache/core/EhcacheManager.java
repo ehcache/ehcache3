@@ -73,6 +73,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+
 /**
  * Implementation class for the {@link org.ehcache.CacheManager} and {@link PersistentCacheManager}
  * <P>
@@ -81,17 +83,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  * </P>
  */
 public class EhcacheManager implements PersistentCacheManager, InternalCacheManager {
-
-  @ServiceDependencies({ Store.Provider.class,
-      CacheLoaderWriterProvider.class,
-      WriteBehindProvider.class,
-      CacheEventDispatcherFactory.class,
-      CacheEventListenerProvider.class })
-  private static class ServiceDeps {
-    private ServiceDeps() {
-      throw new UnsupportedOperationException("This is an annotation placeholder, not to be instantiated");
-    }
-  }
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheManager.class);
 
@@ -119,10 +110,9 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     this.simpleName = (simpleName.isEmpty() ? this.getClass().getName() : simpleName);
     this.configuration = new DefaultConfiguration(config);
     this.cacheManagerClassLoader = config.getClassLoader() != null ? config.getClassLoader() : ClassLoading.getDefaultClassLoader();
-    this.serviceLocator = new ServiceLocator(services.toArray(new Service[services.size()]));
     this.useLoaderInAtomics = useLoaderInAtomics;
     validateServicesConfigs();
-    resolveServices();
+    this.serviceLocator = resolveServices(services);
   }
 
   private void validateServicesConfigs() {
@@ -134,17 +124,21 @@ public class EhcacheManager implements PersistentCacheManager, InternalCacheMana
     }
   }
 
-  private void resolveServices() {
-    if (serviceLocator.getService(CacheManagerProviderService.class) == null) {
-      this.serviceLocator.addService(new DefaultCacheManagerProviderService(this));
+  private ServiceLocator resolveServices(Collection<Service> services) {
+    ServiceLocator.DependencySet builder = dependencySet()
+      .with(Store.Provider.class)
+      .with(CacheLoaderWriterProvider.class)
+      .with(WriteBehindProvider.class)
+      .with(CacheEventDispatcherFactory.class)
+      .with(CacheEventListenerProvider.class)
+      .with(services);
+    if (!builder.contains(CacheManagerProviderService.class)) {
+      builder = builder.with(new DefaultCacheManagerProviderService(this));
     }
     for (ServiceCreationConfiguration<? extends Service> serviceConfig : configuration.getServiceCreationConfigurations()) {
-      Service service = serviceLocator.getOrCreateServiceFor(serviceConfig);
-      if (service == null) {
-        throw new IllegalArgumentException("Couldn't resolve Service " + serviceConfig.getServiceType().getName());
-      }
+      builder = builder.with(serviceConfig);
     }
-    serviceLocator.loadDependenciesOf(ServiceDeps.class);
+    return builder.build();
   }
 
   /**

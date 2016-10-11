@@ -21,15 +21,15 @@ import org.ehcache.core.spi.service.ServiceFactory;
 import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 
-public class DefaultDiskResourceServiceFactory implements ServiceFactory<DiskResourceService> {
+public class DefaultDiskResourceServiceFactory implements ServiceFactory<DefaultDiskResourceService> {
 
   @Override
-  public DefaultDiskResourceService create(final ServiceCreationConfiguration<DiskResourceService> serviceConfiguration) {
+  public DefaultDiskResourceService create(final ServiceCreationConfiguration<DefaultDiskResourceService> serviceConfiguration) {
     return new DefaultDiskResourceService();
   }
 
   @Override
-  public Class<DiskResourceService> getServiceType() {
-    return DiskResourceService.class;
+  public Class<DefaultDiskResourceService> getServiceType() {
+    return DefaultDiskResourceService.class;
   }
 }

@@ -37,6 +37,7 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.junit.Before;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 /**
  * Test the {@link org.ehcache.internal.store.heap.OnHeapStore} compliance to the
@@ -132,7 +133,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceLocator getServiceProvider() {
-        ServiceLocator locator = new ServiceLocator();
+        ServiceLocator locator = dependencySet().build();
         try {
           locator.startAllServices();
         } catch (Exception e) {

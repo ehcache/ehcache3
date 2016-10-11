@@ -20,6 +20,7 @@ import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -62,6 +63,7 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
   /**
    * {@link Service} interface for providing {@link HigherCachingTier} instances.
    */
+  @PluralService
   interface Provider extends Service {
 
     /**

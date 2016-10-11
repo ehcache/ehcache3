@@ -46,6 +46,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
@@ -64,7 +65,8 @@ public class OffHeapDiskStoreProviderTest {
    public void testStatisticsAssociations() throws Exception {
      OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
 
-    ServiceLocator serviceLocator = new ServiceLocator(mock(SerializationProvider.class), new DefaultTimeSourceService(null), mock(DiskResourceService.class));
+    ServiceLocator serviceLocator = dependencySet().with(mock(SerializationProvider.class))
+      .with(new DefaultTimeSourceService(null)).with(mock(DiskResourceService.class)).build();
     provider.start(serviceLocator);
 
     OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));

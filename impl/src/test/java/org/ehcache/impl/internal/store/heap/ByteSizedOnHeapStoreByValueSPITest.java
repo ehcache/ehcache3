@@ -40,6 +40,7 @@ import org.junit.Before;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
@@ -133,7 +134,7 @@ public class ByteSizedOnHeapStoreByValueSPITest extends StoreSPITest<String, Str
 
       @Override
       public ServiceLocator getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
+        ServiceLocator serviceLocator = dependencySet().build();
         try {
           serviceLocator.startAllServices();
         } catch (Exception e) {

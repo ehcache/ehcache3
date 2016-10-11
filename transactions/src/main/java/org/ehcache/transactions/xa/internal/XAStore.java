@@ -730,7 +730,7 @@ public class XAStore<K, V> implements Store<K, V> {
     }
   }
 
-  @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class})
+  @ServiceDependencies({TimeSourceService.class, JournalProvider.class, CopyProvider.class, TransactionManagerProvider.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;

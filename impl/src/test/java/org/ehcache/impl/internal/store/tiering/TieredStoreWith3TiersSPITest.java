@@ -71,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -318,9 +319,8 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceProvider<Service> getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
-        serviceLocator.addService(new FakeCachingTierProvider());
-        serviceLocator.addService(new FakeAuthoritativeTierProvider());
+        ServiceLocator serviceLocator = dependencySet().with(new FakeCachingTierProvider())
+          .with(new FakeAuthoritativeTierProvider()).build();
         return serviceLocator;
       }
     };

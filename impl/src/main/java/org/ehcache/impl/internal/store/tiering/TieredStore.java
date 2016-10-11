@@ -356,8 +356,7 @@ public class TieredStore<K, V> implements Store<K, V> {
     return cachingTierRef.get();
   }
 
-  @ServiceDependencies({CompoundCachingTier.Provider.class,
-      OnHeapStore.Provider.class, OffHeapStore.Provider.class, OffHeapDiskStore.Provider.class})
+  @ServiceDependencies({CachingTier.Provider.class, AuthoritativeTier.Provider.class})
   public static class Provider implements Store.Provider {
 
     private volatile ServiceProvider<Service> serviceProvider;
