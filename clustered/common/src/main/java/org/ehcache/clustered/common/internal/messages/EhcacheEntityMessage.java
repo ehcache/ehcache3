@@ -37,7 +37,7 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
     SERVER_STORE_OP((byte) 20),
     STATE_REPO_OP((byte) 30),
     SYNC_OP((byte) 40),
-    REPLICATION_OP((byte) 40)
+    REPLICATION_OP((byte) 50)
     ;
 
     private final byte code;

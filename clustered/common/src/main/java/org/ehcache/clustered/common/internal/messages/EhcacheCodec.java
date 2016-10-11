@@ -23,6 +23,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessag
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.REPLICATION_OP;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.SERVER_STORE_OP;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.STATE_REPO_OP;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.SYNC_OP;
 
 public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -73,7 +74,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
         return serverStoreOpCodec.decode(payload);
     } else if (opCode <= STATE_REPO_OP.getCode()) {
         return stateRepositoryOpCodec.decode(payload);
-    } else if (opCode <= REPLICATION_OP.getCode()) {
+    } else if (opCode > SYNC_OP.getCode() && opCode <= REPLICATION_OP.getCode()) {
         return clientIDTrackerMessageCodec.decode(payload);
     } else {
       throw new UnsupportedOperationException("Undefined message code: " + opCode);

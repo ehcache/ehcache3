@@ -106,7 +106,7 @@ public class EhcacheCodecTest {
     verify(stateRepositoryOpCodec, times(10)).decode(payload);
     verify(clientIDTrackerMessageCodec, never()).decode(payload);
 
-    for (byte i = 31; i <= EhcacheEntityMessage.Type.REPLICATION_OP.getCode(); i++) {
+    for (byte i = 41; i <= EhcacheEntityMessage.Type.REPLICATION_OP.getCode(); i++) {
       payload[0] = i;
       codec.decodeMessage(payload);
     }
