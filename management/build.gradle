@@ -19,6 +19,7 @@ apply plugin: EhDeploy
 dependencies {
   compileOnly project(':xml')
   compileOnly project(':clustered:client')
+  compileOnly "org.terracotta:entity-client-api:$parent.entityApiVersion"
 
   compile project(':api')
   compile project(':core')
