@@ -22,7 +22,7 @@ dependencies {
   compileOnly project(':api')
   compileOnly project(':xml')
   compile project(':clustered:common')
-  compile "org.terracotta:entity-client-api:$parent.entityApiVersion"
+  provided "org.terracotta:entity-client-api:$parent.entityApiVersion"
 
   testCompile project(':api')
   testCompile project(':xml')
