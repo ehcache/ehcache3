@@ -516,10 +516,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     clientsToInvalidate.remove(originatingClientDescriptor);
 
     InvalidationHolder invalidationHolder = null;
-    if (ehcacheStateService.getStore(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
-      invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId, key);
-      clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
-    }
+    invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId, key);
+    clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
 
     LOGGER.debug("SERVER: requesting {} client(s) invalidation of hash {} in cache {} (ID {})", clientsToInvalidate.size(), key, cacheId, invalidationId);
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
@@ -544,10 +542,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     clientsToInvalidate.remove(originatingClientDescriptor);
 
     InvalidationHolder invalidationHolder = null;
-    if (ehcacheStateService.getStore(cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
-      invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId);
-      clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
-    }
+    invalidationHolder = new InvalidationHolder(originatingClientDescriptor, clientsToInvalidate, cacheId);
+    clientsWaitingForInvalidation.put(invalidationId, invalidationHolder);
 
     LOGGER.debug("SERVER: requesting {} client(s) invalidation of all in cache {} (ID {})", clientsToInvalidate.size(), cacheId, invalidationId);
     for (ClientDescriptor clientDescriptorThatHasToInvalidate : clientsToInvalidate) {
@@ -573,23 +569,21 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       return;
     }
 
-    if (ehcacheStateService.getStore(invalidationHolder.cacheId).getStoreConfiguration().getConsistency() == Consistency.STRONG) {
-      invalidationHolder.clientsHavingToInvalidate.remove(clientDescriptor);
-      if (invalidationHolder.clientsHavingToInvalidate.isEmpty()) {
-        if (clientsWaitingForInvalidation.remove(invalidationId) != null) {
-          try {
-            Long key = invalidationHolder.key;
-            if (key == null) {
-              clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, allInvalidationDone(invalidationHolder.cacheId));
-              LOGGER.debug("SERVER: notifying originating client that all other clients invalidated all in cache {} from {} (ID {})", invalidationHolder.cacheId, clientDescriptor, invalidationId);
-            } else {
-              clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, hashInvalidationDone(invalidationHolder.cacheId, key));
-              LOGGER.debug("SERVER: notifying originating client that all other clients invalidated key {} in cache {} from {} (ID {})", key, invalidationHolder.cacheId, clientDescriptor, invalidationId);
-            }
-          } catch (MessageCodecException mce) {
-            //TODO: what should be done here?
-            LOGGER.error("Codec error", mce);
+    invalidationHolder.clientsHavingToInvalidate.remove(clientDescriptor);
+    if (invalidationHolder.clientsHavingToInvalidate.isEmpty()) {
+      if (clientsWaitingForInvalidation.remove(invalidationId) != null) {
+        try {
+          Long key = invalidationHolder.key;
+          if (key == null) {
+            clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, allInvalidationDone(invalidationHolder.cacheId));
+            LOGGER.debug("SERVER: notifying originating client that all other clients invalidated all in cache {} from {} (ID {})", invalidationHolder.cacheId, clientDescriptor, invalidationId);
+          } else {
+            clientCommunicator.sendNoResponse(invalidationHolder.clientDescriptorWaitingForInvalidation, hashInvalidationDone(invalidationHolder.cacheId, key));
+            LOGGER.debug("SERVER: notifying originating client that all other clients invalidated key {} in cache {} from {} (ID {})", key, invalidationHolder.cacheId, clientDescriptor, invalidationId);
           }
+        } catch (MessageCodecException mce) {
+          //TODO: what should be done here?
+          LOGGER.error("Codec error", mce);
         }
       }
     }
