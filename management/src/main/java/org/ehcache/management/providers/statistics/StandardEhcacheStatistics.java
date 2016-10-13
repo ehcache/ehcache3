@@ -55,6 +55,11 @@ import java.util.concurrent.TimeUnit;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.stats.StatisticType;
 
+import static java.util.Collections.singleton;
+import static java.util.EnumSet.allOf;
+import static java.util.EnumSet.of;
+import static org.terracotta.context.extended.ValueStatisticDescriptor.descriptor;
+
 class StandardEhcacheStatistics extends ExposedCacheBinding {
 
   private final StatisticsRegistry statisticsRegistry;
@@ -65,20 +70,31 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
         statisticsProviderConfiguration.averageWindowUnit(), statisticsProviderConfiguration.historySize(), statisticsProviderConfiguration.historyInterval(), statisticsProviderConfiguration.historyIntervalUnit(),
         statisticsProviderConfiguration.timeToDisable(), statisticsProviderConfiguration.timeToDisableUnit());
 
-    statisticsRegistry.registerCompoundOperations("Cache:Hit", OperationStatisticDescriptor.descriptor("get", Collections.singleton("cache"), CacheOperationOutcomes.GetOutcome.class), EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
-    statisticsRegistry.registerCompoundOperations("Cache:Miss", OperationStatisticDescriptor.descriptor("get", Collections.singleton("cache"), CacheOperationOutcomes.GetOutcome.class), EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER));
-    statisticsRegistry.registerCompoundOperations("Cache:Clear", OperationStatisticDescriptor.descriptor("clear",Collections.singleton("cache"),CacheOperationOutcomes.ClearOutcome.class), EnumSet.allOf(CacheOperationOutcomes.ClearOutcome.class));
-    statisticsRegistry.registerRatios("Cache:HitRatio", OperationStatisticDescriptor.descriptor("get", Collections.singleton("cache"), CacheOperationOutcomes.GetOutcome.class), EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER), EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER));
-    statisticsRegistry.registerRatios("Cache:MissRatio", OperationStatisticDescriptor.descriptor("get", Collections.singleton("cache"), CacheOperationOutcomes.GetOutcome.class), EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER), EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER, CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER));
+    EnumSet<CacheOperationOutcomes.GetOutcome> hit = of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER);
+    EnumSet<CacheOperationOutcomes.GetOutcome> miss = of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER);
+    OperationStatisticDescriptor getCacheStatisticDescriptor = OperationStatisticDescriptor.descriptor("get", singleton("cache"), CacheOperationOutcomes.GetOutcome.class);
 
-    statisticsRegistry.registerCompoundOperations("Hit", OperationStatisticDescriptor.descriptor("get", Collections.singleton("tier"), TierOperationStatistic.TierOperationOutcomes.GetOutcome.class), EnumSet.of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.HIT));
-    statisticsRegistry.registerCompoundOperations("Miss", OperationStatisticDescriptor.descriptor("get", Collections.singleton("tier"), TierOperationStatistic.TierOperationOutcomes.GetOutcome.class), EnumSet.of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.MISS));
-    statisticsRegistry.registerCompoundOperations("Eviction", OperationStatisticDescriptor.descriptor("eviction", Collections.singleton("tier"), TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class), EnumSet.allOf(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class));
-    statisticsRegistry.registerRatios("HitRatio", OperationStatisticDescriptor.descriptor("get", Collections.singleton("tier"), TierOperationStatistic.TierOperationOutcomes.GetOutcome.class), EnumSet.of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.HIT), EnumSet.of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.MISS));
-    statisticsRegistry.registerValue("MappingCount", ValueStatisticDescriptor.descriptor("mappings", Collections.singleton("tier")));
-    statisticsRegistry.registerValue("MaxMappingCount", ValueStatisticDescriptor.descriptor("maxMappings", Collections.singleton("tier")));
-    statisticsRegistry.registerValue("AllocatedBytesCount", ValueStatisticDescriptor.descriptor("allocatedMemory", Collections.singleton("tier")));
-    statisticsRegistry.registerValue("OccupiedBytesCount", ValueStatisticDescriptor.descriptor("occupiedMemory", Collections.singleton("tier")));
+    statisticsRegistry.registerCompoundOperations("Cache:Hit", getCacheStatisticDescriptor, hit);
+    statisticsRegistry.registerCompoundOperations("Cache:Miss", getCacheStatisticDescriptor, miss);
+    statisticsRegistry.registerCompoundOperations("Cache:Clear", OperationStatisticDescriptor.descriptor("clear", singleton("cache"),CacheOperationOutcomes.ClearOutcome.class), allOf(CacheOperationOutcomes.ClearOutcome.class));
+    statisticsRegistry.registerRatios("Cache:HitRatio", getCacheStatisticDescriptor, hit, allOf(CacheOperationOutcomes.GetOutcome.class));
+    statisticsRegistry.registerRatios("Cache:MissRatio", getCacheStatisticDescriptor, miss, allOf(CacheOperationOutcomes.GetOutcome.class));
+
+    Class<TierOperationStatistic.TierOperationOutcomes.GetOutcome> tierOperationGetOucomeClass = TierOperationStatistic.TierOperationOutcomes.GetOutcome.class;
+    OperationStatisticDescriptor getTierStatisticDescriptor = OperationStatisticDescriptor.descriptor("get", singleton("tier"), tierOperationGetOucomeClass);
+
+    statisticsRegistry.registerCompoundOperations("Hit", getTierStatisticDescriptor, of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.HIT));
+    statisticsRegistry.registerCompoundOperations("Miss", getTierStatisticDescriptor, of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.MISS));
+    statisticsRegistry.registerCompoundOperations("Eviction",
+        OperationStatisticDescriptor.descriptor("eviction", singleton("tier"),
+        TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class),
+        allOf(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class));
+    statisticsRegistry.registerRatios("HitRatio", getTierStatisticDescriptor, of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.HIT),  allOf(tierOperationGetOucomeClass));
+    statisticsRegistry.registerRatios("MissRatio", getTierStatisticDescriptor, of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.MISS),  allOf(tierOperationGetOucomeClass));
+    statisticsRegistry.registerValue("MappingCount", descriptor("mappings", singleton("tier")));
+    statisticsRegistry.registerValue("MaxMappingCount", descriptor("maxMappings", singleton("tier")));
+    statisticsRegistry.registerValue("AllocatedBytesCount", descriptor("allocatedMemory", singleton("tier")));
+    statisticsRegistry.registerValue("OccupiedBytesCount", descriptor("occupiedMemory", singleton("tier")));
 
     Map<String, RegisteredStatistic> registrations = statisticsRegistry.getRegistrations();
     for (RegisteredStatistic registeredStatistic : registrations.values()) {
