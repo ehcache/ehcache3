@@ -31,6 +31,7 @@ import javax.cache.Caching;
 import javax.cache.configuration.MutableConfiguration;
 import javax.cache.spi.CachingProvider;
 
+import org.ehcache.config.Configuration;
 import org.junit.Test;
 
 import com.pany.domain.Customer;
@@ -77,6 +78,24 @@ public class EhCachingProviderTest {
     }
   }
 
+  @Test
+  public void testClassLoadCount() throws Exception {
+    EhcacheCachingProvider cachingProvider = (EhcacheCachingProvider)Caching.getCachingProvider();
+    URI uri = cachingProvider.getDefaultURI();
+    ClassLoader classLoader = cachingProvider.getDefaultClassLoader();
+    CountingConfigSupplier configSupplier = new CountingConfigSupplier(uri, classLoader);
+
+    assertEquals(configSupplier.configCount, 0);
+
+    cachingProvider.getCacheManager(configSupplier, new Properties());
+
+    assertEquals(configSupplier.configCount, 1);
+
+    cachingProvider.getCacheManager(configSupplier, new Properties());
+
+    assertEquals(configSupplier.configCount, 1);
+  }
+
   private class LimitedClassLoader extends ClassLoader {
 
     private final ClassLoader delegate;
@@ -94,4 +113,17 @@ public class EhCachingProviderTest {
     }
   }
 
+  private static class CountingConfigSupplier extends EhcacheCachingProvider.ConfigSupplier {
+    private int configCount = 0;
+
+    public CountingConfigSupplier(URI uri, ClassLoader classLoader) {
+      super(uri, classLoader);
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+      configCount++;
+      return super.getConfiguration();
+    }
+  }
 }
