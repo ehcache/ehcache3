@@ -11,7 +11,7 @@ endif::notBuildingForSite[]
 
 == Intro
 
-Managed objects like caches, cache managers and stores are registered into a `org.ehcache.management.ManagementRegistryService`
+Managed objects like caches, cache managers and stores are registered into an `org.ehcache.management.ManagementRegistryService`
 instance.
 
 A `ManagementRegistry` implementation has to understand the registered object and provide management and monitoring
@@ -25,7 +25,7 @@ a minimal set of statistics and actions via a couple of capabilities.
 
 == Making use of the `ManagementRegistry`
 
-By default, a `ManagementRegistry` is automatically discovered and enabled, but can only be accessed by ehcache
+By default, a `ManagementRegistry` is automatically discovered and enabled, but can only be accessed by Ehcache
 internal services. If you wish to make use of it, you should create your own instance and pass it to the
 cache manager builder as a service:
 
@@ -44,9 +44,9 @@ Obviously, you may use the above technique to pass your own implementation of `M
 
 == Capabilities and contexts
 
-Capabilities are metadata of what the managed objects are capable of: a collection of statistic that can be queried
+Capabilities are metadata of what the managed objects are capable of: a collection of statistics that can be queried
 and/or remote actions that can be called.
-Each capability requires a context to run within. For instance, cache-specific statistics require a cache manager name
+Each capability requires a context to run in. For instance, cache-specific statistics require a cache manager name
 and a cache name to uniquely identify the cache on which you want to query stats or call an action.
 
 [source,java,indent=0]
@@ -56,11 +56,11 @@ include::{sourcedir31}/management/src/test/java/org/ehcache/docs/ManagementTest.
 <1> Query the `ManagementRegistry` for the registered managed objects' capabilities.
 <2> Each capability has a unique name you will need to refer to it.
 <3> Each capability has a collection of `Descriptor`s that contains the metadata of each statistic or action.
-<4> Each capability requires a context to which it needs to refer to.
+<4> Each capability requires a context which it needs to refer to.
 <5> The first attribute of this context is the cache manager name.
 <6> The second attribute of this context is the cache name. With both attributes, the capability can uniquely refer to
     a unique managed object.
-<7> Query the `ManagementRegistry` for the all the registered managed objects' contexts.
+<7> Query the `ManagementRegistry` for all of the registered managed objects' contexts.
 <8> There is only one context here, and its name is the cache manager's name.
 <9> The above context has a subcontext: the cache's name.
 
@@ -69,9 +69,9 @@ context container to a capability's context by matching their respective names.
 
 == Actions
 
-There are two forms of capabilities: statistics and action ones. The statistic ones offer a set of predefined
-statistics that can be queried at will, while the action ones offer a set of actions that can be taken upon
-a managed object. Examples of actions could be: clear caches, get their config or modify a config setting.
+There are two forms of capabilities: statistics and action ones. The statistics ones offer a set of predefined
+statistics that can be queried at will, while the action ones offer a set of actions that can be taken on
+a managed object. Examples of actions could be: clear caches, get their configuration or modify a configuration setting.
 
 [source,java,indent=0]
 ----
