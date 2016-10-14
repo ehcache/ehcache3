@@ -1,8 +1,17 @@
 subprojects {
   apply plugin: 'war'
   apply plugin: 'jetty'
+  apply plugin: 'idea'
 
   dependencies {
       compile 'ch.qos.logback:logback-classic:1.1.3', 'javax.servlet:servlet-api:2.5', 'com.h2database:h2:1.4.186', project(':impl')
+  }
+
+  idea {
+    module {
+      inheritOutputDirs = false
+      outputDir = file('build/out')
+      testOutputDir = file('build/out')
+    }
   }
 }
