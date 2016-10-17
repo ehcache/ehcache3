@@ -51,10 +51,10 @@ public class StatsUtil {
     return false;
   }
 
-  public static boolean isHistoryReady(AbstractStatisticHistory counterHistory, Long defaultValue) {
-    if(counterHistory.getValue().length > 0) {
-      int mostRecentIndex = counterHistory.getValue().length - 1;
-      if((Long)counterHistory.getValue()[mostRecentIndex].getValue() > defaultValue) {
+  public static boolean isHistoryReady(AbstractStatisticHistory history, Long defaultValue) {
+    if(history.getValue().length > 0) {
+      int mostRecentIndex = history.getValue().length - 1;
+      if((Long)history.getValue()[mostRecentIndex].getValue() > defaultValue) {
         return true;
       }
     }

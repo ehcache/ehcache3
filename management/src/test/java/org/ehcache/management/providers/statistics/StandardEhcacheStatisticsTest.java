@@ -36,6 +36,9 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.history.CounterHistory;
 import org.terracotta.management.model.stats.history.RatioHistory;
+import org.terracotta.management.model.stats.history.SizeHistory;
+
+import static org.junit.Assert.assertThat;
 
 /**
  *
@@ -82,17 +85,17 @@ public class StandardEhcacheStatisticsTest {
           .execute()
           .getSingleResult();
 
-      Assert.assertThat(missCounter.size(), Matchers.is(2));
+      assertThat(missCounter.size(), Matchers.is(2));
 
       CounterHistory missCountCounterHistory = missCounter.getStatistic(CounterHistory.class, "Cache:MissCount");
       while(!StatsUtil.isHistoryReady(missCountCounterHistory, 0L)) {}
       int mostRecentIndex = missCountCounterHistory.getValue().length - 1;
-      Assert.assertThat(missCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(2L));
+      assertThat(missCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(2L));
 
       RatioHistory ratioHistory = missCounter.getStatistic(RatioHistory.class, "Cache:MissRatio");
       mostRecentIndex = ratioHistory.getValue().length - 1;
       // 2 hits, 2 misses -> HitRatio is 0.5
-      Assert.assertThat(ratioHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(0.5d));
+      assertThat(ratioHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(0.5d));
     }
     finally {
       if(cacheManager != null) {
@@ -135,7 +138,7 @@ public class StandardEhcacheStatisticsTest {
           .execute()
           .getSingleResult();
 
-      Assert.assertThat(contextualStatistics.size(), Matchers.is(2));
+      assertThat(contextualStatistics.size(), Matchers.is(2));
 
       ///////////////////////
       // NO HITS, NO MISSES//
@@ -143,12 +146,12 @@ public class StandardEhcacheStatisticsTest {
 
       CounterHistory hitCountCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, "Cache:HitCount");
       int mostRecentIndex = hitCountCounterHistory.getValue().length - 1;
-      Assert.assertThat(hitCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(0L));
+      assertThat(hitCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(0L));
 
       RatioHistory ratioHistory = contextualStatistics.getStatistic(RatioHistory.class, "Cache:HitRatio");
       mostRecentIndex = ratioHistory.getValue().length - 1;
       // no hits, no misses -> HitRatio is NaN
-      Assert.assertThat(ratioHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(Double.NaN));
+      assertThat(ratioHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(Double.NaN));
 
       ///////////////////////
       // 3 HITS, NO MISSES //
@@ -170,12 +173,12 @@ public class StandardEhcacheStatisticsTest {
       hitCountCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, "Cache:HitCount");
       while(!StatsUtil.isHistoryReady(hitCountCounterHistory, 0L)) {}
       mostRecentIndex = hitCountCounterHistory.getValue().length - 1;
-      Assert.assertThat(hitCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(3L));
+      assertThat(hitCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(3L));
 
       ratioHistory = contextualStatistics.getStatistic(RatioHistory.class, "Cache:HitRatio");
       mostRecentIndex = ratioHistory.getValue().length - 1;
       // 3 hits, no misses -> HitRatio is 1
-      Assert.assertThat(ratioHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(1.0));
+      assertThat(ratioHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(1.0));
 
       ///////////////////////
       // 3 HITS, 1 MISS    //
@@ -195,17 +198,17 @@ public class StandardEhcacheStatisticsTest {
       CounterHistory missCountCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, "Cache:MissCount");
       mostRecentIndex = missCountCounterHistory.getValue().length - 1;
       while(!StatsUtil.isHistoryReady(missCountCounterHistory, 0L)) {}
-      Assert.assertThat(missCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(1L));
+      assertThat(missCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(1L));
 
       ratioHistory = contextualStatistics.getStatistic(RatioHistory.class, "Cache:HitRatio");
       mostRecentIndex = ratioHistory.getValue().length - 1;
       // 3 hits, 1 misses -> HitRatio is 0.75
-      Assert.assertThat(ratioHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(0.75));
+      assertThat(ratioHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(0.75));
 
       hitCountCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, "Cache:HitCount");
       mostRecentIndex = hitCountCounterHistory.getValue().length - 1;
 
-      Assert.assertThat(hitCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(3L));
+      assertThat(hitCountCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(3L));
     }
     finally {
       if(cacheManager != null) {
@@ -254,12 +257,12 @@ public class StandardEhcacheStatisticsTest {
           .execute()
           .getSingleResult();
 
-      Assert.assertThat(clearCounter.size(), Matchers.is(1));
+      assertThat(clearCounter.size(), Matchers.is(1));
       CounterHistory cache_Clear_Count = clearCounter.getStatistic(CounterHistory.class, "Cache:ClearCount");
 
       while(!StatsUtil.isHistoryReady(cache_Clear_Count, 0L)) {}
       int mostRecentIndex = cache_Clear_Count.getValue().length - 1;
-      Assert.assertThat(cache_Clear_Count.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(2L));
+      assertThat(cache_Clear_Count.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(2L));
     }
     finally {
       if(cacheManager != null) {

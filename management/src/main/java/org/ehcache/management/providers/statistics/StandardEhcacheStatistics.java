@@ -23,12 +23,13 @@ import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.context.extended.OperationStatisticDescriptor;
 import org.terracotta.context.extended.RegisteredCompoundStatistic;
+import org.terracotta.context.extended.RegisteredCounterStatistic;
 import org.terracotta.context.extended.RegisteredRatioStatistic;
+import org.terracotta.context.extended.RegisteredSizeStatistic;
 import org.terracotta.context.extended.RegisteredStatistic;
-import org.terracotta.context.extended.RegisteredValueStatistic;
 import org.terracotta.context.extended.StatisticsRegistry;
-import org.terracotta.context.extended.ValueStatisticDescriptor;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.stats.MemoryUnit;
 import org.terracotta.management.model.stats.NumberUnit;
 import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.Statistic;
@@ -37,13 +38,13 @@ import org.terracotta.management.model.stats.history.CounterHistory;
 import org.terracotta.management.model.stats.history.DurationHistory;
 import org.terracotta.management.model.stats.history.RateHistory;
 import org.terracotta.management.model.stats.history.RatioHistory;
+import org.terracotta.management.model.stats.history.SizeHistory;
 import org.terracotta.statistics.archive.Timestamped;
 import org.terracotta.statistics.extended.CompoundOperation;
 import org.terracotta.statistics.extended.SampledStatistic;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
@@ -91,10 +92,10 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
         allOf(TierOperationStatistic.TierOperationOutcomes.EvictionOutcome.class));
     statisticsRegistry.registerRatios("HitRatio", getTierStatisticDescriptor, of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.HIT),  allOf(tierOperationGetOucomeClass));
     statisticsRegistry.registerRatios("MissRatio", getTierStatisticDescriptor, of(TierOperationStatistic.TierOperationOutcomes.GetOutcome.MISS),  allOf(tierOperationGetOucomeClass));
-    statisticsRegistry.registerValue("MappingCount", descriptor("mappings", singleton("tier")));
-    statisticsRegistry.registerValue("MaxMappingCount", descriptor("maxMappings", singleton("tier")));
-    statisticsRegistry.registerValue("AllocatedBytesCount", descriptor("allocatedMemory", singleton("tier")));
-    statisticsRegistry.registerValue("OccupiedBytesCount", descriptor("occupiedMemory", singleton("tier")));
+    statisticsRegistry.registerCounter("MappingCount", descriptor("mappings", singleton("tier")));
+    statisticsRegistry.registerCounter("MaxMappingCount", descriptor("maxMappings", singleton("tier")));
+    statisticsRegistry.registerSize("AllocatedByteSize", descriptor("allocatedMemory", singleton("tier")));
+    statisticsRegistry.registerSize("OccupiedByteSize", descriptor("occupiedMemory", singleton("tier")));
 
     Map<String, RegisteredStatistic> registrations = statisticsRegistry.getRegistrations();
     for (RegisteredStatistic registeredStatistic : registrations.values()) {
@@ -140,11 +141,16 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
           SampledStatistic<Double> ratio = (SampledStatistic) compoundOperation.ratioOf((Set) registeredRatioStatistic.getNumerator(), (Set) registeredRatioStatistic.getDenominator());
           return new RatioHistory(buildHistory(ratio, since), NumberUnit.RATIO);
         }
-      } else if (registeredStatistic instanceof RegisteredValueStatistic) {
-        RegisteredValueStatistic registeredValueStatistic = (RegisteredValueStatistic) registeredStatistic;
-
+      } else if (registeredStatistic instanceof RegisteredSizeStatistic) {
+        RegisteredSizeStatistic registeredSizeStatistic = (RegisteredSizeStatistic) registeredStatistic;
         if (name.equals(statisticName)) {
-          SampledStatistic<Long> count = (SampledStatistic<Long>) registeredValueStatistic.getSampledStatistic();
+          SampledStatistic<Long> count = (SampledStatistic<Long>) registeredSizeStatistic.getSampledStatistic();
+          return new SizeHistory(buildHistory(count, since), MemoryUnit.B);
+        }
+      } else if (registeredStatistic instanceof RegisteredCounterStatistic) {
+        RegisteredCounterStatistic registeredCounterStatistic = (RegisteredCounterStatistic) registeredStatistic;
+        if (name.equals(statisticName)) {
+          SampledStatistic<Long> count = (SampledStatistic<Long>) registeredCounterStatistic.getSampledStatistic();
           return new CounterHistory(buildHistory(count, since), NumberUnit.COUNT);
         }
       } else {
@@ -181,7 +187,8 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
     Map<String, RegisteredStatistic> registrations = statisticsRegistry.getRegistrations();
 
     for(Entry entry : registrations.entrySet()) {
-      RegisteredStatistic registeredStatistic = registrations.get(entry.getKey().toString());
+      String statisticName = entry.getKey().toString();
+      RegisteredStatistic registeredStatistic = registrations.get(statisticName);
 
       if(registeredStatistic instanceof RegisteredCompoundStatistic) {
         List<StatisticDescriptor> statistics = new ArrayList<StatisticDescriptor>();
@@ -194,8 +201,10 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
         capabilities.addAll(statistics);
       } else if(registeredStatistic instanceof RegisteredRatioStatistic) {
         capabilities.add(new StatisticDescriptor(entry.getKey() + "Ratio", StatisticType.RATIO_HISTORY));
-      } else if(registeredStatistic instanceof RegisteredValueStatistic) {
-        capabilities.add(new StatisticDescriptor(entry.getKey().toString(), StatisticType.COUNTER_HISTORY));
+      } else if(registeredStatistic instanceof RegisteredCounterStatistic) {
+        capabilities.add(new StatisticDescriptor(statisticName, StatisticType.COUNTER_HISTORY));
+      } else if(registeredStatistic instanceof RegisteredSizeStatistic) {
+        capabilities.add(new StatisticDescriptor(statisticName, StatisticType.SIZE_HISTORY));
       }
     }
 
