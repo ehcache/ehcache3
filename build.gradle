@@ -125,7 +125,7 @@ subprojects {
   }
 
   test {
-    maxHeapSize = "1024m"
+    maxHeapSize = "1408m"
     systemProperty 'java.awt.headless', 'true'
     if (parent.isCloudbees) {
       systemProperty 'disable.concurrent.tests', 'true'
