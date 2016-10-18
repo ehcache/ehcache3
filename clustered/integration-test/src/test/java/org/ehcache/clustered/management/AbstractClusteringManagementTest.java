@@ -83,7 +83,9 @@ public abstract class AbstractClusteringManagementTest {
   }
 
   protected final void clear() {
-    consumer.clearMessageBuffer();
+    if(consumer != null) {
+      consumer.clearMessageBuffer();
+    }
   }
 
   protected static void sendManagementCallToCollectStats(String... statNames) throws Exception {
