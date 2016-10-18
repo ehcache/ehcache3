@@ -39,7 +39,7 @@ public class EhcacheStateServiceProviderTest {
 
     ServiceProviderConfiguration serviceProviderConfiguration = mock(ServiceProviderConfiguration.class);
 
-    assertTrue(serviceProvider.initialize(serviceProviderConfiguration));
+    assertTrue(serviceProvider.initialize(serviceProviderConfiguration, null));
   }
 
   @Test

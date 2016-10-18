@@ -18,6 +18,7 @@ package org.ehcache.clustered.server.state;
 
 import org.ehcache.clustered.server.EhcacheStateServiceImpl;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
+import org.terracotta.entity.PlatformConfiguration;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderCleanupException;
@@ -40,7 +41,7 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
   private ConcurrentMap<Long, EhcacheStateService> serviceMap = new ConcurrentHashMap<Long, EhcacheStateService>();
 
   @Override
-  public boolean initialize(ServiceProviderConfiguration configuration) {
+  public boolean initialize(ServiceProviderConfiguration configuration, PlatformConfiguration platformConfiguration) {
     return true;
   }
 
