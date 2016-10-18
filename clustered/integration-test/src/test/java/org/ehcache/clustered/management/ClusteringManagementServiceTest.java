@@ -82,6 +82,9 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @Before
   public void init() throws Exception {
+    // clear previous messages
+    clear();
+
     this.cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       // cluster config
       .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-" + n))
@@ -163,7 +166,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   public void test_notifs_sent_at_CM_init() throws Exception {
     List<Message> messages = consumer.drainMessageBuffer();
     assertThat(messages.size(), equalTo(14));
-    assertThat(notificationTypes(messages).containsAll(Arrays.asList("CLIENT_CONNECTED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_UNFETCHED", "SERVER_ENTITY_DESTROYED", "CLIENT_REGISTRY_UPDATED", "CLIENT_TAGS_UPDATED")), is(true));
+    assertThat(notificationTypes(messages).containsAll(Arrays.asList("CLIENT_CONNECTED", "SERVER_ENTITY_FETCHED", "CLIENT_REGISTRY_UPDATED", "CLIENT_TAGS_UPDATED")), is(true));
     assertThat(consumer.readMessageBuffer(), is(nullValue()));
   }
 
@@ -197,6 +200,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   public void test_notifs_on_remove_cache() throws Exception {
     test_notifs_on_add_cache();
+    clear();
 
     cacheManager.removeCache("cache-2");
 
