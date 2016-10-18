@@ -25,13 +25,14 @@ import org.terracotta.management.entity.management.ManagementAgentConfig;
 import org.terracotta.management.entity.management.client.ContextualReturnListener;
 import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
 import org.terracotta.management.entity.management.client.ManagementAgentService;
-import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntity;
 import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntityFactory;
+import org.terracotta.management.entity.monitoring.client.MonitoringServiceProxyEntity;
 import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.message.Message;
+import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
@@ -63,7 +64,7 @@ public abstract class AbstractClusteringManagementTest {
       + "</ohr:offheap-resources>" +
       "</service>\n";
 
-  protected static MonitoringServiceEntity consumer;
+  protected static MonitoringServiceProxyEntity consumer;
 
   @ClassRule
   public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, getManagementPlugins(), "", RESOURCE_CONFIG, "");
@@ -73,14 +74,7 @@ public abstract class AbstractClusteringManagementTest {
     CLUSTER.getClusterControl().waitForActive();
 
     consumer = new MonitoringServiceEntityFactory(ConnectionFactory.connect(CLUSTER.getConnectionURI(), new Properties())).retrieveOrCreate("MonitoringConsumerEntity");
-    // buffer for client-side notifications
-    consumer.createBestEffortBuffer("client-notifications", 1024, Message.class);
-    // buffer for client-side stats
-    consumer.createBestEffortBuffer("client-statistics", 1024, Message.class);
-    // buffer for platform topology changes
-    consumer.createBestEffortBuffer("platform-notifications", 1024, Message.class);
-    // buffer for entity notifications
-    consumer.createBestEffortBuffer("entity-notifications", 1024, Message.class);
+    consumer.createMessageBuffer(1024);
   }
 
   @After
@@ -89,8 +83,7 @@ public abstract class AbstractClusteringManagementTest {
   }
 
   protected final void clear() {
-    while (consumer.readBuffer("client-notifications", Message.class) != null) ;
-    while (consumer.readBuffer("client-statistics", Message.class) != null) ;
+    consumer.clearMessageBuffer();
   }
 
   protected static void sendManagementCallToCollectStats(String... statNames) throws Exception {
@@ -98,7 +91,7 @@ public abstract class AbstractClusteringManagementTest {
     try {
       ManagementAgentService agent = new ManagementAgentService(new ManagementAgentEntityFactory(managementConnection).retrieveOrCreate(new ManagementAgentConfig()));
 
-      assertThat(agent.getManageableClients().size(), equalTo(2));
+      assertThat(agent.getManageableClients().size(), equalTo(1)); // only ehcache client is manageable, not this one
 
       // find Ehcache client
       ClientIdentifier me = agent.getClientIdentifier();
@@ -150,11 +143,15 @@ public abstract class AbstractClusteringManagementTest {
     }
   }
 
-  protected static ContextualStatistics[] waitForNextStats() {
+  protected static List<ContextualStatistics> waitForNextStats() {
     // uses the monitoring consumre entity to get the content of the stat buffer when some stats are collected
-    Message message;
-    while ((message = consumer.readBuffer("client-statistics", Message.class)) == null) { Thread.yield(); }
-    return message.unwrap(ContextualStatistics[].class);
+    while (true) {
+      Message message = consumer.readMessageBuffer();
+      if (message != null && message.getType().equals("STATISTICS")) {
+        return message.unwrap(ContextualStatistics.class);
+      }
+      Thread.yield();
+    }
   }
 
   private static List<File> getManagementPlugins() {
@@ -164,6 +161,26 @@ public abstract class AbstractClusteringManagementTest {
       plugins.add(new File(path));
     }
     return plugins;
+  }
+
+  protected static List<String> messageTypes(List<Message> messages) {
+    List<String> types = new ArrayList<String>(messages.size());
+    for (Message message : messages) {
+      types.add(message.getType());
+    }
+    return types;
+  }
+
+  protected static List<String> notificationTypes(List<Message> messages) {
+    List<String> types = new ArrayList<String>(messages.size());
+    for (Message message : messages) {
+      if ("NOTIFICATION".equals(message.getType())) {
+        for (ContextualNotification notification : message.unwrap(ContextualNotification.class)) {
+          types.add(notification.getType());
+        }
+      }
+    }
+    return types;
   }
 
 }

@@ -32,35 +32,36 @@ import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
-import org.terracotta.management.entity.management.ManagementAgentConfig;
-import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
 import org.terracotta.management.model.capabilities.Capability;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
+import org.terracotta.management.model.cluster.Client;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.Sample;
+import org.terracotta.management.model.stats.StatisticType;
 import org.terracotta.management.model.stats.history.CounterHistory;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.hamcrest.number.OrderingComparison.greaterThanOrEqualTo;
 import static org.junit.Assert.assertThat;
-import org.terracotta.management.model.capabilities.descriptors.Descriptor;
-import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
-import org.terracotta.management.model.stats.StatisticType;
 
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
 
@@ -77,13 +78,13 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   private CacheManager cacheManager;
   private String clientIdentifier;
-  private long consumerId;
+  private int n = N.incrementAndGet();
 
   @Before
   public void init() throws Exception {
     this.cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       // cluster config
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-" + N.incrementAndGet()))
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-" + n))
         .autoCreate()
         .defaultServerResource("primary-server-resource"))
       // management config
@@ -106,8 +107,12 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     // ensure the CM is running and get its client id
     assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
-    consumerId = consumer.getConsumerId(ManagementAgentConfig.ENTITY_TYPE, ManagementAgentEntityFactory.ENTITYNAME);
-    clientIdentifier = consumer.getChildNamesForNode(consumerId, "management", "clients").iterator().next();
+    for (Client client : consumer.readTopology().getClients().values()) {
+      if(client.getName().equals("Ehcache:my-server-entity-" + n)) {
+        clientIdentifier = client.getClientId();
+      }
+    }
+    assertThat(clientIdentifier, is(notNullValue()));
   }
 
   @After
@@ -119,13 +124,13 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @Test
   public void test_tags_exposed() throws Exception {
-    String[] tags = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "tags"}, String[].class);
+    String[] tags = consumer.readTopology().getClient(clientIdentifier).get().getTags().toArray(new String[0]);
     assertThat(tags, equalTo(new String[]{"server-node-1", "webapp-1"}));
   }
 
   @Test
   public void test_contextContainer_exposed() throws Exception {
-    ContextContainer contextContainer = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
+    ContextContainer contextContainer = consumer.readTopology().getClient(clientIdentifier).get().getManagementRegistry().get().getContextContainer();
     assertThat(contextContainer.getValue(), equalTo("my-super-cache-manager"));
     assertThat(contextContainer.getSubContexts(), hasSize(1));
     assertThat(contextContainer.getSubContexts().iterator().next().getValue(), equalTo("cache-1"));
@@ -133,7 +138,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @Test
   public void test_capabilities_exposed() throws Exception {
-    Capability[] capabilities = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "registry", "capabilities"}, Capability[].class);
+    Capability[] capabilities = consumer.readTopology().getClient(clientIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
     assertThat(capabilities.length, equalTo(5));
     assertThat(capabilities[0].getName(), equalTo("ActionsCapability"));
     assertThat(capabilities[1].getName(), equalTo("StatisticsCapability"));
@@ -156,9 +161,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @Test
   public void test_notifs_sent_at_CM_init() throws Exception {
-    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_TAGS_UPDATED"));
-    assertThat(consumer.readBuffer("client-notifications", Serializable[].class), is(nullValue()));
+    List<Message> messages = consumer.drainMessageBuffer();
+    assertThat(messages.size(), equalTo(14));
+    assertThat(notificationTypes(messages).containsAll(Arrays.asList("CLIENT_CONNECTED", "SERVER_ENTITY_CREATED", "SERVER_ENTITY_FETCHED", "SERVER_ENTITY_UNFETCHED", "SERVER_ENTITY_DESTROYED", "CLIENT_REGISTRY_UPDATED", "CLIENT_TAGS_UPDATED")), is(true));
+    assertThat(consumer.readMessageBuffer(), is(nullValue()));
   }
 
   @Test
@@ -173,7 +179,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
       .build());
 
-    ContextContainer contextContainer = consumer.getValueForNode(consumerId, new String[]{"management", "clients", clientIdentifier, "registry", "contextContainer"}, ContextContainer.class);
+    ContextContainer contextContainer = consumer.readTopology().getClient(clientIdentifier).get().getManagementRegistry().get().getContextContainer();
     assertThat(contextContainer.getSubContexts(), hasSize(2));
 
     TreeSet<String> cNames = new TreeSet<String>();
@@ -182,10 +188,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     }
     assertThat(cNames, equalTo(new TreeSet<String>(Arrays.asList("cache-1", "cache-2"))));
 
-    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CACHE_ADDED"));
-    assertThat(consumer.readBuffer("client-notifications", Message.class), is(nullValue()));
+    List<Message> messages = consumer.drainMessageBuffer();
+    assertThat(messages.size(), equalTo(3));
+    assertThat(notificationTypes(messages),  equalTo(Arrays.asList("CLIENT_REGISTRY_UPDATED", "CLIENT_REGISTRY_UPDATED", "CACHE_ADDED")));
+    assertThat(consumer.readMessageBuffer(), is(nullValue()));
   }
 
   @Test
@@ -194,10 +200,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     cacheManager.removeCache("cache-2");
 
-    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CLIENT_REGISTRY_UPDATED"));
-    assertThat(consumer.readBuffer("client-notifications", Message.class).unwrap(ContextualNotification.class).getType(), equalTo("CACHE_REMOVED"));
-    assertThat(consumer.readBuffer("client-notifications", Message.class), is(nullValue()));
+    List<Message> messages = consumer.drainMessageBuffer();
+    assertThat(messages.size(), equalTo(3));
+    assertThat(notificationTypes(messages), equalTo(Arrays.asList("CLIENT_REGISTRY_UPDATED", "CLIENT_REGISTRY_UPDATED", "CACHE_REMOVED")));
+    assertThat(consumer.readMessageBuffer(), is(nullValue()));
   }
 
   @Test
@@ -220,10 +226,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     do {
 
       // get the stats (we are getting the primitive counter, not the sample history)
-      ContextualStatistics[] stats = waitForNextStats();
-      Sample<Long>[] samples = stats[0].getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+      List<ContextualStatistics> stats = waitForNextStats();
+      Sample<Long>[] samples = stats.get(0).getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
 
-      if(stats.length == 1 && stats[0].getContext().get("cacheName").equals("cache-1") && samples.length > 0) {
+      if(stats.size() == 1 && stats.get(0).getContext().get("cacheName").equals("cache-1") && samples.length > 0) {
         val = samples[samples.length - 1].getValue();
       }
     } while(val != 2);
@@ -234,10 +240,10 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     do {
 
-      ContextualStatistics[] stats = waitForNextStats();
-      Sample<Long>[] samples = stats[0].getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+      List<ContextualStatistics> stats = waitForNextStats();
+      Sample<Long>[] samples = stats.get(0).getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
 
-      if(stats.length == 1 && stats[0].getContext().get("cacheName").equals("cache-1") && samples.length > 0) {
+      if(stats.size() == 1 && stats.get(0).getContext().get("cacheName").equals("cache-1") && samples.length > 0) {
         val = samples[samples.length - 1].getValue();
       }
 
