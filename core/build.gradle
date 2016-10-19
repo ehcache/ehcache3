@@ -23,3 +23,7 @@ dependencies {
   }
   testCompile project(':spi-tester')
 }
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
+}
