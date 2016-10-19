@@ -103,13 +103,11 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
   public void cacheAdded(String alias, Cache<?, ?> cache) {
     StatisticsManager.associate(cache).withParent(cacheManager);
 
-    register(cache);
     register(new CacheBinding(alias, cache));
   }
 
   @Override
   public void cacheRemoved(String alias, Cache<?, ?> cache) {
-    unregister(cache);
     unregister(new CacheBinding(alias, cache));
 
     StatisticsManager.dissociate(cache).fromParent(cacheManager);

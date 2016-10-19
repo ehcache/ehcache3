@@ -16,34 +16,20 @@
 
 import org.gradle.internal.jvm.Jvm
 
-// all these libs should be on server classpath for management
-// management-entity-server  : entity used client-side to send management data into the server
-// monitoring-service        : server monitoring service
-// monitoring-service-entity : test entity, so that we can read the server monitoring service
-// management-model          : management metadata describing exposed objects, stats and notifications (jdk-6 compat)
-// cluster-topology          : model classes describing cluster topology (jdk-8 compat)
-// management-registry       : service classes to expose management metadata and query api for stats (jdk-6 compat)
-// sequence-generator        : improved boundary flake seq generator to add seq numbers on management messages
-def serverCP = [
-  'management-entity-server': ':plugin',
-  'monitoring-service': ':plugin',
-  'monitoring-service-entity': ':plugin',
-  'management-model': '',
-  'cluster-topology': '',
-  'management-registry': '',
-  'sequence-generator': '',
-]
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 configurations {
-  serverClasspath
+  serverLibs
 }
 
 dependencies {
   testCompile project(':dist')
   testCompile project(':clustered:clustered-dist')
   testCompile project(':management')
-  testCompile "org.terracotta.management:management-entity-client:$parent.managementVersion"
+  testCompile "org.terracotta.management.dist:management-client:$parent.managementVersion"
   testCompile "org.terracotta.management:monitoring-service-entity:$parent.managementVersion"
+  testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
 
   testCompile group:'org.terracotta', name:'galvan-support', version: galvanVersion
   testCompile (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
@@ -52,9 +38,10 @@ dependencies {
   }
   testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
 
-  serverCP.each { k, v ->
-    serverClasspath "org.terracotta.management:$k:$parent.managementVersion$v"
+  serverLibs ("org.terracotta.management.dist:management-server:$parent.managementVersion") {
+    exclude group:'org.terracotta.management.dist', module:'management-common'
   }
+  serverLibs "org.terracotta.management:monitoring-service-entity:$parent.managementVersion" // test entity for monitoring service
 }
 
 task unzipKit(type: Copy) {
@@ -77,7 +64,7 @@ test {
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
-  systemProperty 'managementPlugins', serverCP.keySet().collect { String artifact -> project.configurations.serverClasspath.find { it.name.startsWith("$artifact-$parent.managementVersion") } }.join(File.pathSeparator)
+  systemProperty 'managementPlugins', project.configurations.serverLibs.join(File.pathSeparator)
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }
