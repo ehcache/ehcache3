@@ -25,6 +25,12 @@ import org.slf4j.LoggerFactory;
 public class StringCopier implements Copier<String> {
   private static final Logger LOG = LoggerFactory.getLogger(StringCopier.class);
 
+  private static final Copier<String> STRING_COPIER = new StringCopier();
+
+  public static Copier<String> copier() {
+    return STRING_COPIER;
+  }
+
   @Override
   public String copyForRead(String obj) {
     LOG.info("Copying for read {}", obj);
