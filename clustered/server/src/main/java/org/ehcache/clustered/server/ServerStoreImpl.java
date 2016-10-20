@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
+import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.paging.PageSource;
 
 import com.tc.classloader.CommonComponent;
@@ -29,7 +30,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 @CommonComponent
-public class ServerStoreImpl implements ServerStore {
+public class ServerStoreImpl implements ServerStore, MapInternals {
 
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;
@@ -94,4 +95,43 @@ public class ServerStoreImpl implements ServerStore {
   public List<OffHeapChainMap<Long>> getSegments() {
     return store.getSegments();
   }
+
+  // stats
+
+
+  @Override
+  public long getDataAllocatedMemory() {return store.getDataAllocatedMemory();}
+
+  @Override
+  public long getAllocatedMemory() {return store.getAllocatedMemory();}
+
+  @Override
+  public long getRemovedSlotCount() {return store.getRemovedSlotCount();}
+
+  @Override
+  public long getDataVitalMemory() {return store.getDataVitalMemory();}
+
+  @Override
+  public int getReprobeLength() {return store.getReprobeLength();}
+
+  @Override
+  public long getDataSize() {return store.getDataSize();}
+
+  @Override
+  public long getDataOccupiedMemory() {return store.getDataOccupiedMemory();}
+
+  @Override
+  public long getUsedSlotCount() {return store.getUsedSlotCount();}
+
+  @Override
+  public long getSize() {return store.getSize();}
+
+  @Override
+  public long getVitalMemory() {return store.getVitalMemory();}
+
+  @Override
+  public long getOccupiedMemory() {return store.getOccupiedMemory();}
+
+  @Override
+  public long getTableCapacity() {return store.getTableCapacity();}
 }

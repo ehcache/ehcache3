@@ -23,13 +23,14 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
 import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.ServerStoreEvictionListener;
+import org.terracotta.offheapstore.MapInternals;
 import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 
 import static org.terracotta.offheapstore.util.MemoryUnit.KILOBYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
-public class OffHeapServerStore implements ServerStore {
+public class OffHeapServerStore implements ServerStore, MapInternals {
 
   private final List<OffHeapChainMap<Long>> segments;
   private final KeySegmentMapper mapper;
@@ -227,6 +228,116 @@ public class OffHeapServerStore implements ServerStore {
     } finally {
       writeUnlockAll();
     }
+  }
+
+  // stats
+
+  @Override
+  public long getAllocatedMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getAllocatedMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getOccupiedMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getOccupiedMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getDataAllocatedMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getDataAllocatedMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getDataOccupiedMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getDataOccupiedMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getDataSize() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getDataSize();
+    }
+    return total;
+  }
+
+  @Override
+  public long getSize() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getSize();
+    }
+    return total;
+  }
+
+  @Override
+  public long getTableCapacity() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getTableCapacity();
+    }
+    return total;
+  }
+
+  @Override
+  public long getUsedSlotCount() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getUsedSlotCount();
+    }
+    return total;
+  }
+
+  @Override
+  public long getRemovedSlotCount() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getRemovedSlotCount();
+    }
+    return total;
+  }
+
+  @Override
+  public int getReprobeLength() {
+    int total = 0;
+    for (MapInternals segment : segments) {
+      total += segment.getReprobeLength();
+    }
+    return total;
+  }
+
+  @Override
+  public long getVitalMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getVitalMemory();
+    }
+    return total;
+  }
+
+  @Override
+  public long getDataVitalMemory() {
+    long total = 0L;
+    for (MapInternals segment : segments) {
+      total += segment.getDataVitalMemory();
+    }
+    return total;
   }
 
 }
