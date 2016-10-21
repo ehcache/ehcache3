@@ -52,6 +52,7 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
   }
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 

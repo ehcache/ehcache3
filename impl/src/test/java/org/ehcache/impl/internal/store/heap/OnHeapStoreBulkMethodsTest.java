@@ -62,14 +62,15 @@ public class OnHeapStoreBulkMethodsTest {
     return config;
   }
 
+  @SuppressWarnings("unchecked")
   protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
     return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,
         new NoopSizeOfEngine(), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
   }
 
-  @SuppressWarnings("unchecked")
   @Test
+  @SuppressWarnings("unchecked")
   public void testBulkComputeFunctionGetsValuesOfEntries() throws Exception {
     @SuppressWarnings("rawtypes")
     Store.Configuration config = mock(Store.Configuration.class);
@@ -164,6 +165,7 @@ public class OnHeapStoreBulkMethodsTest {
   public void testBulkComputeStoreRemovesValueWhenFunctionReturnsNullMappings() throws Exception {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
 
+    @SuppressWarnings("unchecked")
     OnHeapStore<Number, CharSequence> store = new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Number, CharSequence>nullStoreEventDispatcher());
     store.put(1, "one");
     store.put(2, "two");

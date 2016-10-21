@@ -33,6 +33,7 @@ public class SerializingCopierTest {
 
   @Test
   public void testCopy() throws Exception {
+    @SuppressWarnings("unchecked")
     Serializer<String> serializer = mock(Serializer.class);
     String in = new String("foo");
     ByteBuffer buff = mock(ByteBuffer.class);

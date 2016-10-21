@@ -28,7 +28,6 @@ import org.hamcrest.core.IsSame;
 import org.junit.Test;
 
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
-import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -58,7 +57,7 @@ public class ServiceProviderTest {
       IsCollectionContaining.<CachingTier.Provider>hasItem(IsSame.<CachingTier.Provider>sameInstance(cachingTierProvider)));
     assertThat(serviceLocator.getServicesOfType(AuthoritativeTier.Provider.class),
       IsCollectionContaining.<AuthoritativeTier.Provider>hasItem(IsSame.<AuthoritativeTier.Provider>sameInstance(authoritativeTierProvider)));
-    assertThat(serviceLocator.getServicesOfType((Class<OffHeapDiskStore.Provider>) diskStoreProvider.getClass()),
-      IsCollectionContaining.<OffHeapDiskStore.Provider>hasItem(IsSame.sameInstance(diskStoreProvider)));
+    assertThat(serviceLocator.getServicesOfType(OffHeapDiskStore.Provider.class),
+      IsCollectionContaining.<OffHeapDiskStore.Provider>hasItem(IsSame.<OffHeapDiskStore.Provider>sameInstance(diskStoreProvider)));
   }
 }

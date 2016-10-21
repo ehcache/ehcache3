@@ -127,7 +127,8 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
             evictionAdvisor, getClass().getClassLoader(), expiry, buildResourcePools(capacity), 0, keySerializer, valueSerializer);
-        final Copier defaultCopier = new IdentityCopier();
+        @SuppressWarnings("unchecked")
+        final Copier<String> defaultCopier = new IdentityCopier();
 
         StoreEventDispatcher<String, String> noOpEventDispatcher = NullStoreEventDispatcher.<String, String>nullStoreEventDispatcher();
         final OnHeapStore<String, String> onHeapStore = new OnHeapStore<String, String>(config, timeSource, defaultCopier, defaultCopier, new NoopSizeOfEngine(), noOpEventDispatcher);
@@ -355,6 +356,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
   public static class FakeCachingTierProvider implements CachingTier.Provider {
     @Override
+    @SuppressWarnings("unchecked")
     public <K, V> CachingTier<K, V> createCachingTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       return mock(CachingTier.class);
     }
@@ -387,6 +389,7 @@ public class TieredStoreWith3TiersSPITest extends StoreSPITest<String, String> {
 
   public static class FakeAuthoritativeTierProvider implements AuthoritativeTier.Provider {
     @Override
+    @SuppressWarnings("unchecked")
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       return mock(AuthoritativeTier.class);
     }

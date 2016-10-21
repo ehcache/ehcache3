@@ -125,7 +125,10 @@ class FileBasedStateRepository implements StateRepository, Closeable {
         return holder;
       }
     }
-    return (StateHolder<K, V>) result.holder;
+
+    @SuppressWarnings("unchecked")
+    StateHolder<K, V> holder = (StateHolder<K, V>) result.holder;
+    return holder;
   }
 
   @Override

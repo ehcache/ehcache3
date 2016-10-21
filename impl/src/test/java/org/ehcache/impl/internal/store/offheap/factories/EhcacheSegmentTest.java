@@ -42,10 +42,12 @@ import static org.mockito.Mockito.verify;
 
 public class EhcacheSegmentTest {
 
+  @SuppressWarnings("unchecked")
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment() {
     return createTestSegment(Eviction.noAdvice(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
+  @SuppressWarnings("unchecked")
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) {
     return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
@@ -135,6 +137,7 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testEvictionFiresEvent() {
+    @SuppressWarnings("unchecked")
     EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener = mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class);
     EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(evictionListener);
     try {

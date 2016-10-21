@@ -36,6 +36,7 @@ public class CompactJavaSerializerClassLoaderTest {
 
   @Test
   public void testThreadContextLoader() throws Exception {
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
     serializer.init(new TransientStateRepository());
 
@@ -53,6 +54,7 @@ public class CompactJavaSerializerClassLoaderTest {
   @Test
   public void testExplicitLoader() throws Exception {
     ClassLoader loader = newLoader();
+    @SuppressWarnings("unchecked")
     StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(loader);
     serializer.init(new TransientStateRepository());
 

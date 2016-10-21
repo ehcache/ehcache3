@@ -91,6 +91,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetHitsCachingTier() throws Exception {
     when(numberCachingTier.getOrComputeIfAbsent(eq(1), any(Function.class))).thenReturn(newValueHolder("one"));
 
@@ -102,6 +103,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetHitsAuthoritativeTier() throws Exception {
     Store.ValueHolder<CharSequence> valueHolder = newValueHolder("one");
     when(numberAuthoritativeTier.getAndFault(eq(1))).thenReturn(valueHolder);
@@ -123,6 +125,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetMisses() throws Exception {
     when(numberAuthoritativeTier.getAndFault(eq(1))).thenReturn(null);
     when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
@@ -267,6 +270,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testCompute2Args() throws Exception {
     when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
@@ -291,6 +295,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testCompute3Args() throws Exception {
     when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
@@ -320,6 +325,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testComputeIfAbsent_computes() throws Exception {
     when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
@@ -352,6 +358,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testComputeIfAbsent_doesNotCompute() throws Exception {
     final Store.ValueHolder<CharSequence> valueHolder = newValueHolder("one");
     when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
@@ -375,6 +382,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testBulkCompute2Args() throws Exception {
     when(numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
@@ -419,6 +427,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testBulkCompute3Args() throws Exception {
     when(
         numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
@@ -469,6 +478,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testBulkComputeIfAbsent() throws Exception {
     when(numberAuthoritativeTier.bulkComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
@@ -548,6 +558,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testReleaseStoreFlushes() throws Exception {
     TieredStore.Provider tieredStoreProvider = new TieredStore.Provider();
 

@@ -128,6 +128,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
+      @SuppressWarnings("unchecked")
       Store.Configuration<Long, String> storeConfig1 = mock(Store.Configuration.class);
       when(storeConfig1.getKeyType()).thenReturn(Long.class);
       when(storeConfig1.getValueType()).thenReturn(String.class);
@@ -143,6 +144,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     }
 
     {
+      @SuppressWarnings("unchecked")
       Store.Configuration<Long, Serializable> storeConfig2 = mock(Store.Configuration.class);
       when(storeConfig2.getKeyType()).thenReturn(Long.class);
       when(storeConfig2.getValueType()).thenReturn(Serializable.class);
@@ -176,6 +178,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier("cache", cacheConfiguration);
 
     {
+      @SuppressWarnings("unchecked")
       Store.Configuration<Long, Object[]> storeConfig1 = mock(Store.Configuration.class);
       when(storeConfig1.getKeyType()).thenReturn(Long.class);
       when(storeConfig1.getValueType()).thenReturn(Object[].class);
@@ -191,6 +194,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
     }
 
     {
+      @SuppressWarnings("unchecked")
       Store.Configuration<Long, Object[]> storeConfig2 = mock(Store.Configuration.class);
       when(storeConfig2.getKeyType()).thenReturn(Long.class);
       when(storeConfig2.getValueType()).thenReturn(Object[].class);
@@ -276,6 +280,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testAuthoritativeRank() throws Exception {
     OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
     assertThat(provider.rankAuthority(ResourceType.Core.DISK, EMPTY_LIST), is(1));
@@ -411,6 +416,7 @@ public class OffHeapDiskStoreTest extends AbstractOffHeapStoreTest {
       }
     })))).filter(context(attributes(hasAttribute("name", "invalidateAll")))).ensureUnique().build();
 
+    @SuppressWarnings("unchecked")
     OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome> invalidateAll = (OperationStatistic<LowerCachingTierOperationsOutcome.InvalidateAllOutcome>) invalidateAllQuery.execute(singleton(nodeFor(cache))).iterator().next().getContext().attributes().get("this");
 
     assertThat(invalidateAll.sum(), is(0L));

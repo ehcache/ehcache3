@@ -36,10 +36,8 @@ import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.hamcrest.Matcher;
 import org.hamcrest.Matchers;
-import org.hamcrest.collection.IsIterableContainingInAnyOrder;
 import org.hamcrest.core.IsSame;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
@@ -65,7 +63,10 @@ public class CacheConfigurationBuilderTest {
         .withEvictionAdvisor(evictionAdvisor)
         .build();
 
-    assertThat(evictionAdvisor, (Matcher)sameInstance(cacheConfiguration.getEvictionAdvisor()));
+    @SuppressWarnings("unchecked")
+    Matcher<EvictionAdvisor<Object, Object>> evictionAdvisorMatcher = (Matcher) sameInstance(cacheConfiguration
+      .getEvictionAdvisor());
+    assertThat(evictionAdvisor, evictionAdvisorMatcher);
   }
 
   @Test
@@ -285,7 +286,9 @@ public class CacheConfigurationBuilderTest {
     Class<Integer> keyClass = Integer.class;
     Class<String> valueClass = String.class;
     ClassLoader loader = mock(ClassLoader.class);
+    @SuppressWarnings("unchecked")
     EvictionAdvisor<Integer, String> eviction = mock(EvictionAdvisor.class);
+    @SuppressWarnings("unchecked")
     Expiry<Integer, String> expiry = mock(Expiry.class);
     ServiceConfiguration<?> service = mock(ServiceConfiguration.class);
 

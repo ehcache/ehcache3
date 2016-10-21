@@ -54,6 +54,7 @@ public class OnHeapStoreBulkMethodsTest extends org.ehcache.impl.internal.store.
     return config;
   }
 
+  @SuppressWarnings("unchecked")
   protected <Number, CharSequence> OnHeapStore<Number, CharSequence> newStore() {
     Store.Configuration<Number, CharSequence> configuration = mockStoreConfig();
     return new OnHeapStore<Number, CharSequence>(configuration, SystemTimeSource.INSTANCE, DEFAULT_COPIER, DEFAULT_COPIER,

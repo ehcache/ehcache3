@@ -27,7 +27,6 @@ import org.ehcache.impl.internal.store.heap.holders.CopiedOnHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.internal.tier.CachingTierFactory;
 import org.ehcache.internal.tier.CachingTierSPITest;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.CachingTier;
@@ -54,6 +53,7 @@ public class OnHeapStoreCachingTierByRefSPITest extends CachingTierSPITest<Strin
   }
 
   @Before
+  @SuppressWarnings("unchecked")
   public void setUp() {
     cachingTierFactory = new CachingTierFactory<String, String>() {
 

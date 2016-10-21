@@ -45,6 +45,7 @@ public class DefaultDiskResourceServiceTest {
     public ExpectedException expectedException = ExpectedException.none();
 
     protected DefaultDiskResourceService service = new DefaultDiskResourceService();
+    @SuppressWarnings("unchecked")
     protected ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
 
     @Before

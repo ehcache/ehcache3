@@ -109,7 +109,9 @@ public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
     try {
       ObjectInputStream oin = getObjectInputStream(new ByteBufferInputStream(binary));
       try {
-        return (T) oin.readObject();
+        @SuppressWarnings("unchecked")
+        T value = (T) oin.readObject();
+        return value;
       } finally {
         oin.close();
       }
