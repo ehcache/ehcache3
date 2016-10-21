@@ -17,9 +17,8 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ReplicationOp;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Util;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
@@ -70,6 +69,14 @@ class PassiveReplicationMessageCodec {
         encodedMsg.put(message.getOpCode());
         encodedMsg.putLong(invalidationCompleteMessage.getKey());
         CodecUtil.putStringAsCharArray(encodedMsg, invalidationCompleteMessage.getCacheId());
+      case SERVER_STORE_LIFECYCLE_REPLICATION_OP:
+        ServerStoreLifeCycleReplicationMessage storeLifeCycleReplicationMessage = (ServerStoreLifeCycleReplicationMessage)message;
+        byte[] encodedLifeCycleMsg = Util.marshall(storeLifeCycleReplicationMessage.getMessage());
+        encodedMsg = ByteBuffer.allocate(OP_CODE_SIZE + MESSAGE_ID_SIZE + encodedLifeCycleMsg.length);
+        encodedMsg.put(message.getOpCode());
+        encodedMsg.put(ClusteredEhcacheIdentity.serialize(message.getClientId()));
+        encodedMsg.putLong(message.getId());
+        encodedMsg.put(encodedLifeCycleMsg);
         return encodedMsg.array();
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.operation());
@@ -106,6 +113,13 @@ class PassiveReplicationMessageCodec {
         key = byteBuffer.getLong();
         cacheId  = CodecUtil.getStringFromBuffer(byteBuffer, byteBuffer.remaining()/2);
         return new InvalidationCompleteMessage(cacheId, key);
+      case SERVER_STORE_LIFECYCLE_REPLICATION_OP:
+        clientId = getClientId(byteBuffer);
+        msgId = byteBuffer.getLong();
+        byte[] encodedLifeCycle = new byte[byteBuffer.remaining()];
+        byteBuffer.get(encodedLifeCycle);
+        LifecycleMessage lifecycleMessage = (LifecycleMessage)Util.unmarshall(encodedLifeCycle);
+        return new ServerStoreLifeCycleReplicationMessage(msgId, clientId, lifecycleMessage);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + replicationOp);
     }
