@@ -210,7 +210,8 @@ public class LifeCycleMessageActivePassvieReplicationTest {
 
     clusterControl.terminateActive();
 
-    clientEntity1.destroyCache("testCache");
+    clientEntity2.releaseCache("testCache");
+    clientEntity2.destroyCache("testCache");
 
     service1.stop();
     service2.stop();

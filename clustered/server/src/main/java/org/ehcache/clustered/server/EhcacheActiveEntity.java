@@ -755,6 +755,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     serverStore.setEvictionListener(key -> invalidateHashAfterEviction(name, key));
     attachStore(clientDescriptor, name);
+    try {
+      entityMessenger.messageSelfAndDeferRetirement(createServerStore, new ClientIDTrackerMessage.ServerStoreLifeCycleReplicationMessage(createServerStore));
+    } catch (MessageCodecException e) {
+      throw new AssertionError("Codec error", e);
+    }
   }
 
   /**
@@ -841,6 +846,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
 
     storeClientMap.remove(name);
+    try {
+      entityMessenger.messageSelfAndDeferRetirement(destroyServerStore, new ClientIDTrackerMessage.ServerStoreLifeCycleReplicationMessage(destroyServerStore));
+    } catch (MessageCodecException e) {
+      throw new AssertionError("Codec error", e);
+    }
   }
 
   private boolean isLifeCycleMessageDuplicate(LifecycleMessage message) {

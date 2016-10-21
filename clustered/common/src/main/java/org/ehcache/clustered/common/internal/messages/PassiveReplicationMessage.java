@@ -194,8 +194,8 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
 
     private final LifecycleMessage message;
 
-    public ServerStoreLifeCycleReplicationMessage(long msgId, UUID clientId, LifecycleMessage message) {
-      super(msgId, clientId);
+    public ServerStoreLifeCycleReplicationMessage(LifecycleMessage message) {
+      super(message.getId(), message.getClientId());
       this.message = message;
     }
 

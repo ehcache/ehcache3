@@ -173,6 +173,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   private void invokeRetiredServerStoreLifecycleMessage(ServerStoreLifeCycleReplicationMessage storeLifeCycleReplicationMessage) throws ClusterException {
 
     LifecycleMessage message = storeLifeCycleReplicationMessage.getMessage();
+    ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
     switch (message.operation()) {
       case CREATE_SERVER_STORE:
         createServerStore((CreateServerStore)message);
@@ -280,8 +281,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       throw new LifecycleException("Clustered tier can't be created with an Unknown resource pool");
     }
 
-    trackAndApplyMessage(createServerStore);
-
     final String name = createServerStore.getName();    // client cache identifier/name
 
     LOGGER.info("Creating new clustered tier '{}'", name);
@@ -298,8 +297,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     if (!ehcacheStateService.isConfigured()) {
       throw new LifecycleException("Clustered Tier Manager is not configured");
     }
-
-    trackAndApplyMessage(destroyServerStore);
 
     String name = destroyServerStore.getName();
 
