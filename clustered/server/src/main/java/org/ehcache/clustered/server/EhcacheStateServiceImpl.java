@@ -121,7 +121,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   @Override
   public Map<String, ServerSideConfiguration.Pool> getSharedResourcePools() {
-    return sharedResourcePools.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> e.getValue().getPool()));
+    return sharedResourcePools == null ? Collections.emptyMap() : sharedResourcePools.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> e.getValue().getPool()));
   }
 
   public void validate(ServerSideConfiguration configuration) throws ClusterException {
