@@ -34,6 +34,7 @@ import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.internal.messages.EntityDataSyncMessage;
@@ -139,6 +140,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       case CLEAR_INVALIDATION_COMPLETE:
         ehcacheStateService.getInvalidationTracker(((ClearInvalidationCompleteMessage)message).getCacheId()).setClearInProgress(false);
         break;
+      case SERVER_STORE_LIFECYCLE_REPLICATION_OP:
+        invokeRetiredServerStoreLifecycleMessage((ServerStoreLifeCycleReplicationMessage)message);
+        break;
       default:
         throw new IllegalMessageException("Unknown Retirement Message : " + message);
     }
@@ -165,6 +169,22 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       });
     }
   }
+
+  private void invokeRetiredServerStoreLifecycleMessage(ServerStoreLifeCycleReplicationMessage storeLifeCycleReplicationMessage) throws ClusterException {
+
+    LifecycleMessage message = storeLifeCycleReplicationMessage.getMessage();
+    switch (message.operation()) {
+      case CREATE_SERVER_STORE:
+        createServerStore((CreateServerStore)message);
+        break;
+      case DESTROY_SERVER_STORE:
+        destroyServerStore((DestroyServerStore)message);
+        break;
+      default:
+        throw new IllegalMessageException("Unknown Replicated ServerStore operation : " + message);
+    }
+  }
+
 
   private void invokeServerStoreOperation(ServerStoreOpMessage message) throws ClusterException {
     ServerStoreImpl cacheStore = ehcacheStateService.getStore(message.getCacheId());
@@ -229,10 +249,8 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         trackAndApplyMessage(message);
         break;
       case CREATE_SERVER_STORE:
-        createServerStore((CreateServerStore) message);
-        break;
       case DESTROY_SERVER_STORE:
-        destroyServerStore((DestroyServerStore) message);
+        ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
         break;
       default:
         throw new IllegalMessageException("Unknown LifeCycle operation " + message);
