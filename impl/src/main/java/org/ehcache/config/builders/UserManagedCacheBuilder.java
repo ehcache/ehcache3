@@ -17,54 +17,53 @@
 package org.ehcache.config.builders;
 
 import org.ehcache.Cache;
-import org.ehcache.config.Builder;
-import org.ehcache.core.Ehcache;
-import org.ehcache.core.EhcacheWithLoaderWriter;
-import org.ehcache.core.InternalCache;
-import org.ehcache.core.PersistentUserManagedEhcache;
+import org.ehcache.CachePersistenceException;
 import org.ehcache.UserManagedCache;
-import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
-import org.ehcache.core.internal.store.StoreConfigurationImpl;
-import org.ehcache.core.spi.service.DiskResourceService;
-import org.ehcache.core.spi.store.heap.SizeOfEngine;
-import org.ehcache.impl.events.CacheEventDispatcherImpl;
-import org.ehcache.core.internal.store.StoreSupport;
-import org.ehcache.event.CacheEventListener;
+import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.Ehcache;
+import org.ehcache.core.EhcacheWithLoaderWriter;
+import org.ehcache.core.InternalCache;
+import org.ehcache.core.PersistentUserManagedEhcache;
+import org.ehcache.core.config.BaseCacheConfiguration;
+import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.events.CacheEventListenerConfiguration;
 import org.ehcache.core.events.CacheEventListenerProvider;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.internal.store.StoreConfigurationImpl;
+import org.ehcache.core.internal.store.StoreSupport;
+import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.core.spi.LifeCycledAdapter;
+import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.heap.SizeOfEngine;
+import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
+import org.ehcache.event.CacheEventListener;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
-import org.ehcache.config.units.EntryUnit;
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.core.events.CacheEventDispatcher;
-import org.ehcache.impl.internal.events.DisabledCacheEventNotificationService;
-import org.ehcache.CachePersistenceException;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.copy.SerializingCopier;
+import org.ehcache.impl.events.CacheEventDispatcherImpl;
+import org.ehcache.impl.internal.events.DisabledCacheEventNotificationService;
 import org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProvider;
-import org.ehcache.core.spi.LifeCycled;
-import org.ehcache.core.spi.LifeCycledAdapter;
-import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.spi.persistence.PersistableResourceService;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
-import org.ehcache.core.spi.store.heap.SizeOfEngineProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.spi.service.ServiceDependencies;
-import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,10 +79,10 @@ import static org.ehcache.config.ResourceType.Core.DISK;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_MAX_OBJECT_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_OBJECT_GRAPH_SIZE;
 import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration.DEFAULT_UNIT;
-import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
 
 /**
  * The {@code UserManagedCacheBuilder} enables building {@link UserManagedCache}s using a fluent style.
@@ -268,7 +267,7 @@ public class UserManagedCacheBuilder<K, V, T extends UserManagedCache<K, V>> imp
         if (resources.contains(OFFHEAP) || resources.contains(DISK)) {
           throw new RuntimeException(e);
         } else {
-          LOGGER.debug("Could not create serializers for user managed cache {}", id, e);
+          LOGGER.debug("Serializers for cache '{}' failed creation ({}). However, depending on the configuration, they might not be needed", id, e.getMessage());
         }
       }
     }
