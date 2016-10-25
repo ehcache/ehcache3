@@ -33,13 +33,13 @@ public class StringCopier implements Copier<String> {
 
   @Override
   public String copyForRead(String obj) {
-    LOG.info("Copying for read {}", obj);
+    LOG.debug("Copying for read {}", obj);
     return obj;
   }
 
   @Override
   public String copyForWrite(String obj) {
-    LOG.info("Copying for write {}", obj);
+    LOG.debug("Copying for write {}", obj);
     return obj;
   }
 }
