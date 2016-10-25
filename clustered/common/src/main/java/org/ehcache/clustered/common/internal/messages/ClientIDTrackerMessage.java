@@ -119,8 +119,8 @@ public class ClientIDTrackerMessage extends EhcacheEntityMessage {
     }
 
     @Override
-    public int concurrencyKey() {
-      return (int) (this.cacheId.hashCode() + key);
+    public long concurrencyKey() {
+      return (this.cacheId.hashCode() + key);
     }
   }
 }

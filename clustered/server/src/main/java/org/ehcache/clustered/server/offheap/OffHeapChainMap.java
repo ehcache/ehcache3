@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.locks.Lock;
 
@@ -36,7 +37,10 @@ import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
 
-class OffHeapChainMap<K> implements MapInternals {
+import com.tc.classloader.CommonComponent;
+
+@CommonComponent
+public class OffHeapChainMap<K> implements MapInternals {
 
   interface ChainMapEvictionListener<K> {
     void onEviction(K key);
@@ -198,6 +202,15 @@ class OffHeapChainMap<K> implements MapInternals {
     heads.writeLock().lock();
     try {
       this.heads.clear();
+    } finally {
+      heads.writeLock().unlock();
+    }
+  }
+
+  public Set<K> keySet() {
+    heads.writeLock().lock();
+    try {
+      return heads.keySet();
     } finally {
       heads.writeLock().unlock();
     }

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server.messages;
+package org.ehcache.clustered.server.internal.messages;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
@@ -27,6 +27,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
+import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
+import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.common.internal.store.Util.getChain;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -35,7 +38,7 @@ import static org.junit.Assert.*;
 public class EhcacheSyncMessageCodecTest {
 
   @Test
-  public void testEncodeDecode() throws Exception {
+  public void testStateSyncMessageEncodeDecode() throws Exception {
     Map<String, ServerSideConfiguration.Pool> sharedPools = new HashMap<>();
     ServerSideConfiguration.Pool pool1 = new ServerSideConfiguration.Pool(1, "foo1");
     ServerSideConfiguration.Pool pool2 = new ServerSideConfiguration.Pool(2, "foo2");
@@ -112,5 +115,16 @@ public class EhcacheSyncMessageCodecTest {
     assertThat(serverStoreConfiguration.getKeySerializerType(), is("keySerializerType3"));
     assertThat(serverStoreConfiguration.getValueSerializerType(), is("valueSerializerType3"));
     assertThat(serverStoreConfiguration.getConsistency(), is(Consistency.STRONG));
+  }
+
+  @Test
+  public void testDataSyncMessageEncodeDecode() throws Exception {
+    EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
+    EntityDataSyncMessage message = new EntityDataSyncMessage("foo", 123L,
+        getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)));
+    EntityDataSyncMessage decoded = (EntityDataSyncMessage) codec.decode(0, codec.encode(0, message));
+    assertThat(decoded.getCacheId(), is(message.getCacheId()));
+    assertThat(decoded.getKey(), is(message.getKey()));
+    assertThat(chainsEqual(decoded.getChain(), message.getChain()), is(true));
   }
 }

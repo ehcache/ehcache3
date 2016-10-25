@@ -54,7 +54,8 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.KeyBa
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.ehcache.clustered.server.messages.EntityStateSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EntityDataSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
@@ -83,6 +84,8 @@ import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.De
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ReleaseServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY;
 
 // TODO: Provide some mechanism to report on storage utilization -- PageSource provides little visibility
 // TODO: Ensure proper operations for concurrent requests
@@ -151,7 +154,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   }
 
-  EhcacheActiveEntity(ServiceRegistry services, byte[] config) {
+  EhcacheActiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
     this.responseFactory = new EhcacheEntityResponseFactory();
     this.clientCommunicator = services.getService(new CommunicatorServiceConfiguration());
@@ -161,7 +164,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     } else {
       this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
     }
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers));
+    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
@@ -306,7 +309,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public void synchronizeKeyToPassive(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
-    if (concurrencyKey == ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY) {
+    LOGGER.info("Sync started for concurrency key {}.", concurrencyKey);
+    if (concurrencyKey == DEFAULT_KEY) {
       ServerSideConfiguration configuration =
         new ServerSideConfiguration(ehcacheStateService.getDefaultServerResource(), ehcacheStateService.getSharedResourcePools());
 
@@ -317,7 +321,17 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
 
       syncChannel.synchronizeToPassive(new EntityStateSyncMessage(configuration, storeConfigs, trackedClients));
+    } else {
+      ehcacheStateService.getStores().stream()
+        .forEach(name -> {
+          ServerStoreImpl store = ehcacheStateService.getStore(name);
+          store.getSegments().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET).keySet().stream()
+            .forEach(key -> {
+              syncChannel.synchronizeToPassive(new EntityDataSyncMessage(name, key, store.get(key)));
+            });
+        });
     }
+    LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
   }
 
   @Override

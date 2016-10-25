@@ -56,6 +56,7 @@ public class EhcachePassiveEntityTest {
   private static final byte[] ENTITY_ID = ClusteredEhcacheIdentity.serialize(UUID.randomUUID());
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
   private static final UUID CLIENT_ID = UUID.randomUUID();
+  private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
 
   @Before
   public void setClientId() {
@@ -65,7 +66,7 @@ public class EhcachePassiveEntityTest {
   @Test
   public void testConfigTooShort() {
     try {
-      new EhcachePassiveEntity(null, new byte[ENTITY_ID.length - 1]);
+      new EhcachePassiveEntity(null, new byte[ENTITY_ID.length - 1], DEFAULT_MAPPER);
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -75,7 +76,7 @@ public class EhcachePassiveEntityTest {
   @Test
   public void testConfigTooLong() {
     try {
-      new EhcachePassiveEntity(null, new byte[ENTITY_ID.length + 1]);
+      new EhcachePassiveEntity(null, new byte[ENTITY_ID.length + 1], DEFAULT_MAPPER);
       fail("Expected IllegalArgumentException");
     } catch (IllegalArgumentException e) {
       //expected
@@ -85,7 +86,7 @@ public class EhcachePassiveEntityTest {
   @Test
   public void testConfigNull() {
     try {
-      new EhcachePassiveEntity(null, null);
+      new EhcachePassiveEntity(null, null, DEFAULT_MAPPER);
       fail("Expected NullPointerException");
     } catch (NullPointerException e) {
       //expected
@@ -102,7 +103,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
@@ -127,7 +128,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
@@ -163,7 +164,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 64, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
@@ -189,7 +190,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
@@ -213,7 +214,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
         .defaultResource("defaultServerResource")
@@ -238,7 +239,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -274,7 +275,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(
         MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
@@ -309,7 +310,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(
         MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
@@ -370,7 +371,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(
         MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
@@ -440,7 +441,7 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
     passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -652,7 +653,7 @@ public class EhcachePassiveEntityTest {
         };
       } else if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
         if (storeManagerService == null) {
-          this.storeManagerService = new EhcacheStateServiceImpl(this, getIdentifiers(pools.keySet()));
+          this.storeManagerService = new EhcacheStateServiceImpl(this, getIdentifiers(pools.keySet()), DEFAULT_MAPPER);
         }
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {

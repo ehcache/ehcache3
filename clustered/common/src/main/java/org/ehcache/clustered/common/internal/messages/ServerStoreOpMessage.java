@@ -21,7 +21,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implements ConcurrentEntityMessage {
+public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
   public enum ServerStoreOp {
 
     GET_AND_APPEND((byte) 11),
@@ -95,11 +95,6 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
   }
 
   @Override
-  public int concurrencyKey() {
-    return cacheId.hashCode();
-  }
-
-  @Override
   public Type getType() {
     return Type.SERVER_STORE_OP;
   }
@@ -116,7 +111,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     return getType() + "#" + operation();
   }
 
-  public static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage {
+  public static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage  implements ConcurrentEntityMessage {
 
     private final long key;
 
@@ -130,8 +125,8 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage implemen
     }
 
     @Override
-    public int concurrencyKey() {
-      return (int) (super.concurrencyKey() + key);
+    public long concurrencyKey() {
+      return key;
     }
   }
 

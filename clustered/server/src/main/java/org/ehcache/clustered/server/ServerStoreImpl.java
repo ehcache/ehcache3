@@ -19,26 +19,26 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
+import org.ehcache.clustered.server.offheap.OffHeapChainMap;
 import org.ehcache.clustered.server.offheap.OffHeapServerStore;
 import org.terracotta.offheapstore.paging.PageSource;
 
 import com.tc.classloader.CommonComponent;
 
 import java.nio.ByteBuffer;
+import java.util.List;
 
 @CommonComponent
 public class ServerStoreImpl implements ServerStore {
-
-  private static final int OFFHEAP_CHAIN_SEGMENTS = 16;
 
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;
   private final OffHeapServerStore store;
 
-  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource) {
+  public ServerStoreImpl(ServerStoreConfiguration storeConfiguration, PageSource pageSource, KeySegmentMapper mapper) {
     this.storeConfiguration = storeConfiguration;
     this.pageSource = pageSource;
-    this.store = new OffHeapServerStore(pageSource, OFFHEAP_CHAIN_SEGMENTS);
+    this.store = new OffHeapServerStore(pageSource, mapper);
   }
 
   public void setEvictionListener(ServerStoreEvictionListener listener) {
@@ -89,5 +89,9 @@ public class ServerStoreImpl implements ServerStore {
 
   public void close() {
     store.close();
+  }
+
+  public List<OffHeapChainMap<Long>> getSegments() {
+    return store.getSegments();
   }
 }

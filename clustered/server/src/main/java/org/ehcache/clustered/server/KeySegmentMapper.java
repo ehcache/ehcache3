@@ -14,22 +14,24 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.internal.messages;
+package org.ehcache.clustered.server;
 
-import org.terracotta.entity.EntityMessage;
+import com.tc.classloader.CommonComponent;
 
-/**
- * {@link EntityMessage}s can implement this interface to specify which concurrency key
- * they belong to.
- */
-public interface ConcurrentEntityMessage extends EntityMessage {
+@CommonComponent
+public class KeySegmentMapper {
 
-  /**
-   * Get the {@link org.terracotta.entity.EntityMessage}'s concurrency key.
-   *
-   * @see org.terracotta.entity.ConcurrencyStrategy#concurrencyKey(EntityMessage)
-   * @return the concurrency key
-   */
-  long concurrencyKey();
+  private final int segments;
 
+  public KeySegmentMapper(final int segments) {
+    this.segments = segments;
+  }
+
+  public int getSegmentForKey(long key) {
+    return Math.abs((int) (key % segments));
+  }
+
+  public int getSegments() {
+    return segments;
+  }
 }

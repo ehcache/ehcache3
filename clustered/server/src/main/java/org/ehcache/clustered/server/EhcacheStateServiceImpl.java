@@ -31,8 +31,6 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
@@ -85,12 +83,14 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
 
   private final ClientMessageTracker messageTracker = new ClientMessageTracker();
-
   private final StateRepositoryManager stateRepositoryManager;
+  private final KeySegmentMapper mapper;
 
-  public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
+
+  public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers, final KeySegmentMapper mapper) {
     this.services = services;
     this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
+    this.mapper = mapper;
     this.stateRepositoryManager = new StateRepositoryManager();
   }
 
@@ -300,7 +300,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     }
 
     PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
-    ServerStoreImpl serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource);
+    ServerStoreImpl serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
     stores.put(name, serverStore);
     return serverStore;
   }
