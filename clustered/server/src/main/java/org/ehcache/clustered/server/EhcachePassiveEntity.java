@@ -123,35 +123,42 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
-        InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(retirementMessage.getCacheId());
-        if (invalidationTracker != null) {
-          invalidationTracker.getInvalidationMap().computeIfPresent(retirementMessage.getKey(), (key, count) -> {
-            if (count == null) {
-              return count = 1;
-            } else {
-              return count++;
-            }
-          });
-        }
+        trackHashInvalidationForEventualCache(retirementMessage);
         break;
       case CLIENTID_TRACK_OP:
         LOGGER.debug("PassiveReplicationMessage message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ehcacheStateService.getClientMessageTracker().add(message.getClientId());
         break;
       case INVALIDATION_COMPLETE:
-        InvalidationCompleteMessage invalidationCompleteMessage = (InvalidationCompleteMessage)message;
-        ehcacheStateService.getInvalidationTracker(invalidationCompleteMessage.getCacheId()).getInvalidationMap().computeIfPresent(invalidationCompleteMessage.getKey(), (key, count) -> {
-          if (count == 1) {
-            return null;
-          }
-          return count--;
-        });
+        untrackHashInvalidationForEventualCache((InvalidationCompleteMessage)message);
         break;
       case CLEAR_INVALIDATION_COMPLETE:
         ehcacheStateService.getInvalidationTracker(((ClearInvalidationCompleteMessage)message).getCacheId()).setClearInProgress(false);
         break;
       default:
         throw new IllegalMessageException("Unknown Retirement Message : " + message);
+    }
+  }
+
+  private void untrackHashInvalidationForEventualCache(InvalidationCompleteMessage message) {InvalidationCompleteMessage invalidationCompleteMessage = message;
+    ehcacheStateService.getInvalidationTracker(invalidationCompleteMessage.getCacheId()).getInvalidationMap().computeIfPresent(invalidationCompleteMessage.getKey(), (key, count) -> {
+      if (count == 1) {
+        return null;
+      }
+      return count--;
+    });
+  }
+
+  private void trackHashInvalidationForEventualCache(ChainReplicationMessage retirementMessage) {
+    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(retirementMessage.getCacheId());
+    if (invalidationTracker != null) {
+      invalidationTracker.getInvalidationMap().compute(retirementMessage.getKey(), (key, count) -> {
+        if (count == null) {
+          return 1;
+        } else {
+          return count++;
+        }
+      });
     }
   }
 

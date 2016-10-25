@@ -371,6 +371,12 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return this.invalidationMap.get(cacheId);
   }
 
+  @Override
+  public void clearInvalidationTrackers() {
+    invalidationMap.forEach((cache, invalidationTracker) -> invalidationTracker.getInvalidationMap().clear());
+    invalidationMap.clear();
+  }
+
   public boolean isConfigured() {
     return (sharedResourcePools != null);
   }
