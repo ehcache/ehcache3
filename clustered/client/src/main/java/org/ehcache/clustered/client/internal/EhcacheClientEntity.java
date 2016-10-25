@@ -47,6 +47,7 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -88,10 +89,11 @@ public class EhcacheClientEntity implements Entity {
   private final LifeCycleMessageFactory messageFactory;
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
-  private final List<ReconnectListener> reconnectListeners = new CopyOnWriteArrayList<ReconnectListener>();
+  private final List<ReconnectListener> reconnectListeners = new ArrayList<ReconnectListener>();
   private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
   private volatile boolean connected = true;
   private final ReconnectData reconnectData = new ReconnectData();
+  private final Object lock = new Object();
   private volatile UUID clientId;
 
   private Timeouts timeouts = Timeouts.builder().build();
@@ -109,10 +111,12 @@ public class EhcacheClientEntity implements Entity {
 
       @Override
       public byte[] createExtendedReconnectData() {
-        for (ReconnectListener reconnectListener : reconnectListeners) {
-          reconnectListener.onHandleReconnect(reconnectData);
+        synchronized (lock) {
+          for (ReconnectListener reconnectListener : reconnectListeners) {
+            reconnectListener.onHandleReconnect(reconnectData);
+          }
+          return reconnectDataCodec.encode(reconnectData);
         }
-        return reconnectDataCodec.encode(reconnectData);
       }
 
       @Override
@@ -164,7 +168,9 @@ public class EhcacheClientEntity implements Entity {
   }
 
   public void addReconnectListener(ReconnectListener listener) {
-    reconnectListeners.add(listener);
+    synchronized (lock) {
+      reconnectListeners.add(listener);
+    }
   }
 
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {

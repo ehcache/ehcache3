@@ -24,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,7 +53,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
     entity.addReconnectListener(new EhcacheClientEntity.ReconnectListener() {
       @Override
       public void onHandleReconnect(ReconnectData reconnectData) {
-        Set<Long> inflightInvalidations = new HashSet<Long>(hashInvalidationsInProgress.keySet());
+        Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
         reconnectData.addInvalidationsInProgress(delegate.getCacheId(), inflightInvalidations);
         if (invalidateAllLatch != null) {
           reconnectData.addClearInProgress(delegate.getCacheId());

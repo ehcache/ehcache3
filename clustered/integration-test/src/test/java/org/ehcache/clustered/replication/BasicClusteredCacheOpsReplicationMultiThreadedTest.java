@@ -33,6 +33,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
@@ -51,6 +55,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -62,6 +67,7 @@ import static org.junit.Assert.assertThat;
  * Note that fail-over is happening while client threads are still writing
  * Finally the same key set correctness is asserted.
  */
+@RunWith(Parameterized.class)
 public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   private static final int NUM_OF_THREADS = 10;
@@ -77,6 +83,14 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   private static CacheManager CACHE_MANAGER2;
   private static Cache<Long, BlobValue> CACHE1;
   private static Cache<Long, BlobValue> CACHE2;
+
+  @Parameters(name = "consistency={0}")
+  public static Consistency[] data() {
+    return Consistency.values();
+  }
+
+  @Parameter
+  public Consistency cacheConsistency;
 
   @ClassRule
   public static Cluster CLUSTER =
@@ -97,7 +111,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
         .newCacheConfigurationBuilder(Long.class, BlobValue.class,
             ResourcePoolsBuilder.newResourcePoolsBuilder().heap(500, EntryUnit.ENTRIES)
                 .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+        .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
         .build();
 
     CACHE1 = CACHE_MANAGER1.createCache("clustered-cache", config);
@@ -112,7 +126,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
     CLUSTER.getClusterControl().startAllServers();
   }
 
-  @Test
+  @Test(timeout=180000)
   public void testCRUD() throws Exception {
     List<Cache<Long, BlobValue>> caches = new ArrayList<>();
     caches.add(CACHE1);
@@ -162,7 +176,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   }
 
-  @Test
+  @Test(timeout=180000)
   public void testBulkOps() throws Exception {
     List<Cache<Long, BlobValue>> caches = new ArrayList<>();
     caches.add(CACHE1);
@@ -215,7 +229,7 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
 
   }
 
-  @Test
+  @Test(timeout=180000)
   public void testClear() throws Exception {
     List<Cache<Long, BlobValue>> caches = new ArrayList<>();
     caches.add(CACHE1);

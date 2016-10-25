@@ -33,6 +33,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Parameterized.Parameter;
+import org.junit.runners.Parameterized.Parameters;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
@@ -44,11 +48,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static java.util.Arrays.asList;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+@RunWith(Parameterized.class)
 public class BasicClusteredCacheOpsReplicationTest {
 
   private static final String RESOURCE_CONFIG =
@@ -61,6 +67,14 @@ public class BasicClusteredCacheOpsReplicationTest {
   private static CacheManager CACHE_MANAGER;
   private static Cache<Long, String> CACHE1;
   private static Cache<Long, String> CACHE2;
+
+  @Parameters(name = "consistency={0}")
+  public static Consistency[] data() {
+    return Consistency.values();
+  }
+
+  @Parameter
+  public Consistency cacheConsistency;
 
   @ClassRule
   public static Cluster CLUSTER =
@@ -79,7 +93,7 @@ public class BasicClusteredCacheOpsReplicationTest {
     CacheConfiguration<Long, String> config = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
         ResourcePoolsBuilder.newResourcePoolsBuilder().heap(100, EntryUnit.ENTRIES)
             .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 4, MemoryUnit.MB)))
-        .add(ClusteredStoreConfigurationBuilder.withConsistency(Consistency.STRONG))
+        .add(ClusteredStoreConfigurationBuilder.withConsistency(cacheConsistency))
         .build();
 
     CACHE1 = CACHE_MANAGER.createCache("clustered-cache", config);

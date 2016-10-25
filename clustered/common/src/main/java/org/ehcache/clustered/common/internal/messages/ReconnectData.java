@@ -53,8 +53,7 @@ public class ReconnectData {
   }
 
   public void remove(String name) {
-    if (!reconnectData.contains(name)) {
-      reconnectData.remove(name);
+    if (reconnectData.remove(name)) {
       reconnectDatalen.addAndGet(-(2 * name.length() + 2 * ENTRY_SIZE + CLEAR_IN_PROGRESS_STATUS_SIZE));
     }
   }
@@ -74,7 +73,7 @@ public class ReconnectData {
 
   public Set<Long> removeInvalidationsInProgress(String cacheId) {
     Set<Long> hashToInvalidate = hashInvalidationsInProgressPerCache.remove(cacheId);
-    if (hashToInvalidate != null) { //TODO: while handling eventual
+    if (hashToInvalidate != null) {
       reconnectDatalen.addAndGet(-(hashToInvalidate.size() * HASH_SIZE));
       return hashToInvalidate;
     }

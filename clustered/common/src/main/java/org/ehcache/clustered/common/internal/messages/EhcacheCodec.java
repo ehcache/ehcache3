@@ -28,25 +28,25 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessag
 public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE =
-      new EhcacheCodec(new ServerStoreOpCodec(), new LifeCycleMessageCodec(), new StateRepositoryOpCodec(), new ResponseCodec(), new ClientIDTrackerMessageCodec());
+      new EhcacheCodec(new ServerStoreOpCodec(), new LifeCycleMessageCodec(), new StateRepositoryOpCodec(), new ResponseCodec(), new PassiveReplicationMessageCodec());
 
   private final ServerStoreOpCodec serverStoreOpCodec;
   private final LifeCycleMessageCodec lifeCycleMessageCodec;
   private final StateRepositoryOpCodec stateRepositoryOpCodec;
   private final ResponseCodec responseCodec;
-  private final ClientIDTrackerMessageCodec clientIDTrackerMessageCodec;
+  private final PassiveReplicationMessageCodec passiveReplicationMessageCodec;
 
   public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> messageCodec() {
     return SERVER_INSTANCE;
   }
 
   EhcacheCodec(ServerStoreOpCodec serverStoreOpCodec, LifeCycleMessageCodec lifeCycleMessageCodec,
-               StateRepositoryOpCodec stateRepositoryOpCodec, ResponseCodec responseCodec, ClientIDTrackerMessageCodec clientIDTrackerMessageCodec) {
+               StateRepositoryOpCodec stateRepositoryOpCodec, ResponseCodec responseCodec, PassiveReplicationMessageCodec passiveReplicationMessageCodec) {
     this.serverStoreOpCodec = serverStoreOpCodec;
     this.lifeCycleMessageCodec = lifeCycleMessageCodec;
     this.stateRepositoryOpCodec = stateRepositoryOpCodec;
     this.responseCodec = responseCodec;
-    this.clientIDTrackerMessageCodec = clientIDTrackerMessageCodec;
+    this.passiveReplicationMessageCodec = passiveReplicationMessageCodec;
   }
 
   @Override
@@ -59,7 +59,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
       case STATE_REPO_OP:
         return stateRepositoryOpCodec.encode((StateRepositoryOpMessage) message);
       case REPLICATION_OP:
-        return clientIDTrackerMessageCodec.encode((ClientIDTrackerMessage)message);
+        return passiveReplicationMessageCodec.encode((PassiveReplicationMessage)message);
       default:
         throw new IllegalArgumentException("Undefined message type: " + message.getType());
     }
@@ -75,7 +75,7 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
     } else if (opCode <= STATE_REPO_OP.getCode()) {
         return stateRepositoryOpCodec.decode(payload);
     } else if (opCode > SYNC_OP.getCode() && opCode <= REPLICATION_OP.getCode()) {
-        return clientIDTrackerMessageCodec.decode(payload);
+        return passiveReplicationMessageCodec.decode(payload);
     } else {
       throw new UnsupportedOperationException("Undefined message code: " + opCode);
     }

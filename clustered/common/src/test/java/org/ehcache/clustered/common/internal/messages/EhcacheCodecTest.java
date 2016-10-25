@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.junit.Test;
 
 import java.util.UUID;
@@ -36,36 +37,36 @@ public class EhcacheCodecTest {
     ServerStoreOpCodec serverStoreOpCodec = mock(ServerStoreOpCodec.class);
     LifeCycleMessageCodec lifeCycleMessageCodec = mock(LifeCycleMessageCodec.class);
     StateRepositoryOpCodec stateRepositoryOpCodec = mock(StateRepositoryOpCodec.class);
-    ClientIDTrackerMessageCodec clientIDTrackerMessageCodec = mock(ClientIDTrackerMessageCodec.class);
-    EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null, clientIDTrackerMessageCodec);
+    PassiveReplicationMessageCodec passiveReplicationMessageCodec = mock(PassiveReplicationMessageCodec.class);
+    EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null, passiveReplicationMessageCodec);
 
     LifecycleMessage.DestroyServerStore lifecycleMessage = new LifecycleMessage.DestroyServerStore("foo", CLIENT_ID);
     codec.encodeMessage(lifecycleMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, never()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, never()).encode(any(StateRepositoryOpMessage.class));
-    verify(clientIDTrackerMessageCodec, never()).encode(any(ClientIDTrackerMessage.class));
+    verify(passiveReplicationMessageCodec, never()).encode(any(PassiveReplicationMessage.class));
 
     ServerStoreOpMessage.ClearMessage serverStoreOpMessage = new ServerStoreOpMessage.ClearMessage("foo", CLIENT_ID);
     codec.encodeMessage(serverStoreOpMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, never()).encode(any(StateRepositoryOpMessage.class));
-    verify(clientIDTrackerMessageCodec, never()).encode(any(ClientIDTrackerMessage.class));
+    verify(passiveReplicationMessageCodec, never()).encode(any(PassiveReplicationMessage.class));
 
     StateRepositoryOpMessage.EntrySetMessage stateRepositoryOpMessage = new StateRepositoryOpMessage.EntrySetMessage("foo", "bar", CLIENT_ID);
     codec.encodeMessage(stateRepositoryOpMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, only()).encode(any(StateRepositoryOpMessage.class));
-    verify(clientIDTrackerMessageCodec, never()).encode(any(ClientIDTrackerMessage.class));
+    verify(passiveReplicationMessageCodec, never()).encode(any(PassiveReplicationMessage.class));
 
     ClientIDTrackerMessage clientIDTrackerMessage = new ClientIDTrackerMessage(20L, CLIENT_ID);
     codec.encodeMessage(clientIDTrackerMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, only()).encode(any(StateRepositoryOpMessage.class));
-    verify(clientIDTrackerMessageCodec, only()).encode(any(ClientIDTrackerMessage.class));
+    verify(passiveReplicationMessageCodec, only()).encode(any(PassiveReplicationMessage.class));
 
   }
 
@@ -74,8 +75,8 @@ public class EhcacheCodecTest {
     ServerStoreOpCodec serverStoreOpCodec = mock(ServerStoreOpCodec.class);
     LifeCycleMessageCodec lifeCycleMessageCodec = mock(LifeCycleMessageCodec.class);
     StateRepositoryOpCodec stateRepositoryOpCodec = mock(StateRepositoryOpCodec.class);
-    ClientIDTrackerMessageCodec clientIDTrackerMessageCodec = mock(ClientIDTrackerMessageCodec.class);
-    EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null, clientIDTrackerMessageCodec);
+    PassiveReplicationMessageCodec passiveReplicationMessageCodec = mock(PassiveReplicationMessageCodec.class);
+    EhcacheCodec codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null, passiveReplicationMessageCodec);
 
     byte[] payload = new byte[1];
 
@@ -86,7 +87,7 @@ public class EhcacheCodecTest {
     verify(lifeCycleMessageCodec, times(10)).decode(payload);
     verify(serverStoreOpCodec, never()).decode(payload);
     verify(stateRepositoryOpCodec, never()).decode(payload);
-    verify(clientIDTrackerMessageCodec, never()).decode(payload);
+    verify(passiveReplicationMessageCodec, never()).decode(payload);
 
     for (byte i = 11; i <= EhcacheEntityMessage.Type.SERVER_STORE_OP.getCode(); i++) {
       payload[0] = i;
@@ -95,7 +96,7 @@ public class EhcacheCodecTest {
     verify(lifeCycleMessageCodec, times(10)).decode(payload);
     verify(serverStoreOpCodec, times(10)).decode(payload);
     verify(stateRepositoryOpCodec, never()).decode(payload);
-    verify(clientIDTrackerMessageCodec, never()).decode(payload);
+    verify(passiveReplicationMessageCodec, never()).decode(payload);
 
     for (byte i = 21; i <= EhcacheEntityMessage.Type.STATE_REPO_OP.getCode(); i++) {
       payload[0] = i;
@@ -104,7 +105,7 @@ public class EhcacheCodecTest {
     verify(lifeCycleMessageCodec, times(10)).decode(payload);
     verify(serverStoreOpCodec, times(10)).decode(payload);
     verify(stateRepositoryOpCodec, times(10)).decode(payload);
-    verify(clientIDTrackerMessageCodec, never()).decode(payload);
+    verify(passiveReplicationMessageCodec, never()).decode(payload);
 
     for (byte i = 41; i <= EhcacheEntityMessage.Type.REPLICATION_OP.getCode(); i++) {
       payload[0] = i;
@@ -113,7 +114,7 @@ public class EhcacheCodecTest {
     verify(lifeCycleMessageCodec, times(10)).decode(payload);
     verify(serverStoreOpCodec, times(10)).decode(payload);
     verify(stateRepositoryOpCodec, times(10)).decode(payload);
-    verify(clientIDTrackerMessageCodec, times(10)).decode(payload);
+    verify(passiveReplicationMessageCodec, times(10)).decode(payload);
 
   }
 }

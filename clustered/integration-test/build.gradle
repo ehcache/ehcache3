@@ -70,10 +70,6 @@ compileTestJava {
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
-checkstyle {
-  toolVersion = '5.9'
-}
-
 test {
   dependsOn unzipKit
   executable = Jvm.current().javaExecutable

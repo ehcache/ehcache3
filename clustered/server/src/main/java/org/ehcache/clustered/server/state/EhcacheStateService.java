@@ -54,4 +54,6 @@ public interface EhcacheStateService {
 
   ClientMessageTracker getClientMessageTracker();
 
+  InvalidationTracker getInvalidationTracker(String cacheId);
+
 }
