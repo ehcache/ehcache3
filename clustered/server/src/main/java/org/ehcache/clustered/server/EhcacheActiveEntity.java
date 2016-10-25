@@ -107,7 +107,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    * {@link #connected(ClientDescriptor)} method is invoked for a client and removed when the
    * {@link #disconnected(ClientDescriptor)} method is invoked for the client.
    */
-  private final Map<ClientDescriptor, ClientState> clientStateMap = new HashMap<>();
+  private final Map<ClientDescriptor, ClientState> clientStateMap = new ConcurrentHashMap<>();
 
   private final ConcurrentHashMap<String, Set<ClientDescriptor>> storeClientMap =
       new ConcurrentHashMap<>();
@@ -395,15 +395,20 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   private void validateClientConnected(ClientDescriptor clientDescriptor) throws ClusterException {
     ClientState clientState = this.clientStateMap.get(clientDescriptor);
-    if (clientState == null) {
-      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
-    }
+    validateClientConnected(clientDescriptor, clientState);
   }
 
   private void validateClientAttached(ClientDescriptor clientDescriptor) throws ClusterException {
-    validateClientConnected(clientDescriptor);
-    if (!clientStateMap.get(clientDescriptor).isAttached()) {
+    ClientState clientState = this.clientStateMap.get(clientDescriptor);
+    validateClientConnected(clientDescriptor, clientState);
+    if (!clientState.isAttached()) {
       throw new LifecycleException("Client " + clientDescriptor + " is not attached to the Clustered Tier Manager");
+    }
+  }
+
+  private static void validateClientConnected(ClientDescriptor clientDescriptor, ClientState clientState) throws LifecycleException {
+    if (clientState == null) {
+      throw new LifecycleException("Client " + clientDescriptor + " is not connected to the Clustered Tier Manager");
     }
   }
 
