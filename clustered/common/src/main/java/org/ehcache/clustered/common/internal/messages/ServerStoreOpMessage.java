@@ -229,7 +229,7 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     }
   }
 
-  static class ClearMessage extends ServerStoreOpMessage {
+  public static class ClearMessage extends ServerStoreOpMessage {
 
     ClearMessage(String cacheId, UUID clientId) {
       super(cacheId);

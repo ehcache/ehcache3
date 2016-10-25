@@ -19,8 +19,10 @@ import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessageCodec;
+import org.terracotta.entity.CommonServerEntity;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.EntityServerService;
+import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
@@ -67,5 +69,15 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   @Override
   public SyncMessageCodec<EhcacheEntityMessage> getSyncMessageCodec() {
     return new EhcacheSyncMessageCodec();
+  }
+
+  @Override
+  public <AP extends CommonServerEntity<EhcacheEntityMessage, EhcacheEntityResponse>> AP reconfigureEntity(ServiceRegistry registry, AP oldEntity, byte[] configuration) {
+    throw new UnsupportedOperationException("Reconfigure not supported in Ehcache");
+  }
+
+  @Override
+  public ExecutionStrategy<EhcacheEntityMessage> getExecutionStrategy(byte[] configuration) {
+    return new EhcacheExecutionStrategy();
   }
 }
