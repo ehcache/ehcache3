@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -121,7 +120,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   @Override
   public Map<String, ServerSideConfiguration.Pool> getSharedResourcePools() {
-    return sharedResourcePools.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> e.getValue().getPool()));
+    return sharedResourcePools == null ? Collections.emptyMap() : sharedResourcePools.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> e.getValue().getPool()));
+  }
+
+  @Override
+  public ServerSideConfiguration.Pool getDedicatedResourcePool(String name) {
+    ResourcePageSource resourcePageSource = dedicatedResourcePools.get(name);
+    return resourcePageSource == null ? null : resourcePageSource.getPool();
   }
 
   public void validate(ServerSideConfiguration configuration) throws ClusterException {

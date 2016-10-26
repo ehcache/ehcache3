@@ -34,6 +34,8 @@ public interface EhcacheStateService {
 
   Map<String, ServerSideConfiguration.Pool> getSharedResourcePools();
 
+  ServerSideConfiguration.Pool getDedicatedResourcePool(String name);
+
   ServerStoreImpl getStore(String name);
 
   Set<String> getStores();

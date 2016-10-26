@@ -92,7 +92,7 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
 
   @Test
   public void clusteredToString() throws Exception {
-    URI uri = CLUSTER.getConnectionURI().resolve("/my-server-entity-1");
+    URI uri = CLUSTER.getConnectionURI().resolve("/my-server-entity-2");
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
         // cluster config
         .with(ClusteringServiceConfigurationBuilder.cluster(uri)
@@ -169,16 +169,4 @@ public class EhcacheManagerToStringTest extends AbstractClusteringManagementTest
     }
   }
 
-  private String read(String path) throws FileNotFoundException {
-    Scanner scanner = new Scanner(getClass().getResourceAsStream(path), "UTF-8");
-    try {
-      return scanner.useDelimiter("\\A").next();
-    } finally {
-      scanner.close();
-    }
-  }
-
-  private static String normalizeForLineEndings(String stringToNormalize) {
-    return stringToNormalize.replace("\r\n","\n").replace("\r","\n");
-  }
 }

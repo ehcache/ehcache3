@@ -31,6 +31,8 @@ import org.junit.Test;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
+import org.terracotta.management.service.registry.ConsumerManagementRegistry;
+import org.terracotta.management.service.registry.ConsumerManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -659,6 +661,8 @@ public class EhcachePassiveEntityTest {
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
         return (T) mock(IEntityMessenger.class);
+      } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
+        return (T) mock(ConsumerManagementRegistry.class);
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());
@@ -701,6 +705,11 @@ public class EhcachePassiveEntityTest {
     @Override
     public long available() {
       return this.capacity - this.used;
+    }
+
+    @Override
+    public long capacity() {
+      return capacity;
     }
 
     private long getUsed() {

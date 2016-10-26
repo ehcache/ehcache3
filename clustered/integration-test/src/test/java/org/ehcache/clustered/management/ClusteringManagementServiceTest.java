@@ -16,29 +16,22 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.Cache;
-import org.ehcache.CacheManager;
-import org.ehcache.Status;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
-import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
-import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
-import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
-import org.junit.After;
-import org.junit.Before;
+import org.hamcrest.CoreMatchers;
 import org.junit.BeforeClass;
-import org.junit.Rule;
+import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.rules.Timeout;
+import org.junit.runners.MethodSorters;
+import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
-import org.terracotta.management.model.cluster.Client;
+import org.terracotta.management.model.cluster.Cluster;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.message.Message;
-import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.StatisticType;
@@ -48,99 +41,56 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertThat;
 
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
 
-  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> DISK_DESCRIPTORS =  new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> CLUSTERED_DESCRIPTORS =  new ArrayList<Descriptor>();
-  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<Descriptor>();
+  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<Descriptor> DISK_DESCRIPTORS =  new ArrayList<>();
+  private static final Collection<Descriptor> CLUSTERED_DESCRIPTORS =  new ArrayList<>();
+  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<>();
 
-  private static AtomicInteger N = new AtomicInteger();
-
-  @Rule
-  public final Timeout globalTimeout = Timeout.seconds(60);
-
-  private CacheManager cacheManager;
-  private String clientIdentifier;
-  private int n = N.incrementAndGet();
-
-  @Before
-  public void init() throws Exception {
-    // clear previous messages
-    clear();
-
-    this.cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
-      // cluster config
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/my-server-entity-" + n))
-        .autoCreate()
-        .defaultServerResource("primary-server-resource"))
-      // management config
-      .using(new DefaultManagementRegistryConfiguration()
-        .addTags("webapp-1", "server-node-1")
-        .setCacheManagerAlias("my-super-cache-manager")
-        .addConfiguration(new EhcacheStatisticsProviderConfiguration(
-          1, TimeUnit.MINUTES,
-          100, 1, TimeUnit.SECONDS,
-          2, TimeUnit.SECONDS))) // TTD reduce to 2 seconds so that the stat collector runs faster
-      // cache config
-      .withCache("cache-1", CacheConfigurationBuilder.newCacheConfigurationBuilder(
-        String.class, String.class,
-        newResourcePoolsBuilder()
-          .heap(10, EntryUnit.ENTRIES)
-          .offheap(1, MemoryUnit.MB)
-          .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
-        .build())
-      .build(true);
-
-    // ensure the CM is running and get its client id
-    assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
-    for (Client client : consumer.readTopology().getClients().values()) {
-      if(client.getName().equals("Ehcache:my-server-entity-" + n)) {
-        clientIdentifier = client.getClientId();
-      }
-    }
-    assertThat(clientIdentifier, is(notNullValue()));
-  }
-
-  @After
-  public void close() throws Exception {
-    if (cacheManager != null && cacheManager.getStatus() == Status.AVAILABLE) {
-      cacheManager.close();
-    }
+  @Test
+  @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
+  public void test_A_topology() throws Exception {
+    Cluster cluster = consumer.readTopology();
+    String json = mapper.writeValueAsString(cluster.toMap());
+    System.out.println(json);
   }
 
   @Test
-  public void test_tags_exposed() throws Exception {
+  public void test_A_client_tags_exposed() throws Exception {
     String[] tags = consumer.readTopology().getClient(clientIdentifier).get().getTags().toArray(new String[0]);
     assertThat(tags, equalTo(new String[]{"server-node-1", "webapp-1"}));
   }
 
   @Test
-  public void test_contextContainer_exposed() throws Exception {
+  public void test_B_client_contextContainer_exposed() throws Exception {
     ContextContainer contextContainer = consumer.readTopology().getClient(clientIdentifier).get().getManagementRegistry().get().getContextContainer();
     assertThat(contextContainer.getValue(), equalTo("my-super-cache-manager"));
-    assertThat(contextContainer.getSubContexts(), hasSize(1));
-    assertThat(contextContainer.getSubContexts().iterator().next().getValue(), equalTo("cache-1"));
+    Collection<ContextContainer> subContexts = contextContainer.getSubContexts();
+    TreeSet<String> cacheNames = subContexts.stream().map(ContextContainer::getValue).collect(Collectors.toCollection(TreeSet::new));
+    assertThat(subContexts, hasSize(3));
+    assertThat(cacheNames, hasSize(3));
+    assertThat(cacheNames, equalTo(new TreeSet<>(Arrays.asList("dedicated-cache-1", "shared-cache-2", "shared-cache-3"))));
   }
 
   @Test
-  public void test_capabilities_exposed() throws Exception {
+  public void test_C_client_capabilities_exposed() throws Exception {
     Capability[] capabilities = consumer.readTopology().getClient(clientIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
     assertThat(capabilities.length, equalTo(5));
     assertThat(capabilities[0].getName(), equalTo("ActionsCapability"));
@@ -151,7 +101,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(capabilities[0].getDescriptors(), hasSize(4));
 
     Collection<Descriptor> descriptors = capabilities[1].getDescriptors();
-    Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
+    Collection<Descriptor> allDescriptors = new ArrayList<>();
     allDescriptors.addAll(CACHE_DESCRIPTORS);
     allDescriptors.addAll(ONHEAP_DESCRIPTORS);
     allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
@@ -159,63 +109,98 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     assertThat(descriptors, containsInAnyOrder(allDescriptors.toArray()));
     assertThat(descriptors, hasSize(allDescriptors.size()));
-
   }
 
   @Test
-  public void test_notifs_sent_at_CM_init() throws Exception {
-    List<Message> messages = consumer.drainMessageBuffer();
-    assertThat(messages.size(), equalTo(14));
-    assertThat(notificationTypes(messages).containsAll(Arrays.asList("CLIENT_CONNECTED", "SERVER_ENTITY_FETCHED", "CLIENT_REGISTRY_UPDATED", "CLIENT_TAGS_UPDATED")), is(true));
-    assertThat(consumer.readMessageBuffer(), is(nullValue()));
+  public void test_D_server_capabilities_exposed() throws Exception {
+    Capability[] capabilities = consumer.readTopology().getSingleStripe().getActiveServerEntity(serverEntityIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
+
+    assertThat(capabilities.length, equalTo(4));
+
+    assertThat(capabilities[0].getName(), equalTo("ClientStateSettings"));
+    assertThat(capabilities[1].getName(), equalTo("OffHeapResourceSettings"));
+    assertThat(capabilities[2].getName(), equalTo("ServerStoreSettings"));
+    assertThat(capabilities[3].getName(), equalTo("PoolSettings"));
+
+    assertThat(capabilities[1].getDescriptors(), hasSize(3)); // time + 2 resources
+    assertThat(capabilities[2].getDescriptors(), hasSize(4)); // time descriptor + 3 dedicated store
+
+    // ClientStateSettings
+
+    assertThat(capabilities[0].getDescriptors(), hasSize(1));
+    Settings settings = (Settings) capabilities[0].getDescriptors().iterator().next();
+    assertThat(settings.get("attachedStores"), equalTo(new String[]{"dedicated-cache-1", "shared-cache-2", "shared-cache-3"}));
+
+    // EhcacheStateServiceSettings
+
+    List<Descriptor> descriptors = new ArrayList<>(capabilities[3].getDescriptors());
+    assertThat(descriptors, hasSize(4));
+
+    settings = (Settings) descriptors.get(0);
+    assertThat(settings.get("alias"), equalTo("resource-pool-b"));
+    assertThat(settings.get("type"), equalTo("PoolBinding"));
+    assertThat(settings.get("serverResource"), equalTo("primary-server-resource"));
+    assertThat(settings.get("size"), equalTo(16 * 1024 * 1024L));
+    assertThat(settings.get("allocationType"), equalTo("SHARED"));
+
+    settings = (Settings) descriptors.get(1);
+    assertThat(settings.get("alias"), equalTo("resource-pool-a"));
+    assertThat(settings.get("type"), equalTo("PoolBinding"));
+    assertThat(settings.get("serverResource"), equalTo("secondary-server-resource"));
+    assertThat(settings.get("size"), equalTo(28 * 1024 * 1024L));
+    assertThat(settings.get("allocationType"), equalTo("SHARED"));
+
+    settings = (Settings) descriptors.get(2);
+    assertThat(settings.get("alias"), equalTo("dedicated-cache-1"));
+    assertThat(settings.get("type"), equalTo("PoolBinding"));
+    assertThat(settings.get("serverResource"), equalTo("primary-server-resource"));
+    assertThat(settings.get("size"), equalTo(4 * 1024 * 1024L));
+    assertThat(settings.get("allocationType"), equalTo("DEDICATED"));
+
+    settings = (Settings) descriptors.get(3);
+    assertThat(settings.get("type"), equalTo("PoolSettingsManagementProvider"));
+    assertThat(settings.get("defaultServerResource"), equalTo("primary-server-resource"));
   }
 
   @Test
-  public void test_notifs_on_add_cache() throws Exception {
-    clear();
-
-    cacheManager.createCache("cache-2", CacheConfigurationBuilder.newCacheConfigurationBuilder(
+  public void test_E_notifs_on_add_cache() throws Exception {
+    cacheManager.createCache("cache-2", newCacheConfigurationBuilder(
       String.class, String.class,
       newResourcePoolsBuilder()
         .heap(10, EntryUnit.ENTRIES)
         .offheap(1, MemoryUnit.MB)
-        .with(ClusteredResourcePoolBuilder.clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
+        .with(clusteredDedicated("primary-server-resource", 2, MemoryUnit.MB)))
       .build());
 
     ContextContainer contextContainer = consumer.readTopology().getClient(clientIdentifier).get().getManagementRegistry().get().getContextContainer();
-    assertThat(contextContainer.getSubContexts(), hasSize(2));
+    assertThat(contextContainer.getSubContexts(), hasSize(4));
 
-    TreeSet<String> cNames = new TreeSet<String>();
-    for (ContextContainer container : contextContainer.getSubContexts()) {
-      cNames.add(container.getValue());
-    }
-    assertThat(cNames, equalTo(new TreeSet<String>(Arrays.asList("cache-1", "cache-2"))));
+    TreeSet<String> cNames = contextContainer.getSubContexts().stream().map(ContextContainer::getValue).collect(Collectors.toCollection(TreeSet::new));
+    assertThat(cNames, equalTo(new TreeSet<>(Arrays.asList("cache-2", "dedicated-cache-1", "shared-cache-2", "shared-cache-3"))));
 
     List<Message> messages = consumer.drainMessageBuffer();
-    assertThat(messages.size(), equalTo(3));
-    assertThat(notificationTypes(messages),  equalTo(Arrays.asList("CLIENT_REGISTRY_UPDATED", "CLIENT_REGISTRY_UPDATED", "CACHE_ADDED")));
+    assertThat(notificationTypes(messages),  equalTo(Arrays.asList(
+      "ENTITY_REGISTRY_UPDATED", "EHCACHE_SERVER_STORE_CREATED", "ENTITY_REGISTRY_UPDATED",
+      "CLIENT_REGISTRY_UPDATED", "CACHE_ADDED")));
     assertThat(consumer.readMessageBuffer(), is(nullValue()));
   }
 
   @Test
-  public void test_notifs_on_remove_cache() throws Exception {
-    test_notifs_on_add_cache();
-    clear();
-
+  public void test_F_notifs_on_remove_cache() throws Exception {
     cacheManager.removeCache("cache-2");
 
     List<Message> messages = consumer.drainMessageBuffer();
-    assertThat(messages.size(), equalTo(3));
-    assertThat(notificationTypes(messages), equalTo(Arrays.asList("CLIENT_REGISTRY_UPDATED", "CLIENT_REGISTRY_UPDATED", "CACHE_REMOVED")));
+    assertThat(notificationTypes(messages),  equalTo(Arrays.asList("CLIENT_REGISTRY_UPDATED", "CACHE_REMOVED", "ENTITY_REGISTRY_UPDATED")));
     assertThat(consumer.readMessageBuffer(), is(nullValue()));
   }
 
   @Test
-  public void test_stats_collection() throws Exception {
+  public void test_G_stats_collection() throws Exception {
 
-    sendManagementCallToCollectStats("Cache:HitCount");
+    ContextualReturn<?> contextualReturn = sendManagementCallToCollectStats("Cache:HitCount");
+    assertThat(contextualReturn.hasExecuted(), is(true));
 
-    Cache<String, String> cache1 = cacheManager.getCache("cache-1", String.class, String.class);
+    Cache<String, String> cache1 = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     cache1.put("key1", "val");
     cache1.put("key2", "val");
 
@@ -231,10 +216,13 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
       // get the stats (we are getting the primitive counter, not the sample history)
       List<ContextualStatistics> stats = waitForNextStats();
-      Sample<Long>[] samples = stats.get(0).getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
-
-      if(stats.size() == 1 && stats.get(0).getContext().get("cacheName").equals("cache-1") && samples.length > 0) {
-        val = samples[samples.length - 1].getValue();
+      for (ContextualStatistics stat : stats) {
+        if (stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
+          Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+          if(samples.length > 0) {
+            val = samples[samples.length - 1].getValue();
+          }
+        }
       }
     } while(val != 2);
 
@@ -245,10 +233,13 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     do {
 
       List<ContextualStatistics> stats = waitForNextStats();
-      Sample<Long>[] samples = stats.get(0).getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
-
-      if(stats.size() == 1 && stats.get(0).getContext().get("cacheName").equals("cache-1") && samples.length > 0) {
-        val = samples[samples.length - 1].getValue();
+      for (ContextualStatistics stat : stats) {
+        if (stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
+          Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+          if(samples.length > 0) {
+            val = samples[samples.length - 1].getValue();
+          }
+        }
       }
 
     } while(val != 4);

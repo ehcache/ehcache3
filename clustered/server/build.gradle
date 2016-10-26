@@ -26,6 +26,12 @@ dependencies {
   compile group: 'org.terracotta', name: 'offheap-resource', version: parent.offheapResourceVersion
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
   compile group: 'org.slf4j', name: 'slf4j-api', version: parent.slf4jVersion
+  compile("org.terracotta.management:management-registry-service-api:$parent.managementVersion") {
+    // provided in management-server jar, but necessary so that ehcache can work without depending on management
+    exclude group: 'org.terracotta.management', module: 'management-registry'
+    exclude group: 'org.terracotta.management', module: 'management-model'
+  }
+  compile"org.terracotta.management.dist:management-common:$parent.managementVersion"
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
 }

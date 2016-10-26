@@ -39,6 +39,7 @@ import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.internal.messages.EntityDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
 import org.ehcache.clustered.server.internal.messages.EntitySyncMessage;
+import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -62,6 +63,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   private final UUID identity;
   private final Set<String> offHeapResourceIdentifiers;
   private final EhcacheStateService ehcacheStateService;
+  private final Management management;
 
   @Override
   public void invoke(EhcacheEntityMessage message) {
@@ -109,6 +111,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
+    management = new Management(services, ehcacheStateService, offHeapResourceIdentifiers);
   }
 
   private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
@@ -201,8 +204,10 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         EntityStateSyncMessage stateSyncMessage = (EntityStateSyncMessage) message;
 
         ehcacheStateService.configure(stateSyncMessage.getConfiguration());
+        management.sharedPoolsConfigured();
         for (Map.Entry<String, ServerStoreConfiguration> entry : stateSyncMessage.getStoreConfigs().entrySet()) {
           ehcacheStateService.createStore(entry.getKey(), entry.getValue());
+          management.serverStoreCreated(entry.getKey());
         }
         stateSyncMessage.getTrackedClients().stream().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
         break;
@@ -237,6 +242,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   private void configure(ConfigureStoreManager message) throws ClusterException {
     ehcacheStateService.configure(message.getConfiguration());
     ehcacheStateService.getClientMessageTracker().setEntityConfiguredStamp(message.getClientId(), message.getId());
+    management.sharedPoolsConfigured();
   }
 
   private void trackAndApplyMessage(LifecycleMessage message) {
@@ -267,6 +273,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     if(storeConfiguration.getConsistency() == Consistency.EVENTUAL) {
       ehcacheStateService.addInvalidationtracker(name);
     }
+    management.serverStoreCreated(name);
   }
 
   private void destroyServerStore(DestroyServerStore destroyServerStore) throws ClusterException {
@@ -279,6 +286,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     String name = destroyServerStore.getName();
 
     LOGGER.info("Destroying clustered tier '{}'", name);
+    management.serverStoreDestroyed(name);
     ehcacheStateService.destroyServerStore(name);
     ehcacheStateService.removeInvalidationtracker(name);
   }
@@ -305,7 +313,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   @Override
   public void createNew() {
-
+    management.init();
   }
 
   @Override
@@ -315,6 +323,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   @Override
   public void destroy() {
+    management.close();
     ehcacheStateService.destroy();
   }
 }
