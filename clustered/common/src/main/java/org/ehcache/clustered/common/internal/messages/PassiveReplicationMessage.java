@@ -23,11 +23,13 @@ import java.util.UUID;
 /**
  * This message is sent by the Active Entity to Passive Entity.
  */
-public class ClientIDTrackerMessage extends EhcacheEntityMessage {
+public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
 
   public enum ReplicationOp {
     CHAIN_REPLICATION_OP((byte) 41),
-    CLIENTID_TRACK_OP((byte) 42)
+    CLIENTID_TRACK_OP((byte) 42),
+    CLEAR_INVALIDATION_COMPLETE((byte) 43),
+    INVALIDATION_COMPLETE((byte) 44)
     ;
 
     private final byte replicationOpCode;
@@ -47,18 +49,14 @@ public class ClientIDTrackerMessage extends EhcacheEntityMessage {
           return CHAIN_REPLICATION_OP;
         case 42:
           return CLIENTID_TRACK_OP;
+        case 43:
+          return CLEAR_INVALIDATION_COMPLETE;
+        case 44:
+          return INVALIDATION_COMPLETE;
         default:
           throw new IllegalArgumentException("Replication operation not defined for : " + replicationOpCode);
       }
     }
-  }
-
-  private final UUID clientId;
-  private final long msgId;
-
-  public ClientIDTrackerMessage(long msgId, UUID clientId) {
-    this.msgId = msgId;
-    this.clientId = clientId;
   }
 
   @Override
@@ -76,16 +74,27 @@ public class ClientIDTrackerMessage extends EhcacheEntityMessage {
     throw new UnsupportedOperationException("This method is not supported on replication message");
   }
 
-  public ReplicationOp operation() {
-    return ReplicationOp.CLIENTID_TRACK_OP;
-  }
+  public abstract ReplicationOp operation();
 
-  public long getId() {
-    return msgId;
-  }
+  public static class ClientIDTrackerMessage extends PassiveReplicationMessage {
+    private final UUID clientId;
+    private final long msgId;
 
-  public UUID getClientId() {
-    return clientId;
+    public ClientIDTrackerMessage(long msgId, UUID clientId) {
+      this.msgId = msgId;
+      this.clientId = clientId;
+    }
+
+    public ReplicationOp operation() {
+      return ReplicationOp.CLIENTID_TRACK_OP;
+    }
+    public long getId() {
+      return msgId;
+    }
+
+    public UUID getClientId() {
+      return clientId;
+    }
   }
 
   public static class ChainReplicationMessage extends ClientIDTrackerMessage implements ConcurrentEntityMessage {
@@ -121,6 +130,60 @@ public class ClientIDTrackerMessage extends EhcacheEntityMessage {
     @Override
     public long concurrencyKey() {
       return (this.cacheId.hashCode() + key);
+    }
+  }
+
+  public static class ClearInvalidationCompleteMessage extends PassiveReplicationMessage implements ConcurrentEntityMessage {
+    private final String cacheId;
+
+    public ClearInvalidationCompleteMessage(String cacheId) {
+      this.cacheId = cacheId;
+    }
+
+    @Override
+    public long concurrencyKey() {
+      return this.cacheId.hashCode();
+    }
+
+    @Override
+    public long getId() {
+      throw new UnsupportedOperationException("Not supported for ClearInvalidationCompleteMessage");
+    }
+
+    @Override
+    public UUID getClientId() {
+      throw new UnsupportedOperationException("Not supported for ClearInvalidationCompleteMessage");
+    }
+
+    public ReplicationOp operation() {
+      return ReplicationOp.CLEAR_INVALIDATION_COMPLETE;
+    }
+
+    public String getCacheId() {
+      return cacheId;
+    }
+  }
+
+  public static class InvalidationCompleteMessage extends ClearInvalidationCompleteMessage {
+
+    private final long key;
+
+    public InvalidationCompleteMessage(String cacheId, long key) {
+      super(cacheId);
+      this.key = key;
+    }
+
+    @Override
+    public long concurrencyKey() {
+      return (getCacheId().hashCode() + key);
+    }
+
+    public ReplicationOp operation() {
+      return ReplicationOp.INVALIDATION_COMPLETE;
+    }
+
+    public long getKey() {
+      return key;
     }
   }
 }

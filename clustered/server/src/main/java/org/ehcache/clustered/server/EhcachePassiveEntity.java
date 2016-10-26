@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -29,8 +30,10 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
-import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage;
-import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage.ChainReplicationMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.internal.messages.EntityDataSyncMessage;
@@ -38,6 +41,7 @@ import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
 import org.ehcache.clustered.server.internal.messages.EntitySyncMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
+import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,7 +86,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           invokeSyncOperation((EntitySyncMessage) message);
           break;
         case REPLICATION_OP:
-          invokeRetirementMessages((ClientIDTrackerMessage)message);
+          invokeRetirementMessages((PassiveReplicationMessage)message);
           break;
         default:
           throw new IllegalMessageException("Unknown message : " + message);
@@ -107,10 +111,11 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
-  private void invokeRetirementMessages(ClientIDTrackerMessage message) throws ClusterException {
+  private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
 
     switch (message.operation()) {
       case CHAIN_REPLICATION_OP:
+        LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ChainReplicationMessage retirementMessage = (ChainReplicationMessage)message;
         ServerStoreImpl cacheStore = ehcacheStateService.getStore(retirementMessage.getCacheId());
         if (cacheStore == null) {
@@ -119,12 +124,42 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
         ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
+        trackHashInvalidationForEventualCache(retirementMessage);
         break;
       case CLIENTID_TRACK_OP:
+        LOGGER.debug("PassiveReplicationMessage message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ehcacheStateService.getClientMessageTracker().add(message.getClientId());
+        break;
+      case INVALIDATION_COMPLETE:
+        untrackHashInvalidationForEventualCache((InvalidationCompleteMessage)message);
+        break;
+      case CLEAR_INVALIDATION_COMPLETE:
+        ehcacheStateService.getInvalidationTracker(((ClearInvalidationCompleteMessage)message).getCacheId()).setClearInProgress(false);
         break;
       default:
         throw new IllegalMessageException("Unknown Retirement Message : " + message);
+    }
+  }
+
+  private void untrackHashInvalidationForEventualCache(InvalidationCompleteMessage message) {InvalidationCompleteMessage invalidationCompleteMessage = message;
+    ehcacheStateService.getInvalidationTracker(invalidationCompleteMessage.getCacheId()).getInvalidationMap().computeIfPresent(invalidationCompleteMessage.getKey(), (key, count) -> {
+      if (count == 1) {
+        return null;
+      }
+      return count--;
+    });
+  }
+
+  private void trackHashInvalidationForEventualCache(ChainReplicationMessage retirementMessage) {
+    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(retirementMessage.getCacheId());
+    if (invalidationTracker != null) {
+      invalidationTracker.getInvalidationMap().compute(retirementMessage.getKey(), (key, count) -> {
+        if (count == null) {
+          return 1;
+        } else {
+          return count++;
+        }
+      });
     }
   }
 
@@ -138,16 +173,21 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     switch (message.operation()) {
       case APPEND:
       case GET_AND_APPEND: {
+        LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {} is tracked now.", message.getId(), message.getClientId());
         ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
         break;
       }
       case REPLACE: {
-        ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
+        ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
         cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
         break;
       }
       case CLEAR: {
         cacheStore.clear();
+        InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(message.getCacheId());
+        if (invalidationTracker != null) {
+          invalidationTracker.setClearInProgress(true);
+        }
         break;
       }
       default:
@@ -224,7 +264,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
     ehcacheStateService.createStore(name, storeConfiguration);
-
+    if(storeConfiguration.getConsistency() == Consistency.EVENTUAL) {
+      ehcacheStateService.addInvalidationtracker(name);
+    }
   }
 
   private void destroyServerStore(DestroyServerStore destroyServerStore) throws ClusterException {
@@ -238,6 +280,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
     LOGGER.info("Destroying clustered tier '{}'", name);
     ehcacheStateService.destroyServerStore(name);
+    ehcacheStateService.removeInvalidationtracker(name);
   }
 
   @Override

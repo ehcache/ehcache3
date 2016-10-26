@@ -53,4 +53,11 @@ public interface EhcacheStateService {
   StateRepositoryManager getStateRepositoryManager() throws ClusterException;
 
   ClientMessageTracker getClientMessageTracker();
+
+  InvalidationTracker getInvalidationTracker(String cacheId);
+
+  void addInvalidationtracker(String cacheId);
+
+  InvalidationTracker removeInvalidationtracker(String cacheId);
+
 }

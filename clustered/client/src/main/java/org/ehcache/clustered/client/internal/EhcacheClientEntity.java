@@ -34,8 +34,8 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
-import org.ehcache.clustered.common.internal.messages.ReconnectData;
-import org.ehcache.clustered.common.internal.messages.ReconnectDataCodec;
+import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
+import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +47,8 @@ import org.terracotta.entity.InvokeFuture;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.exception.EntityException;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -78,15 +80,21 @@ public class EhcacheClientEntity implements Entity {
     void onDisconnection();
   }
 
+  public interface ReconnectListener {
+    void onHandleReconnect(ReconnectMessage reconnectMessage);
+  }
+
   private final AtomicLong sequenceGenerator = new AtomicLong(0L);
 
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
   private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
   private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
-  private final ReconnectDataCodec reconnectDataCodec = new ReconnectDataCodec();
+  private final List<ReconnectListener> reconnectListeners = new ArrayList<ReconnectListener>();
+  private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private volatile boolean connected = true;
-  private final ReconnectData reconnectData = new ReconnectData();
+  private final Set<String> caches = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+  private final Object lock = new Object();
   private volatile UUID clientId;
 
   private Timeouts timeouts = Timeouts.builder().build();
@@ -104,7 +112,13 @@ public class EhcacheClientEntity implements Entity {
 
       @Override
       public byte[] createExtendedReconnectData() {
-        return reconnectDataCodec.encode(reconnectData);
+        synchronized (lock) {
+          ReconnectMessage reconnectMessage = new ReconnectMessage(clientId, caches);
+          for (ReconnectListener reconnectListener : reconnectListeners) {
+            reconnectListener.onHandleReconnect(reconnectMessage);
+          }
+          return reconnectMessageCodec.encode(reconnectMessage);
+        }
       }
 
       @Override
@@ -155,6 +169,12 @@ public class EhcacheClientEntity implements Entity {
     disconnectionListeners.add(listener);
   }
 
+  public void addReconnectListener(ReconnectListener listener) {
+    synchronized (lock) {
+      reconnectListeners.add(listener);
+    }
+  }
+
   public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
     List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
     if (responseListeners == null) {
@@ -179,7 +199,6 @@ public class EhcacheClientEntity implements Entity {
         try {
           clientId = UUID.randomUUID();
           this.messageFactory.setClientId(clientId);
-          this.reconnectData.setClientId(clientId);
           invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateStoreManager(config), false);
           break;
         } catch (InvalidClientIdException e) {
@@ -195,7 +214,6 @@ public class EhcacheClientEntity implements Entity {
     try {
       clientId = UUID.randomUUID();
       this.messageFactory.setClientId(clientId);
-      this.reconnectData.setClientId(clientId);
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.configureStoreManager(config), true);
     } catch (ClusterException e) {
       throw new ClusteredTierManagerConfigurationException("Error configuring clustered tier manager", e);
@@ -206,7 +224,7 @@ public class EhcacheClientEntity implements Entity {
       throws ClusteredTierCreationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.createServerStore(name, serverStoreConfiguration), true);
-      reconnectData.add(name);
+      caches.add(name);
     } catch (ClusterException e) {
       throw new ClusteredTierCreationException("Error creating clustered tier '" + name + "'", e);
     }
@@ -216,7 +234,7 @@ public class EhcacheClientEntity implements Entity {
       throws ClusteredTierValidationException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(name , serverStoreConfiguration), false);
-      reconnectData.add(name);
+      caches.add(name);
     } catch (ClusterException e) {
       throw new ClusteredTierValidationException("Error validating clustered tier '" + name + "'", e);
     }
@@ -225,7 +243,7 @@ public class EhcacheClientEntity implements Entity {
   public void releaseCache(String name) throws ClusteredTierReleaseException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.releaseServerStore(name), false);
-      reconnectData.remove(name);
+      caches.remove(name);
     } catch (ClusterException e) {
       throw new ClusteredTierReleaseException("Error releasing clustered tier '" + name + "'", e);
     }
@@ -234,7 +252,6 @@ public class EhcacheClientEntity implements Entity {
   public void destroyCache(String name) throws ClusteredTierDestructionException, TimeoutException {
     try {
       invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.destroyServerStore(name), true);
-      reconnectData.remove(name);
     } catch (ResourceBusyException e) {
       throw new ClusteredTierDestructionException(e.getMessage(), e);
     } catch (ClusterException e) {
@@ -293,7 +310,6 @@ public class EhcacheClientEntity implements Entity {
 
   public InvokeFuture<EhcacheEntityResponse> invokeAsync(EhcacheEntityMessage message, boolean replicate)
       throws MessageCodecException {
-    InvokeFuture<EhcacheEntityResponse> invoke;
     getClientId();
     if (replicate) {
       message.setId(sequenceGenerator.getAndIncrement());

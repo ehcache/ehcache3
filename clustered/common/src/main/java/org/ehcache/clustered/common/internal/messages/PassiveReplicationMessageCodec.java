@@ -17,14 +17,16 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage.ReplicationOp;
-import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage.ChainReplicationMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ReplicationOp;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-class ClientIDTrackerMessageCodec {
+import static org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.*;
+
+class PassiveReplicationMessageCodec {
 
   private static final byte OP_CODE_SIZE = 1;
   private static final byte CACHE_ID_LEN_SIZE = 4;
@@ -33,7 +35,7 @@ class ClientIDTrackerMessageCodec {
 
   private ChainCodec chainCodec = new ChainCodec();
 
-  public byte[] encode(ClientIDTrackerMessage message) {
+  public byte[] encode(PassiveReplicationMessage message) {
 
     ByteBuffer encodedMsg;
     switch (message.operation()) {
@@ -56,6 +58,19 @@ class ClientIDTrackerMessageCodec {
         encodedMsg.putLong(chainReplicationMessage.getKey());
         encodedMsg.put(encodedChain);
         return encodedMsg.array();
+      case CLEAR_INVALIDATION_COMPLETE:
+        ClearInvalidationCompleteMessage clearInvalidationCompleteMessage = (ClearInvalidationCompleteMessage)message;
+        encodedMsg = ByteBuffer.allocate(OP_CODE_SIZE + 2 * clearInvalidationCompleteMessage.getCacheId().length());
+        encodedMsg.put(message.getOpCode());
+        CodecUtil.putStringAsCharArray(encodedMsg, clearInvalidationCompleteMessage.getCacheId());
+        return encodedMsg.array();
+      case INVALIDATION_COMPLETE:
+        InvalidationCompleteMessage invalidationCompleteMessage = (InvalidationCompleteMessage)message;
+        encodedMsg = ByteBuffer.allocate(OP_CODE_SIZE + KEY_SIZE + 2 * invalidationCompleteMessage.getCacheId().length());
+        encodedMsg.put(message.getOpCode());
+        encodedMsg.putLong(invalidationCompleteMessage.getKey());
+        CodecUtil.putStringAsCharArray(encodedMsg, invalidationCompleteMessage.getCacheId());
+        return encodedMsg.array();
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.operation());
     }
@@ -65,19 +80,32 @@ class ClientIDTrackerMessageCodec {
   public EhcacheEntityMessage decode(byte[] payload) {
     ByteBuffer byteBuffer = ByteBuffer.wrap(payload);
     ReplicationOp replicationOp = ReplicationOp.getReplicationOp(byteBuffer.get());
-    UUID clientId = getClientId(byteBuffer);
-    long msgId = byteBuffer.getLong();
+    UUID clientId;
+    long msgId;
+    String cacheId;
+    long key;
     switch (replicationOp) {
       case CHAIN_REPLICATION_OP:
+        clientId = getClientId(byteBuffer);
+        msgId = byteBuffer.getLong();
         int length = byteBuffer.getInt();
-        String cacheId = CodecUtil.getStringFromBuffer(byteBuffer, length);
-        long key = byteBuffer.getLong();
+        cacheId = CodecUtil.getStringFromBuffer(byteBuffer, length);
+        key = byteBuffer.getLong();
         byte[] encodedChain = new byte[byteBuffer.remaining()];
         byteBuffer.get(encodedChain);
         Chain chain = chainCodec.decode(encodedChain);
         return new ChainReplicationMessage(cacheId, key, chain, msgId, clientId);
       case CLIENTID_TRACK_OP:
+        clientId = getClientId(byteBuffer);
+        msgId = byteBuffer.getLong();
         return new ClientIDTrackerMessage(msgId, clientId);
+      case CLEAR_INVALIDATION_COMPLETE:
+        cacheId  = CodecUtil.getStringFromBuffer(byteBuffer, byteBuffer.remaining()/2);
+        return new ClearInvalidationCompleteMessage(cacheId);
+      case INVALIDATION_COMPLETE:
+        key = byteBuffer.getLong();
+        cacheId  = CodecUtil.getStringFromBuffer(byteBuffer, byteBuffer.remaining()/2);
+        return new InvalidationCompleteMessage(cacheId, key);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + replicationOp);
     }

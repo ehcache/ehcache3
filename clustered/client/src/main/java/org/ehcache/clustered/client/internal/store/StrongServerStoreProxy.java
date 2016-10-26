@@ -17,6 +17,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
@@ -25,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -34,9 +36,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-/**
- * @author Ludovic Orban
- */
 public class StrongServerStoreProxy implements ServerStoreProxy {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StrongServerStoreProxy.class);
@@ -44,13 +43,23 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final ServerStoreProxy delegate;
   private final ConcurrentMap<Long, CountDownLatch> hashInvalidationsInProgress = new ConcurrentHashMap<Long, CountDownLatch>();
   private final Lock invalidateAllLock = new ReentrantLock();
-  private CountDownLatch invalidateAllLatch;
+  private volatile CountDownLatch invalidateAllLatch;
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
   private final EhcacheClientEntity entity;
 
   public StrongServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
     this.delegate = new NoInvalidationServerStoreProxy(messageFactory, entity);
     this.entity = entity;
+    entity.addReconnectListener(new EhcacheClientEntity.ReconnectListener() {
+      @Override
+      public void onHandleReconnect(ReconnectMessage reconnectMessage) {
+        Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
+        reconnectMessage.addInvalidationsInProgress(delegate.getCacheId(), inflightInvalidations);
+        if (invalidateAllLatch != null) {
+          reconnectMessage.addClearInProgress(delegate.getCacheId());
+        }
+      }
+    });
     entity.addResponseListener(EhcacheEntityResponse.HashInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.HashInvalidationDone response) {
