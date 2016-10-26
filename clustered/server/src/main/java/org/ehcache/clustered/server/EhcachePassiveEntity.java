@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -263,6 +264,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
     ServerStoreConfiguration storeConfiguration = createServerStore.getStoreConfiguration();
     ehcacheStateService.createStore(name, storeConfiguration);
+    if(storeConfiguration.getConsistency() == Consistency.EVENTUAL) {
+      ehcacheStateService.addInvalidationtracker(name);
+    }
   }
 
   private void destroyServerStore(DestroyServerStore destroyServerStore) throws ClusterException {
@@ -276,6 +280,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
     LOGGER.info("Destroying clustered tier '{}'", name);
     ehcacheStateService.destroyServerStore(name);
+    ehcacheStateService.removeInvalidationtracker(name);
   }
 
   @Override

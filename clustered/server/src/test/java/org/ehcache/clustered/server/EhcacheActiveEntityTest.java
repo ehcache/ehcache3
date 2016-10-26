@@ -37,6 +37,7 @@ import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
+import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,6 +57,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -2632,6 +2634,47 @@ public class EhcacheActiveEntityTest {
     assertThat(storeConfigs.keySet(), containsInAnyOrder("myCache"));
     assertThat(storeConfigs.get("myCache").getPoolAllocation(), instanceOf(PoolAllocation.Shared.class));
     assertThat(capturedSyncMessage.getTrackedClients(), containsInAnyOrder(CLIENT_ID));
+
+  }
+
+  @Test
+  public void testLoadExistingRecoversInflightInvalidationsForEventualCache() {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("serverResource1")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .build();
+
+    activeEntity.invoke(client,
+        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+        MESSAGE_FACTORY.createServerStore("test",
+            new ServerStoreConfigBuilder()
+                .shared("primary")
+                .build()));
+
+    EhcacheStateServiceImpl ehcacheStateService = registry.getStoreManagerService();
+    ehcacheStateService.addInvalidationtracker("test");
+
+    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker("test");
+
+    Random random = new Random();
+    random.ints(0, 100).limit(10).forEach(x -> invalidationTracker.getInvalidationMap().put((long)x, x));
+
+    activeEntity.loadExisting();
+
+    assertThat(ehcacheStateService.getInvalidationTracker("test"), nullValue());
 
   }
 

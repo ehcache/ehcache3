@@ -117,7 +117,6 @@ public class EhcacheClientEntity implements Entity {
           for (ReconnectListener reconnectListener : reconnectListeners) {
             reconnectListener.onHandleReconnect(reconnectMessage);
           }
-//          return reconnectDataCodec.encode(reconnectData);
           return reconnectMessageCodec.encode(reconnectMessage);
         }
       }

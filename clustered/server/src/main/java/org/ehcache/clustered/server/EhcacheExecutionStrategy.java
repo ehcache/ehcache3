@@ -16,9 +16,9 @@
 
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.internal.messages.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.internal.messages.EntitySyncMessage;
@@ -54,7 +54,7 @@ class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage
     } else if (message instanceof StateRepositoryOpMessage) {
       // StateRepositoryOp not needing replication
       return Location.ACTIVE;
-    } else if (message instanceof ClientIDTrackerMessage) {
+    } else if (message instanceof PassiveReplicationMessage) {
       return Location.PASSIVE;
     } else if (message instanceof EntitySyncMessage) {
       throw new AssertionError("Unexpected use of ExecutionStrategy for sync messages");

@@ -366,13 +366,12 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = new ConcurrentHashMap<>();
     addInflightInvalidationsForEventualCaches();
-    ehcacheStateService.clearInvalidationTrackers();
   }
 
   private void addInflightInvalidationsForEventualCaches() {
     Set<String> caches = ehcacheStateService.getStores();
     caches.forEach(cacheId -> {
-      InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(cacheId);
+      InvalidationTracker invalidationTracker = ehcacheStateService.removeInvalidationtracker(cacheId);
       if (invalidationTracker != null) {
         inflightInvalidations.compute(cacheId, (s, invalidationTuples) -> {
           if (invalidationTuples == null) {
@@ -382,6 +381,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
               .keySet(), invalidationTracker.isClearInProgress()));
           return invalidationTuples;
         });
+        invalidationTracker.getInvalidationMap().clear();
       }
     });
   }

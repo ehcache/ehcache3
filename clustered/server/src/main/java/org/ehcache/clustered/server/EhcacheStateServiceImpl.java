@@ -308,9 +308,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     ServerStoreImpl serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
     stores.put(name, serverStore);
-    if(serverStoreConfiguration.getConsistency() == Consistency.EVENTUAL) {
-      invalidationMap.put(name, new InvalidationTracker());
-    }
     return serverStore;
   }
 
@@ -323,7 +320,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       store.close();
     }
     stateRepositoryManager.destroyStateRepository(name);
-    invalidationMap.remove(name);
   }
 
   private PageSource getPageSource(String name, PoolAllocation allocation) throws ClusterException {
@@ -372,9 +368,13 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public void clearInvalidationTrackers() {
-    invalidationMap.forEach((cache, invalidationTracker) -> invalidationTracker.getInvalidationMap().clear());
-    invalidationMap.clear();
+  public void addInvalidationtracker(String cacheId) {
+    this.invalidationMap.put(cacheId, new InvalidationTracker());
+  }
+
+  @Override
+  public InvalidationTracker removeInvalidationtracker(String cacheId) {
+    return this.invalidationMap.remove(cacheId);
   }
 
   public boolean isConfigured() {
