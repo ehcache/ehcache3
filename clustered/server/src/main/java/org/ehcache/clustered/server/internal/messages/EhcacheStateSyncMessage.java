@@ -21,23 +21,21 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 
 import com.tc.classloader.CommonComponent;
 
-import com.tc.classloader.CommonComponent;
-
 import java.io.Serializable;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 @CommonComponent
-public class EntityStateSyncMessage extends EntitySyncMessage implements Serializable {
+public class EhcacheStateSyncMessage extends EhcacheSyncMessage implements Serializable {
 
   private final ServerSideConfiguration configuration;
   private final Map<String, ServerStoreConfiguration> storeConfigs;
   private final Set<UUID> trackedClients;
 
-  public EntityStateSyncMessage(final ServerSideConfiguration configuration,
-                                       final Map<String, ServerStoreConfiguration> storeConfigs,
-                                       final Set<UUID> trackedClients) {
+  public EhcacheStateSyncMessage(final ServerSideConfiguration configuration,
+                                 final Map<String, ServerStoreConfiguration> storeConfigs,
+                                 final Set<UUID> trackedClients) {
     this.configuration = configuration;
     this.storeConfigs = storeConfigs;
     this.trackedClients = trackedClients;

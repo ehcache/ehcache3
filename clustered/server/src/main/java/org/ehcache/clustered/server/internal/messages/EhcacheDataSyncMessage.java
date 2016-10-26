@@ -21,13 +21,13 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import com.tc.classloader.CommonComponent;
 
 @CommonComponent
-public class EntityDataSyncMessage extends EntitySyncMessage {
+public class EhcacheDataSyncMessage extends EhcacheSyncMessage {
 
   private final String cacheId;
   private final long key;
   private final Chain chain;
 
-  public EntityDataSyncMessage(final String cacheId, final long key, final Chain chain) {
+  public EhcacheDataSyncMessage(final String cacheId, final long key, final Chain chain) {
     this.cacheId = cacheId;
     this.key = key;
     this.chain = chain;

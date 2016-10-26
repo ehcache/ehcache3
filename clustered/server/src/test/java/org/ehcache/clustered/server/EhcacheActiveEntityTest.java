@@ -44,7 +44,7 @@ import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
-import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -2640,10 +2640,10 @@ public class EhcacheActiveEntityTest {
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
     activeEntity.synchronizeKeyToPassive(syncChannel, 1);
 
-    ArgumentCaptor<EntityStateSyncMessage> captor = ArgumentCaptor.forClass(EntityStateSyncMessage.class);
+    ArgumentCaptor<EhcacheStateSyncMessage> captor = ArgumentCaptor.forClass(EhcacheStateSyncMessage.class);
     verify(syncChannel).synchronizeToPassive(captor.capture());
 
-    EntityStateSyncMessage capturedSyncMessage = captor.getValue();
+    EhcacheStateSyncMessage capturedSyncMessage = captor.getValue();
     ServerSideConfiguration configuration = capturedSyncMessage.getConfiguration();
     assertThat(configuration.getDefaultServerResource(), is("serverResource1"));
     assertThat(configuration.getResourcePools().keySet(), containsInAnyOrder("primary", "secondary"));

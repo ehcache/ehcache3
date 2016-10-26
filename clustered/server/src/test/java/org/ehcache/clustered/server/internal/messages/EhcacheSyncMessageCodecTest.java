@@ -72,9 +72,9 @@ public class EhcacheSyncMessageCodecTest {
     clientIds.add(clientId1);
     clientIds.add(clientId2);
 
-    EntityStateSyncMessage message = new EntityStateSyncMessage(serverSideConfig, storeConfigs, clientIds);
+    EhcacheStateSyncMessage message = new EhcacheStateSyncMessage(serverSideConfig, storeConfigs, clientIds);
     EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
-    EntityStateSyncMessage decodedMessage = (EntityStateSyncMessage) codec.decode(0, codec.encode(0, message));
+    EhcacheStateSyncMessage decodedMessage = (EhcacheStateSyncMessage) codec.decode(0, codec.encode(0, message));
 
     assertThat(decodedMessage.getConfiguration().getDefaultServerResource(), is("default-pool"));
     assertThat(decodedMessage.getConfiguration().getResourcePools(), is(sharedPools));
@@ -120,9 +120,9 @@ public class EhcacheSyncMessageCodecTest {
   @Test
   public void testDataSyncMessageEncodeDecode() throws Exception {
     EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
-    EntityDataSyncMessage message = new EntityDataSyncMessage("foo", 123L,
+    EhcacheDataSyncMessage message = new EhcacheDataSyncMessage("foo", 123L,
         getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)));
-    EntityDataSyncMessage decoded = (EntityDataSyncMessage) codec.decode(0, codec.encode(0, message));
+    EhcacheDataSyncMessage decoded = (EhcacheDataSyncMessage) codec.decode(0, codec.encode(0, message));
     assertThat(decoded.getCacheId(), is(message.getCacheId()));
     assertThat(decoded.getKey(), is(message.getKey()));
     assertThat(chainsEqual(decoded.getChain(), message.getChain()), is(true));

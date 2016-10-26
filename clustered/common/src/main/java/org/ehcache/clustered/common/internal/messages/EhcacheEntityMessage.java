@@ -60,8 +60,10 @@ public abstract class EhcacheEntityMessage implements EntityMessage {
     }
   }
 
+  @Deprecated
   public abstract Type getType();
 
+  @Deprecated
   public abstract byte getOpCode();
 
   @Override

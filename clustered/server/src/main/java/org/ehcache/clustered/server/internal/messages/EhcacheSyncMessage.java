@@ -23,7 +23,7 @@ import com.tc.classloader.CommonComponent;
 import java.util.UUID;
 
 @CommonComponent
-public abstract class EntitySyncMessage extends EhcacheEntityMessage {
+public abstract class EhcacheSyncMessage extends EhcacheEntityMessage {
 
   @CommonComponent
   public enum SyncOp {

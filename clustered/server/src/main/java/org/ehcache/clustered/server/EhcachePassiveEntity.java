@@ -37,9 +37,9 @@ import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
-import org.ehcache.clustered.server.internal.messages.EntityDataSyncMessage;
-import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
-import org.ehcache.clustered.server.internal.messages.EntitySyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessage;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
@@ -86,7 +86,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
           break;
         case SYNC_OP:
-          invokeSyncOperation((EntitySyncMessage) message);
+          invokeSyncOperation((EhcacheSyncMessage) message);
           break;
         case REPLICATION_OP:
           invokeRetirementMessages((PassiveReplicationMessage)message);
@@ -220,10 +220,10 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
-  private void invokeSyncOperation(EntitySyncMessage message) throws ClusterException {
+  private void invokeSyncOperation(EhcacheSyncMessage message) throws ClusterException {
     switch (message.operation()) {
       case STATE:
-        EntityStateSyncMessage stateSyncMessage = (EntityStateSyncMessage) message;
+        EhcacheStateSyncMessage stateSyncMessage = (EhcacheStateSyncMessage) message;
 
         ehcacheStateService.configure(stateSyncMessage.getConfiguration());
         management.sharedPoolsConfigured();
@@ -238,7 +238,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         stateSyncMessage.getTrackedClients().stream().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
         break;
       case DATA:
-        EntityDataSyncMessage dataSyncMessage = (EntityDataSyncMessage) message;
+        EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;
         ehcacheStateService.getStore(dataSyncMessage.getCacheId()).put(dataSyncMessage.getKey(), dataSyncMessage.getChain());
         break;
       default:

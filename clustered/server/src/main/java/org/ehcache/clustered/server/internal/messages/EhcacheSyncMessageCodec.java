@@ -37,7 +37,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   @Override
   public byte[] encode(final int concurrencyKey, final EhcacheEntityMessage message) throws MessageCodecException {
     if(message.getType() == EhcacheEntityMessage.Type.SYNC_OP) {
-      EntitySyncMessage syncMessage = (EntitySyncMessage)message;
+      EhcacheSyncMessage syncMessage = (EhcacheSyncMessage)message;
       switch (syncMessage.operation()) {
         case STATE: {
           byte[] encodedMsg = Util.marshall(syncMessage);
@@ -47,7 +47,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
           return buffer.array();
         }
         case DATA: {
-          EntityDataSyncMessage dataSyncMessage = (EntityDataSyncMessage)message;
+          EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage)message;
           String cacheId = dataSyncMessage.getCacheId();
           byte[] encodedChain = chainCodec.encode(dataSyncMessage.getChain());
           ByteBuffer buffer = ByteBuffer.allocate(OPCODE_SIZE + KEY_SIZE + CACHE_ID_LEN_SIZE +
@@ -63,19 +63,19 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
           throw new IllegalArgumentException(this.getClass().getName() + " can not encode " + syncMessage.operation());
       }
     } else {
-      throw new IllegalArgumentException(this.getClass().getName() + " can not encode " + message + " which is not a " + EntityStateSyncMessage.class);
+      throw new IllegalArgumentException(this.getClass().getName() + " can not encode " + message + " which is not a " + EhcacheStateSyncMessage.class);
     }
   }
 
   @Override
-  public EntitySyncMessage decode(final int concurrencyKey, final byte[] payload) throws MessageCodecException {
+  public EhcacheSyncMessage decode(final int concurrencyKey, final byte[] payload) throws MessageCodecException {
     ByteBuffer message = ByteBuffer.wrap(payload);
-    EntitySyncMessage.SyncOp syncOp = EntitySyncMessage.SyncOp.getSyncOp(message.get());
+    EhcacheSyncMessage.SyncOp syncOp = EhcacheSyncMessage.SyncOp.getSyncOp(message.get());
     switch (syncOp) {
       case STATE: {
         byte[] encodedMsg = new byte[message.capacity() - OPCODE_SIZE];
         message.get(encodedMsg, 0, encodedMsg.length);
-        return  (EntityStateSyncMessage) Util.unmarshall(encodedMsg);
+        return  (EhcacheStateSyncMessage) Util.unmarshall(encodedMsg);
       }
       case DATA: {
         long key = message.getLong();
@@ -85,10 +85,10 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
         byte[] chainPayload = new byte[chainPayloadSize];
         message.get(chainPayload);
         Chain chain = chainCodec.decode(chainPayload);
-        return new EntityDataSyncMessage(cacheId, key, chain);
+        return new EhcacheDataSyncMessage(cacheId, key, chain);
       }
       default:
-        throw new IllegalArgumentException("EntityStateSyncMessage operation not defined for : " + syncOp);
+        throw new IllegalArgumentException("EhcacheStateSyncMessage operation not defined for : " + syncOp);
     }
   }
 }

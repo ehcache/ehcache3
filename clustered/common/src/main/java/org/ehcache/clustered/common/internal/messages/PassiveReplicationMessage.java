@@ -23,7 +23,7 @@ import java.util.UUID;
 /**
  * This message is sent by the Active Entity to Passive Entity.
  */
-public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
+public abstract class PassiveReplicationMessage extends EhcacheOperationMessage {
 
   public enum ReplicationOp {
     CHAIN_REPLICATION_OP((byte) 41),
@@ -70,6 +70,11 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
   @Override
   public byte getOpCode() {
     return operation().getReplicationOpCode();
+  }
+
+  @Override
+  public EhcacheMessageType getMessageType() {
+    return EhcacheMessageType.CLIENT_ID_TRACK_OP;
   }
 
   @Override
@@ -123,6 +128,11 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
 
     public Chain getChain() {
       return chain;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CHAIN_REPLICATION_OP;
     }
 
     @Override
