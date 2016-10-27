@@ -17,14 +17,12 @@
 package org.ehcache.clustered.common.internal.messages;
 
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ReplicationOp;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.common.internal.store.Util;
 
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-import static org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.*;
 
 class PassiveReplicationMessageCodec {
 
@@ -46,7 +44,7 @@ class PassiveReplicationMessageCodec {
         encodedMsg.putLong(message.getId());
         return encodedMsg.array();
       case CHAIN_REPLICATION_OP:
-        ChainReplicationMessage chainReplicationMessage = (ChainReplicationMessage)message;
+        PassiveReplicationMessage.ChainReplicationMessage chainReplicationMessage = (PassiveReplicationMessage.ChainReplicationMessage)message;
         byte[] encodedChain = chainCodec.encode(chainReplicationMessage.getChain());
         int cacheIdLen = chainReplicationMessage.getCacheId().length();
         encodedMsg = ByteBuffer.allocate(OP_CODE_SIZE + CACHE_ID_LEN_SIZE + KEY_SIZE + MESSAGE_ID_SIZE + encodedChain.length + 2 * cacheIdLen);
@@ -59,17 +57,24 @@ class PassiveReplicationMessageCodec {
         encodedMsg.put(encodedChain);
         return encodedMsg.array();
       case CLEAR_INVALIDATION_COMPLETE:
-        ClearInvalidationCompleteMessage clearInvalidationCompleteMessage = (ClearInvalidationCompleteMessage)message;
+        PassiveReplicationMessage.ClearInvalidationCompleteMessage clearInvalidationCompleteMessage = (PassiveReplicationMessage.ClearInvalidationCompleteMessage)message;
         encodedMsg = ByteBuffer.allocate(OP_CODE_SIZE + 2 * clearInvalidationCompleteMessage.getCacheId().length());
         encodedMsg.put(message.getOpCode());
         CodecUtil.putStringAsCharArray(encodedMsg, clearInvalidationCompleteMessage.getCacheId());
         return encodedMsg.array();
       case INVALIDATION_COMPLETE:
-        InvalidationCompleteMessage invalidationCompleteMessage = (InvalidationCompleteMessage)message;
+        PassiveReplicationMessage.InvalidationCompleteMessage invalidationCompleteMessage = (PassiveReplicationMessage.InvalidationCompleteMessage)message;
         encodedMsg = ByteBuffer.allocate(OP_CODE_SIZE + KEY_SIZE + 2 * invalidationCompleteMessage.getCacheId().length());
         encodedMsg.put(message.getOpCode());
         encodedMsg.putLong(invalidationCompleteMessage.getKey());
         CodecUtil.putStringAsCharArray(encodedMsg, invalidationCompleteMessage.getCacheId());
+        return encodedMsg.array();
+      case SERVER_STORE_LIFECYCLE_REPLICATION_OP:
+        PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage storeLifeCycleReplicationMessage = (PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage)message;
+        byte[] encodedLifeCycleMsg = Util.marshall(storeLifeCycleReplicationMessage.getMessage());
+        encodedMsg = ByteBuffer.allocate(OP_CODE_SIZE + encodedLifeCycleMsg.length);
+        encodedMsg.put(message.getOpCode());
+        encodedMsg.put(encodedLifeCycleMsg);
         return encodedMsg.array();
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.operation());
@@ -79,7 +84,7 @@ class PassiveReplicationMessageCodec {
 
   public EhcacheEntityMessage decode(byte[] payload) {
     ByteBuffer byteBuffer = ByteBuffer.wrap(payload);
-    ReplicationOp replicationOp = ReplicationOp.getReplicationOp(byteBuffer.get());
+    PassiveReplicationMessage.ReplicationOp replicationOp = PassiveReplicationMessage.ReplicationOp.getReplicationOp(byteBuffer.get());
     UUID clientId;
     long msgId;
     String cacheId;
@@ -94,18 +99,23 @@ class PassiveReplicationMessageCodec {
         byte[] encodedChain = new byte[byteBuffer.remaining()];
         byteBuffer.get(encodedChain);
         Chain chain = chainCodec.decode(encodedChain);
-        return new ChainReplicationMessage(cacheId, key, chain, msgId, clientId);
+        return new PassiveReplicationMessage.ChainReplicationMessage(cacheId, key, chain, msgId, clientId);
       case CLIENTID_TRACK_OP:
         clientId = getClientId(byteBuffer);
         msgId = byteBuffer.getLong();
-        return new ClientIDTrackerMessage(msgId, clientId);
+        return new PassiveReplicationMessage.ClientIDTrackerMessage(msgId, clientId);
       case CLEAR_INVALIDATION_COMPLETE:
         cacheId  = CodecUtil.getStringFromBuffer(byteBuffer, byteBuffer.remaining()/2);
-        return new ClearInvalidationCompleteMessage(cacheId);
+        return new PassiveReplicationMessage.ClearInvalidationCompleteMessage(cacheId);
       case INVALIDATION_COMPLETE:
         key = byteBuffer.getLong();
         cacheId  = CodecUtil.getStringFromBuffer(byteBuffer, byteBuffer.remaining()/2);
-        return new InvalidationCompleteMessage(cacheId, key);
+        return new PassiveReplicationMessage.InvalidationCompleteMessage(cacheId, key);
+      case SERVER_STORE_LIFECYCLE_REPLICATION_OP:
+        byte[] encodedLifeCycle = new byte[byteBuffer.remaining()];
+        byteBuffer.get(encodedLifeCycle);
+        LifecycleMessage lifecycleMessage = (LifecycleMessage)Util.unmarshall(encodedLifeCycle);
+        return new PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage(lifecycleMessage);
       default:
         throw new UnsupportedOperationException("This operation code is not supported : " + replicationOp);
     }

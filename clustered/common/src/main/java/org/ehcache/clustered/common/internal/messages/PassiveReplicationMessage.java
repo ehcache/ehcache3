@@ -29,7 +29,8 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
     CHAIN_REPLICATION_OP((byte) 41),
     CLIENTID_TRACK_OP((byte) 42),
     CLEAR_INVALIDATION_COMPLETE((byte) 43),
-    INVALIDATION_COMPLETE((byte) 44)
+    INVALIDATION_COMPLETE((byte) 44),
+    SERVER_STORE_LIFECYCLE_REPLICATION_OP((byte) 45)
     ;
 
     private final byte replicationOpCode;
@@ -53,6 +54,8 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
           return CLEAR_INVALIDATION_COMPLETE;
         case 44:
           return INVALIDATION_COMPLETE;
+        case 45:
+          return SERVER_STORE_LIFECYCLE_REPLICATION_OP;
         default:
           throw new IllegalArgumentException("Replication operation not defined for : " + replicationOpCode);
       }
@@ -184,6 +187,25 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
 
     public long getKey() {
       return key;
+    }
+  }
+
+  public static class ServerStoreLifeCycleReplicationMessage extends ClientIDTrackerMessage {
+
+    private final LifecycleMessage message;
+
+    public ServerStoreLifeCycleReplicationMessage(LifecycleMessage message) {
+      super(message.getId(), message.getClientId());
+      this.message = message;
+    }
+
+    public LifecycleMessage getMessage() {
+      return message;
+    }
+
+    @Override
+    public ReplicationOp operation() {
+      return ReplicationOp.SERVER_STORE_LIFECYCLE_REPLICATION_OP;
     }
   }
 }
