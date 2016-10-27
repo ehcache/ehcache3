@@ -38,6 +38,7 @@ dependencies {
   compile"org.terracotta.management.dist:management-common:$parent.managementVersion"
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
+  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
 compileJava {

@@ -22,4 +22,9 @@ package org.ehcache.clustered.common.internal.messages;
 public abstract class EhcacheOperationMessage extends EhcacheEntityMessage {
 
   public abstract EhcacheMessageType getMessageType();
+
+  @Override
+  public String toString() {
+    return getMessageType().toString();
+  }
 }

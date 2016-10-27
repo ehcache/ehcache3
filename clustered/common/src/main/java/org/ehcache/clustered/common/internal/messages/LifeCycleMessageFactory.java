@@ -25,27 +25,27 @@ public class LifeCycleMessageFactory {
 
   private UUID clientId;
 
-  public EhcacheEntityMessage validateStoreManager(ServerSideConfiguration configuration){
+  public LifecycleMessage validateStoreManager(ServerSideConfiguration configuration){
     return new LifecycleMessage.ValidateStoreManager(configuration, clientId);
   }
 
-  public EhcacheEntityMessage configureStoreManager(ServerSideConfiguration configuration) {
+  public LifecycleMessage configureStoreManager(ServerSideConfiguration configuration) {
     return new LifecycleMessage.ConfigureStoreManager(configuration, clientId);
   }
 
-  public EhcacheEntityMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+  public LifecycleMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
     return new LifecycleMessage.CreateServerStore(name, serverStoreConfiguration, clientId);
   }
 
-  public EhcacheEntityMessage validateServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
+  public LifecycleMessage validateServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
     return new LifecycleMessage.ValidateServerStore(name, serverStoreConfiguration, clientId);
   }
 
-  public EhcacheEntityMessage releaseServerStore(String name) {
+  public LifecycleMessage releaseServerStore(String name) {
     return new LifecycleMessage.ReleaseServerStore(name, clientId);
   }
 
-  public EhcacheEntityMessage destroyServerStore(String name) {
+  public LifecycleMessage destroyServerStore(String name) {
     return new LifecycleMessage.DestroyServerStore(name, clientId);
   }
 

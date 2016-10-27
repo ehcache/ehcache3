@@ -33,6 +33,8 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
+import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
@@ -304,17 +306,16 @@ public class EhcacheClientEntity implements Entity {
    */
   public EhcacheEntityResponse invoke(EhcacheEntityMessage message, boolean replicate)
       throws ClusterException, TimeoutException {
-    TimeoutDuration timeLimit;
-    if (message.getType() == EhcacheEntityMessage.Type.SERVER_STORE_OP
-        && GET_STORE_OPS.contains(getServerStoreOp(message.getOpCode()))) {
-      timeLimit = timeouts.getReadOperationTimeout();
-    } else {
-      timeLimit = timeouts.getMutativeOperationTimeout();
+    TimeoutDuration timeLimit = timeouts.getMutativeOperationTimeout();
+    if (message instanceof EhcacheOperationMessage) {
+      if (GET_STORE_OPS.contains(((EhcacheOperationMessage) message).getMessageType())) {
+        timeLimit = timeouts.getReadOperationTimeout();
+      }
     }
     return invokeInternal(timeLimit, message, replicate);
   }
 
-  private static final Set<ServerStoreOp> GET_STORE_OPS = EnumSet.of(GET);
+  private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(EhcacheMessageType.GET_STORE);
 
   private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate)
       throws ClusterException, TimeoutException {

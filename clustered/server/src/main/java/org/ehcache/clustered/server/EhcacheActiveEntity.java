@@ -47,6 +47,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
@@ -770,7 +771,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     serverStore.setEvictionListener(key -> invalidateHashAfterEviction(name, key));
     attachStore(clientDescriptor, name);
     try {
-      entityMessenger.messageSelfAndDeferRetirement(createServerStore, new ClientIDTrackerMessage.ServerStoreLifeCycleReplicationMessage(createServerStore));
+      entityMessenger.messageSelfAndDeferRetirement(createServerStore, new PassiveReplicationMessage.CreateServerStoreReplicationMessage(createServerStore));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }
@@ -861,7 +862,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     storeClientMap.remove(name);
     try {
-      entityMessenger.messageSelfAndDeferRetirement(destroyServerStore, new ClientIDTrackerMessage.ServerStoreLifeCycleReplicationMessage(destroyServerStore));
+      entityMessenger.messageSelfAndDeferRetirement(destroyServerStore, new PassiveReplicationMessage.DestroyServerStoreReplicationMessage(destroyServerStore));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }

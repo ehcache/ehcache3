@@ -42,7 +42,6 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroySe
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
@@ -2762,7 +2761,7 @@ public class EhcacheActiveEntityTest {
                 .build()));
 
     verify(entityMessenger, times(0)).messageSelf(any());
-    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(CreateServerStore.class), any(ServerStoreLifeCycleReplicationMessage.class));
+    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(CreateServerStore.class), any(PassiveReplicationMessage.class));
 
   }
 
@@ -2835,7 +2834,7 @@ public class EhcacheActiveEntityTest {
         MESSAGE_FACTORY.destroyServerStore("test"));
 
     verify(entityMessenger, times(0)).messageSelf(any());
-    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(DestroyServerStore.class), any(ServerStoreLifeCycleReplicationMessage.class));
+    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(DestroyServerStore.class), any(PassiveReplicationMessage.class));
 
   }
 

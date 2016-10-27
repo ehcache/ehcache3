@@ -77,11 +77,6 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
     return getType().getCode();
   }
 
-  @Override
-  public String toString() {
-    return getType() + "#" + operation();
-  }
-
   private static abstract class KeyBasedMessage extends StateRepositoryOpMessage {
 
     private final Object key;

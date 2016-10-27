@@ -25,6 +25,8 @@ import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 
 /**
  * EhcacheMessageType
+ *
+ * Whenever you edit this, you must think about enum mapping and helper methods
  */
 public enum EhcacheMessageType {
   // Lifecycle messages
@@ -48,9 +50,14 @@ public enum EhcacheMessageType {
   PUT_IF_ABSENT,
   ENTRY_SET,
 
+  // TODO server to server only, should not exist in common
   // Passive synchronization messages
   CHAIN_REPLICATION_OP,
-  CLIENT_ID_TRACK_OP;
+  CLIENT_ID_TRACK_OP,
+  CLEAR_INVALIDATION_COMPLETE,
+  INVALIDATION_COMPLETE,
+  CREATE_SERVER_STORE_REPLICATION,
+  DESTROY_SERVER_STORE_REPLICATION;
 
   public static final String MESSAGE_TYPE_FIELD_NAME = "opCode";
   public static final int MESSAGE_TYPE_FIELD_INDEX = 10;
@@ -75,6 +82,10 @@ public enum EhcacheMessageType {
 
     .mapping(CHAIN_REPLICATION_OP, 61)
     .mapping(CLIENT_ID_TRACK_OP, 62)
+    .mapping(CLEAR_INVALIDATION_COMPLETE, 63)
+    .mapping(INVALIDATION_COMPLETE, 64)
+    .mapping(CREATE_SERVER_STORE_REPLICATION, 65)
+    .mapping(DESTROY_SERVER_STORE_REPLICATION, 66)
     .build();
 
   public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(CONFIGURE, VALIDATE, CREATE_SERVER_STORE, VALIDATE_SERVER_STORE, RELEASE_SERVER_STORE, DESTROY_SERVER_STORE);
@@ -92,7 +103,7 @@ public enum EhcacheMessageType {
     return STATE_REPO_OPERATION_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> PASSIVE_SYNC_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP);
+  public static final EnumSet<EhcacheMessageType> PASSIVE_SYNC_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE, CREATE_SERVER_STORE_REPLICATION, DESTROY_SERVER_STORE_REPLICATION);
   public static boolean isPassiveSynchroMessage(EhcacheMessageType value) {
     return PASSIVE_SYNC_MESSAGES.contains(value);
   }

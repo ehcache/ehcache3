@@ -107,11 +107,6 @@ public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
     return operation().getStoreOpCode();
   }
 
-  @Override
-  public String toString() {
-    return getType() + "#" + operation();
-  }
-
   public static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage  implements ConcurrentEntityMessage {
 
     private final long key;
