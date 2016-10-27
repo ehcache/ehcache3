@@ -481,19 +481,25 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         return responseFactory.response(cacheStore.get(getMessage.getKey()));
       }
       case APPEND: {
-        ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
-        cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
-        sendMessageToSelfAndDeferRetirement(appendMessage, cacheStore.get(appendMessage.getKey()));
-        invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
+        if (!isMessageDuplicate(message)) {
+          ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
+          cacheStore.getAndAppend(appendMessage.getKey(), appendMessage.getPayload());
+          sendMessageToSelfAndDeferRetirement(appendMessage, cacheStore.get(appendMessage.getKey()));
+          invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
+        }
         return responseFactory.success();
       }
       case GET_AND_APPEND: {
         ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
-        Chain result = cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
-        sendMessageToSelfAndDeferRetirement(getAndAppendMessage, cacheStore.get(getAndAppendMessage.getKey()));
-        EhcacheEntityResponse response = responseFactory.response(result);
-        invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
-        return response;
+        if (!isMessageDuplicate(message)) {
+
+          Chain result = cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
+          sendMessageToSelfAndDeferRetirement(getAndAppendMessage, cacheStore.get(getAndAppendMessage.getKey()));
+          EhcacheEntityResponse response = responseFactory.response(result);
+          invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
+          return response;
+        }
+        return responseFactory.response(cacheStore.get(getAndAppendMessage.getKey()));
       }
       case REPLACE: {
         ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
@@ -509,9 +515,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         return responseFactory.success();
       }
       case CLEAR: {
-        String cacheId = message.getCacheId();
-        cacheStore.clear();
-        invalidateAll(clientDescriptor, cacheId);
+        if (!isMessageDuplicate(message)) {
+          String cacheId = message.getCacheId();
+          cacheStore.clear();
+          invalidateAll(clientDescriptor, cacheId);
+        }
         return responseFactory.success();
       }
       default:
@@ -737,7 +745,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if(createServerStore.getStoreConfiguration().getPoolAllocation() instanceof PoolAllocation.Unknown) {
       throw new LifecycleException("Clustered tier can't be created with an Unknown resource pool");
     }
-    boolean isDuplicate = isLifeCycleMessageDuplicate(createServerStore);
+    boolean isDuplicate = isMessageDuplicate(createServerStore);
     final String name = createServerStore.getName();    // client cache identifier/name
     ServerStoreImpl serverStore;
     if (!isDuplicate) {
@@ -837,7 +845,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       throw new ResourceBusyException("Cannot destroy clustered tier '" + name + "': in use by " + clients.size() + " other client(s)");
     }
 
-    boolean isDuplicate = isLifeCycleMessageDuplicate(destroyServerStore);
+    boolean isDuplicate = isMessageDuplicate(destroyServerStore);
 
     if (!isDuplicate) {
       LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
@@ -853,7 +861,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
-  private boolean isLifeCycleMessageDuplicate(LifecycleMessage message) {
+  private boolean isMessageDuplicate(EhcacheEntityMessage message) {
     return ehcacheStateService.getClientMessageTracker().isDuplicate(message.getId(), message.getClientId());
   }
 

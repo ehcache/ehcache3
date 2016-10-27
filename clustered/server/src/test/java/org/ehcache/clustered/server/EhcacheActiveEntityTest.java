@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
@@ -32,10 +33,17 @@ import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationEx
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
+import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.hamcrest.Matchers;
@@ -45,6 +53,7 @@ import org.mockito.ArgumentCaptor;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.IEntityMessenger;
+import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -63,6 +72,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.ehcache.clustered.common.PoolAllocation.Dedicated;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 
@@ -77,7 +87,10 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 public class EhcacheActiveEntityTest {
@@ -2179,7 +2192,7 @@ public class EhcacheActiveEntityTest {
 
   /**
    * Tests the destroy server store operation <b>before</b> the use of either a
-   * {@link LifecycleMessage.CreateServerStore CreateServerStore}
+   * {@link CreateServerStore CreateServerStore}
    * {@link LifecycleMessage.ValidateServerStore ValidateServerStore}
    * operation.
    */
@@ -2642,7 +2655,7 @@ public class EhcacheActiveEntityTest {
   @Test
   public void testLoadExistingRecoversInflightInvalidationsForEventualCache() {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
@@ -2678,6 +2691,191 @@ public class EhcacheActiveEntityTest {
 
     assertThat(ehcacheStateService.getInvalidationTracker("test"), nullValue());
 
+  }
+
+  @Test
+  public void testCreateServerStoreSendsPassiveReplicationMessageIfSuccessful() throws MessageCodecException {
+
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+
+    IEntityMessenger entityMessenger = registry.getEntityMessenger();
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("serverResource1")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .build();
+
+    activeEntity.invoke(client,
+        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    try {
+      activeEntity.invoke(client,
+          MESSAGE_FACTORY.createServerStore("test",
+              new ServerStoreConfigBuilder()
+                  .shared("primary1")
+                  .build()));
+    } catch (Exception e) {
+      //nothing to do
+    }
+
+    verify(entityMessenger, times(0)).messageSelf(any());
+    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(ValidateStoreManager.class), any(ClientIDTrackerMessage.class));
+
+    reset(entityMessenger);
+
+    activeEntity.invoke(client,
+        MESSAGE_FACTORY.createServerStore("test",
+            new ServerStoreConfigBuilder()
+                .shared("primary")
+                .build()));
+
+    verify(entityMessenger, times(0)).messageSelf(any());
+    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(CreateServerStore.class), any(ServerStoreLifeCycleReplicationMessage.class));
+
+  }
+
+  @Test
+  public void testDestroyServerStoreSendsPassiveReplicationMessageIfSuccessful() throws MessageCodecException {
+
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+
+    IEntityMessenger entityMessenger =  registry.getEntityMessenger();
+
+    ClientDescriptor client1 = new TestClientDescriptor();
+    ClientDescriptor client2 = new TestClientDescriptor();
+    activeEntity.connected(client1);
+    activeEntity.connected(client2);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("serverResource1")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .build();
+
+    activeEntity.invoke(client1,
+        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client1,
+        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client1,
+        MESSAGE_FACTORY.createServerStore("test",
+            new ServerStoreConfigBuilder()
+                .shared("primary")
+                .build()));
+
+    UUID client2Id = UUID.randomUUID();
+    MESSAGE_FACTORY.setClientId(client2Id);
+
+    activeEntity.invoke(client2,
+        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client2,
+        MESSAGE_FACTORY.validateServerStore("test",
+            new ServerStoreConfigBuilder()
+                .shared("primary")
+                .build()));
+
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
+    try {
+      activeEntity.invoke(client1,
+          MESSAGE_FACTORY.destroyServerStore("test"));
+    } catch (Exception e) {
+      //nothing to do
+    }
+
+    verify(entityMessenger, times(0)).messageSelf(any());
+    verify(entityMessenger, times(3)).messageSelfAndDeferRetirement(any(), any());
+
+    reset(entityMessenger);
+
+    MESSAGE_FACTORY.setClientId(client2Id);
+
+    activeEntity.invoke(client2,
+        MESSAGE_FACTORY.releaseServerStore("test"));
+
+    MESSAGE_FACTORY.setClientId(CLIENT_ID);
+    activeEntity.invoke(client1,
+        MESSAGE_FACTORY.releaseServerStore("test"));
+    activeEntity.invoke(client1,
+        MESSAGE_FACTORY.destroyServerStore("test"));
+
+    verify(entityMessenger, times(0)).messageSelf(any());
+    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(DestroyServerStore.class), any(ServerStoreLifeCycleReplicationMessage.class));
+
+  }
+
+  @Test
+  public void testPromotedActiveIgnoresDuplicateMessages() throws MessageCodecException, ClusterException {
+
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+
+    IEntityMessenger entityMessenger = registry.getEntityMessenger();
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+        .defaultResource("serverResource1")
+        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+        .build();
+
+    EhcacheStateService ehcacheStateService = registry.getStoreManagerService();
+    ehcacheStateService.configure(serverSideConfiguration);
+
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
+        .shared("primary")
+        .setActualKeyType(Long.class)
+        .setActualValueType(Long.class)
+        .build();
+
+    ehcacheStateService.createStore("test", serverStoreConfiguration);
+
+    ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker();
+    clientMessageTracker.add(CLIENT_ID);
+
+    Random random = new Random();
+    Set<Long> msgIds = new HashSet<>();
+    random.longs(100).distinct().forEach(x -> {
+      msgIds.add(x);
+      clientMessageTracker.track(x, CLIENT_ID);
+    });
+
+    Set<Long> applied = new HashSet<>();
+    msgIds.stream().limit(80).forEach(x -> {
+      applied.add(x);
+      clientMessageTracker.applied(x, CLIENT_ID);
+    });
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    activeEntity.invoke(client,
+        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore("test", serverStoreConfiguration));
+
+    reset(entityMessenger);
+    ServerStoreMessageFactory serverStoreMessageFactory = new ServerStoreMessageFactory("test", CLIENT_ID);
+    EhcacheEntityResponseFactory entityResponseFactory = new EhcacheEntityResponseFactory();
+    applied.forEach(y -> {
+      EhcacheEntityMessage message = serverStoreMessageFactory.appendOperation(y, createPayload(y));
+      message.setId(y);
+      assertThat(activeEntity.invoke(client, message), is(entityResponseFactory.success()));
+    });
+
+    verify(entityMessenger, times(0)).messageSelfAndDeferRetirement(any(), any());
   }
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
@@ -2815,6 +3013,10 @@ public class EhcacheActiveEntityTest {
 
     private EhcacheStateServiceImpl storeManagerService;
 
+    private IEntityMessenger entityMessenger;
+
+    private ClientCommunicator clientCommunicator;
+
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
         new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
 
@@ -2857,6 +3059,15 @@ public class EhcacheActiveEntityTest {
       return this.storeManagerService;
     }
 
+
+    private IEntityMessenger getEntityMessenger() {
+      return entityMessenger;
+    }
+
+    private ClientCommunicator getClientCommunicator() {
+      return clientCommunicator;
+    }
+
     private static Set<String> getIdentifiers(Set<OffHeapResourceIdentifier> pools) {
       Set<String> names = new HashSet<String>();
       for (OffHeapResourceIdentifier identifier: pools) {
@@ -2873,7 +3084,10 @@ public class EhcacheActiveEntityTest {
         final OffHeapResourceIdentifier resourceIdentifier = (OffHeapResourceIdentifier) serviceConfiguration;
         return (T) this.pools.get(resourceIdentifier);
       } else if (serviceConfiguration.getServiceType().equals(ClientCommunicator.class)) {
-        return (T) mock(ClientCommunicator.class);
+        if (this.clientCommunicator == null) {
+          this.clientCommunicator = mock(ClientCommunicator.class);
+        }
+        return (T) this.clientCommunicator;
       } else if(serviceConfiguration.getServiceType().equals(OffHeapResources.class)) {
         return (T) new OffHeapResources() {
           @Override
@@ -2887,7 +3101,10 @@ public class EhcacheActiveEntityTest {
         }
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {
-        return (T) mock(IEntityMessenger.class);
+        if (this.entityMessenger == null) {
+          this.entityMessenger = mock(IEntityMessenger.class);
+        }
+        return (T) this.entityMessenger;
       } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
         return (T) mock(ConsumerManagementRegistry.class);
       }
