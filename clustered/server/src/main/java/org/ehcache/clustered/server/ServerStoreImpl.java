@@ -100,38 +100,68 @@ public class ServerStoreImpl implements ServerStore, MapInternals {
 
 
   @Override
-  public long getDataAllocatedMemory() {return store.getDataAllocatedMemory();}
+  public long getSize() {
+    return store.getSize();
+  }
 
   @Override
-  public long getAllocatedMemory() {return store.getAllocatedMemory();}
+  public long getTableCapacity() {
+    return store.getTableCapacity();
+  }
 
   @Override
-  public long getRemovedSlotCount() {return store.getRemovedSlotCount();}
+  public long getUsedSlotCount() {
+    return store.getUsedSlotCount();
+  }
 
   @Override
-  public long getDataVitalMemory() {return store.getDataVitalMemory();}
+  public long getRemovedSlotCount() {
+    return store.getRemovedSlotCount();
+  }
 
   @Override
-  public int getReprobeLength() {return store.getReprobeLength();}
+  public long getAllocatedMemory() {
+    return store.getAllocatedMemory();
+  }
 
   @Override
-  public long getDataSize() {return store.getDataSize();}
+  public long getOccupiedMemory() {
+    return store.getOccupiedMemory();
+  }
 
   @Override
-  public long getDataOccupiedMemory() {return store.getDataOccupiedMemory();}
+  public long getVitalMemory() {
+    return store.getVitalMemory();
+  }
 
   @Override
-  public long getUsedSlotCount() {return store.getUsedSlotCount();}
+  public long getDataAllocatedMemory() {
+    return store.getDataAllocatedMemory();
+  }
 
   @Override
-  public long getSize() {return store.getSize();}
+  public long getDataOccupiedMemory() {
+    return store.getDataOccupiedMemory();
+  }
 
   @Override
-  public long getVitalMemory() {return store.getVitalMemory();}
+  public long getDataVitalMemory() {
+    return store.getDataVitalMemory();
+  }
 
   @Override
-  public long getOccupiedMemory() {return store.getOccupiedMemory();}
+  public long getDataSize() {
+    return store.getDataSize();
+  }
 
   @Override
-  public long getTableCapacity() {return store.getTableCapacity();}
+  public int getReprobeLength() {
+    //TODO
+    //MapInternals Interface may need to change to implement this function correctly.
+    //Currently MapInternals Interface contains function: int getReprobeLength();
+    //however OffHeapServerStore.reprobeLength() returns a long
+    //Thus there could be data loss
+
+    throw new UnsupportedOperationException("Not supported yet.");
+  }
 }

@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.server;
 
+import java.util.Arrays;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
@@ -32,6 +33,7 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
+import org.terracotta.context.TreeNode;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
@@ -40,6 +42,7 @@ import org.terracotta.offheapstore.paging.OffHeapStorageArea;
 import org.terracotta.offheapstore.paging.Page;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,14 +52,42 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Callable;
+import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
+
 public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheStateServiceImpl.class);
+
+  private static final String STATISTICS_STORE_TAG = "ServerStore";
+  private static final String STATISTICS_POOL_TAG = "Pool";
+  private static final String PROPERTY_STORE_KEY = "storeName";
+  private static final String PROPERTY_POOL_KEY = "poolName";
+
+  private static final Map<String, Function<ServerStoreImpl,Number>> STAT_STORE_METHOD_REFERENCES = new HashMap<>();
+  private static final Map<String, Function<ResourcePageSource,Number>> STAT_POOL_METHOD_REFERENCES = new HashMap<>();
+
+  static {
+    STAT_STORE_METHOD_REFERENCES.put("allocatedMemory", ServerStoreImpl::getAllocatedMemory);
+    STAT_STORE_METHOD_REFERENCES.put("dataOccupiedMemory", ServerStoreImpl::getDataOccupiedMemory);
+    STAT_STORE_METHOD_REFERENCES.put("occupiedMemory", ServerStoreImpl::getOccupiedMemory);
+    STAT_STORE_METHOD_REFERENCES.put("dataOccupiedMemory", ServerStoreImpl::getDataOccupiedMemory);
+    STAT_STORE_METHOD_REFERENCES.put("entries", ServerStoreImpl::getSize);
+    STAT_STORE_METHOD_REFERENCES.put("usedSlotCount", ServerStoreImpl::getUsedSlotCount);
+    STAT_STORE_METHOD_REFERENCES.put("dataVitalMemory", ServerStoreImpl::getDataVitalMemory);
+    STAT_STORE_METHOD_REFERENCES.put("vitalMemory", ServerStoreImpl::getVitalMemory);
+    STAT_STORE_METHOD_REFERENCES.put("reprobeLength", ServerStoreImpl::getReprobeLength);
+    STAT_STORE_METHOD_REFERENCES.put("removedSlotCount", ServerStoreImpl::getRemovedSlotCount);
+    STAT_STORE_METHOD_REFERENCES.put("dataSize", ServerStoreImpl::getDataSize);
+    STAT_STORE_METHOD_REFERENCES.put("tableCapacity", ServerStoreImpl::getTableCapacity);
+
+    STAT_POOL_METHOD_REFERENCES.put("allocatedSize", ResourcePageSource::getAllocatedSize);
+  }
 
   private final ServiceRegistry services;
   private final Set<String> offHeapResourceIdentifiers;
@@ -241,6 +272,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     } else if (source.reserve(pool.getSize())) {
       try {
         pageSource = new ResourcePageSource(pool);
+        registerPoolStatistics(poolName, pageSource);
       } catch (RuntimeException t) {
         source.release(pool.getSize());
         throw new ResourceConfigurationException("Failure allocating pool " + pool, t);
@@ -250,6 +282,42 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       throw new ResourceConfigurationException("Insufficient defined resources to allocate pool " + poolName + "=" + pool);
     }
     return pageSource;
+  }
+
+  private void registerStoreStatistics(ServerStoreImpl store, String storeName) throws InvalidStoreException {
+    STAT_STORE_METHOD_REFERENCES.entrySet().stream().forEach((entry)->
+      registerStatistic(store, storeName, entry.getKey(), STATISTICS_STORE_TAG, PROPERTY_STORE_KEY, () -> entry.getValue().apply(store) ));
+  }
+
+  private void registerPoolStatistics(String poolName, ResourcePageSource pageSource) {
+    STAT_POOL_METHOD_REFERENCES.entrySet().stream().forEach((entry)->
+      registerStatistic(pageSource, poolName, entry.getKey(), STATISTICS_POOL_TAG, PROPERTY_POOL_KEY, () -> entry.getValue().apply(pageSource))
+    );
+  }
+
+  private void unRegisterStoreStatistics(ServerStoreImpl store) {
+    TreeNode node = StatisticsManager.nodeFor(store);
+
+    if(node != null) {
+      node.clean();
+    }
+  }
+
+  private void unRegisterPoolStatistics(ResourcePageSource pageSource) {
+    TreeNode node = StatisticsManager.nodeFor(pageSource);
+
+    if(node != null) {
+      node.clean();
+    }
+  }
+
+  private void registerStatistic(Object context, String name, String observerName, String tag, String propertyKey, Callable<Number> callable) {
+    Set<String> tags = new HashSet<String>(Arrays.asList(tag,"tier"));
+    Map<String, Object> properties = new HashMap<String, Object>();
+    properties.put("discriminator", tag);
+    properties.put(propertyKey, name);
+
+    StatisticsManager.createPassThroughStatistic(context, observerName, tags, properties, callable);
   }
 
   private void releaseDedicatedPool(String name, PageSource pageSource) {
@@ -270,6 +338,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   public void destroy() {
     for (Map.Entry<String, ServerStoreImpl> storeEntry: stores.entrySet()) {
+      unRegisterStoreStatistics(storeEntry.getValue());
       storeEntry.getValue().close();
     }
     stores.clear();
@@ -300,6 +369,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     ServerSideConfiguration.Pool pool = resourcePageSource.getPool();
     OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
     if (source != null) {
+      unRegisterPoolStatistics(resourcePageSource);
       source.release(pool.getSize());
       LOGGER.info("Released {} bytes from resource '{}' for {} pool '{}'", pool.getSize(), pool.getServerResource(), poolType, poolName);
     }
@@ -313,11 +383,15 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
     ServerStoreImpl serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
     stores.put(name, serverStore);
+
+    registerStoreStatistics(serverStore, name);
+
     return serverStore;
   }
 
   public void destroyServerStore(String name) throws ClusterException {
     final ServerStoreImpl store = stores.remove(name);
+    unRegisterStoreStatistics(store);
     if (store == null) {
       throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
     } else {
@@ -418,6 +492,10 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
     public ServerSideConfiguration.Pool getPool() {
       return pool;
+    }
+
+    public long getAllocatedSize() {
+      return delegatePageSource.getAllocatedSizeUnSync();
     }
 
     @Override

@@ -22,6 +22,9 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 dependencies {
+  compile ("org.terracotta:statistics:$parent.statisticVersion") {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
   compile project(':clustered:common')
   compile group: 'org.terracotta', name: 'offheap-resource', version: parent.offheapResourceVersion
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion

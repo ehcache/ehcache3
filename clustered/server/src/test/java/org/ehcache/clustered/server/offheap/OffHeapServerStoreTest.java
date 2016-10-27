@@ -35,7 +35,10 @@ import org.terracotta.offheapstore.paging.UnlimitedPageSource;
 import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
+import org.junit.Assert;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doThrow;
@@ -198,6 +201,46 @@ public class OffHeapServerStoreTest extends ServerStoreTest {
     } catch (Throwable t) {
       throw (AssertionError) new AssertionError("Failed with seed " + seed).initCause(t);
     }
+  }
+
+  @Test
+  public void testServerSideUsageStats() {
+
+    long maxBytes = MEGABYTES.toBytes(1);
+    OffHeapServerStore store = new OffHeapServerStore(new UpfrontAllocatingPageSource(new OffHeapBufferSource(), maxBytes, MEGABYTES.toBytes(1)), new KeySegmentMapper(16));
+
+    int oneKb = 1024;
+    long smallLoopCount = 5;
+    ByteBuffer smallValue = ByteBuffer.allocate(oneKb);
+    for (long i = 0; i < smallLoopCount; i++) {
+      store.getAndAppend(i, smallValue.duplicate());
+    }
+
+    Assert.assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
+    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
+
+    //asserts above already guarantee that occupiedMemory <= maxBytes and that occupiedMemory <= allocatedMemory
+    Assert.assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+
+    Assert.assertThat(store.getSize(), is(smallLoopCount));
+
+    int multiplier = 100;
+    long largeLoopCount = 5 + smallLoopCount;
+    ByteBuffer largeValue = ByteBuffer.allocate(multiplier * oneKb);
+    for (long i = smallLoopCount; i < largeLoopCount; i++) {
+      store.getAndAppend(i, largeValue.duplicate());
+    }
+
+    Assert.assertThat(store.getAllocatedMemory(),lessThanOrEqualTo(maxBytes));
+    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo( (smallLoopCount * oneKb) + ( (largeLoopCount - smallLoopCount) * oneKb * multiplier) ));
+    Assert.assertThat(store.getAllocatedMemory(),greaterThanOrEqualTo(store.getOccupiedMemory()));
+
+    //asserts above already guarantee that occupiedMemory <= maxBytes and that occupiedMemory <= allocatedMemory
+    Assert.assertThat(store.getOccupiedMemory(),greaterThanOrEqualTo(smallLoopCount * oneKb));
+
+    Assert.assertThat(store.getSize(), is(smallLoopCount + (largeLoopCount - smallLoopCount)));
+
   }
 
 }
