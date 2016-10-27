@@ -26,8 +26,8 @@ import java.util.concurrent.ConcurrentMap;
 public class ClientMessageTracker {
 
   private final ConcurrentMap<UUID, MessageTracker> messageTrackers = new ConcurrentHashMap<>();
-  private UUID entityConfiguredStamp = null;
-  private long configuredTimestamp;
+  private volatile UUID entityConfiguredStamp = null;
+  private volatile long configuredTimestamp;
 
   public boolean isAdded(UUID clientId) {
     return messageTrackers.containsKey(clientId);

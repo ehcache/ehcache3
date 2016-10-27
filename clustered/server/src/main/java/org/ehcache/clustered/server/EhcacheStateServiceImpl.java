@@ -91,30 +91,31 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private final ServiceRegistry services;
   private final Set<String> offHeapResourceIdentifiers;
+  private volatile boolean configured = false;
 
   /**
    * The name of the resource to use for dedicated resource pools not identifying a resource from which
    * space for the pool is obtained.  This value may be {@code null};
    */
-  private String defaultServerResource;
+  private volatile String defaultServerResource;
 
   /**
    * The clustered shared resource pools specified by the CacheManager creating this {@code EhcacheActiveEntity}.
    * The index is the name assigned to the shared resource pool in the cache manager configuration.
    */
-  private Map<String, ResourcePageSource> sharedResourcePools;
+  private final Map<String, ResourcePageSource> sharedResourcePools = new ConcurrentHashMap<>();
 
   /**
    * The clustered dedicated resource pools specified by caches defined in CacheManagers using this
    * {@code EhcacheActiveEntity}.  The index is the cache identifier (alias).
    */
-  private Map<String, ResourcePageSource> dedicatedResourcePools = new HashMap<>();
+  private final Map<String, ResourcePageSource> dedicatedResourcePools = new ConcurrentHashMap<>();
 
   /**
    * The clustered stores representing the server-side of a {@code ClusterStore}.
    * The index is the cache alias/identifier.
    */
-  private Map<String, ServerStoreImpl> stores = Collections.emptyMap();
+  private final Map<String, ServerStoreImpl> stores = new ConcurrentHashMap<>();
 
   private final ClientMessageTracker messageTracker = new ClientMessageTracker();
   private final ConcurrentMap<String, InvalidationTracker> invalidationMap = new ConcurrentHashMap<>();
@@ -227,9 +228,8 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
         }
       }
 
-      this.sharedResourcePools = createPools(resolveResourcePools(configuration));
-      this.stores = new HashMap<>();
-
+      this.sharedResourcePools.putAll(createPools(resolveResourcePools(configuration)));
+      configured = true;
     } else {
       throw new InvalidStoreManagerException("Clustered Tier Manager already configured");
     }
@@ -349,8 +349,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     releasePools("shared", this.sharedResourcePools);
     releasePools("dedicated", this.dedicatedResourcePools);
 
-    this.sharedResourcePools = null;
+    this.sharedResourcePools.clear();
     invalidationMap.clear();
+    this.configured = false;
   }
 
   private void releasePools(String poolType, Map<String, ResourcePageSource> resourcePools) {
@@ -457,7 +458,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   public boolean isConfigured() {
-    return (sharedResourcePools != null);
+    return configured;
   }
 
   @Override
