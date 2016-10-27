@@ -227,6 +227,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
     }
+    if (timeSource == null) {
+      throw new NullPointerException("timeSource must not be null");
+    }
+    if (sizeOfEngine == null) {
+      throw new NullPointerException("sizeOfEngine must not be null");
+    }
     this.sizeOfEngine = sizeOfEngine;
     this.byteSized = this.sizeOfEngine instanceof NoopSizeOfEngine ? false : true;
     this.capacity = byteSized ? ((MemoryUnit) heapPool.getUnit()).toBytes(heapPool.getSize()) : heapPool.getSize();
@@ -710,7 +716,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       getOrComputeIfAbsentObserver.begin();
       Backend<K, V> backEnd = map;
 
+      // First try to find the value from heap
       OnHeapValueHolder<V> cachedValue = backEnd.get(key);
+
       final long now = timeSource.getTimeMillis();
       if (cachedValue == null) {
         final Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
@@ -720,60 +728,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           }
         });
         cachedValue = backEnd.putIfAbsent(key, fault);
-        if (cachedValue == null) {
-          try {
-            final ValueHolder<V> value = fault.get();
-            final OnHeapValueHolder<V> newValue;
-            if(value != null) {
-              newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
-              if (newValue == null) {
-                // Inline expiry or sizing failure
-                backEnd.remove(key, fault);
-                getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-                return value;
-              }
-            } else {
-              backEnd.remove(key, fault);
-              getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
-              return null;
-            }
 
-            if (backEnd.replace(key, fault, newValue)) {
-              getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULTED);
-              updateUsageInBytesIfRequired(newValue.size());
-              enforceCapacity();
-              return getValue(newValue);
-            } else {
-              final AtomicReference<ValueHolder<V>> invalidatedValue = new AtomicReference<ValueHolder<V>>();
-              backEnd.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-                @Override
-                public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-                  notifyInvalidation(key, mappedValue);
-                  invalidatedValue.set(mappedValue);
-                  updateUsageInBytesIfRequired(mappedValue.size());
-                  return null;
-                }
-              });
-              ValueHolder<V> p = getValue(invalidatedValue.get());
-              if (p != null) {
-                if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
-                  getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED_MISS);
-                  return null;
-                } else {
-                  getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-                  return p;
-                }
-              }
-              getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-              return newValue;
-            }
-          } catch (Throwable e) {
-            backEnd.remove(key, fault);
-            throw new StoreAccessException(e);
-          }
+        if (cachedValue == null) {
+          return resolveFault(key, backEnd, now, fault);
         }
       }
 
+      // If we have a real value (not a fault), we make sure it is not expired
+      // If yes, we return null and remove it. If no, we return it (below)
       if (!(cachedValue instanceof Fault)) {
         if (cachedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           expireMappingUnderLock(key, cachedValue);
@@ -784,10 +746,68 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
 
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.HIT);
+
+      // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
       return getValue(cachedValue);
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return null;
+    }
+  }
+
+  private ValueHolder<V> resolveFault(final K key, Backend<K, V> backEnd, long now, Fault<V> fault) throws StoreAccessException {
+    try {
+      final ValueHolder<V> value = fault.get();
+      final OnHeapValueHolder<V> newValue;
+      if(value != null) {
+        newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
+        if (newValue == null) {
+          // Inline expiry or sizing failure
+          backEnd.remove(key, fault);
+          getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+          return value;
+        }
+      } else {
+        backEnd.remove(key, fault);
+        getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
+        return null;
+      }
+
+      if (backEnd.replace(key, fault, newValue)) {
+        getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULTED);
+        updateUsageInBytesIfRequired(newValue.size());
+        enforceCapacity();
+        return newValue;
+      }
+
+      final AtomicReference<ValueHolder<V>> invalidatedValue = new AtomicReference<ValueHolder<V>>();
+      backEnd.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+        @Override
+        public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+          notifyInvalidation(key, mappedValue);
+          invalidatedValue.set(mappedValue);
+          updateUsageInBytesIfRequired(mappedValue.size());
+          return null;
+        }
+      });
+
+      ValueHolder<V> p = getValue(invalidatedValue.get());
+      if (p != null) {
+        if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
+          getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED_MISS);
+          return null;
+        }
+
+        getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+        return p;
+      }
+
+      getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+      return newValue;
+
+    } catch (Throwable e) {
+      backEnd.remove(key, fault);
+      throw new StoreAccessException(e);
     }
   }
 
@@ -1086,7 +1106,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public String toString() {
-      return "[Fault : " + (complete ? (throwable == null ? value.toString() : throwable.getMessage()) : "???") + "]";
+      return "[Fault : " + (complete ? (throwable == null ? String.valueOf(value) : throwable.getMessage()) : "???") + "]";
     }
 
     @Override
