@@ -74,7 +74,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   static {
     STAT_STORE_METHOD_REFERENCES.put("allocatedMemory", ServerStoreImpl::getAllocatedMemory);
-    STAT_STORE_METHOD_REFERENCES.put("dataOccupiedMemory", ServerStoreImpl::getDataOccupiedMemory);
+    STAT_STORE_METHOD_REFERENCES.put("dataAllocatedMemory", ServerStoreImpl::getDataAllocatedMemory);
     STAT_STORE_METHOD_REFERENCES.put("occupiedMemory", ServerStoreImpl::getOccupiedMemory);
     STAT_STORE_METHOD_REFERENCES.put("dataOccupiedMemory", ServerStoreImpl::getDataOccupiedMemory);
     STAT_STORE_METHOD_REFERENCES.put("entries", ServerStoreImpl::getSize);
