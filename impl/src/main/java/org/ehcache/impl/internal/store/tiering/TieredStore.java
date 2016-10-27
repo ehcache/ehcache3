@@ -19,22 +19,22 @@ import org.ehcache.Cache;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.CacheConfigurationChangeListener;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
-import org.ehcache.impl.internal.store.heap.OnHeapStore;
-import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.events.StoreEventSource;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
+import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
+import org.ehcache.impl.internal.store.heap.OnHeapStore;
+import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.statistics.StatisticsManager;
@@ -143,15 +143,11 @@ public class TieredStore<K, V> implements Store<K, V> {
 
   @Override
   public ValueHolder<V> putIfAbsent(K key, V value) throws StoreAccessException {
-    ValueHolder<V> previous = null;
     try {
-      previous = authoritativeTier.putIfAbsent(key, value);
+      return authoritativeTier.putIfAbsent(key, value);
     } finally {
-      if (previous == null) {
-        cachingTier().invalidate(key);
-      }
+      cachingTier().invalidate(key);
     }
-    return previous;
   }
 
   @Override
@@ -165,79 +161,55 @@ public class TieredStore<K, V> implements Store<K, V> {
 
   @Override
   public RemoveStatus remove(K key, V value) throws StoreAccessException {
-    RemoveStatus removed = null;
       try {
-        removed = authoritativeTier.remove(key, value);
-        return removed;
+        return authoritativeTier.remove(key, value);
       } finally {
-        if (removed != null && removed.equals(RemoveStatus.REMOVED)) {
-          cachingTier().invalidate(key);
-        }
+        cachingTier().invalidate(key);
       }
   }
 
   @Override
   public ValueHolder<V> replace(K key, V value) throws StoreAccessException {
-    ValueHolder<V> previous = null;
-    boolean exceptionThrown = true;
     try {
-      previous = authoritativeTier.replace(key, value);
-      exceptionThrown = false;
+      return authoritativeTier.replace(key, value);
     } finally {
-      if (exceptionThrown || previous != null) {
-        cachingTier().invalidate(key);
-      }
+      cachingTier().invalidate(key);
     }
-    return previous;
   }
 
   @Override
   public ReplaceStatus replace(K key, V oldValue, V newValue) throws StoreAccessException {
-    ReplaceStatus replaced = null;
     try {
-      replaced = authoritativeTier.replace(key, oldValue, newValue);
+      return authoritativeTier.replace(key, oldValue, newValue);
     } finally {
-      if (replaced != null && replaced.equals(ReplaceStatus.HIT)) {
-        cachingTier().invalidate(key);
-      }
+      cachingTier().invalidate(key);
     }
-    return replaced;
   }
 
   @Override
   public void clear() throws StoreAccessException {
-    boolean interrupted = false;
-    while(!cachingTierRef.compareAndSet(realCachingTier, noopCachingTier)) {
-      synchronized (noopCachingTier) {
-        if(cachingTierRef.get() == noopCachingTier) {
-          try {
-            noopCachingTier.wait();
-          } catch (InterruptedException e) {
-            interrupted = true;
-          }
-        }
-      }
-    }
-    if(interrupted) {
-      Thread.currentThread().interrupt();
-    }
+    swapCachingTiers();
     try {
       authoritativeTier.clear();
     } finally {
       try {
         realCachingTier.clear();
       } finally {
-        if(!cachingTierRef.compareAndSet(noopCachingTier, realCachingTier)) {
-          throw new AssertionError("Something bad happened");
-        }
-        synchronized (noopCachingTier) {
-          noopCachingTier.notify();
-        }
+        swapBackCachingTiers();
       }
     }
   }
 
   private void invalidateAllInternal() throws StoreAccessException {
+    swapCachingTiers();
+    try {
+      realCachingTier.invalidateAll();
+    } finally {
+      swapBackCachingTiers();
+    }
+  }
+
+  private void swapCachingTiers() {
     boolean interrupted = false;
     while(!cachingTierRef.compareAndSet(realCachingTier, noopCachingTier)) {
       synchronized (noopCachingTier) {
@@ -253,15 +225,14 @@ public class TieredStore<K, V> implements Store<K, V> {
     if(interrupted) {
       Thread.currentThread().interrupt();
     }
-    try {
-      realCachingTier.invalidateAll();
-    } finally {
-      if(!cachingTierRef.compareAndSet(noopCachingTier, realCachingTier)) {
-        throw new AssertionError("Something bad happened");
-      }
-      synchronized (noopCachingTier) {
-        noopCachingTier.notify();
-      }
+  }
+
+  private void swapBackCachingTiers() {
+    if(!cachingTierRef.compareAndSet(noopCachingTier, realCachingTier)) {
+      throw new AssertionError("Something bad happened");
+    }
+    synchronized (noopCachingTier) {
+      noopCachingTier.notify();
     }
   }
 
