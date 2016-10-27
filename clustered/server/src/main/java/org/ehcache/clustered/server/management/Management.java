@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ServiceRegistry;
+import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.service.registry.ConsumerManagementRegistry;
 import org.terracotta.management.service.registry.ConsumerManagementRegistryConfiguration;
@@ -30,11 +31,25 @@ import org.terracotta.management.service.registry.provider.ClientBinding;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 
+import java.util.Collection;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.atomic.AtomicLong;
+
+import static java.util.Arrays.asList;
 
 public class Management {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Management.class);
+
+  // TODO FIXME: the following things are just temporary and should be removed/changed asap
+  // - scheduling should be done by using a voltron service (not yet available: see https://github.com/Terracotta-OSS/terracotta-apis/issues/158)
+  // - stats config should be given when configuring the entities (https://github.com/ehcache/ehcache3/issues/1567)
+  private static final AtomicLong managementSchedulerCount = new AtomicLong();
+  private ScheduledExecutorService managementScheduler;
+  private final StatisticConfiguration statisticConfiguration = new StatisticConfiguration();
 
   private final ConsumerManagementRegistry managementRegistry;
   private final ServiceRegistry services;
@@ -55,6 +70,19 @@ public class Management {
       managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider());
       // expose settings about pools
       managementRegistry.addManagementProvider(new PoolSettingsManagementProvider(ehcacheStateService));
+
+      managementScheduler = Executors.unconfigurableScheduledExecutorService(Executors.newSingleThreadScheduledExecutor(
+        r -> {
+          Thread t = Executors.defaultThreadFactory().newThread(r);
+          t.setDaemon(true);
+          t.setName("ManagementScheduler-" + managementSchedulerCount.incrementAndGet());
+          return t;
+        }));
+
+      // expose stats about server stores
+      managementRegistry.addManagementProvider(new ServerStoreStatisticsManagementProvider(statisticConfiguration, managementScheduler));
+      // expose stats about pools
+      managementRegistry.addManagementProvider(new PoolStatisticsManagementProvider(ehcacheStateService, statisticConfiguration, managementScheduler));
     }
   }
 
@@ -65,14 +93,77 @@ public class Management {
 
       managementRegistry.register(ehcacheStateService);
 
+      // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
+      // this object is ignored from the stats and descriptors
       managementRegistry.register(PoolBinding.ALL_SHARED);
 
+      // exposes available offheap service resources
       for (String identifier : offHeapResourceIdentifiers) {
         OffHeapResource offHeapResource = services.getService(OffHeapResourceIdentifier.identifier(identifier));
         managementRegistry.register(new OffHeapResourceBinding(identifier, offHeapResource));
       }
 
+      // expose management calls on statistic collector
+      StatisticCollectorManagementProvider collectorManagementProvider = new StatisticCollectorManagementProvider(
+        managementRegistry,
+        statisticConfiguration,
+        managementScheduler,
+        new String[]{"PoolStatistics", "ServerStoreStatistics"});
+
+      managementRegistry.addManagementProvider(collectorManagementProvider);
+
+      // start collecting stats
+      collectorManagementProvider.start();
+
+      // expose the management registry inside voltorn
       managementRegistry.refresh();
+
+      //TODO FIXME: following code should be triggered by a remote management call (https://github.com/Terracotta-OSS/terracotta-apis/issues/168)
+      try {
+        LOGGER.trace("init() - activating statistics");
+
+        Context entityContext = Context.create(managementRegistry.getContextContainer().getName(), managementRegistry.getContextContainer().getValue());
+
+        managementRegistry
+          .withCapability("StatisticCollector")
+          .call("updateCollectedStatistics",
+            new Parameter("PoolStatistics"),
+            new Parameter(asList(
+              "Pool:AllocatedSize"
+            ), Collection.class.getName()))
+          .on(entityContext)
+          .build()
+          .execute()
+          .getSingleResult()
+          .getValue();
+
+        managementRegistry
+          .withCapability("StatisticCollector")
+          .call("updateCollectedStatistics",
+            new Parameter("ServerStoreStatistics"),
+            new Parameter(asList(
+              "Store:AllocatedMemory",
+              "Store:DataAllocatedMemory",
+              "Store:OccupiedMemory",
+              "Store:DataOccupiedMemory",
+              "Store:Entries",
+              "Store:UsedSlotCount",
+              "Store:DataVitalMemory",
+              "Store:VitalMemory",
+              "Store:ReprobeLength",
+              "Store:RemovedSlotCount",
+              "Store:DataSize",
+              "Store:TableCapacity"
+            ), Collection.class.getName()))
+          .on(entityContext)
+          .build()
+          .execute()
+          .getSingleResult()
+          .getValue();
+
+      } catch (ExecutionException e) {
+        throw new RuntimeException(e.getCause());
+      }
     }
   }
 
@@ -80,6 +171,7 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("close()");
       managementRegistry.close();
+      managementScheduler.shutdown();
     }
   }
 

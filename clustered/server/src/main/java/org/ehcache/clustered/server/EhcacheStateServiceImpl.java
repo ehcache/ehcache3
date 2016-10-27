@@ -25,6 +25,7 @@ import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
+import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
@@ -37,11 +38,7 @@ import org.terracotta.context.TreeNode;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
-import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
-import org.terracotta.offheapstore.paging.OffHeapStorageArea;
-import org.terracotta.offheapstore.paging.Page;
 import org.terracotta.offheapstore.paging.PageSource;
-import org.terracotta.offheapstore.paging.UpfrontAllocatingPageSource;
 import org.terracotta.statistics.StatisticsManager;
 
 import java.util.Collections;
@@ -56,15 +53,13 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
-import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
-import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
 
 public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheStateServiceImpl.class);
 
-  private static final String STATISTICS_STORE_TAG = "ServerStore";
+  private static final String STATISTICS_STORE_TAG = "Store";
   private static final String STATISTICS_POOL_TAG = "Pool";
   private static final String PROPERTY_STORE_KEY = "storeName";
   private static final String PROPERTY_POOL_KEY = "poolName";
@@ -139,7 +134,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   Set<String> getSharedResourcePoolIds() {
-    return sharedResourcePools == null ? new HashSet<>() : Collections.unmodifiableSet(sharedResourcePools.keySet());
+    return Collections.unmodifiableSet(sharedResourcePools.keySet());
   }
 
   Set<String> getDedicatedResourcePoolIds() {
@@ -152,13 +147,23 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   @Override
   public Map<String, ServerSideConfiguration.Pool> getSharedResourcePools() {
-    return sharedResourcePools == null ? Collections.emptyMap() : sharedResourcePools.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> e.getValue().getPool()));
+    return sharedResourcePools.entrySet().stream().collect(toMap(Map.Entry::getKey, e -> e.getValue().getPool()));
+  }
+
+  @Override
+  public ResourcePageSource getSharedResourcePageSource(String name) {
+    return sharedResourcePools.get(name);
   }
 
   @Override
   public ServerSideConfiguration.Pool getDedicatedResourcePool(String name) {
     ResourcePageSource resourcePageSource = dedicatedResourcePools.get(name);
     return resourcePageSource == null ? null : resourcePageSource.getPool();
+  }
+
+  @Override
+  public ResourcePageSource getDedicatedResourcePageSource(String name) {
+    return dedicatedResourcePools.get(name);
   }
 
   public void validate(ServerSideConfiguration configuration) throws ClusterException {
@@ -473,50 +478,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private static boolean nullSafeEquals(Object s1, Object s2) {
     return (s1 == null ? s2 == null : s1.equals(s2));
-  }
-
-  /**
-   * Pairs a {@link ServerSideConfiguration.Pool} and an {@link UpfrontAllocatingPageSource} instance providing storage
-   * for the pool.
-   */
-  private static class ResourcePageSource implements PageSource{
-    /**
-     * A description of the resource allocation underlying this {@code PageSource}.
-     */
-    private final ServerSideConfiguration.Pool pool;
-    private final UpfrontAllocatingPageSource delegatePageSource;
-
-    private ResourcePageSource(ServerSideConfiguration.Pool pool) {
-      this.pool = pool;
-      this.delegatePageSource = new UpfrontAllocatingPageSource(new OffHeapBufferSource(), pool.getSize(), GIGABYTES.toBytes(1), MEGABYTES.toBytes(128));
-    }
-
-    public ServerSideConfiguration.Pool getPool() {
-      return pool;
-    }
-
-    public long getAllocatedSize() {
-      return delegatePageSource.getAllocatedSizeUnSync();
-    }
-
-    @Override
-    public Page allocate(int size, boolean thief, boolean victim, OffHeapStorageArea owner) {
-      return delegatePageSource.allocate(size, thief, victim, owner);
-    }
-
-    @Override
-    public void free(Page page) {
-      delegatePageSource.free(page);
-    }
-
-    @Override
-    public String toString() {
-      final StringBuilder sb = new StringBuilder("ResourcePageSource{");
-      sb.append("pool=").append(pool);
-      sb.append(", delegatePageSource=").append(delegatePageSource);
-      sb.append('}');
-      return sb.toString();
-    }
   }
 
 }

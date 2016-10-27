@@ -18,7 +18,6 @@ package org.ehcache.clustered.management;
 import org.ehcache.Cache;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.hamcrest.CoreMatchers;
 import org.junit.BeforeClass;
 import org.junit.FixMethodOrder;
 import org.junit.Ignore;
@@ -40,8 +39,8 @@ import org.terracotta.management.model.stats.history.CounterHistory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -58,11 +57,13 @@ import static org.junit.Assert.assertThat;
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ClusteringManagementServiceTest extends AbstractClusteringManagementTest {
 
-  private static final Collection<Descriptor> ONHEAP_DESCRIPTORS = new ArrayList<>();
-  private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
-  private static final Collection<Descriptor> DISK_DESCRIPTORS =  new ArrayList<>();
-  private static final Collection<Descriptor> CLUSTERED_DESCRIPTORS =  new ArrayList<>();
-  private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<StatisticDescriptor> ONHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<StatisticDescriptor> OFFHEAP_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<StatisticDescriptor> DISK_DESCRIPTORS =  new ArrayList<>();
+  private static final Collection<StatisticDescriptor> CLUSTERED_DESCRIPTORS =  new ArrayList<>();
+  private static final Collection<StatisticDescriptor> CACHE_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<StatisticDescriptor> POOL_DESCRIPTORS = new ArrayList<>();
+  private static final Collection<StatisticDescriptor> SERVER_STORE_DESCRIPTORS = new ArrayList<>();
 
   @Test
   @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
@@ -115,15 +116,25 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   public void test_D_server_capabilities_exposed() throws Exception {
     Capability[] capabilities = consumer.readTopology().getSingleStripe().getActiveServerEntity(serverEntityIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
 
-    assertThat(capabilities.length, equalTo(4));
+    assertThat(capabilities.length, equalTo(7));
 
     assertThat(capabilities[0].getName(), equalTo("ClientStateSettings"));
     assertThat(capabilities[1].getName(), equalTo("OffHeapResourceSettings"));
     assertThat(capabilities[2].getName(), equalTo("ServerStoreSettings"));
     assertThat(capabilities[3].getName(), equalTo("PoolSettings"));
+    assertThat(capabilities[4].getName(), equalTo("ServerStoreStatistics"));
+    assertThat(capabilities[5].getName(), equalTo("PoolStatistics"));
+    assertThat(capabilities[6].getName(), equalTo("StatisticCollector"));
 
     assertThat(capabilities[1].getDescriptors(), hasSize(3)); // time + 2 resources
     assertThat(capabilities[2].getDescriptors(), hasSize(4)); // time descriptor + 3 dedicated store
+
+    // stats
+
+    assertThat(capabilities[4].getDescriptors(), containsInAnyOrder(SERVER_STORE_DESCRIPTORS.toArray()));
+    assertThat(capabilities[4].getDescriptors(), hasSize(SERVER_STORE_DESCRIPTORS.size()));
+    assertThat(capabilities[5].getDescriptors(), containsInAnyOrder(POOL_DESCRIPTORS.toArray()));
+    assertThat(capabilities[5].getDescriptors(), hasSize(POOL_DESCRIPTORS.size()));
 
     // ClientStateSettings
 
@@ -207,7 +218,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     cache1.get("key1");
     cache1.get("key2");
 
-
+    List<ContextualStatistics> allStats = new ArrayList<>();
     long val = 0;
 
     // it could be several seconds before the sampled stats could become available
@@ -216,6 +227,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
       // get the stats (we are getting the primitive counter, not the sample history)
       List<ContextualStatistics> stats = waitForNextStats();
+      allStats.addAll(stats);
+
       for (ContextualStatistics stat : stats) {
         if (stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
           Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
@@ -233,6 +246,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     do {
 
       List<ContextualStatistics> stats = waitForNextStats();
+      allStats.addAll(stats);
+
       for (ContextualStatistics stat : stats) {
         if (stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
           Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
@@ -244,7 +259,51 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
     } while(val != 4);
 
+    // wait until we have some stats coming from the server entity
+    while (!allStats.stream().filter(statistics -> statistics.getContext().contains("consumerId")).findFirst().isPresent()) {
+      allStats.addAll(waitForNextStats());
+    }
+    List<ContextualStatistics> serverStats = allStats.stream().filter(statistics -> statistics.getContext().contains("consumerId")).collect(Collectors.toList());
 
+    // server-side stats
+
+    assertThat(
+      serverStats.stream()
+        .map(ContextualStatistics::getCapability)
+        .collect(Collectors.toSet()),
+      equalTo(new HashSet<>(Arrays.asList("PoolStatistics", "ServerStoreStatistics"))));
+
+    // ensure we collect stats from all registered objects (pools and stores)
+
+    assertThat(
+      serverStats.stream()
+        .filter(statistics -> statistics.getCapability().equals("PoolStatistics"))
+        .map(statistics -> statistics.getContext().get("alias"))
+        .collect(Collectors.toSet()),
+      equalTo(new HashSet<>(Arrays.asList("resource-pool-b", "resource-pool-a", "dedicated-cache-1", "cache-2"))));
+
+    assertThat(
+      serverStats.stream()
+        .filter(statistics -> statistics.getCapability().equals("ServerStoreStatistics"))
+        .map(statistics -> statistics.getContext().get("alias"))
+        .collect(Collectors.toSet()),
+      equalTo(new HashSet<>(Arrays.asList("shared-cache-3", "shared-cache-2", "dedicated-cache-1", "cache-2"))));
+
+    // ensure we collect all the stat names
+
+    assertThat(
+      serverStats.stream()
+        .filter(statistics -> statistics.getCapability().equals("PoolStatistics"))
+        .flatMap(statistics -> statistics.getStatistics().keySet().stream())
+        .collect(Collectors.toSet()),
+      equalTo(POOL_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet())));
+
+    assertThat(
+      serverStats.stream()
+        .filter(statistics -> statistics.getCapability().equals("ServerStoreStatistics"))
+        .flatMap(statistics -> statistics.getStatistics().keySet().stream())
+        .collect(Collectors.toSet()),
+      equalTo(SERVER_STORE_DESCRIPTORS.stream().map(StatisticDescriptor::getName).collect(Collectors.toSet())));
   }
 
   @BeforeClass
@@ -353,6 +412,20 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", StatisticType.COUNTER_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRatioRatio", StatisticType.RATIO_HISTORY));
 
+    POOL_DESCRIPTORS.add(new StatisticDescriptor("Pool:AllocatedSize", StatisticType.SIZE_HISTORY));
+
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:AllocatedMemory", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataAllocatedMemory", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:OccupiedMemory", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataOccupiedMemory", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:Entries", StatisticType.COUNTER_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:UsedSlotCount", StatisticType.COUNTER_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataVitalMemory", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:VitalMemory", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:ReprobeLength", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:RemovedSlotCount", StatisticType.COUNTER_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataSize", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:TableCapacity", StatisticType.SIZE_HISTORY));
   }
 
 }

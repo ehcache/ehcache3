@@ -34,6 +34,9 @@ dependencies {
     exclude group: 'org.terracotta.management', module: 'management-registry'
     exclude group: 'org.terracotta.management', module: 'management-model'
   }
+  compile ("org.terracotta:statistics:$parent.statisticVersion") {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
   compile"org.terracotta.management.dist:management-common:$parent.managementVersion"
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
