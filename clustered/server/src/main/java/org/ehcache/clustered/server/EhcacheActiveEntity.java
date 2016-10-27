@@ -821,7 +821,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       if (!removedFromClient) {
         throw new InvalidStoreException("Clustered tier '" + name + "' is not in use by client");
       } else {
-        management.releaseStore(clientDescriptor, clientStateMap.get(clientDescriptor), name);
+        management.storeReleased(clientDescriptor, clientStateMap.get(clientDescriptor), name);
       }
     } else {
       throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");

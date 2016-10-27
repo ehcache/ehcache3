@@ -132,7 +132,7 @@ public class Management {
     }
   }
 
-  public void releaseStore(ClientDescriptor clientDescriptor, ClientState clientState, String storeName) {
+  public void storeReleased(ClientDescriptor clientDescriptor, ClientState clientState, String storeName) {
     if (managementRegistry != null) {
       managementRegistry.refresh();
       managementRegistry.pushServerEntityNotification(new ClientBinding(clientDescriptor, clientState), "EHCACHE_SERVER_STORE_RELEASED", Context.create("storeName", storeName));
