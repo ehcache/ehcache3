@@ -20,20 +20,20 @@ import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -57,7 +57,6 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.Collections.singleton;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -163,14 +162,14 @@ public class TieredStoreTest {
 
   @Test
   public void testPutIfAbsent_whenPresent() throws Exception {
-    when(numberAuthoritativeTier.putIfAbsent(eq(1), eq("one"))).thenReturn(newValueHolder("un"));
+    when(numberAuthoritativeTier.putIfAbsent(1, "one")).thenReturn(newValueHolder("un"));
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.putIfAbsent(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
 
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
+    verify(numberCachingTier, times(1)).invalidate(1);
+    verify(numberAuthoritativeTier, times(1)).putIfAbsent(1, "one");
   }
 
   @Test
@@ -203,7 +202,7 @@ public class TieredStoreTest {
 
     assertThat(tieredStore.remove(1, "one"), is(RemoveStatus.KEY_MISSING));
 
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberCachingTier).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).remove(eq(1), eq("one"));
   }
 
@@ -227,7 +226,7 @@ public class TieredStoreTest {
 
     assertThat(tieredStore.replace(1, "one"), is(nullValue()));
 
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberCachingTier).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("one"));
   }
 
@@ -251,7 +250,7 @@ public class TieredStoreTest {
 
     assertThat(tieredStore.replace(1, "un", "one"), is(ReplaceStatus.MISS_NOT_PRESENT));
 
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberCachingTier).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
   }
 
