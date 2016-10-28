@@ -122,7 +122,7 @@ public class ChainResolver<K, V> {
           }
         }
       } else {
-        payload.flip();
+        payload.rewind();
         chainBuilder = chainBuilder.add(payload);
       }
     }
