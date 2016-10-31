@@ -19,12 +19,14 @@ import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
+import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
 import org.terracotta.management.service.registry.provider.AliasBindingManagementProvider;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.stream.Collectors;
 
 @Named("PoolSettings")
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
@@ -44,6 +46,11 @@ class PoolSettingsManagementProvider extends AliasBindingManagementProvider<Pool
       .set("type", "PoolSettingsManagementProvider")
       .set("defaultServerResource", ehcacheStateService.getDefaultServerResource()));
     return descriptors;
+  }
+
+  @Override
+  public Collection<ExposedObject<PoolBinding>> getExposedObjects() {
+    return super.getExposedObjects().stream().filter(e -> e.getTarget() != PoolBinding.ALL_SHARED).collect(Collectors.toList());
   }
 
   @Override
@@ -69,7 +76,7 @@ class PoolSettingsManagementProvider extends AliasBindingManagementProvider<Pool
         Collections.singleton(new Settings(getContext())
           .set("serverResource", getBinding().getValue().getServerResource())
           .set("size", getBinding().getValue().getSize())
-          .set("allocationType", getBinding().getAllocationType()));
+          .set("allocationType", getBinding().getAllocationType().name().toLowerCase()));
     }
   }
 
