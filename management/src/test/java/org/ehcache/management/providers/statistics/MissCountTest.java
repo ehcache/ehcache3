@@ -16,13 +16,11 @@
 package org.ehcache.management.providers.statistics;
 
 import static java.util.Arrays.asList;
-import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.CoreMatchers.is;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -31,16 +29,14 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
-import org.ehcache.config.Configuration;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.EhcacheManager;
-import org.ehcache.core.config.DefaultConfiguration;
+import org.ehcache.config.builders.CacheConfigurationBuilder;
+import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
-import org.ehcache.spi.service.Service;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -50,10 +46,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
 
-/**
- *
- *
- */
 @RunWith(Parameterized.class)
 public class MissCountTest {
 
@@ -76,13 +68,12 @@ public class MissCountTest {
     { newResourcePoolsBuilder().offheap(1, MB), Arrays.asList("OffHeap:MissCount"), Arrays.asList(2L), 2L },
     { newResourcePoolsBuilder().disk(1, MB), Arrays.asList("Disk:MissCount"), Arrays.asList(2L), 2L },
 
-    //2 tier
+    //2 tiers
     { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), Arrays.asList("OnHeap:MissCount","OffHeap:MissCount"), Arrays.asList(2L,2L), 2L},
     { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), Arrays.asList("OnHeap:MissCount","Disk:MissCount"), Arrays.asList(2L,2L), 2L},
     //offheap and disk configuration below is not valid.  Throws IllegalStateException no Store.Provider found to handle configured resource types [offheap,disk]
-    //{ newResourcePoolsBuilder().offheap(1, MB).disk(2, MB), Arrays.asList("OffHeap:MissCount","Disk:MissCount"), Arrays.asList(1L,2L), CACHE_HIT_TOTAL},
 
-    //3 tier
+    //3 tiers
     { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB).disk(3, MB), Arrays.asList("OnHeap:MissCount","OffHeap:MissCount","Disk:MissCount"), Arrays.asList(2L,2L,2L), 2L}
     });
   }
@@ -96,24 +87,23 @@ public class MissCountTest {
 
   @Test
   public void test() throws InterruptedException, IOException {
-    DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
-    registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES));
-    ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
-
-    Configuration cacheConfiguration = new DefaultConfiguration(EvictionTest.class.getClassLoader(),
-            new DefaultPersistenceConfiguration(diskPath.newFolder()));
-
-    Collection<Service> services = new ArrayList<Service>();
-    services.add(managementRegistry);
 
     CacheManager cacheManager = null;
 
     try {
-      cacheManager = new EhcacheManager(cacheConfiguration, services);
-      CacheConfiguration<Long, String> cacheConfig = newCacheConfigurationBuilder(Long.class, String.class, resources).build();
+      DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
+      registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES));
+      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
-      cacheManager.init();
-      Cache<Long, String> cache = cacheManager.createCache("myCache", cacheConfig);
+      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources).build();
+
+      cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
+          .withCache("myCache", cacheConfiguration)
+          .using(managementRegistry)
+          .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
+          .build(true);
+
+      Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
 
       cache.put(1L, "1");//put in lowest tier
       cache.put(2L, "2");//put in lowest tier
@@ -126,10 +116,10 @@ public class MissCountTest {
 
       long tierMissCountSum = 0;
       for (int i = 0; i < statNames.size(); i++) {
-        tierMissCountSum += StatsUtil.getStatValue(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
+        tierMissCountSum += StatsUtil.getExpectedValueFromCounterHistory(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
       }
 
-      long cacheMissCount = StatsUtil.getStatValue("Cache:MissCount", context, managementRegistry, cacheExpectedValue);
+      long cacheMissCount = StatsUtil.getExpectedValueFromCounterHistory("Cache:MissCount", context, managementRegistry, cacheExpectedValue);
       //A cache.get() checks every tier, so there is one miss per tier.  However the cache miss count only counts 1 miss regardless of the number of tiers.
       Assert.assertThat(tierMissCountSum/statNames.size(), is(cacheMissCount));
 
