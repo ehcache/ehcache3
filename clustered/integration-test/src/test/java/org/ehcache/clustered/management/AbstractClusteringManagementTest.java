@@ -45,6 +45,8 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.model.stats.Statistic;
+import org.terracotta.management.model.stats.StatisticHistory;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
@@ -52,7 +54,9 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.Exchanger;
@@ -217,7 +221,10 @@ public abstract class AbstractClusteringManagementTest {
         new Parameter("StatisticsCapability"),
         new Parameter(asList(statNames), Collection.class.getName())));
 
-      return exchanger.exchange(null);
+      ContextualReturn<?> contextualReturn = exchanger.exchange(null);
+      assertThat(contextualReturn.hasExecuted(), is(true));
+
+      return contextualReturn;
     } finally {
       managementConnection.close();
     }
@@ -225,7 +232,7 @@ public abstract class AbstractClusteringManagementTest {
 
   protected static List<ContextualStatistics> waitForNextStats() {
     // uses the monitoring consumre entity to get the content of the stat buffer when some stats are collected
-    while (true) {
+    while (!Thread.currentThread().isInterrupted()) {
       List<ContextualStatistics> messages = consumer.drainMessageBuffer()
         .stream()
         .filter(message -> message.getType().equals("STATISTICS"))
@@ -237,6 +244,7 @@ public abstract class AbstractClusteringManagementTest {
         return messages;
       }
     }
+    return Collections.emptyList();
   }
 
   protected static List<String> messageTypes(List<Message> messages) {

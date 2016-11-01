@@ -108,6 +108,10 @@ public class HitCountTest {
           .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
           .build(true);
 
+      Context context = StatsUtil.createContext(managementRegistry);
+
+      StatsUtil.triggerStatComputation(managementRegistry, context, "Cache:HitCount", "OnHeap:HitCount", "OffHeap:HitCount", "Disk:HitCount");
+
       Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
 
       cache.put(1L, "1");//put in lowest tier
@@ -120,8 +124,6 @@ public class HitCountTest {
       cache.get(2L);//HIT highest tier
 
       cache.get(1L);//HIT middle/highest tier. Depends on tier configuration.
-
-      Context context = StatsUtil.createContext(managementRegistry);
 
       long tierHitCountSum = 0;
       for (int i = 0; i < statNames.size(); i++) {

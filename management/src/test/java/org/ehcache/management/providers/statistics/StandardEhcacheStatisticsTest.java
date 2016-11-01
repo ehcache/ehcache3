@@ -31,20 +31,21 @@ import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.history.CounterHistory;
 
 import static org.junit.Assert.assertThat;
 
-/**
- *
- *
- */
 public class StandardEhcacheStatisticsTest {
 
   private final EhcacheStatisticsProviderConfiguration EHCACHE_STATS_CONFIG = new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES);
+
+  @Rule
+  public final Timeout globalTimeout = Timeout.seconds(10);
 
   @Test
   public void statsClearCacheTest() throws InterruptedException {
@@ -79,17 +80,19 @@ public class StandardEhcacheStatisticsTest {
 
       Context context = StatsUtil.createContext(managementRegistry);
 
-      ContextualStatistics clearCounter = managementRegistry.withCapability("StatisticsCapability")
+      CounterHistory cache_Clear_Count;
+      do {
+        ContextualStatistics clearCounter = managementRegistry.withCapability("StatisticsCapability")
           .queryStatistics(Arrays.asList("Cache:ClearCount"))
           .on(context)
           .build()
           .execute()
           .getSingleResult();
 
-      assertThat(clearCounter.size(), Matchers.is(1));
-      CounterHistory cache_Clear_Count = clearCounter.getStatistic(CounterHistory.class, "Cache:ClearCount");
+        assertThat(clearCounter.size(), Matchers.is(1));
+        cache_Clear_Count = clearCounter.getStatistic(CounterHistory.class, "Cache:ClearCount");
+      } while(!Thread.currentThread().isInterrupted() && !StatsUtil.isHistoryReady(cache_Clear_Count, 0L));
 
-      while(!StatsUtil.isHistoryReady(cache_Clear_Count, 0L)) {}
       int mostRecentIndex = cache_Clear_Count.getValue().length - 1;
       assertThat(cache_Clear_Count.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(2L));
     }

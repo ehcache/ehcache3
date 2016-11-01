@@ -208,15 +208,14 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   public void test_G_stats_collection() throws Exception {
 
-    ContextualReturn<?> contextualReturn = sendManagementCallToCollectStats("Cache:HitCount");
-    assertThat(contextualReturn.hasExecuted(), is(true));
+    sendManagementCallToCollectStats("Cache:HitCount");
 
     Cache<String, String> cache1 = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     cache1.put("key1", "val");
     cache1.put("key2", "val");
 
-    cache1.get("key1");
-    cache1.get("key2");
+    cache1.get("key1"); // hit
+    cache1.get("key2"); // hit
 
     List<ContextualStatistics> allStats = new ArrayList<>();
     long val = 0;
@@ -229,15 +228,18 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
       List<ContextualStatistics> stats = waitForNextStats();
       allStats.addAll(stats);
 
+      // only keep CM stats for the following checks
+      stats = stats.stream()
+        .filter(statistics -> "dedicated-cache-1".equals(statistics.getContext().get("cacheName")))
+        .collect(Collectors.toList());
+
       for (ContextualStatistics stat : stats) {
-        if (stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
-          Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
-          if(samples.length > 0) {
-            val = samples[samples.length - 1].getValue();
-          }
+        Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+        if(samples.length > 0) {
+          val = samples[samples.length - 1].getValue();
         }
       }
-    } while(val != 2);
+    } while(!Thread.currentThread().isInterrupted() && val != 2);
 
     // do some other operations
     cache1.get("key1");
@@ -247,20 +249,22 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
       List<ContextualStatistics> stats = waitForNextStats();
       allStats.addAll(stats);
+      // only keep CM stats for the following checks
+      stats = stats.stream()
+        .filter(statistics -> "dedicated-cache-1".equals(statistics.getContext().get("cacheName")))
+        .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        if (stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
-          Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
-          if(samples.length > 0) {
-            val = samples[samples.length - 1].getValue();
-          }
+        Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
+        if(samples.length > 0) {
+          val = samples[samples.length - 1].getValue();
         }
       }
 
-    } while(val != 4);
+    } while(!Thread.currentThread().isInterrupted() && val != 4);
 
     // wait until we have some stats coming from the server entity
-    while (!allStats.stream().filter(statistics -> statistics.getContext().contains("consumerId")).findFirst().isPresent()) {
+    while (!Thread.currentThread().isInterrupted() &&  !allStats.stream().filter(statistics -> statistics.getContext().contains("consumerId")).findFirst().isPresent()) {
       allStats.addAll(waitForNextStats());
     }
     List<ContextualStatistics> serverStats = allStats.stream().filter(statistics -> statistics.getContext().contains("consumerId")).collect(Collectors.toList());

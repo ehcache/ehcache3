@@ -203,7 +203,6 @@ public class Management {
       LOGGER.trace("sharedPoolsConfigured()");
       ehcacheStateService.getSharedResourcePools()
         .entrySet()
-        .stream()
         .forEach(e -> managementRegistry.register(new PoolBinding(e.getKey(), e.getValue(), PoolBinding.AllocationType.SHARED)));
       managementRegistry.refresh();
       managementRegistry.pushServerEntityNotification(PoolBinding.ALL_SHARED, "EHCACHE_RESOURCE_POOLS_CONFIGURED");

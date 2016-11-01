@@ -66,11 +66,11 @@ import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.HigherCachingTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
-import org.ehcache.core.statistics.TierOperationStatistic;
-import org.ehcache.core.statistics.TierOperationStatistic.TierOperationOutcomes;
+import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
+import org.terracotta.statistics.MappedOperationStatistic;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
 
@@ -1665,7 +1665,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final Map<Store<?, ?>, List<Copier>> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, List<Copier>>();
-    private final Map<OnHeapStore<?, ?>, Collection<TierOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OnHeapStore<?, ?>, Collection<TierOperationStatistic<?, ?>>>();
+    private final Map<OnHeapStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OnHeapStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -1680,16 +1680,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStore<K, V> store = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
-      Collection<TierOperationStatistic<?, ?>> tieredOps = new ArrayList<TierOperationStatistic<?, ?>>();
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
 
-      TierOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
-              new TierOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome>(
+      MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
+              new MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome>(
                       store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "get", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(store);
       tieredOps.add(get);
 
-      TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-              new TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
+              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
                       store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(store);
       tieredOps.add(evict);
@@ -1777,16 +1777,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStore<K, V> cachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), serviceConfigs);
-      Collection<TierOperationStatistic<?, ?>> tieredOps = new ArrayList<TierOperationStatistic<?, ?>>();
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
 
-      TierOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome> get =
-              new TierOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome>(
+      MappedOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome> get =
+              new MappedOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome>(
                       cachingTier, TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "getOrComputeIfAbsent", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(cachingTier);
       tieredOps.add(get);
 
-      TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict
-              = new TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict
+              = new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
                       cachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(cachingTier);
       tieredOps.add(evict);
@@ -1814,16 +1814,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
       OnHeapStore<K, V> higherCachingTier = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
-      Collection<TierOperationStatistic<?, ?>> tieredOps = new ArrayList<TierOperationStatistic<?, ?>>();
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
 
-      TierOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome> get =
-              new TierOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome>(
+      MappedOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome> get =
+              new MappedOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome>(
                       higherCachingTier, TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "getOrComputeIfAbsent", STATISTICS_TAG);
       StatisticsManager.associate(get).withParent(higherCachingTier);
       tieredOps.add(get);
 
-      TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
-              new TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
+              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
                       higherCachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(higherCachingTier);
       tieredOps.add(evict);
