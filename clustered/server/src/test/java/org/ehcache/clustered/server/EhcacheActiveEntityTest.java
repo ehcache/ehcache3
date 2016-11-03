@@ -2653,6 +2653,25 @@ public class EhcacheActiveEntityTest {
   }
 
   @Test
+  public void testSyncToPassiveWithoutDefaultServerResource() throws Exception {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder().build();
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
+
+    PassiveSynchronizationChannel syncChannel = mock(PassiveSynchronizationChannel.class);
+    activeEntity.synchronizeKeyToPassive(syncChannel, 1);
+  }
+
+  @Test
   public void testLoadExistingRecoversInflightInvalidationsForEventualCache() {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);

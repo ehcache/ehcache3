@@ -340,8 +340,12 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   public void synchronizeKeyToPassive(PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel, int concurrencyKey) {
     LOGGER.info("Sync started for concurrency key {}.", concurrencyKey);
     if (concurrencyKey == DEFAULT_KEY) {
-      ServerSideConfiguration configuration =
-        new ServerSideConfiguration(ehcacheStateService.getDefaultServerResource(), ehcacheStateService.getSharedResourcePools());
+      ServerSideConfiguration configuration;
+      if (ehcacheStateService.getDefaultServerResource() == null) {
+        configuration = new ServerSideConfiguration(ehcacheStateService.getSharedResourcePools());
+      } else {
+        configuration = new ServerSideConfiguration(ehcacheStateService.getDefaultServerResource(), ehcacheStateService.getSharedResourcePools());
+      }
 
       Map<String, ServerStoreConfiguration> storeConfigs = new HashMap<>();
       for (String storeName : ehcacheStateService.getStores()) {
