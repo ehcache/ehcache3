@@ -77,6 +77,12 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
     throw new UnsupportedOperationException("This method is not supported on replication message");
   }
 
+  @Override
+  public String toString() {
+    return operation().name();
+  }
+
+
   public abstract ReplicationOp operation();
 
   public static class ClientIDTrackerMessage extends PassiveReplicationMessage {
@@ -132,7 +138,12 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
 
     @Override
     public long concurrencyKey() {
-      return (this.cacheId.hashCode() + key);
+      return (key);
+    }
+
+    @Override
+    public String toString() {
+      return operation() + " on " + cacheId + ":" + key + " with concurrency " + concurrencyKey();
     }
   }
 
@@ -165,6 +176,11 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
     public String getCacheId() {
       return cacheId;
     }
+
+    @Override
+    public String toString() {
+      return operation() + " on " + cacheId + " with concurrency " + concurrencyKey();
+    }
   }
 
   public static class InvalidationCompleteMessage extends ClearInvalidationCompleteMessage {
@@ -178,7 +194,7 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
 
     @Override
     public long concurrencyKey() {
-      return (getCacheId().hashCode() + key);
+      return (key);
     }
 
     public ReplicationOp operation() {

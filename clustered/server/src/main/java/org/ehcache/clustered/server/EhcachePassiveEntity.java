@@ -228,6 +228,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         management.sharedPoolsConfigured();
         for (Map.Entry<String, ServerStoreConfiguration> entry : stateSyncMessage.getStoreConfigs().entrySet()) {
           ehcacheStateService.createStore(entry.getKey(), entry.getValue());
+          if(entry.getValue().getConsistency() == Consistency.EVENTUAL) {
+            ehcacheStateService.addInvalidationtracker(entry.getKey());
+          }
           management.serverStoreCreated(entry.getKey());
         }
         stateSyncMessage.getTrackedClients().stream().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
