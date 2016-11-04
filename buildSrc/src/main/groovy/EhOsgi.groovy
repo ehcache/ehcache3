@@ -76,13 +76,51 @@ class EhOsgi implements Plugin<Project> {
           }
         }
 
-        instruction 'Export-Package', '*'
+        instruction 'Export-Package', /*'org.ehcache;version="' + project.baseVersion + '";uses:="org.ehcache.config,org.ehcache.spi.loaderwriter"',*/ '*'
         instruction 'Import-Package', '*'
       }
       manifest.inheritFrom(osgiManifest) {
         eachEntry {
           if (it.getKey().startsWith('Bundle') || OSGI_OVERRIDE_KEYS.contains(it.getKey())) {
-            it.setValue(it.getMergeValue())
+            String value = it.getMergeValue()
+            if(it.getKey().startsWith('Export-Package')) {
+              String result = ''
+              int index = 0;
+              while(index < value.length()) {
+                int usesIndex = value.indexOf(';uses:="', index)
+                int commaIndex = value.indexOf(',', index)
+                if(usesIndex < commaIndex && usesIndex > 0) {
+                  String pkg = value.substring(index, usesIndex)
+                  if(pkg.startsWith("org.ehcache")) {
+                    result = result + pkg + ';version="' + project.baseVersion + '"'
+                  } else {
+                    result = result + pkg
+                  }
+                  int endUsesIndex = value.indexOf('",', usesIndex)
+                  result = result + value.substring(usesIndex, endUsesIndex) + '",'
+                  index = endUsesIndex + 2
+                } else if(commaIndex > 0) {
+                  String pkg = value.substring(index, commaIndex)
+                  if(pkg.startsWith("org.ehcache")) {
+                    result = result + pkg + ';version="' + project.baseVersion + '",'
+                  } else {
+                    result = result + pkg + ','
+                  }
+                  index = commaIndex + 1;
+                } else {
+                  String pkg = value.substring(index)
+                  if(pkg.startsWith("org.ehcache")) {
+                    result = result + pkg + ';version="' + project.baseVersion + '"'
+                  } else {
+                    result = result + pkg
+                  }
+                  index = value.length()
+                }
+              }
+              it.setValue(result)
+            } else {
+              it.setValue(value)
+            }
           } else {
             it.setValue(it.getBaseValue())
           }
