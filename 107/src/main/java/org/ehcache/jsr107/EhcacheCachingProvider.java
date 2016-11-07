@@ -87,7 +87,7 @@ public class EhcacheCachingProvider implements CachingProvider {
    *
    * @return a cache manager
    */
-  public Eh107CacheManager getCacheManager(URI uri, Configuration config) {
+  public CacheManager getCacheManager(URI uri, Configuration config) {
     return getCacheManager(new ConfigSupplier(uri, config), new Properties());
   }
 
@@ -101,7 +101,7 @@ public class EhcacheCachingProvider implements CachingProvider {
    *
    * @return a cache manager
    */
-  public Eh107CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
+  public CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
     return getCacheManager(new ConfigSupplier(uri, config), properties);
   }
 

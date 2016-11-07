@@ -80,6 +80,25 @@ A `<cache-template>` element may contain all the same child elements as a `<cach
 
 NOTE: We've set up a complete configuration <<examples.adoc#xml-with-107-extension,example>> to inspire you.
 
+== Property replacement in XML configuration files
+
+Java system properties can be referenced inside XML configuration files.
+The property value will replace the property reference during the configuration parsing.
+
+This is done by using the `${prop.name}` syntax.
+It is supported in all attributes and elements values that accept the `${}` characters as legal characters.
+This currently rules out all numbers, mostly used in sizing things, and identifiers, such as cache and template names.
+
+WARNING: If the system property does not exist, this will make the configuration parsing fail.
+
+A classical use case for this feature is for disk files location inside the `directory` attribute of the `persistence` tag:
+
+[source,xml]
+----
+<persistence directory="${user.home}/cache-data"/> <!--1-->
+----
+<1> Here `user.home` will be replaced by the value of the system property, something like `/home/user`
+
 == XML programmatic parsing
 
 NOTE: If you are obtaining your `CacheManager` through the JSR-107 API, what follows is done automatically
