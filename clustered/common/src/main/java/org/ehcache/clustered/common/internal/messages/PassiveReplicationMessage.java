@@ -132,7 +132,7 @@ public abstract class PassiveReplicationMessage extends EhcacheEntityMessage {
 
     @Override
     public long concurrencyKey() {
-      return (this.cacheId.hashCode() + key);
+      return key;
     }
   }
 

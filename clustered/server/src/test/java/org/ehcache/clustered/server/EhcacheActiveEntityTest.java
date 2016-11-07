@@ -30,6 +30,7 @@ import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationException;
+import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
@@ -39,6 +40,7 @@ import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ServerStoreLifeCycleReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
@@ -2896,6 +2898,45 @@ public class EhcacheActiveEntityTest {
 
     verify(entityMessenger, times(0)).messageSelfAndDeferRetirement(any(), any());
   }
+
+  @Test
+  public void testReplicationMessageAndOriginalServerStoreOpMessageHasSameConcurrency() throws MessageCodecException {
+
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+
+    IEntityMessenger entityMessenger = registry.getEntityMessenger();
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .defaultResource("serverResource1")
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .build();
+    activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
+    activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
+      .shared("primary")
+      .build();
+    activeEntity.invoke(client, MESSAGE_FACTORY.createServerStore("testCache", serverStoreConfiguration));
+
+    reset(entityMessenger);
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("testCache", CLIENT_ID);
+    EhcacheEntityMessage getAndAppend = messageFactory.getAndAppendOperation(1L, createPayload(1L));
+    activeEntity.invoke(client, getAndAppend);
+
+    ArgumentCaptor<PassiveReplicationMessage.ChainReplicationMessage> captor = ArgumentCaptor.forClass(PassiveReplicationMessage.ChainReplicationMessage.class);
+    verify(entityMessenger).messageSelfAndDeferRetirement(any(), captor.capture());
+    PassiveReplicationMessage.ChainReplicationMessage replicatedMessage = captor.getValue();
+
+    assertThat(replicatedMessage.concurrencyKey(), is(((ConcurrentEntityMessage) getAndAppend).concurrencyKey()));
+  }
+
+
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
     if (!response.equals(EhcacheEntityResponse.Success.INSTANCE)) {
