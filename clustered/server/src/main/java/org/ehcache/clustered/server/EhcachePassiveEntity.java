@@ -148,7 +148,8 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
-  private void untrackHashInvalidationForEventualCache(InvalidationCompleteMessage message) {InvalidationCompleteMessage invalidationCompleteMessage = message;
+  private void untrackHashInvalidationForEventualCache(InvalidationCompleteMessage message) {
+    InvalidationCompleteMessage invalidationCompleteMessage = message;
     ehcacheStateService.getInvalidationTracker(invalidationCompleteMessage.getCacheId()).getInvalidationMap().computeIfPresent(invalidationCompleteMessage.getKey(), (key, count) -> {
       if (count == 1) {
         return null;
@@ -226,8 +227,12 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
         ehcacheStateService.configure(stateSyncMessage.getConfiguration());
         management.sharedPoolsConfigured();
+
         for (Map.Entry<String, ServerStoreConfiguration> entry : stateSyncMessage.getStoreConfigs().entrySet()) {
           ehcacheStateService.createStore(entry.getKey(), entry.getValue());
+          if(entry.getValue().getConsistency() == Consistency.EVENTUAL) {
+            ehcacheStateService.addInvalidationtracker(entry.getKey());
+          }
           management.serverStoreCreated(entry.getKey());
         }
         stateSyncMessage.getTrackedClients().stream().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
