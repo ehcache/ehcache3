@@ -17,14 +17,15 @@
 group = 'org.ehcache'
 
 apply plugin: EhOsgi
-apply plugin: EhDeploy
 apply plugin: EhPomMangle
 
 dependencies {
   compile project(':impl'), project(':xml')
   compile group: 'javax.transaction', name: 'jta', version: '1.1'
   testCompile project(path: ':core-spi-test')
-  compile group: 'org.codehaus.btm', name: 'btm', version: '2.1.4'
+  compile (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
 }
 
 // For EhPomMangle

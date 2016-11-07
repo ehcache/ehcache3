@@ -22,6 +22,20 @@ package org.ehcache.core.statistics;
 public interface CacheOperationOutcomes {
 
   /**
+   * Outcomes for cache Clear operations.
+   */
+  enum ClearOutcome implements CacheOperationOutcomes {
+    /**
+     * success
+     */
+    SUCCESS,
+    /**
+     * failure
+     */
+    FAILURE
+  }
+
+  /**
    * Outcomes for cache Get operations.
    */
   enum GetOutcome implements CacheOperationOutcomes {

@@ -21,7 +21,6 @@ import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeEvent;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.core.CacheConfigurationProperty;
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -46,7 +45,10 @@ import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 import org.ehcache.impl.internal.store.heap.holders.SerializedOnHeapValueHolder;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.impl.serialization.TransientStateRepository;
 import org.ehcache.sizeof.annotations.IgnoreSizeOf;
+import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.events.StoreEventSource;
@@ -64,9 +66,10 @@ import org.ehcache.core.statistics.CachingTierOperationOutcomes;
 import org.ehcache.core.statistics.HigherCachingTierOperationOutcomes;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.statistics.TierOperationStatistic;
+import org.ehcache.core.statistics.TierOperationStatistic.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.context.annotations.ContextAttribute;
 import org.terracotta.offheapstore.util.FindbugsSuppressWarnings;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.observer.OperationObserver;
@@ -88,6 +91,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.util.Collections.singletonMap;
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
 import static org.terracotta.statistics.StatisticBuilder.operation;
@@ -109,6 +114,8 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
 public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(OnHeapStore.class);
+
+  private static final String STATISTICS_TAG = "OnHeap";
 
   private static final int ATTEMPT_RATIO = 4;
   private static final int EVICTION_RATIO = 2;
@@ -137,9 +144,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   };
 
-  private static final InvalidationListener NULL_INVALIDATION_LISTENER = new InvalidationListener() {
+  private static final InvalidationListener<?, ?> NULL_INVALIDATION_LISTENER = new InvalidationListener<Object, Object>() {
     @Override
-    public void onInvalidation(Object key, ValueHolder valueHolder) {
+    public void onInvalidation(Object key, ValueHolder<Object> valueHolder) {
       // Do nothing
     }
   };
@@ -152,13 +159,15 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final Copier<V> valueCopier;
 
   private final SizeOfEngine sizeOfEngine;
+  private final boolean byteSized;
 
   private volatile long capacity;
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final Expiry<? super K, ? super V> expiry;
   private final TimeSource timeSource;
   private final StoreEventDispatcher<K, V> storeEventDispatcher;
-  private volatile InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
+  @SuppressWarnings("unchecked")
+  private volatile InvalidationListener<K, V> invalidationListener = (InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
   private CacheConfigurationChangeListener cacheConfigurationChangeListener = new CacheConfigurationChangeListener() {
     @Override
@@ -200,8 +209,6 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
   private final OperationObserver<HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome> silentInvalidateAllObserver;
   private final OperationObserver<HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome> silentInvalidateAllWithHashObserver;
 
-  private final OnHeapStoreStatsSettings onHeapStoreStatsSettings;
-
   private static final NullaryFunction<Boolean> REPLACE_EQUALS_TRUE = new NullaryFunction<Boolean>() {
     @Override
     public Boolean apply() {
@@ -220,12 +227,18 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     if (heapPool == null) {
       throw new IllegalArgumentException("OnHeap store must be configured with a resource of type 'heap'");
     }
+    if (timeSource == null) {
+      throw new NullPointerException("timeSource must not be null");
+    }
+    if (sizeOfEngine == null) {
+      throw new NullPointerException("sizeOfEngine must not be null");
+    }
     this.sizeOfEngine = sizeOfEngine;
-    boolean byteSized = this.sizeOfEngine instanceof NoopSizeOfEngine ? false : true;
+    this.byteSized = this.sizeOfEngine instanceof NoopSizeOfEngine ? false : true;
     this.capacity = byteSized ? ((MemoryUnit) heapPool.getUnit()).toBytes(heapPool.getSize()) : heapPool.getSize();
     this.timeSource = timeSource;
     if (config.getEvictionAdvisor() == null) {
-      this.evictionAdvisor = Eviction.noAdvice();
+      this.evictionAdvisor = noAdvice();
     } else {
       this.evictionAdvisor = config.getEvictionAdvisor();
     }
@@ -239,30 +252,44 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     } else {
       this.map = new KeyCopyBackend<K, V>(byteSized, keyCopier);
     }
-    onHeapStoreStatsSettings = new OnHeapStoreStatsSettings(this);
-    StatisticsManager.associate(onHeapStoreStatsSettings).withParent(this);
-    getObserver = operation(StoreOperationOutcomes.GetOutcome.class).named("get").of(this).tag("onheap-store").build();
-    putObserver = operation(StoreOperationOutcomes.PutOutcome.class).named("put").of(this).tag("onheap-store").build();
-    removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).named("remove").of(this).tag("onheap-store").build();
-    putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag("onheap-store").build();
-    conditionalRemoveObserver = operation(StoreOperationOutcomes.ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag("onheap-store").build();
-    replaceObserver = operation(StoreOperationOutcomes.ReplaceOutcome.class).named("replace").of(this).tag("onheap-store").build();
-    conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).named("conditionalReplace").of(this).tag("onheap-store").build();
-    computeObserver = operation(StoreOperationOutcomes.ComputeOutcome.class).named("compute").of(this).tag("onheap-store").build();
-    computeIfAbsentObserver = operation(StoreOperationOutcomes.ComputeIfAbsentOutcome.class).named("computeIfAbsent").of(this).tag("onheap-store").build();
-    evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag("onheap-store").build();
-    expirationObserver = operation(StoreOperationOutcomes.ExpirationOutcome.class).named("expiration").of(this).tag("onheap-store").build();
-    getOrComputeIfAbsentObserver = operation(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.class).named("getOrComputeIfAbsent").of(this).tag("onheap-store").build();
-    invalidateObserver = operation(CachingTierOperationOutcomes.InvalidateOutcome.class).named("invalidate").of(this).tag("onheap-store").build();
-    invalidateAllObserver = operation(CachingTierOperationOutcomes.InvalidateAllOutcome.class).named("invalidateAll").of(this).tag("onheap-store").build();
-    invalidateAllWithHashObserver = operation(CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.class).named("invalidateAllWithHash").of(this).tag("onheap-store").build();
-    silentInvalidateObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.class).named("silentInvalidate").of(this).tag("onheap-store").build();
-    silentInvalidateAllObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome.class).named("silentInvalidateAll").of(this).tag("onheap-store").build();
-    silentInvalidateAllWithHashObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class).named("silentInvalidateAllWithHash").of(this).tag("onheap-store").build();
-    StatisticsManager.createPassThroughStatistic(this, "mappingsCount", Collections.singleton("onheap-store"), new Callable<Number>() {
+
+    getObserver = operation(StoreOperationOutcomes.GetOutcome.class).named("get").of(this).tag(STATISTICS_TAG).build();
+    putObserver = operation(StoreOperationOutcomes.PutOutcome.class).named("put").of(this).tag(STATISTICS_TAG).build();
+    removeObserver = operation(StoreOperationOutcomes.RemoveOutcome.class).named("remove").of(this).tag(STATISTICS_TAG).build();
+    putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).named("putIfAbsent").of(this).tag(STATISTICS_TAG).build();
+    conditionalRemoveObserver = operation(StoreOperationOutcomes.ConditionalRemoveOutcome.class).named("conditionalRemove").of(this).tag(STATISTICS_TAG).build();
+    replaceObserver = operation(StoreOperationOutcomes.ReplaceOutcome.class).named("replace").of(this).tag(STATISTICS_TAG).build();
+    conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).named("conditionalReplace").of(this).tag(STATISTICS_TAG).build();
+    computeObserver = operation(StoreOperationOutcomes.ComputeOutcome.class).named("compute").of(this).tag(STATISTICS_TAG).build();
+    computeIfAbsentObserver = operation(StoreOperationOutcomes.ComputeIfAbsentOutcome.class).named("computeIfAbsent").of(this).tag(STATISTICS_TAG).build();
+    evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).named("eviction").of(this).tag(STATISTICS_TAG).build();
+    expirationObserver = operation(StoreOperationOutcomes.ExpirationOutcome.class).named("expiration").of(this).tag(STATISTICS_TAG).build();
+
+    getOrComputeIfAbsentObserver = operation(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.class).named("getOrComputeIfAbsent").of(this).tag(STATISTICS_TAG).build();
+    invalidateObserver = operation(CachingTierOperationOutcomes.InvalidateOutcome.class).named("invalidate").of(this).tag(STATISTICS_TAG).build();
+    invalidateAllObserver = operation(CachingTierOperationOutcomes.InvalidateAllOutcome.class).named("invalidateAll").of(this).tag(STATISTICS_TAG).build();
+    invalidateAllWithHashObserver = operation(CachingTierOperationOutcomes.InvalidateAllWithHashOutcome.class).named("invalidateAllWithHash").of(this).tag(STATISTICS_TAG).build();
+
+    silentInvalidateObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateOutcome.class).named("silentInvalidate").of(this).tag(STATISTICS_TAG).build();
+    silentInvalidateAllObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllOutcome.class).named("silentInvalidateAll").of(this).tag(STATISTICS_TAG).build();
+    silentInvalidateAllWithHashObserver = operation(HigherCachingTierOperationOutcomes.SilentInvalidateAllWithHashOutcome.class).named("silentInvalidateAllWithHash").of(this).tag(STATISTICS_TAG).build();
+
+    Set<String> tags = new HashSet<String>(Arrays.asList(STATISTICS_TAG, "tier"));
+    Map<String, String> properties = singletonMap("discriminator", STATISTICS_TAG);
+    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return map.mappingCount();
+      }
+    });
+    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, properties, new Callable<Number>() {
+      @Override
+      public Number call() throws Exception {
+        if (byteSized) {
+          return map.byteSize();
+        } else {
+          return -1L;
+        }
       }
     });
   }
@@ -294,7 +321,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     }
   }
 
-  private OnHeapValueHolder getQuiet(final K key) throws StoreAccessException {
+  private OnHeapValueHolder<V> getQuiet(final K key) throws StoreAccessException {
     try {
       OnHeapValueHolder<V> mapping = map.get(key);
       if (mapping == null) {
@@ -413,7 +440,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
         case MISS:
           return false;
         default:
-          throw new AssertionError("Unknow enum value " + outcome);
+          throw new AssertionError("Unknown enum value " + outcome);
       }
     } catch (RuntimeException re) {
       storeEventDispatcher.releaseEventSinkAfterFailure(eventSink, re);
@@ -689,7 +716,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       getOrComputeIfAbsentObserver.begin();
       Backend<K, V> backEnd = map;
 
+      // First try to find the value from heap
       OnHeapValueHolder<V> cachedValue = backEnd.get(key);
+
       final long now = timeSource.getTimeMillis();
       if (cachedValue == null) {
         final Fault<V> fault = new Fault<V>(new NullaryFunction<ValueHolder<V>>() {
@@ -699,60 +728,14 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
           }
         });
         cachedValue = backEnd.putIfAbsent(key, fault);
-        if (cachedValue == null) {
-          try {
-            final ValueHolder<V> value = fault.get();
-            final OnHeapValueHolder<V> newValue;
-            if(value != null) {
-              newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
-              if (newValue == null) {
-                // Inline expiry or sizing failure
-                backEnd.remove(key, fault);
-                getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-                return value;
-              }
-            } else {
-              backEnd.remove(key, fault);
-              getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
-              return null;
-            }
 
-            if (backEnd.replace(key, fault, newValue)) {
-              getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULTED);
-              updateUsageInBytesIfRequired(newValue.size());
-              enforceCapacity();
-              return getValue(newValue);
-            } else {
-              final AtomicReference<ValueHolder<V>> invalidatedValue = new AtomicReference<ValueHolder<V>>();
-              backEnd.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
-                @Override
-                public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
-                  notifyInvalidation(key, mappedValue);
-                  invalidatedValue.set(mappedValue);
-                  updateUsageInBytesIfRequired(mappedValue.size());
-                  return null;
-                }
-              });
-              ValueHolder<V> p = getValue(invalidatedValue.get());
-              if (p != null) {
-                if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
-                  getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED_MISS);
-                  return null;
-                } else {
-                  getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-                  return p;
-                }
-              }
-              getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
-              return newValue;
-            }
-          } catch (Throwable e) {
-            backEnd.remove(key, fault);
-            throw new StoreAccessException(e);
-          }
+        if (cachedValue == null) {
+          return resolveFault(key, backEnd, now, fault);
         }
       }
 
+      // If we have a real value (not a fault), we make sure it is not expired
+      // If yes, we return null and remove it. If no, we return it (below)
       if (!(cachedValue instanceof Fault)) {
         if (cachedValue.isExpired(now, TimeUnit.MILLISECONDS)) {
           expireMappingUnderLock(key, cachedValue);
@@ -763,10 +746,68 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
 
       getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.HIT);
+
+      // Return the value that we found in the cache (by getting the fault or just returning the plain value depending on what we found)
       return getValue(cachedValue);
     } catch (RuntimeException re) {
       handleRuntimeException(re);
       return null;
+    }
+  }
+
+  private ValueHolder<V> resolveFault(final K key, Backend<K, V> backEnd, long now, Fault<V> fault) throws StoreAccessException {
+    try {
+      final ValueHolder<V> value = fault.get();
+      final OnHeapValueHolder<V> newValue;
+      if(value != null) {
+        newValue = importValueFromLowerTier(key, value, now, backEnd, fault);
+        if (newValue == null) {
+          // Inline expiry or sizing failure
+          backEnd.remove(key, fault);
+          getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+          return value;
+        }
+      } else {
+        backEnd.remove(key, fault);
+        getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.MISS);
+        return null;
+      }
+
+      if (backEnd.replace(key, fault, newValue)) {
+        getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULTED);
+        updateUsageInBytesIfRequired(newValue.size());
+        enforceCapacity();
+        return newValue;
+      }
+
+      final AtomicReference<ValueHolder<V>> invalidatedValue = new AtomicReference<ValueHolder<V>>();
+      backEnd.computeIfPresent(key, new BiFunction<K, OnHeapValueHolder<V>, OnHeapValueHolder<V>>() {
+        @Override
+        public OnHeapValueHolder<V> apply(K mappedKey, OnHeapValueHolder<V> mappedValue) {
+          notifyInvalidation(key, mappedValue);
+          invalidatedValue.set(mappedValue);
+          updateUsageInBytesIfRequired(mappedValue.size());
+          return null;
+        }
+      });
+
+      ValueHolder<V> p = getValue(invalidatedValue.get());
+      if (p != null) {
+        if (p.isExpired(now, TimeUnit.MILLISECONDS)) {
+          getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED_MISS);
+          return null;
+        }
+
+        getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+        return p;
+      }
+
+      getOrComputeIfAbsentObserver.end(CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome.FAULT_FAILED);
+      return newValue;
+
+    } catch (Throwable e) {
+      backEnd.remove(key, fault);
+      throw new StoreAccessException(e);
     }
   }
 
@@ -1065,7 +1106,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public String toString() {
-      return "[Fault : " + (complete ? (throwable == null ? value.toString() : throwable.getMessage()) : "???") + "]";
+      return "[Fault : " + (complete ? (throwable == null ? String.valueOf(value) : throwable.getMessage()) : "???") + "]";
     }
 
     @Override
@@ -1557,7 +1598,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     if (candidate == null) {
       // 2nd attempt without any advisor
-      candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, Eviction.<Object, OnHeapValueHolder<?>>noAdvice());
+      candidate = map.getEvictionCandidate(random, SAMPLE_SIZE, EVICTION_PRIORITIZER, noAdvice());
     }
 
     if (candidate == null) {
@@ -1624,6 +1665,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     private volatile ServiceProvider<Service> serviceProvider;
     private final Map<Store<?, ?>, List<Copier>> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, List<Copier>>();
+    private final Map<OnHeapStore<?, ?>, Collection<TierOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OnHeapStore<?, ?>, Collection<TierOperationStatistic<?, ?>>>();
 
     @Override
     public int rank(final Set<ResourceType<?>> resourceTypes, final Collection<ServiceConfiguration<?>> serviceConfigs) {
@@ -1637,7 +1679,23 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public <K, V> OnHeapStore<K, V> createStore(final Configuration<K, V> storeConfig, final ServiceConfiguration<?>... serviceConfigs) {
-      return createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+      OnHeapStore<K, V> store = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+      Collection<TierOperationStatistic<?, ?>> tieredOps = new ArrayList<TierOperationStatistic<?, ?>>();
+
+      TierOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
+              new TierOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome>(
+                      store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "get", STATISTICS_TAG);
+      StatisticsManager.associate(get).withParent(store);
+      tieredOps.add(get);
+
+      TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
+              new TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+                      store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
+      StatisticsManager.associate(evict).withParent(store);
+      tieredOps.add(evict);
+
+      tierOperationStatistics.put(store, tieredOps);
+      return store;
     }
 
     public <K, V> OnHeapStore<K, V> createStoreInternal(final Configuration<K, V> storeConfig, final StoreEventDispatcher<K, V> eventDispatcher,
@@ -1667,6 +1725,9 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       }
       final OnHeapStore onHeapStore = (OnHeapStore)resource;
       close(onHeapStore);
+      StatisticsManager.nodeFor(onHeapStore).clean();
+      tierOperationStatistics.remove(onHeapStore);
+
       CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
       for (Copier copier: copiers) {
         try {
@@ -1684,6 +1745,16 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
     @Override
     public void initStore(Store<?, ?> resource) {
       checkResource(resource);
+
+      List<Copier> copiers = createdStores.get(resource);
+      for (Copier copier : copiers) {
+        if(copier instanceof SerializingCopier) {
+          Serializer serializer = ((SerializingCopier)copier).getSerializer();
+          if(serializer instanceof StatefulSerializer) {
+            ((StatefulSerializer)serializer).init(new TransientStateRepository());
+          }
+        }
+      }
     }
 
     private void checkResource(Object resource) {
@@ -1705,7 +1776,23 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public <K, V> CachingTier<K, V> createCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return createStoreInternal(storeConfig, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), serviceConfigs);
+      OnHeapStore<K, V> cachingTier = createStoreInternal(storeConfig, NullStoreEventDispatcher.<K, V>nullStoreEventDispatcher(), serviceConfigs);
+      Collection<TierOperationStatistic<?, ?>> tieredOps = new ArrayList<TierOperationStatistic<?, ?>>();
+
+      TierOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome> get =
+              new TierOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome>(
+                      cachingTier, TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "getOrComputeIfAbsent", STATISTICS_TAG);
+      StatisticsManager.associate(get).withParent(cachingTier);
+      tieredOps.add(get);
+
+      TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict
+              = new TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+                      cachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
+      StatisticsManager.associate(evict).withParent(cachingTier);
+      tieredOps.add(evict);
+
+      this.tierOperationStatistics.put(cachingTier, tieredOps);
+      return cachingTier;
     }
 
     @Override
@@ -1721,12 +1808,28 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public void initCachingTier(CachingTier<?, ?> resource) {
-      initStore((Store<?, ?>) resource);
+      checkResource(resource);
     }
 
     @Override
     public <K, V> HigherCachingTier<K, V> createHigherCachingTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return createStore(storeConfig, serviceConfigs);
+      OnHeapStore<K, V> higherCachingTier = createStoreInternal(storeConfig, new ScopedStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+      Collection<TierOperationStatistic<?, ?>> tieredOps = new ArrayList<TierOperationStatistic<?, ?>>();
+
+      TierOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome> get =
+              new TierOperationStatistic<CachingTierOperationOutcomes.GetOrComputeIfAbsentOutcome, TierOperationOutcomes.GetOutcome>(
+                      higherCachingTier, TierOperationOutcomes.GET_OR_COMPUTEIFABSENT_TRANSLATION, "get", ResourceType.Core.HEAP.getTierHeight(), "getOrComputeIfAbsent", STATISTICS_TAG);
+      StatisticsManager.associate(get).withParent(higherCachingTier);
+      tieredOps.add(get);
+
+      TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
+              new TierOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+                      higherCachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
+      StatisticsManager.associate(evict).withParent(higherCachingTier);
+      tieredOps.add(evict);
+
+      tierOperationStatistics.put(higherCachingTier, tieredOps);
+      return higherCachingTier;
     }
 
     @Override
@@ -1736,19 +1839,7 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
 
     @Override
     public void initHigherCachingTier(HigherCachingTier<?, ?> resource) {
-      initStore((Store<?, ?>) resource);
+      checkResource(resource);
     }
   }
-
-  private static final class OnHeapStoreStatsSettings {
-    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("store"));
-    @ContextAttribute("cachingTier") private final CachingTier<?, ?> cachingTier;
-    @ContextAttribute("authoritativeTier") private final OnHeapStore<?, ?> authoritativeTier;
-
-    OnHeapStoreStatsSettings(OnHeapStore<?, ?> onHeapStore) {
-      this.cachingTier = null;
-      this.authoritativeTier = onHeapStore;
-    }
-  }
-
 }

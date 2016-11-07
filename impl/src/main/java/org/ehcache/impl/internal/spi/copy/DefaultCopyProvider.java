@@ -40,6 +40,7 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
 
   private static final Logger LOG = LoggerFactory.getLogger(DefaultCopyProvider.class);
 
+  @SuppressWarnings("unchecked")
   public DefaultCopyProvider(DefaultCopyProviderConfiguration configuration) {
     super(configuration, (Class) DefaultCopierConfiguration.class);
   }
@@ -87,9 +88,12 @@ public class DefaultCopyProvider extends ClassInstanceProvider<Class<?>, Copier<
   }
 
   private <T> Copier<T> createCopier(Class<T> clazz, DefaultCopierConfiguration<T> config, Type type) {
+    @SuppressWarnings("unchecked")
     Copier<T> copier = (Copier<T>) newInstance(clazz, config);
     if (copier == null) {
-      copier = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration((Class) IdentityCopier.class, type));
+      @SuppressWarnings("unchecked")
+      Copier<T> defaultInstance = (Copier<T>) newInstance(clazz, new DefaultCopierConfiguration((Class) IdentityCopier.class, type));
+      copier = defaultInstance;
     }
     return copier;
   }

@@ -32,8 +32,8 @@ import org.ehcache.spi.service.ServiceConfiguration;
  */
 public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
 
-  private final Class<? super K> keyType;
-  private final Class<? super V> valueType;
+  private final Class<K> keyType;
+  private final Class<V> valueType;
   private final EvictionAdvisor<? super K, ? super V> evictionAdvisor;
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final ClassLoader classLoader;
@@ -51,7 +51,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
    * @param resourcePools the resource pools
    * @param serviceConfigurations the service configurations
    */
-  public BaseCacheConfiguration(Class<? super K> keyType, Class<? super V> valueType,
+  public BaseCacheConfiguration(Class<K> keyType, Class<V> valueType,
           EvictionAdvisor<? super K, ? super V> evictionAdvisor,
           ClassLoader classLoader, Expiry<? super K, ? super V> expiry,
           ResourcePools resourcePools, ServiceConfiguration<?>... serviceConfigurations) {
@@ -81,7 +81,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
    */
   @Override
   public Class<K> getKeyType() {
-    return (Class) keyType;
+    return keyType;
   }
 
   /**
@@ -89,7 +89,7 @@ public class BaseCacheConfiguration<K, V> implements CacheConfiguration<K,V> {
    */
   @Override
   public Class<V> getValueType() {
-    return (Class) valueType;
+    return valueType;
   }
 
   /**

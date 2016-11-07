@@ -16,13 +16,12 @@
 
 package org.ehcache.clustered.server.state;
 
+import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.junit.Test;
-import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceProviderCleanupException;
 import org.terracotta.entity.ServiceProviderConfiguration;
 
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
@@ -33,28 +32,30 @@ import static org.mockito.Mockito.mock;
 
 public class EhcacheStateServiceProviderTest {
 
+  private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
+
   @Test
   public void testInitialize() {
     EhcacheStateServiceProvider serviceProvider = new EhcacheStateServiceProvider();
 
     ServiceProviderConfiguration serviceProviderConfiguration = mock(ServiceProviderConfiguration.class);
 
-    assertTrue(serviceProvider.initialize(serviceProviderConfiguration));
+    assertTrue(serviceProvider.initialize(serviceProviderConfiguration, null));
   }
 
   @Test
   public void testGetService() {
     EhcacheStateServiceProvider serviceProvider = new EhcacheStateServiceProvider();
 
-    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null));
+    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
 
     assertNotNull(ehcacheStateService);
 
-    EhcacheStateService sameStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null));
+    EhcacheStateService sameStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
 
     assertSame(ehcacheStateService, sameStateService);
 
-    EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null));
+    EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
 
     assertNotNull(anotherStateService);
     assertNotSame(ehcacheStateService, anotherStateService);
@@ -65,13 +66,13 @@ public class EhcacheStateServiceProviderTest {
   public void testClear() throws ServiceProviderCleanupException {
     EhcacheStateServiceProvider serviceProvider = new EhcacheStateServiceProvider();
 
-    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null));
-    EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null));
+    EhcacheStateService ehcacheStateService = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
+    EhcacheStateService anotherStateService = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
 
     serviceProvider.clear();
 
-    EhcacheStateService ehcacheStateServiceAfterClear = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null));
-    EhcacheStateService anotherStateServiceAfterClear = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null));
+    EhcacheStateService ehcacheStateServiceAfterClear = serviceProvider.getService(1L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
+    EhcacheStateService anotherStateServiceAfterClear = serviceProvider.getService(2L, new EhcacheStateServiceConfig(null, null, DEFAULT_MAPPER));
 
     assertNotSame(ehcacheStateService, ehcacheStateServiceAfterClear);
     assertNotSame(anotherStateService, anotherStateServiceAfterClear);

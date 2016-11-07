@@ -165,12 +165,12 @@ class ConfigurationMerger {
             if (defaults.containsKey(jsr107Configuration.getKeyType())) {
               matchingDefault = true;
             } else {
-              builder = builder.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+              builder = builder.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
             }
             if (defaults.containsKey(jsr107Configuration.getValueType())) {
               matchingDefault = true;
             } else {
-              builder = builder.add(new DefaultCopierConfiguration<K>((Class) SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+              builder = builder.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
             }
             if (matchingDefault) {
               LOG.info("CacheManager level copier configuration overwriting JSR-107 by-value semantics for cache {}", cacheName);
@@ -198,13 +198,13 @@ class ConfigurationMerger {
     if (immutableTypes.contains(keyType)) {
       builder = builder.add(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.KEY));
     } else {
-      builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.KEY));
+      builder = builder.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.KEY));
     }
 
     if (immutableTypes.contains(valueType)) {
       builder = builder.add(new DefaultCopierConfiguration<K>((Class)Eh107IdentityCopier.class, DefaultCopierConfiguration.Type.VALUE));
     } else {
-      builder = builder.add(new DefaultCopierConfiguration<K>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));
+      builder = builder.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
     }
     return builder;
   }

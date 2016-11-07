@@ -180,6 +180,49 @@ public class LifeCycleMessageActivePassvieReplicationTest {
 
   }
 
+  @Test
+  public void testDestroyServerStoreIsNotReplicatedIfFailsOnActive() throws Exception {
+    ClusteringServiceConfiguration configuration =
+        ClusteringServiceConfigurationBuilder.cluster(URI.create(STRIPE_URI))
+            .autoCreate()
+            .build();
+
+    ClusteringService service1 = new ClusteringServiceFactory().create(configuration);
+
+    ClusteringService service2 = new ClusteringServiceFactory().create(configuration);
+
+    service1.start(null);
+    service2.start(null);
+
+    EhcacheClientEntity clientEntity1 = getEntity(service1);
+    EhcacheClientEntity clientEntity2 = getEntity(service2);
+
+    clientEntity1.createCache("testCache", getServerStoreConfiguration("test"));
+    clientEntity2.validateCache("testCache", getServerStoreConfiguration("test"));
+
+    clientEntity1.releaseCache("testCache");
+    try {
+      clientEntity1.destroyCache("testCache");
+      fail("ClusteredTierDestructionException Expected");
+    } catch (ClusteredTierDestructionException e) {
+      //nothing to do
+    }
+
+    clusterControl.terminateActive();
+
+    clientEntity2.releaseCache("testCache");
+    clientEntity2.destroyCache("testCache");
+
+    service1.stop();
+    service2.stop();
+
+  }
+
+  @Test
+  public void testCreateServerStoreIsNotReplicatedIsFailsOnActive() throws Exception {
+
+  }
+
   private static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);

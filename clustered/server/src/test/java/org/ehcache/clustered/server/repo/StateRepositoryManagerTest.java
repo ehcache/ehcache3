@@ -16,10 +16,11 @@
 
 package org.ehcache.clustered.server.repo;
 
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.junit.Test;
+
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -27,14 +28,16 @@ import static org.junit.Assert.assertThat;
 
 public class StateRepositoryManagerTest {
 
+  private static final UUID CLIENT_ID = UUID.randomUUID();
+
   @Test
   public void testInvokeOnNonExistentRepositorySucceeds() throws Exception {
     StateRepositoryManager manager = new StateRepositoryManager();
     EhcacheEntityResponse.MapValue response = (EhcacheEntityResponse.MapValue) manager.invoke(
-        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1"));
+        new StateRepositoryOpMessage.PutIfAbsentMessage("foo", "bar", "key1", "value1", CLIENT_ID));
     assertThat(response.getValue(), nullValue());
     response = (EhcacheEntityResponse.MapValue) manager.invoke(
-        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1"));
+        new StateRepositoryOpMessage.GetMessage("foo", "bar", "key1", CLIENT_ID));
     assertThat(response.getValue(), is((Object)"value1"));
   }
 }

@@ -38,6 +38,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.io.IOException;
 
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.impl.internal.store.disk.OffHeapDiskStore.persistent;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.mockito.Mockito.mock;
@@ -50,7 +51,7 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
 
   @Override
   protected EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment() throws IOException {
-    return createTestSegment(Eviction.<String, String>noAdvice(), mock(EvictionListener.class));
+    return createTestSegment(noAdvice(), mock(EvictionListener.class));
   }
 
   @Override

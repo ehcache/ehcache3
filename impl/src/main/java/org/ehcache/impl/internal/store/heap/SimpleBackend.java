@@ -47,7 +47,7 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, OnHeapValueHolder<?>> evictionAdvisor) {
+  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, ? super OnHeapValueHolder<?>> evictionAdvisor) {
     return realMap.getEvictionCandidate(random, size, prioritizer, evictionAdvisor);
   }
 

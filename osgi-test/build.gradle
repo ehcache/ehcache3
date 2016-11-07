@@ -17,22 +17,35 @@
 dependencies {
   ext {
     paxExamVersion = '3.5.0'
-    urlVersion = '1.6.0'
     felixVersion = '4.4.0'
   }
 
   testCompile project(':impl'), project(':xml'), project(':107'),
-          'junit:junit:4.11',
-          "org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion",
           "org.apache.felix:org.apache.felix.framework:$felixVersion",
           "javax.cache:cache-api:$parent.jcacheVersion"
+  testCompile ("org.ops4j.pax.exam:pax-exam-junit4:$paxExamVersion") {
+    exclude group:'junit', module:'junit'
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
 
   testRuntime "org.slf4j:slf4j-simple:$parent.slf4jVersion",
-          "org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion",
-          "org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion",
-          "org.ops4j.pax.url:pax-url-aether:$urlVersion"
+  testRuntime ("org.ops4j.pax.exam:pax-exam-container-native:$paxExamVersion") {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+  testRuntime ("org.ops4j.pax.exam:pax-exam-link-mvn:$paxExamVersion") {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
+}
 
-
+configurations.testRuntime {
+   resolutionStrategy.force 'org.apache.maven.wagon:wagon-provider-api:2.5'
+   resolutionStrategy.force 'org.codehaus.plexus:plexus-utils:3.0.15'
+   resolutionStrategy.force 'org.eclipse.aether:aether-api:0.9.0.M4'
+   resolutionStrategy.force 'org.eclipse.aether:aether-impl:0.9.0.M4'
+   resolutionStrategy.force 'org.eclipse.aether:aether-spi:0.9.0.M4'
+   resolutionStrategy.force 'org.eclipse.aether:aether-util:0.9.0.M4'
+   resolutionStrategy.force 'org.sonatype.plexus:plexus-cipher:1.7'
+   resolutionStrategy.force 'org.sonatype.plexus:plexus-sec-dispatcher:1.4'
 }
 
 sourceSets {

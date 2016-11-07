@@ -19,17 +19,18 @@ package org.ehcache.impl.internal.store.tiering;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
-import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
-import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
+import org.ehcache.impl.persistence.DefaultDiskResourceService;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.impl.persistence.DefaultLocalPersistenceService;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
@@ -42,6 +43,7 @@ import java.io.File;
 import java.io.Serializable;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -113,8 +115,8 @@ public class TieredStoreFlushWhileShutdownTest {
     CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
     when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, true).build());
 
-    LocalPersistenceService persistenceService = serviceLocator.getService(LocalPersistenceService.class);
-    PersistenceSpaceIdentifier persistenceSpace = persistenceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
+    DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
+    PersistenceSpaceIdentifier persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
     Store<Number, String> tieredStore = tieredStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace});
     tieredStoreProvider.initStore(tieredStore);
     for (int i = 0; i < 100; i++) {
@@ -136,8 +138,8 @@ public class TieredStoreFlushWhileShutdownTest {
     serviceLocator1.startAllServices();
     tieredStoreProvider.start(serviceLocator1);
 
-    LocalPersistenceService persistenceService1 = serviceLocator1.getService(LocalPersistenceService.class);
-    PersistenceSpaceIdentifier persistenceSpace1 = persistenceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
+    DiskResourceService diskResourceService1 = serviceLocator1.getService(DiskResourceService.class);
+    PersistenceSpaceIdentifier persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
     tieredStore = tieredStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace1});
     tieredStoreProvider.initStore(tieredStore);
 
@@ -148,11 +150,13 @@ public class TieredStoreFlushWhileShutdownTest {
 
   private ServiceLocator getServiceLocator(File location) throws Exception {
     DefaultPersistenceConfiguration persistenceConfiguration = new DefaultPersistenceConfiguration(location);
-    DefaultLocalPersistenceService persistenceService = new DefaultLocalPersistenceService(persistenceConfiguration);
-    ServiceLocator serviceLocator = new ServiceLocator();
-    serviceLocator.addService(persistenceService);
-    serviceLocator.addService(new OnHeapStore.Provider());
-    serviceLocator.addService(new OffHeapDiskStore.Provider());
-    return serviceLocator;
+    DefaultLocalPersistenceService fileService = new DefaultLocalPersistenceService(persistenceConfiguration);
+    DefaultDiskResourceService diskResourceService = new DefaultDiskResourceService();
+    ServiceLocator.DependencySet dependencySet = dependencySet();
+    dependencySet.with(fileService);
+    dependencySet.with(diskResourceService);
+    dependencySet.with(new OnHeapStore.Provider());
+    dependencySet.with(new OffHeapDiskStore.Provider());
+    return dependencySet.build();
   }
 }

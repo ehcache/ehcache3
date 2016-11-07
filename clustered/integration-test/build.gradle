@@ -14,13 +14,34 @@
  * limitations under the License.
  */
 
+import org.gradle.internal.jvm.Jvm
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+configurations {
+  serverLibs
+}
+
 dependencies {
   testCompile project(':dist')
   testCompile project(':clustered:clustered-dist')
+  testCompile project(':management')
+  testCompile "org.terracotta.management.dist:management-client:$parent.managementVersion"
+  testCompile "org.terracotta.management:monitoring-service-entity:$parent.managementVersion"
+  testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
 
   testCompile group:'org.terracotta', name:'galvan-support', version: galvanVersion
-  testCompile group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1'
+  testCompile (group:'com.google.code.tempus-fugit', name:'tempus-fugit', version:'1.1') {
+    exclude group:'junit', module:'junit'
+    exclude group:'org.hamcrest', module:'hamcrest-core'
+  }
   testCompile group: 'javax.cache', name: 'cache-api', version: jcacheVersion
+
+  serverLibs ("org.terracotta.management.dist:management-server:$parent.managementVersion") {
+    exclude group:'org.terracotta.management.dist', module:'management-common'
+  }
+  serverLibs "org.terracotta.management:monitoring-service-entity:$parent.managementVersion" // test entity for monitoring service
 }
 
 task unzipKit(type: Copy) {
@@ -29,22 +50,21 @@ task unzipKit(type: Copy) {
   into 'build/ehcache-kit'
 }
 
-def java8 = {
-  JavaVersion.current().isJava8Compatible()
+compileTestJava {
+  options.forkOptions.executable = Jvm.current().javacExecutable
 }
 
-compileTestJava {
-  options.fork = true;
-  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
-}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 test {
   dependsOn unzipKit
-  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
-  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
+  executable = Jvm.current().javaExecutable
+  // If you want to see all mutations of the voltron monitoring tree, add to JAVA_OPTS: -Dorg.terracotta.management.service.monitoring.VoltronMonitoringService.DEBUG=true
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
+  systemProperty 'managementPlugins', project.configurations.serverLibs.join(File.pathSeparator)
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }

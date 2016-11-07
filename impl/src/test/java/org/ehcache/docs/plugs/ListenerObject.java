@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 public class ListenerObject implements CacheEventListener<Object, Object> {
   private int evicted;
   @Override
-  public void onEvent(CacheEvent<Object, Object> event) {
+  public void onEvent(CacheEvent<? extends Object, ? extends Object> event) {
     Logger logger = LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "GettingStarted");
     logger.info(event.getType().toString());
     if(event.getType() == EventType.EVICTED){

@@ -56,16 +56,15 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.StorePassThroughException.handleRuntimeException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
-import org.terracotta.context.annotations.ContextAttribute;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K, V>, LowerCachingTier<K, V> {
 
   private static final Logger LOG = LoggerFactory.getLogger(AbstractOffHeapStore.class);
 
-  private static final CachingTier.InvalidationListener NULL_INVALIDATION_LISTENER = new CachingTier.InvalidationListener() {
+  private static final CachingTier.InvalidationListener<?, ?> NULL_INVALIDATION_LISTENER = new CachingTier.InvalidationListener<Object, Object>() {
     @Override
-    public void onInvalidation(Object key, ValueHolder valueHolder) {
+    public void onInvalidation(Object key, ValueHolder<Object> valueHolder) {
       // Do nothing
     }
   };
@@ -99,11 +98,11 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
   private final OperationObserver<LowerCachingTierOperationsOutcome.GetAndRemoveOutcome> getAndRemoveObserver;
   private final OperationObserver<LowerCachingTierOperationsOutcome.InstallMappingOutcome> installMappingObserver;
 
-  protected final OffHeapStoreStatsSettings offHeapStoreStatsSettings;
 
   private volatile InvalidationValve valve;
   protected BackingMapEvictionListener<K, V> mapEvictionListener;
-  private volatile CachingTier.InvalidationListener<K, V> invalidationListener = NULL_INVALIDATION_LISTENER;
+  @SuppressWarnings("unchecked")
+  private volatile CachingTier.InvalidationListener<K, V> invalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
 
   public AbstractOffHeapStore(String statisticsTag, Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher) {
     keyType = config.getKeyType();
@@ -113,8 +112,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.timeSource = timeSource;
     this.eventDispatcher = eventDispatcher;
 
-    this.offHeapStoreStatsSettings = new OffHeapStoreStatsSettings(this);
-    StatisticsManager.associate(offHeapStoreStatsSettings).withParent(this);
     this.getObserver = operation(StoreOperationOutcomes.GetOutcome.class).of(this).named("get").tag(statisticsTag).build();
     this.putObserver = operation(StoreOperationOutcomes.PutOutcome.class).of(this).named("put").tag(statisticsTag).build();
     this.putIfAbsentObserver = operation(StoreOperationOutcomes.PutIfAbsentOutcome.class).of(this).named("putIfAbsent").tag(statisticsTag).build();
@@ -137,73 +134,82 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     this.getAndRemoveObserver= operation(LowerCachingTierOperationsOutcome.GetAndRemoveOutcome.class).of(this).named("getAndRemove").tag(statisticsTag).build();
     this.installMappingObserver= operation(LowerCachingTierOperationsOutcome.InstallMappingOutcome.class).of(this).named("installMapping").tag(statisticsTag).build();
 
-    StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", Collections.singleton(statisticsTag), new Callable<Number>() {
+    Set<String> tags = new HashSet<String>(Arrays.asList(statisticsTag, "tier"));
+    Map<String, Object> properties = new HashMap<String, Object>();
+    properties.put("discriminator", statisticsTag);
+    StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().allocatedMemory();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().occupiedMemory();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "dataAllocatedMemory", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "dataAllocatedMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().dataAllocatedMemory();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "dataOccupiedMemory", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "dataOccupiedMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().dataOccupiedMemory();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "dataSize", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "dataSize", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().dataSize();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "dataVitalMemory", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "dataVitalMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().dataVitalMemory();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "longSize", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "mappings", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().longSize();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "vitalMemory", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "maxMappings", tags, properties, new Callable<Number>() {
+      @Override
+      public Number call() throws Exception {
+        return -1L;
+      }
+    });
+    StatisticsManager.createPassThroughStatistic(this, "vitalMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().vitalMemory();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "removedSlotCount", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "removedSlotCount", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().removedSlotCount();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "reprobeLength", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "reprobeLength", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().reprobeLength();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "usedSlotCount", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "usedSlotCount", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().usedSlotCount();
       }
     });
-    StatisticsManager.createPassThroughStatistic(this, "tableCapacity", Collections.singleton(statisticsTag), new Callable<Number>() {
+    StatisticsManager.createPassThroughStatistic(this, "tableCapacity", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
         return backingMap().tableCapacity();
@@ -1281,7 +1287,9 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     private BackingMapEvictionListener(StoreEventDispatcher<K, V> eventDispatcher, OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver) {
       this.eventDispatcher = eventDispatcher;
       this.evictionObserver = evictionObserver;
-      this.invalidationListener = NULL_INVALIDATION_LISTENER;
+      @SuppressWarnings("unchecked")
+      CachingTier.InvalidationListener<K, V> nullInvalidationListener = (CachingTier.InvalidationListener<K, V>) NULL_INVALIDATION_LISTENER;
+      this.invalidationListener = nullInvalidationListener;
     }
 
     public void setInvalidationListener(CachingTier.InvalidationListener<K, V> invalidationListener) {
@@ -1303,15 +1311,6 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
       }
       invalidationListener.onInvalidation(key, value);
       evictionObserver.end(StoreOperationOutcomes.EvictionOutcome.SUCCESS);
-    }
-  }
-
-  private static final class OffHeapStoreStatsSettings {
-    @ContextAttribute("tags") private final Set<String> tags = new HashSet<String>(Arrays.asList("store"));
-    @ContextAttribute("authoritativeTier") private final AbstractOffHeapStore<?, ?> authoritativeTier;
-
-    OffHeapStoreStatsSettings(AbstractOffHeapStore<?, ?> store) {
-      this.authoritativeTier = store;
     }
   }
 }

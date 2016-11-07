@@ -40,7 +40,7 @@ from the database to display the Peeper web page.  To run this implementation:
 [source,bash]
 ----
 cd ehcache3/demos/00-NoCache
-../../gradlew jettyRun
+../../gradlew appStart
 ----
 
 This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,
@@ -75,7 +75,7 @@ the cache is cleared.  To run this implementation:
 [source,bash]
 ----
 cd ehcache3/demos/01-CacheAside
-../../gradlew jettyRun
+../../gradlew appStart
 ----
 
 This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,

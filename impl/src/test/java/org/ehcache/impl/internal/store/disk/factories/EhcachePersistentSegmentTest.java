@@ -38,6 +38,7 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.io.IOException;
 
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.impl.internal.store.disk.OffHeapDiskStore.persistent;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.is;
@@ -52,7 +53,7 @@ public class EhcachePersistentSegmentTest {
   public final TemporaryFolder folder = new TemporaryFolder();
 
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment() throws IOException {
-    return createTestSegment(Eviction.<String, String>noAdvice(), mock(EvictionListener.class));
+    return createTestSegment(noAdvice(), mock(EvictionListener.class));
   }
 
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionAdvisor<String, String> evictionPredicate) throws IOException {
@@ -60,10 +61,10 @@ public class EhcachePersistentSegmentTest {
   }
 
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionListener<String, String> evictionListener) throws IOException {
-    return createTestSegment(Eviction.<String, String>noAdvice(), evictionListener);
+    return createTestSegment(noAdvice(), evictionListener);
   }
 
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(final EvictionAdvisor<String, String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(final EvictionAdvisor<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);

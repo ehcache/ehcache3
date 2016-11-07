@@ -40,6 +40,7 @@ import org.junit.Before;
 
 import static java.lang.ClassLoader.getSystemClassLoader;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 
 /**
  * Test the {@link OnHeapStore} compliance to the
@@ -138,7 +139,7 @@ public class OnHeapStoreByValueSPITest extends StoreSPITest<String, String> {
 
       @Override
       public ServiceLocator getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
+        ServiceLocator serviceLocator = dependencySet().build();
         try {
           serviceLocator.startAllServices();
         } catch (Exception e) {

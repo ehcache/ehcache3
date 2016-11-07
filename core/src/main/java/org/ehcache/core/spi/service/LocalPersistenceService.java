@@ -17,22 +17,63 @@
 package org.ehcache.core.spi.service;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.spi.persistence.PersistableResourceService;
+import org.ehcache.spi.service.MaintainableService;
+
+import java.io.File;
 
 /**
- * Service to provide persistence context to caches requiring it.
- * <P>
- * Will be used by caches with a disk store, whether or not the data should survive a program restart.
- * <P/>
+ * Service that provides isolated persistence spaces to any service that requires it
+ * under the local root directory.
  */
-public interface LocalPersistenceService extends PersistableResourceService {
+public interface LocalPersistenceService extends MaintainableService {
 
   /**
-   * Creates a new persistence context within the given space.
+   * Creates a logical safe directory space for the owner and returns an identifying space Id.
    *
-   * @param identifier space to create within
-   * @param name name of the context to create
-   * @return a {@link FileBasedPersistenceContext}
+   * @param owner Service owner that owns the safe space.
+   * @param name Identifying name for the space.
+   *
+   * @return Opaque Identifier that can be used to identify the safe space.
    */
-  FileBasedPersistenceContext createPersistenceContextWithin(PersistenceSpaceIdentifier<?> identifier, String name) throws CachePersistenceException;
+  SafeSpaceIdentifier createSafeSpaceIdentifier(String owner, String name);
+
+  /**
+   * Creates the safe space represented by {@code safeSpaceId}, if it does not exist in the underlying physical space.
+   *
+   * @param safeSpaceId Identifier to the created logical space on which the physical space needs to be created
+   * @throws CachePersistenceException If the space cannot be created or found, due to system errors
+   */
+  void createSafeSpace(SafeSpaceIdentifier safeSpaceId) throws CachePersistenceException;
+
+  /**
+   * Destroys the safe space.
+   *
+   * @param safeSpaceId Safe space identifier.
+   * @param verbose Log more information.
+   */
+  void destroySafeSpace(SafeSpaceIdentifier safeSpaceId, boolean verbose);
+
+  /**
+   * Destroys all safe spaces provided to this owner.
+   *
+   * @param owner owner of safe spaces.
+   */
+  void destroyAll(String owner);
+
+  /**
+   * Identifier to the logical safe space
+   */
+  interface SafeSpaceIdentifier {
+    /**
+     * Represents the root directory of the given logical safe space.
+     * <P>
+     *   Note that the directory represented by {@code File} may or may not be created in the physical space.
+     *   The existence of the physical space depends on whether the {@code createSafeSpace} method was invoked
+     *   for the space at some time in the past or not.
+     * </P>
+     *
+     * @return Root directory of the safe space.
+     */
+    File getRoot();
+  }
 }

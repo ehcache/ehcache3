@@ -64,7 +64,7 @@ public class ExpiryEventsTest {
 
   private static final CacheConfigurationBuilder<Long, String> byValueCacheConfigBuilder =
       byRefCacheConfigBuilder.add(new DefaultCopierConfiguration<String>(
-          (Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE));;
+          SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));;
 
   private static final TestTimeSource testTimeSource = new TestTimeSource();
 
@@ -179,7 +179,7 @@ public class ExpiryEventsTest {
 
     testCache.getRuntimeConfiguration().registerCacheEventListener(new CacheEventListener<Long, String>() {
       @Override
-      public void onEvent(CacheEvent<Long, String> event) {
+      public void onEvent(CacheEvent<? extends Long, ? extends String> event) {
         expiredKeys.add(event.getKey());
       }
     }, EventOrdering.ORDERED, EventFiring.SYNCHRONOUS, EnumSet.of(EventType.EXPIRED));

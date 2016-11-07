@@ -25,6 +25,10 @@ class LifeCycleMessageCodec {
   private static final byte OPCODE_SIZE = 1;
 
   public byte[] encode(LifecycleMessage message) {
+    //For configure message id serves as message creation timestamp
+    if (message instanceof LifecycleMessage.ConfigureStoreManager) {
+      message.setId(System.nanoTime());
+    }
     byte[] encodedMsg = Util.marshall(message);
     ByteBuffer buffer = ByteBuffer.allocate(OPCODE_SIZE + encodedMsg.length);
     buffer.put(message.getOpCode());

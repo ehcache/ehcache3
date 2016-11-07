@@ -95,7 +95,7 @@ class EventListenerAdaptors {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
+    public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
       Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<K, V>(source, EventType.UPDATED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
@@ -121,7 +121,7 @@ class EventListenerAdaptors {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
+    public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
       Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.RemovingEvent<K, V>(source, EventType.REMOVED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
@@ -147,7 +147,7 @@ class EventListenerAdaptors {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
+    public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
       Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.RemovingEvent<K, V>(source, EventType.EXPIRED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
@@ -173,7 +173,7 @@ class EventListenerAdaptors {
 
     @SuppressWarnings("unchecked")
     @Override
-    public void onEvent(org.ehcache.event.CacheEvent<K, V> ehEvent) {
+    public void onEvent(org.ehcache.event.CacheEvent<? extends K, ? extends V> ehEvent) {
       Eh107CacheEntryEvent<K, V> event = new Eh107CacheEntryEvent.NormalEvent<K, V>(source, EventType.CREATED, ehEvent, requestsOld);
       if (filter.evaluate(event)) {
         Set<?> events = Collections.singleton(event);
