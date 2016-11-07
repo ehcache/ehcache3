@@ -134,9 +134,9 @@ include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/clie
     Since the server resource identifier is not explicitly passed, this resource pool will be consumed out of the default server resource provided in Step 3.
     This demonstrates that a cache manager with clustering support can have multiple resource pools created out of several server off-heap resources.
 <4> Provide the cache configuration to be created.
-<5> `ClusteredResourcePoolBuilder.fixed(String , long , MemoryUnit)` allocates a fixed pool of storage to the cache from the specified server off-heap resource.
-    In this example, a fixed pool of 32MB is allocated for `clustered-cache` from `primary-server-resource`.
-<6> `ClusteredResourcePoolBuilder.shared(String)`, passing the name of the resource pool specifies that `shared-cache-1` shares the storage resources with other caches using the same resource pool (`resource-pool-a`).
+<5> `ClusteredResourcePoolBuilder.clusteredDedicated(String , long , MemoryUnit)` allocates a dedicated pool of storage to the cache from the specified server off-heap resource.
+    In this example, a dedicated pool of 32MB is allocated for `clustered-cache` from `primary-server-resource`.
+<6> `ClusteredResourcePoolBuilder.clusteredShared(String)`, passing the name of the resource pool specifies that `shared-cache-1` shares the storage resources with other caches using the same resource pool (`resource-pool-a`).
 <7> Configures another cache (`shared-cache-2`) that shares the resource pool (`resource-pool-a`) with `shared-cache-1`.
 <8> Creates a fully initialized cache manager with the clustered caches.
 
@@ -166,7 +166,7 @@ include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/clie
 ----
 
 <1> Configuring the heap tier for cache.
-<2> Configuring the clustered tier of fixed size from the server off-heap resource using `ClusteredResourcePoolBuilder`.
+<2> Configuring the clustered tier of dedicated size from the server off-heap resource using `ClusteredResourcePoolBuilder`.
 
 The equivalent XML configuration is as follows:
 

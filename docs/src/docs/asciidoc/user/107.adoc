@@ -80,6 +80,22 @@ include::{sourcedir31}/107/src/test/java/org/ehcache/docs/EhCache107Configuratio
 
 === Building the configuration using Ehcache APIs
 
+==== CacheManager level configuration
+
+If you need to configure features at the `CacheManager` level, like persistence directory, you will have to use provider specific APIs.
+
+The way you do this is as follows:
+
+[source,java,indent=0]
+----
+include::{sourcedir31}/107/src/test/java/org/ehcache/docs/EhCache107ConfigurationIntegrationDocTest.java[tag=ehcacheCacheManagerConfigurationExample]
+----
+<1> Cast the `CachingProvider` into the Ehcache specific implementation `org.ehcache.jsr107.EhcacheCachingProvider`,
+<2> Create a configuration using the specific Ehcache `DefaultConfiguration` and pass it some `CacheManager` level configurations,
+<3> Create the `CacheManager` using the method that takes an Ehcache configuration in parameter.
+
+==== Cache level configuration
+
 You can also create a JSR-107 `Cache` using an Ehcache `CacheConfiguration`.
 When using this mechanism, no JSR-107 `CompleteConfiguration` is used and so you cannot get to one.
 
