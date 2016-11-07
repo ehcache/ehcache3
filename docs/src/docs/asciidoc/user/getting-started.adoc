@@ -1,9 +1,9 @@
 ---
 ---
-= Ehcache 3.1 Documentation
-ifndef::sourcedir31[]
+= Ehcache 3.2 Documentation
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 We feel that the Ehcache 3.x API is a great improvement over the Ehcache 2.x API that has been used by millions of developers. We hope you enjoy this new generation of Ehcache!
 
 ifdef::notBuildingForSite[]
@@ -29,7 +29,7 @@ As with the previous versions of Ehcache, the canonical way of dealing with `Cac
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=cachemanagerExample]
 ----
 
 <1> Static method `org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder` that returns a new `org.ehcache.config.builders.CacheManagerBuilder`
@@ -62,7 +62,7 @@ In addition, for creating the cache manager with clustering support, you will ne
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
 ----
 
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
@@ -81,7 +81,7 @@ Ehcache 3 introduces the concept of `UserManagedCache`:
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/UserManagedCaches.java[tag=userManagedCacheExample]
 ----
 
 <1> A new feature of Ehcache 3 is the ability to create `UserManagedCache` instances, i.e. ones not managed by a `CacheManager`, again you can either have the builder `init()` it for you, passing true, or
@@ -105,7 +105,7 @@ the faster tiers.
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=offheapCacheManager]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=offheapCacheManager]
 ----
 
 <1> If you wish to use off-heap, you'll have to define a resource pool, giving the memory size you want to allocate.
@@ -120,7 +120,7 @@ Do not forget to define in the java options the `-XX:MaxDirectMemorySize` option
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=persistentCacheManager]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=persistentCacheManager]
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
@@ -139,7 +139,7 @@ Note that Ehcache 3 only offers persistence in the case of clean shutdowns.
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=threeTiersCacheManager]
 ----
 
 <1> If you wish to use disk storage (like for persistent `Cache` instances), you'll have to provide a
@@ -156,7 +156,7 @@ NOTE: Byte sizing has a runtime performance impact that depends on the size and 
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=byteSizedTieredCache]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=byteSizedTieredCache]
 ----
 
 <1> You can also size the heap tier in bytes. This will limit the amount of heap used by that tier for
@@ -176,7 +176,7 @@ NOTE: Presently, `updateResourcePools()` only supports updating the heap tier an
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=updateResourcesAtRuntime]
 ----
 
 <1> You will need to create a new `ResourcePools` object with resources of required size, using `ResourcePoolsBuilder`. This object can
@@ -191,7 +191,7 @@ The following illustrates how to configure a _time-to-live_ expiry.
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=expiry]
 ----
 
 <1> Expiry is configured at the cache level, so start by defining a cache configuration,
@@ -208,7 +208,7 @@ You can create an XML file to configure a `CacheManager`:
 
 [source,xml]
 ----
-include::{sourcedir31}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
+include::{sourcedir32}/xml/src/test/resources/configs/docs/getting-started.xml[tags=gettingStarted]
 ----
 
 <1> Declares a `Cache` aliased to `foo`
