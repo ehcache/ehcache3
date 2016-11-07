@@ -140,6 +140,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     public ServerStoreOp operation() {
       return ServerStoreOp.GET;
     }
+
+    @Override
+    public String toString() {
+      return operation().toString();
+    }
   }
 
   public static class GetAndAppendMessage extends KeyBasedServerStoreOpMessage {
@@ -160,7 +165,18 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     public ByteBuffer getPayload() {
       return payload;
     }
-
+    
+    @Override
+    public String toString() {
+      int INT_SIZE = 4;
+      ByteBuffer debug = payload.slice().asReadOnlyBuffer();
+      debug.position(debug.remaining() - INT_SIZE);
+      int len = debug.getInt();
+      debug.position(debug.remaining() - len - INT_SIZE);
+      byte[] text = new byte[len];
+      debug.get(text);
+      return operation() + " on " + this.getCacheId() + ":" + this.getKey() + " with concurrency " + this.concurrencyKey() + " " + new String(text);
+    }
   }
 
   public static class AppendMessage extends KeyBasedServerStoreOpMessage {
@@ -181,7 +197,15 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     public ByteBuffer getPayload() {
       return payload;
     }
-
+    
+    @Override
+    public String toString() {
+      int end = payload.remaining();
+      int len = payload.getInt(end - 4);
+      byte[] raw = new byte[len];
+      payload.get(raw, end - 4 - len, len);
+      return operation() + " on " + this.getCacheId() + ":" + this.getKey() + " with concurrency " + this.concurrencyKey() + " " + new String(raw);
+    }
   }
 
   public static class ReplaceAtHeadMessage extends KeyBasedServerStoreOpMessage {
@@ -207,6 +231,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
 
     public Chain getUpdate() {
       return update;
+    }
+
+    @Override
+    public String toString() {
+      return operation().toString();
     }
   }
 
@@ -239,6 +268,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.CLEAR;
+    }
+
+    @Override
+    public String toString() {
+      return operation().toString();
     }
   }
 

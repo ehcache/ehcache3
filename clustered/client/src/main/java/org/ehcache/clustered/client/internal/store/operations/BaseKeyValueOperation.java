@@ -82,12 +82,15 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
   public ByteBuffer encode(final Serializer<K> keySerializer, final Serializer<V> valueSerializer) {
     ByteBuffer keyBuf = keySerializer.serialize(key);
     ByteBuffer valueBuf = valueHolder.encode(valueSerializer);
+    byte[] debug = toString().getBytes();
 
     int size = BYTE_SIZE_BYTES +   // Operation type
                INT_SIZE_BYTES +    // Size of the key payload
                LONG_SIZE_BYTES +   // Size of expiration time stamp
                keyBuf.remaining() + // the key payload itself
-               valueBuf.remaining();  // the value payload
+               valueBuf.remaining() +  // the value payload
+               debug.length +
+               INT_SIZE_BYTES;
 
     ByteBuffer buffer = ByteBuffer.allocate(size);
 
@@ -96,6 +99,8 @@ abstract class BaseKeyValueOperation<K, V> implements Operation<K, V> {
     buffer.putInt(keyBuf.remaining());
     buffer.put(keyBuf);
     buffer.put(valueBuf);
+    buffer.put(debug);
+    buffer.putInt(debug.length);
     buffer.flip();
     return buffer;
   }
