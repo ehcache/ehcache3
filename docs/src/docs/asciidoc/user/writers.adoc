@@ -1,9 +1,9 @@
 ---
 ---
 = Cache Writers
-ifndef::sourcedir31[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -69,7 +69,7 @@ maximum write delay::
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeThroughCache]
 ----
 
 <1> We register a sample `CacheLoaderWriter` that knows about the mapping `(41L -> "zero")`
@@ -81,7 +81,7 @@ include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[tag=writeBehindCache]
 ----
 
 <1> For write-behind you need a configured `CacheLoaderWriter`.
