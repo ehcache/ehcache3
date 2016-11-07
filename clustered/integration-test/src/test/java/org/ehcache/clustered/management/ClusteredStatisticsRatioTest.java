@@ -15,31 +15,38 @@
  */
 package org.ehcache.clustered.management;
 
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.cacheManager;
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.sendManagementCallToCollectStats;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.util.List;
 import org.ehcache.Cache;
-import org.junit.Assert;
 import org.junit.Test;
-import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.history.RatioHistory;
 
-public class ClusteredStatisticsRatioTest extends AbstractClusteringManagementTest {
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
-  private static final double CACHE_HIT_RATIO = .5d;
-  private static final double CLUSTERED_HIT_RATIO = .5d;
-  private static final double CACHE_MISS_RATIO = .5d;
-  private static final double CLUSTERED_MISS_RATIO = .5d;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.array;
+import static org.junit.Assert.assertThat;
+
+public class ClusteredStatisticsRatioTest extends AbstractClusteringManagementTest {
 
   @Test
   public void ratioTest() throws Exception {
-    ContextualReturn<?> contextualReturn = sendManagementCallToCollectStats("Cache:HitRatio","Clustered:HitRatio","Cache:MissRatio","Clustered:MissRatio");
-    assertThat(contextualReturn.hasExecuted(), is(true));
+    String[] statNames = {"Cache:HitRatio", "Clustered:HitRatio", "Cache:MissRatio", "Clustered:MissRatio"};
+    sendManagementCallToCollectStats(statNames);
+
+    // When testing ratios, we need to wait for the first computation (we do not have any choice) to happen because ratio depends on 2 other sampled statistics.
+    // If you do not wait, then you'll always get some NaN because the hits will be done within the 1st second, and the hits won't be done in the right "window".
+    // A ratio is computed by dividing a rate with another rate. See CompoundOperationImpl.ratioOf().
+    // And a rate is computed with values aggregated into a EventRateSimpleMovingAverage.
+    // The call to EventRateSimpleMovingAverage.rateUsingSeconds() will return 0 during the fist second (until first computation did happen).
+    // So the hits must be after the first second so that values get accumulated into the partitions of EventRateSimpleMovingAverage.
+
+    // Also, we have to take in consideration that in clustered, there is a collector that is scheduled at 75% of the TTD to collect and send stats.
+    // So the delay can be greater than just the duration of the first sampling.
+    Thread.sleep(25000);
 
     Cache<String, String> cache = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     cache.put("one", "val1");
@@ -51,52 +58,29 @@ public class ClusteredStatisticsRatioTest extends AbstractClusteringManagementTe
     cache.get("three"); //miss
     cache.get("four");  //miss
 
-
-    double cacheHitRatio = 0;
-    double clusteredHitRatio = 0;
-    double cacheMissRatio = 0;
-    double clusteredMissRatio = 0;
+    Double[] ratios = new Double[statNames.length];
 
     // it could be several seconds before the sampled stats could become available
     // let's try until we find the correct values
     do {
 
       // get the stats (we are getting the primitive counter, not the sample history)
-      List<ContextualStatistics> stats = waitForNextStats();
+      // only keep CM stats for the following checks
+      List<ContextualStatistics> stats = waitForNextStats()
+        .stream()
+        .filter(statistics -> "dedicated-cache-1".equals(statistics.getContext().get("cacheName")))
+        .collect(Collectors.toList());
+
       for (ContextualStatistics stat : stats) {
-        if (stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
-
-          Sample<Double>[] samplesCacheHitRatio = stat.getStatistic(RatioHistory.class, "Cache:HitRatio").getValue();
-          if(samplesCacheHitRatio.length > 0) {
-            cacheHitRatio = samplesCacheHitRatio[samplesCacheHitRatio.length - 1].getValue();
-          }
-
-          Sample<Double>[] samplesClusteredHitRatio = stat.getStatistic(RatioHistory.class, "Clustered:HitRatio").getValue();
-          if(samplesClusteredHitRatio.length > 0) {
-            clusteredHitRatio = samplesClusteredHitRatio[samplesClusteredHitRatio.length - 1].getValue();
-          }
-
-          Sample<Double>[] samplesClusteredMissRatio = stat.getStatistic(RatioHistory.class, "Clustered:MissRatio").getValue();
-          if(samplesClusteredMissRatio.length > 0) {
-            clusteredMissRatio = samplesClusteredMissRatio[samplesClusteredMissRatio.length - 1].getValue();
-          }
-
-          Sample<Double>[] samplesCacheMissRatio = stat.getStatistic(RatioHistory.class, "Cache:MissRatio").getValue();
-          if(samplesCacheMissRatio.length > 0) {
-            cacheMissRatio = samplesCacheMissRatio[samplesCacheMissRatio.length - 1].getValue();
-          }
+        for (int i = 0; i < statNames.length; i++) {
+          String statName = statNames[i];
+          Sample<Double>[] samples = stat.getStatistic(RatioHistory.class, statName).getValue();
+          ratios[i] = samples.length > 0 ? samples[samples.length - 1].getValue() : 0d;
         }
       }
-    } while( (cacheHitRatio != CACHE_HIT_RATIO) && (clusteredHitRatio != CLUSTERED_HIT_RATIO) &&
-            (cacheMissRatio != CACHE_MISS_RATIO) && (clusteredMissRatio != CLUSTERED_MISS_RATIO));
+    } while (!Thread.currentThread().isInterrupted() && !Arrays.equals(ratios, new Double[]{.5d, .5d, .5d, .5d}));
 
-    Assert.assertThat(cacheHitRatio,is(CACHE_HIT_RATIO));
-    Assert.assertThat(clusteredHitRatio,is(CLUSTERED_HIT_RATIO));
-    Assert.assertThat(cacheMissRatio,is(CACHE_MISS_RATIO));
-    Assert.assertThat(clusteredMissRatio,is(CLUSTERED_MISS_RATIO));
-
+    assertThat(ratios, is(array(equalTo(.5d), equalTo(.5d), equalTo(.5d), equalTo(.5d))));
   }
-
-
 
 }

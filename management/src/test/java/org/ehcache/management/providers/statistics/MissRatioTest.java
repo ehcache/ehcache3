@@ -39,6 +39,7 @@ import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -47,10 +48,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
 
-/**
- *
- *
- */
 @RunWith(Parameterized.class)
 public class MissRatioTest {
 
@@ -125,7 +122,7 @@ public class MissRatioTest {
 
     try {
       DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
-      registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES));
+      registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.SECONDS,10,TimeUnit.MINUTES));
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources).build();
@@ -136,17 +133,21 @@ public class MissRatioTest {
           .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
           .build(true);
 
+      Context context = StatsUtil.createContext(managementRegistry);
+
+      StatsUtil.triggerStatComputation(managementRegistry, context, "Cache:MissRatio", "OnHeap:MissRatio", "OffHeap:MissRatio", "Disk:MissRatio");
+
       Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
 
+      //System.out.println("put() 1, 2, 3");
       cache.put(1L, "1");//put in lowest tier
       cache.put(2L, "2");//put in lowest tier
       cache.put(3L, "3");//put in lowest tier
 
       for(Long key : getKeys) {
-        cache.get(key);
+        String v = cache.get(key);
+        //System.out.println("get(" + key + "): " + (v == null ? "miss" : "hit"));
       }
-
-      Context context = StatsUtil.createContext(managementRegistry);
 
       double tierMissRatio = 0;
       for (int i = 0; i < statNames.size(); i++) {

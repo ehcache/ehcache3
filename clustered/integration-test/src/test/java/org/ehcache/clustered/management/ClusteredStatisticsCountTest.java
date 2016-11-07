@@ -15,7 +15,6 @@
  */
 package org.ehcache.clustered.management;
 
-import static org.ehcache.clustered.management.AbstractClusteringManagementTest.cacheManager;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -37,8 +36,7 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
 
   @Test
   public void countTest() throws Exception {
-    ContextualReturn<?> contextualReturn = sendManagementCallToCollectStats("Cache:HitCount","Clustered:HitCount","Cache:MissCount","Clustered:MissCount");
-    assertThat(contextualReturn.hasExecuted(), is(true));
+    sendManagementCallToCollectStats("Cache:HitCount","Clustered:HitCount","Cache:MissCount","Clustered:MissCount");
 
     Cache<String, String> cache = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     cache.put("one", "val1");
@@ -86,7 +84,8 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
           }
         }
       }
-    } while( (cacheHitCount != CACHE_HIT_COUNT) && (clusteredHitCount != CLUSTERED_HIT_COUNT) &&
+    } while(!Thread.currentThread().isInterrupted() &&
+            (cacheHitCount != CACHE_HIT_COUNT) && (clusteredHitCount != CLUSTERED_HIT_COUNT) &&
             (cacheMissCount != CACHE_MISS_COUNT) && (clusteredMissCount != CLUSTERED_MISS_COUNT));
 
     Assert.assertThat(cacheHitCount,is(CACHE_HIT_COUNT));

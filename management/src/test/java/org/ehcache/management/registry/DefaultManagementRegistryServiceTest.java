@@ -34,6 +34,7 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.management.ManagementRegistryService;
+import org.junit.rules.Timeout;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
@@ -76,6 +77,9 @@ public class DefaultManagementRegistryServiceTest {
 
   @Rule
   public final TemporaryFolder diskPath = new TemporaryFolder();
+
+  @Rule
+  public final Timeout globalTimeout = Timeout.seconds(10);
 
   @Test
   public void testCanGetContext() {
@@ -242,7 +246,7 @@ public class DefaultManagementRegistryServiceTest {
     cacheManager1.close();
   }
 
-  @Test (timeout = 5000)
+  @Test
   public void testCanGetStats() {
     String queryStatisticName = "Cache:HitCount";
 
@@ -316,9 +320,9 @@ public class DefaultManagementRegistryServiceTest {
   }
 
   private static ResultSet<ContextualStatistics> getResultSet(Builder builder, Context context1, Context context2, Class<CounterHistory> type, String statisticsName) {
-    ResultSet<ContextualStatistics> counters;
+    ResultSet<ContextualStatistics> counters = null;
 
-    while(true)  //wait till Counter history(s) is initialized and contains values.
+    while(!Thread.currentThread().isInterrupted())  //wait till Counter history(s) is initialized and contains values.
     {
       counters = builder.build().execute();
 
@@ -351,7 +355,7 @@ public class DefaultManagementRegistryServiceTest {
     return counters;
   }
 
-  @Test (timeout=5000)
+  @Test
   public void testCanGetStatsSinceTime() throws InterruptedException {
 
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
@@ -396,7 +400,7 @@ public class DefaultManagementRegistryServiceTest {
       Thread.sleep(100);
       statistics = builder.build().execute().getResult(context);
       getCount = statistics.getStatistic(CounterHistory.class);
-    } while (getCount.getValue().length < 1);
+    } while (!Thread.currentThread().isInterrupted() && getCount.getValue().length < 1);
 
     // within 1 second of history there has been 3 gets
     int mostRecentIndex = getCount.getValue().length - 1;
@@ -421,7 +425,7 @@ public class DefaultManagementRegistryServiceTest {
       Thread.sleep(100);
       statistics = builder.build().execute().getResult(context);
       getCount = statistics.getStatistic(CounterHistory.class);
-    } while (getCount.getValue().length < 2);
+    } while (!Thread.currentThread().isInterrupted() && getCount.getValue().length < 2);
 
     // ------
     // WITH since: the history will have 1 value

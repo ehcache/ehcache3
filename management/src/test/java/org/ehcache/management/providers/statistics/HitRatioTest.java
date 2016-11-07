@@ -15,17 +15,6 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import static java.util.Arrays.asList;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.config.units.EntryUnit.ENTRIES;
-import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.hamcrest.CoreMatchers.is;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
@@ -46,12 +35,28 @@ import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.stats.Sample;
+import org.terracotta.management.model.stats.Statistic;
+import org.terracotta.management.model.stats.StatisticHistory;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static java.util.Arrays.asList;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.units.EntryUnit.ENTRIES;
+import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(Parameterized.class)
 public class HitRatioTest {
 
   @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
+  public final Timeout globalTimeout = Timeout.seconds(30);
 
   @Rule
   public final TemporaryFolder diskPath = new TemporaryFolder();
@@ -132,8 +137,8 @@ public class HitRatioTest {
     try {
 
       DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
-      registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES));
-      ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
+      registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.SECONDS,10,TimeUnit.MINUTES));
+      final ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources).build();
 
@@ -143,17 +148,21 @@ public class HitRatioTest {
           .using(new DefaultPersistenceConfiguration(diskPath.newFolder()))
           .build(true);
 
+      final Context context = StatsUtil.createContext(managementRegistry);
+
+      StatsUtil.triggerStatComputation(managementRegistry, context, "Cache:HitRatio", "OnHeap:HitRatio", "OffHeap:HitRatio", "Disk:HitRatio");
+
       Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
 
+      //System.out.println("put() 1, 2, 3");
       cache.put(1L, "1");//put in lowest tier
       cache.put(2L, "2");//put in lowest tier
       cache.put(3L, "3");//put in lowest tier
 
       for(Long key : getKeys) {
-        cache.get(key);
+        String v = cache.get(key);
+        //System.out.println("get(" + key + "): " + (v == null ? "miss" : "hit"));
       }
-
-      Context context = StatsUtil.createContext(managementRegistry);
 
       double tierHitRatio = 0;
       for (int i = 0; i < statNames.size(); i++) {
