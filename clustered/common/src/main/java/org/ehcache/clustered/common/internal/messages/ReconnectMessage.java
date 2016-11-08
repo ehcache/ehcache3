@@ -52,7 +52,7 @@ public class ReconnectMessage {
 
   public Set<Long> getInvalidationsInProgress(String cacheId) {
     Set<Long> hashToInvalidate = hashInvalidationsInProgressPerCache.get(cacheId);
-    return hashToInvalidate == null ? Collections.EMPTY_SET : hashToInvalidate;
+    return hashToInvalidate == null ? Collections.<Long>emptySet() : hashToInvalidate;
   }
 
   public void addClearInProgress(String cacheId) {
