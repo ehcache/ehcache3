@@ -91,6 +91,7 @@ public class PassiveSyncTest {
       CLUSTER.getClusterControl().startOneServer();
       CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
       CLUSTER.getClusterControl().terminateActive();
+      CLUSTER.getClusterControl().waitForActive();
 
       for (long i = -5; i < 5; i++) {
         assertThat(cache.get(i), equalTo("value" + i));
