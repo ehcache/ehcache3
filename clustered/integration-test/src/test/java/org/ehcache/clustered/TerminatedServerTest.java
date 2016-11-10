@@ -76,6 +76,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
@@ -160,12 +161,21 @@ public class TerminatedServerTest {
     }
   }
 
+  private static Cluster createCluster() {
+    try {
+      return new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
+    } catch (IllegalArgumentException e) {
+      assumeNoException(e);
+      return null;
+    }
+  }
+
   @Rule
   public final TestName testName = new TestName();
 
   // Included in 'ruleChain' below.
-  private final Cluster cluster =
-      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
+  private final Cluster cluster = createCluster();
+
 
   // The TestRule.apply method is called on the inner-most Rule first with the result being passed to each
   // successively outer rule until the outer-most rule is reached. For ExternalResource rules, the before
