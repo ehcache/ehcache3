@@ -143,13 +143,14 @@ public class EhcacheClientEntity implements Entity {
     this.timeouts = timeouts;
   }
 
-  private void fireResponseEvent(EhcacheEntityResponse response) {
-    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(response.getClass());
+  private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {
+    @SuppressWarnings("unchecked")
+    List<ResponseListener<T>> responseListeners = (List) this.responseListeners.get(response.getClass());
     if (responseListeners == null) {
       return;
     }
     LOGGER.debug("{} registered response listener(s) for {}", responseListeners.size(), response.getClass());
-    for (ResponseListener responseListener : responseListeners) {
+    for (ResponseListener<T> responseListener : responseListeners) {
       responseListener.onResponse(response);
     }
   }
