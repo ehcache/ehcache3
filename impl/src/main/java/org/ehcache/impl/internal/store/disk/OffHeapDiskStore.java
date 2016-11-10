@@ -395,7 +395,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       try {
-        OffHeapDiskStore offHeapDiskStore = (OffHeapDiskStore)resource;
+        OffHeapDiskStore<?, ?> offHeapDiskStore = (OffHeapDiskStore<?, ?>)resource;
         close(offHeapDiskStore);
         StatisticsManager.nodeFor(offHeapDiskStore).clean();
         tierOperationStatistics.remove(offHeapDiskStore);

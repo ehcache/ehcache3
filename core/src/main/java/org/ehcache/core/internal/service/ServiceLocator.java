@@ -250,7 +250,9 @@ public final class ServiceLocator implements ServiceProvider<Service> {
       for (ServiceFactory<?> factory : serviceFactories) {
         final Class<?> factoryServiceType = factory.getServiceType();
         if (serviceType.isAssignableFrom(factoryServiceType)) {
-          with(((ServiceFactory<T>) factory).create(config));
+          @SuppressWarnings("unchecked")
+          ServiceFactory<T> serviceFactory = (ServiceFactory<T>) factory;
+          with(serviceFactory.create(config));
           success = true;
         }
       }
@@ -383,7 +385,9 @@ public final class ServiceLocator implements ServiceProvider<Service> {
             // Can have only one service registered under a concrete type
             continue;
           }
-          serviceFactories.add((ServiceFactory<? extends T>) factory);
+          @SuppressWarnings("unchecked")
+          ServiceFactory<? extends T> serviceFactory = (ServiceFactory<? extends T>) factory;
+          serviceFactories.add(serviceFactory);
         }
       }
       return serviceFactories;
@@ -411,7 +415,9 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     if (annotation != null) {
       for (final Class<?> dependency : annotation.value()) {
         if (Service.class.isAssignableFrom(dependency)) {
-          dependencies.add((Class<? extends Service>) dependency);
+          @SuppressWarnings("unchecked")
+          Class<? extends Service> serviceDependency = (Class<? extends Service>) dependency;
+          dependencies.add(serviceDependency);
         } else {
           throw new IllegalStateException("Service dependency declared by " + clazz.getName() +
             " is not a Service: " + dependency.getName());
@@ -505,11 +511,12 @@ public final class ServiceLocator implements ServiceProvider<Service> {
     }
 
     public <T extends Service> Set<T> get(Class<T> serviceType) {
-      Set<Service> s = services.get(serviceType);
+      @SuppressWarnings("unchecked")
+      Set<T> s = (Set<T>) services.get(serviceType);
       if (s == null) {
         return emptySet();
       } else {
-        return (Set<T>) unmodifiableSet(s);
+        return unmodifiableSet(s);
       }
     }
 

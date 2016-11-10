@@ -81,6 +81,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
         return newStore(null, evictionAdvisor, Expirations.noExpiration(), SystemTimeSource.INSTANCE);
       }
 
+      @SuppressWarnings("unchecked")
       private Store<String, String> newStore(Long capacity, EvictionAdvisor<String, String> evictionAdvisor, Expiry<? super String, ? super String> expiry, TimeSource timeSource) {
         ResourcePools resourcePools = buildResourcePools(capacity);
         Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
@@ -89,6 +90,7 @@ public class OnHeapStoreByRefSPITest extends StoreSPITest<String, String> {
       }
 
       @Override
+      @SuppressWarnings("unchecked")
       public Store.ValueHolder<String> newValueHolder(final String value) {
         return new CopiedOnHeapValueHolder<String>(value, SystemTimeSource.INSTANCE.getTimeMillis(), false, DEFAULT_COPIER);
       }

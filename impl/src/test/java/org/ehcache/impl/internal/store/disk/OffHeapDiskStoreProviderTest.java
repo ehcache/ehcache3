@@ -71,16 +71,17 @@ public class OffHeapDiskStoreProviderTest {
 
     OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
 
-     Query storeQuery = queryBuilder()
-         .children()
-         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
-             hasAttribute("tags", new Matcher<Set<String>>() {
-               @Override
-               protected boolean matchesSafely(Set<String> object) {
-                 return object.containsAll(singleton("Disk"));
-               }
-             })))))
-         .build();
+    @SuppressWarnings("unchecked")
+    Query storeQuery = queryBuilder()
+      .children()
+      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+        hasAttribute("tags", new Matcher<Set<String>>() {
+          @Override
+          protected boolean matchesSafely(Set<String> object) {
+            return object.containsAll(singleton("Disk"));
+          }
+        })))))
+      .build();
 
      Set<TreeNode> nodes = singleton(ContextManager.nodeFor(store));
 
@@ -124,8 +125,9 @@ public class OffHeapDiskStoreProviderTest {
        public ResourcePools getResourcePools() {
          return new ResourcePools() {
            @Override
-           public ResourcePool getPoolForResource(ResourceType resourceType) {
-             return new SizedResourcePool() {
+           @SuppressWarnings("unchecked")
+           public <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType) {
+             return (P) new SizedResourcePool() {
                @Override
                public ResourceType getType() {
                  return ResourceType.Core.DISK;
@@ -154,6 +156,7 @@ public class OffHeapDiskStoreProviderTest {
            }
 
            @Override
+           @SuppressWarnings("unchecked")
            public Set<ResourceType<?>> getResourceTypeSet() {
              return (Set) singleton(ResourceType.Core.OFFHEAP);
            }

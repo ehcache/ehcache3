@@ -124,6 +124,7 @@ public class StoreCreationEventListenerTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   private StoreEventListener<K, V> addListener(Store<K, V> kvStore) {
+    @SuppressWarnings("unchecked")
     StoreEventListener<K, V> listener = mock(StoreEventListener.class);
 
     kvStore.getStoreEventSource().addEventListener(listener);

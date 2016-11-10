@@ -62,7 +62,8 @@ public class TestDiskResourceService extends ExternalResource implements DiskRes
     fileService = new DefaultLocalPersistenceService(new CacheManagerPersistenceConfiguration(folder.newFolder()));
     fileService.start(null);
     diskResourceService = new DefaultDiskResourceService();
-    ServiceProvider sp = mock(ServiceProvider.class);
+    @SuppressWarnings("unchecked")
+    ServiceProvider<Service> sp = mock(ServiceProvider.class);
     Mockito.when(sp.getService(LocalPersistenceService.class)).thenReturn(fileService);
     diskResourceService.start(sp);
   }

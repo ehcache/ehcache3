@@ -23,6 +23,7 @@ import org.ehcache.impl.copy.IdentityCopier;
 import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.impl.serialization.JavaSerializer;
+import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
 
 import java.util.concurrent.atomic.AtomicInteger;
@@ -56,6 +57,7 @@ public class CacheManagerBuilderTest {
 
   @Test
   public void testCanOverrideCopierInConfig() {
+    @SuppressWarnings("unchecked")
     CacheManagerBuilder<CacheManager> managerBuilder = newCacheManagerBuilder()
         .withCopier(Long.class, (Class) IdentityCopier.class);
     assertNotNull(managerBuilder.withCopier(Long.class, SerializingCopier.<Long>asCopierClass()));
@@ -63,9 +65,13 @@ public class CacheManagerBuilderTest {
 
   @Test
   public void testCanOverrideSerializerConfig() {
-    CacheManagerBuilder managerBuilder = newCacheManagerBuilder()
-        .withSerializer(String.class, (Class) JavaSerializer.class);
-    assertNotNull(managerBuilder.withSerializer(String.class, (Class) CompactJavaSerializer.class));
+    @SuppressWarnings("unchecked")
+    Class<Serializer<String>> serializer1 = (Class) JavaSerializer.class;
+    CacheManagerBuilder<CacheManager> managerBuilder = newCacheManagerBuilder()
+        .withSerializer(String.class, serializer1);
+    @SuppressWarnings("unchecked")
+    Class<Serializer<String>> serializer2 = (Class) CompactJavaSerializer.class;
+    assertNotNull(managerBuilder.withSerializer(String.class, serializer2));
   }
 
   @Test(expected = IllegalArgumentException.class)

@@ -50,12 +50,13 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
       kvStore = null;
     }
     if (kvStore2 != null) {
+      @SuppressWarnings("unchecked")
+      Store<K, V> kvStore2 = (Store<K, V>) this.kvStore2;
       factory.close(kvStore2);
-      kvStore2 = null;
+      this.kvStore2 = null;
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
   public void testWrongReturnValueType() throws Exception {
     kvStore = factory.newStore();
@@ -75,10 +76,11 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore.computeIfAbsent(key, new Function() {
+      kvStore.computeIfAbsent(key, new Function<K, V>() {
         @Override
-        public Object apply(Object key) {
-          return badValue; // returning wrong value type from function
+        @SuppressWarnings("unchecked")
+        public V apply(K key) {
+          return (V) badValue; // returning wrong value type from function
         }
       });
       throw new AssertionError();
@@ -89,8 +91,8 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
   }
 
-  @SuppressWarnings({ "rawtypes", "unchecked" })
   @SPITest
+  @SuppressWarnings("unchecked")
   public void testWrongKeyType() throws Exception {
     kvStore2 = factory.newStore();
 
@@ -107,7 +109,7 @@ public class StoreComputeIfAbsentTest<K, V> extends SPIStoreTester<K, V> {
     }
 
     try {
-      kvStore2.computeIfAbsent(badKey, new Function() { // wrong key type
+      kvStore2.computeIfAbsent(badKey, new Function<Object, Object>() { // wrong key type
             @Override
             public Object apply(Object key) {
               throw new AssertionError();

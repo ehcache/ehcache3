@@ -50,11 +50,13 @@ public class EhcachePersistentConcurrentOffHeapClockCacheTest extends AbstractEh
   public final TemporaryFolder folder = new TemporaryFolder();
 
   @Override
+  @SuppressWarnings("unchecked")
   protected EhcachePersistentConcurrentOffHeapClockCache<String, String> createTestSegment() throws IOException {
     return createTestSegment(noAdvice(), mock(EvictionListener.class));
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   protected EhcacheOffHeapBackingMap<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) throws IOException {
     return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }

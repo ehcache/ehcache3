@@ -61,7 +61,9 @@ public class FileBasedStateRepositoryTest {
         assertThat(name, is(holderName));
         FileBasedStateRepository.Tuple loadedTuple = (FileBasedStateRepository.Tuple) ois.readObject();
         assertThat(loadedTuple.index, is(0));
-        assertThat((StateHolder<Long, String>)loadedTuple.holder, is(myHolder));
+        @SuppressWarnings("unchecked")
+        StateHolder<Long, String> stateHolder = (StateHolder<Long, String>) loadedTuple.holder;
+        assertThat(stateHolder, is(myHolder));
       } finally {
         ois.close();
       }

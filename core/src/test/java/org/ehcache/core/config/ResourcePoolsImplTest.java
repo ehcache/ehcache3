@@ -25,10 +25,11 @@ import org.ehcache.config.units.MemoryUnit;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
-import static java.util.Arrays.asList;
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
@@ -296,6 +297,12 @@ public class ResourcePoolsImplTest {
     }
     assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getSize(), Matchers.is(20L));
     assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
+  }
+
+  private <T> Collection<T> asList(T value1, T value2) {
+    @SuppressWarnings("unchecked")
+    List<T> list = Arrays.asList(value1, value2);
+    return list;
   }
 
 }

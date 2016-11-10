@@ -39,9 +39,12 @@ import static org.mockito.Mockito.verify;
  */
 public class ClassInstanceProviderTest {
 
+  @SuppressWarnings("unchecked")
+  private Class<ClassInstanceConfiguration<TestService>> configClass = (Class)ClassInstanceConfiguration.class;
+
   @Test
   public void testNewInstanceUsingAliasAndNoArgs() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, configClass);
 
     classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
@@ -51,7 +54,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingAliasAndArg() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, configClass);
 
     classInstanceProvider.preconfigured.put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class, "test string"));
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration<?>) null);
@@ -61,7 +64,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceUsingServiceConfig() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, configClass);
 
     TestServiceConfiguration config = new TestServiceConfiguration();
     TestService obj = classInstanceProvider.newInstance("test stuff", config);
@@ -74,7 +77,7 @@ public class ClassInstanceProviderTest {
     TestServiceProviderConfiguration factoryConfig = new TestServiceProviderConfiguration();
     factoryConfig.getDefaults().put("test stuff", new ClassInstanceConfiguration<TestService>(TestService.class));
 
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(factoryConfig, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(factoryConfig, configClass);
     classInstanceProvider.start(null);
 
     TestService obj = classInstanceProvider.newInstance("test stuff", (ServiceConfiguration) null);
@@ -121,7 +124,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testNewInstanceWithActualInstanceInServiceConfig() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, configClass);
 
     TestService service = new TestService();
     TestServiceConfiguration config = new TestServiceConfiguration(service);
@@ -133,7 +136,7 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testSameInstanceRetrievedMultipleTimesUpdatesTheProvidedCount() throws Exception {
-    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, (Class)ClassInstanceConfiguration.class);
+    ClassInstanceProvider<String, TestService> classInstanceProvider = new ClassInstanceProvider<String, TestService>(null, configClass);
 
     TestService service = new TestService();
     TestServiceConfiguration config = new TestServiceConfiguration(service);
@@ -148,7 +151,9 @@ public class ClassInstanceProviderTest {
 
   @Test
   public void testInstancesNotCreatedByProviderDoesNotClose() throws IOException {
-    ClassInstanceProvider<String, TestCloaseableService> classInstanceProvider = new ClassInstanceProvider<String, TestCloaseableService>(null, (Class)ClassInstanceConfiguration.class);
+    @SuppressWarnings("unchecked")
+    Class<ClassInstanceConfiguration<TestCloaseableService>> configClass = (Class) ClassInstanceConfiguration.class;
+    ClassInstanceProvider<String, TestCloaseableService> classInstanceProvider = new ClassInstanceProvider<String, TestCloaseableService>(null, configClass);
 
     TestCloaseableService service = mock(TestCloaseableService.class);
     TestCloaseableServiceConfig config = new TestCloaseableServiceConfig(service);

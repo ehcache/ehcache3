@@ -61,17 +61,17 @@ public class TieredStoreFlushWhileShutdownTest {
     Store.Configuration<Number, String> configuration = new Store.Configuration<Number, String>() {
 
       @Override
-      public Class getKeyType() {
+      public Class<Number> getKeyType() {
         return Number.class;
       }
 
       @Override
-      public Class getValueType() {
-        return Serializable.class;
+      public Class<String> getValueType() {
+        return String.class;
       }
 
       @Override
-      public EvictionAdvisor getEvictionAdvisor() {
+      public EvictionAdvisor<? super Number, ? super String> getEvictionAdvisor() {
         return null;
       }
 
@@ -81,7 +81,7 @@ public class TieredStoreFlushWhileShutdownTest {
       }
 
       @Override
-      public Expiry getExpiry() {
+      public Expiry<? super Number, ? super String> getExpiry() {
         return Expirations.noExpiration();
       }
 
@@ -117,7 +117,7 @@ public class TieredStoreFlushWhileShutdownTest {
 
     DiskResourceService diskResourceService = serviceLocator.getService(DiskResourceService.class);
     PersistenceSpaceIdentifier persistenceSpace = diskResourceService.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
-    Store<Number, String> tieredStore = tieredStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace});
+    Store<Number, String> tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace);
     tieredStoreProvider.initStore(tieredStore);
     for (int i = 0; i < 100; i++) {
       tieredStore.put(i, "hello");
@@ -140,11 +140,11 @@ public class TieredStoreFlushWhileShutdownTest {
 
     DiskResourceService diskResourceService1 = serviceLocator1.getService(DiskResourceService.class);
     PersistenceSpaceIdentifier persistenceSpace1 = diskResourceService1.getPersistenceSpaceIdentifier("testTieredStoreReleaseFlushesEntries", cacheConfiguration);
-    tieredStore = tieredStoreProvider.createStore(configuration, new ServiceConfiguration[] {persistenceSpace1});
+    tieredStore = tieredStoreProvider.createStore(configuration, persistenceSpace1);
     tieredStoreProvider.initStore(tieredStore);
 
     for(int i = 0; i < 20; i++) {
-      assertThat(tieredStore.get(i).hits(), is(21l));
+      assertThat(tieredStore.get(i).hits(), is(21L));
     }
   }
 
