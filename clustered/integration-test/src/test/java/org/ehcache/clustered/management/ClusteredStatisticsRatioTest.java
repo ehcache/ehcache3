@@ -16,6 +16,7 @@
 package org.ehcache.clustered.management;
 
 import org.ehcache.Cache;
+import org.hamcrest.collection.IsArray;
 import org.junit.Test;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.Sample;
@@ -80,7 +81,9 @@ public class ClusteredStatisticsRatioTest extends AbstractClusteringManagementTe
       }
     } while (!Thread.currentThread().isInterrupted() && !Arrays.equals(ratios, new Double[]{.5d, .5d, .5d, .5d}));
 
-    assertThat(ratios, is(array(equalTo(.5d), equalTo(.5d), equalTo(.5d), equalTo(.5d))));
+    @SuppressWarnings("unchecked")
+    IsArray<Double> array = array(equalTo(.5d), equalTo(.5d), equalTo(.5d), equalTo(.5d));
+    assertThat(ratios, is(array));
   }
 
 }
