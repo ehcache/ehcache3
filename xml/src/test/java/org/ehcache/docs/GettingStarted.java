@@ -36,6 +36,7 @@ public class GettingStarted {
     final URL myUrl = getClass().getResource("/configs/docs/getting-started.xml"); // <1>
     XmlConfiguration xmlConfig = new XmlConfiguration(myUrl); // <2>
     CacheManager myCacheManager = CacheManagerBuilder.newCacheManager(xmlConfig); // <3>
+    myCacheManager.init();  // <4>
     // end::xmlConfig[]
   }
 
