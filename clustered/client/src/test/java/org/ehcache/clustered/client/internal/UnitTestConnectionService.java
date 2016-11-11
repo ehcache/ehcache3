@@ -228,7 +228,8 @@ public class UnitTestConnectionService implements ConnectionService {
       PassthroughConnection connection  = serverDescriptor.server.connectNewClient("destroy-connection");
 
       for(Entry entry : serverDescriptor.knownEntities.entrySet()) {
-        Class type = (Class)entry.getKey();
+        @SuppressWarnings("unchecked")
+        Class<? extends Entity> type = (Class) entry.getKey();
         List args = (List)entry.getValue();
         Long version = (Long)args.get(0);
         String stringArg = (String)args.get(1);
@@ -531,6 +532,7 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       if (method.getName().equals("close")) {
         serverDescriptor.remove(connection);

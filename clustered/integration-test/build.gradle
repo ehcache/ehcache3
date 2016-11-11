@@ -69,3 +69,6 @@ test {
   // testLogging.showStandardStreams = true
 }
 
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
+}

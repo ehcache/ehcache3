@@ -123,9 +123,9 @@ public class ClusteredStoreProviderTest {
     ServiceLocator serviceLocator = dependencySet().with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.EMPTY_LIST), is(1));
-    assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.EMPTY_LIST), is(1));
-    assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.EMPTY_LIST), is(0));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.<ServiceConfiguration<?>>emptyList()), is(1));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.<ServiceConfiguration<?>>emptyList()), is(1));
+    assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.<ServiceConfiguration<?>>emptyList()), is(0));
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
@@ -173,6 +173,7 @@ public class ClusteredStoreProviderTest {
       }
 
       @Override
+      @SuppressWarnings("unchecked")
       public ResourcePools getResourcePools() {
         Map<ClusteredResourceType<DedicatedClusteredResourcePool>, DedicatedClusteredResourcePoolImpl> poolMap = Collections
             .singletonMap(ClusteredResourceType.Types.DEDICATED, new DedicatedClusteredResourcePoolImpl("test", 10, MemoryUnit.MB));

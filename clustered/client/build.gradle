@@ -37,8 +37,14 @@ dependencies {
 
 compileTestJava {
   options.forkOptions.executable = Jvm.current().javacExecutable
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
 }
 
 test {
   executable = Jvm.current().javaExecutable
+}
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
 }

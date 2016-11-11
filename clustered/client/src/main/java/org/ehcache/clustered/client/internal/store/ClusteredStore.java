@@ -646,7 +646,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       if (storeConfig == null) {
         throw new IllegalArgumentException("Given clustered tier is not managed by this provider : " + resource);
       }
-      final ClusteredStore clusteredStore = (ClusteredStore) resource;
+      final ClusteredStore<?, ?> clusteredStore = (ClusteredStore<?, ?>) resource;
       ClusteredCacheIdentifier cacheIdentifier = storeConfig.getCacheIdentifier();
       try {
         clusteredStore.storeProxy = clusteringService.getServerStoreProxy(cacheIdentifier, storeConfig.getStoreConfig(), storeConfig.getConsistency());
@@ -678,7 +678,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       clusteredStore.storeProxy.addInvalidationListener(new ServerStoreProxy.InvalidationListener() {
         @Override
         public void onInvalidateHash(long hash) {
-          Enum result = StoreOperationOutcomes.EvictionOutcome.SUCCESS;
+          StoreOperationOutcomes.EvictionOutcome result = StoreOperationOutcomes.EvictionOutcome.SUCCESS;
           clusteredStore.evictionObserver.begin();
           if (clusteredStore.invalidationValve != null) {
             try {
@@ -773,16 +773,16 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private static class StoreConfig {
 
     private final ClusteredCacheIdentifier cacheIdentifier;
-    private final Store.Configuration storeConfig;
+    private final Store.Configuration<?, ?> storeConfig;
     private final Consistency consistency;
 
-    StoreConfig(ClusteredCacheIdentifier cacheIdentifier, Configuration storeConfig, Consistency consistency) {
+    StoreConfig(ClusteredCacheIdentifier cacheIdentifier, Configuration<?, ?> storeConfig, Consistency consistency) {
       this.cacheIdentifier = cacheIdentifier;
       this.storeConfig = storeConfig;
       this.consistency = consistency;
     }
 
-    public Configuration getStoreConfig() {
+    public Configuration<?, ?> getStoreConfig() {
       return this.storeConfig;
     }
 

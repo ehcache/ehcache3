@@ -53,3 +53,7 @@ compileTestJava {
 test {
   executable = Jvm.current().javaExecutable
 }
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
+}

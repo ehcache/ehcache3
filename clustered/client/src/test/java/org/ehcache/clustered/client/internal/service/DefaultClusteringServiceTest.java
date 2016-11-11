@@ -1759,7 +1759,7 @@ public class DefaultClusteringServiceTest {
     DefaultClusteringService accessService = new DefaultClusteringService(accessConfig);
     accessService.start(null);
 
-    Store.Configuration accessStoreConfig =
+    Store.Configuration<Long, String> accessStoreConfig =
         getSharedStoreConfig("serverResource1", serializationProvider, Long.class, String.class);
 
     try {
@@ -1910,30 +1910,8 @@ public class DefaultClusteringServiceTest {
     ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
 
     ResourcePools resourcePools = mock(ResourcePools.class);
-    Store.Configuration storeConfig = mock(Store.Configuration.class);
-    when(storeConfig.getResourcePools()).thenReturn(resourcePools);
-    when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
-    when(storeConfig.getKeyType()).thenReturn(String.class);
-    when(storeConfig.getValueType()).thenReturn(Object.class);
-
-    ServerStoreProxy serverStoreProxy = service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.EVENTUAL);
-    assertThat(serverStoreProxy, instanceOf(EventualServerStoreProxy.class));
-  }
-
-  @Test
-  public void testGetServerStoreProxyReturnsEventualStoreByDefault() throws Exception {
-    String entityIdentifier = "my-application";
-    ClusteringServiceConfiguration configuration =
-        new ClusteringServiceConfiguration(
-            URI.create(CLUSTER_URI_BASE + entityIdentifier),
-            true, new ServerSideConfiguration(Collections.<String, Pool>emptyMap()));
-    DefaultClusteringService service = new DefaultClusteringService(configuration);
-    service.start(null);
-
-    ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
-
-    ResourcePools resourcePools = mock(ResourcePools.class);
-    Store.Configuration storeConfig = mock(Store.Configuration.class);
+    @SuppressWarnings("unchecked")
+    Store.Configuration<String, Object> storeConfig = mock(Store.Configuration.class);
     when(storeConfig.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
     when(storeConfig.getKeyType()).thenReturn(String.class);
@@ -1956,7 +1934,8 @@ public class DefaultClusteringServiceTest {
     ClusteringService.ClusteredCacheIdentifier cacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-cache", null);
 
     ResourcePools resourcePools = mock(ResourcePools.class);
-    Store.Configuration storeConfig = mock(Store.Configuration.class);
+    @SuppressWarnings("unchecked")
+    Store.Configuration<String, Object> storeConfig = mock(Store.Configuration.class);
     when(storeConfig.getResourcePools()).thenReturn(resourcePools);
     when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 1L, MemoryUnit.MB));
     when(storeConfig.getKeyType()).thenReturn(String.class);

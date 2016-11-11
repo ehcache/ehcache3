@@ -18,33 +18,30 @@ package org.ehcache.clustered.server.repo;
 
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 
 import java.util.AbstractMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.stream.Collectors;
 
 class ServerStateRepository {
 
-  private final ConcurrentMap<String, ConcurrentMap> concurrentMapRepo = new ConcurrentHashMap<String, ConcurrentMap>();
+  private final ConcurrentMap<String, ConcurrentMap<Object, Object>> concurrentMapRepo = new ConcurrentHashMap<>();
 
   EhcacheEntityResponse invoke(StateRepositoryOpMessage message) throws ClusterException {
     String mapId = message.getMapId();
     ConcurrentMap<Object, Object> map = concurrentMapRepo.get(mapId);
     if (map == null) {
-      ConcurrentHashMap newMap = new ConcurrentHashMap();
+      ConcurrentHashMap<Object, Object> newMap = new ConcurrentHashMap<>();
       map = concurrentMapRepo.putIfAbsent(mapId, newMap);
       if (map == null) {
         map = newMap;
       }
     }
 
-    Object result = null;
+    Object result;
     switch (message.operation()) {
       case GET:
         StateRepositoryOpMessage.GetMessage getMessage = (StateRepositoryOpMessage.GetMessage) message;
@@ -55,11 +52,10 @@ class ServerStateRepository {
         result = map.putIfAbsent(putIfAbsentMessage.getKey(), putIfAbsentMessage.getValue());
         break;
       case ENTRY_SET:
-        Set<Map.Entry> entrySet = new HashSet<Map.Entry>();
-        for (Map.Entry entry : map.entrySet()) {
-          entrySet.add(new AbstractMap.SimpleEntry(entry.getKey(), entry.getValue()));
-        }
-        result = entrySet;
+        result = map.entrySet()
+          .stream()
+          .map(entry -> new AbstractMap.SimpleEntry<>(entry.getKey(), entry.getValue()))
+          .collect(Collectors.toSet());
         break;
       default:
         throw new IllegalMessageException("Invalid operation: " + message.operation());

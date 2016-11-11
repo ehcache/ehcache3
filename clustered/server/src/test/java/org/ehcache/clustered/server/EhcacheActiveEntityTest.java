@@ -2636,7 +2636,8 @@ public class EhcacheActiveEntityTest {
           .shared("primary")
           .build()));
 
-    PassiveSynchronizationChannel syncChannel = mock(PassiveSynchronizationChannel.class);
+    @SuppressWarnings("unchecked")
+    PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
     activeEntity.synchronizeKeyToPassive(syncChannel, 1);
 
     ArgumentCaptor<EntityStateSyncMessage> captor = ArgumentCaptor.forClass(EntityStateSyncMessage.class);
@@ -2669,7 +2670,8 @@ public class EhcacheActiveEntityTest {
     activeEntity.invoke(client,
       MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
 
-    PassiveSynchronizationChannel syncChannel = mock(PassiveSynchronizationChannel.class);
+    @SuppressWarnings("unchecked")
+    PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
     activeEntity.synchronizeKeyToPassive(syncChannel, 1);
   }
 

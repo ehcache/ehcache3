@@ -147,7 +147,8 @@ public class ConditionalReplaceOperation<K, V> implements Operation<K, V>, Resul
       return false;
     }
 
-    ConditionalReplaceOperation<K, V> other = (ConditionalReplaceOperation)obj;
+    @SuppressWarnings("unchecked")
+    ConditionalReplaceOperation<K, V> other = (ConditionalReplaceOperation) obj;
     if(this.getOpCode() != other.getOpCode()) {
       return false;
     }

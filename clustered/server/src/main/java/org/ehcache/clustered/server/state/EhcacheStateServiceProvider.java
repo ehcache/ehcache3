@@ -38,7 +38,7 @@ import java.util.concurrent.ConcurrentMap;
 @BuiltinService
 public class EhcacheStateServiceProvider implements ServiceProvider {
 
-  private ConcurrentMap<Long, EhcacheStateService> serviceMap = new ConcurrentHashMap<Long, EhcacheStateService>();
+  private ConcurrentMap<Long, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
 
   @Override
   public boolean initialize(ServiceProviderConfiguration configuration, PlatformConfiguration platformConfiguration) {
@@ -55,14 +55,16 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
       if (result == null) {
         result = storeManagerService;
       }
-      return (T) result;
+      @SuppressWarnings("unchecked")
+      T typedResult = (T) result;
+      return typedResult;
     }
     throw new IllegalArgumentException("Unexpected configuration type.");
   }
 
   @Override
   public Collection<Class<?>> getProvidedServiceTypes() {
-    List<Class<?>> classes = new ArrayList<Class<?>>();
+    List<Class<?>> classes = new ArrayList<>();
     classes.add(EhcacheStateService.class);
     return classes;
   }

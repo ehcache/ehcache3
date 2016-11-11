@@ -38,6 +38,7 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public V get(final Object key) {
     return (V) getResponse(messageFactory.getMessage(key));
   }
@@ -54,11 +55,13 @@ public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Set<Map.Entry<K, V>> entrySet() {
     return (Set<Map.Entry<K, V>>) getResponse(messageFactory.entrySetMessage());
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public V putIfAbsent(final K key, final V value) {
     return (V) getResponse(messageFactory.putIfAbsentMessage(key, value));
   }

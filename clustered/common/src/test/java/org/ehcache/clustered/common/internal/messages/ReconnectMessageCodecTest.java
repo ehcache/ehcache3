@@ -51,7 +51,7 @@ public class ReconnectMessageCodecTest {
     secondSetToInvalidate.add(222L);
     secondSetToInvalidate.add(2222L);
     reconnectMessage.addInvalidationsInProgress("test", firstSetToInvalidate);
-    reconnectMessage.addInvalidationsInProgress("test1", Collections.EMPTY_SET);
+    reconnectMessage.addInvalidationsInProgress("test1", Collections.<Long>emptySet());
     reconnectMessage.addInvalidationsInProgress("test2", secondSetToInvalidate);
     reconnectMessage.addClearInProgress("test");
 
