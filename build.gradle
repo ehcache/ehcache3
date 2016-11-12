@@ -28,15 +28,15 @@ ext {
   sizeofVersion = '0.3.0'
 
   // Clustered
-  terracottaPlatformVersion = '5.0.9.beta'
+  terracottaPlatformVersion = '5.0.11.beta2'
   managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.0.9.beta'
-  terracottaCoreVersion = '5.0.9-beta2'
+  terracottaApisVersion = '1.0.11.beta'
+  terracottaCoreVersion = '5.0.11-beta'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.0.9.beta2'
+  terracottaPassthroughTestingVersion = '1.0.11.beta'
   entityTestLibVersion = terracottaPassthroughTestingVersion
-  galvanVersion = '1.0.9-beta2'
+  galvanVersion = '1.0.11-beta'
 
   // Tools
   findbugsVersion = '3.0.1'
