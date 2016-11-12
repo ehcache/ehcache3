@@ -23,7 +23,6 @@ import org.junit.FixMethodOrder;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runners.MethodSorters;
-import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
@@ -124,7 +123,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(capabilities[3].getName(), equalTo("PoolSettings"));
     assertThat(capabilities[4].getName(), equalTo("ServerStoreStatistics"));
     assertThat(capabilities[5].getName(), equalTo("PoolStatistics"));
-    assertThat(capabilities[6].getName(), equalTo("StatisticCollector"));
+    assertThat(capabilities[6].getName(), equalTo("StatisticCollectorCapability"));
 
     assertThat(capabilities[1].getDescriptors(), hasSize(3)); // time + 2 resources
     assertThat(capabilities[2].getDescriptors(), hasSize(4)); // time descriptor + 3 dedicated store
@@ -208,7 +207,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   public void test_G_stats_collection() throws Exception {
 
-    sendManagementCallToCollectStats("Cache:HitCount");
+    sendManagementCallOnEntityToCollectStats();
+    sendManagementCallOnClientToCollectStats("Cache:HitCount");
 
     Cache<String, String> cache1 = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     cache1.put("key1", "val");

@@ -22,7 +22,6 @@ import java.util.List;
 import org.ehcache.Cache;
 import org.junit.Assert;
 import org.junit.Test;
-import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.history.CounterHistory;
@@ -36,7 +35,7 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
 
   @Test
   public void countTest() throws Exception {
-    sendManagementCallToCollectStats("Cache:HitCount","Clustered:HitCount","Cache:MissCount","Clustered:MissCount");
+    sendManagementCallOnClientToCollectStats("Cache:HitCount","Clustered:HitCount","Cache:MissCount","Clustered:MissCount");
 
     Cache<String, String> cache = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     cache.put("one", "val1");

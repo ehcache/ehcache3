@@ -62,7 +62,7 @@ class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvi
       Objects.requireNonNull(resourcePageSource, "Unable to locale pool " + poolName);
     }
 
-    return new PoolExposedStatistics(getConsumerId(), managedObject, getStatisticConfiguration(), executor, resourcePageSource);
+    return new PoolExposedStatistics(getMonitoringService().getConsumerId(), managedObject, getStatisticConfiguration(), executor, resourcePageSource);
   }
 
   private static class PoolExposedStatistics extends AbstractExposedStatistics<PoolBinding> {

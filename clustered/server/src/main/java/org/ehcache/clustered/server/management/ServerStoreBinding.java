@@ -16,7 +16,7 @@
 package org.ehcache.clustered.server.management;
 
 import org.ehcache.clustered.server.ServerStoreImpl;
-import org.terracotta.management.service.registry.provider.AliasBinding;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBinding;
 
 class ServerStoreBinding extends AliasBinding {
 

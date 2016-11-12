@@ -20,7 +20,7 @@ import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.service.registry.provider.AliasBindingManagementProvider;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -44,7 +44,7 @@ class OffHeapResourceSettingsManagementProvider extends AliasBindingManagementPr
 
   @Override
   protected ExposedOffHeapResourceBinding wrap(OffHeapResourceBinding managedObject) {
-    return new ExposedOffHeapResourceBinding(managedObject, getConsumerId());
+    return new ExposedOffHeapResourceBinding(managedObject, getMonitoringService().getConsumerId());
   }
 
   private static class ExposedOffHeapResourceBinding extends ExposedAliasBinding<OffHeapResourceBinding> {

@@ -21,7 +21,7 @@ import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.service.registry.provider.AliasBindingManagementProvider;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -45,7 +45,7 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
 
   @Override
   protected ExposedServerStoreBinding wrap(ServerStoreBinding managedObject) {
-    return new ExposedServerStoreBinding(managedObject, getConsumerId());
+    return new ExposedServerStoreBinding(managedObject, getMonitoringService().getConsumerId());
   }
 
   private static class ExposedServerStoreBinding extends ExposedAliasBinding<ServerStoreBinding> {

@@ -22,8 +22,8 @@ import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.service.registry.provider.AliasBinding;
-import org.terracotta.management.service.registry.provider.AliasBindingManagementProvider;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBinding;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
 import java.util.Collection;
 import java.util.HashMap;
