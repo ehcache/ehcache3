@@ -45,12 +45,17 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   private final Lock invalidateAllLock = new ReentrantLock();
   private volatile CountDownLatch invalidateAllLatch;
   private final List<InvalidationListener> invalidationListeners = new CopyOnWriteArrayList<InvalidationListener>();
+  private final Map<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> responseListeners
+    = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>>();
   private final EhcacheClientEntity entity;
+  private final EhcacheClientEntity.ReconnectListener reconnectListener;
+  private final EhcacheClientEntity.DisconnectionListener disconnectionListener;
 
+  @SuppressWarnings("unchecked")
   public StrongServerStoreProxy(final ServerStoreMessageFactory messageFactory, final EhcacheClientEntity entity) {
     this.delegate = new NoInvalidationServerStoreProxy(messageFactory, entity);
     this.entity = entity;
-    entity.addReconnectListener(new EhcacheClientEntity.ReconnectListener() {
+    this.reconnectListener = new EhcacheClientEntity.ReconnectListener() {
       @Override
       public void onHandleReconnect(ReconnectMessage reconnectMessage) {
         Set<Long> inflightInvalidations = hashInvalidationsInProgress.keySet();
@@ -59,8 +64,10 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
           reconnectMessage.addClearInProgress(delegate.getCacheId());
         }
       }
-    });
-    entity.addResponseListener(EhcacheEntityResponse.HashInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
+    };
+    entity.addReconnectListener(reconnectListener);
+
+    this.responseListeners.put(EhcacheEntityResponse.HashInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.HashInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.HashInvalidationDone response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -75,7 +82,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    entity.addResponseListener(EhcacheEntityResponse.AllInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
+    this.responseListeners.put(EhcacheEntityResponse.AllInvalidationDone.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.AllInvalidationDone>() {
       @Override
       public void onResponse(EhcacheEntityResponse.AllInvalidationDone response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -99,7 +106,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    entity.addResponseListener(EhcacheEntityResponse.ServerInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
+    this.responseListeners.put(EhcacheEntityResponse.ServerInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ServerInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ServerInvalidateHash response) {
         if (response.getCacheId().equals(messageFactory.getCacheId())) {
@@ -113,7 +120,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateHash.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateHash>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateHash response) {
         final String cacheId = response.getCacheId();
@@ -138,7 +145,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    entity.addResponseListener(EhcacheEntityResponse.ClientInvalidateAll.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
+    this.responseListeners.put(EhcacheEntityResponse.ClientInvalidateAll.class, new EhcacheClientEntity.ResponseListener<EhcacheEntityResponse.ClientInvalidateAll>() {
       @Override
       public void onResponse(EhcacheEntityResponse.ClientInvalidateAll response) {
         final String cacheId = response.getCacheId();
@@ -162,7 +169,13 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
         }
       }
     });
-    entity.addDisconnectionListener(new EhcacheClientEntity.DisconnectionListener() {
+
+    for (Map.Entry<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
+      this.responseListeners.entrySet()) {
+      this.entity.addResponseListener(classResponseListenerEntry.getKey(), (EhcacheClientEntity.ResponseListener) classResponseListenerEntry.getValue());
+    }
+
+    this.disconnectionListener = new EhcacheClientEntity.DisconnectionListener() {
       @Override
       public void onDisconnection() {
         for (Map.Entry<Long, CountDownLatch> entry : hashInvalidationsInProgress.entrySet()) {
@@ -179,7 +192,8 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
           invalidateAllLock.unlock();
         }
       }
-    });
+    };
+    entity.addDisconnectionListener(disconnectionListener);
   }
 
   private <T> T performWaitingForHashInvalidation(long key, NullaryFunction<T> c) throws InterruptedException, TimeoutException {
@@ -197,6 +211,7 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
 
     try {
       T result = c.apply();
+      LOGGER.debug("CLIENT: Waiting for invalidations on key {}", key);
       awaitOnLatch(latch);
       LOGGER.debug("CLIENT: key {} invalidated on all clients, unblocking call", key);
       return result;
@@ -281,6 +296,17 @@ public class StrongServerStoreProxy implements ServerStoreProxy {
   @Override
   public boolean removeInvalidationListener(InvalidationListener listener) {
     return invalidationListeners.remove(listener);
+  }
+
+  @SuppressWarnings("unchecked")
+  @Override
+  public void close() {
+    this.entity.removeDisconnectionListener(this.disconnectionListener);
+    this.entity.removeReconnectListener(this.reconnectListener);
+    for (Map.Entry<Class<? extends EhcacheEntityResponse>, EhcacheClientEntity.ResponseListener<? extends EhcacheEntityResponse>> classResponseListenerEntry :
+      this.responseListeners.entrySet()) {
+      this.entity.removeResponseListener(classResponseListenerEntry.getKey(), (EhcacheClientEntity.ResponseListener) classResponseListenerEntry.getValue());
+    }
   }
 
   @Override

@@ -495,11 +495,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       }
       case GET_AND_APPEND: {
         ServerStoreOpMessage.GetAndAppendMessage getAndAppendMessage = (ServerStoreOpMessage.GetAndAppendMessage)message;
+        LOGGER.trace("Message {} : GET_AND_APPEND on key {} from client {}", message, getAndAppendMessage.getKey(), getAndAppendMessage.getClientId());
         if (!isMessageDuplicate(message)) {
-
+          LOGGER.trace("Message {} : is not duplicate", message);
           Chain result = cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
           sendMessageToSelfAndDeferRetirement(getAndAppendMessage, cacheStore.get(getAndAppendMessage.getKey()));
           EhcacheEntityResponse response = responseFactory.response(result);
+          LOGGER.debug("Send invalidations for key {}", getAndAppendMessage.getKey());
           invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
           return response;
         }
