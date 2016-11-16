@@ -23,7 +23,7 @@ dependencies {
   compileOnly project(':xml')
   compile project(':clustered:common')
   provided "org.terracotta:entity-client-api:$parent.entityApiVersion"
-  provided "org.terracotta.management:management-registry-service-api:$parent.managementVersion" // provided in management-server jar
+  provided "org.terracotta.management:monitoring-service-api:$parent.managementVersion" // provided in management-server jar
 
   testCompile project(':api')
   testCompile project(':xml')

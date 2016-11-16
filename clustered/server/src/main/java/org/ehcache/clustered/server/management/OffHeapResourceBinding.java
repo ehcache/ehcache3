@@ -15,7 +15,7 @@
  */
 package org.ehcache.clustered.server.management;
 
-import org.terracotta.management.service.registry.provider.AliasBinding;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBinding;
 import org.terracotta.offheapresource.OffHeapResource;
 
 class OffHeapResourceBinding extends AliasBinding {

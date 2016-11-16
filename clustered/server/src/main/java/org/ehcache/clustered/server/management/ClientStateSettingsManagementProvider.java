@@ -22,7 +22,7 @@ import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.service.registry.provider.ClientBindingManagementProvider;
+import org.terracotta.management.service.monitoring.registry.provider.ClientBindingManagementProvider;
 
 import java.util.Collection;
 import java.util.Collections;

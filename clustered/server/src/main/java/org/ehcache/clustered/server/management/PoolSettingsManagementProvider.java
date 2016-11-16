@@ -22,7 +22,7 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.service.registry.provider.AliasBindingManagementProvider;
+import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -55,7 +55,7 @@ class PoolSettingsManagementProvider extends AliasBindingManagementProvider<Pool
 
   @Override
   protected ExposedPoolBinding wrap(PoolBinding managedObject) {
-    return new ExposedPoolBinding(managedObject, getConsumerId());
+    return new ExposedPoolBinding(managedObject, getMonitoringService().getConsumerId());
   }
 
   private static class ExposedPoolBinding extends ExposedAliasBinding<PoolBinding> {

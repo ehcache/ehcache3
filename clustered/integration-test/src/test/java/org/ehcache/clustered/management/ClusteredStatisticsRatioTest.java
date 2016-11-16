@@ -36,7 +36,7 @@ public class ClusteredStatisticsRatioTest extends AbstractClusteringManagementTe
   @Test
   public void ratioTest() throws Exception {
     String[] statNames = {"Cache:HitRatio", "Clustered:HitRatio", "Cache:MissRatio", "Clustered:MissRatio"};
-    sendManagementCallToCollectStats(statNames);
+    sendManagementCallOnClientToCollectStats(statNames);
 
     // When testing ratios, we need to wait for the first computation (we do not have any choice) to happen because ratio depends on 2 other sampled statistics.
     // If you do not wait, then you'll always get some NaN because the hits will be done within the 1st second, and the hits won't be done in the right "window".

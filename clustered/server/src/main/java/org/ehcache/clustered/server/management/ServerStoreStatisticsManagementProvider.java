@@ -39,7 +39,7 @@ class ServerStoreStatisticsManagementProvider extends AbstractStatisticsManageme
 
   @Override
   protected AbstractExposedStatistics<ServerStoreBinding> internalWrap(ServerStoreBinding managedObject) {
-    return new ServerStoreExposedStatistics(getConsumerId(), managedObject, getStatisticConfiguration(), executor);
+    return new ServerStoreExposedStatistics(getMonitoringService().getConsumerId(), managedObject, getStatisticConfiguration(), executor);
   }
 
   private static class ServerStoreExposedStatistics extends AbstractExposedStatistics<ServerStoreBinding> {

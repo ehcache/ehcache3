@@ -36,6 +36,9 @@ import org.terracotta.management.entity.management.client.ManagementAgentEntityF
 import org.terracotta.management.entity.management.client.ManagementAgentService;
 import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntityFactory;
 import org.terracotta.management.entity.monitoring.client.MonitoringServiceProxyEntity;
+import org.terracotta.management.entity.tms.TmsAgentConfig;
+import org.terracotta.management.entity.tms.client.TmsAgentEntity;
+import org.terracotta.management.entity.tms.client.TmsAgentEntityFactory;
 import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.cluster.Client;
@@ -45,8 +48,6 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.Statistic;
-import org.terracotta.management.model.stats.StatisticHistory;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
@@ -56,7 +57,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.concurrent.Exchanger;
@@ -194,7 +194,7 @@ public abstract class AbstractClusteringManagementTest {
     }
   }
 
-  protected static ContextualReturn<?> sendManagementCallToCollectStats(String... statNames) throws Exception {
+  protected static ContextualReturn<?> sendManagementCallOnClientToCollectStats(String... statNames) throws Exception {
     Connection managementConnection = CLUSTER.newConnection();
     try {
       ManagementAgentService agent = new ManagementAgentService(new ManagementAgentEntityFactory(managementConnection).retrieveOrCreate(new ManagementAgentConfig()));
@@ -217,7 +217,7 @@ public abstract class AbstractClusteringManagementTest {
         Context.create("cacheManagerName", "my-super-cache-manager"),
         "StatisticCollectorCapability",
         "updateCollectedStatistics",
-        Collection.class,
+        Void.TYPE,
         new Parameter("StatisticsCapability"),
         new Parameter(asList(statNames), Collection.class.getName())));
 
@@ -225,6 +225,57 @@ public abstract class AbstractClusteringManagementTest {
       assertThat(contextualReturn.hasExecuted(), is(true));
 
       return contextualReturn;
+    } finally {
+      managementConnection.close();
+    }
+  }
+
+  protected static void sendManagementCallOnEntityToCollectStats() throws Exception {
+    Connection managementConnection = CLUSTER.newConnection();
+    try {
+      TmsAgentEntityFactory entityFactory = new TmsAgentEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
+      TmsAgentEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new TmsAgentConfig());
+
+      // get the context from the topology for the ehcache server entity
+      Context context = tmsAgentEntity.readTopology().get().getSingleStripe().getActiveServerEntity(serverEntityIdentifier).get().getContext();
+
+      ContextualReturn<Void> result = tmsAgentEntity.call(
+        context,
+        "StatisticCollectorCapability",
+        "updateCollectedStatistics",
+        Void.TYPE,
+        new Parameter("PoolStatistics"),
+        new Parameter(asList(
+          "Pool:AllocatedSize"
+        ), Collection.class.getName())
+      ).get();
+
+      assertThat(result.hasExecuted(), is(true));
+
+      result = tmsAgentEntity.call(
+        context,
+        "StatisticCollectorCapability",
+        "updateCollectedStatistics",
+        Void.TYPE,
+        new Parameter("ServerStoreStatistics"),
+        new Parameter(asList(
+          "Store:AllocatedMemory",
+          "Store:DataAllocatedMemory",
+          "Store:OccupiedMemory",
+          "Store:DataOccupiedMemory",
+          "Store:Entries",
+          "Store:UsedSlotCount",
+          "Store:DataVitalMemory",
+          "Store:VitalMemory",
+          "Store:ReprobeLength",
+          "Store:RemovedSlotCount",
+          "Store:DataSize",
+          "Store:TableCapacity"
+        ), Collection.class.getName())
+      ).get();
+
+      assertThat(result.hasExecuted(), is(true));
+
     } finally {
       managementConnection.close();
     }
@@ -238,7 +289,7 @@ public abstract class AbstractClusteringManagementTest {
         .filter(message -> message.getType().equals("STATISTICS"))
         .flatMap(message -> message.unwrap(ContextualStatistics.class).stream())
         .collect(Collectors.toList());
-      if(messages.isEmpty()) {
+      if (messages.isEmpty()) {
         Thread.yield();
       } else {
         return messages;

@@ -23,22 +23,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.model.call.Parameter;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.service.registry.ConsumerManagementRegistry;
-import org.terracotta.management.service.registry.ConsumerManagementRegistryConfiguration;
-import org.terracotta.management.service.registry.provider.ClientBinding;
+import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
+import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 
-import java.util.Collection;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-
-import static java.util.Arrays.asList;
 
 public class Management {
 
@@ -112,58 +107,11 @@ public class Management {
 
       managementRegistry.addManagementProvider(collectorManagementProvider);
 
-      // start collecting stats
-      collectorManagementProvider.start();
+      // start the stat collector (it won't collect any stats though, because they need to be configured through a management call)
+      collectorManagementProvider.init();
 
       // expose the management registry inside voltorn
       managementRegistry.refresh();
-
-      //TODO FIXME: following code should be triggered by a remote management call (https://github.com/Terracotta-OSS/terracotta-apis/issues/168)
-      try {
-        LOGGER.trace("init() - activating statistics");
-
-        Context entityContext = Context.create(managementRegistry.getContextContainer().getName(), managementRegistry.getContextContainer().getValue());
-
-        managementRegistry
-          .withCapability("StatisticCollector")
-          .call("updateCollectedStatistics",
-            new Parameter("PoolStatistics"),
-            new Parameter(asList(
-              "Pool:AllocatedSize"
-            ), Collection.class.getName()))
-          .on(entityContext)
-          .build()
-          .execute()
-          .getSingleResult()
-          .getValue();
-
-        managementRegistry
-          .withCapability("StatisticCollector")
-          .call("updateCollectedStatistics",
-            new Parameter("ServerStoreStatistics"),
-            new Parameter(asList(
-              "Store:AllocatedMemory",
-              "Store:DataAllocatedMemory",
-              "Store:OccupiedMemory",
-              "Store:DataOccupiedMemory",
-              "Store:Entries",
-              "Store:UsedSlotCount",
-              "Store:DataVitalMemory",
-              "Store:VitalMemory",
-              "Store:ReprobeLength",
-              "Store:RemovedSlotCount",
-              "Store:DataSize",
-              "Store:TableCapacity"
-            ), Collection.class.getName()))
-          .on(entityContext)
-          .build()
-          .execute()
-          .getSingleResult()
-          .getValue();
-
-      } catch (ExecutionException e) {
-        throw new RuntimeException(e.getCause());
-      }
     }
   }
 
