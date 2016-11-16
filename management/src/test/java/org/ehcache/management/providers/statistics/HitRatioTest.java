@@ -170,7 +170,7 @@ public class HitRatioTest {
         Assert.assertThat(tierHitRatio, is(tierExpectedValues.get(i)));
       }
 
-      double hitRatio = StatsUtil.getExpectedValueFromRatioHistory("Cache:HitRatio", context, managementRegistry, cacheExpectedValue);
+      Double hitRatio = StatsUtil.getExpectedValueFromRatioHistory("Cache:HitRatio", context, managementRegistry, cacheExpectedValue);
       Assert.assertThat(hitRatio, is(cacheExpectedValue));
 
     }
