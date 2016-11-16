@@ -67,7 +67,7 @@ Ehcache provides several ways to achieve this, as described in the following sec
 === Starting from JSR-107 created caches
 
 When you create a `Cache` on a `CacheManager` using a `MutableConfiguration` - in other words, using only JSR-107 types -
-you can still get to the underlying Ehcache `RuntimeCacheConfiguration`:
+you can still get to the underlying Ehcache `CacheRuntimeConfiguration`:
 
 [source,java,indent=0]
 ----
@@ -76,7 +76,7 @@ include::{sourcedir32}/107/src/test/java/org/ehcache/docs/EhCache107Configuratio
 <1> Create a JSR-107 cache using the `MutableConfiguration` from the specification
 <2> Get to the JSR-107 `CompleteConfiguration`
 <3> Get to the Ehcache JSR-107 configuration bridge
-<4> Unwrap to the Ehcache `RuntimeCacheConfiguration` type
+<4> Unwrap to the Ehcache `CacheRuntimeConfiguration` type
 
 === Building the configuration using Ehcache APIs
 
