@@ -25,13 +25,14 @@ import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.service.ServiceLocator;
-import org.ehcache.core.spi.service.LocalPersistenceService;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.DefaultTimeSourceService;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.persistence.PersistableResourceService;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.junit.Test;
@@ -45,7 +46,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static java.util.Collections.singleton;
-import static org.hamcrest.Matchers.is;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.terracotta.context.query.Matchers.attributes;
@@ -57,36 +60,38 @@ import static org.terracotta.context.query.QueryBuilder.queryBuilder;
  * OffHeapStoreProviderTest
  */
 public class OffHeapDiskStoreProviderTest {
+
   @Test
    public void testStatisticsAssociations() throws Exception {
      OffHeapDiskStore.Provider provider = new OffHeapDiskStore.Provider();
 
-    ServiceLocator serviceLocator = new ServiceLocator(mock(SerializationProvider.class), new DefaultTimeSourceService(null), mock(LocalPersistenceService.class));
-
+    ServiceLocator serviceLocator = dependencySet().with(mock(SerializationProvider.class))
+      .with(new DefaultTimeSourceService(null)).with(mock(DiskResourceService.class)).build();
     provider.start(serviceLocator);
 
-    OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig());
+    OffHeapDiskStore<Long, String> store = provider.createStore(getStoreConfig(), mock(PersistableResourceService.PersistenceSpaceIdentifier.class));
 
-     Query storeQuery = queryBuilder()
-         .children()
-         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
-             hasAttribute("tags", new Matcher<Set<String>>() {
-               @Override
-               protected boolean matchesSafely(Set<String> object) {
-                 return object.containsAll(singleton("store"));
-               }
-             })))))
-         .build();
+    @SuppressWarnings("unchecked")
+    Query storeQuery = queryBuilder()
+      .children()
+      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+        hasAttribute("tags", new Matcher<Set<String>>() {
+          @Override
+          protected boolean matchesSafely(Set<String> object) {
+            return object.containsAll(singleton("Disk"));
+          }
+        })))))
+      .build();
 
      Set<TreeNode> nodes = singleton(ContextManager.nodeFor(store));
 
      Set<TreeNode> storeResult = storeQuery.execute(nodes);
-     assertThat(storeResult.isEmpty(), is(false));
+     assertThat(storeResult, not(empty()));
 
      provider.releaseStore(store);
 
      storeResult = storeQuery.execute(nodes);
-     assertThat(storeResult.isEmpty(), is(true));
+     assertThat(storeResult, empty());
    }
 
    private Store.Configuration<Long, String> getStoreConfig() {
@@ -120,8 +125,9 @@ public class OffHeapDiskStoreProviderTest {
        public ResourcePools getResourcePools() {
          return new ResourcePools() {
            @Override
-           public ResourcePool getPoolForResource(ResourceType resourceType) {
-             return new SizedResourcePool() {
+           @SuppressWarnings("unchecked")
+           public <P extends ResourcePool> P getPoolForResource(ResourceType<P> resourceType) {
+             return (P) new SizedResourcePool() {
                @Override
                public ResourceType getType() {
                  return ResourceType.Core.DISK;
@@ -150,6 +156,7 @@ public class OffHeapDiskStoreProviderTest {
            }
 
            @Override
+           @SuppressWarnings("unchecked")
            public Set<ResourceType<?>> getResourceTypeSet() {
              return (Set) singleton(ResourceType.Core.OFFHEAP);
            }

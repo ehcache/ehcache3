@@ -20,3 +20,6 @@ checkstyle {
   configFile = file("$projectDir/config/checkstyle.xml")
 }
 
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
+}

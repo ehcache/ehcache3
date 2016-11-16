@@ -579,7 +579,7 @@ public class ByteAccountingTest {
       }
     });
 
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
@@ -780,7 +780,8 @@ public class ByteAccountingTest {
   @Test
   public void testEviction() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore(1);
-    StoreEventListener listener = mock(StoreEventListener.class);
+    @SuppressWarnings("unchecked")
+    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     store.getStoreEventSource().addEventListener(listener);
 
     store.put(KEY, VALUE);
@@ -794,7 +795,7 @@ public class ByteAccountingTest {
     long requiredSize = getSize(key1, value1);
 
     store.put(key1, value1);
-    Matcher<StoreEvent<String, byte[]>> matcher = eventType(EventType.EVICTED);
+    Matcher<StoreEvent<String, String>> matcher = eventType(EventType.EVICTED);
     verify(listener, times(1)).onEvent(argThat(matcher));
     if (store.get(key1) != null) {
       assertThat(store.getCurrentUsageInBytes(), is(requiredSize));
@@ -805,7 +806,8 @@ public class ByteAccountingTest {
   }
 
   static long getSize(String key, String value) {
-    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0l, 0l, true, DEFAULT_COPIER);
+    @SuppressWarnings("unchecked")
+    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0L, 0L, true, DEFAULT_COPIER);
     long size = 0L;
     try {
       size = SIZE_OF_ENGINE.sizeof(key, valueHolder);
@@ -819,6 +821,7 @@ public class ByteAccountingTest {
 
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
+    @SuppressWarnings("unchecked")
     OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
                         final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, eventDispatcher);

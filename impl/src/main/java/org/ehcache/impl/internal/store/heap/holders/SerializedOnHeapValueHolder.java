@@ -87,7 +87,8 @@ public class SerializedOnHeapValueHolder<V> extends OnHeapValueHolder<V> impleme
     if (this == other) return true;
     if (other == null || getClass() != other.getClass()) return false;
 
-    SerializedOnHeapValueHolder<V> that = (SerializedOnHeapValueHolder)other;
+    @SuppressWarnings("unchecked")
+    SerializedOnHeapValueHolder<V> that = (SerializedOnHeapValueHolder<V>)other;
 
     if (!super.equals(that)) return false;
     try {

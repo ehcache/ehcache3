@@ -16,7 +16,10 @@
 
 package org.ehcache.clustered.client.internal.lock;
 
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 
@@ -27,21 +30,30 @@ import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.terracotta.exception.EntityAlreadyExistsException;
 
 public class VoltronReadWriteLockTest {
 
+  @Mock
+  private VoltronReadWriteLockClient client;
+
+  @Mock
+  private EntityRef<VoltronReadWriteLockClient, Void> entityRef;
+
+  @Mock
+  private Connection connection;
+
+  @Before
+  public void setUp() {
+    MockitoAnnotations.initMocks(this);
+  }
+
   @Test
   public void testCreateLockEntityWhenNotExisting() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -52,13 +64,9 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testFetchExistingLockEntityWhenExists() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     doThrow(EntityAlreadyExistsException.class).when(entityRef).create(any(Void.class));
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -67,12 +75,8 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testWriteLockLocksWrite() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -83,12 +87,8 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testReadLockLocksRead() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -99,12 +99,8 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testWriteUnlockUnlocksWrite() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -115,12 +111,8 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testReadUnlockUnlocksRead() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -131,12 +123,8 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testWriteUnlockClosesEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -147,12 +135,8 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testReadUnlockClosesEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -163,12 +147,8 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testWriteUnlockDestroysEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -179,12 +159,8 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testReadUnlockDestroysEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
-
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -195,13 +171,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryWriteLockTryLocksWrite() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(WRITE)).thenReturn(true);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -211,13 +184,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryReadLockTryLocksRead() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(READ)).thenReturn(true);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -227,13 +197,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryWriteUnlockUnlocksWrite() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(WRITE)).thenReturn(true);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -244,13 +211,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryReadUnlockUnlocksRead() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(READ)).thenReturn(true);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -261,13 +225,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryWriteUnlockClosesEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(WRITE)).thenReturn(true);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -278,13 +239,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryReadUnlockClosesEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(READ)).thenReturn(true);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -295,13 +253,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryWriteUnlockDestroysEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(WRITE)).thenReturn(true);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -312,13 +267,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryReadUnlockDestroysEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(READ)).thenReturn(true);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -329,13 +281,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryWriteLockFailingClosesEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(WRITE)).thenReturn(false);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -345,13 +294,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryReadLockFailingClosesEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(READ)).thenReturn(false);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -361,13 +307,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryWriteLockFailingDestroysEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(WRITE)).thenReturn(false);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 
@@ -377,13 +320,10 @@ public class VoltronReadWriteLockTest {
 
   @Test
   public void testTryReadLockFailingDestroysEntity() throws Exception {
-    VoltronReadWriteLockClient client = mock(VoltronReadWriteLockClient.class);
     when(client.tryLock(READ)).thenReturn(false);
 
-    EntityRef<VoltronReadWriteLockClient, Void> entityRef = mock(EntityRef.class);
     when(entityRef.fetchEntity()).thenReturn(client);
 
-    Connection connection = mock(Connection.class);
     when(connection.<VoltronReadWriteLockClient, Void>getEntityRef(VoltronReadWriteLockClient.class, 1, "VoltronReadWriteLock-TestLock")).thenReturn(entityRef);
     VoltronReadWriteLock lock = new VoltronReadWriteLock(connection, "TestLock");
 

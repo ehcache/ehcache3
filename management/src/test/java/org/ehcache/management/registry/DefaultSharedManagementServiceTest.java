@@ -19,21 +19,26 @@ import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.SharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.terracotta.management.model.call.ContextualReturn;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
-import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
+import org.terracotta.management.model.stats.history.CounterHistory;
+import org.terracotta.management.registry.ResultSet;
+import org.terracotta.management.registry.StatisticQuery;
+import org.terracotta.management.registry.StatisticQuery.Builder;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,6 +46,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -64,8 +70,13 @@ public class DefaultSharedManagementServiceTest {
   ManagementRegistryServiceConfiguration config1;
   ManagementRegistryServiceConfiguration config2;
 
+  @Rule
+  public final Timeout globalTimeout = Timeout.seconds(10);
+
   @Before
   public void init() {
+    EhcacheStatisticsProviderConfiguration config = new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES);
+
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
         .build();
 
@@ -74,14 +85,14 @@ public class DefaultSharedManagementServiceTest {
     cacheManager1 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache1", cacheConfiguration)
         .using(service)
-        .using(config1 = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM1"))
+        .using(config1 = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM1").addConfiguration(config))
         .build(true);
 
     cacheManager2 = CacheManagerBuilder.newCacheManagerBuilder()
         .withCache("aCache2", cacheConfiguration)
         .withCache("aCache3", cacheConfiguration)
         .using(service)
-        .using(config2 = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM2"))
+        .using(config2 = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCM2").addConfiguration(config))
         .build(true);
 
     // this serie of calls make sure the registry still works after a full init / close / init loop
@@ -147,6 +158,8 @@ public class DefaultSharedManagementServiceTest {
 
   @Test
   public void testStats() {
+    String statisticName = "Cache:MissCount";
+
     List<Context> contextList = Arrays.asList(
         Context.empty()
             .with("cacheManagerName", "myCM1")
@@ -158,15 +171,14 @@ public class DefaultSharedManagementServiceTest {
             .with("cacheManagerName", "myCM2")
             .with("cacheName", "aCache3"));
 
-    cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
-    cacheManager2.getCache("aCache2", Long.class, String.class).put(2L, "2");
-    cacheManager2.getCache("aCache3", Long.class, String.class).put(3L, "3");
+    cacheManager1.getCache("aCache1", Long.class, String.class).get(1L);
+    cacheManager2.getCache("aCache2", Long.class, String.class).get(2L);
+    cacheManager2.getCache("aCache3", Long.class, String.class).get(3L);
 
-    ResultSet<ContextualStatistics> allCounters = service.withCapability("StatisticsCapability")
-        .queryStatistic("PutCounter")
-        .on(contextList)
-        .build()
-        .execute();
+    Builder builder = service.withCapability("StatisticsCapability")
+        .queryStatistic(statisticName)
+        .on(contextList);
+    ResultSet<ContextualStatistics> allCounters = getResultSet(builder, contextList, CounterHistory.class, statisticName);
 
     assertThat(allCounters.size(), equalTo(3));
 
@@ -174,9 +186,36 @@ public class DefaultSharedManagementServiceTest {
     assertThat(allCounters.getResult(contextList.get(1)).size(), equalTo(1));
     assertThat(allCounters.getResult(contextList.get(2)).size(), equalTo(1));
 
-    assertThat(allCounters.getResult(contextList.get(0)).getStatistic(Counter.class).getValue(), equalTo(1L));
-    assertThat(allCounters.getResult(contextList.get(1)).getStatistic(Counter.class).getValue(), equalTo(1L));
-    assertThat(allCounters.getResult(contextList.get(2)).getStatistic(Counter.class).getValue(), equalTo(1L));
+
+    int mostRecentSampleIndex = allCounters.getResult(contextList.get(0)).getStatistic(CounterHistory.class, statisticName).getValue().length - 1;
+    assertThat(allCounters.getResult(contextList.get(0)).getStatistic(CounterHistory.class, statisticName).getValue()[mostRecentSampleIndex].getValue(), equalTo(1L));
+
+    mostRecentSampleIndex = allCounters.getResult(contextList.get(1)).getStatistic(CounterHistory.class, statisticName).getValue().length - 1;
+    assertThat(allCounters.getResult(contextList.get(1)).getStatistic(CounterHistory.class, statisticName).getValue()[mostRecentSampleIndex].getValue(), equalTo(1L));
+
+    mostRecentSampleIndex = allCounters.getResult(contextList.get(2)).getStatistic(CounterHistory.class, statisticName).getValue().length - 1;
+    assertThat(allCounters.getResult(contextList.get(2)).getStatistic(CounterHistory.class, statisticName).getValue()[mostRecentSampleIndex].getValue(), equalTo(1L));
+
+  }
+
+  private static ResultSet<ContextualStatistics> getResultSet(StatisticQuery.Builder builder, List<Context> contextList, Class<CounterHistory> type, String statisticsName) {
+    ResultSet<ContextualStatistics> counters = null;
+
+    //wait till Counter history is initialized and contains values > 0.
+    while(!Thread.currentThread().isInterrupted()) {
+      counters = builder.build().execute();
+
+      if(counters.getResult(contextList.get(0)).getStatistic(type, statisticsName).getValue().length > 0 &&
+         counters.getResult(contextList.get(0)).getStatistic(type, statisticsName).getValue()[counters.getResult(contextList.get(0)).getStatistic(type, statisticsName).getValue().length - 1].getValue() > 0 &&
+         counters.getResult(contextList.get(1)).getStatistic(type, statisticsName).getValue().length > 0 &&
+         counters.getResult(contextList.get(1)).getStatistic(type, statisticsName).getValue()[counters.getResult(contextList.get(1)).getStatistic(type, statisticsName).getValue().length - 1].getValue() > 0 &&
+         counters.getResult(contextList.get(2)).getStatistic(type, statisticsName).getValue().length > 0 &&
+         counters.getResult(contextList.get(2)).getStatistic(type, statisticsName).getValue()[counters.getResult(contextList.get(2)).getStatistic(type, statisticsName).getValue().length - 1].getValue() > 0) {
+        break;
+      }
+    }
+
+    return counters;
   }
 
   @Test

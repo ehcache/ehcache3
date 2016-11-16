@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
@@ -44,17 +45,22 @@ import org.terracotta.connection.Connection;
 import org.terracotta.connection.ConnectionException;
 import org.terracotta.connection.ConnectionPropertyNames;
 import org.terracotta.connection.ConnectionService;
+import org.terracotta.connection.entity.Entity;
+import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.EntityMessage;
 import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderConfiguration;
+import org.terracotta.exception.EntityNotFoundException;
+import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
 import org.terracotta.offheapresource.config.ResourceType;
+import org.terracotta.passthrough.PassthroughConnection;
 import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughServerRegistry;
 
@@ -207,9 +213,6 @@ public class UnitTestConnectionService implements ConnectionService {
     URI keyURI = createKey(uri);
     ServerDescriptor serverDescriptor = SERVERS.remove(keyURI);
     if (serverDescriptor != null) {
-      serverDescriptor.server.stop();
-      LOGGER.info("Stopped PassthroughServer at {}", keyURI);
-
       for (Connection connection : serverDescriptor.getConnections().keySet()) {
         try {
           LOGGER.warn("Force close {}", formatConnectionId(connection));
@@ -220,6 +223,29 @@ public class UnitTestConnectionService implements ConnectionService {
           // Ignored
         }
       }
+
+      //open destroy connection.  You need to make sure connection doesn't have any entities associated with it.
+      PassthroughConnection connection  = serverDescriptor.server.connectNewClient("destroy-connection");
+
+      for(Entry entry : serverDescriptor.knownEntities.entrySet()) {
+        @SuppressWarnings("unchecked")
+        Class<? extends Entity> type = (Class) entry.getKey();
+        List args = (List)entry.getValue();
+        Long version = (Long)args.get(0);
+        String stringArg = (String)args.get(1);
+
+        try {
+          EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
+          entityRef.destroy();
+        } catch (EntityNotProvidedException ex) {
+          LOGGER.error("Entity destroy failed: ", ex);
+        } catch (EntityNotFoundException ex) {
+          LOGGER.error("Entity destroy failed: ", ex);
+        }
+      }
+
+      serverDescriptor.server.stop();
+      LOGGER.info("Stopped PassthroughServer at {}", keyURI);
       return serverDescriptor.server;
     } else {
       return null;
@@ -465,6 +491,7 @@ public class UnitTestConnectionService implements ConnectionService {
   private static final class ServerDescriptor {
     private final PassthroughServer server;
     private final Map<Connection, Properties> connections = new IdentityHashMap<Connection, Properties>();
+    private final Map<Class<? extends Entity>, List<Object>> knownEntities = new HashMap<Class<? extends Entity>, List<Object>>();
 
     ServerDescriptor(PassthroughServer server) {
       this.server = server;
@@ -480,6 +507,13 @@ public class UnitTestConnectionService implements ConnectionService {
 
     synchronized void remove(Connection connection) {
       this.connections.remove(connection);
+    }
+
+    public void addKnownEntity(Class<? extends Entity> arg, Object arg1, Object arg2) {
+      List<Object> set = new ArrayList<Object>();
+      set.add(arg1);
+      set.add(arg2);
+      knownEntities.put(arg, set);
     }
   }
 
@@ -498,10 +532,15 @@ public class UnitTestConnectionService implements ConnectionService {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
       if (method.getName().equals("close")) {
         serverDescriptor.remove(connection);
         LOGGER.info("Client closed {}", formatConnectionId(connection));
+      }
+
+      if (method.getName().equals("getEntityRef")) {
+        serverDescriptor.addKnownEntity((Class<? extends Entity>) args[0], args[1] ,args[2]);
       }
       try {
         return method.invoke(connection, args);

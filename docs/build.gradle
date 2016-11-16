@@ -26,6 +26,10 @@ buildscript {
 
 apply plugin: 'org.asciidoctor.convert'
 
+configurations.asciidoctor.dependencies.matching({it.group == 'org.asciidoctor' && it.name == 'asciidoctorj-groovy-dsl'}).all {
+  exclude group:'org.asciidoctor', module:'asciidoctorj'
+}
+
 task copyCSS(type: Copy) {
   from ('css') {
     include '**'

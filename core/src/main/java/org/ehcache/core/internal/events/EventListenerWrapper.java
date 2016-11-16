@@ -27,20 +27,20 @@ import java.util.EnumSet;
 /**
  * Internal wrapper for {@link CacheEventListener} and their configuration.
  */
-public final class EventListenerWrapper implements CacheEventListener {
-  private final CacheEventListener listener;
+public final class EventListenerWrapper<K, V> implements CacheEventListener<K, V> {
+  private final CacheEventListener<? super K, ? super V> listener;
   private final EventFiring firing;
   private final EventOrdering ordering;
   private final EnumSet<EventType> forEvents;
 
-  public EventListenerWrapper(CacheEventListener listener) {
+  public EventListenerWrapper(CacheEventListener<? super K, ? super V> listener) {
     this.listener = listener;
     this.firing = null;
     this.ordering = null;
     this.forEvents = null;
   }
 
-  public EventListenerWrapper(CacheEventListener listener, final EventFiring firing, final EventOrdering ordering,
+  public EventListenerWrapper(CacheEventListener<? super K, ? super V> listener, final EventFiring firing, final EventOrdering ordering,
                        final EnumSet<EventType> forEvents) {
     if (listener == null) {
       throw new NullPointerException("listener cannot be null");
@@ -78,7 +78,7 @@ public final class EventListenerWrapper implements CacheEventListener {
   }
 
   @Override
-  public void onEvent(CacheEvent event) {
+  public void onEvent(CacheEvent<? extends K, ? extends V> event) {
     listener.onEvent(event);
   }
 

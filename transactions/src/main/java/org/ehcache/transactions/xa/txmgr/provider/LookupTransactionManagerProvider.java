@@ -39,7 +39,6 @@ import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
  *   unless it can be considered a singleton.
  * </P>
  */
-@ServiceDependencies(XAStore.Provider.class)
 public class LookupTransactionManagerProvider implements TransactionManagerProvider {
 
   private final TransactionManagerLookup lookup;

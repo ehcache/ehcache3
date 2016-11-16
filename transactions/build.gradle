@@ -17,18 +17,24 @@
 group = 'org.ehcache'
 
 apply plugin: EhOsgi
-apply plugin: EhDeploy
 apply plugin: EhPomMangle
 
 dependencies {
   compile project(':impl'), project(':xml')
   compile group: 'javax.transaction', name: 'jta', version: '1.1'
   testCompile project(path: ':core-spi-test')
-  compile group: 'org.codehaus.btm', name: 'btm', version: '2.1.4'
+  compile (group: 'org.codehaus.btm', name: 'btm', version: '2.1.4') {
+    exclude group:'org.slf4j', module:'slf4j-api'
+  }
 }
 
 // For EhPomMangle
 dependencies {
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
   pomOnlyProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
+}
+
+project.signing {
+  required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
+  sign project.configurations.getByName('archives')
 }

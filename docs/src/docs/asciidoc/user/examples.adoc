@@ -1,9 +1,9 @@
 ---
 ---
 = Examples
-ifndef::sourcedir31[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -40,7 +40,7 @@ from the database to display the Peeper web page.  To run this implementation:
 [source,bash]
 ----
 cd ehcache3/demos/00-NoCache
-../../gradlew jettyRun
+../../gradlew appStart
 ----
 
 This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,
@@ -75,7 +75,7 @@ the cache is cleared.  To run this implementation:
 [source,bash]
 ----
 cd ehcache3/demos/01-CacheAside
-../../gradlew jettyRun
+../../gradlew appStart
 ----
 
 This builds the necessary components, starts a http://eclipse.org/jetty/[Jetty] web service,
@@ -104,5 +104,5 @@ Note the presence of the +Filling cache with peeps+, +Clearing peeps cache+, and
 
 [source,xml,indent=0]
 ----
-include::{sourcedir31}/107/src/test/resources/ehcache-example.xml[]
+include::{sourcedir32}/107/src/test/resources/ehcache-example.xml[]
 ----

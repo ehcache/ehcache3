@@ -27,11 +27,12 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.isOneOf;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -46,27 +47,27 @@ public class ServiceLocatorPluralTest {
    */
   @Test
   public void testMultipleInstanceRegistration() throws Exception {
-    final ServiceLocator serviceLocator = new ServiceLocator();
+    final ServiceLocator.DependencySet serviceLocator = dependencySet();
 
     final ConcreteService firstSingleton = new ConcreteService();
     final ConcreteService secondSingleton = new ConcreteService();
 
-    serviceLocator.addService(firstSingleton);
+    serviceLocator.with(firstSingleton);
 
-    assertThat(serviceLocator.getServicesOfType(ConcreteService.class), contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(AdditionalService.class), Matchers.<AdditionalService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(AggregateService.class), Matchers.<AggregateService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(FooService.class), Matchers.<FooService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(BarService.class), Matchers.<BarService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(FoundationService.class), Matchers.<FoundationService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(AugmentedService.class), Matchers.<AugmentedService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(ConcreteService.class), contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(AdditionalService.class), Matchers.<AdditionalService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(AggregateService.class), Matchers.<AggregateService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(FooService.class), Matchers.<FooService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(BarService.class), Matchers.<BarService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(FoundationService.class), Matchers.<FoundationService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(AugmentedService.class), Matchers.<AugmentedService>contains(firstSingleton));
 
     try {
-      serviceLocator.addService(secondSingleton);
+      serviceLocator.with(secondSingleton);
       fail();
     } catch (IllegalStateException e) {
       // expected
-      assertThat(e.getMessage(), containsString("duplicate service class " + ConcreteService.class.getName()));
+      assertThat(e.getMessage(), containsString(ConcreteService.class.getName()));
     }
   }
 
@@ -76,30 +77,26 @@ public class ServiceLocatorPluralTest {
    */
   @Test
   public void testMultipleImplementationRegistration() throws Exception {
-    final ServiceLocator serviceLocator = new ServiceLocator();
+    final ServiceLocator.DependencySet serviceLocator = dependencySet();
 
     final ConcreteService firstSingleton = new ConcreteService();
     final ExtraConcreteService secondSingleton = new ExtraConcreteService();
 
-    serviceLocator.addService(firstSingleton);
+    serviceLocator.with(firstSingleton);
 
-    assertThat(serviceLocator.getServicesOfType(ConcreteService.class), contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(AdditionalService.class), Matchers.<AdditionalService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(AggregateService.class), Matchers.<AggregateService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(FooService.class), Matchers.<FooService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(BarService.class), Matchers.<BarService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(FoundationService.class), Matchers.<FoundationService>contains(firstSingleton));
-    assertThat(serviceLocator.getServicesOfType(AugmentedService.class), Matchers.<AugmentedService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(ConcreteService.class), contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(AdditionalService.class), Matchers.<AdditionalService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(AggregateService.class), Matchers.<AggregateService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(FooService.class), Matchers.<FooService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(BarService.class), Matchers.<BarService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(FoundationService.class), Matchers.<FoundationService>contains(firstSingleton));
+    assertThat(serviceLocator.providersOf(AugmentedService.class), Matchers.<AugmentedService>contains(firstSingleton));
 
     try {
-      serviceLocator.addService(secondSingleton);
+      serviceLocator.with(secondSingleton);
       fail();
     } catch (IllegalStateException e) {
       // expected
-
-      // This assertion is here to point out a potentially unwanted side-effect -- a partial registration
-      assertThat(serviceLocator.getServicesOfType(ExtraConcreteService.class), contains(secondSingleton));
-
       final String message = e.getMessage();
       assertThat(message, containsString(AdditionalService.class.getName()));
       assertThat(message, containsString(AggregateService.class.getName()));
@@ -116,73 +113,29 @@ public class ServiceLocatorPluralTest {
    */
   @Test
   public void testPluralRegistration() throws Exception {
-    final ServiceLocator serviceLocator = new ServiceLocator();
+    final ServiceLocator.DependencySet dependencySet = dependencySet();
 
     final AlphaServiceProviderImpl alphaServiceProvider = new AlphaServiceProviderImpl();
     final BetaServiceProviderImpl betaServiceProvider = new BetaServiceProviderImpl();
 
-    serviceLocator.addService(alphaServiceProvider);
+    dependencySet.with(alphaServiceProvider);
 
-    assertThat(serviceLocator.getServicesOfType(AlphaServiceProviderImpl.class),
+    assertThat(dependencySet.providersOf(AlphaServiceProviderImpl.class),
         everyItem(isOneOf(alphaServiceProvider)));
-    assertThat(serviceLocator.getServicesOfType(AlphaServiceProvider.class),
+    assertThat(dependencySet.providersOf(AlphaServiceProvider.class),
         everyItem(Matchers.<AlphaServiceProvider>isOneOf(alphaServiceProvider)));
-    assertThat(serviceLocator.getServicesOfType(PluralServiceProvider.class),
+    assertThat(dependencySet.providersOf(PluralServiceProvider.class),
         everyItem(Matchers.<PluralServiceProvider>isOneOf(alphaServiceProvider)));
 
-    serviceLocator.addService(betaServiceProvider);
+    dependencySet.with(betaServiceProvider);
 
-    assertThat(serviceLocator.getServicesOfType(BetaServiceProviderImpl.class),
+    assertThat(dependencySet.providersOf(BetaServiceProviderImpl.class),
         everyItem(isOneOf(betaServiceProvider)));
-    assertThat(serviceLocator.getServicesOfType(BetaServiceProvider.class),
+    assertThat(dependencySet.providersOf(BetaServiceProvider.class),
         everyItem(Matchers.<BetaServiceProvider>isOneOf(betaServiceProvider)));
-    assertThat(serviceLocator.getServicesOfType(PluralServiceProvider.class),
+    assertThat(dependencySet.providersOf(PluralServiceProvider.class),
         everyItem(Matchers.<PluralServiceProvider>isOneOf(alphaServiceProvider, betaServiceProvider)));
   }
-
-  /**
-   * Ensures dependencies declared in {@link ServiceDependencies} on a {@code Service} subtype
-   * can be discovered.
-   */
-  @Test
-  public void testDependencyDiscoveryOverService() throws Exception {
-    final ServiceLocator serviceLocator = new ServiceLocator();
-
-    final Collection<Class<? extends Service>> concreteServiceDependencies =
-        serviceLocator.identifyTransitiveDependenciesOf(ConcreteService.class);
-    assertThat(concreteServiceDependencies,
-        everyItem(Matchers.<Class<? extends Service>>isOneOf(
-            BetaService.class,
-            BetaServiceProvider.class,
-            InitialService.class,
-            FooService.Provider.class,
-            BarService.Provider.class,
-            AlphaService.class,
-            AlphaServiceProvider.class,
-            FoundationService.Provider.class
-        )));
-  }
-
-  /**
-   * Ensures dependencies declared in {@link ServiceDependencies} on a non-{@code Service} type
-   * can be discovered.
-   */
-  @Test
-  public void testDependencyDiscoveryOverNonService() throws Exception {
-    final ServiceLocator serviceLocator = new ServiceLocator();
-
-    final Collection<Class<? extends Service>> nonServiceDependencies =
-        serviceLocator.identifyTransitiveDependenciesOf(NotAService.class);
-    System.out.printf("NotAService dependencies : %s%n", nonServiceDependencies);
-    assertThat(nonServiceDependencies,
-        everyItem(Matchers.<Class<? extends Service>>isOneOf(
-            BetaService.class,
-            BetaServiceProvider.class,
-            AlphaService.class,
-            AlphaServiceProvider.class
-        )));
-  }
-
 }
 
 class StartStopCounter {

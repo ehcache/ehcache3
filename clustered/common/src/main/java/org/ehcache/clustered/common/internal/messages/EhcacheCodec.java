@@ -20,29 +20,33 @@ import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.MessageCodecException;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.LIFECYCLE_OP;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.REPLICATION_OP;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.SERVER_STORE_OP;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.STATE_REPO_OP;
+import static org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage.Type.SYNC_OP;
 
 public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> SERVER_INSTANCE =
-      new EhcacheCodec(new ServerStoreOpCodec(), new LifeCycleMessageCodec(), new StateRepositoryOpCodec(), new ResponseCodec());
+      new EhcacheCodec(new ServerStoreOpCodec(), new LifeCycleMessageCodec(), new StateRepositoryOpCodec(), new ResponseCodec(), new PassiveReplicationMessageCodec());
 
   private final ServerStoreOpCodec serverStoreOpCodec;
   private final LifeCycleMessageCodec lifeCycleMessageCodec;
   private final StateRepositoryOpCodec stateRepositoryOpCodec;
   private final ResponseCodec responseCodec;
+  private final PassiveReplicationMessageCodec passiveReplicationMessageCodec;
 
   public static MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> messageCodec() {
     return SERVER_INSTANCE;
   }
 
   EhcacheCodec(ServerStoreOpCodec serverStoreOpCodec, LifeCycleMessageCodec lifeCycleMessageCodec,
-               StateRepositoryOpCodec stateRepositoryOpCodec, ResponseCodec responseCodec) {
+               StateRepositoryOpCodec stateRepositoryOpCodec, ResponseCodec responseCodec, PassiveReplicationMessageCodec passiveReplicationMessageCodec) {
     this.serverStoreOpCodec = serverStoreOpCodec;
     this.lifeCycleMessageCodec = lifeCycleMessageCodec;
     this.stateRepositoryOpCodec = stateRepositoryOpCodec;
     this.responseCodec = responseCodec;
+    this.passiveReplicationMessageCodec = passiveReplicationMessageCodec;
   }
 
   @Override
@@ -54,6 +58,8 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
         return serverStoreOpCodec.encode((ServerStoreOpMessage) message);
       case STATE_REPO_OP:
         return stateRepositoryOpCodec.encode((StateRepositoryOpMessage) message);
+      case REPLICATION_OP:
+        return passiveReplicationMessageCodec.encode((PassiveReplicationMessage)message);
       default:
         throw new IllegalArgumentException("Undefined message type: " + message.getType());
     }
@@ -68,6 +74,8 @@ public class EhcacheCodec implements MessageCodec<EhcacheEntityMessage, EhcacheE
         return serverStoreOpCodec.decode(payload);
     } else if (opCode <= STATE_REPO_OP.getCode()) {
         return stateRepositoryOpCodec.decode(payload);
+    } else if (opCode > SYNC_OP.getCode() && opCode <= REPLICATION_OP.getCode()) {
+        return passiveReplicationMessageCodec.decode(payload);
     } else {
       throw new UnsupportedOperationException("Undefined message code: " + opCode);
     }

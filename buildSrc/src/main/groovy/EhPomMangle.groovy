@@ -27,7 +27,7 @@ import scripts.Utils
  *   Removes all implicit dependencies from the pom
  *   and adds only what is specified in (from shadowJar)
  *
- *   project.configurations.shadow  (as compile)
+ *   project.configurations.shadowCompile  (as compile)
  *   project.configurations.shadowProvided (as provided)
  *
  *   as well as (these do not affect shadow)
@@ -49,7 +49,7 @@ class EhPomMangle implements Plugin<Project> {
     project.plugins.apply 'signing'
 
     project.configurations {
-      shadow
+      shadowCompile
       shadowProvided
       pomOnlyCompile
       pomOnlyProvided
@@ -60,14 +60,14 @@ class EhPomMangle implements Plugin<Project> {
       pom.scopeMappings.mappings.remove(project.configurations.runtime)
       pom.scopeMappings.mappings.remove(project.configurations.testCompile)
       pom.scopeMappings.mappings.remove(project.configurations.testRuntime)
-      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadow, Conf2ScopeMappingContainer.COMPILE)
+      pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowCompile, Conf2ScopeMappingContainer.COMPILE)
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.shadowProvided, Conf2ScopeMappingContainer.PROVIDED)
 
       //Anything extra to add to pom that isn't in the shadowed jar or compilation
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.pomOnlyCompile, Conf2ScopeMappingContainer.COMPILE)
       pom.scopeMappings.addMapping(MavenPlugin.COMPILE_PRIORITY, project.configurations.pomOnlyProvided, Conf2ScopeMappingContainer.PROVIDED)
 
-      utils.pomFiller(pom, 'Ehcache', 'Ehcache single jar, containing all modules')
+      utils.pomFiller(pom, project.subPomName, project.subPomDesc)
 
     }
 
@@ -81,8 +81,8 @@ class EhPomMangle implements Plugin<Project> {
           beforeDeployment { MavenDeployment deployment -> project.signing.signPom(deployment)}
 
           if (project.isReleaseVersion) {
-            repository(id: 'sonatype-nexus-staging', url: 'https://oss.sonatype.org/service/local/staging/deploy/maven2/') {
-              authentication(userName: project.sonatypeUser, password: project.sonatypePwd)
+            repository(url: project.deployUrl) {
+              authentication(userName: project.deployUser, password: project.deployPwd)
             }
           } else {
             repository(id: 'sonatype-nexus-snapshot', url: 'https://oss.sonatype.org/content/repositories/snapshots') {

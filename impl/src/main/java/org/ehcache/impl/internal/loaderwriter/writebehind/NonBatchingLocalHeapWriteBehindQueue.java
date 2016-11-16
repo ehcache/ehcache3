@@ -69,7 +69,7 @@ public class NonBatchingLocalHeapWriteBehindQueue<K, V> extends AbstractWriteBeh
       @Override
       public void run() {
         try {
-          operation.performSingleOperation(cacheLoaderWriter);
+          operation.performOperation(cacheLoaderWriter);
         } catch (Exception e) {
           LOGGER.warn("Exception while processing key '{}' write behind queue : {}", operation.getKey(), e);
         } finally {

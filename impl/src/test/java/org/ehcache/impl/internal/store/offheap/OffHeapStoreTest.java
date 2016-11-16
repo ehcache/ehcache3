@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
@@ -81,6 +80,7 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testRankAuthority() throws Exception {
     OffHeapStore.Provider provider = new OffHeapStore.Provider();
 

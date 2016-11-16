@@ -17,34 +17,19 @@
 apply plugin: EhDeploy
 
 dependencies {
+  // optional: if we want xml config
   compileOnly project(':xml')
+
+  // optional: if we want to use the clustered management layer
   compileOnly project(':clustered:client')
+  compileOnly "org.terracotta:entity-client-api:$parent.entityApiVersion"
+  compileOnly "org.terracotta.management:management-entity-client:$parent.managementVersion"
 
   compile project(':api')
   compile project(':core')
   compile project(':impl')
-  compile "org.terracotta.management:management-entity-client:$parent.managementVersion"
+  compile "org.terracotta.management:management-registry:$parent.managementVersion"
 
   testCompile project(':xml')
-  testCompile project(':clustered:client')
-  testCompile project(':clustered:server')
-  testCompile "org.terracotta:entity-test-lib:$parent.entityTestLibVersion"
-  testCompile "org.terracotta:passthrough-server:$parent.entityTestLibVersion"
-  testCompile "org.terracotta.management:monitoring-service:$parent.managementVersion"
-  testCompile "org.terracotta.management:monitoring-service-entity:$parent.managementVersion"
-  testCompile "org.terracotta.management:management-entity-server:$parent.managementVersion"
-  testCompile "org.terracotta.entities:clustered-map-server:$parent.terracottaPlatformVersion"
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"
-}
-
-compileTestJava {
-  sourceCompatibility = 1.8
-  targetCompatibility = 1.8
-  options.fork = true;
-  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
-}
-
-test {
-  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
-  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
 }

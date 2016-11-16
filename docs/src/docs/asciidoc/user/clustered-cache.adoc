@@ -1,9 +1,9 @@
 ---
 ---
 = Clustered Cache
-ifndef::sourcedir31[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -66,7 +66,7 @@ Detailed instructions on how to configure and start a Terracotta server array ca
 
 [source,xml]
 ----
-include::{sourcedir31}/clustered/client/src/test/resources/configs/docs/tc-config.xml[]
+include::{sourcedir32}/clustered/client/src/test/resources/configs/docs/tc-config.xml[]
 ----
 
 The above configuration defines two named _server off-heap resources_:
@@ -106,7 +106,7 @@ Here is a code sample that shows how to configure a cache manager with clusterin
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
+include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerExample]
 ----
 
 <1> Returns the `org.ehcache.config.builders.CacheManagerBuilder` instance;
@@ -123,7 +123,7 @@ This code sample demonstrates the usage of the concepts explained in the previou
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerWithServerSideConfigExample]
+include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerWithServerSideConfigExample]
 ----
 
 <1> `defaultServerResource(String)` on `ClusteringServiceConfigurationBuilder` instance sets the default server off-heap resource for the cache manager.
@@ -145,7 +145,7 @@ include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/clie
 When configuring a cache manager to connect to a clustered tier manager there are three possible connection modes:
 [source,java,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
+include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheManagerLifecycle]
 ----
 <1> In auto-create mode if no clustered tier manager exists then one is created with the supplied configuration.
 If it exists and its configuration matches the supplied configuration then a connection is established.
@@ -162,7 +162,7 @@ If it does not exist then the cache manager will fail to initialize.
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheTieredExample]
+include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheTieredExample]
 ----
 
 <1> Configuring the heap tier for cache.
@@ -172,7 +172,7 @@ The equivalent XML configuration is as follows:
 
 [source,xml,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=tieringSample]
+include::{sourcedir32}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=tieringSample]
 ----
 
 <1> Specify the heap tier for cache.
@@ -193,7 +193,7 @@ This comes with a latency penalty on the write operation required to give this g
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheConsistency]
+include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=clusteredCacheConsistency]
 ----
 
 <1> Specify the consistency level through the use of an additional service configuration, using _strong_ consistency here,
@@ -203,7 +203,7 @@ The equivalent XML configuration is as follows:
 
 [source,xml,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=consistencySample]
+include::{sourcedir32}/clustered/client/src/test/resources/configs/docs/ehcache-clustered.xml[tag=consistencySample]
 ----
 
 <1> Specify the consistency level through a custom service configuration from the `clustered` namespace.
@@ -230,7 +230,7 @@ Please review the example code below to see how this can be implemented.
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unspecifiedClusteredCacheExample]
+include::{sourcedir32}/clustered/client/src/test/java/org/ehcache/clustered/client/docs/GettingStarted.java[tag=unspecifiedClusteredCacheExample]
 ----
 <1> Configure the first cache manager with auto create
 <2> Build a cache configuration for a clustered _dedicated_ resource pool

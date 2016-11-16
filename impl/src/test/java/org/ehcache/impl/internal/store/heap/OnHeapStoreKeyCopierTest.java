@@ -93,6 +93,8 @@ public class OnHeapStoreKeyCopierTest {
     when(configuration.getKeyType()).thenReturn(Key.class);
     when(configuration.getValueType()).thenReturn(String.class);
     when(configuration.getExpiry()).thenReturn(Expirations.noExpiration());
+    @SuppressWarnings("unchecked")
+    Store.Configuration<Key, String> config = configuration;
 
     Copier<Key> keyCopier = new Copier<Key>() {
       @Override
@@ -112,7 +114,7 @@ public class OnHeapStoreKeyCopierTest {
       }
     };
 
-    store = new OnHeapStore<Key, String>(configuration, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<String>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.<Key, String>nullStoreEventDispatcher());
+    store = new OnHeapStore<Key, String>(config, SystemTimeSource.INSTANCE, keyCopier, new IdentityCopier<String>(), new NoopSizeOfEngine(), NullStoreEventDispatcher.<Key, String>nullStoreEventDispatcher());
   }
 
   @Test

@@ -52,18 +52,21 @@ import static org.mockito.Mockito.mock;
 public class EhcacheWithLoaderWriterTest extends CacheTest {
 
   @Override
-  protected InternalCache<Object, Object> getCache(Store store) {
+  protected InternalCache<Object, Object> getCache(Store<Object, Object> store) {
     final CacheConfiguration<Object, Object> config = new BaseCacheConfiguration<Object, Object>(Object.class, Object.class, null,
         null, null, ResourcePoolsHelper.createHeapOnlyPools());
+    @SuppressWarnings("unchecked")
     CacheEventDispatcher<Object, Object> cacheEventDispatcher = mock(CacheEventDispatcher.class);
+    @SuppressWarnings("unchecked")
     CacheLoaderWriter<Object, Object> cacheLoaderWriter = mock(CacheLoaderWriter.class);
-    return new EhcacheWithLoaderWriter(config, store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterTest"));
+    return new EhcacheWithLoaderWriter<Object, Object>(config, store, cacheLoaderWriter, cacheEventDispatcher, LoggerFactory.getLogger(EhcacheWithLoaderWriter.class + "-" + "EhcacheWithLoaderWriterTest"));
   }
 
   @Test
   public void testIgnoresKeysReturnedFromCacheLoaderLoadAll() {
     LoadAllVerifyStore store = new LoadAllVerifyStore();
     KeyFumblingCacheLoaderWriter loader = new KeyFumblingCacheLoaderWriter();
+    @SuppressWarnings("unchecked")
     CacheEventDispatcher<String, String> cacheEventDispatcher = mock(CacheEventDispatcher.class);
     CacheConfiguration<String, String> config = new BaseCacheConfiguration<String, String>(String.class, String.class, null,
         null, null, ResourcePoolsHelper.createHeapOnlyPools());

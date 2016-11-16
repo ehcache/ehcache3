@@ -23,9 +23,7 @@ import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Random;
 
-import org.ehcache.impl.serialization.CompactJavaSerializer;
-import org.ehcache.spi.serialization.Serializer;
-
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.hamcrest.core.Is;
 import org.hamcrest.core.IsEqual;
 import org.hamcrest.core.IsNot;
@@ -42,7 +40,9 @@ public class BasicSerializationTest {
 
   @Test
   public void testSimpleObject() throws ClassNotFoundException {
-    Serializer<Serializable> test = new CompactJavaSerializer(null);
+    @SuppressWarnings("unchecked")
+    StatefulSerializer<Serializable> test = new CompactJavaSerializer(null);
+    test.init(new TransientStateRepository());
 
     String input = "";
     String result = (String) test.read(test.serialize(input));
@@ -53,7 +53,9 @@ public class BasicSerializationTest {
 
   @Test
   public void testComplexObject() throws ClassNotFoundException {
-    Serializer<Serializable> test = new CompactJavaSerializer(null);
+    @SuppressWarnings("unchecked")
+    StatefulSerializer<Serializable> test = new CompactJavaSerializer(null);
+    test.init(new TransientStateRepository());
 
     HashMap<Integer, String> input = new HashMap<Integer, String>();
     input.put(1, "one");
@@ -74,7 +76,9 @@ public class BasicSerializationTest {
 
   @Test
   public void testPrimitiveClasses() throws ClassNotFoundException {
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    @SuppressWarnings("unchecked")
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    s.init(new TransientStateRepository());
 
     Class[] out = (Class[]) s.read(s.serialize(PRIMITIVE_CLASSES));
 
@@ -88,7 +92,9 @@ public class BasicSerializationTest {
     int foo = rand.nextInt();
     float bar = rand.nextFloat();
 
-    Serializer<Serializable> s = new CompactJavaSerializer(null);
+    @SuppressWarnings("unchecked")
+    StatefulSerializer<Serializable> s = new CompactJavaSerializer(null);
+    s.init(new TransientStateRepository());
 
     Object proxy = s.read(s.serialize((Serializable) Proxy.newProxyInstance(BasicSerializationTest.class.getClassLoader(), new Class[]{Foo.class, Bar.class}, new Handler(foo, bar))));
 
