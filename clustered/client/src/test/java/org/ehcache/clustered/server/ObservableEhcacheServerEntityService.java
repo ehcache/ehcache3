@@ -136,5 +136,11 @@ public class ObservableEhcacheServerEntityService
     public Set<String> getDedicatedResourcePoolIds() {
       return ehcacheStateService.getDedicatedResourcePoolIds();
     }
+
+    public Map getClientsWaitingForInvalidation() throws Exception {
+      Field field = activeEntity.getClass().getDeclaredField("clientsWaitingForInvalidation");
+      field.setAccessible(true);
+      return (Map)field.get(activeEntity);
+    }
   }
 }
