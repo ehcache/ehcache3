@@ -56,7 +56,7 @@ import static org.hamcrest.CoreMatchers.is;
 public class HitRatioTest {
 
   @Rule
-  public final Timeout globalTimeout = Timeout.seconds(30);
+  public final Timeout globalTimeout = Timeout.seconds(60);
 
   @Rule
   public final TemporaryFolder diskPath = new TemporaryFolder();
