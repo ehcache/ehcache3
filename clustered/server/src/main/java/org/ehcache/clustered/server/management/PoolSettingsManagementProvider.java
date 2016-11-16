@@ -54,19 +54,19 @@ class PoolSettingsManagementProvider extends AliasBindingManagementProvider<Pool
   }
 
   @Override
-  protected ExposedPoolBinding wrap(PoolBinding managedObject) {
-    return new ExposedPoolBinding(managedObject, getMonitoringService().getConsumerId());
+  protected ExposedPoolBinding internalWrap(Context context, PoolBinding managedObject) {
+    return new ExposedPoolBinding(context, managedObject);
   }
 
   private static class ExposedPoolBinding extends ExposedAliasBinding<PoolBinding> {
 
-    ExposedPoolBinding(PoolBinding binding, long consumerId) {
-      super(binding, consumerId);
+    ExposedPoolBinding(Context context, PoolBinding binding) {
+      super(context, binding);
     }
 
     @Override
     public Context getContext() {
-      return super.getContext().with("type", "PoolBinding");
+      return super.getContext().with("type", "Pool");
     }
 
     @Override

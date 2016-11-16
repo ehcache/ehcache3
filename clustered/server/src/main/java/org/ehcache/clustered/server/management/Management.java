@@ -24,60 +24,43 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.model.context.Context;
+import org.terracotta.management.registry.collect.StatisticConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
 import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
-import org.terracotta.offheapresource.OffHeapResource;
-import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 
-import java.util.Set;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.atomic.AtomicLong;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class Management {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Management.class);
 
-  // TODO FIXME: the following things are just temporary and should be removed/changed asap
-  // - scheduling should be done by using a voltron service (not yet available: see https://github.com/Terracotta-OSS/terracotta-apis/issues/158)
-  // - stats config should be given when configuring the entities (https://github.com/ehcache/ehcache3/issues/1567)
-  private static final AtomicLong managementSchedulerCount = new AtomicLong();
-  private ScheduledExecutorService managementScheduler;
-  private final StatisticConfiguration statisticConfiguration = new StatisticConfiguration();
+  // TODO: if a day we want to make that configurable, we can, and per provider, or globally as it is now
+  private final StatisticConfiguration statisticConfiguration = new StatisticConfiguration(
+    60, SECONDS,
+    100, 1, SECONDS,
+    30, SECONDS
+  );
 
   private final ConsumerManagementRegistry managementRegistry;
-  private final ServiceRegistry services;
   private final EhcacheStateService ehcacheStateService;
-  private final Set<String> offHeapResourceIdentifiers;
 
-  public Management(ServiceRegistry services, EhcacheStateService ehcacheStateService, Set<String> offHeapResourceIdentifiers) {
+  public Management(ServiceRegistry services, EhcacheStateService ehcacheStateService) {
     managementRegistry = services.getService(new ConsumerManagementRegistryConfiguration(services));
-    this.services = services;
     this.ehcacheStateService = ehcacheStateService;
-    this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
     if (managementRegistry != null) {
       // expose settings about attached stores
       managementRegistry.addManagementProvider(new ClientStateSettingsManagementProvider());
-      // expose settings about off-heap server service
-      managementRegistry.addManagementProvider(new OffHeapResourceSettingsManagementProvider());
+
       // expose settings about server stores
       managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider());
       // expose settings about pools
       managementRegistry.addManagementProvider(new PoolSettingsManagementProvider(ehcacheStateService));
 
-      managementScheduler = Executors.unconfigurableScheduledExecutorService(Executors.newSingleThreadScheduledExecutor(
-        r -> {
-          Thread t = Executors.defaultThreadFactory().newThread(r);
-          t.setDaemon(true);
-          t.setName("ManagementScheduler-" + managementSchedulerCount.incrementAndGet());
-          return t;
-        }));
-
       // expose stats about server stores
-      managementRegistry.addManagementProvider(new ServerStoreStatisticsManagementProvider(statisticConfiguration, managementScheduler));
+      managementRegistry.addManagementProvider(new ServerStoreStatisticsManagementProvider(statisticConfiguration));
       // expose stats about pools
-      managementRegistry.addManagementProvider(new PoolStatisticsManagementProvider(ehcacheStateService, statisticConfiguration, managementScheduler));
+      managementRegistry.addManagementProvider(new PoolStatisticsManagementProvider(ehcacheStateService, statisticConfiguration));
     }
   }
 
@@ -86,29 +69,9 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("init()");
 
-      managementRegistry.register(ehcacheStateService);
-
       // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
       // this object is ignored from the stats and descriptors
       managementRegistry.register(PoolBinding.ALL_SHARED);
-
-      // exposes available offheap service resources
-      for (String identifier : offHeapResourceIdentifiers) {
-        OffHeapResource offHeapResource = services.getService(OffHeapResourceIdentifier.identifier(identifier));
-        managementRegistry.register(new OffHeapResourceBinding(identifier, offHeapResource));
-      }
-
-      // expose management calls on statistic collector
-      StatisticCollectorManagementProvider collectorManagementProvider = new StatisticCollectorManagementProvider(
-        managementRegistry,
-        statisticConfiguration,
-        managementScheduler,
-        new String[]{"PoolStatistics", "ServerStoreStatistics"});
-
-      managementRegistry.addManagementProvider(collectorManagementProvider);
-
-      // start the stat collector (it won't collect any stats though, because they need to be configured through a management call)
-      collectorManagementProvider.init();
 
       // expose the management registry inside voltorn
       managementRegistry.refresh();
@@ -119,7 +82,6 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("close()");
       managementRegistry.close();
-      managementScheduler.shutdown();
     }
   }
 

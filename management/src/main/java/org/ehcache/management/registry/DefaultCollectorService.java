@@ -35,10 +35,10 @@ import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.registry.collect.DefaultStatisticCollector;
 import org.terracotta.management.registry.collect.StatisticCollector;
+import org.terracotta.management.registry.collect.StatisticConfiguration;
 
 import java.util.Collection;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
@@ -80,8 +80,6 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
     scheduledExecutorService = serviceProvider.getService(ExecutionService.class).getScheduledExecutor(configuration.getCollectorExecutorAlias());
 
     StatisticsProviderConfiguration providerConfiguration = configuration.getConfigurationFor(EhcacheStatisticsProvider.class);
-    long timeToDisableMs = TimeUnit.MILLISECONDS.convert(providerConfiguration.timeToDisable(), providerConfiguration.timeToDisableUnit());
-    long pollingIntervalMs = Math.round(timeToDisableMs * 0.75); // we poll at 75% of the time to disable (before the time to disable happens)
 
     statisticCollector = new DefaultStatisticCollector(
       managementRegistry,
@@ -98,10 +96,16 @@ public class DefaultCollectorService implements CollectorService, CacheManagerLi
           return timeSource.getTimeMillis();
         }
       },
-      pollingIntervalMs,
-      TimeUnit.MILLISECONDS,
-      new String[]{"StatisticsCapability"} // the only stats capability available at the moment
-    );
+      providerConfiguration instanceof StatisticConfiguration ?
+        (StatisticConfiguration) providerConfiguration :
+        new StatisticConfiguration(
+          providerConfiguration.averageWindowDuration(),
+          providerConfiguration.averageWindowUnit(),
+          providerConfiguration.historySize(),
+          providerConfiguration.historyInterval(),
+          providerConfiguration.historyIntervalUnit(),
+          providerConfiguration.timeToDisable(),
+          providerConfiguration.timeToDisableUnit()));
 
     cacheManager.registerListener(this);
   }
