@@ -98,7 +98,7 @@ public class EvictionTest {
   public final TemporaryFolder diskPath = new TemporaryFolder();
 
   @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
+  public final Timeout globalTimeout = Timeout.seconds(60);
 
   public EvictionTest(Builder<? extends ResourcePools> resources, int iterations, List<Long> expected, byte[] value, List<String> stats) {
     this.resources = resources.build();
