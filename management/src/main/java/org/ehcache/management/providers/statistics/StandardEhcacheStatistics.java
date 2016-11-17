@@ -154,7 +154,7 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
           capabilities.add(new StatisticDescriptor(statisticName, StatisticType.COUNTER_HISTORY));
           break;
         case RATIO:
-          capabilities.add(new StatisticDescriptor(entry.getKey() + "Ratio", StatisticType.RATIO_HISTORY));
+          capabilities.add(new StatisticDescriptor(statisticName, StatisticType.RATIO_HISTORY));
           break;
         case SIZE:
           capabilities.add(new StatisticDescriptor(statisticName, StatisticType.SIZE_HISTORY));

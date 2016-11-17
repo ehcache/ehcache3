@@ -318,8 +318,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , StatisticType.COUNTER_HISTORY));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissLatencyMaximum" , StatisticType.DURATION_HISTORY));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionRate" , StatisticType.RATE_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitRatioRatio" , StatisticType.RATIO_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissRatioRatio" , StatisticType.RATIO_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitRatio" , StatisticType.RATIO_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissRatio" , StatisticType.RATIO_HISTORY));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , StatisticType.COUNTER_HISTORY));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitLatencyAverage" , StatisticType.AVERAGE_HISTORY));
     ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitLatencyMinimum" , StatisticType.DURATION_HISTORY));
@@ -344,8 +344,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionLatencyMaximum", StatisticType.DURATION_HISTORY));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MappingCount", StatisticType.COUNTER_HISTORY));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRate", StatisticType.RATE_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRatioRatio", StatisticType.RATIO_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissRatioRatio", StatisticType.RATIO_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRatio", StatisticType.RATIO_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissRatio", StatisticType.RATIO_HISTORY));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionLatencyMinimum", StatisticType.DURATION_HISTORY));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
     OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionCount", StatisticType.COUNTER_HISTORY));
@@ -370,8 +370,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitCount", StatisticType.COUNTER_HISTORY));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionCount", StatisticType.COUNTER_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitRatioRatio", StatisticType.RATIO_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissRatioRatio", StatisticType.RATIO_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitRatio", StatisticType.RATIO_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissRatio", StatisticType.RATIO_HISTORY));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissCount", StatisticType.COUNTER_HISTORY));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", StatisticType.COUNTER_HISTORY));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissRate", StatisticType.RATE_HISTORY));
@@ -391,8 +391,8 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
     CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionLatencyMaximum", StatisticType.DURATION_HISTORY));
     CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissLatencyAverage", StatisticType.AVERAGE_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitRatioRatio", StatisticType.RATIO_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissRatioRatio", StatisticType.RATIO_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitRatio", StatisticType.RATIO_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissRatio", StatisticType.RATIO_HISTORY));
     CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:AllocatedByteSize", StatisticType.SIZE_HISTORY));
     CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MappingCount", StatisticType.COUNTER_HISTORY));
     CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionRate", StatisticType.RATE_HISTORY));
@@ -402,7 +402,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRate", StatisticType.RATE_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitLatencyMinimum", StatisticType.DURATION_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", StatisticType.COUNTER_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRatioRatio", StatisticType.RATIO_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRatio", StatisticType.RATIO_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissLatencyMinimum", StatisticType.DURATION_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatencyAverage", StatisticType.AVERAGE_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitLatencyMaximum", StatisticType.DURATION_HISTORY));
@@ -414,7 +414,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearCount", StatisticType.COUNTER_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearLatencyMinimum", StatisticType.DURATION_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", StatisticType.COUNTER_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRatioRatio", StatisticType.RATIO_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRatio", StatisticType.RATIO_HISTORY));
 
     POOL_DESCRIPTORS.add(new StatisticDescriptor("Pool:AllocatedSize", StatisticType.SIZE_HISTORY));
 
