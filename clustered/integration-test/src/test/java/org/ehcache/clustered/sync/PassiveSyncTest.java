@@ -55,14 +55,9 @@ public class PassiveSyncTest {
 
   @Before
   public void startServers() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
-  }
-
-  @After
-  public void tearDown() throws Exception {
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().startAllServers();
   }
 
   @Test
@@ -71,7 +66,7 @@ public class PassiveSyncTest {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"))
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/op-sync"))
         .autoCreate()
         .defaultServerResource("primary-server-resource"));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(false);
@@ -108,7 +103,7 @@ public class PassiveSyncTest {
 
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
       = CacheManagerBuilder.newCacheManagerBuilder()
-      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/crud-cm"))
+      .with(ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI().resolve("/lifecycle-sync"))
         .autoCreate()
         .defaultServerResource("primary-server-resource"));
     final PersistentCacheManager cacheManager = clusteredCacheManagerBuilder.build(true);

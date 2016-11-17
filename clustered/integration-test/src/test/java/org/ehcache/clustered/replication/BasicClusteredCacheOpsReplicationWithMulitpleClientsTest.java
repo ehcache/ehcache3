@@ -71,8 +71,8 @@ public class BasicClusteredCacheOpsReplicationWithMulitpleClientsTest {
       + "</ohr:offheap-resources>" +
       "</service>\n";
 
-  private static CacheManager CACHE_MANAGER1;
-  private static CacheManager CACHE_MANAGER2;
+  private static PersistentCacheManager CACHE_MANAGER1;
+  private static PersistentCacheManager CACHE_MANAGER2;
   private static Cache<Long, BlobValue> CACHE1;
   private static Cache<Long, BlobValue> CACHE2;
 
@@ -90,6 +90,7 @@ public class BasicClusteredCacheOpsReplicationWithMulitpleClientsTest {
 
   @Before
   public void startServers() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
     final CacheManagerBuilder<PersistentCacheManager> clusteredCacheManagerBuilder
@@ -113,8 +114,7 @@ public class BasicClusteredCacheOpsReplicationWithMulitpleClientsTest {
   public void tearDown() throws Exception {
     CACHE_MANAGER1.close();
     CACHE_MANAGER2.close();
-    CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().startAllServers();
+    CACHE_MANAGER2.destroy();
   }
 
   @Test(timeout=180000)
