@@ -155,7 +155,7 @@ public class MissRatioTest {
         Assert.assertThat(tierMissRatio, is(tierExpectedValues.get(i)));
       }
 
-      double hitRatio = StatsUtil.getExpectedValueFromRatioHistory("Cache:MissRatio", context, managementRegistry, cacheExpectedValue);
+      Double hitRatio = StatsUtil.getExpectedValueFromRatioHistory("Cache:MissRatio", context, managementRegistry, cacheExpectedValue);
       Assert.assertThat(hitRatio, is(cacheExpectedValue));
 
     }

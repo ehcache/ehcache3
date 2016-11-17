@@ -99,14 +99,14 @@ public class StatsUtil {
          This should only occur if the stats value is different from your expectedResult, which may happen if the stats calculations
          change, the stats value isn't accessible or if you enter the wrong expectedResult.
   */
-  public static double getExpectedValueFromRatioHistory(String statName, Context context, ManagementRegistryService managementRegistry, double expectedResult) {
+  public static Double getExpectedValueFromRatioHistory(String statName, Context context, ManagementRegistryService managementRegistry, Double expectedResult) {
 
     StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
       .queryStatistics(Arrays.asList(statName))
       .on(context)
       .build();
 
-    double value = 0;
+    Double value = 0d;
     do {
       ResultSet<ContextualStatistics> counters = query.execute();
 
@@ -120,7 +120,7 @@ public class StatsUtil {
         int mostRecentIndex = ratioHistory.getValue().length - 1;
         value = ratioHistory.getValue()[mostRecentIndex].getValue();
       }
-    } while (!Thread.currentThread().isInterrupted() && value != expectedResult);
+    } while (!Thread.currentThread().isInterrupted() && !value.equals(expectedResult));
 
     assertThat(value, Matchers.is(expectedResult));
 
@@ -149,7 +149,7 @@ public class StatsUtil {
         .getStatistics();
 
       for (Map.Entry<String, Statistic<?, ?>> entry : statistics.entrySet()) {
-        if (((StatisticHistory<?, ?>) entry.getValue()).getValue().length == 0) {
+        if (((StatisticHistory<?, ?>) entry.getValue()).getValue().length < 2) {
           noSample = true;
           break;
         }
