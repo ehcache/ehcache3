@@ -16,6 +16,7 @@
 package org.ehcache.management.providers.statistics;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.CoreMatchers.is;
@@ -64,9 +65,9 @@ public class MissCountTest {
   public static Collection<Object[]> data() {
     return asList(new Object[][] {
     //1 tier
-    { newResourcePoolsBuilder().heap(1, MB), Arrays.asList("OnHeap:MissCount"), Arrays.asList(2L), 2L },
-    { newResourcePoolsBuilder().offheap(1, MB), Arrays.asList("OffHeap:MissCount"), Arrays.asList(2L), 2L },
-    { newResourcePoolsBuilder().disk(1, MB), Arrays.asList("Disk:MissCount"), Arrays.asList(2L), 2L },
+    { newResourcePoolsBuilder().heap(1, MB), singletonList("OnHeap:MissCount"), singletonList(2L), 2L },
+    { newResourcePoolsBuilder().offheap(1, MB), singletonList("OffHeap:MissCount"), singletonList(2L), 2L },
+    { newResourcePoolsBuilder().disk(1, MB), singletonList("Disk:MissCount"), singletonList(2L), 2L },
 
     //2 tiers
     { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), Arrays.asList("OnHeap:MissCount","OffHeap:MissCount"), Arrays.asList(2L,2L), 2L},
@@ -118,10 +119,10 @@ public class MissCountTest {
 
       long tierMissCountSum = 0;
       for (int i = 0; i < statNames.size(); i++) {
-        tierMissCountSum += StatsUtil.getExpectedValueFromCounterHistory(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
+        tierMissCountSum += StatsUtil.getAndAssertExpectedValueFromCounterHistory(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
       }
 
-      long cacheMissCount = StatsUtil.getExpectedValueFromCounterHistory("Cache:MissCount", context, managementRegistry, cacheExpectedValue);
+      long cacheMissCount = StatsUtil.getAndAssertExpectedValueFromCounterHistory("Cache:MissCount", context, managementRegistry, cacheExpectedValue);
       //A cache.get() checks every tier, so there is one miss per tier.  However the cache miss count only counts 1 miss regardless of the number of tiers.
       Assert.assertThat(tierMissCountSum/statNames.size(), is(cacheMissCount));
 

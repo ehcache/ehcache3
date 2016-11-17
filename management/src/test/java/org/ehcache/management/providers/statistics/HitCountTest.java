@@ -16,6 +16,7 @@
 package org.ehcache.management.providers.statistics;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
@@ -30,6 +31,7 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -67,14 +69,13 @@ public class HitCountTest {
   public static Collection<Object[]> data() {
     return asList(new Object[][] {
     //1 tier
-    { newResourcePoolsBuilder().heap(1, MB), Arrays.asList("OnHeap:HitCount"), Arrays.asList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
-    { newResourcePoolsBuilder().offheap(1, MB), Arrays.asList("OffHeap:HitCount"), Arrays.asList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
-    { newResourcePoolsBuilder().disk(1, MB), Arrays.asList("Disk:HitCount"), Arrays.asList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
+    { newResourcePoolsBuilder().heap(1, MB), singletonList("OnHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
+    { newResourcePoolsBuilder().offheap(1, MB), singletonList("OffHeap:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
+    { newResourcePoolsBuilder().disk(1, MB), singletonList("Disk:HitCount"), singletonList(CACHE_HIT_TOTAL), CACHE_HIT_TOTAL },
 
     //2 tiers
     { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount"), Arrays.asList(2L,2L), CACHE_HIT_TOTAL},
     { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), Arrays.asList("OnHeap:HitCount","Disk:HitCount"), Arrays.asList(2L,2L), CACHE_HIT_TOTAL},
-    //offheap and disk configuration below is not valid.  Throws IllegalStateException no Store.Provider found to handle configured resource types [offheap,disk]
 
     //3 tiers
     { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB).disk(3, MB), Arrays.asList("OnHeap:HitCount","OffHeap:HitCount","Disk:HitCount"), Arrays.asList(2L,0L,2L), CACHE_HIT_TOTAL},
@@ -100,7 +101,14 @@ public class HitCountTest {
       registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES));
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
-      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources).build();
+      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources)
+        .withEvictionAdvisor(new EvictionAdvisor<Long, String>() {
+          @Override
+          public boolean adviseAgainstEviction(Long key, String value) {
+            return key.equals(2L);
+          }
+        })
+        .build();
 
       cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
           .withCache("myCache", cacheConfiguration)
@@ -127,10 +135,10 @@ public class HitCountTest {
 
       long tierHitCountSum = 0;
       for (int i = 0; i < statNames.size(); i++) {
-        tierHitCountSum += StatsUtil.getExpectedValueFromCounterHistory(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
+        tierHitCountSum += StatsUtil.getAndAssertExpectedValueFromCounterHistory(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
       }
 
-      long cacheHitCount = StatsUtil.getExpectedValueFromCounterHistory("Cache:HitCount", context, managementRegistry, cacheExpectedValue);
+      long cacheHitCount = StatsUtil.getAndAssertExpectedValueFromCounterHistory("Cache:HitCount", context, managementRegistry, cacheExpectedValue);
       Assert.assertThat(tierHitCountSum, is(cacheHitCount));
 
     }
