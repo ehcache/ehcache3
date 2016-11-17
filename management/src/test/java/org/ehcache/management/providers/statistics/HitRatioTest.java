@@ -28,7 +28,6 @@ import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -36,22 +35,18 @@ import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.model.stats.Sample;
-import org.terracotta.management.model.stats.Statistic;
-import org.terracotta.management.model.stats.StatisticHistory;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(Parameterized.class)
 public class HitRatioTest {
@@ -71,30 +66,30 @@ public class HitRatioTest {
   @Parameterized.Parameters
   public static Collection<Object[]> data() {
 
-    List<String> statNamesOnHeap = Arrays.asList("OnHeap:HitRatio");
-    List<String> statNamesOffHeap = Arrays.asList("OffHeap:HitRatio");
-    List<String> statNamesDisk = Arrays.asList("Disk:HitRatio");
+    List<String> statNamesOnHeap = singletonList("OnHeap:HitRatio");
+    List<String> statNamesOffHeap = singletonList("OffHeap:HitRatio");
+    List<String> statNamesDisk = singletonList("Disk:HitRatio");
     List<String> statNamesOnHeapOffHeap = Arrays.asList("OnHeap:HitRatio","OffHeap:HitRatio");
     List<String> statNamesOnHeapDisk = Arrays.asList("OnHeap:HitRatio","Disk:HitRatio");
     List<String> statNamesThreeTiers = Arrays.asList("OnHeap:HitRatio","OffHeap:HitRatio","Disk:HitRatio");
 
     return asList(new Object[][] {
     //1 tier
-    { newResourcePoolsBuilder().heap(1, MB), statNamesOnHeap, Arrays.asList(1l,2l,3l) , Arrays.asList(1d), 1d },            //3 hits, 0 misses
-    { newResourcePoolsBuilder().heap(1, MB), statNamesOnHeap, Arrays.asList(1l,2l,4l,5l) , Arrays.asList(.5d), .5d },       //2 hits, 2 misses
-    { newResourcePoolsBuilder().heap(1, MB), statNamesOnHeap, Arrays.asList(4l,5l) , Arrays.asList(0d), 0d },               //0 hits, 2 misses
+    { newResourcePoolsBuilder().heap(1, MB), statNamesOnHeap, Arrays.asList(1L, 2L, 3L) , singletonList(1d), 1d },            //3 hits, 0 misses
+    { newResourcePoolsBuilder().heap(1, MB), statNamesOnHeap, Arrays.asList(1L, 2L, 4L, 5L) , singletonList(.5d), .5d },       //2 hits, 2 misses
+    { newResourcePoolsBuilder().heap(1, MB), statNamesOnHeap, Arrays.asList(4L, 5L) , singletonList(0d), 0d },               //0 hits, 2 misses
 
-    { newResourcePoolsBuilder().offheap(1, MB), statNamesOffHeap, Arrays.asList(1l,2l,3l), Arrays.asList(1d), 1d },         //3 hits, 0 misses
-    { newResourcePoolsBuilder().offheap(1, MB), statNamesOffHeap, Arrays.asList(1l,2l,4l,5l) , Arrays.asList(.5d), .5d },   //2 hits, 2 misses
-    { newResourcePoolsBuilder().offheap(1, MB), statNamesOffHeap, Arrays.asList(4l,5l) , Arrays.asList(0d), 0d },           //0 hits, 2 misses
+    { newResourcePoolsBuilder().offheap(1, MB), statNamesOffHeap, Arrays.asList(1L, 2L, 3L), singletonList(1d), 1d },         //3 hits, 0 misses
+    { newResourcePoolsBuilder().offheap(1, MB), statNamesOffHeap, Arrays.asList(1L, 2L, 4L, 5L) , singletonList(.5d), .5d },   //2 hits, 2 misses
+    { newResourcePoolsBuilder().offheap(1, MB), statNamesOffHeap, Arrays.asList(4L, 5L) , singletonList(0d), 0d },           //0 hits, 2 misses
 
-    { newResourcePoolsBuilder().disk(1, MB), statNamesDisk, Arrays.asList(1l,2l,3l) , Arrays.asList(1d), 1d },              //3 hits, 0 misses
-    { newResourcePoolsBuilder().disk(1, MB), statNamesDisk, Arrays.asList(1l,2l,4l,5l) , Arrays.asList(.5d), .5d },         //2 hits, 2 misses
-    { newResourcePoolsBuilder().disk(1, MB), statNamesDisk, Arrays.asList(4l,5l) , Arrays.asList(0d), 0d },                 //0 hits, 2 misses
+    { newResourcePoolsBuilder().disk(1, MB), statNamesDisk, Arrays.asList(1L, 2L, 3L) , singletonList(1d), 1d },              //3 hits, 0 misses
+    { newResourcePoolsBuilder().disk(1, MB), statNamesDisk, Arrays.asList(1L, 2L, 4L, 5L) , singletonList(.5d), .5d },         //2 hits, 2 misses
+    { newResourcePoolsBuilder().disk(1, MB), statNamesDisk, Arrays.asList(4L, 5L) , singletonList(0d), 0d },                 //0 hits, 2 misses
 
     //2 tiers
 
-    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), statNamesOnHeapOffHeap, Arrays.asList(1l,2l,3l) , Arrays.asList(0d,1d), 1d },     //3 offheap hits, 0 misses
+    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), statNamesOnHeapOffHeap, Arrays.asList(1L, 2L, 3L) , Arrays.asList(0d,1d), 1d },     //3 offheap hits, 0 misses
 
     /*
     explanation of ratio calc:
@@ -107,18 +102,17 @@ public class HitRatioTest {
     This test checks the offheap tier on the first 3 gets, and finds the key on each check.  So there are 3 hits.
     Thus offHeapHitRatio = 3 hits / 3 attempts = 1
     */
-    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), statNamesOnHeapOffHeap, Arrays.asList(1l,2l,3l,1L) , Arrays.asList(.25d,1d), 1d },//3 offheap hits, 1 heap hit, 0 misses
-    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), statNamesOnHeapOffHeap, Arrays.asList(1l,2l,4l,5l) , Arrays.asList(0d,.5), .5d }, //2 offheap hits, 2 misses
-    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), statNamesOnHeapOffHeap, Arrays.asList(4l,5l) , Arrays.asList(0d,0d), 0d },        //0 hits, 2 misses
+    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), statNamesOnHeapOffHeap, Arrays.asList(1L, 2L, 3L,1L) , Arrays.asList(.25d,1d), 1d },//3 offheap hits, 1 heap hit, 0 misses
+    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), statNamesOnHeapOffHeap, Arrays.asList(1L, 2L, 4L, 5L) , Arrays.asList(0d,.5), .5d }, //2 offheap hits, 2 misses
+    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB), statNamesOnHeapOffHeap, Arrays.asList(4L, 5L) , Arrays.asList(0d,0d), 0d },        //0 hits, 2 misses
 
-    { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), statNamesOnHeapDisk, Arrays.asList(1l,2l,3l,1L) , Arrays.asList(.25d,1d), 1d },      //3 disk hits, 1 heap hit, 0 misses
-    { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), statNamesOnHeapDisk, Arrays.asList(1l,2l,4l,5l) , Arrays.asList(0d,.5), .5d },       //2 disk hits, 2 misses
-    { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), statNamesOnHeapDisk, Arrays.asList(4l,5l) , Arrays.asList(0d,0d), 0d },              //0 hits, 2 misses
-    //offheap and disk configuration is not valid.  Throws IllegalStateException no Store.Provider found to handle configured resource types [offheap,disk]
+    { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), statNamesOnHeapDisk, Arrays.asList(1L, 2L, 3L,1L) , Arrays.asList(.25d,1d), 1d },      //3 disk hits, 1 heap hit, 0 misses
+    { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), statNamesOnHeapDisk, Arrays.asList(1L, 2L, 4L, 5L) , Arrays.asList(0d,.5), .5d },       //2 disk hits, 2 misses
+    { newResourcePoolsBuilder().heap(1, MB).disk(2, MB), statNamesOnHeapDisk, Arrays.asList(4L, 5L) , Arrays.asList(0d,0d), 0d },              //0 hits, 2 misses
 
     //3 tiers
-    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB).disk(3, MB), statNamesThreeTiers, Arrays.asList(1l,2l,3l,1L) , Arrays.asList(.25d,0d,1d), 1d },        //3 disk hits, 1 heap hit, 0 misses
-    { newResourcePoolsBuilder().heap(1, ENTRIES).offheap(2, MB).disk(3, MB), statNamesThreeTiers, Arrays.asList(1l,2l,2L,1L), Arrays.asList(.25d,(1d/3d),1d), 1d},//3 disk hits, 1 offheap hit, 1 heap hit, 0 misses
+    { newResourcePoolsBuilder().heap(1, MB).offheap(2, MB).disk(3, MB), statNamesThreeTiers, Arrays.asList(1L, 2L, 3L,1L) , Arrays.asList(.25d,0d,1d), 1d },        //3 disk hits, 1 heap hit, 0 misses
+    { newResourcePoolsBuilder().heap(1, ENTRIES).offheap(2, MB).disk(3, MB), statNamesThreeTiers, Arrays.asList(1L, 2L,2L,1L), Arrays.asList(.25d,(1d / 3d),1d), 1d},//3 disk hits, 1 offheap hit, 1 heap hit, 0 misses
     });
   }
 
@@ -162,24 +156,19 @@ public class HitRatioTest {
 
       Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
 
-      //System.out.println("put() 1, 2, 3");
       cache.put(1L, "1");//put in lowest tier
       cache.put(2L, "2");//put in lowest tier
       cache.put(3L, "3");//put in lowest tier
 
       for(Long key : getKeys) {
-        String v = cache.get(key);
-        //System.out.println("get(" + key + "): " + (v == null ? "miss" : "hit"));
+        cache.get(key);
       }
 
-      double tierHitRatio = 0;
       for (int i = 0; i < statNames.size(); i++) {
-        tierHitRatio = StatsUtil.getExpectedValueFromRatioHistory(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
-        Assert.assertThat(tierHitRatio, is(tierExpectedValues.get(i)));
+        StatsUtil.assertExpectedValueFromRatioHistory(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
       }
 
-      double hitRatio = StatsUtil.getExpectedValueFromRatioHistory("Cache:HitRatio", context, managementRegistry, cacheExpectedValue);
-      Assert.assertThat(hitRatio, is(cacheExpectedValue));
+      StatsUtil.assertExpectedValueFromRatioHistory("Cache:HitRatio", context, managementRegistry, cacheExpectedValue);
 
     }
     finally {

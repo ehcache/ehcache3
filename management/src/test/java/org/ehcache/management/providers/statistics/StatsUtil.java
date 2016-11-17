@@ -31,6 +31,7 @@ import org.terracotta.management.registry.StatisticQuery;
 import java.util.Arrays;
 import java.util.Map;
 
+import static java.util.Collections.singletonList;
 import static org.junit.Assert.assertThat;
 
 public class StatsUtil {
@@ -65,10 +66,10 @@ public class StatsUtil {
          This should only occur if the stats value is different from your expectedResult, which may happen if the stats calculations
          change, the stats value isn't accessible or if you enter the wrong expectedResult.
   */
-  public static long getExpectedValueFromCounterHistory(String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
+  public static long getAndAssertExpectedValueFromCounterHistory(String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
 
     StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
-      .queryStatistics(Arrays.asList(statName))
+      .queryStatistics(singletonList(statName))
       .on(context)
       .build();
 
@@ -99,10 +100,10 @@ public class StatsUtil {
          This should only occur if the stats value is different from your expectedResult, which may happen if the stats calculations
          change, the stats value isn't accessible or if you enter the wrong expectedResult.
   */
-  public static double getExpectedValueFromRatioHistory(String statName, Context context, ManagementRegistryService managementRegistry, double expectedResult) {
+  public static void assertExpectedValueFromRatioHistory(String statName, Context context, ManagementRegistryService managementRegistry, double expectedResult) {
 
     StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
-      .queryStatistics(Arrays.asList(statName))
+      .queryStatistics(singletonList(statName))
       .on(context)
       .build();
 
@@ -123,8 +124,6 @@ public class StatsUtil {
     } while (!Thread.currentThread().isInterrupted() && value != expectedResult);
 
     assertThat(value, Matchers.is(expectedResult));
-
-    return value;
   }
 
   // When testing ratios, we need to wait for the first computation (we do not have any choice) to happen because ratio depends on 2 other sampled statistics.
