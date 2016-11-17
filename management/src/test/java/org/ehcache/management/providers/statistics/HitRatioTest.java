@@ -19,6 +19,7 @@ import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
 import org.ehcache.config.CacheConfiguration;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
@@ -140,7 +141,14 @@ public class HitRatioTest {
       registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.SECONDS,10,TimeUnit.MINUTES));
       final ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
-      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources).build();
+      CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources)
+        .withEvictionAdvisor(new EvictionAdvisor<Long, String>() {
+          @Override
+          public boolean adviseAgainstEviction(Long key, String value) {
+            return key.equals(2L);
+          }
+        })
+        .build();
 
       cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
           .withCache("myCache", cacheConfiguration)
