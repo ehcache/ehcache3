@@ -50,7 +50,7 @@ public class ClusteredResourcePoolImpl
 
   @Override
   public void validateUpdate(ResourcePool newPool) {
-    super.validateUpdate(newPool);
+    throw new UnsupportedOperationException("Updating CLUSTERED resource is not supported");
   }
 
   @Override

@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.config;
 
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.config.SizedResourcePoolImpl;
 
@@ -62,6 +63,11 @@ public class DedicatedClusteredResourcePoolImpl extends SizedResourcePoolImpl<De
   @Override
   public PoolAllocation getPoolAllocation() {
     return new PoolAllocation.Dedicated(this.getFromResource(), this.getUnit().toBytes(this.getSize()));
+  }
+
+  @Override
+  public void validateUpdate(final ResourcePool newPool) {
+    throw new UnsupportedOperationException("Updating CLUSTERED resource is not supported");
   }
 
   @Override
