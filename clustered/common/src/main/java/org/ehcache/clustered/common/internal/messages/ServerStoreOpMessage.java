@@ -21,7 +21,7 @@ import org.ehcache.clustered.common.internal.store.Chain;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
-public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
+public abstract class ServerStoreOpMessage extends EhcacheOperationMessage {
   public enum ServerStoreOp {
 
     GET_AND_APPEND((byte) 11),
@@ -99,16 +99,12 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     return Type.SERVER_STORE_OP;
   }
 
+  @Deprecated
   public abstract ServerStoreOp operation();
 
   @Override
   public byte getOpCode() {
     return operation().getStoreOpCode();
-  }
-
-  @Override
-  public String toString() {
-    return getType() + "#" + operation();
   }
 
   public static abstract class KeyBasedServerStoreOpMessage extends ServerStoreOpMessage  implements ConcurrentEntityMessage {
@@ -140,6 +136,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     public ServerStoreOp operation() {
       return ServerStoreOp.GET;
     }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.GET_STORE;
+    }
   }
 
   public static class GetAndAppendMessage extends KeyBasedServerStoreOpMessage {
@@ -155,6 +156,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.GET_AND_APPEND;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.GET_AND_APPEND;
     }
 
     public ByteBuffer getPayload() {
@@ -178,6 +184,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
       return ServerStoreOp.APPEND;
     }
 
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.APPEND;
+    }
+
     public ByteBuffer getPayload() {
       return payload;
     }
@@ -199,6 +210,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.REPLACE;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.REPLACE;
     }
 
     public Chain getExpect() {
@@ -227,6 +243,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     public ServerStoreOp operation() {
       return ServerStoreOp.CLIENT_INVALIDATION_ACK;
     }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CLIENT_INVALIDATION_ACK;
+    }
   }
 
   public static class ClearMessage extends ServerStoreOpMessage {
@@ -239,6 +260,11 @@ public abstract class ServerStoreOpMessage extends EhcacheEntityMessage {
     @Override
     public ServerStoreOp operation() {
       return ServerStoreOp.CLEAR;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CLEAR;
     }
   }
 

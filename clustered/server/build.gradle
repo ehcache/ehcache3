@@ -25,7 +25,7 @@ dependencies {
   compile ("org.terracotta:statistics:$parent.statisticVersion") {
     exclude group:'org.slf4j', module:'slf4j-api'
   }
-  compile project(':clustered:common')
+  compile project(':clustered:common'), "org.slf4j:slf4j-api:$parent.slf4jVersion"
   compile group: 'org.terracotta', name: 'offheap-resource', version: parent.offheapResourceVersion
   compile group: 'org.terracotta', name: 'offheap-store', version: parent.offheapVersion
   compile group: 'org.slf4j', name: 'slf4j-api', version: parent.slf4jVersion
@@ -38,6 +38,7 @@ dependencies {
   compile"org.terracotta.management.dist:management-common:$parent.managementVersion"
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
+  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
 compileJava {

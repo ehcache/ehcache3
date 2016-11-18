@@ -16,8 +16,11 @@
 
 package org.ehcache.clustered.common.internal.store;
 
+import org.ehcache.clustered.common.internal.util.ByteBufferInputStream;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -147,12 +150,30 @@ public class Util {
   }
 
   public static Object unmarshall(byte[] payload) {
+    ObjectInputStream objectInputStream = null;
     try {
-      return new ObjectInputStream(new ByteArrayInputStream(payload)).readObject();
+      objectInputStream = new ObjectInputStream(new ByteArrayInputStream(payload));
+      return objectInputStream.readObject();
     } catch (IOException ex) {
       throw new IllegalArgumentException(ex);
     } catch (ClassNotFoundException ex) {
       throw new IllegalArgumentException(ex);
+    } finally {
+      closeSilently(objectInputStream);
+    }
+  }
+
+  public static Object unmarshall(ByteBuffer payload) {
+    ObjectInputStream objectInputStream = null;
+    try {
+      objectInputStream = new ObjectInputStream(new ByteBufferInputStream(payload));
+      return objectInputStream.readObject();
+    } catch (IOException ex) {
+      throw new IllegalArgumentException(ex);
+    } catch (ClassNotFoundException ex) {
+      throw new IllegalArgumentException(ex);
+    } finally {
+      closeSilently(objectInputStream);
     }
   }
 
@@ -163,11 +184,21 @@ public class Util {
       try {
         oout.writeObject(message);
       } finally {
-        oout.close();
+        closeSilently(oout);
       }
     } catch (IOException e) {
       throw new IllegalArgumentException(e);
     }
     return out.toByteArray();
+  }
+
+  private static void closeSilently(Closeable closeable) {
+    if (closeable != null) {
+      try {
+        closeable.close();
+      } catch (IOException e) {
+        // Ignore
+      }
+    }
   }
 }

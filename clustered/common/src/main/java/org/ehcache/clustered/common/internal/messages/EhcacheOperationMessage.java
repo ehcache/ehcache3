@@ -14,14 +14,17 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+package org.ehcache.clustered.common.internal.messages;
 
-dependencies {
-  compile "org.slf4j:slf4j-api:$parent.slf4jVersion"
-  provided "org.terracotta:entity-common-api:$parent.entityApiVersion"
-  provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
-}
+/**
+ * EhcacheOperationMessage
+ */
+public abstract class EhcacheOperationMessage extends EhcacheEntityMessage {
 
-tasks.withType(JavaCompile) {
-  options.compilerArgs += ['-Werror']
+  public abstract EhcacheMessageType getMessageType();
+
+  @Override
+  public String toString() {
+    return getMessageType().toString();
+  }
 }

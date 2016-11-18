@@ -31,27 +31,27 @@ public class ServerStoreMessageFactory {
     this.clientId = clientId;
   }
 
-  public EhcacheEntityMessage getOperation(long key) {
+  public ServerStoreOpMessage.GetMessage getOperation(long key) {
     return new ServerStoreOpMessage.GetMessage(this.cacheId, key);
   }
 
-  public EhcacheEntityMessage getAndAppendOperation(long key, ByteBuffer payload) {
+  public ServerStoreOpMessage.GetAndAppendMessage getAndAppendOperation(long key, ByteBuffer payload) {
     return new ServerStoreOpMessage.GetAndAppendMessage(this.cacheId, key, payload, clientId);
   }
 
-  public EhcacheEntityMessage appendOperation(long key, ByteBuffer payload) {
+  public ServerStoreOpMessage.AppendMessage appendOperation(long key, ByteBuffer payload) {
     return new ServerStoreOpMessage.AppendMessage(this.cacheId, key, payload, clientId);
   }
 
-  public EhcacheEntityMessage replaceAtHeadOperation(long key, Chain expect, Chain update) {
+  public ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadOperation(long key, Chain expect, Chain update) {
     return new ServerStoreOpMessage.ReplaceAtHeadMessage(this.cacheId, key, expect, update, clientId);
   }
 
-  public EhcacheEntityMessage clientInvalidationAck(int invalidationId) {
+  public ServerStoreOpMessage.ClientInvalidationAck clientInvalidationAck(int invalidationId) {
     return new ServerStoreOpMessage.ClientInvalidationAck(this.cacheId, invalidationId);
   }
 
-  public EhcacheEntityMessage clearOperation() {
+  public ServerStoreOpMessage.ClearMessage clearOperation() {
     return new ServerStoreOpMessage.ClearMessage(this.cacheId, clientId);
   }
 

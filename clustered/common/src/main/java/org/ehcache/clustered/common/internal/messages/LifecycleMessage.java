@@ -22,7 +22,7 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import java.io.Serializable;
 import java.util.UUID;
 
-public abstract class LifecycleMessage extends EhcacheEntityMessage implements Serializable {
+public abstract class LifecycleMessage extends EhcacheOperationMessage implements Serializable {
 
   public enum LifeCycleOp {
     CONFIGURE,
@@ -66,11 +66,6 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
 
   public abstract LifeCycleOp operation();
 
-  @Override
-  public String toString() {
-    return getType() + "#" + operation();
-  }
-
   public static class ValidateStoreManager extends LifecycleMessage {
     private static final long serialVersionUID = 5742152283115139745L;
 
@@ -84,6 +79,11 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     @Override
     public LifeCycleOp operation() {
       return LifeCycleOp.VALIDATE;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.VALIDATE;
     }
 
     public ServerSideConfiguration getConfiguration() {
@@ -104,6 +104,11 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     @Override
     public LifeCycleOp operation() {
       return LifeCycleOp.CONFIGURE;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CONFIGURE;
     }
 
     public ServerSideConfiguration getConfiguration() {
@@ -147,6 +152,11 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     public LifeCycleOp operation() {
       return LifeCycleOp.CREATE_SERVER_STORE;
     }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.CREATE_SERVER_STORE;
+    }
   }
 
   /**
@@ -162,6 +172,11 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     @Override
     public LifeCycleOp operation() {
       return LifeCycleOp.VALIDATE_SERVER_STORE;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.VALIDATE_SERVER_STORE;
     }
   }
 
@@ -181,6 +196,11 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     @Override
     public LifeCycleOp operation() {
       return LifeCycleOp.RELEASE_SERVER_STORE;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.RELEASE_SERVER_STORE;
     }
 
     public String getName() {
@@ -204,6 +224,11 @@ public abstract class LifecycleMessage extends EhcacheEntityMessage implements S
     @Override
     public LifeCycleOp operation() {
       return LifeCycleOp.DESTROY_SERVER_STORE;
+    }
+
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.DESTROY_SERVER_STORE;
     }
 
     public String getName() {

@@ -47,6 +47,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
@@ -58,8 +59,8 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.KeyBa
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.ehcache.clustered.server.internal.messages.EntityDataSyncMessage;
-import org.ehcache.clustered.server.internal.messages.EntityStateSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
+import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -353,14 +354,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         storeConfigs.put(storeName, store.getStoreConfiguration());
       }
 
-      syncChannel.synchronizeToPassive(new EntityStateSyncMessage(configuration, storeConfigs, trackedClients));
+      syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs, trackedClients));
     } else {
       ehcacheStateService.getStores().stream()
         .forEach(name -> {
           ServerStoreImpl store = ehcacheStateService.getStore(name);
           store.getSegments().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET).keySet().stream()
             .forEach(key -> {
-              syncChannel.synchronizeToPassive(new EntityDataSyncMessage(name, key, store.get(key)));
+              syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, key, store.get(key)));
             });
         });
     }
@@ -770,7 +771,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     serverStore.setEvictionListener(key -> invalidateHashAfterEviction(name, key));
     attachStore(clientDescriptor, name);
     try {
-      entityMessenger.messageSelfAndDeferRetirement(createServerStore, new ClientIDTrackerMessage.ServerStoreLifeCycleReplicationMessage(createServerStore));
+      entityMessenger.messageSelfAndDeferRetirement(createServerStore, new PassiveReplicationMessage.CreateServerStoreReplicationMessage(createServerStore));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }
@@ -861,7 +862,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     storeClientMap.remove(name);
     try {
-      entityMessenger.messageSelfAndDeferRetirement(destroyServerStore, new ClientIDTrackerMessage.ServerStoreLifeCycleReplicationMessage(destroyServerStore));
+      entityMessenger.messageSelfAndDeferRetirement(destroyServerStore, new PassiveReplicationMessage.DestroyServerStoreReplicationMessage(destroyServerStore));
     } catch (MessageCodecException e) {
       throw new AssertionError("Codec error", e);
     }

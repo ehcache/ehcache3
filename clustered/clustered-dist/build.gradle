@@ -31,6 +31,8 @@ ext {
 dependencies {
   compile project(':clustered:client')
   compile project(':clustered:common')
+  // Needed because declared as provided in the different projects
+  compile "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 }
 
 apply plugin: 'distribution'
@@ -51,6 +53,9 @@ dependencies {
     exclude group: 'org.terracotta', module: 'packaging-support'
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
+
+  // Needed because declared as provided in the different projects
+  serverLibs "org.terracotta:runnel:$parent.terracottaPlatformVersion"
 
   kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip"
 
