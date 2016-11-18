@@ -32,7 +32,7 @@ import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
+import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
@@ -322,7 +322,7 @@ public class EhcacheClientEntity implements Entity {
 
     try {
       EhcacheEntityResponse response = waitFor(timeLimit, invokeAsync(message, replicate));
-      if (Type.FAILURE.equals(response.getType())) {
+      if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
         return response;

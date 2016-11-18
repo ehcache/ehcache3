@@ -35,6 +35,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
+import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
@@ -75,9 +76,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.PoolAllocation.Dedicated;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 
-import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type.FAILURE;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -2445,7 +2444,7 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
 
-    assertThat(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validateConfig)).getType(), is(Type.SUCCESS));
+    assertThat(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validateConfig)).getResponseType(), is(EhcacheResponseType.SUCCESS));
   }
 
   @Test
@@ -2946,12 +2945,12 @@ public class EhcacheActiveEntityTest {
   }
 
   private void assertFailure(EhcacheEntityResponse response, Class<? extends Exception> expectedException) {
-    assertThat(response.getType(), is(FAILURE));
+    assertThat(response.getResponseType(), is(EhcacheResponseType.FAILURE));
     assertThat(((Failure) response).getCause(), is(instanceOf(expectedException)));
   }
 
   private void assertFailure(EhcacheEntityResponse response, Class<? extends Exception> expectedException, String expectedMessageContent) {
-    assertThat(response.getType(), is(FAILURE));
+    assertThat(response.getResponseType(), is(EhcacheResponseType.FAILURE));
     Exception cause = ((Failure) response).getCause();
     assertThat(cause, is(instanceOf(expectedException)));
     assertThat(cause.getMessage(), containsString(expectedMessageContent));
