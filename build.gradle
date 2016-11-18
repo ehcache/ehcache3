@@ -31,12 +31,12 @@ ext {
   terracottaPlatformVersion = '5.0.11.beta2'
   managementVersion = terracottaPlatformVersion
   terracottaApisVersion = '1.0.11.beta'
-  terracottaCoreVersion = '5.0.11-beta'
+  terracottaCoreVersion = '5.0.11-beta2'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
   terracottaPassthroughTestingVersion = '1.0.11.beta'
   entityTestLibVersion = terracottaPassthroughTestingVersion
-  galvanVersion = '1.0.11-beta'
+  galvanVersion = '1.0.11-beta2'
 
   // Tools
   findbugsVersion = '3.0.1'

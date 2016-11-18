@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.replication;
 
+import org.ehcache.CachePersistenceException;
 import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
@@ -33,6 +34,7 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
+import org.ehcache.spi.service.MaintainableService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -66,6 +68,7 @@ public class BasicLifeCyclePassiveReplicationTest {
 
   @Before
   public void startServers() throws Exception {
+    CLUSTER.getClusterControl().startAllServers();
     CLUSTER.getClusterControl().waitForActive();
     CLUSTER.getClusterControl().waitForRunningPassivesInStandby();
   }
@@ -73,7 +76,6 @@ public class BasicLifeCyclePassiveReplicationTest {
   @After
   public void tearDown() throws Exception {
     CLUSTER.getClusterControl().terminateActive();
-    CLUSTER.getClusterControl().startAllServers();
   }
 
   @Test
@@ -103,7 +105,7 @@ public class BasicLifeCyclePassiveReplicationTest {
     }
 
     service.stop();
-
+    cleanUpCluster(service);
   }
 
   @Test
@@ -136,7 +138,7 @@ public class BasicLifeCyclePassiveReplicationTest {
     }
 
     service.stop();
-
+    cleanUpCluster(service);
   }
 
   @Test
@@ -163,6 +165,7 @@ public class BasicLifeCyclePassiveReplicationTest {
     }
 
     service.stop();
+    cleanUpCluster(service);
   }
 
   @Test
@@ -189,6 +192,7 @@ public class BasicLifeCyclePassiveReplicationTest {
     }
 
     service.stop();
+    cleanUpCluster(service);
   }
 
   @Test
@@ -226,14 +230,19 @@ public class BasicLifeCyclePassiveReplicationTest {
 
     service1.stop();
     service2.stop();
-
+    cleanUpCluster(service1);
   }
-
 
   private static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
     Field entity = clusteringService.getClass().getDeclaredField("entity");
     entity.setAccessible(true);
     return (EhcacheClientEntity)entity.get(clusteringService);
+  }
+
+  private void cleanUpCluster(ClusteringService service) throws CachePersistenceException {
+    service.startForMaintenance(null, MaintainableService.MaintenanceScope.CACHE_MANAGER);
+    service.destroyAll();
+    service.stop();
   }
 
   private static ServerStoreConfiguration getServerStoreConfiguration(String resourceName) {
