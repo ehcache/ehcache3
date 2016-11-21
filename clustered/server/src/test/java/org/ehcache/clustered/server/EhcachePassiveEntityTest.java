@@ -24,7 +24,6 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
-import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.hamcrest.Matchers;
@@ -251,7 +250,6 @@ public class EhcachePassiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build()));
-    passiveEntity.invoke(new ClientIDTrackerMessage(0L, CLIENT_ID));
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("cacheAlias",
         new ServerStoreConfigBuilder()
             .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -290,7 +288,6 @@ public class EhcachePassiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build()));
-    passiveEntity.invoke(new ClientIDTrackerMessage(0L, CLIENT_ID));
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("cacheAlias",
         new ServerStoreConfigBuilder()
@@ -326,7 +323,6 @@ public class EhcachePassiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build()));
-    passiveEntity.invoke(new ClientIDTrackerMessage(0L, CLIENT_ID));
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
         new ServerStoreConfigBuilder()
@@ -393,7 +389,6 @@ public class EhcachePassiveEntityTest {
             .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
             .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
             .build()));
-    passiveEntity.invoke(new ClientIDTrackerMessage(0L, CLIENT_ID));
     assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
@@ -465,7 +460,6 @@ public class EhcachePassiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build()));
-    passiveEntity.invoke(new ClientIDTrackerMessage(0L, CLIENT_ID));
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
         new ServerStoreConfigBuilder()

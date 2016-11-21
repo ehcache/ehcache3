@@ -34,7 +34,13 @@ public class ClientMessageTracker {
   }
 
   public void track(long msgId, UUID clientId) {
-    messageTrackers.get(clientId).track(msgId);
+    messageTrackers.compute(clientId, (mappedUuid, messageTracker) -> {
+      if (messageTracker == null) {
+        messageTracker = new MessageTracker();
+      }
+      messageTracker.track(msgId);
+      return messageTracker;
+    });
   }
 
   public void applied(long msgId, UUID clientId){

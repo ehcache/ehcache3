@@ -40,9 +40,7 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
-import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
@@ -2749,7 +2747,6 @@ public class EhcacheActiveEntityTest {
     }
 
     verify(entityMessenger, times(0)).messageSelf(any());
-    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(ValidateStoreManager.class), any(ClientIDTrackerMessage.class));
 
     reset(entityMessenger);
 
@@ -2817,7 +2814,7 @@ public class EhcacheActiveEntityTest {
     }
 
     verify(entityMessenger, times(0)).messageSelf(any());
-    verify(entityMessenger, times(3)).messageSelfAndDeferRetirement(any(), any());
+    verify(entityMessenger, times(1)).messageSelfAndDeferRetirement(any(), any());
 
     reset(entityMessenger);
 
@@ -2864,7 +2861,6 @@ public class EhcacheActiveEntityTest {
     ehcacheStateService.createStore("test", serverStoreConfiguration);
 
     ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker();
-    clientMessageTracker.add(CLIENT_ID);
 
     Random random = new Random();
     Set<Long> msgIds = new HashSet<>();

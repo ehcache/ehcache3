@@ -107,7 +107,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   EhcachePassiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
-    OffHeapResources offHeapResources = services.getService(new BasicServiceConfiguration<OffHeapResources>(OffHeapResources.class));
+    OffHeapResources offHeapResources = services.getService(new BasicServiceConfiguration<>(OffHeapResources.class));
     if (offHeapResources == null) {
       this.offHeapResourceIdentifiers = Collections.emptySet();
     } else {
@@ -135,10 +135,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
         trackHashInvalidationForEventualCache(retirementMessage);
         break;
-      case CLIENT_ID_TRACK_OP:
-        LOGGER.debug("PassiveReplicationMessage message for msgId {} & client Id {}", message.getId(), message.getClientId());
-        ehcacheStateService.getClientMessageTracker().add(message.getClientId());
-        break;
       case INVALIDATION_COMPLETE:
         untrackHashInvalidationForEventualCache((InvalidationCompleteMessage)message);
         break;
@@ -161,8 +157,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   }
 
   private void untrackHashInvalidationForEventualCache(InvalidationCompleteMessage message) {
-    InvalidationCompleteMessage invalidationCompleteMessage = message;
-    ehcacheStateService.getInvalidationTracker(invalidationCompleteMessage.getCacheId()).getInvalidationMap().computeIfPresent(invalidationCompleteMessage.getKey(), (key, count) -> {
+    ehcacheStateService.getInvalidationTracker(message.getCacheId()).getInvalidationMap().computeIfPresent(message.getKey(), (key, count) -> {
       if (count == 1) {
         return null;
       }
@@ -230,7 +225,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           }
           management.serverStoreCreated(entry.getKey());
         }
-        stateSyncMessage.getTrackedClients().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
         break;
       case DATA:
         EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;
