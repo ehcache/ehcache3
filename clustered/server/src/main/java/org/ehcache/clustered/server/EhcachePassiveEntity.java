@@ -151,6 +151,9 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         PassiveReplicationMessage.DestroyServerStoreReplicationMessage destroyMessage = (PassiveReplicationMessage.DestroyServerStoreReplicationMessage) message;
         destroyServerStore(destroyMessage.getStoreName());
         break;
+      case CLIENT_ID_TRACK_OP:
+        ehcacheStateService.getClientMessageTracker().remove(message.getClientId());
+        break;
       default:
         throw new AssertionError("Unsupported Retirement Message : " + message);
     }

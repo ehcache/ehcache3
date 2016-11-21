@@ -51,6 +51,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
@@ -261,6 +262,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
     UUID clientId = clientIdMap.remove(clientDescriptor);
     if (clientId != null) {
+      try {
+        entityMessenger.messageSelf(new ClientIDTrackerMessage(clientId));
+      } catch (MessageCodecException mce) {
+        throw new AssertionError("Codec error", mce);
+      }
       trackedClients.remove(clientId);
       ehcacheStateService.getClientMessageTracker().remove(clientId);
     }

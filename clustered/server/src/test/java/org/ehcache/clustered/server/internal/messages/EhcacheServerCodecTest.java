@@ -20,6 +20,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -71,7 +72,7 @@ public class EhcacheServerCodecTest {
 
   @Test
   public void testDelegatesToPassiveReplicationCodeForEncoding() throws Exception {
-    PassiveReplicationMessage.ClientIDTrackerMessage message = new PassiveReplicationMessage.ClientIDTrackerMessage(42L, CLIENT_ID);
+    ClientIDTrackerMessage message = new ClientIDTrackerMessage(CLIENT_ID);
     serverCodec.encodeMessage(message);
 
     verify(replicationCodec).encode(message);

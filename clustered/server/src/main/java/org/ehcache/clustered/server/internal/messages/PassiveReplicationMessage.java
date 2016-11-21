@@ -37,19 +37,18 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
 
   public static class ClientIDTrackerMessage extends PassiveReplicationMessage {
     private final UUID clientId;
-    private final long msgId;
 
-    public ClientIDTrackerMessage(long msgId, UUID clientId) {
-      this.msgId = msgId;
+    public ClientIDTrackerMessage(UUID clientId) {
       this.clientId = clientId;
-    }
-
-    public long getId() {
-      return msgId;
     }
 
     public UUID getClientId() {
       return clientId;
+    }
+
+    @Override
+    public long getId() {
+      throw new UnsupportedOperationException("Not supported for ClientIDTrackerMessage");
     }
 
     @Override
@@ -63,9 +62,11 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     private final String cacheId;
     private final long key;
     private final Chain chain;
+    private final long msgId;
 
     public ChainReplicationMessage(String cacheId, long key, Chain chain, long msgId, UUID clientId) {
-      super(msgId, clientId);
+      super(clientId);
+      this.msgId = msgId;
       this.cacheId = cacheId;
       this.key = key;
       this.chain = chain;
@@ -81,6 +82,10 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
 
     public Chain getChain() {
       return chain;
+    }
+
+    public long getId() {
+      return msgId;
     }
 
     @Override
@@ -154,13 +159,15 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
 
     private final String storeName;
     private final ServerStoreConfiguration storeConfiguration;
+    private final long msgId;
 
     public CreateServerStoreReplicationMessage(LifecycleMessage.CreateServerStore createMessage) {
       this(createMessage.getId(), createMessage.getClientId(), createMessage.getName(), createMessage.getStoreConfiguration());
     }
 
     public CreateServerStoreReplicationMessage(long msgId, UUID clientId, String storeName, ServerStoreConfiguration configuration) {
-      super(msgId, clientId);
+      super(clientId);
+      this.msgId = msgId;
       this.storeName = storeName;
       this.storeConfiguration = configuration;
     }
@@ -173,6 +180,10 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
       return storeConfiguration;
     }
 
+    public long getId() {
+      return msgId;
+    }
+
     @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.CREATE_SERVER_STORE_REPLICATION;
@@ -182,18 +193,24 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
   public static class DestroyServerStoreReplicationMessage extends ClientIDTrackerMessage {
 
     private final String storeName;
+    private final long msgId;
 
     public DestroyServerStoreReplicationMessage(LifecycleMessage.DestroyServerStore destroyMessage) {
       this(destroyMessage.getId(), destroyMessage.getClientId(), destroyMessage.getName());
     }
 
     public DestroyServerStoreReplicationMessage(long msgId, UUID clientId, String storeName) {
-      super(msgId, clientId);
+      super(clientId);
       this.storeName = storeName;
+      this.msgId = msgId;
     }
 
     public String getStoreName() {
       return storeName;
+    }
+
+    public long getId() {
+      return msgId;
     }
 
     @Override
