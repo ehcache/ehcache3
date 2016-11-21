@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.common.internal.messages;
 
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
@@ -45,16 +44,13 @@ public class EhcacheCodecTest {
   @Mock
   private StateRepositoryOpCodec stateRepositoryOpCodec;
 
-  @Mock
-  private PassiveReplicationMessageCodec passiveReplicationMessageCodec;
-
   private EhcacheCodec codec;
 
   @Before
   public void setUp() {
     initMocks(this);
 
-    codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null, passiveReplicationMessageCodec);
+    codec = new EhcacheCodec(serverStoreOpCodec, lifeCycleMessageCodec, stateRepositoryOpCodec, null);
   }
 
   @Test
@@ -64,28 +60,18 @@ public class EhcacheCodecTest {
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, never()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, never()).encode(any(StateRepositoryOpMessage.class));
-    verify(passiveReplicationMessageCodec, never()).encode(any(PassiveReplicationMessage.class));
 
     ServerStoreOpMessage.ClearMessage serverStoreOpMessage = new ServerStoreOpMessage.ClearMessage("foo", CLIENT_ID);
     codec.encodeMessage(serverStoreOpMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, never()).encode(any(StateRepositoryOpMessage.class));
-    verify(passiveReplicationMessageCodec, never()).encode(any(PassiveReplicationMessage.class));
 
     StateRepositoryOpMessage.EntrySetMessage stateRepositoryOpMessage = new StateRepositoryOpMessage.EntrySetMessage("foo", "bar", CLIENT_ID);
     codec.encodeMessage(stateRepositoryOpMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
     verify(stateRepositoryOpCodec, only()).encode(any(StateRepositoryOpMessage.class));
-    verify(passiveReplicationMessageCodec, never()).encode(any(PassiveReplicationMessage.class));
-
-    ClientIDTrackerMessage clientIDTrackerMessage = new ClientIDTrackerMessage(20L, CLIENT_ID);
-    codec.encodeMessage(clientIDTrackerMessage);
-    verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
-    verify(serverStoreOpCodec, only()).encode(any(ServerStoreOpMessage.class));
-    verify(stateRepositoryOpCodec, only()).encode(any(StateRepositoryOpMessage.class));
-    verify(passiveReplicationMessageCodec, only()).encode(any(PassiveReplicationMessage.class));
 
   }
 
@@ -96,7 +82,7 @@ public class EhcacheCodecTest {
       codec.decodeMessage(encodedBuffer.array());
     }
     verify(lifeCycleMessageCodec, times(EhcacheMessageType.LIFECYCLE_MESSAGES.size())).decode(any(EhcacheMessageType.class), any(ByteBuffer.class));
-    verifyZeroInteractions(serverStoreOpCodec, stateRepositoryOpCodec, passiveReplicationMessageCodec);
+    verifyZeroInteractions(serverStoreOpCodec, stateRepositoryOpCodec);
   }
 
   @Test
@@ -106,7 +92,7 @@ public class EhcacheCodecTest {
       codec.decodeMessage(encodedBuffer.array());
     }
     verify(serverStoreOpCodec, times(EhcacheMessageType.STORE_OPERATION_MESSAGES.size())).decode(any(EhcacheMessageType.class), any(ByteBuffer.class));
-    verifyZeroInteractions(lifeCycleMessageCodec, stateRepositoryOpCodec, passiveReplicationMessageCodec);
+    verifyZeroInteractions(lifeCycleMessageCodec, stateRepositoryOpCodec);
   }
 
   @Test
@@ -116,16 +102,7 @@ public class EhcacheCodecTest {
       codec.decodeMessage(encodedBuffer.array());
     }
     verify(stateRepositoryOpCodec, times(EhcacheMessageType.STATE_REPO_OPERATION_MESSAGES.size())).decode(any(EhcacheMessageType.class), any(ByteBuffer.class));
-    verifyZeroInteractions(lifeCycleMessageCodec, serverStoreOpCodec, passiveReplicationMessageCodec);
+    verifyZeroInteractions(lifeCycleMessageCodec, serverStoreOpCodec);
   }
 
-  @Test
-  public void decodeClientIDTrackerMessages() throws Exception {
-    for (EhcacheMessageType messageType : EhcacheMessageType.PASSIVE_SYNC_MESSAGES) {
-      ByteBuffer encodedBuffer = EhcacheCodec.OP_CODE_DECODER.encoder().enm("opCode", messageType).encode();
-      codec.decodeMessage(encodedBuffer.array());
-    }
-    verify(passiveReplicationMessageCodec, times(EhcacheMessageType.PASSIVE_SYNC_MESSAGES.size())).decode(any(EhcacheMessageType.class), any(ByteBuffer.class));
-    verifyZeroInteractions(lifeCycleMessageCodec, serverStoreOpCodec, stateRepositoryOpCodec);
-  }
 }

@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.internal.messages;
+package org.ehcache.clustered.server.internal.messages;
 
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.util.UUID;

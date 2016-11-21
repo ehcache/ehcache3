@@ -30,10 +30,10 @@ import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
@@ -57,7 +57,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveSynchroMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 
@@ -88,7 +88,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           invokeLifeCycleOperation((LifecycleMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
-        } else if (isPassiveSynchroMessage(messageType)) {
+        } else if (isPassiveReplicationMessage(messageType)) {
           invokeRetirementMessages((PassiveReplicationMessage)message);
         }
       } else if (message instanceof EhcacheSyncMessage) {

@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.internal.messages;
+package org.ehcache.clustered.server.internal.messages;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.store.Chain;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.junit.Test;
 
 import java.util.UUID;
 
 import static java.nio.ByteBuffer.wrap;
+import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.ehcache.clustered.common.internal.store.Util.getChain;
-import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;

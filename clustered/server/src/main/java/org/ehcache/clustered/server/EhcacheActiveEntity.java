@@ -49,11 +49,11 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFacto
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
@@ -88,7 +88,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveSynchroMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
@@ -284,7 +284,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {
           return invokeStateRepositoryOperation(clientDescriptor, (StateRepositoryOpMessage) message);
-        } else if (isPassiveSynchroMessage(messageType)) {
+        } else if (isPassiveReplicationMessage(messageType)) {
           return responseFactory.success();
         }
       }
