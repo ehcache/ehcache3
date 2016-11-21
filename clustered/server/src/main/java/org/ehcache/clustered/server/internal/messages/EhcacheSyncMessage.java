@@ -25,51 +25,6 @@ import java.util.UUID;
 @CommonComponent
 public abstract class EhcacheSyncMessage extends EhcacheEntityMessage {
 
-  @CommonComponent
-  public enum SyncOp {
-
-    STATE((byte) 31),
-    DATA((byte) 32),
-    ;
-
-    private final byte syncOpCode;
-
-    SyncOp(byte syncOpCode) {
-      this.syncOpCode = syncOpCode;
-    }
-
-    public byte getOpCode() {
-      return this.syncOpCode;
-    }
-
-    public static SyncOp getSyncOp(byte syncOpCode) {
-      switch (syncOpCode) {
-        case 31:
-          return STATE;
-        case 32:
-          return DATA;
-        default:
-          throw new IllegalArgumentException("Sync operation not defined for : " + syncOpCode);
-      }
-    }
-
-  }
-
-  @Override
-  @Deprecated
-  public Type getType() {
-    return Type.SYNC_OP;
-  }
-
-  @Deprecated
-  public abstract SyncOp operation();
-
-  @Override
-  @Deprecated
-  public byte getOpCode() {
-    return operation().getOpCode();
-  }
-
   @Override
   public void setId(final long id) {
     throw new UnsupportedOperationException();

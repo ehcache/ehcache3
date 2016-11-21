@@ -26,59 +26,10 @@ import java.util.UUID;
  */
 public abstract class PassiveReplicationMessage extends EhcacheOperationMessage {
 
-  public enum ReplicationOp {
-    CHAIN_REPLICATION_OP((byte) 41),
-    CLIENTID_TRACK_OP((byte) 42),
-    CLEAR_INVALIDATION_COMPLETE((byte) 43),
-    INVALIDATION_COMPLETE((byte) 44),
-    SERVER_STORE_LIFECYCLE_REPLICATION_OP((byte) 45)
-    ;
-
-    private final byte replicationOpCode;
-
-    ReplicationOp(byte replicationOpCode) {
-      this.replicationOpCode = replicationOpCode;
-    }
-
-    public byte getReplicationOpCode() {
-      return replicationOpCode;
-    }
-
-
-    public static ReplicationOp getReplicationOp(byte replicationOpCode) {
-      switch (replicationOpCode) {
-        case 41:
-          return CHAIN_REPLICATION_OP;
-        case 42:
-          return CLIENTID_TRACK_OP;
-        case 43:
-          return CLEAR_INVALIDATION_COMPLETE;
-        case 44:
-          return INVALIDATION_COMPLETE;
-        case 45:
-          return SERVER_STORE_LIFECYCLE_REPLICATION_OP;
-        default:
-          throw new IllegalArgumentException("Replication operation not defined for : " + replicationOpCode);
-      }
-    }
-  }
-
-  @Override
-  public Type getType() {
-    return Type.REPLICATION_OP;
-  }
-
-  @Override
-  public byte getOpCode() {
-    return operation().getReplicationOpCode();
-  }
-
   @Override
   public void setId(long id) {
     throw new UnsupportedOperationException("This method is not supported on replication message");
   }
-
-  public abstract ReplicationOp operation();
 
   public static class ClientIDTrackerMessage extends PassiveReplicationMessage {
     private final UUID clientId;
@@ -89,9 +40,6 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
       this.clientId = clientId;
     }
 
-    public ReplicationOp operation() {
-      return ReplicationOp.CLIENTID_TRACK_OP;
-    }
     public long getId() {
       return msgId;
     }
@@ -137,11 +85,6 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     }
 
     @Override
-    public ReplicationOp operation() {
-      return ReplicationOp.CHAIN_REPLICATION_OP;
-    }
-
-    @Override
     public long concurrencyKey() {
       return key;
     }
@@ -169,10 +112,6 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
       throw new UnsupportedOperationException("Not supported for ClearInvalidationCompleteMessage");
     }
 
-    public ReplicationOp operation() {
-      return ReplicationOp.CLEAR_INVALIDATION_COMPLETE;
-    }
-
     @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.CLEAR_INVALIDATION_COMPLETE;
@@ -195,10 +134,6 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
     @Override
     public long concurrencyKey() {
       return (getCacheId().hashCode() + key);
-    }
-
-    public ReplicationOp operation() {
-      return ReplicationOp.INVALIDATION_COMPLETE;
     }
 
     @Override

@@ -180,7 +180,7 @@ class ServerStoreOpCodec {
           .encode()
           .array();
       default:
-        throw new RuntimeException("Unhandled message operation : " + message.operation());
+        throw new RuntimeException("Unhandled message operation : " + message.getMessageType());
     }
   }
 

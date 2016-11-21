@@ -46,6 +46,8 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
+import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
@@ -85,6 +87,10 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.hashInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
 
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveSynchroMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
@@ -94,8 +100,6 @@ import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.Va
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY;
 
-// TODO: Provide some mechanism to report on storage utilization -- PageSource provides little visibility
-// TODO: Ensure proper operations for concurrent requests
 class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
@@ -271,18 +275,20 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
                                                   " Check your server configuration and define at least one offheap resource.");
       }
 
-      switch (message.getType()) {
-        case LIFECYCLE_OP:
-          return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
-        case SERVER_STORE_OP:
+      if (message instanceof EhcacheOperationMessage) {
+        EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+        EhcacheMessageType messageType = operationMessage.getMessageType();
+        if (isStoreOperationMessage(messageType)) {
           return invokeServerStoreOperation(clientDescriptor, (ServerStoreOpMessage) message);
-        case STATE_REPO_OP:
+        } else if (isLifecycleMessage(messageType)) {
+          return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
+        } else if (isStateRepoOperationMessage(messageType)) {
           return invokeStateRepositoryOperation(clientDescriptor, (StateRepositoryOpMessage) message);
-        case REPLICATION_OP:
+        } else if (isPassiveSynchroMessage(messageType)) {
           return responseFactory.success();
-        default:
-          throw new IllegalMessageException("Unknown message : " + message);
+        }
       }
+      throw new IllegalMessageException("Unknown message : " + message);
     } catch (ClusterException e) {
       return responseFactory.failure(e);
     } catch (Exception e) {
@@ -425,7 +431,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   }
 
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) throws ClusterException {
-    switch (message.operation()) {
+    switch (message.getMessageType()) {
       case CONFIGURE:
         configure(clientDescriptor, (ConfigureStoreManager) message);
         break;
@@ -480,8 +486,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       });
     }
 
-    switch (message.operation()) {
-      case GET: {
+    switch (message.getMessageType()) {
+      case GET_STORE: {
         ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage) message;
         return responseFactory.response(cacheStore.get(getMessage.getKey()));
       }

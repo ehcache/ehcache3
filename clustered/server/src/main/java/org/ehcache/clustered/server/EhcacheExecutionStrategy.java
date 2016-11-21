@@ -31,10 +31,10 @@ class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage
   @Override
   public Location getExecutionLocation(EhcacheEntityMessage message) {
     if (message instanceof ServerStoreOpMessage.ReplaceAtHeadMessage || message instanceof ServerStoreOpMessage.ClearMessage) {
-      // ServerStoreOp needing replication
+      // Server store operation needing replication
       return Location.BOTH;
     } else if (message instanceof ServerStoreOpMessage) {
-      // ServerStoreOp not needing replication
+      // Server store operation not needing replication
       return Location.ACTIVE;
     } else if (message instanceof LifecycleMessage.ConfigureStoreManager) {
       return Location.BOTH;
@@ -49,10 +49,10 @@ class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage
     } else if (message instanceof LifecycleMessage.DestroyServerStore) {
       return Location.BOTH;
     } else if (message instanceof StateRepositoryOpMessage.PutIfAbsentMessage) {
-      // StateRepositoryOp needing replication
+      // State repository operation needing replication
       return Location.BOTH;
     } else if (message instanceof StateRepositoryOpMessage) {
-      // StateRepositoryOp not needing replication
+      // State repository operation not needing replication
       return Location.ACTIVE;
     } else if (message instanceof PassiveReplicationMessage) {
       return Location.PASSIVE;
