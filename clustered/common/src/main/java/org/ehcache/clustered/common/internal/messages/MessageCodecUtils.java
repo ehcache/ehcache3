@@ -21,7 +21,9 @@ import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.terracotta.runnel.EnumMapping;
 import org.terracotta.runnel.decoding.Enm;
+import org.terracotta.runnel.decoding.PrimitiveDecodingSupport;
 import org.terracotta.runnel.decoding.StructDecoder;
+import org.terracotta.runnel.encoding.PrimitiveEncodingSupport;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.util.UUID;
@@ -31,22 +33,25 @@ import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 /**
  * MessageCodecUtils
  */
-class MessageCodecUtils {
+public class MessageCodecUtils {
 
-  static final String MSG_ID_FIELD = "msgId";
-  static final String LSB_UUID_FIELD = "lsbUUID";
-  static final String MSB_UUID_FIELD = "msbUUID";
-  static final String SERVER_STORE_NAME_FIELD = "serverStoreName";
-  static final String KEY_FIELD = "key";
-  static final String STORE_CONFIG_KEY_TYPE_FIELD = "keyType";
-  static final String STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD = "keySerializerType";
-  static final String STORE_CONFIG_VALUE_TYPE_FIELD = "valueType";
-  static final String STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD = "valueSerializerType";
-  static final String STORE_CONFIG_CONSISTENCY_FIELD = "consistency";
-  static final String POOL_SIZE_FIELD = "poolSize";
-  static final String POOL_RESOURCE_NAME_FIELD = "resourceName";
+  public static final String MSG_ID_FIELD = "msgId";
+  public static final String LSB_UUID_FIELD = "lsbUUID";
+  public static final String MSB_UUID_FIELD = "msbUUID";
+  public static final String SERVER_STORE_NAME_FIELD = "serverStoreName";
+  public static final String KEY_FIELD = "key";
+  public static final String DEFAULT_RESOURCE_FIELD = "defaultResource";
+  public static final String STORE_CONFIG_KEY_TYPE_FIELD = "keyType";
+  public static final String STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD = "keySerializerType";
+  public static final String STORE_CONFIG_VALUE_TYPE_FIELD = "valueType";
+  public static final String STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD = "valueSerializerType";
+  public static final String STORE_CONFIG_CONSISTENCY_FIELD = "consistency";
+  public static final String POOLS_SUB_STRUCT = "pools";
+  public static final String POOL_NAME_FIELD = "poolName";
+  public static final String POOL_SIZE_FIELD = "poolSize";
+  public static final String POOL_RESOURCE_NAME_FIELD = "resourceName";
 
-  static final EnumMapping<Consistency> CONSISTENCY_ENUM_MAPPING = newEnumMappingBuilder(Consistency.class)
+  public static final EnumMapping<Consistency> CONSISTENCY_ENUM_MAPPING = newEnumMappingBuilder(Consistency.class)
     .mapping(Consistency.EVENTUAL, 1)
     .mapping(Consistency.STRONG, 2)
     .build();
@@ -62,7 +67,7 @@ class MessageCodecUtils {
     return new UUID(decoder.int64(MSB_UUID_FIELD), decoder.int64(LSB_UUID_FIELD));
   }
 
-  void encodeServerStoreConfiguration(StructEncoder encoder, ServerStoreConfiguration configuration) {
+  public void encodeServerStoreConfiguration(PrimitiveEncodingSupport<?> encoder, ServerStoreConfiguration configuration) {
     encoder.string(STORE_CONFIG_KEY_TYPE_FIELD, configuration.getStoredKeyType())
       .string(STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD, configuration.getKeySerializerType())
       .string(STORE_CONFIG_VALUE_TYPE_FIELD, configuration.getStoredValueType())
@@ -83,7 +88,7 @@ class MessageCodecUtils {
     }
   }
 
-  ServerStoreConfiguration decodeServerStoreConfiguration(StructDecoder decoder) {
+  public ServerStoreConfiguration decodeServerStoreConfiguration(PrimitiveDecodingSupport decoder) {
     String keyType = decoder.string(STORE_CONFIG_KEY_TYPE_FIELD);
     String keySerializer = decoder.string(STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD);
     String valueType = decoder.string(STORE_CONFIG_VALUE_TYPE_FIELD);

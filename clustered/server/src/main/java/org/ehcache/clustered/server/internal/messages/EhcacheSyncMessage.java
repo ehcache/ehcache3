@@ -56,13 +56,16 @@ public abstract class EhcacheSyncMessage extends EhcacheEntityMessage {
   }
 
   @Override
+  @Deprecated
   public Type getType() {
     return Type.SYNC_OP;
   }
 
+  @Deprecated
   public abstract SyncOp operation();
 
   @Override
+  @Deprecated
   public byte getOpCode() {
     return operation().getOpCode();
   }
@@ -81,5 +84,7 @@ public abstract class EhcacheSyncMessage extends EhcacheEntityMessage {
   public UUID getClientId() {
     throw new UnsupportedOperationException();
   }
+
+  public abstract SyncMessageType getMessageType();
 
 }
