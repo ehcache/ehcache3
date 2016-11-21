@@ -16,6 +16,9 @@
 
 package org.ehcache.clustered.server.state;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.tc.classloader.CommonComponent;
 
 import java.util.UUID;
@@ -25,18 +28,23 @@ import java.util.concurrent.ConcurrentMap;
 @CommonComponent
 public class ClientMessageTracker {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(ClientMessageTracker.class);
+
   private final ConcurrentMap<UUID, MessageTracker> messageTrackers = new ConcurrentHashMap<>();
   private volatile UUID entityConfiguredStamp = null;
   private volatile long configuredTimestamp;
 
-  public boolean isAdded(UUID clientId) {
-    return messageTrackers.containsKey(clientId);
-  }
-
+  //TODO : This method will be removed once we move to model where
+  //caches are entites. Then passive just needs to keep track of
+  //applied messages. Thus only 'applied' method will be keeping
+  // track of watermarking for de-duplication. This method is only
+  // allowed to be used by cache lifecycle message for now.
+  @Deprecated
   public void track(long msgId, UUID clientId) {
     messageTrackers.compute(clientId, (mappedUuid, messageTracker) -> {
       if (messageTracker == null) {
         messageTracker = new MessageTracker();
+        LOGGER.info("Tracking client {}.", clientId);
       }
       messageTracker.track(msgId);
       return messageTracker;
@@ -44,7 +52,15 @@ public class ClientMessageTracker {
   }
 
   public void applied(long msgId, UUID clientId){
-    messageTrackers.get(clientId).applied(msgId);
+    messageTrackers.compute(clientId, (mappedUuid, messageTracker) -> {
+      if (messageTracker == null) {
+        messageTracker = new MessageTracker();
+        LOGGER.info("Tracking client {}.", clientId);
+      }
+      messageTracker.track(msgId);
+      messageTracker.applied(msgId);
+      return messageTracker;
+    });
   }
 
   public boolean isDuplicate(long msgId, UUID clientId) {
@@ -54,14 +70,9 @@ public class ClientMessageTracker {
     return !messageTrackers.get(clientId).shouldApply(msgId);
   }
 
-  public void add(UUID clientId) {
-    if(messageTrackers.putIfAbsent(clientId, new MessageTracker()) != null) {
-      throw new IllegalStateException("Same client "+ clientId +" cannot be tracked twice");
-    }
-  }
-
   public void remove(UUID clientId) {
     messageTrackers.remove(clientId);
+    LOGGER.info("Stop tracking client {}.", clientId);
   }
 
   public void setEntityConfiguredStamp(UUID clientId, long timestamp) {

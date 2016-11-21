@@ -132,7 +132,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           throw new LifecycleException("Clustered tier does not exist : '" + retirementMessage.getCacheId() + "'");
         }
         cacheStore.put(retirementMessage.getKey(), retirementMessage.getChain());
-        ehcacheStateService.getClientMessageTracker().applied(message.getId(), message.getClientId());
+        applyMessage(message);
         trackHashInvalidationForEventualCache(retirementMessage);
         break;
       case INVALIDATION_COMPLETE:
@@ -189,12 +189,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
 
     switch (message.getMessageType()) {
-      case APPEND:
-      case GET_AND_APPEND: {
-        LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {} is tracked now.", message.getId(), message.getClientId());
-        ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
-        break;
-      }
       case REPLACE: {
         ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage)message;
         cacheStore.replaceAtHead(replaceAtHeadMessage.getKey(), replaceAtHeadMessage.getExpect(), replaceAtHeadMessage.getUpdate());
@@ -244,7 +238,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         configure((ConfigureStoreManager) message);
         break;
       case VALIDATE:
-        trackAndApplyMessage(message);
+        applyMessage(message);
         break;
       case CREATE_SERVER_STORE:
       case DESTROY_SERVER_STORE:
@@ -261,12 +255,8 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     management.sharedPoolsConfigured();
   }
 
-  private void trackAndApplyMessage(LifecycleMessage message) {
+  private void applyMessage(EhcacheOperationMessage message) {
     ClientMessageTracker clientMessageTracker = ehcacheStateService.getClientMessageTracker();
-    if (!clientMessageTracker.isAdded(message.getClientId())) {
-      throw new IllegalStateException("Untracked client id " + message.getClientId());
-    }
-    clientMessageTracker.track(message.getId(), message.getClientId());
     clientMessageTracker.applied(message.getId(), message.getClientId());
   }
 

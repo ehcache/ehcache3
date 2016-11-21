@@ -70,7 +70,9 @@ public class MessageTracker {
    * Only to be invoked on Passive Entity
    * @param msgId
    */
+  @Deprecated
   void track(long msgId) {
+    //TODO: remove this once we move to CACHE as ENTITY model.
     inProgressMessages.put(msgId, false);
     updateHigherWaterMark(msgId);
   }
