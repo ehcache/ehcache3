@@ -46,7 +46,6 @@ import org.ehcache.spi.service.Service;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -57,7 +56,6 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.history.CounterHistory;
 
-@Ignore("Test currently broken - needs platform fix")
 @RunWith(Parameterized.class)
 public class EvictionTest {
 
