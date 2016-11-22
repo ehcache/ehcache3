@@ -31,6 +31,7 @@ import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -40,6 +41,7 @@ import org.terracotta.management.model.stats.history.CounterHistory;
 
 import static org.junit.Assert.assertThat;
 
+@Ignore("Test currently broken - needs platform fix")
 public class StandardEhcacheStatisticsTest {
 
   private final EhcacheStatisticsProviderConfiguration EHCACHE_STATS_CONFIG = new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES);
