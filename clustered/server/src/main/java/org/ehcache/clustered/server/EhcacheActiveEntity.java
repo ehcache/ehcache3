@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.Consistency;
@@ -129,6 +130,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final IEntityMessenger entityMessenger;
   private volatile ConcurrentHashMap<String, List<InvalidationTuple>> inflightInvalidations;
   private final Management management;
+  private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
 
   static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
@@ -280,6 +282,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
                                                   " Check your server configuration and define at least one offheap resource.");
       }
 
+      clearClientTrackedAtReconnectComplete();
+
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
         EhcacheMessageType messageType = operationMessage.getMessageType();
@@ -300,6 +304,17 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       LOGGER.error("Unexpected exception raised during operation: " + message, e);
       return responseFactory.failure(new InvalidOperationException(e));
     }
+  }
+
+  private void clearClientTrackedAtReconnectComplete() {
+
+    if (!reconnectComplete.get()) {
+      boolean success = reconnectComplete.compareAndSet(false, true);
+      if (success) {
+        ehcacheStateService.getClientMessageTracker().reconcileTrackedClients(trackedClients);
+      }
+    }
+
   }
 
   @Override
@@ -389,6 +404,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = new ConcurrentHashMap<>();
     addInflightInvalidationsForEventualCaches();
+    reconnectComplete.set(false);
   }
 
   private void addInflightInvalidationsForEventualCaches() {

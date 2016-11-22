@@ -21,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import com.tc.classloader.CommonComponent;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -88,6 +89,10 @@ public class ClientMessageTracker {
       return false;
     }
     return true;
+  }
+
+  public void reconcileTrackedClients(Set<UUID> trackedClients) {
+    messageTrackers.entrySet().removeIf(x -> !trackedClients.contains(x));
   }
 
 }
