@@ -9,7 +9,7 @@ ifdef::notBuildingForSite[]
 include::menu.adoc[]
 endif::notBuildingForSite[]
 
-While Ehcache is a Java cache, it cannot always store its mapping as Java objects.
+While Ehcache is a Java cache, it cannot always store its mappings as Java objects.
 
 The <<caching-concepts.adoc#storage-tiers,on-heap store>> is capable of storing cached objects either by reference (where the given key and value references
 are stored) or by value (where a copy of the given key and value are made and those copies are then stored).
