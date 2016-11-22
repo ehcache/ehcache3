@@ -44,14 +44,14 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
   }
 
   @Override
-  protected ExposedServerStoreBinding wrap(ServerStoreBinding managedObject) {
-    return new ExposedServerStoreBinding(managedObject, getMonitoringService().getConsumerId());
+  protected ExposedServerStoreBinding internalWrap(Context context, ServerStoreBinding managedObject) {
+    return new ExposedServerStoreBinding(context, managedObject);
   }
 
   private static class ExposedServerStoreBinding extends ExposedAliasBinding<ServerStoreBinding> {
 
-    ExposedServerStoreBinding(ServerStoreBinding binding, long consumerId) {
-      super(binding, consumerId);
+    ExposedServerStoreBinding(Context context, ServerStoreBinding binding) {
+      super(context, binding);
     }
 
     @Override

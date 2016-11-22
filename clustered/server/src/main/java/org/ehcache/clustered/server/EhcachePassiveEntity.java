@@ -114,7 +114,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
-    management = new Management(services, ehcacheStateService, offHeapResourceIdentifiers);
+    management = new Management(services, ehcacheStateService);
   }
 
   private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {

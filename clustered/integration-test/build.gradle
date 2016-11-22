@@ -28,7 +28,6 @@ dependencies {
   testCompile project(':clustered:clustered-dist')
   testCompile project(':management')
   testCompile "org.terracotta.management.dist:management-client:$parent.managementVersion"
-  testCompile "org.terracotta.management:monitoring-service-entity:$parent.managementVersion"
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.8.0"
 
   testCompile group:'org.terracotta', name:'galvan-support', version: galvanVersion
@@ -41,7 +40,6 @@ dependencies {
   serverLibs ("org.terracotta.management.dist:management-server:$parent.managementVersion") {
     exclude group:'org.terracotta.management.dist', module:'management-common'
   }
-  serverLibs "org.terracotta.management:monitoring-service-entity:$parent.managementVersion" // test entity for monitoring service
 }
 
 task unzipKit(type: Copy) {

@@ -181,7 +181,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (entityMessenger == null) {
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
-    this.management = new Management(services, ehcacheStateService, this.offHeapResourceIdentifiers);
+    this.management = new Management(services, ehcacheStateService);
   }
 
   /**

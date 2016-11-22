@@ -30,12 +30,9 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.terracotta.connection.Connection;
-import org.terracotta.connection.ConnectionFactory;
 import org.terracotta.management.entity.management.ManagementAgentConfig;
 import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
 import org.terracotta.management.entity.management.client.ManagementAgentService;
-import org.terracotta.management.entity.monitoring.client.MonitoringServiceEntityFactory;
-import org.terracotta.management.entity.monitoring.client.MonitoringServiceProxyEntity;
 import org.terracotta.management.entity.tms.TmsAgentConfig;
 import org.terracotta.management.entity.tms.client.TmsAgentEntity;
 import org.terracotta.management.entity.tms.client.TmsAgentEntityFactory;
@@ -53,11 +50,10 @@ import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Properties;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
@@ -74,7 +70,7 @@ import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBui
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -89,15 +85,19 @@ public abstract class AbstractClusteringManagementTest {
       + "</ohr:offheap-resources>" +
       "</service>\n";
 
-  protected static MonitoringServiceProxyEntity consumer;
   protected static CacheManager cacheManager;
-  protected static ClientIdentifier clientIdentifier;
-  protected static ServerEntityIdentifier serverEntityIdentifier;
+  protected static ClientIdentifier ehcacheClientIdentifier;
+  protected static ServerEntityIdentifier ehcacheServerEntityIdentifier;
   protected static ObjectMapper mapper = new ObjectMapper();
 
-  private static final List<File> MANAGEMENT_PLUGINS = Stream.of(System.getProperty("managementPlugins", "").split(File.pathSeparator))
-    .map(File::new)
-    .collect(Collectors.toList());
+  protected static TmsAgentEntity tmsAgentEntity;
+  protected static ServerEntityIdentifier tmsServerEntityIdentifier;
+
+  private static final List<File> MANAGEMENT_PLUGINS = System.getProperty("managementPlugins") == null ?
+    Collections.emptyList() :
+    Stream.of(System.getProperty("managementPlugins").split(File.pathSeparator))
+      .map(File::new)
+      .collect(Collectors.toList());
 
   @ClassRule
   public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, MANAGEMENT_PLUGINS, "", RESOURCE_CONFIG, "");
@@ -108,8 +108,16 @@ public abstract class AbstractClusteringManagementTest {
 
     CLUSTER.getClusterControl().waitForActive();
 
-    consumer = new MonitoringServiceEntityFactory(ConnectionFactory.connect(CLUSTER.getConnectionURI(), new Properties())).retrieveOrCreate("MonitoringConsumerEntity");
-    consumer.createMessageBuffer(1024);
+    // simulate a TMS client
+    Connection managementConnection = CLUSTER.newConnection();
+    TmsAgentEntityFactory entityFactory = new TmsAgentEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
+    tmsAgentEntity = entityFactory.retrieveOrCreate(new TmsAgentConfig());
+    tmsServerEntityIdentifier = readTopology()
+      .activeServerEntityStream()
+      .filter(serverEntity -> serverEntity.getType().equals(TmsAgentConfig.ENTITY_TYPE))
+      .findFirst()
+      .get() // throws if not found
+      .getServerEntityIdentifier();
 
     cacheManager = newCacheManagerBuilder()
       // cluster config
@@ -152,14 +160,14 @@ public abstract class AbstractClusteringManagementTest {
 
     // ensure the CM is running and get its client id
     assertThat(cacheManager.getStatus(), equalTo(Status.AVAILABLE));
-    clientIdentifier = consumer.readTopology().getClients().values()
+    ehcacheClientIdentifier = readTopology().getClients().values()
       .stream()
       .filter(client -> client.getName().equals("Ehcache:my-server-entity-1"))
       .findFirst()
       .map(Client::getClientIdentifier)
       .get();
 
-    serverEntityIdentifier = consumer.readTopology()
+    ehcacheServerEntityIdentifier = readTopology()
       .activeServerEntityStream()
       .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1"))
       .findFirst()
@@ -167,14 +175,27 @@ public abstract class AbstractClusteringManagementTest {
       .getServerEntityIdentifier();
 
     // test_notifs_sent_at_CM_init
-    List<Message> messages = consumer.drainMessageBuffer();
+    List<Message> messages = readMessages();
     List<String> notificationTypes = notificationTypes(messages);
-    assertThat(notificationTypes.get(0), equalTo("CLIENT_CONNECTED"));
-    assertThat(notificationTypes.containsAll(Arrays.asList(
-      "SERVER_ENTITY_CREATED", "SERVER_ENTITY_FETCHED",
-      "ENTITY_REGISTRY_AVAILABLE", "ENTITY_REGISTRY_UPDATED", "EHCACHE_RESOURCE_POOLS_CONFIGURED", "EHCACHE_CLIENT_VALIDATED", "EHCACHE_SERVER_STORE_CREATED",
-      "CLIENT_REGISTRY_AVAILABLE", "CLIENT_TAGS_UPDATED")), is(true));
-    assertThat(consumer.readMessageBuffer(), is(nullValue()));
+
+    Map<String, List<String>> counts = notificationTypes.stream().collect(Collectors.groupingBy(o -> o));
+    assertThat(counts.keySet(), hasSize(12));
+    assertThat(counts.get("CLIENT_CONNECTED"), hasSize(1));
+    assertThat(counts.get("CLIENT_REGISTRY_AVAILABLE"), hasSize(1));
+    assertThat(counts.get("CLIENT_TAGS_UPDATED"), hasSize(1));
+    assertThat(counts.get("EHCACHE_CLIENT_VALIDATED"), hasSize(1));
+    assertThat(counts.get("EHCACHE_RESOURCE_POOLS_CONFIGURED"), hasSize(1));
+    assertThat(counts.get("EHCACHE_SERVER_STORE_CREATED"), hasSize(3));
+    assertThat(counts.get("ENTITY_REGISTRY_AVAILABLE"), hasSize(2));
+    assertThat(counts.get("ENTITY_REGISTRY_UPDATED"), hasSize(11));
+    assertThat(counts.get("SERVER_ENTITY_CREATED"), hasSize(5));
+    assertThat(counts.get("SERVER_ENTITY_DESTROYED"), hasSize(1));
+    assertThat(counts.get("SERVER_ENTITY_FETCHED"), hasSize(7));
+    assertThat(counts.get("SERVER_ENTITY_UNFETCHED"), hasSize(3));
+
+    assertThat(readMessages(), hasSize(0));
+
+    sendManagementCallOnEntityToCollectStats();
   }
 
   @AfterClass
@@ -189,9 +210,17 @@ public abstract class AbstractClusteringManagementTest {
 
   @Before
   public void init() throws Exception {
-    if (consumer != null) {
-      consumer.clearMessageBuffer();
+    if (tmsAgentEntity != null) {
+      readMessages();
     }
+  }
+
+  protected static org.terracotta.management.model.cluster.Cluster readTopology() throws Exception {
+    return tmsAgentEntity.readTopology().get();
+  }
+
+  protected static List<Message> readMessages() throws Exception {
+    return tmsAgentEntity.readMessages().get();
   }
 
   protected static ContextualReturn<?> sendManagementCallOnClientToCollectStats(String... statNames) throws Exception {
@@ -204,7 +233,7 @@ public abstract class AbstractClusteringManagementTest {
 
       agent.setContextualReturnListener((from, id, aReturn) -> {
         try {
-          assertEquals(clientIdentifier, from);
+          assertEquals(ehcacheClientIdentifier, from);
           assertEquals(managementCallId.get(), id);
           exchanger.exchange(aReturn);
         } catch (InterruptedException e) {
@@ -213,7 +242,7 @@ public abstract class AbstractClusteringManagementTest {
       });
 
       managementCallId.set(agent.call(
-        clientIdentifier,
+        ehcacheClientIdentifier,
         Context.create("cacheManagerName", "my-super-cache-manager"),
         "StatisticCollectorCapability",
         "updateCollectedStatistics",
@@ -230,61 +259,10 @@ public abstract class AbstractClusteringManagementTest {
     }
   }
 
-  protected static void sendManagementCallOnEntityToCollectStats() throws Exception {
-    Connection managementConnection = CLUSTER.newConnection();
-    try {
-      TmsAgentEntityFactory entityFactory = new TmsAgentEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
-      TmsAgentEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new TmsAgentConfig());
-
-      // get the context from the topology for the ehcache server entity
-      Context context = tmsAgentEntity.readTopology().get().getSingleStripe().getActiveServerEntity(serverEntityIdentifier).get().getContext();
-
-      ContextualReturn<Void> result = tmsAgentEntity.call(
-        context,
-        "StatisticCollectorCapability",
-        "updateCollectedStatistics",
-        Void.TYPE,
-        new Parameter("PoolStatistics"),
-        new Parameter(asList(
-          "Pool:AllocatedSize"
-        ), Collection.class.getName())
-      ).get();
-
-      assertThat(result.hasExecuted(), is(true));
-
-      result = tmsAgentEntity.call(
-        context,
-        "StatisticCollectorCapability",
-        "updateCollectedStatistics",
-        Void.TYPE,
-        new Parameter("ServerStoreStatistics"),
-        new Parameter(asList(
-          "Store:AllocatedMemory",
-          "Store:DataAllocatedMemory",
-          "Store:OccupiedMemory",
-          "Store:DataOccupiedMemory",
-          "Store:Entries",
-          "Store:UsedSlotCount",
-          "Store:DataVitalMemory",
-          "Store:VitalMemory",
-          "Store:ReprobeLength",
-          "Store:RemovedSlotCount",
-          "Store:DataSize",
-          "Store:TableCapacity"
-        ), Collection.class.getName())
-      ).get();
-
-      assertThat(result.hasExecuted(), is(true));
-
-    } finally {
-      managementConnection.close();
-    }
-  }
-
-  protected static List<ContextualStatistics> waitForNextStats() {
+  protected static List<ContextualStatistics> waitForNextStats() throws Exception {
     // uses the monitoring consumre entity to get the content of the stat buffer when some stats are collected
     while (!Thread.currentThread().isInterrupted()) {
-      List<ContextualStatistics> messages = consumer.drainMessageBuffer()
+      List<ContextualStatistics> messages = readMessages()
         .stream()
         .filter(message -> message.getType().equals("STATISTICS"))
         .flatMap(message -> message.unwrap(ContextualStatistics.class).stream())
@@ -322,6 +300,61 @@ public abstract class AbstractClusteringManagementTest {
 
   protected static String normalizeForLineEndings(String stringToNormalize) {
     return stringToNormalize.replace("\r\n", "\n").replace("\r", "\n");
+  }
+
+  private static void sendManagementCallOnEntityToCollectStats() throws Exception {
+
+    Context context = readTopology().getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier).get().getContext();
+
+    ContextualReturn<Void> result = tmsAgentEntity.call(
+      context,
+      "StatisticCollectorCapability",
+      "updateCollectedStatistics",
+      Void.TYPE,
+      new Parameter("PoolStatistics"),
+      new Parameter(asList(
+        "Pool:AllocatedSize"
+      ), Collection.class.getName())
+    ).get();
+
+    assertThat(result.hasExecuted(), is(true));
+
+    result = tmsAgentEntity.call(
+      context,
+      "StatisticCollectorCapability",
+      "updateCollectedStatistics",
+      Void.TYPE,
+      new Parameter("ServerStoreStatistics"),
+      new Parameter(asList(
+        "Store:AllocatedMemory",
+        "Store:DataAllocatedMemory",
+        "Store:OccupiedMemory",
+        "Store:DataOccupiedMemory",
+        "Store:Entries",
+        "Store:UsedSlotCount",
+        "Store:DataVitalMemory",
+        "Store:VitalMemory",
+        "Store:ReprobeLength",
+        "Store:RemovedSlotCount",
+        "Store:DataSize",
+        "Store:TableCapacity"
+      ), Collection.class.getName())
+    ).get();
+
+    assertThat(result.hasExecuted(), is(true));
+
+    result = tmsAgentEntity.call(
+      context,
+      "StatisticCollectorCapability",
+      "updateCollectedStatistics",
+      Void.TYPE,
+      new Parameter("OffHeapResourceStatistics"),
+      new Parameter(asList(
+        "OffHeapResource:AllocatedMemory"
+      ), Collection.class.getName())
+    ).get();
+
+    assertThat(result.hasExecuted(), is(true));
   }
 
 }
