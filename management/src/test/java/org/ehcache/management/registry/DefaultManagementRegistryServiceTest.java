@@ -34,7 +34,6 @@ import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.management.ManagementRegistryService;
-import org.junit.Ignore;
 import org.junit.rules.Timeout;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
@@ -247,7 +246,6 @@ public class DefaultManagementRegistryServiceTest {
     cacheManager1.close();
   }
 
-  @Ignore("Test currently broken - needs platform fix")
   @Test
   public void testCanGetStats() {
     String queryStatisticName = "Cache:HitCount";
@@ -357,7 +355,6 @@ public class DefaultManagementRegistryServiceTest {
     return counters;
   }
 
-  @Ignore("Test currently broken - needs platform fix")
   @Test
   public void testCanGetStatsSinceTime() throws InterruptedException {
 

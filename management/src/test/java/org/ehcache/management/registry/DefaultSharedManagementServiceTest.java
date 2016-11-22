@@ -25,7 +25,6 @@ import org.ehcache.management.SharedManagementService;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.Timeout;
@@ -157,7 +156,6 @@ public class DefaultSharedManagementServiceTest {
     assertThat(new ArrayList<Capability>(capabilities2).get(3).getName(), equalTo("SettingsCapability"));
   }
 
-  @Ignore("Test currently broken - needs platform fix")
   @Test
   public void testStats() {
     String statisticName = "Cache:MissCount";
