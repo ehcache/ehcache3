@@ -16,12 +16,7 @@
 package org.ehcache.management.providers;
 
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
-import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.registry.AbstractManagementProvider;
-import org.terracotta.management.registry.action.ExposedObject;
-
-import java.util.Collection;
-import java.util.LinkedHashSet;
 
 public abstract class CacheBindingManagementProvider extends AbstractManagementProvider<CacheBinding> {
 
@@ -34,14 +29,5 @@ public abstract class CacheBindingManagementProvider extends AbstractManagementP
 
   @Override
   protected abstract ExposedCacheBinding wrap(CacheBinding managedObject);
-
-  @Override
-  public Collection<Descriptor> getDescriptors() {
-    Collection<Descriptor> capabilities = new LinkedHashSet<Descriptor>();
-    for (ExposedObject o : getExposedObjects()) {
-      capabilities.addAll(((ExposedCacheBinding) o).getDescriptors());
-    }
-    return capabilities;
-  }
 
 }
