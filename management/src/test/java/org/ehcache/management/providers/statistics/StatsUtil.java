@@ -16,6 +16,7 @@
 package org.ehcache.management.providers.statistics;
 
 import static java.util.Collections.singletonList;
+import static org.junit.Assert.assertThat;
 
 import org.ehcache.management.ManagementRegistryService;
 import org.hamcrest.Matchers;
@@ -32,10 +33,9 @@ import org.terracotta.management.model.stats.history.RateHistory;
 import org.terracotta.management.model.stats.history.RatioHistory;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
+import org.junit.Assert;
 import java.util.Arrays;
 import java.util.Map;
-import org.junit.Assert;
-import static org.junit.Assert.assertThat;
 
 public class StatsUtil {
 
@@ -127,6 +127,75 @@ public class StatsUtil {
     } while (!Thread.currentThread().isInterrupted() && value != expectedResult);
 
     assertThat(value, Matchers.is(expectedResult));
+  }
+
+  /*
+  NOTE:  When using this method in other unit tests, make sure to declare a timeout as it is possible to get an infinite loop.
+         This should only occur if the stats value is different from your minExpectedValue, which may happen if the stats calculations
+         change, the stats value isn't accessible or if you enter the wrong minExpectedValue.
+  */
+  public static long assertExpectedValueFromDurationHistory(String statName, Context context, ManagementRegistryService managementRegistry, Long minExpectedValue) {
+
+    StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
+          .queryStatistics(Arrays.asList(statName))
+          .on(context)
+          .build();
+
+    Long value = null;
+    do {
+      ResultSet<ContextualStatistics> counters = query.execute();
+
+      ContextualStatistics statisticsContext = counters.getResult(context);
+
+      assertThat(counters.size(), Matchers.is(1));
+
+      DurationHistory durationHistory = statisticsContext.getStatistic(DurationHistory.class, statName);
+
+      if (durationHistory.getValue().length > 0) {
+        int mostRecentIndex = durationHistory.getValue().length - 1;
+        value = durationHistory.getValue()[mostRecentIndex].getValue();
+      }
+
+    }while(!Thread.currentThread().isInterrupted() && value == null);
+
+    assertThat(value, Matchers.greaterThan(minExpectedValue));
+
+    return value;
+  }
+
+  /*
+  NOTE:  When using this method in other unit tests, make sure to declare a timeout as it is possible to get an infinite loop.
+         This should only occur if the stats value is different from your minExpectedValue, which may happen if the stats calculations
+         change, the stats value isn't accessible or if you enter the wrong minExpectedValue.
+  */
+  public static double assertExpectedValueFromAverageHistory(String statName, Context context, ManagementRegistryService managementRegistry) {
+
+    StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
+          .queryStatistics(Arrays.asList(statName))
+          .on(context)
+          .build();
+
+    double value = Double.NaN;
+    do {
+      ResultSet<ContextualStatistics> counters = query.execute();
+
+      ContextualStatistics statisticsContext = counters.getResult(context);
+
+      assertThat(counters.size(), Matchers.is(1));
+
+
+      AverageHistory avgHistory = statisticsContext.getStatistic(AverageHistory.class, statName);//returns type DurationHistory but it was AverageHistory
+
+      if (avgHistory.getValue().length > 0) {
+        int mostRecentIndex = avgHistory.getValue().length - 1;
+        value = avgHistory.getValue()[mostRecentIndex].getValue();
+      }
+
+    }while(!Thread.currentThread().isInterrupted() && Double.isNaN(value));
+
+    assertThat(value, Matchers.greaterThan(0d));
+
+    return value;
   }
 
   // When testing ratios, we need to wait for the first computation (we do not have any choice) to happen because ratio depends on 2 other sampled statistics.
