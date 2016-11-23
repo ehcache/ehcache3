@@ -32,13 +32,12 @@ import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
+import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessage;
 import org.ehcache.clustered.common.internal.messages.ReconnectMessageCodec;
-import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.entity.Entity;
@@ -61,9 +60,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-
-import static org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp.GET;
-import static org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.ServerStoreOp.getServerStoreOp;
 
 /**
  * The client-side {@link Entity} through which clustered cache operations are performed.
@@ -322,7 +318,7 @@ public class EhcacheClientEntity implements Entity {
 
     try {
       EhcacheEntityResponse response = waitFor(timeLimit, invokeAsync(message, replicate));
-      if (Type.FAILURE.equals(response.getType())) {
+      if (EhcacheResponseType.FAILURE.equals(response.getResponseType())) {
         throw ((Failure)response).getCause();
       } else {
         return response;

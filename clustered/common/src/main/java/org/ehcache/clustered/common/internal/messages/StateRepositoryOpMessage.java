@@ -21,12 +21,6 @@ import java.util.UUID;
 
 public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage implements Serializable {
 
-  public enum StateRepositoryOp {
-    GET,
-    PUT_IF_ABSENT,
-    ENTRY_SET,
-  }
-
   private final String cacheId;
   private final String mapId;
 
@@ -65,18 +59,6 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
     return mapId;
   }
 
-  @Override
-  public Type getType() {
-    return Type.STATE_REPO_OP;
-  }
-
-  public abstract StateRepositoryOp operation();
-
-  @Override
-  public byte getOpCode() {
-    return getType().getCode();
-  }
-
   private static abstract class KeyBasedMessage extends StateRepositoryOpMessage {
 
     private final Object key;
@@ -99,11 +81,6 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
     }
 
     @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.GET;
-    }
-
-    @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.GET_STATE_REPO;
     }
@@ -123,11 +100,6 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
     }
 
     @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.PUT_IF_ABSENT;
-    }
-
-    @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.PUT_IF_ABSENT;
     }
@@ -137,11 +109,6 @@ public abstract class StateRepositoryOpMessage extends EhcacheOperationMessage i
 
     public EntrySetMessage(final String cacheId, final String mapId, final UUID clientId) {
       super(cacheId, mapId, clientId);
-    }
-
-    @Override
-    public StateRepositoryOp operation() {
-      return StateRepositoryOp.ENTRY_SET;
     }
 
     @Override

@@ -34,8 +34,8 @@ public class EhcacheDataSyncMessage extends EhcacheSyncMessage {
   }
 
   @Override
-  public SyncOp operation() {
-    return SyncOp.DATA;
+  public SyncMessageType getMessageType() {
+    return SyncMessageType.DATA;
   }
 
   public String getCacheId() {

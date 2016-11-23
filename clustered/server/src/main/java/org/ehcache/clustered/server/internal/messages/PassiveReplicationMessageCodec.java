@@ -14,9 +14,13 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.common.internal.messages;
+package org.ehcache.clustered.server.internal.messages;
 
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.messages.ChainCodec;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
+import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
+import org.ehcache.clustered.common.internal.messages.MessageCodecUtils;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.decoding.StructDecoder;
@@ -43,9 +47,7 @@ import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.S
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_VALUE_TYPE_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
-
-// TODO move all this to server side - no use in common
-class PassiveReplicationMessageCodec {
+public class PassiveReplicationMessageCodec {
 
   private static final String CHAIN_FIELD = "chain";
 

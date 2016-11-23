@@ -24,15 +24,6 @@ import java.util.UUID;
 
 public abstract class LifecycleMessage extends EhcacheOperationMessage implements Serializable {
 
-  public enum LifeCycleOp {
-    CONFIGURE,
-    VALIDATE,
-    CREATE_SERVER_STORE,
-    VALIDATE_SERVER_STORE,
-    RELEASE_SERVER_STORE,
-    DESTROY_SERVER_STORE,
-  }
-
   protected UUID clientId;
   protected long id = NOT_REPLICATED;
 
@@ -54,18 +45,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     this.id = id;
   }
 
-  @Override
-  public byte getOpCode() {
-    return getType().getCode();
-  }
-
-  @Override
-  public Type getType() {
-    return Type.LIFECYCLE_OP;
-  }
-
-  public abstract LifeCycleOp operation();
-
   public static class ValidateStoreManager extends LifecycleMessage {
     private static final long serialVersionUID = 5742152283115139745L;
 
@@ -74,11 +53,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     ValidateStoreManager(ServerSideConfiguration config, UUID clientId) {
       this.configuration = config;
       this.clientId = clientId;
-    }
-
-    @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.VALIDATE;
     }
 
     @Override
@@ -99,11 +73,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     ConfigureStoreManager(ServerSideConfiguration config, UUID clientId) {
       this.configuration = config;
       this.clientId = clientId;
-    }
-
-    @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.CONFIGURE;
     }
 
     @Override
@@ -149,11 +118,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     }
 
     @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.CREATE_SERVER_STORE;
-    }
-
-    @Override
     public EhcacheMessageType getMessageType() {
       return EhcacheMessageType.CREATE_SERVER_STORE;
     }
@@ -167,11 +131,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
 
     ValidateServerStore(String name, ServerStoreConfiguration storeConfiguration, UUID clientId) {
       super(name, storeConfiguration, clientId);
-    }
-
-    @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.VALIDATE_SERVER_STORE;
     }
 
     @Override
@@ -191,11 +150,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     ReleaseServerStore(String name, UUID clientId) {
       this.name = name;
       this.clientId = clientId;
-    }
-
-    @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.RELEASE_SERVER_STORE;
     }
 
     @Override
@@ -219,11 +173,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     DestroyServerStore(String name, UUID clientId) {
       this.name = name;
       this.clientId = clientId;
-    }
-
-    @Override
-    public LifeCycleOp operation() {
-      return LifeCycleOp.DESTROY_SERVER_STORE;
     }
 
     @Override

@@ -33,9 +33,12 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.CONSISTENCY_ENUM_MAPPING;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.DEFAULT_RESOURCE_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOLS_SUB_STRUCT;
+import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_NAME_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_RESOURCE_NAME_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_SIZE_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
@@ -49,9 +52,6 @@ import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 class LifeCycleMessageCodec {
 
   private static final String CONFIG_PRESENT_FIELD = "configPresent";
-  private static final String DEFAULT_RESOURCE_FIELD = "defaultResource";
-  private static final String POOLS_SUB_STRUCT = "pools";
-  private static final String POOL_NAME_FIELD = "poolName";
 
   private static final Struct POOLS_STRUCT = newStructBuilder()
     .string(POOL_NAME_FIELD, 10)

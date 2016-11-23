@@ -26,14 +26,14 @@ import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
+import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
@@ -56,8 +56,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-import static org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ReplicationOp.CLIENTID_TRACK_OP;
-import static org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ReplicationOp.SERVER_STORE_LIFECYCLE_REPLICATION_OP;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
+import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 
 class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -77,25 +79,23 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
                                                   " Check your server configuration and define at least one offheap resource.");
       }
 
-      switch (message.getType()) {
-        case LIFECYCLE_OP:
-          invokeLifeCycleOperation((LifecycleMessage) message);
-          break;
-        case SERVER_STORE_OP:
+      if (message instanceof EhcacheOperationMessage) {
+        EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
+        EhcacheMessageType messageType = operationMessage.getMessageType();
+        if (isStoreOperationMessage(messageType)) {
           invokeServerStoreOperation((ServerStoreOpMessage)message);
-          break;
-        case STATE_REPO_OP:
+        } else if (isLifecycleMessage(messageType)) {
+          invokeLifeCycleOperation((LifecycleMessage) message);
+        } else if (isStateRepoOperationMessage(messageType)) {
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
-          break;
-        case SYNC_OP:
-          invokeSyncOperation((EhcacheSyncMessage) message);
-          break;
-        case REPLICATION_OP:
+        } else if (isPassiveReplicationMessage(messageType)) {
           invokeRetirementMessages((PassiveReplicationMessage)message);
-          break;
-        default:
-          throw new IllegalMessageException("Unknown message : " + message);
+        }
+      } else if (message instanceof EhcacheSyncMessage) {
+        invokeSyncOperation((EhcacheSyncMessage) message);
       }
+
+      throw new IllegalMessageException("Unknown message : " + message);
     } catch (Exception e) {
       LOGGER.error("Unexpected exception raised during operation: " + message, e);
     }
@@ -187,7 +187,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
     }
 
-    switch (message.operation()) {
+    switch (message.getMessageType()) {
       case APPEND:
       case GET_AND_APPEND: {
         LOGGER.debug("ServerStore append/getAndAppend message for msgId {} & client Id {} is tracked now.", message.getId(), message.getClientId());
@@ -213,7 +213,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   }
 
   private void invokeSyncOperation(EhcacheSyncMessage message) throws ClusterException {
-    switch (message.operation()) {
+    switch (message.getMessageType()) {
       case STATE:
         EhcacheStateSyncMessage stateSyncMessage = (EhcacheStateSyncMessage) message;
 
@@ -227,19 +227,19 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           }
           management.serverStoreCreated(entry.getKey());
         }
-        stateSyncMessage.getTrackedClients().stream().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
+        stateSyncMessage.getTrackedClients().forEach(id -> ehcacheStateService.getClientMessageTracker().add(id));
         break;
       case DATA:
         EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;
         ehcacheStateService.getStore(dataSyncMessage.getCacheId()).put(dataSyncMessage.getKey(), dataSyncMessage.getChain());
         break;
       default:
-        throw new IllegalMessageException("Unknown Sync operation " + message.operation());
+        throw new IllegalMessageException("Unknown Sync operation " + message.getMessageType());
     }
   }
 
   private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
-    switch (message.operation()) {
+    switch (message.getMessageType()) {
       case CONFIGURE:
         configure((ConfigureStoreManager) message);
         break;

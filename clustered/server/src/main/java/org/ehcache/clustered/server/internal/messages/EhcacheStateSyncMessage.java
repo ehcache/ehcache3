@@ -54,7 +54,7 @@ public class EhcacheStateSyncMessage extends EhcacheSyncMessage implements Seria
   }
 
   @Override
-  public SyncOp operation() {
-    return SyncOp.STATE;
+  public SyncMessageType getMessageType() {
+    return SyncMessageType.STATE;
   }
 }

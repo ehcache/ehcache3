@@ -38,7 +38,7 @@ public class ChainCodec {
     .byteBuffer("payload", 20)
     .build();
 
-  static final Struct CHAIN_STRUCT = StructBuilder.newStructBuilder()
+  public static final Struct CHAIN_STRUCT = StructBuilder.newStructBuilder()
     .structs("elements", 10, ELEMENT_STRUCT)
     .build();
 
