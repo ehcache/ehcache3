@@ -22,7 +22,6 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.registry.collect.StatisticConfiguration;
 import org.terracotta.management.service.monitoring.registry.provider.AbstractExposedStatistics;
 import org.terracotta.management.service.monitoring.registry.provider.AbstractStatisticsManagementProvider;
 
@@ -41,8 +40,8 @@ class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvi
 
   private final EhcacheStateService ehcacheStateService;
 
-  PoolStatisticsManagementProvider(EhcacheStateService ehcacheStateService, StatisticConfiguration statisticConfiguration) {
-    super(PoolBinding.class, statisticConfiguration);
+  PoolStatisticsManagementProvider(EhcacheStateService ehcacheStateService) {
+    super(PoolBinding.class);
     this.ehcacheStateService = ehcacheStateService;
   }
 
@@ -62,11 +61,11 @@ class PoolStatisticsManagementProvider extends AbstractStatisticsManagementProvi
 
     if (allocationType == PoolBinding.AllocationType.DEDICATED) {
       ResourcePageSource resourcePageSource = Objects.requireNonNull(ehcacheStateService.getDedicatedResourcePageSource(poolName));
-      return getStatisticsService().createStatisticsRegistry(getStatisticConfiguration(), resourcePageSource);
+      return getStatisticsService().createStatisticsRegistry(resourcePageSource);
 
     } else {
       ResourcePageSource resourcePageSource = Objects.requireNonNull(ehcacheStateService.getSharedResourcePageSource(poolName));
-      return getStatisticsService().createStatisticsRegistry(getStatisticConfiguration(), resourcePageSource);
+      return getStatisticsService().createStatisticsRegistry(resourcePageSource);
     }
   }
 

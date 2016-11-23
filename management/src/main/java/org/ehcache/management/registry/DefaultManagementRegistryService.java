@@ -36,7 +36,7 @@ import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.terracotta.management.model.context.ContextContainer;
-import org.terracotta.management.registry.AbstractManagementRegistry;
+import org.terracotta.management.registry.DefaultManagementRegistry;
 import org.terracotta.management.registry.ManagementProvider;
 import org.terracotta.statistics.StatisticsManager;
 
@@ -48,7 +48,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import static org.ehcache.impl.internal.executor.ExecutorUtil.shutdownNow;
 
 @ServiceDependencies({CacheManagerProviderService.class, ExecutionService.class})
-public class DefaultManagementRegistryService extends AbstractManagementRegistry implements ManagementRegistryService, CacheManagerListener {
+public class DefaultManagementRegistryService extends DefaultManagementRegistry implements ManagementRegistryService, CacheManagerListener {
 
   private final ManagementRegistryServiceConfiguration configuration;
   private volatile ScheduledExecutorService statisticsExecutor;
@@ -60,6 +60,7 @@ public class DefaultManagementRegistryService extends AbstractManagementRegistry
   }
 
   public DefaultManagementRegistryService(ManagementRegistryServiceConfiguration configuration) {
+    super(null); // context container creation is overriden here
     this.configuration = configuration == null ? new DefaultManagementRegistryConfiguration() : configuration;
   }
 

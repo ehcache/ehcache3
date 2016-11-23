@@ -65,18 +65,18 @@ public class EhcacheStatisticsProviderTest {
       @Override
       protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
         StandardEhcacheStatistics mock = mock(StandardEhcacheStatistics.class);
-        Set<Descriptor> descriptors = new HashSet<Descriptor>();
+        Collection<StatisticDescriptor> descriptors = new HashSet<StatisticDescriptor>();
         descriptors.add(new StatisticDescriptor("aCounter", StatisticType.COUNTER));
         descriptors.add(new StatisticDescriptor("aDuration", StatisticType.DURATION));
         descriptors.add(new StatisticDescriptor("aSampledRate", StatisticType.RATE_HISTORY));
-        when(mock.getDescriptors()).thenReturn(descriptors);
+        when(mock.getDescriptors()).thenReturn((Collection) descriptors);
         return mock;
       }
     };
 
     ehcacheStatisticsProvider.register(new CacheBinding("cache-0", mock(EhcacheWithLoaderWriter.class)));
 
-    Collection<Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
+    Collection<? extends Descriptor> descriptions = ehcacheStatisticsProvider.getDescriptors();
     assertThat(descriptions.size(), is(3));
     assertThat(descriptions, (Matcher) containsInAnyOrder(
         new StatisticDescriptor("aCounter", StatisticType.COUNTER),

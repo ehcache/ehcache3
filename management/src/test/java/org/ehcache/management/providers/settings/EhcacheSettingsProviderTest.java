@@ -118,7 +118,7 @@ public class EhcacheSettingsProviderTest {
   }
 
   private Capability getSettingsCapability() {
-    for (Capability capability : sharedManagementService.getCapabilities().values().iterator().next()) {
+    for (Capability capability : sharedManagementService.getCapabilitiesByContext().values().iterator().next()) {
       if (capability.getName().equals("SettingsCapability")) {
         return capability;
       }

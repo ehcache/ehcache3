@@ -30,14 +30,10 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.terracotta.connection.Connection;
-import org.terracotta.management.entity.management.ManagementAgentConfig;
-import org.terracotta.management.entity.management.client.ManagementAgentEntityFactory;
-import org.terracotta.management.entity.management.client.ManagementAgentService;
 import org.terracotta.management.entity.tms.TmsAgentConfig;
 import org.terracotta.management.entity.tms.client.TmsAgentEntity;
 import org.terracotta.management.entity.tms.client.TmsAgentEntityFactory;
-import org.terracotta.management.model.call.ContextualReturn;
-import org.terracotta.management.model.call.Parameter;
+import org.terracotta.management.entity.tms.client.TmsAgentService;
 import org.terracotta.management.model.cluster.Client;
 import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.cluster.ServerEntityIdentifier;
@@ -45,23 +41,22 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.notification.ContextualNotification;
 import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.registry.collect.StatisticConfiguration;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.Exchanger;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
 import static org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder.cluster;
@@ -69,11 +64,8 @@ import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConf
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 public abstract class AbstractClusteringManagementTest {
 
@@ -90,7 +82,7 @@ public abstract class AbstractClusteringManagementTest {
   protected static ServerEntityIdentifier ehcacheServerEntityIdentifier;
   protected static ObjectMapper mapper = new ObjectMapper();
 
-  protected static TmsAgentEntity tmsAgentEntity;
+  protected static TmsAgentService tmsAgentService;
   protected static ServerEntityIdentifier tmsServerEntityIdentifier;
 
   private static final List<File> MANAGEMENT_PLUGINS = System.getProperty("managementPlugins") == null ?
@@ -111,7 +103,15 @@ public abstract class AbstractClusteringManagementTest {
     // simulate a TMS client
     Connection managementConnection = CLUSTER.newConnection();
     TmsAgentEntityFactory entityFactory = new TmsAgentEntityFactory(managementConnection, AbstractClusteringManagementTest.class.getName());
-    tmsAgentEntity = entityFactory.retrieveOrCreate(new TmsAgentConfig());
+    TmsAgentEntity tmsAgentEntity = entityFactory.retrieveOrCreate(new TmsAgentConfig()
+      .setStatisticConfiguration(new StatisticConfiguration(
+        60, SECONDS,
+        100, 1, SECONDS,
+        10, SECONDS
+      )));
+    tmsAgentService = new TmsAgentService(tmsAgentEntity);
+    tmsAgentService.setOperationTimeout(5, TimeUnit.SECONDS);
+
     tmsServerEntityIdentifier = readTopology()
       .activeServerEntityStream()
       .filter(serverEntity -> serverEntity.getType().equals(TmsAgentConfig.ENTITY_TYPE))
@@ -210,53 +210,23 @@ public abstract class AbstractClusteringManagementTest {
 
   @Before
   public void init() throws Exception {
-    if (tmsAgentEntity != null) {
+    if (tmsAgentService != null) {
       readMessages();
     }
   }
 
   protected static org.terracotta.management.model.cluster.Cluster readTopology() throws Exception {
-    return tmsAgentEntity.readTopology().get();
+    return tmsAgentService.readTopology();
   }
 
   protected static List<Message> readMessages() throws Exception {
-    return tmsAgentEntity.readMessages().get();
+    return tmsAgentService.readMessages();
   }
 
-  protected static ContextualReturn<?> sendManagementCallOnClientToCollectStats(String... statNames) throws Exception {
-    Connection managementConnection = CLUSTER.newConnection();
-    try {
-      ManagementAgentService agent = new ManagementAgentService(new ManagementAgentEntityFactory(managementConnection).retrieveOrCreate(new ManagementAgentConfig()));
-
-      final AtomicReference<String> managementCallId = new AtomicReference<>();
-      final Exchanger<ContextualReturn<?>> exchanger = new Exchanger<>();
-
-      agent.setContextualReturnListener((from, id, aReturn) -> {
-        try {
-          assertEquals(ehcacheClientIdentifier, from);
-          assertEquals(managementCallId.get(), id);
-          exchanger.exchange(aReturn);
-        } catch (InterruptedException e) {
-          fail("interrupted");
-        }
-      });
-
-      managementCallId.set(agent.call(
-        ehcacheClientIdentifier,
-        Context.create("cacheManagerName", "my-super-cache-manager"),
-        "StatisticCollectorCapability",
-        "updateCollectedStatistics",
-        Void.TYPE,
-        new Parameter("StatisticsCapability"),
-        new Parameter(asList(statNames), Collection.class.getName())));
-
-      ContextualReturn<?> contextualReturn = exchanger.exchange(null);
-      assertThat(contextualReturn.hasExecuted(), is(true));
-
-      return contextualReturn;
-    } finally {
-      managementConnection.close();
-    }
+  protected static void sendManagementCallOnClientToCollectStats(String... statNames) throws Exception {
+    Context ehcacheClient = readTopology().getClient(ehcacheClientIdentifier).get().getContext()
+      .with("cacheManagerName", "my-super-cache-manager");
+    tmsAgentService.updateCollectedStatistics(ehcacheClient, "StatisticsCapability", asList(statNames)).waitForReturn();
   }
 
   protected static List<ContextualStatistics> waitForNextStats() throws Exception {
@@ -303,58 +273,23 @@ public abstract class AbstractClusteringManagementTest {
   }
 
   private static void sendManagementCallOnEntityToCollectStats() throws Exception {
-
     Context context = readTopology().getSingleStripe().getActiveServerEntity(tmsServerEntityIdentifier).get().getContext();
-
-    ContextualReturn<Void> result = tmsAgentEntity.call(
-      context,
-      "StatisticCollectorCapability",
-      "updateCollectedStatistics",
-      Void.TYPE,
-      new Parameter("PoolStatistics"),
-      new Parameter(asList(
-        "Pool:AllocatedSize"
-      ), Collection.class.getName())
-    ).get();
-
-    assertThat(result.hasExecuted(), is(true));
-
-    result = tmsAgentEntity.call(
-      context,
-      "StatisticCollectorCapability",
-      "updateCollectedStatistics",
-      Void.TYPE,
-      new Parameter("ServerStoreStatistics"),
-      new Parameter(asList(
-        "Store:AllocatedMemory",
-        "Store:DataAllocatedMemory",
-        "Store:OccupiedMemory",
-        "Store:DataOccupiedMemory",
-        "Store:Entries",
-        "Store:UsedSlotCount",
-        "Store:DataVitalMemory",
-        "Store:VitalMemory",
-        "Store:ReprobeLength",
-        "Store:RemovedSlotCount",
-        "Store:DataSize",
-        "Store:TableCapacity"
-      ), Collection.class.getName())
-    ).get();
-
-    assertThat(result.hasExecuted(), is(true));
-
-    result = tmsAgentEntity.call(
-      context,
-      "StatisticCollectorCapability",
-      "updateCollectedStatistics",
-      Void.TYPE,
-      new Parameter("OffHeapResourceStatistics"),
-      new Parameter(asList(
-        "OffHeapResource:AllocatedMemory"
-      ), Collection.class.getName())
-    ).get();
-
-    assertThat(result.hasExecuted(), is(true));
+    tmsAgentService.updateCollectedStatistics(context, "PoolStatistics", asList("Pool:AllocatedSize")).waitForReturn();
+    tmsAgentService.updateCollectedStatistics(context, "ServerStoreStatistics", asList(
+      "Store:AllocatedMemory",
+      "Store:DataAllocatedMemory",
+      "Store:OccupiedMemory",
+      "Store:DataOccupiedMemory",
+      "Store:Entries",
+      "Store:UsedSlotCount",
+      "Store:DataVitalMemory",
+      "Store:VitalMemory",
+      "Store:ReprobeLength",
+      "Store:RemovedSlotCount",
+      "Store:DataSize",
+      "Store:TableCapacity"
+    )).waitForReturn();
+    tmsAgentService.updateCollectedStatistics(context, "OffHeapResourceStatistics", asList("OffHeapResource:AllocatedMemory")).waitForReturn();
   }
 
 }

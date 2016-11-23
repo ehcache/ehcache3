@@ -66,7 +66,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   @Test
   @Ignore("This is not a test, but something useful to show a json print of a cluster topology with all management metadata inside")
   public void test_A_topology() throws Exception {
-    Cluster cluster = tmsAgentEntity.readTopology().get();
+    Cluster cluster = tmsAgentService.readTopology();
     String json = mapper.writeValueAsString(cluster.toMap());
     System.out.println(json);
   }
@@ -93,13 +93,14 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     Capability[] capabilities = readTopology().getClient(ehcacheClientIdentifier).get().getManagementRegistry().get().getCapabilities().toArray(new Capability[0]);
     assertThat(capabilities.length, equalTo(5));
     assertThat(capabilities[0].getName(), equalTo("ActionsCapability"));
-    assertThat(capabilities[1].getName(), equalTo("StatisticsCapability"));
-    assertThat(capabilities[2].getName(), equalTo("StatisticCollectorCapability"));
-    assertThat(capabilities[3].getName(), equalTo("SettingsCapability"));
-    assertThat(capabilities[4].getName(), equalTo("ManagementAgentService"));
+    assertThat(capabilities[1].getName(), equalTo("ManagementAgentService"));
+    assertThat(capabilities[2].getName(), equalTo("SettingsCapability"));
+    assertThat(capabilities[3].getName(), equalTo("StatisticCollectorCapability"));
+    assertThat(capabilities[4].getName(), equalTo("StatisticsCapability"));
+
     assertThat(capabilities[0].getDescriptors(), hasSize(4));
 
-    Collection<Descriptor> descriptors = capabilities[1].getDescriptors();
+    Collection<? extends Descriptor> descriptors = capabilities[4].getDescriptors();
     Collection<Descriptor> allDescriptors = new ArrayList<>();
     allDescriptors.addAll(CACHE_DESCRIPTORS);
     allDescriptors.addAll(ONHEAP_DESCRIPTORS);
@@ -117,20 +118,19 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(capabilities.length, equalTo(5));
 
     assertThat(capabilities[0].getName(), equalTo("ClientStateSettings"));
-    assertThat(capabilities[1].getName(), equalTo("ServerStoreSettings"));
-    assertThat(capabilities[2].getName(), equalTo("PoolSettings"));
-    assertThat(capabilities[3].getName(), equalTo("ServerStoreStatistics"));
-    assertThat(capabilities[4].getName(), equalTo("PoolStatistics"));
+    assertThat(capabilities[1].getName(), equalTo("PoolSettings"));
+    assertThat(capabilities[2].getName(), equalTo("PoolStatistics"));
+    assertThat(capabilities[3].getName(), equalTo("ServerStoreSettings"));
+    assertThat(capabilities[4].getName(), equalTo("ServerStoreStatistics"));
 
-
-    assertThat(capabilities[1].getDescriptors(), hasSize(4)); // time descriptor + 3 dedicated store
+    assertThat(capabilities[3].getDescriptors(), hasSize(4)); // time descriptor + 3 dedicated store
 
     // stats
 
-    assertThat(capabilities[3].getDescriptors(), containsInAnyOrder(SERVER_STORE_DESCRIPTORS.toArray()));
-    assertThat(capabilities[3].getDescriptors(), hasSize(SERVER_STORE_DESCRIPTORS.size()));
-    assertThat(capabilities[4].getDescriptors(), containsInAnyOrder(POOL_DESCRIPTORS.toArray()));
-    assertThat(capabilities[4].getDescriptors(), hasSize(POOL_DESCRIPTORS.size()));
+    assertThat(capabilities[4].getDescriptors(), containsInAnyOrder(SERVER_STORE_DESCRIPTORS.toArray()));
+    assertThat(capabilities[4].getDescriptors(), hasSize(SERVER_STORE_DESCRIPTORS.size()));
+    assertThat(capabilities[2].getDescriptors(), containsInAnyOrder(POOL_DESCRIPTORS.toArray()));
+    assertThat(capabilities[2].getDescriptors(), hasSize(POOL_DESCRIPTORS.size()));
 
     // ClientStateSettings
 
@@ -138,9 +138,9 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     Settings settings = (Settings) capabilities[0].getDescriptors().iterator().next();
     assertThat(settings.get("attachedStores"), equalTo(new String[]{"dedicated-cache-1", "shared-cache-2", "shared-cache-3"}));
 
-    // EhcacheStateServiceSettings
+    // ServerStoreSettings
 
-    List<Descriptor> descriptors = new ArrayList<>(capabilities[2].getDescriptors());
+    List<Descriptor> descriptors = new ArrayList<>(capabilities[1].getDescriptors());
     assertThat(descriptors, hasSize(4));
 
     settings = (Settings) descriptors.get(0);
@@ -165,7 +165,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(settings.get("allocationType"), equalTo("dedicated"));
 
     settings = (Settings) descriptors.get(3);
-    assertThat(settings.get("type"), equalTo("PoolSettingsManagementProvider"));
+    assertThat(settings.get("type"), equalTo("PoolSettings"));
     assertThat(settings.get("defaultServerResource"), equalTo("primary-server-resource"));
 
     // tms entity

@@ -19,7 +19,6 @@ import org.terracotta.context.extended.StatisticsRegistry;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.registry.collect.StatisticConfiguration;
 import org.terracotta.management.service.monitoring.registry.provider.AbstractExposedStatistics;
 import org.terracotta.management.service.monitoring.registry.provider.AbstractStatisticsManagementProvider;
 
@@ -33,8 +32,8 @@ import static org.terracotta.context.extended.ValueStatisticDescriptor.descripto
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
 class ServerStoreStatisticsManagementProvider extends AbstractStatisticsManagementProvider<ServerStoreBinding> {
 
-  ServerStoreStatisticsManagementProvider(StatisticConfiguration statisticConfiguration) {
-    super(ServerStoreBinding.class, statisticConfiguration);
+  ServerStoreStatisticsManagementProvider() {
+    super(ServerStoreBinding.class);
   }
 
   @Override

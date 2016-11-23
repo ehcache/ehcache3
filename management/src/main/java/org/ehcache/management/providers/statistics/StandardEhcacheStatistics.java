@@ -81,7 +81,7 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
   }
 
   @Override
-  public Collection<Descriptor> getDescriptors() {
+  public Collection<? extends Descriptor> getDescriptors() {
     return statisticsRegistryMetadata.getDescriptors();
   }
 

@@ -23,6 +23,7 @@ import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
 import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -36,7 +37,7 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
 
   @Override
   public Collection<Descriptor> getDescriptors() {
-    Collection<Descriptor> descriptors = super.getDescriptors();
+    Collection<Descriptor> descriptors = new ArrayList<>(super.getDescriptors());
     descriptors.add(new Settings()
       .set("type", getCapabilityName())
       .set("time", System.currentTimeMillis()));

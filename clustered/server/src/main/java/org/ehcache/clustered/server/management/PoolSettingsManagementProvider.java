@@ -24,6 +24,7 @@ import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
 import org.terracotta.management.service.monitoring.registry.provider.AliasBindingManagementProvider;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.stream.Collectors;
@@ -40,8 +41,8 @@ class PoolSettingsManagementProvider extends AliasBindingManagementProvider<Pool
   }
 
   @Override
-  public Collection<Descriptor> getDescriptors() {
-    Collection<Descriptor> descriptors = super.getDescriptors();
+  public Collection<? extends Descriptor> getDescriptors() {
+    Collection<Descriptor> descriptors = new ArrayList<>(super.getDescriptors());
     descriptors.add(new Settings()
       .set("type", getCapabilityName())
       .set("defaultServerResource", ehcacheStateService.getDefaultServerResource()));
