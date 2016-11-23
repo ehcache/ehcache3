@@ -28,15 +28,15 @@ ext {
   sizeofVersion = '0.3.0'
 
   // Clustered
-  terracottaPlatformVersion = '5.0.11.beta5'
+  terracottaPlatformVersion = '5.0.12.beta2'
   managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.0.11.beta'
-  terracottaCoreVersion = '5.0.11-beta2'
+  terracottaApisVersion = '1.0.12.beta'
+  terracottaCoreVersion = '5.0.12-beta'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.0.11.beta'
+  terracottaPassthroughTestingVersion = '1.0.12.beta'
   entityTestLibVersion = terracottaPassthroughTestingVersion
-  galvanVersion = '1.0.11-beta2'
+  galvanVersion = '1.0.12-beta2'
 
   // Tools
   findbugsVersion = '3.0.1'
@@ -98,6 +98,7 @@ subprojects {
 
   repositories {
     mavenCentral()
+    mavenLocal()
     maven { url "http://repo.terracotta.org/maven2" }
   }
 
