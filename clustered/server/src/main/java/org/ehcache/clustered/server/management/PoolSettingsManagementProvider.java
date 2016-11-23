@@ -43,7 +43,7 @@ class PoolSettingsManagementProvider extends AliasBindingManagementProvider<Pool
   public Collection<Descriptor> getDescriptors() {
     Collection<Descriptor> descriptors = super.getDescriptors();
     descriptors.add(new Settings()
-      .set("type", "PoolSettingsManagementProvider")
+      .set("type", getCapabilityName())
       .set("defaultServerResource", ehcacheStateService.getDefaultServerResource()));
     return descriptors;
   }

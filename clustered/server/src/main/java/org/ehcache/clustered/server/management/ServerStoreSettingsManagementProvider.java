@@ -38,7 +38,7 @@ class ServerStoreSettingsManagementProvider extends AliasBindingManagementProvid
   public Collection<Descriptor> getDescriptors() {
     Collection<Descriptor> descriptors = super.getDescriptors();
     descriptors.add(new Settings()
-      .set("type", "ServerStoreSettingsManagementProvider")
+      .set("type", getCapabilityName())
       .set("time", System.currentTimeMillis()));
     return descriptors;
   }
