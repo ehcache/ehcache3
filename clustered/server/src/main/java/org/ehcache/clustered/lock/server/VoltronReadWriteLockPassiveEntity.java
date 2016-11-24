@@ -48,8 +48,5 @@ class VoltronReadWriteLockPassiveEntity implements PassiveServerEntity<LockOpera
   public void createNew() {}
 
   @Override
-  public void loadExisting() {}
-
-  @Override
   public void destroy() {}
 }

@@ -53,7 +53,7 @@ import static org.junit.Assert.assertThat;
 public class BasicClusteredCacheOpsTest {
 
   private static final String RESOURCE_CONFIG =
-      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
       + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
       + "</ohr:offheap-resources>" +
