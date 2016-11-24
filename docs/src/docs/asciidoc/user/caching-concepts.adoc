@@ -62,16 +62,15 @@ is less hot remains in the slower (and more abundant) tiers.
 
 === Standalone
 
-The data set is held in the application node. Any other application nodes are independent with no
-communication between them. If a standalone topology is used where there are multiple application nodes running the
-same application, then their caches are completely independent.
+The data set is held in the application node. 
+If a standalone topology is used where there are multiple application nodes running the same application, then their caches are completely independent.
 
 === Distributed / Clustered
 
 The data is held in a remote server (or array of servers) with a subset of hot data held in each application node.
 This topology offers offers a selection of consistency options.
 A distributed topology is the recommended approach in a clustered or scaled-out application environment.
-It provides the highest level of performance, availability, and scalability.
+It provides the best combination of performance, availability and scalability.
 
 image::ClusteredEhcacheTopology.png[]
 
