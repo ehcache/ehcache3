@@ -202,7 +202,7 @@ See the section on <<expiry.adoc#,expiry>> for more information about the option
 [[configuring-with-xml]]
 === Configuring With XML
 
-...It wouldn't be Java without _some_ XML
+...It wouldn't be Java without _some_ XML.
 
 You can create an XML file to configure a `CacheManager`:
 
@@ -217,7 +217,7 @@ include::{sourcedir32}/xml/src/test/resources/configs/docs/getting-started.xml[t
 <4> ...as well as up to 500 MB of off-heap memory before it starts evicting
 <5> `<cache-template>` elements let you create an abstract configuration that further `<cache>` configurations can then _extend_
 <6> `bar` is such a `Cache`.   `bar` uses the `<cache-template>` named `myDefaults` and overrides its `key-type` to a wider type.
-<7> `simpleCache` is another such a `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
+<7> `simpleCache` is another such `Cache`.  It uses `myDefaults` configuration for its sole `CacheConfiguration`.
 
 Refer to the <<xml.adoc#,XML documentation>> for more details on the XML format.
 
