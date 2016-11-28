@@ -97,6 +97,9 @@ subprojects {
   targetCompatibility = 1.6
 
   repositories {
+    if (project.hasProperty('mvnlocal')) {
+      mavenLocal()
+    }
     mavenCentral()
     maven { url "http://repo.terracotta.org/maven2" }
   }
