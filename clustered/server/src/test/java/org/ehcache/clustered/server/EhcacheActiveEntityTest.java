@@ -2936,6 +2936,24 @@ public class EhcacheActiveEntityTest {
     assertThat(replicatedMessage.concurrencyKey(), is(((ConcurrentEntityMessage) getAndAppend).concurrencyKey()));
   }
 
+  @Test
+  public void testInvalidMessageThrowsError() throws Exception {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    try {
+      activeEntity.invoke(client, new InvalidMessage());
+      fail("Invalid message should result in AssertionError");
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), containsString("Unsupported"));
+    }
+  }
+
 
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
@@ -3218,6 +3236,23 @@ public class EhcacheActiveEntityTest {
 
     private long getUsed() {
       return used;
+    }
+  }
+
+  private static class InvalidMessage extends EhcacheEntityMessage {
+    @Override
+    public void setId(long id) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public long getId() {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public UUID getClientId() {
+      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }

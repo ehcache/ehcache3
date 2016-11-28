@@ -288,7 +288,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           return responseFactory.success();
         }
       }
-      throw new IllegalMessageException("Unknown message : " + message);
+      throw new AssertionError("Unsupported message : " + message.getClass());
     } catch (ClusterException e) {
       return responseFactory.failure(e);
     } catch (Exception e) {
@@ -451,7 +451,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         destroyServerStore(clientDescriptor, (DestroyServerStore) message);
         break;
       default:
-        throw new IllegalMessageException("Unknown LifeCycle operation " + message);
+        throw new AssertionError("Unsupported LifeCycle operation " + message);
     }
     return responseFactory.success();
   }
@@ -536,7 +536,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         return responseFactory.success();
       }
       default:
-        throw new IllegalMessageException("Unknown ServerStore operation : " + message);
+        throw new AssertionError("Unsupported ServerStore operation : " + message);
     }
   }
 

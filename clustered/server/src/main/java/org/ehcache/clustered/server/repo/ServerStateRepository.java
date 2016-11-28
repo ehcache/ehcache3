@@ -58,7 +58,7 @@ class ServerStateRepository {
           .collect(Collectors.toSet());
         break;
       default:
-        throw new IllegalMessageException("Invalid operation: " + message.getMessageType());
+        throw new AssertionError("Unsupported operation: " + message.getMessageType());
     }
     return EhcacheEntityResponse.mapValue(result);
   }
