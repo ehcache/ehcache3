@@ -106,7 +106,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
 
   private final UUID identity;
-  private final Set<String> offHeapResourceIdentifiers;
 
   /**
    * Tracks the state of a connected client.  An entry is added to this map when the
@@ -173,13 +172,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
     this.responseFactory = new EhcacheEntityResponseFactory();
     this.clientCommunicator = services.getService(new CommunicatorServiceConfiguration());
-    OffHeapResources offHeapResources = services.getService(new OffHeapResourcesServiceConfiguration());
-    if (offHeapResources == null) {
-      this.offHeapResourceIdentifiers = Collections.emptySet();
-    } else {
-      this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
-    }
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers, mapper));
+    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
@@ -277,11 +270,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   @Override
   public EhcacheEntityResponse invoke(ClientDescriptor clientDescriptor, EhcacheEntityMessage message) {
     try {
-      if (this.offHeapResourceIdentifiers.isEmpty()) {
-        throw new ServerMisconfigurationException("Server started without any offheap resources defined." +
-                                                  " Check your server configuration and define at least one offheap resource.");
-      }
-
       clearClientTrackedAtReconnectComplete();
 
       if (message instanceof EhcacheOperationMessage) {

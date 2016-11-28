@@ -37,6 +37,8 @@ import org.terracotta.management.service.monitoring.ConsumerManagementRegistryCo
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
+import org.terracotta.offheapresource.OffHeapResourcesProvider;
+import org.terracotta.offheapresource.config.OffheapResourcesType;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
 import java.util.Collections;
@@ -55,6 +57,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class EhcachePassiveEntityTest {
 
@@ -670,19 +673,19 @@ public class EhcachePassiveEntityTest {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getService(ServiceConfiguration<T> serviceConfiguration) {
-      if (serviceConfiguration instanceof OffHeapResourceIdentifier) {
-        final OffHeapResourceIdentifier resourceIdentifier = (OffHeapResourceIdentifier) serviceConfiguration;
-        return (T) this.pools.get(resourceIdentifier);
-      } else if(serviceConfiguration.getServiceType().equals(OffHeapResources.class)) {
-        return (T) new OffHeapResources() {
-          @Override
-          public Set<String> getAllIdentifiers() {
-            return getIdentifiers(pools.keySet());
-          }
-        };
-      } else if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
+      if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
         if (storeManagerService == null) {
-          this.storeManagerService = new EhcacheStateServiceImpl(this, getIdentifiers(pools.keySet()), DEFAULT_MAPPER);
+          this.storeManagerService = new EhcacheStateServiceImpl(new OffHeapResources() {
+            @Override
+            public Set<OffHeapResourceIdentifier> getAllIdentifiers() {
+              return pools.keySet();
+            }
+
+            @Override
+            public OffHeapResource getOffHeapResource(OffHeapResourceIdentifier identifier) {
+              return pools.get(identifier);
+            }
+          }, DEFAULT_MAPPER);
         }
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {

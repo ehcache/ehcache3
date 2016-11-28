@@ -73,11 +73,11 @@ public class BasicClusteredCacheOpsReplicationMultiThreadedTest {
   private static final int NUM_OF_THREADS = 10;
   private static final int JOB_SIZE = 100;
   private static final String RESOURCE_CONFIG =
-      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
       + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
       + "</ohr:offheap-resources>" +
-      "</service>\n";
+      "</config>\n";
 
   private static PersistentCacheManager CACHE_MANAGER1;
   private static PersistentCacheManager CACHE_MANAGER2;

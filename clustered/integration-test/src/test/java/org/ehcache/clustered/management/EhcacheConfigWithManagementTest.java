@@ -43,12 +43,12 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 public class EhcacheConfigWithManagementTest {
 
   private static final String RESOURCE_CONFIG =
-    "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+    "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
       + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
       + "<ohr:resource name=\"secondary-server-resource\" unit=\"MB\">64</ohr:resource>"
       + "</ohr:offheap-resources>" +
-      "</service>\n";
+      "</config>\n";
 
   private static final List<File> MANAGEMENT_PLUGINS = Stream.of(System.getProperty("managementPlugins", "").split(File.pathSeparator))
     .map(File::new)

@@ -29,14 +29,11 @@ import java.util.Set;
 public class EhcacheStateServiceConfig implements ServiceConfiguration<EhcacheStateService> {
 
   private final ServiceRegistry serviceRegistry;
-  private final Set<String> offHeapResourceIdentifiers;
   private final KeySegmentMapper mapper;
 
 
-  public EhcacheStateServiceConfig(ServiceRegistry serviceRegistry, Set<String> offHeapResourceIdentifiers,
-                                   final KeySegmentMapper mapper) {
+  public EhcacheStateServiceConfig(ServiceRegistry serviceRegistry, final KeySegmentMapper mapper) {
     this.serviceRegistry = serviceRegistry;
-    this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
     this.mapper = mapper;
   }
 
@@ -47,10 +44,6 @@ public class EhcacheStateServiceConfig implements ServiceConfiguration<EhcacheSt
 
   public ServiceRegistry getServiceRegistry() {
     return this.serviceRegistry;
-  }
-
-  public Set<String> getOffHeapResourceIdentifiers() {
-    return this.offHeapResourceIdentifiers;
   }
 
   public KeySegmentMapper getMapper() {

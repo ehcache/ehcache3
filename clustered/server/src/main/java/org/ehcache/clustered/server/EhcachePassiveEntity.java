@@ -66,7 +66,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcachePassiveEntity.class);
 
   private final UUID identity;
-  private final Set<String> offHeapResourceIdentifiers;
   private final EhcacheStateService ehcacheStateService;
   private final Management management;
 
@@ -74,11 +73,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   public void invoke(EhcacheEntityMessage message) {
 
     try {
-      if (this.offHeapResourceIdentifiers.isEmpty()) {
-        throw new ServerMisconfigurationException("Server started without any offheap resources defined." +
-                                                  " Check your server configuration and define at least one offheap resource.");
-      }
-
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
         EhcacheMessageType messageType = operationMessage.getMessageType();
@@ -107,13 +101,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   EhcachePassiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
     this.identity = ClusteredEhcacheIdentity.deserialize(config);
-    OffHeapResources offHeapResources = services.getService(new BasicServiceConfiguration<>(OffHeapResources.class));
-    if (offHeapResources == null) {
-      this.offHeapResourceIdentifiers = Collections.emptySet();
-    } else {
-      this.offHeapResourceIdentifiers = offHeapResources.getAllIdentifiers();
-    }
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, this.offHeapResourceIdentifiers, mapper));
+    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }

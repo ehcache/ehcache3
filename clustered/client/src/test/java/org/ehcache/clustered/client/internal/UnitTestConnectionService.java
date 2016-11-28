@@ -55,7 +55,6 @@ import org.terracotta.entity.ServiceProvider;
 import org.terracotta.entity.ServiceProviderConfiguration;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.offheapresource.config.OffheapResourcesType;
@@ -358,7 +357,7 @@ public class UnitTestConnectionService implements ConnectionService {
       }
 
       if (!this.resources.getResource().isEmpty()) {
-        newServer.registerServiceProvider(new OffHeapResourcesProvider(), new OffHeapResourcesConfiguration(this.resources));
+        newServer.registerExtendedConfiguration(new OffHeapResourcesProvider(this.resources));
       }
 
       for (Map.Entry<ServiceProvider, ServiceProviderConfiguration> entry : serviceProviders.entrySet()) {

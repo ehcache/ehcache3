@@ -24,19 +24,12 @@ import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService.ObservableEhcachePassiveEntity;
-import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.config.ResourcePools;
-import org.ehcache.core.spi.store.Store;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.spi.serialization.Serializer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -51,7 +44,6 @@ import static org.ehcache.clustered.client.replication.ReplicationUtil.getEntity
 import static org.ehcache.clustered.client.replication.ReplicationUtil.getServerStoreConfiguration;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 public class ActivePassiveClientIdTest {
 
@@ -69,8 +61,7 @@ public class ActivePassiveClientIdTest {
           server.registerClientEntityService(new EhcacheClientEntityService());
           server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
           server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-          server.registerServiceProvider(new OffHeapResourcesProvider(),
-              new OffHeapResourcesConfiguration(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+          server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
 
           UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
         }
