@@ -90,12 +90,14 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
         } else if (isPassiveReplicationMessage(messageType)) {
           invokeRetirementMessages((PassiveReplicationMessage)message);
+        } else {
+          throw new IllegalMessageException("Unknown EhcacheOperationMessage message : " + message);
         }
       } else if (message instanceof EhcacheSyncMessage) {
         invokeSyncOperation((EhcacheSyncMessage) message);
+      } else {
+        throw new IllegalMessageException("Unknown message : " + message);
       }
-
-      throw new IllegalMessageException("Unknown message : " + message);
     } catch (Exception e) {
       LOGGER.error("Unexpected exception raised during operation: " + message, e);
     }
