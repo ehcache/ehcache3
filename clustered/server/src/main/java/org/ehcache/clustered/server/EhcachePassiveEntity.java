@@ -164,7 +164,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       if (count == 1) {
         return null;
       }
-      return count--;
+      return count - 1;
     });
   }
 
@@ -175,7 +175,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         if (count == null) {
           return 1;
         } else {
-          return count++;
+          return count + 1;
         }
       });
     }

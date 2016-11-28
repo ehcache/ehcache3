@@ -60,19 +60,12 @@ public class EhcacheSyncMessageCodecTest {
     storeConfigs.put("cache1", serverStoreConfiguration1);
     storeConfigs.put("cache2", serverStoreConfiguration2);
 
-    UUID clientId1 = UUID.randomUUID();
-    UUID clientId2 = UUID.randomUUID();
-    Set<UUID> clientIds = new HashSet<>();
-    clientIds.add(clientId1);
-    clientIds.add(clientId2);
-
-    EhcacheStateSyncMessage message = new EhcacheStateSyncMessage(serverSideConfig, storeConfigs, clientIds);
+    EhcacheStateSyncMessage message = new EhcacheStateSyncMessage(serverSideConfig, storeConfigs);
     EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
     EhcacheStateSyncMessage decodedMessage = (EhcacheStateSyncMessage) codec.decode(0, codec.encode(0, message));
 
     assertThat(decodedMessage.getConfiguration().getDefaultServerResource(), is("default-pool"));
     assertThat(decodedMessage.getConfiguration().getResourcePools(), is(sharedPools));
-    assertThat(decodedMessage.getTrackedClients(), is(clientIds));
     assertThat(decodedMessage.getStoreConfigs().keySet(), containsInAnyOrder("cache1", "cache2"));
 
     ServerStoreConfiguration serverStoreConfiguration = decodedMessage.getStoreConfigs().get("cache1");

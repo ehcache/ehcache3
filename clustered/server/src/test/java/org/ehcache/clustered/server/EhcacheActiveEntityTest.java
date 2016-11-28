@@ -2647,7 +2647,6 @@ public class EhcacheActiveEntityTest {
     Map<String, ServerStoreConfiguration> storeConfigs = capturedSyncMessage.getStoreConfigs();
     assertThat(storeConfigs.keySet(), containsInAnyOrder("myCache"));
     assertThat(storeConfigs.get("myCache").getPoolAllocation(), instanceOf(PoolAllocation.Shared.class));
-    assertThat(capturedSyncMessage.getTrackedClients(), containsInAnyOrder(CLIENT_ID));
 
   }
 

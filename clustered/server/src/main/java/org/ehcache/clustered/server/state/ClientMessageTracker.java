@@ -92,7 +92,7 @@ public class ClientMessageTracker {
   }
 
   public void reconcileTrackedClients(Set<UUID> trackedClients) {
-    messageTrackers.entrySet().removeIf(x -> !trackedClients.contains(x));
+    messageTrackers.keySet().retainAll(trackedClients);
   }
 
 }

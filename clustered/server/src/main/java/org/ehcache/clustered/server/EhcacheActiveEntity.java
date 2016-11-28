@@ -309,8 +309,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private void clearClientTrackedAtReconnectComplete() {
 
     if (!reconnectComplete.get()) {
-      boolean success = reconnectComplete.compareAndSet(false, true);
-      if (success) {
+      if (reconnectComplete.compareAndSet(false, true)) {
         ehcacheStateService.getClientMessageTracker().reconcileTrackedClients(trackedClients);
       }
     }
@@ -380,7 +379,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         storeConfigs.put(storeName, store.getStoreConfiguration());
       }
 
-      syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs, trackedClients));
+      syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs));
     } else {
       ehcacheStateService.getStores().stream()
         .forEach(name -> {
