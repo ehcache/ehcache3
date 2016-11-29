@@ -49,6 +49,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -500,6 +501,21 @@ public class EhcachePassiveEntityTest {
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(0L)));
   }
 
+  @Test
+  public void testInvalidMessageThrowsError() throws Exception {
+    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(4, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource", 4, MemoryUnit.MEGABYTES);
+
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+
+    try {
+      passiveEntity.invoke(new InvalidMessage());
+      fail("Invalid message should result in AssertionError");
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), containsString("Unsupported"));
+    }
+  }
+
   private static ServerSideConfiguration.Pool pool(String resourceName, int poolSize, MemoryUnit unit) {
     return new ServerSideConfiguration.Pool(unit.toBytes(poolSize), resourceName);
   }
@@ -730,6 +746,23 @@ public class EhcachePassiveEntityTest {
 
     private long getUsed() {
       return used;
+    }
+  }
+
+  private static class InvalidMessage extends EhcacheEntityMessage {
+    @Override
+    public void setId(long id) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public long getId() {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public UUID getClientId() {
+      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }

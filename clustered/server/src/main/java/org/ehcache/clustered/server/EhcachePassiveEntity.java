@@ -90,12 +90,15 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
           ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
         } else if (isPassiveReplicationMessage(messageType)) {
           invokeRetirementMessages((PassiveReplicationMessage)message);
+        } else {
+          throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
         }
       } else if (message instanceof EhcacheSyncMessage) {
         invokeSyncOperation((EhcacheSyncMessage) message);
+      } else {
+        throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
       }
 
-      throw new IllegalMessageException("Unknown message : " + message);
     } catch (Exception e) {
       LOGGER.error("Unexpected exception raised during operation: " + message, e);
     }
@@ -153,7 +156,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         destroyServerStore(destroyMessage.getStoreName());
         break;
       default:
-        throw new IllegalMessageException("Unknown Retirement Message : " + message);
+        throw new AssertionError("Unsupported Retirement Message : " + message);
     }
   }
 
@@ -208,7 +211,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         break;
       }
       default:
-        throw new IllegalMessageException("Unknown ServerStore operation : " + message);
+        throw new AssertionError("Unsupported ServerStore operation : " + message.getMessageType());
     }
   }
 
@@ -234,7 +237,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         ehcacheStateService.getStore(dataSyncMessage.getCacheId()).put(dataSyncMessage.getKey(), dataSyncMessage.getChain());
         break;
       default:
-        throw new IllegalMessageException("Unknown Sync operation " + message.getMessageType());
+        throw new AssertionError("Unsupported Sync operation " + message.getMessageType());
     }
   }
 
@@ -251,7 +254,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         ehcacheStateService.getClientMessageTracker().track(message.getId(), message.getClientId());
         break;
       default:
-        throw new IllegalMessageException("Unknown LifeCycle operation " + message);
+        throw new AssertionError("Unsupported LifeCycle operation " + message.getMessageType());
     }
   }
 
