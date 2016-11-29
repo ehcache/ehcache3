@@ -18,7 +18,7 @@ Using an XML file you can configure a `CacheManager` at creation time, according
 
 The root element of our XML configuration. One `<config>` element in an XML file provides the definition for a `CacheManager`.  
 
-Note: Ehcache allows for creating multiple `CacheManager` instances using the same XML configuration file. 
+NOTE: Ehcache allows for creating multiple `CacheManager` instances using the same XML configuration file. 
 In contrast to the JSR-107 `javax.cache.spi.CachingProvider`, Ehcache does not maintain a registry of `CacheManager` instances.
 
 === `<service>` elements
