@@ -34,7 +34,7 @@ include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/GettingStarted.java[t
 
 <1> The static method `org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder` returns a new `org.ehcache.config.builders.CacheManagerBuilder` instance.
 <2> Use the builder to define a `Cache` with alias "preConfigured". This cache will be created when `cacheManager.build()` is invoked on the actual `CacheManager` instance. 
-The first `String argument` is the cache alias, which is used to retrieve the cache from the `CacheManager`. 
+The first `String` argument is the cache alias, which is used to retrieve the cache from the `CacheManager`. 
 The second argument, `org.ehcache.config.CacheConfiguration`, is used to configure the `Cache`. 
 We use the static `newCacheConfigurationBuilder()` method on `org.ehcache.config.builders.CacheConfigurationBuilder` to create a default configuration.
 <3> Finally, invoking `build()` returns a fully instantiated, but uninitialized, `CacheManager` we can use.
