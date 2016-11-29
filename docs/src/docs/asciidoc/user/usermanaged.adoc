@@ -28,9 +28,9 @@ Of course, if you find yourself requiring plenty of services, maybe the cache ma
 If you use a `UserManagedCache`, you need to configure all required services by hand.
 The `UserManagedCache` class extends the `Cache` class by offering additional methods:
 
-* init() - initializes the cache
-* close() - releases the cache resources
-* getStatus() - returns a status
+* `init()` - initializes the cache
+* `close()` - releases the cache resources
+* `getStatus()` - returns a status
 
 The `init` and `close` methods deal with the lifecycle of the cache and need to be called explicitly, whereas these methods are hidden when the cache is inside a `CacheManager`.
 
