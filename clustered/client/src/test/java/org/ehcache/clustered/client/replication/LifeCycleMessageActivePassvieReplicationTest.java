@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client;
+package org.ehcache.clustered.client.replication;
 
-import org.ehcache.clustered.client.config.ClusteredResourcePool;
 import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
@@ -29,13 +27,10 @@ import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionExc
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
-import org.ehcache.clustered.common.Consistency;
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
-import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -43,14 +38,13 @@ import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
-import org.terracotta.passthrough.PassthroughServer;
 import org.terracotta.passthrough.PassthroughTestHelpers;
 
-import java.lang.reflect.Field;
 import java.net.URI;
 
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
-import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.ehcache.clustered.client.replication.ReplicationUtil.getEntity;
+import static org.ehcache.clustered.client.replication.ReplicationUtil.getServerStoreConfiguration;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -65,18 +59,15 @@ public class LifeCycleMessageActivePassvieReplicationTest {
   @Before
   public void setUp() throws Exception {
     this.clusterControl = PassthroughTestHelpers.createActivePassive(STRIPENAME,
-        new PassthroughTestHelpers.ServerInitializer() {
-          @Override
-          public void registerServicesForServer(PassthroughServer server) {
-            server.registerServerEntityService(new EhcacheServerEntityService());
-            server.registerClientEntityService(new EhcacheClientEntityService());
-            server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
-            server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-            server.registerServiceProvider(new OffHeapResourcesProvider(),
-                new OffHeapResourcesConfiguration(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+        server -> {
+          server.registerServerEntityService(new EhcacheServerEntityService());
+          server.registerClientEntityService(new EhcacheClientEntityService());
+          server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
+          server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
+          server.registerServiceProvider(new OffHeapResourcesProvider(),
+              new OffHeapResourcesConfiguration(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
 
-            UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
-          }
+          UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
         }
     );
 
@@ -216,24 +207,6 @@ public class LifeCycleMessageActivePassvieReplicationTest {
     service1.stop();
     service2.stop();
 
-  }
-
-  @Test
-  public void testCreateServerStoreIsNotReplicatedIsFailsOnActive() throws Exception {
-
-  }
-
-  private static EhcacheClientEntity getEntity(ClusteringService clusteringService) throws NoSuchFieldException, IllegalAccessException {
-    Field entity = clusteringService.getClass().getDeclaredField("entity");
-    entity.setAccessible(true);
-    return (EhcacheClientEntity)entity.get(clusteringService);
-  }
-
-  private static ServerStoreConfiguration getServerStoreConfiguration(String resourceName) {
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(resourceName, 8, MB);
-    return new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
-        String.class.getName(), String.class.getName(), null, null, CompactJavaSerializer.class.getName(), CompactJavaSerializer.class
-        .getName(), Consistency.STRONG);
   }
 
 }

@@ -53,7 +53,6 @@ public class PassiveReplicationMessageCodec {
 
   private static final Struct CLIENT_ID_TRACK_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
     .int64(LSB_UUID_FIELD, 21)
     .build();
@@ -178,7 +177,9 @@ public class PassiveReplicationMessageCodec {
   private byte[] encodeClientIdTrackMessage(PassiveReplicationMessage.ClientIDTrackerMessage message) {
     StructEncoder encoder = CLIENT_ID_TRACK_STRUCT.encoder();
 
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
+    encoder.enm(EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+        .int64(MSB_UUID_FIELD, message.getClientId().getMostSignificantBits())
+        .int64(LSB_UUID_FIELD, message.getClientId().getLeastSignificantBits());
 
     return encoder.encode().array();
   }
@@ -257,15 +258,9 @@ public class PassiveReplicationMessageCodec {
   private PassiveReplicationMessage.ClientIDTrackerMessage decodeClientIdTrackMessage(ByteBuffer messageBuffer) {
     StructDecoder decoder = CLIENT_ID_TRACK_STRUCT.decoder(messageBuffer);
 
-    Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
 
-    return new PassiveReplicationMessage.ClientIDTrackerMessage(msgId, clientId);
+    return new PassiveReplicationMessage.ClientIDTrackerMessage(clientId);
   }
 
-  private static UUID getClientId(ByteBuffer payload) {
-    long msb = payload.getLong();
-    long lsb = payload.getLong();
-    return new UUID(msb, lsb);
-  }
 }

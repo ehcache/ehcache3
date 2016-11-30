@@ -34,17 +34,12 @@ import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.CONSISTENCY_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.DEFAULT_RESOURCE_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOLS_SUB_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_NAME_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_RESOURCE_NAME_FIELD;
@@ -67,7 +62,6 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheSyncMessageCodec.class);
 
   private static final String STORES_SUB_STRUCT = "stores";
-  private static final String CLIENTS_SUB_STRUCT = "clients";
   private static final String CHAIN_FIELD = "chain";
 
   private static final Struct POOLS_STRUCT = newStructBuilder()
@@ -86,17 +80,11 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     .string(POOL_RESOURCE_NAME_FIELD, 45)
     .build();
 
-  private static final Struct UUID_STRUCT = newStructBuilder()
-    .int64(MSB_UUID_FIELD, 10)
-    .int64(LSB_UUID_FIELD, 15)
-    .build();
-
   private static final Struct STATE_SYNC_STRUCT = newStructBuilder()
     .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
     .string(DEFAULT_RESOURCE_FIELD, 20)
     .structs(POOLS_SUB_STRUCT, 30, POOLS_STRUCT)
     .structs(STORES_SUB_STRUCT, 40, SERVER_STORE_CONFIGURATION_STRUCT)
-    .structs(CLIENTS_SUB_STRUCT, 50, UUID_STRUCT)
     .build();
 
   private static final Struct DATA_SYNC_STRUCT = newStructBuilder()
@@ -123,10 +111,6 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
           encoder.structs(STORES_SUB_STRUCT, stateSyncMessage.getStoreConfigs().entrySet(), (storeEncoder, storeEntry) -> {
             storeEncoder.string(SERVER_STORE_NAME_FIELD, storeEntry.getKey());
             codecUtils.encodeServerStoreConfiguration(storeEncoder, storeEntry.getValue());
-          });
-          encoder.structs(CLIENTS_SUB_STRUCT, stateSyncMessage.getTrackedClients(), (uuidEncoder, uuid) -> {
-            uuidEncoder.int64(MSB_UUID_FIELD, uuid.getMostSignificantBits());
-            uuidEncoder.int64(LSB_UUID_FIELD, uuid.getLeastSignificantBits());
           });
           return encoder.encode().array();
         case DATA:
@@ -176,8 +160,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
       case STATE:
         ServerSideConfiguration configuration = decodeServerSideConfiguration(decoder);
         Map<String, ServerStoreConfiguration> storeConfigs = decodeStoreConfigurations(decoder);
-        Set<UUID> trackedClients = decodeTrackedClients(decoder);
-        return new EhcacheStateSyncMessage(configuration, storeConfigs, trackedClients);
+        return new EhcacheStateSyncMessage(configuration, storeConfigs);
       case DATA:
         message.rewind();
         decoder = DATA_SYNC_STRUCT.decoder(message);
@@ -188,19 +171,6 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
       default:
         throw new AssertionError("Cannot happen given earlier checks");
     }
-  }
-
-  private Set<UUID> decodeTrackedClients(StructDecoder decoder) {
-    Set<UUID> result = new HashSet<>();
-    StructArrayDecoder clientsDecoder = decoder.structs(CLIENTS_SUB_STRUCT);
-
-    if (clientsDecoder != null) {
-      for (int i = 0; i < clientsDecoder.length(); i++) {
-        result.add(new UUID(clientsDecoder.int64(MSB_UUID_FIELD), clientsDecoder.int64(LSB_UUID_FIELD)));
-        clientsDecoder.next();
-      }
-    }
-    return result;
   }
 
   private Map<String, ServerStoreConfiguration> decodeStoreConfigurations(StructDecoder decoder) {

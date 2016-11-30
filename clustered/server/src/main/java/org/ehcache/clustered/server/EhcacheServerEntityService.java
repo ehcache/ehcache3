@@ -24,7 +24,6 @@ import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
-import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
 
 import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
@@ -52,7 +51,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   }
 
   @Override
-  public PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
+  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
     return new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
   }
 

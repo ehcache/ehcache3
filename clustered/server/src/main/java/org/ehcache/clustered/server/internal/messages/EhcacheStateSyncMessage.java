@@ -31,14 +31,11 @@ public class EhcacheStateSyncMessage extends EhcacheSyncMessage implements Seria
 
   private final ServerSideConfiguration configuration;
   private final Map<String, ServerStoreConfiguration> storeConfigs;
-  private final Set<UUID> trackedClients;
 
   public EhcacheStateSyncMessage(final ServerSideConfiguration configuration,
-                                 final Map<String, ServerStoreConfiguration> storeConfigs,
-                                 final Set<UUID> trackedClients) {
+                                 final Map<String, ServerStoreConfiguration> storeConfigs) {
     this.configuration = configuration;
     this.storeConfigs = storeConfigs;
-    this.trackedClients = trackedClients;
   }
 
   public ServerSideConfiguration getConfiguration() {
@@ -47,10 +44,6 @@ public class EhcacheStateSyncMessage extends EhcacheSyncMessage implements Seria
 
   public Map<String, ServerStoreConfiguration> getStoreConfigs() {
     return storeConfigs;
-  }
-
-  public Set<UUID> getTrackedClients() {
-    return trackedClients;
   }
 
   @Override

@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.Consistency;
@@ -129,6 +130,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private final IEntityMessenger entityMessenger;
   private volatile ConcurrentHashMap<String, List<InvalidationTuple>> inflightInvalidations;
   private final Management management;
+  private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
 
   static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
@@ -262,6 +264,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
     UUID clientId = clientIdMap.remove(clientDescriptor);
     if (clientId != null) {
+      try {
+        entityMessenger.messageSelf(new ClientIDTrackerMessage(clientId));
+      } catch (MessageCodecException mce) {
+        throw new AssertionError("Codec error", mce);
+      }
       trackedClients.remove(clientId);
       ehcacheStateService.getClientMessageTracker().remove(clientId);
     }
@@ -274,6 +281,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         throw new ServerMisconfigurationException("Server started without any offheap resources defined." +
                                                   " Check your server configuration and define at least one offheap resource.");
       }
+
+      clearClientTrackedAtReconnectComplete();
 
       if (message instanceof EhcacheOperationMessage) {
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
@@ -295,6 +304,16 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       LOGGER.error("Unexpected exception raised during operation: " + message, e);
       return responseFactory.failure(new InvalidOperationException(e));
     }
+  }
+
+  private void clearClientTrackedAtReconnectComplete() {
+
+    if (!reconnectComplete.get()) {
+      if (reconnectComplete.compareAndSet(false, true)) {
+        ehcacheStateService.getClientMessageTracker().reconcileTrackedClients(trackedClients);
+      }
+    }
+
   }
 
   @Override
@@ -360,7 +379,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         storeConfigs.put(storeName, store.getStoreConfiguration());
       }
 
-      syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs, trackedClients));
+      syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs));
     } else {
       ehcacheStateService.getStores().stream()
         .forEach(name -> {
@@ -384,6 +403,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = new ConcurrentHashMap<>();
     addInflightInvalidationsForEventualCaches();
+    reconnectComplete.set(false);
   }
 
   private void addInflightInvalidationsForEventualCaches() {
@@ -718,11 +738,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     } else if (clientIdMap.get(clientDescriptor) != null) {
       throw new LifecycleException("Client : " + clientDescriptor + " is already being tracked with Client Id : " + clientIdMap.get(clientDescriptor));
     }
-    try {
-      entityMessenger.messageSelfAndDeferRetirement(message, new ClientIDTrackerMessage(message.getId(), message.getClientId()));
-    } catch (MessageCodecException e) {
-      throw new AssertionError("Codec error", e);
-    }
+
     addClientId(clientDescriptor, message.getClientId());
     ehcacheStateService.validate(message.getConfiguration());
     this.clientStateMap.get(clientDescriptor).attach();

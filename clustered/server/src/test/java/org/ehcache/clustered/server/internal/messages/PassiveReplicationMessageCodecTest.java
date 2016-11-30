@@ -47,13 +47,12 @@ public class PassiveReplicationMessageCodecTest {
 
   @Test
   public void testClientIDTrackerMessageCodec() {
-    ClientIDTrackerMessage clientIDTrackerMessage = new ClientIDTrackerMessage(200L, UUID.randomUUID());
+    ClientIDTrackerMessage clientIDTrackerMessage = new ClientIDTrackerMessage(UUID.randomUUID());
 
     byte[] encoded = codec.encode(clientIDTrackerMessage);
     PassiveReplicationMessage decodedMsg = (PassiveReplicationMessage) codec.decode(EhcacheMessageType.CLIENT_ID_TRACK_OP, wrap(encoded));
 
     assertThat(decodedMsg.getClientId(), is(clientIDTrackerMessage.getClientId()));
-    assertThat(decodedMsg.getId(), is(clientIDTrackerMessage.getId()));
 
   }
 
