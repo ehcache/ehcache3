@@ -50,8 +50,7 @@ public enum EhcacheMessageType {
   PUT_IF_ABSENT,
   ENTRY_SET,
 
-  // TODO server to server only, should not exist in common
-  // Passive synchronization messages
+  // Passive replication messages
   CHAIN_REPLICATION_OP,
   CLIENT_ID_TRACK_OP,
   CLEAR_INVALIDATION_COMPLETE,
@@ -103,8 +102,8 @@ public enum EhcacheMessageType {
     return STATE_REPO_OPERATION_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> PASSIVE_SYNC_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE, CREATE_SERVER_STORE_REPLICATION, DESTROY_SERVER_STORE_REPLICATION);
-  public static boolean isPassiveSynchroMessage(EhcacheMessageType value) {
-    return PASSIVE_SYNC_MESSAGES.contains(value);
+  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE, CREATE_SERVER_STORE_REPLICATION, DESTROY_SERVER_STORE_REPLICATION);
+  public static boolean isPassiveReplicationMessage(EhcacheMessageType value) {
+    return PASSIVE_REPLICATION_MESSAGES.contains(value);
   }
 }

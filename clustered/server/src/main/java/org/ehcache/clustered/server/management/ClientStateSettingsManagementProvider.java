@@ -18,7 +18,6 @@ package org.ehcache.clustered.server.management;
 import org.ehcache.clustered.server.ClientState;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
-import org.terracotta.management.model.cluster.ClientIdentifier;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
@@ -38,14 +37,14 @@ class ClientStateSettingsManagementProvider extends ClientBindingManagementProvi
   }
 
   @Override
-  protected ExposedClientStateBinding internalWrap(ClientStateBinding managedObject, long consumerId, ClientIdentifier clientIdentifier) {
-    return new ExposedClientStateBinding(managedObject, consumerId, clientIdentifier);
+  protected ExposedClientStateBinding internalWrap(Context context, ClientStateBinding managedObject) {
+    return new ExposedClientStateBinding(context, managedObject);
   }
 
   private static class ExposedClientStateBinding extends ExposedClientBinding<ClientStateBinding> {
 
-    ExposedClientStateBinding(ClientStateBinding clientBinding, long consumerId, ClientIdentifier clientIdentifier) {
-      super(clientBinding, consumerId, clientIdentifier);
+    ExposedClientStateBinding(Context context, ClientStateBinding clientBinding) {
+      super(context, clientBinding);
     }
 
     @Override

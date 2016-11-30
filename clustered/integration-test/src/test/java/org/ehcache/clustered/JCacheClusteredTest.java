@@ -39,7 +39,7 @@ import static org.ehcache.clustered.CacheManagerLifecycleEhcacheIntegrationTest.
 public class JCacheClusteredTest {
 
   private static final String RESOURCE_CONFIG =
-      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
       + "<ohr:resource name=\"primary\" unit=\"MB\">64</ohr:resource>"
       + "</ohr:offheap-resources>" +

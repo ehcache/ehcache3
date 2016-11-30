@@ -65,7 +65,7 @@ import static org.junit.Assert.assertThat;
 public class BasicClusteredCacheOpsReplicationWithMulitpleClientsTest {
 
   private static final String RESOURCE_CONFIG =
-      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
       + "<ohr:offheap-resources>"
       + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">16</ohr:resource>"
       + "</ohr:offheap-resources>" +

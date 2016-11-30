@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
@@ -161,11 +162,11 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
-    if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
+    if (response != null && response.getResponseType() == EhcacheResponseType.GET_RESPONSE) {
       return ((EhcacheEntityResponse.GetResponse)response).getChain();
     } else {
       throw new ServerStoreProxyException("Response for get operation was invalid : " +
-                                          (response != null ? response.getType().toString() : "null message"));
+                                          (response != null ? response.getResponseType() : "null message"));
     }
   }
 
@@ -190,11 +191,11 @@ class CommonServerStoreProxy implements ServerStoreProxy {
     } catch (Exception e) {
       throw new ServerStoreProxyException(e);
     }
-    if (response != null && response.getType() == EhcacheEntityResponse.Type.GET_RESPONSE) {
+    if (response != null && response.getResponseType() == EhcacheResponseType.GET_RESPONSE) {
       return ((EhcacheEntityResponse.GetResponse)response).getChain();
     } else {
       throw new ServerStoreProxyException("Response for getAndAppend operation was invalid : " +
-                                          (response != null ? response.getType().toString() : "null message"));
+                                          (response != null ? response.getResponseType() : "null message"));
     }
   }
 

@@ -15,9 +15,9 @@
  */
 package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.server.internal.messages.EhcacheServerCodec;
 import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessageCodec;
 import org.terracotta.entity.CommonServerEntity;
 import org.terracotta.entity.ConcurrencyStrategy;
@@ -63,7 +63,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
 
   @Override
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
-    return EhcacheCodec.messageCodec();
+    return EhcacheServerCodec.getInstance();
   }
 
   @Override

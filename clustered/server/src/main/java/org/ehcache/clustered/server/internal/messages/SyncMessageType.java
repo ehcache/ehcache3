@@ -16,30 +16,24 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
+import org.terracotta.runnel.EnumMapping;
 
 import com.tc.classloader.CommonComponent;
 
-import java.util.UUID;
+import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 
+/**
+ * SyncMessageType
+ */
 @CommonComponent
-public abstract class EhcacheSyncMessage extends EhcacheEntityMessage {
+public enum SyncMessageType {
+  STATE,
+  DATA;
 
-  @Override
-  public void setId(final long id) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public long getId() {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public UUID getClientId() {
-    throw new UnsupportedOperationException();
-  }
-
-  public abstract SyncMessageType getMessageType();
-
+  public static final String SYNC_MESSAGE_TYPE_FIELD_NAME = "msgType";
+  public static final int SYNC_MESSAGE_TYPE_FIELD_INDEX = 10;
+  public static final EnumMapping<SyncMessageType> SYNC_MESSAGE_TYPE_MAPPING = newEnumMappingBuilder(SyncMessageType.class)
+    .mapping(STATE, 1)
+    .mapping(DATA, 10)
+    .build();
 }

@@ -15,13 +15,16 @@
  */
 package org.ehcache.clustered.server.management;
 
+import org.terracotta.context.extended.StatisticsRegistry;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.action.Named;
 import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.collect.StatisticConfiguration;
+import org.terracotta.management.service.monitoring.registry.provider.AbstractExposedStatistics;
+import org.terracotta.management.service.monitoring.registry.provider.AbstractStatisticsManagementProvider;
 
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ScheduledExecutorService;
 
 import static java.util.Arrays.asList;
 import static org.terracotta.context.extended.ValueStatisticDescriptor.descriptor;
@@ -30,22 +33,19 @@ import static org.terracotta.context.extended.ValueStatisticDescriptor.descripto
 @RequiredContext({@Named("consumerId"), @Named("type"), @Named("alias")})
 class ServerStoreStatisticsManagementProvider extends AbstractStatisticsManagementProvider<ServerStoreBinding> {
 
-  private final ScheduledExecutorService executor;
-
-  ServerStoreStatisticsManagementProvider(StatisticConfiguration statisticConfiguration, ScheduledExecutorService executor) {
+  ServerStoreStatisticsManagementProvider(StatisticConfiguration statisticConfiguration) {
     super(ServerStoreBinding.class, statisticConfiguration);
-    this.executor = executor;
   }
 
   @Override
-  protected AbstractExposedStatistics<ServerStoreBinding> internalWrap(ServerStoreBinding managedObject) {
-    return new ServerStoreExposedStatistics(getMonitoringService().getConsumerId(), managedObject, getStatisticConfiguration(), executor);
+  protected AbstractExposedStatistics<ServerStoreBinding> internalWrap(Context context, ServerStoreBinding managedObject, StatisticsRegistry statisticsRegistry) {
+    return new ServerStoreExposedStatistics(context, managedObject, statisticsRegistry);
   }
 
   private static class ServerStoreExposedStatistics extends AbstractExposedStatistics<ServerStoreBinding> {
 
-    ServerStoreExposedStatistics(long consumerId, ServerStoreBinding binding, StatisticConfiguration statisticConfiguration, ScheduledExecutorService executor) {
-      super(consumerId, binding, statisticConfiguration, executor, binding.getValue());
+    ServerStoreExposedStatistics(Context context, ServerStoreBinding binding, StatisticsRegistry statisticsRegistry) {
+      super(context, binding, statisticsRegistry);
 
       statisticsRegistry.registerSize("AllocatedMemory", descriptor("allocatedMemory", tags("tier", "Store")));
       statisticsRegistry.registerSize("DataAllocatedMemory", descriptor("dataAllocatedMemory", tags("tier", "Store")));

@@ -35,13 +35,14 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFactory;
+import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage;
-import org.ehcache.clustered.common.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
+import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
@@ -75,9 +76,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.ehcache.clustered.common.PoolAllocation.Dedicated;
-import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type;
 
-import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Type.FAILURE;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -2445,7 +2444,7 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
 
-    assertThat(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validateConfig)).getType(), is(Type.SUCCESS));
+    assertThat(activeEntity.invoke(validator, MESSAGE_FACTORY.validateStoreManager(validateConfig)).getResponseType(), is(EhcacheResponseType.SUCCESS));
   }
 
   @Test
@@ -2937,6 +2936,24 @@ public class EhcacheActiveEntityTest {
     assertThat(replicatedMessage.concurrencyKey(), is(((ConcurrentEntityMessage) getAndAppend).concurrencyKey()));
   }
 
+  @Test
+  public void testInvalidMessageThrowsError() throws Exception {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    try {
+      activeEntity.invoke(client, new InvalidMessage());
+      fail("Invalid message should result in AssertionError");
+    } catch (AssertionError e) {
+      assertThat(e.getMessage(), containsString("Unsupported"));
+    }
+  }
+
 
 
   private void assertSuccess(EhcacheEntityResponse response) throws Exception {
@@ -2946,12 +2963,12 @@ public class EhcacheActiveEntityTest {
   }
 
   private void assertFailure(EhcacheEntityResponse response, Class<? extends Exception> expectedException) {
-    assertThat(response.getType(), is(FAILURE));
+    assertThat(response.getResponseType(), is(EhcacheResponseType.FAILURE));
     assertThat(((Failure) response).getCause(), is(instanceOf(expectedException)));
   }
 
   private void assertFailure(EhcacheEntityResponse response, Class<? extends Exception> expectedException, String expectedMessageContent) {
-    assertThat(response.getType(), is(FAILURE));
+    assertThat(response.getResponseType(), is(EhcacheResponseType.FAILURE));
     Exception cause = ((Failure) response).getCause();
     assertThat(cause, is(instanceOf(expectedException)));
     assertThat(cause.getMessage(), containsString(expectedMessageContent));
@@ -3219,6 +3236,23 @@ public class EhcacheActiveEntityTest {
 
     private long getUsed() {
       return used;
+    }
+  }
+
+  private static class InvalidMessage extends EhcacheEntityMessage {
+    @Override
+    public void setId(long id) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public long getId() {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public UUID getClientId() {
+      throw new UnsupportedOperationException("TODO Implement me!");
     }
   }
 }
