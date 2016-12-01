@@ -62,7 +62,7 @@ import static org.junit.Assert.assertThat;
  * The point of this test is to assert proper data read after fail-over handling.
  */
 @RunWith(Parameterized.class)
-public class BasicClusteredCacheOpsReplicationWithMulitpleClientsTest {
+public class BasicClusteredCacheOpsReplicationWithMultipleClientsTest {
 
   private static final String RESOURCE_CONFIG =
       "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
