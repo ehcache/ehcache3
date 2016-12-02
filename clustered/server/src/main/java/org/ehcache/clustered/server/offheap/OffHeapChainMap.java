@@ -187,7 +187,11 @@ public class OffHeapChainMap<K> implements MapInternals {
     try {
       InternalChain current = heads.get(key);
       if (current != null) {
-        replaceAtHead(key, current.detach(), chain);
+        try {
+          replaceAtHead(key, current.detach(), chain);
+        } finally {
+          current.close();
+        }
       } else {
         for (Element x : chain) {
           append(key, x.getPayload());
