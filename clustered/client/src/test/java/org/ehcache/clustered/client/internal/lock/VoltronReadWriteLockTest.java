@@ -17,6 +17,7 @@
 package org.ehcache.clustered.client.internal.lock;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -158,6 +159,7 @@ public class VoltronReadWriteLockTest {
   }
 
   @Test
+  @Ignore("Enable once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed and TODO removed")
   public void testReadUnlockDestroysEntity() throws Exception {
     when(entityRef.fetchEntity()).thenReturn(client);
 
@@ -266,6 +268,7 @@ public class VoltronReadWriteLockTest {
   }
 
   @Test
+  @Ignore("Enable once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed and TODO removed")
   public void testTryReadUnlockDestroysEntity() throws Exception {
     when(client.tryLock(READ)).thenReturn(true);
 
@@ -306,6 +309,7 @@ public class VoltronReadWriteLockTest {
   }
 
   @Test
+  @Ignore("Enable once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed and TODO removed")
   public void testTryWriteLockFailingDestroysEntity() throws Exception {
     when(client.tryLock(WRITE)).thenReturn(false);
 
@@ -319,6 +323,7 @@ public class VoltronReadWriteLockTest {
   }
 
   @Test
+  @Ignore("Enable once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed and TODO removed")
   public void testTryReadLockFailingDestroysEntity() throws Exception {
     when(client.tryLock(READ)).thenReturn(false);
 
