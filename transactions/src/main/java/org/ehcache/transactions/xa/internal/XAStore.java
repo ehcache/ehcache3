@@ -710,11 +710,11 @@ public class XAStore<K, V> implements Store<K, V> {
     return underlyingStore.getConfigurationChangeListeners();
   }
 
-  private static final class SoftLockValueCombinedSerializerLifecycleHelper {
-    final AtomicReference<SoftLockSerializer> softLockSerializerRef;
+  private static final class SoftLockValueCombinedSerializerLifecycleHelper<T> {
+    final AtomicReference<SoftLockSerializer<T>> softLockSerializerRef;
     final ClassLoader classLoader;
 
-    <K, V> SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<SoftLockSerializer> softLockSerializerRef, ClassLoader classLoader) {
+    SoftLockValueCombinedSerializerLifecycleHelper(AtomicReference<SoftLockSerializer<T>> softLockSerializerRef, ClassLoader classLoader) {
       this.softLockSerializerRef = softLockSerializerRef;
       this.classLoader = classLoader;
     }
@@ -861,7 +861,7 @@ public class XAStore<K, V> implements Store<K, V> {
       };
 
       // get the PersistenceSpaceIdentifier if the cache is persistent, null otherwise
-      DiskResourceService.PersistenceSpaceIdentifier persistenceSpaceId = findSingletonAmongst(DiskResourceService.PersistenceSpaceIdentifier.class, serviceConfigs);
+      DiskResourceService.PersistenceSpaceIdentifier persistenceSpaceId = findSingletonAmongst(DiskResourceService.PersistenceSpaceIdentifier.class, (Object[]) serviceConfigs);
 
       // find the copiers
       Collection<DefaultCopierConfiguration> copierConfigs = findAmongst(DefaultCopierConfiguration.class, underlyingServiceConfigs);
@@ -885,12 +885,12 @@ public class XAStore<K, V> implements Store<K, V> {
 
       // force-in a value copier if none is configured, or wrap the configured one in a soft lock copier
       if (valueCopierConfig == null) {
-        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>(SerializingCopier.<K>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
+        underlyingServiceConfigs.add(new DefaultCopierConfiguration<V>(SerializingCopier.<V>asCopierClass(), DefaultCopierConfiguration.Type.VALUE));
       } else {
         CopyProvider copyProvider = serviceProvider.getService(CopyProvider.class);
-        Copier valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);
-        SoftLockValueCombinedCopier<V> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
-        underlyingServiceConfigs.add(new DefaultCopierConfiguration<K>((Copier) softLockValueCombinedCopier, DefaultCopierConfiguration.Type.VALUE));
+        Copier<V> valueCopier = copyProvider.createValueCopier(storeConfig.getValueType(), storeConfig.getValueSerializer(), valueCopierConfig);
+        Copier<SoftLock<V>> softLockValueCombinedCopier = new SoftLockValueCombinedCopier<V>(valueCopier);
+        underlyingServiceConfigs.add(new DefaultCopierConfiguration<SoftLock<V>>(softLockValueCombinedCopier, DefaultCopierConfiguration.Type.VALUE));
       }
 
       // lookup the required XAStore services
@@ -898,13 +898,15 @@ public class XAStore<K, V> implements Store<K, V> {
       TimeSource timeSource = serviceProvider.getService(TimeSourceService.class).getTimeSource();
 
       // create the soft lock serializer
-      AtomicReference<Serializer<SoftLock<V>>> softLockSerializerRef = new AtomicReference<Serializer<SoftLock<V>>>();
-      SoftLockValueCombinedSerializer softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
+      AtomicReference<SoftLockSerializer<V>> softLockSerializerRef = new AtomicReference<SoftLockSerializer<V>>();
+      SoftLockValueCombinedSerializer<V> softLockValueCombinedSerializer = new SoftLockValueCombinedSerializer<V>(softLockSerializerRef, storeConfig.getValueSerializer());
 
       // create the underlying store
-      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), (Class) SoftLock.class, evictionAdvisor,
+      @SuppressWarnings("unchecked")
+      Class<SoftLock<V>> softLockClass = (Class) SoftLock.class;
+      Store.Configuration<K, SoftLock<V>> underlyingStoreConfig = new StoreConfigurationImpl<K, SoftLock<V>>(storeConfig.getKeyType(), softLockClass, evictionAdvisor,
           storeConfig.getClassLoader(), expiry, storeConfig.getResourcePools(), storeConfig.getDispatcherConcurrency(), storeConfig.getKeySerializer(), softLockValueCombinedSerializer);
-      Store<K, SoftLock<V>> underlyingStore = (Store) underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
+      Store<K, SoftLock<V>> underlyingStore = underlyingStoreProvider.createStore(underlyingStoreConfig,  underlyingServiceConfigs.toArray(new ServiceConfiguration[0]));
 
       // create the XA store
       TransactionManagerWrapper transactionManagerWrapper = transactionManagerProvider.getTransactionManagerWrapper();
@@ -912,8 +914,8 @@ public class XAStore<K, V> implements Store<K, V> {
           transactionManagerWrapper, timeSource, journal, uniqueXAResourceId);
 
       // create the softLockSerializer lifecycle helper
-      SoftLockValueCombinedSerializerLifecycleHelper helper =
-          new SoftLockValueCombinedSerializerLifecycleHelper((AtomicReference)softLockSerializerRef, storeConfig.getClassLoader());
+      SoftLockValueCombinedSerializerLifecycleHelper<V> helper =
+          new SoftLockValueCombinedSerializerLifecycleHelper<V>(softLockSerializerRef, storeConfig.getClassLoader());
 
       createdStores.put(store, new CreatedStoreRef(underlyingStoreProvider, helper));
       return store;
@@ -927,7 +929,7 @@ public class XAStore<K, V> implements Store<K, V> {
       }
 
       Store.Provider underlyingStoreProvider = createdStoreRef.storeProvider;
-      SoftLockValueCombinedSerializerLifecycleHelper helper = createdStoreRef.lifecycleHelper;
+      SoftLockValueCombinedSerializerLifecycleHelper<?> helper = createdStoreRef.lifecycleHelper;
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
 
@@ -946,6 +948,7 @@ public class XAStore<K, V> implements Store<K, V> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public void initStore(Store<?, ?> resource) {
       CreatedStoreRef createdStoreRef = createdStores.get(resource);
       if (createdStoreRef == null) {
@@ -953,7 +956,7 @@ public class XAStore<K, V> implements Store<K, V> {
       }
 
       Store.Provider underlyingStoreProvider = createdStoreRef.storeProvider;
-      SoftLockValueCombinedSerializerLifecycleHelper helper = createdStoreRef.lifecycleHelper;
+      SoftLockValueCombinedSerializerLifecycleHelper<?> helper = createdStoreRef.lifecycleHelper;
       if (resource instanceof XAStore) {
         XAStore<?, ?> xaStore = (XAStore<?, ?>) resource;
 

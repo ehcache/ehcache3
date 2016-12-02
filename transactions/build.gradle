@@ -34,6 +34,10 @@ dependencies {
   pomOnlyProvided 'javax.transaction:jta:1.1', 'org.codehaus.btm:btm:2.1.4'
 }
 
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
+}
+
 project.signing {
   required { project.isReleaseVersion && project.gradle.taskGraph.hasTask("uploadArchives") }
   sign project.configurations.getByName('archives')
