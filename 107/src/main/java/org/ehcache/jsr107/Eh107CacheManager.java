@@ -92,6 +92,7 @@ class Eh107CacheManager implements CacheManager {
     for (Map.Entry<String, Eh107Cache<?, ?>> namedCacheEntry : caches.entrySet()) {
       Eh107Cache<?, ?> cache = namedCacheEntry.getValue();
       if (!cache.isClosed()) {
+        @SuppressWarnings("unchecked")
         Eh107Configuration<?, ?> configuration = cache.getConfiguration(Eh107Configuration.class);
         if (configuration.isManagementEnabled()) {
           enableManagement(cache, true);
@@ -114,7 +115,7 @@ class Eh107CacheManager implements CacheManager {
     boolean storeByValueOnHeap = false;
     for (ServiceConfiguration<?> serviceConfiguration : cache.getRuntimeConfiguration().getServiceConfigurations()) {
       if (serviceConfiguration instanceof DefaultCopierConfiguration) {
-        DefaultCopierConfiguration copierConfig = (DefaultCopierConfiguration)serviceConfiguration;
+        DefaultCopierConfiguration<?> copierConfig = (DefaultCopierConfiguration) serviceConfiguration;
         if(!copierConfig.getClazz().isAssignableFrom(IdentityCopier.class))
           storeByValueOnHeap = true;
         break;

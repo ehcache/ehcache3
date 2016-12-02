@@ -24,6 +24,7 @@ import org.ehcache.impl.serialization.PlainJavaSerializer;
  */
 class DefaultJsr107SerializationProvider extends DefaultSerializationProvider {
 
+  @SuppressWarnings("unchecked")
   DefaultJsr107SerializationProvider() {
     super(new DefaultSerializationProviderConfiguration()
             .addSerializerFor(Object.class, (Class) PlainJavaSerializer.class));

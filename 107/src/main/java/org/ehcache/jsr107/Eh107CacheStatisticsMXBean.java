@@ -187,6 +187,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
   }
 
   static <T extends Enum<T>> OperationStatistic<T> findCacheStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
+    @SuppressWarnings("unchecked")
     Query query = queryBuilder()
         .children()
         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
@@ -199,11 +200,14 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
     if (result.isEmpty()) {
       throw new RuntimeException("result must not be null");
     }
-    return (OperationStatistic<T>) result.iterator().next().getContext().attributes().get("this");
+    @SuppressWarnings("unchecked")
+    OperationStatistic<T> statistic = (OperationStatistic<T>) result.iterator().next().getContext().attributes().get("this");
+    return statistic;
   }
 
   <T extends Enum<T>> OperationStatistic<T> findLowestTierStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
 
+    @SuppressWarnings("unchecked")
     Query statQuery = queryBuilder()
         .descendants()
         .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
@@ -217,7 +221,9 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
 
     //if only 1 store then you don't need to find the lowest tier
     if(statResult.size() == 1) {
-      return (OperationStatistic) statResult.iterator().next().getContext().attributes().get("this");
+      @SuppressWarnings("unchecked")
+      OperationStatistic<T> statistic = (OperationStatistic<T>) statResult.iterator().next().getContext().attributes().get("this");
+      return statistic;
     }
 
     String lowestStoreType = "onheap";
@@ -234,7 +240,9 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
       }
     }
 
-    return (OperationStatistic)lowestTierNode.getContext().attributes().get("this");
+    @SuppressWarnings("unchecked")
+    OperationStatistic<T> statistic = (OperationStatistic<T>) lowestTierNode.getContext().attributes().get("this");
+    return statistic;
   }
 
   class CompensatingCounters {
