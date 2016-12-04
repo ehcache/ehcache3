@@ -16,6 +16,7 @@
 package org.ehcache.clustered;
 
 import java.io.File;
+import java.util.Collections;
 import java.util.UUID;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.junit.BeforeClass;
@@ -35,8 +36,15 @@ import static org.junit.Assert.fail;
 
 public class BasicEntityInteractionTest {
 
+  private static final String RESOURCE_CONFIG =
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
+      + "<ohr:offheap-resources>"
+      + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">4</ohr:resource>"
+      + "</ohr:offheap-resources>" +
+      "</config>\n";
+
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1);
+  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
 
   @BeforeClass
   public static void waitForActive() throws Exception {

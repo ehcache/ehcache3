@@ -35,9 +35,9 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerExcep
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
 import org.terracotta.context.TreeNode;
-import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
+import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.statistics.StatisticsManager;
 
@@ -53,6 +53,7 @@ import java.util.concurrent.Callable;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
+import static org.terracotta.offheapresource.OffHeapResourceIdentifier.identifier;
 
 
 public class EhcacheStateServiceImpl implements EhcacheStateService {
@@ -84,8 +85,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     STAT_POOL_METHOD_REFERENCES.put("allocatedSize", ResourcePageSource::getAllocatedSize);
   }
 
-  private final ServiceRegistry services;
-  private final Set<String> offHeapResourceIdentifiers;
+  private final OffHeapResources offHeapResources;
   private volatile boolean configured = false;
 
   /**
@@ -118,9 +118,8 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private final KeySegmentMapper mapper;
 
 
-  public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers, final KeySegmentMapper mapper) {
-    this.services = services;
-    this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
+  public EhcacheStateServiceImpl(OffHeapResources offHeapResources, final KeySegmentMapper mapper) {
+    this.offHeapResources = offHeapResources;
     this.mapper = mapper;
     this.stateRepositoryManager = new StateRepositoryManager();
   }
@@ -227,9 +226,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
       this.defaultServerResource = configuration.getDefaultServerResource();
       if (this.defaultServerResource != null) {
-        if (!offHeapResourceIdentifiers.contains(this.defaultServerResource)) {
+        if (!offHeapResources.getAllIdentifiers().contains(identifier(this.defaultServerResource))) {
           throw new ResourceConfigurationException("Default server resource '" + this.defaultServerResource
-                                                   + "' is not defined. Available resources are: " + offHeapResourceIdentifiers);
+                                                   + "' is not defined. Available resources are: " + offHeapResources.getAllIdentifiers());
         }
       }
 
@@ -270,10 +269,10 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private ResourcePageSource createPageSource(String poolName, ServerSideConfiguration.Pool pool) throws ResourceConfigurationException {
     ResourcePageSource pageSource;
-    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
+    OffHeapResource source = offHeapResources.getOffHeapResource(identifier(pool.getServerResource()));
     if (source == null) {
       throw new ResourceConfigurationException("Non-existent server side resource '" + pool.getServerResource() +
-                                               "'. Available resources are: " + offHeapResourceIdentifiers);
+                                               "'. Available resources are: " + offHeapResources.getAllIdentifiers());
     } else if (source.reserve(pool.getSize())) {
       try {
         pageSource = new ResourcePageSource(pool);
@@ -373,7 +372,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private void releasePool(String poolType, String poolName, ResourcePageSource resourcePageSource) {
     ServerSideConfiguration.Pool pool = resourcePageSource.getPool();
-    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
+    OffHeapResource source = offHeapResources.getOffHeapResource(identifier(pool.getServerResource()));
     if (source != null) {
       unRegisterPoolStatistics(resourcePageSource);
       source.release(pool.getSize());

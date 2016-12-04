@@ -29,7 +29,6 @@ import org.ehcache.spi.persistence.StateHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -59,8 +58,7 @@ public class ClusteredStateRepositoryReplicationTest {
             server.registerClientEntityService(new EhcacheClientEntityService());
             server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
             server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-            server.registerServiceProvider(new OffHeapResourcesProvider(),
-                new OffHeapResourcesConfiguration(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+            server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
 
             UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
           }
