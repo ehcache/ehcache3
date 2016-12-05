@@ -282,8 +282,8 @@ public class DefaultManagementRegistryServiceTest {
       .with("cacheManagerName", "myCM")
       .with("cacheName", "aCache2");
 
-    Cache cache1 = cacheManager1.getCache("aCache1", Long.class, String.class);
-    Cache cache2 = cacheManager1.getCache("aCache2", Long.class, String.class);
+    Cache<Long, String> cache1 = cacheManager1.getCache("aCache1", Long.class, String.class);
+    Cache<Long, String> cache2 = cacheManager1.getCache("aCache2", Long.class, String.class);
 
     cache1.put(1L, "one");
     cache2.put(3L, "three");
