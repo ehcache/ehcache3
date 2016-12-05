@@ -303,7 +303,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   @Override
   public void destroy() {
-    management.close();
     ehcacheStateService.destroy();
   }
 }

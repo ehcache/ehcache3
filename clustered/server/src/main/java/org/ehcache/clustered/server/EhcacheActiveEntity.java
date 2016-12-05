@@ -674,9 +674,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
    */
   @Override
   public void destroy() {
-
-    management.close();
-
     /*
      * Ensure the allocated stores are closed out.
      */

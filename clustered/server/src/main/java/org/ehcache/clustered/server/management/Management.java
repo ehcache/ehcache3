@@ -97,13 +97,6 @@ public class Management {
     }
   }
 
-  public void close() {
-    if (managementRegistry != null) {
-      LOGGER.trace("close()");
-      managementRegistry.close();
-    }
-  }
-
   public void clientConnected(ClientDescriptor clientDescriptor, ClientState clientState) {
     if (managementRegistry != null) {
       LOGGER.trace("clientConnected({})", clientDescriptor);
