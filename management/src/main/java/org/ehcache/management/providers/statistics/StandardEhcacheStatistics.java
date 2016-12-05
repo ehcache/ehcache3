@@ -76,12 +76,12 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
     statisticsRegistry.registerSize("OccupiedByteSize", descriptor("occupiedMemory", singleton("tier")));
   }
 
-  public Statistic<?, ?> queryStatistic(String fullStatisticName, long since) {
+  Statistic<?, ?> queryStatistic(String fullStatisticName, long since) {
     return statisticsRegistryMetadata.queryStatistic(fullStatisticName, since);
   }
 
   @Override
-  public Collection<Descriptor> getDescriptors() {
+  public Collection<? extends Descriptor> getDescriptors() {
     return statisticsRegistryMetadata.getDescriptors();
   }
 

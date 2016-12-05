@@ -132,11 +132,11 @@ public class ManagementTest {
           .build(true);
 
 
-      Collection<Capability> capabilities = managementRegistry.getCapabilities(); // <1>
+      Collection<? extends Capability> capabilities = managementRegistry.getCapabilities(); // <1>
       Assert.assertThat(capabilities.isEmpty(), Matchers.is(false));
       Capability capability = capabilities.iterator().next();
       String capabilityName = capability.getName(); // <2>
-      Collection<Descriptor> capabilityDescriptions = capability.getDescriptors(); // <3>
+      Collection<? extends Descriptor> capabilityDescriptions = capability.getDescriptors(); // <3>
       Assert.assertThat(capabilityDescriptions.isEmpty(), Matchers.is(false));
       CapabilityContext capabilityContext = capability.getCapabilityContext();
       Collection<CapabilityContext.Attribute> attributes = capabilityContext.getAttributes(); // <4>

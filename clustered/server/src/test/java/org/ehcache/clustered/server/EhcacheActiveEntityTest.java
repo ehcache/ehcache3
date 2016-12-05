@@ -29,7 +29,6 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerExcep
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
-import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationException;
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
@@ -57,7 +56,7 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
+import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
@@ -3165,7 +3164,9 @@ public class EhcacheActiveEntityTest {
         }
         return (T) this.entityMessenger;
       } else if(serviceConfiguration instanceof ConsumerManagementRegistryConfiguration) {
-        return (T) mock(ConsumerManagementRegistry.class);
+        return null;
+      } else if(serviceConfiguration instanceof ActiveEntityMonitoringServiceConfiguration) {
+        return null;
       }
 
       throw new UnsupportedOperationException("Registry.getService does not support " + serviceConfiguration.getClass().getName());

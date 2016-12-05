@@ -21,13 +21,18 @@ import org.ehcache.clustered.server.ServerStoreImpl;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.registry.collect.StatisticConfiguration;
+import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityMonitoringService;
+import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
+import org.terracotta.monitoring.IMonitoringProducer;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -35,22 +40,36 @@ public class Management {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Management.class);
 
-  // TODO: if a day we want to make that configurable, we can, and per provider, or globally as it is now
-  private final StatisticConfiguration statisticConfiguration = new StatisticConfiguration(
-    60, SECONDS,
-    100, 1, SECONDS,
-    30, SECONDS
-  );
-
   private final ConsumerManagementRegistry managementRegistry;
   private final EhcacheStateService ehcacheStateService;
 
-  public Management(ServiceRegistry services, EhcacheStateService ehcacheStateService) {
-    managementRegistry = services.getService(new ConsumerManagementRegistryConfiguration(services));
+  public Management(ServiceRegistry services, EhcacheStateService ehcacheStateService, boolean active) {
     this.ehcacheStateService = ehcacheStateService;
+
+    // create an entity monitoring service that allows this entity to push some management information into voltron monitoring service
+    EntityMonitoringService entityMonitoringService;
+    if (active) {
+      entityMonitoringService = services.getService(new ActiveEntityMonitoringServiceConfiguration());
+    } else {
+      IMonitoringProducer monitoringProducer = services.getService(new BasicServiceConfiguration<>(IMonitoringProducer.class));
+      entityMonitoringService = monitoringProducer == null ? null : services.getService(new PassiveEntityMonitoringServiceConfiguration(monitoringProducer));
+    }
+
+    // create a management registry for this entity to handle exposed objects and stats
+    // if management-server distribution is on the classpath
+    managementRegistry = entityMonitoringService == null ? null : services.getService(new ConsumerManagementRegistryConfiguration(entityMonitoringService)
+      .setStatisticConfiguration(new StatisticConfiguration(
+        60, SECONDS,
+        100, 1, SECONDS,
+        30, SECONDS
+      )));
+
     if (managementRegistry != null) {
-      // expose settings about attached stores
-      managementRegistry.addManagementProvider(new ClientStateSettingsManagementProvider());
+
+      if (active) {
+        // expose settings about attached stores
+        managementRegistry.addManagementProvider(new ClientStateSettingsManagementProvider());
+      }
 
       // expose settings about server stores
       managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider());
@@ -58,9 +77,9 @@ public class Management {
       managementRegistry.addManagementProvider(new PoolSettingsManagementProvider(ehcacheStateService));
 
       // expose stats about server stores
-      managementRegistry.addManagementProvider(new ServerStoreStatisticsManagementProvider(statisticConfiguration));
+      managementRegistry.addManagementProvider(new ServerStoreStatisticsManagementProvider());
       // expose stats about pools
-      managementRegistry.addManagementProvider(new PoolStatisticsManagementProvider(ehcacheStateService, statisticConfiguration));
+      managementRegistry.addManagementProvider(new PoolStatisticsManagementProvider(ehcacheStateService));
     }
   }
 

@@ -16,7 +16,6 @@
 package org.ehcache.clustered.management;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import org.ehcache.Cache;
@@ -60,7 +59,7 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
       // get the stats (we are getting the primitive counter, not the sample history)
       List<ContextualStatistics> stats = waitForNextStats();
       for (ContextualStatistics stat : stats) {
-        if (stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
+        if (stat.getContext().contains("cacheName") && stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
 
           Sample<Long>[] samplesCacheHitCount = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
           if(samplesCacheHitCount.length > 0) {
