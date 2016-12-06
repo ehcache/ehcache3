@@ -58,6 +58,11 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
     this.keyPortability = keyPortability;
   }
 
+  //For tests
+  Set<AttachedInternalChain> getActiveChains() {
+    return this.activeChains;
+  }
+
   InternalChain newChain(ByteBuffer element) {
     return new PrimordialChain(element);
   }
