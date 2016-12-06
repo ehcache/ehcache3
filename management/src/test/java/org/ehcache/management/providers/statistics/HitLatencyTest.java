@@ -52,7 +52,7 @@ import org.terracotta.management.model.context.Context;
 public class HitLatencyTest {
 
   @Rule
-  public final Timeout globalTimeout = Timeout.seconds(10);
+  public final Timeout globalTimeout = Timeout.seconds(30);
 
   @Rule
   public final TemporaryFolder diskPath = new TemporaryFolder();
