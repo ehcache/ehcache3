@@ -17,10 +17,12 @@ package org.ehcache.clustered.server.offheap;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.Element;
@@ -48,7 +50,7 @@ class OffHeapChainStorageEngine<K> implements StorageEngine<K, InternalChain> {
 
   private final OffHeapStorageArea storage;
   private final Portability<? super K> keyPortability;
-  private final Set<AttachedInternalChain> activeChains = new HashSet<AttachedInternalChain>();
+  private final Set<AttachedInternalChain> activeChains = Collections.newSetFromMap(new ConcurrentHashMap<AttachedInternalChain, Boolean>());
 
   private StorageEngine.Owner owner;
   private long nextSequenceNumber = 0;
