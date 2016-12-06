@@ -52,18 +52,21 @@ public class OffHeapChainMap<K> implements MapInternals {
 
   public OffHeapChainMap(PageSource source, Portability<? super K> keyPortability, int minPageSize, int maxPageSize, boolean shareByThieving) {
     this.chainStorage = new OffHeapChainStorageEngine<>(source, keyPortability, minPageSize, maxPageSize, shareByThieving, shareByThieving);
-    EvictionListener<K, InternalChain> listener = callable -> {
-      try {
-        Map.Entry<K, InternalChain> entry = callable.call();
+    EvictionListener<K, InternalChain> listener = new EvictionListener<K, InternalChain>() {
+      @Override
+      public void evicting(Callable<Map.Entry<K, InternalChain>> callable) {
         try {
-          if (evictionListener != null) {
-            evictionListener.onEviction(entry.getKey());
+          Map.Entry<K, InternalChain> entry = callable.call();
+          try {
+            if (evictionListener != null) {
+              evictionListener.onEviction(entry.getKey());
+            }
+          } finally {
+            entry.getValue().close();
           }
-        } finally {
-          entry.getValue().close();
+        } catch (Exception e) {
+          throw new AssertionError(e);
         }
-      } catch (Exception e) {
-        throw new AssertionError(e);
       }
     };
 
@@ -190,7 +193,11 @@ public class OffHeapChainMap<K> implements MapInternals {
     try {
       InternalChain current = heads.get(key);
       if (current != null) {
-        replaceAtHead(key, current.detach(), chain);
+        try {
+          replaceAtHead(key, current.detach(), chain);
+        } finally {
+          current.close();
+        }
       } else {
         for (Element x : chain) {
           append(key, x.getPayload());

@@ -376,6 +376,22 @@ public class ChainMapTest {
 
   }
 
+  @Test
+  public void testPutDoesNotLeakWhenMappingIsNotNull() {
+    UnlimitedPageSource source = new UnlimitedPageSource(new OffHeapBufferSource());
+    OffHeapChainStorageEngine<String> chainStorage = new OffHeapChainStorageEngine<>(source, StringPortability.INSTANCE, minPageSize, maxPageSize, steal, steal);
+
+    ReadWriteLockedOffHeapClockCache<String, InternalChain> heads = new EvictionListeningReadWriteLockedOffHeapClockCache<>(callable -> {}, source, chainStorage);
+
+    OffHeapChainMap<String> map = new OffHeapChainMap<>(heads, chainStorage);
+
+    map.put("key", chain(buffer(1)));
+    map.put("key", chain(buffer(2)));
+
+    assertThat(chainStorage.getActiveChains().size(), is(0));
+
+  }
+
   private static ByteBuffer buffer(int i) {
     ByteBuffer buffer = ByteBuffer.allocate(i);
     while (buffer.hasRemaining()) {
