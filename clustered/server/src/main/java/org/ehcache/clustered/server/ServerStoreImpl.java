@@ -30,7 +30,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 
 @CommonComponent
-public class ServerStoreImpl implements ServerStore, MapInternals {
+public class ServerStoreImpl implements ServerSideServerStore {
 
   private final ServerStoreConfiguration storeConfiguration;
   private final PageSource pageSource;

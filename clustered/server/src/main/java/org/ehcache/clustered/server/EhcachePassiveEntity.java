@@ -55,6 +55,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
@@ -114,7 +115,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       case CHAIN_REPLICATION_OP:
         LOGGER.debug("Chain Replication message for msgId {} & client Id {}", message.getId(), message.getClientId());
         ChainReplicationMessage retirementMessage = (ChainReplicationMessage)message;
-        ServerStoreImpl cacheStore = ehcacheStateService.getStore(retirementMessage.getCacheId());
+        ServerSideServerStore cacheStore = ehcacheStateService.getStore(retirementMessage.getCacheId());
         if (cacheStore == null) {
           // An operation on a non-existent store should never get out of the client
           throw new LifecycleException("Clustered tier does not exist : '" + retirementMessage.getCacheId() + "'");
@@ -170,7 +171,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   }
 
   private void invokeServerStoreOperation(ServerStoreOpMessage message) throws ClusterException {
-    ServerStoreImpl cacheStore = ehcacheStateService.getStore(message.getCacheId());
+    ServerSideServerStore cacheStore = ehcacheStateService.getStore(message.getCacheId());
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
       throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
@@ -183,7 +184,11 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         break;
       }
       case CLEAR: {
-        cacheStore.clear();
+        try {
+          cacheStore.clear();
+        } catch (TimeoutException e) {
+          throw new AssertionError("Server side store is not expected to throw timeout exception");
+        }
         InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(message.getCacheId());
         if (invalidationTracker != null) {
           invalidationTracker.setClearInProgress(true);
