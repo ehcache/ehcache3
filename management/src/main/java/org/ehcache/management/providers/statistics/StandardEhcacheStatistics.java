@@ -24,6 +24,7 @@ import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.context.extended.OperationStatisticDescriptor;
 import org.terracotta.context.extended.StatisticsRegistry;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.collect.StatisticsRegistryMetadata;
 
@@ -81,7 +82,7 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
   }
 
   @Override
-  public Collection<? extends Descriptor> getDescriptors() {
+  public Collection<? extends StatisticDescriptor> getDescriptors() {
     return statisticsRegistryMetadata.getDescriptors();
   }
 
