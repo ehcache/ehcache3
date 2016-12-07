@@ -27,6 +27,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -318,7 +319,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     addClientId(clientDescriptor, reconnectMessage.getClientId());
     Set<String> cacheIds = reconnectMessage.getAllCaches();
     for (final String cacheId : cacheIds) {
-      ServerStoreImpl serverStore = ehcacheStateService.getStore(cacheId);
+      ServerSideServerStore serverStore = ehcacheStateService.getStore(cacheId);
       if (serverStore == null) {
         //Client removes the cache's reference only when destroy has successfully completed
         //This happens only when client thinks destroy is still not complete
@@ -335,7 +336,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     management.clientReconnected(clientDescriptor, clientState);
   }
 
-  private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ReconnectMessage reconnectMessage, String cacheId, ServerStoreImpl serverStore) {
+  private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ReconnectMessage reconnectMessage, String cacheId, ServerSideServerStore serverStore) {
     if (serverStore.getStoreConfiguration().getConsistency().equals(Consistency.STRONG)) {
       Set<Long> invalidationsInProgress = reconnectMessage.getInvalidationsInProgress(cacheId);
       LOGGER.debug("Number of Inflight Invalidations from client ID {} for cache {} is {}.", reconnectMessage.getClientId(), cacheId, invalidationsInProgress
@@ -363,7 +364,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
       Map<String, ServerStoreConfiguration> storeConfigs = new HashMap<>();
       for (String storeName : ehcacheStateService.getStores()) {
-        ServerStoreImpl store = ehcacheStateService.getStore(storeName);
+        ServerSideServerStore store = ehcacheStateService.getStore(storeName);
         storeConfigs.put(storeName, store.getStoreConfiguration());
       }
 
@@ -371,10 +372,16 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     } else {
       ehcacheStateService.getStores().stream()
         .forEach(name -> {
-          ServerStoreImpl store = ehcacheStateService.getStore(name);
+          ServerSideServerStore store = ehcacheStateService.getStore(name);
           store.getSegments().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET).keySet().stream()
             .forEach(key -> {
-              syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, key, store.get(key)));
+              final Chain chain;
+              try {
+                chain = store.get(key);
+              } catch (TimeoutException e) {
+                throw new AssertionError("Server side store is not expected to throw timeout exception");
+              }
+              syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, key, chain));
             });
         });
     }
@@ -467,7 +474,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {
     validateClusteredTierManagerConfigured(clientDescriptor);
 
-    ServerStoreImpl cacheStore = ehcacheStateService.getStore(message.getCacheId());
+    ServerSideServerStore cacheStore = ehcacheStateService.getStore(message.getCacheId());
     if (cacheStore == null) {
       // An operation on a non-existent store should never get out of the client
       throw new LifecycleException("Clustered tier does not exist : '" + message.getCacheId() + "'");
@@ -497,13 +504,23 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     switch (message.getMessageType()) {
       case GET_STORE: {
         ServerStoreOpMessage.GetMessage getMessage = (ServerStoreOpMessage.GetMessage) message;
-        return responseFactory.response(cacheStore.get(getMessage.getKey()));
+        try {
+          return responseFactory.response(cacheStore.get(getMessage.getKey()));
+        } catch (TimeoutException e) {
+          throw new AssertionError("Server side store is not expected to throw timeout exception");
+        }
       }
       case APPEND: {
         if (!isMessageDuplicate(message)) {
           ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
-          cacheStore.getAndAppend(appendMessage.getKey(), appendMessage.getPayload());
-          sendMessageToSelfAndDeferRetirement(appendMessage, cacheStore.get(appendMessage.getKey()));
+          final Chain newChain;
+          try {
+            cacheStore.getAndAppend(appendMessage.getKey(), appendMessage.getPayload());
+            newChain = cacheStore.get(appendMessage.getKey());
+          } catch (TimeoutException e) {
+            throw new AssertionError("Server side store is not expected to throw timeout exception");
+          }
+          sendMessageToSelfAndDeferRetirement(appendMessage, newChain);
           invalidateHashForClient(clientDescriptor, appendMessage.getCacheId(), appendMessage.getKey());
         }
         return responseFactory.success();
@@ -513,14 +530,25 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
         LOGGER.trace("Message {} : GET_AND_APPEND on key {} from client {}", message, getAndAppendMessage.getKey(), getAndAppendMessage.getClientId());
         if (!isMessageDuplicate(message)) {
           LOGGER.trace("Message {} : is not duplicate", message);
-          Chain result = cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
-          sendMessageToSelfAndDeferRetirement(getAndAppendMessage, cacheStore.get(getAndAppendMessage.getKey()));
+          final Chain result;
+          final Chain newChain;
+          try {
+            result = cacheStore.getAndAppend(getAndAppendMessage.getKey(), getAndAppendMessage.getPayload());
+            newChain = cacheStore.get(getAndAppendMessage.getKey());
+          } catch (TimeoutException e) {
+            throw new AssertionError("Server side store is not expected to throw timeout exception");
+          }
+          sendMessageToSelfAndDeferRetirement(getAndAppendMessage, newChain);
           EhcacheEntityResponse response = responseFactory.response(result);
           LOGGER.debug("Send invalidations for key {}", getAndAppendMessage.getKey());
           invalidateHashForClient(clientDescriptor, getAndAppendMessage.getCacheId(), getAndAppendMessage.getKey());
           return response;
         }
-        return responseFactory.response(cacheStore.get(getAndAppendMessage.getKey()));
+        try {
+          return responseFactory.response(cacheStore.get(getAndAppendMessage.getKey()));
+        } catch (TimeoutException e) {
+          throw new AssertionError("Server side store is not expected to throw timeout exception");
+        }
       }
       case REPLACE: {
         ServerStoreOpMessage.ReplaceAtHeadMessage replaceAtHeadMessage = (ServerStoreOpMessage.ReplaceAtHeadMessage) message;
@@ -538,7 +566,11 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
       case CLEAR: {
         if (!isMessageDuplicate(message)) {
           String cacheId = message.getCacheId();
-          cacheStore.clear();
+          try {
+            cacheStore.clear();
+          } catch (TimeoutException e) {
+            throw new AssertionError("Server side store is not expected to throw timeout exception");
+          }
           invalidateAll(clientDescriptor, cacheId);
         }
         return responseFactory.success();
@@ -761,7 +793,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
     boolean isDuplicate = isMessageDuplicate(createServerStore);
     final String name = createServerStore.getName();    // client cache identifier/name
-    ServerStoreImpl serverStore;
+    ServerSideServerStore serverStore;
     if (!isDuplicate) {
 
       LOGGER.info("Client {} creating new clustered tier '{}'", clientDescriptor, name);
@@ -802,7 +834,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     ServerStoreConfiguration clientConfiguration = validateServerStore.getStoreConfiguration();
 
     LOGGER.info("Client {} validating clustered tier '{}'", clientDescriptor, name);
-    ServerStoreImpl store = ehcacheStateService.getStore(name);
+    ServerSideServerStore store = ehcacheStateService.getStore(name);
     if (store != null) {
       storeCompatibility.verify(store.getStoreConfiguration(), clientConfiguration);
       attachStore(clientDescriptor, name);
@@ -826,7 +858,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     String name = releaseServerStore.getName();
 
     LOGGER.info("Client {} releasing clustered tier '{}'", clientDescriptor, name);
-    ServerStoreImpl store = ehcacheStateService.getStore(name);
+    ServerSideServerStore store = ehcacheStateService.getStore(name);
     if (store != null) {
 
       boolean removedFromClient = clientState.removeStore(name);

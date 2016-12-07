@@ -17,6 +17,7 @@ package org.ehcache.clustered.server.management;
 
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.server.ClientState;
+import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.ServerStoreImpl;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
@@ -142,7 +143,7 @@ public class Management {
   public void serverStoreCreated(String name) {
     if (managementRegistry != null) {
       LOGGER.trace("serverStoreCreated({})", name);
-      ServerStoreImpl serverStore = ehcacheStateService.getStore(name);
+      ServerSideServerStore serverStore = ehcacheStateService.getStore(name);
       ServerStoreBinding serverStoreBinding = new ServerStoreBinding(name, serverStore);
       managementRegistry.register(serverStoreBinding);
       ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(name);
@@ -171,7 +172,7 @@ public class Management {
   }
 
   public void serverStoreDestroyed(String name) {
-    ServerStoreImpl serverStore = ehcacheStateService.getStore(name);
+    ServerSideServerStore serverStore = ehcacheStateService.getStore(name);
     if (managementRegistry != null && serverStore != null) {
       LOGGER.trace("serverStoreDestroyed({})", name);
       ServerStoreBinding managedObject = new ServerStoreBinding(name, serverStore);
