@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.ehcache.Cache;
 import org.hamcrest.Matchers;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.Assert;
 import org.terracotta.management.model.stats.ContextualStatistics;
@@ -27,6 +28,7 @@ import org.terracotta.management.model.stats.Sample;
 import org.terracotta.management.model.stats.history.AverageHistory;
 import org.terracotta.management.model.stats.history.DurationHistory;
 
+@Ignore
 public class ClusteredStatisticsLatencyTest extends AbstractClusteringManagementTest {
 
   @Test
