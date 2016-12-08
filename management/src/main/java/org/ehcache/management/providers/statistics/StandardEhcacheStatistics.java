@@ -75,6 +75,75 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
     statisticsRegistry.registerCounter("MaxMappingCount", descriptor("maxMappings", singleton("tier")));
     statisticsRegistry.registerSize("AllocatedByteSize", descriptor("allocatedMemory", singleton("tier")));
     statisticsRegistry.registerSize("OccupiedByteSize", descriptor("occupiedMemory", singleton("tier")));
+
+    //new stats architecture changes.  The above registrations will be removed once the following task is completed: https://github.com/ehcache/ehcache3/issues/1684
+    registerStatCacheOutcomes();
+    registerStatTierOutcomes();
+  }
+
+  private void registerStatCacheOutcomes() {
+    //TODO Statistics library needs StatisticsRegistry.registerOperation(...) method.  Once created replace all calls to registerCompoundOperations(...) with it.
+    //use the following format to define a cache operation: Cache:operation:outcome
+
+    //register Cache outcomes for Hit stat calculations
+    statisticsRegistry.registerCompoundOperations("Cache:Get:HitNoLoader", OperationStatisticDescriptor.descriptor("get", singleton("cache"), CacheOperationOutcomes.GetOutcome.class), of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER));
+    statisticsRegistry.registerCompoundOperations("Cache:Get:HitWithLoader", OperationStatisticDescriptor.descriptor("get", singleton("cache"), CacheOperationOutcomes.GetOutcome.class), of(CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER));
+    statisticsRegistry.registerCompoundOperations("Cache:Replace:Hit", OperationStatisticDescriptor.descriptor("replace", singleton("cache"), CacheOperationOutcomes.ReplaceOutcome.class), of(CacheOperationOutcomes.ReplaceOutcome.HIT));
+    statisticsRegistry.registerCompoundOperations("Cache:Replace:MissPresent", OperationStatisticDescriptor.descriptor("replace", singleton("cache"), CacheOperationOutcomes.ReplaceOutcome.class), of(CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT));
+    statisticsRegistry.registerCompoundOperations("Cache:ConditionalRemove:Success", OperationStatisticDescriptor.descriptor("conditionalRemove", singleton("cache"), CacheOperationOutcomes.ConditionalRemoveOutcome.class), of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS));
+    statisticsRegistry.registerCompoundOperations("Cache:ConditionalRemove:FailureKeyPresent", OperationStatisticDescriptor.descriptor("conditionalRemove", singleton("cache"), CacheOperationOutcomes.ConditionalRemoveOutcome.class), of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
+    //TODO register BulkOps outcomes
+    //statisticsRegistry.registerCompoundOperations("Cache:BulkOps:GetAllHits", OperationStatisticDescriptor.descriptor("getAll", singleton("cache"), BulkOps.class), of(BulkOps.GET_ALL_HITS));
+
+    //register Cache outcomes for Miss stat calculations
+    statisticsRegistry.registerCompoundOperations("Cache:Get:MissNoLoader", OperationStatisticDescriptor.descriptor("get", singleton("cache"), CacheOperationOutcomes.GetOutcome.class), of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER));
+    statisticsRegistry.registerCompoundOperations("Cache:Get:MissWithLoader", OperationStatisticDescriptor.descriptor("get", singleton("cache"), CacheOperationOutcomes.GetOutcome.class), of(CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER));
+    statisticsRegistry.registerCompoundOperations("Cache:PutIfAbsent:Put", OperationStatisticDescriptor.descriptor("putIfAbsent", singleton("cache"), CacheOperationOutcomes.PutIfAbsentOutcome.class), of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT));
+    statisticsRegistry.registerCompoundOperations("Cache:Replace:MissNotPresent", OperationStatisticDescriptor.descriptor("replace", singleton("cache"), CacheOperationOutcomes.ReplaceOutcome.class), of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT));
+    statisticsRegistry.registerCompoundOperations("Cache:ConditionalRemove:FailureKeyMissing", OperationStatisticDescriptor.descriptor("conditionalRemove", singleton("cache"), CacheOperationOutcomes.ConditionalRemoveOutcome.class), of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
+    //TODO register BulkOps outcomes
+    //statisticsRegistry.registerCompoundOperations("Cache:BulkOps:GetAllMiss", OperationStatisticDescriptor.descriptor("getAll", singleton("cache"), BulkOps.class), of(BulkOps.GET_ALL_MISS));
+
+    //register Cache outcomes for Remove stat calculations
+    statisticsRegistry.registerCompoundOperations("Cache:Remove:Success", OperationStatisticDescriptor.descriptor("remove", singleton("cache"), CacheOperationOutcomes.RemoveOutcome.class), of(CacheOperationOutcomes.RemoveOutcome.SUCCESS));
+    //"Cache:ConditionalRemove:Success" already registered
+    //TODO register BulkOps outcomes
+    //statisticsRegistry.registerCompoundOperations("Cache:BulkOps:RemoveAll", OperationStatisticDescriptor.descriptor("removeAll", singleton("cache"), BulkOps.class), of(BulkOps.REMOVE_ALL));
+
+    //register Cache outcomes for Replace stat calculations
+    //"Cache:Replace:Hit" already registered
+    statisticsRegistry.registerCompoundOperations("Cache:Put:Updated", OperationStatisticDescriptor.descriptor("put", singleton("cache"), CacheOperationOutcomes.PutOutcome.class), of(CacheOperationOutcomes.PutOutcome.UPDATED));
+
+    //register Cache outcomes for Put stat calculations
+    statisticsRegistry.registerCompoundOperations("Cache:Put:Put", OperationStatisticDescriptor.descriptor("put", singleton("cache"), CacheOperationOutcomes.PutOutcome.class), of(CacheOperationOutcomes.PutOutcome.PUT));
+    //"Cache:Put:Updated" already registered
+    //"Cache:PutIfAbsent:Put" already registered
+    //"Cache:Replace:Hit" already registered
+    //TODO register BulkOps outcomes
+    //statisticsRegistry.registerCompoundOperations("Cache:BulkOps:PutAll", OperationStatisticDescriptor.descriptor("putAll", singleton("cache"), CacheOperationOutcomes.PutAllOutcome.class), of(CacheOperationOutcomes.PutAllOutcome.SUCCESS));
+  }
+
+  private void registerStatTierOutcomes() {
+
+    //use the following format to define a tier operation: operation:outcome
+    //The tier will be pre-appended
+
+    //TODO register Tier outcomes for Hit stat calculations
+
+    //TODO register Tier outcomes for Miss stat calculations
+
+    //TODO register Tier outcomes for Remove stat calculations
+
+    //TODO register Tier outcomes for Replace stat calculations
+
+    //TODO register Tier outcomes for Put stat calculations
+
+    //register Tier outcomes for Eviction.  Evictions only occur in the authoritative tier and there is no Cache level eviction outcome.
+    statisticsRegistry.registerCompoundOperations("Eviction:Success", OperationStatisticDescriptor.descriptor("eviction", singleton("tier"), TierOperationOutcomes.EvictionOutcome.class), of(TierOperationOutcomes.EvictionOutcome.SUCCESS));
+
+    //register Tier outcomes for Expiration
+    statisticsRegistry.registerCompoundOperations("Expiration:Success", OperationStatisticDescriptor.descriptor("expiration", singleton("tier"), TierOperationOutcomes.ExpirationOutcome.class), of(TierOperationOutcomes.ExpirationOutcome.SUCCESS));
+
   }
 
   Statistic<?, ?> queryStatistic(String fullStatisticName, long since) {

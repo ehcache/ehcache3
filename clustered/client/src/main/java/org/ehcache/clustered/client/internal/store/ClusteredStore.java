@@ -108,6 +108,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
   private final OperationObserver<StoreOperationOutcomes.ConditionalReplaceOutcome> conditionalReplaceObserver;
   // Needed for JSR-107 compatibility even if unused
   private final OperationObserver<StoreOperationOutcomes.EvictionOutcome> evictionObserver;
+  private final OperationObserver<StoreOperationOutcomes.ExpirationOutcome> expirationObserver;
   private final OperationObserver<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome> getAndFaultObserver;
 
 
@@ -124,6 +125,7 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
     this.replaceObserver = operation(StoreOperationOutcomes.ReplaceOutcome.class).of(this).named("replace").tag(STATISTICS_TAG).build();
     this.conditionalReplaceObserver = operation(StoreOperationOutcomes.ConditionalReplaceOutcome.class).of(this).named("conditionalReplace").tag(STATISTICS_TAG).build();
     this.evictionObserver = operation(StoreOperationOutcomes.EvictionOutcome.class).of(this).named("eviction").tag(STATISTICS_TAG).build();
+    this.expirationObserver = operation(StoreOperationOutcomes.ExpirationOutcome.class).of(this).named("expiration").tag(STATISTICS_TAG).build();
     this.getAndFaultObserver = operation(AuthoritativeTierOperationOutcomes.GetAndFaultOutcome.class).of(this).named("getAndFault").tag(STATISTICS_TAG).build();
 
     Set<String> tags = new HashSet<String>(Arrays.asList(STATISTICS_TAG, "tier"));
@@ -581,6 +583,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
       StatisticsManager.associate(evict).withParent(store);
       tieredOps.add(evict);
 
+      MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome> expire =
+              new MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome>(
+                      store, TierOperationOutcomes.EXPIRATION_TRANSLATION, "expiration", TIER_HEIGHT, "expiration", STATISTICS_TAG);
+      StatisticsManager.associate(expire).withParent(store);
+      tieredOps.add(expire);
+
       tierOperationStatistics.put(store, tieredOps);
       return store;
     }
@@ -754,6 +762,12 @@ public class ClusteredStore<K, V> implements AuthoritativeTier<K, V> {
                       authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", TIER_HEIGHT, "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(authoritativeTier);
       tieredOps.add(evict);
+
+      MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome> expire =
+              new MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome>(
+                      authoritativeTier, TierOperationOutcomes.EXPIRATION_TRANSLATION, "expiration", TIER_HEIGHT, "expiration", STATISTICS_TAG);
+      StatisticsManager.associate(expire).withParent(authoritativeTier);
+      tieredOps.add(expire);
 
       tierOperationStatistics.put(authoritativeTier, tieredOps);
       return authoritativeTier;

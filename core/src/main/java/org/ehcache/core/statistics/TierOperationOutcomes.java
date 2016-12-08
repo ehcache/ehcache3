@@ -70,6 +70,14 @@ public class TierOperationOutcomes {
     EVICTION_TRANSLATION = unmodifiableMap(translation);
   }
 
+  public static final Map<ExpirationOutcome, Set<StoreOperationOutcomes.ExpirationOutcome>> EXPIRATION_TRANSLATION;
+
+  static {
+    Map<ExpirationOutcome, Set<StoreOperationOutcomes.ExpirationOutcome>> translation = new EnumMap<ExpirationOutcome, Set<StoreOperationOutcomes.ExpirationOutcome>>(ExpirationOutcome.class);
+    translation.put(ExpirationOutcome.SUCCESS, of(StoreOperationOutcomes.ExpirationOutcome.SUCCESS));
+    EXPIRATION_TRANSLATION = unmodifiableMap(translation);
+  }
+
   public enum GetOutcome {
     HIT,
     MISS,
@@ -78,6 +86,10 @@ public class TierOperationOutcomes {
   public enum EvictionOutcome {
     SUCCESS,
     FAILURE
+  }
+
+  public enum ExpirationOutcome {
+    SUCCESS
   }
 
 }

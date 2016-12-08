@@ -205,6 +205,11 @@ public class DefaultManagementRegistryServiceTest {
       assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
+      System.out.println("descriptorDiskStoreTest descriptors: ");
+      for (Descriptor descriptor : descriptors) {
+        System.out.println("descriptor: " + descriptor.toString());
+      }
+
       Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(DISK_DESCRIPTORS);
@@ -565,6 +570,10 @@ public class DefaultManagementRegistryServiceTest {
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", StatisticType.COUNTER_HISTORY));
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissRate", StatisticType.RATE_HISTORY));
 
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    //These decriptors are for the current statistics architecture, which is in the process of being replaced.
+    //When the new statistics architecture is finished they will be deletetd
+    //This is the task https://github.com/ehcache/ehcache3/issues/1684
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRate", StatisticType.RATE_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", StatisticType.COUNTER_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRatio", StatisticType.RATIO_HISTORY));
@@ -573,6 +582,55 @@ public class DefaultManagementRegistryServiceTest {
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearCount", StatisticType.COUNTER_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", StatisticType.COUNTER_HISTORY));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRatio", StatisticType.RATIO_HISTORY));
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    //These descriptors are for the new statistis architecture.  These will remain.
+    //task https://github.com/ehcache/ehcache3/issues/1684
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Get:HitNoLoaderCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Get:HitWithLoaderCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Replace:HitCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Replace:MissPresentCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ConditionalRemove:SuccessCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ConditionalRemove:FailureKeyPresentCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Get:MissNoLoaderCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Get:MissWithLoaderCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:PutIfAbsent:PutCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Replace:MissNotPresentCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ConditionalRemove:FailureKeyMissingCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Remove:SuccessCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Put:UpdatedCount", StatisticType.COUNTER_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Put:PutCount", StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:Eviction:SuccessCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:Eviction:SuccessCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:Eviction:SuccessCount", StatisticType.COUNTER_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:Expiration:SuccessCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:Expiration:SuccessCount", StatisticType.COUNTER_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:Expiration:SuccessCount", StatisticType.COUNTER_HISTORY));
+
+    //TODO *_DESCRIPTORS below for Rate will be deletetd when the new statistic architecture is completed
+    //task https://github.com/ehcache/ehcache3/issues/1684
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Get:HitNoLoaderRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Get:HitWithLoaderRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Replace:HitRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Replace:MissPresentRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ConditionalRemove:SuccessRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ConditionalRemove:FailureKeyPresentRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Get:MissNoLoaderRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Get:MissWithLoaderRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:PutIfAbsent:PutRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Replace:MissNotPresentRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ConditionalRemove:FailureKeyMissingRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Remove:SuccessRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Put:UpdatedRate", StatisticType.RATE_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:Put:PutRate", StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:Eviction:SuccessRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:Eviction:SuccessRate", StatisticType.RATE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:Eviction:SuccessRate", StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:Expiration:SuccessRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:Expiration:SuccessRate", StatisticType.RATE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:Expiration:SuccessRate", StatisticType.RATE_HISTORY));
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
 
   }
 
