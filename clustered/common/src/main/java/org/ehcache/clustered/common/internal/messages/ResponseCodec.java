@@ -48,12 +48,14 @@ class ResponseCodec {
   private static final String CHAIN_FIELD = "chain";
   private static final String MAP_VALUE_FIELD = "mapValue";
 
+  private final ExceptionCodec exceptionCodec = new ExceptionCodec();
+
   private static final Struct SUCCESS_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
     .build();
   private static final Struct FAILURE_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
-    .byteBuffer(EXCEPTION_FIELD, 20)
+    .struct(EXCEPTION_FIELD, 20, ExceptionCodec.EXCEPTION_STRUCT)
     .build();
   private static final Struct GET_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
@@ -98,11 +100,15 @@ class ResponseCodec {
   public byte[] encode(EhcacheEntityResponse response) {
     switch (response.getResponseType()) {
       case FAILURE:
-        EhcacheEntityResponse.Failure failure = (EhcacheEntityResponse.Failure)response;
-        byte[] failureMsg = Util.marshall(failure.getCause());
+        final EhcacheEntityResponse.Failure failure = (EhcacheEntityResponse.Failure)response;
         return FAILURE_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, failure.getResponseType())
-          .byteBuffer(EXCEPTION_FIELD, wrap(failureMsg))
+          .struct(EXCEPTION_FIELD, new StructEncoderFunction<StructEncoder<StructEncoder<Void>>>() {
+            @Override
+            public void encode(StructEncoder<StructEncoder<Void>> encoder) {
+              exceptionCodec.encode(encoder, failure.getCause());
+            }
+          })
           .encode().array();
       case SUCCESS:
         return SUCCESS_RESPONSE_STRUCT.encoder()
@@ -192,7 +198,7 @@ class ResponseCodec {
         return EhcacheEntityResponse.Success.INSTANCE;
       case FAILURE:
         decoder = FAILURE_RESPONSE_STRUCT.decoder(buffer);
-        ClusterException exception = (ClusterException)Util.unmarshall(decoder.byteBuffer(EXCEPTION_FIELD));
+        ClusterException exception = exceptionCodec.decode(decoder.struct(EXCEPTION_FIELD));
         return new EhcacheEntityResponse.Failure(exception.withClientStackTrace());
       case GET_RESPONSE:
         decoder = GET_RESPONSE_STRUCT.decoder(buffer);
