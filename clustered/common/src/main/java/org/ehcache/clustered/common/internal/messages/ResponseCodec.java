@@ -112,9 +112,9 @@ class ResponseCodec {
         final EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse)response;
         return GET_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, getResponse.getResponseType())
-          .struct(CHAIN_FIELD, new StructEncoderFunction() {
+          .struct(CHAIN_FIELD, new StructEncoderFunction<StructEncoder<StructEncoder<Void>>>() {
             @Override
-            public void encode(StructEncoder encoder) {
+            public void encode(StructEncoder<StructEncoder<Void>> encoder) {
               chainCodec.encode(encoder, getResponse.getChain());
             }
           })
@@ -174,7 +174,7 @@ class ResponseCodec {
 
   public EhcacheEntityResponse decode(byte[] payload) {
     ByteBuffer buffer = wrap(payload);
-    StructDecoder decoder = SUCCESS_RESPONSE_STRUCT.decoder(buffer);
+    StructDecoder<Void> decoder = SUCCESS_RESPONSE_STRUCT.decoder(buffer);
     Enm<EhcacheResponseType> opCodeEnm = decoder.enm(RESPONSE_TYPE_FIELD_NAME);
 
     if (!opCodeEnm.isFound()) {

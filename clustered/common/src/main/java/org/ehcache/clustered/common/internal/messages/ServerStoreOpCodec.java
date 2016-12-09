@@ -105,7 +105,7 @@ class ServerStoreOpCodec {
   }
 
   public byte[] encode(ServerStoreOpMessage message) {
-    StructEncoder encoder = null;
+    StructEncoder<Void> encoder = null;
 
     switch (message.getMessageType()) {
       case GET_STORE:
@@ -145,16 +145,16 @@ class ServerStoreOpCodec {
         return encoder
           .string(SERVER_STORE_NAME_FIELD, replaceAtHeadMessage.getCacheId())
           .int64(KEY_FIELD, replaceAtHeadMessage.getKey())
-          .struct("expect", new StructEncoderFunction() {
+          .struct("expect", new StructEncoderFunction<StructEncoder<StructEncoder<Void>>>() {
             @Override
-            public void encode(StructEncoder encoder) {
+            public void encode(StructEncoder<StructEncoder<Void>> encoder) {
               Chain expect = replaceAtHeadMessage.getExpect();
               chainCodec.encode(encoder, expect);
             }
           })
-          .struct("update", new StructEncoderFunction() {
+          .struct("update", new StructEncoderFunction<StructEncoder<StructEncoder<Void>>>() {
             @Override
-            public void encode(StructEncoder encoder) {
+            public void encode(StructEncoder<StructEncoder<Void>> encoder) {
               Chain update = replaceAtHeadMessage.getUpdate();
               chainCodec.encode(encoder, update);
             }
@@ -185,7 +185,7 @@ class ServerStoreOpCodec {
   }
 
   public EhcacheEntityMessage decode(EhcacheMessageType opCode, ByteBuffer messageBuffer) {
-    StructDecoder decoder;
+    StructDecoder<Void> decoder;
     switch (opCode) {
       case GET_STORE: {
         decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);

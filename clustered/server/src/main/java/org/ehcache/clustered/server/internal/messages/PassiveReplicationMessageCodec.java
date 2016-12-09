@@ -125,7 +125,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private byte[] encoreDestroyServerStoreReplicationMessage(PassiveReplicationMessage.DestroyServerStoreReplicationMessage message) {
-    StructEncoder encoder = DESTROY_SERVER_STORE_REPLICATION_STRUCT.encoder();
+    StructEncoder<Void> encoder = DESTROY_SERVER_STORE_REPLICATION_STRUCT.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getStoreName());
@@ -134,7 +134,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private byte[] encodeCreateServerStoreReplicationMessage(PassiveReplicationMessage.CreateServerStoreReplicationMessage message) {
-    StructEncoder encoder = CREATE_SERVER_STORE_REPLICATION_STRUCT.encoder();
+    StructEncoder<Void> encoder = CREATE_SERVER_STORE_REPLICATION_STRUCT.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getStoreName());
@@ -144,7 +144,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private byte[] encodeInvalidationCompleteMessage(PassiveReplicationMessage.InvalidationCompleteMessage message) {
-    StructEncoder encoder = INVALIDATION_COMPLETE_STRUCT.encoder();
+    StructEncoder<Void> encoder = INVALIDATION_COMPLETE_STRUCT.encoder();
 
     encoder.enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
       .string(SERVER_STORE_NAME_FIELD, message.getCacheId())
@@ -154,7 +154,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private byte[] encodeClearInvalidationCompleteMessage(PassiveReplicationMessage.ClearInvalidationCompleteMessage message) {
-    StructEncoder encoder = CLEAR_INVALIDATION_COMPLETE_STRUCT.encoder();
+    StructEncoder<Void> encoder = CLEAR_INVALIDATION_COMPLETE_STRUCT.encoder();
 
     encoder.enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
       .string(SERVER_STORE_NAME_FIELD, message.getCacheId());
@@ -163,7 +163,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private byte[] encodeChainReplicationMessage(PassiveReplicationMessage.ChainReplicationMessage message) {
-    StructEncoder encoder = CHAIN_REPLICATION_STRUCT.encoder();
+    StructEncoder<Void> encoder = CHAIN_REPLICATION_STRUCT.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
 
@@ -175,7 +175,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private byte[] encodeClientIdTrackMessage(PassiveReplicationMessage.ClientIDTrackerMessage message) {
-    StructEncoder encoder = CLIENT_ID_TRACK_STRUCT.encoder();
+    StructEncoder<Void> encoder = CLIENT_ID_TRACK_STRUCT.encoder();
 
     encoder.enm(EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
         .int64(MSB_UUID_FIELD, message.getClientId().getMostSignificantBits())
@@ -205,7 +205,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private PassiveReplicationMessage.DestroyServerStoreReplicationMessage decodeDestroyServerStoreReplicationMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = DESTROY_SERVER_STORE_REPLICATION_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = DESTROY_SERVER_STORE_REPLICATION_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
@@ -216,7 +216,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private PassiveReplicationMessage.CreateServerStoreReplicationMessage decodeCreateServerStoreReplicationMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = CREATE_SERVER_STORE_REPLICATION_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = CREATE_SERVER_STORE_REPLICATION_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
@@ -228,7 +228,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private PassiveReplicationMessage.InvalidationCompleteMessage decodeInvalidationCompleteMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = INVALIDATION_COMPLETE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = INVALIDATION_COMPLETE_STRUCT.decoder(messageBuffer);
 
     String storeId = decoder.string(SERVER_STORE_NAME_FIELD);
     Long key = decoder.int64(KEY_FIELD);
@@ -237,12 +237,12 @@ public class PassiveReplicationMessageCodec {
   }
 
   private PassiveReplicationMessage.ClearInvalidationCompleteMessage decodeClearInvalidationCompleteMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = CLEAR_INVALIDATION_COMPLETE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = CLEAR_INVALIDATION_COMPLETE_STRUCT.decoder(messageBuffer);
     return new PassiveReplicationMessage.ClearInvalidationCompleteMessage(decoder.string(SERVER_STORE_NAME_FIELD));
   }
 
   private PassiveReplicationMessage.ChainReplicationMessage decodeChainReplicationMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = CHAIN_REPLICATION_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = CHAIN_REPLICATION_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
@@ -256,7 +256,7 @@ public class PassiveReplicationMessageCodec {
   }
 
   private PassiveReplicationMessage.ClientIDTrackerMessage decodeClientIdTrackMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = CLIENT_ID_TRACK_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = CLIENT_ID_TRACK_STRUCT.decoder(messageBuffer);
 
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
 

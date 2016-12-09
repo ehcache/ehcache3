@@ -43,7 +43,7 @@ public class ChainCodec {
     .build();
 
   public byte[] encode(Chain chain) {
-    StructEncoder encoder = CHAIN_STRUCT.encoder();
+    StructEncoder<Void> encoder = CHAIN_STRUCT.encoder();
 
     encode(encoder, chain);
 
@@ -51,8 +51,8 @@ public class ChainCodec {
     return byteBuffer.array();
   }
 
-  public void encode(StructEncoder encoder, Chain chain) {
-    StructArrayEncoder elementsEncoder = encoder.structs("elements");
+  public void encode(StructEncoder<?> encoder, Chain chain) {
+    StructArrayEncoder<? extends StructEncoder<?>> elementsEncoder = encoder.structs("elements");
     for (Element element : chain) {
       if (element instanceof SequencedElement) {
         elementsEncoder.int64("sequence", ((SequencedElement) element).getSequenceNumber());
@@ -63,12 +63,12 @@ public class ChainCodec {
   }
 
   public Chain decode(byte[] payload) {
-    StructDecoder decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
+    StructDecoder<Void> decoder = CHAIN_STRUCT.decoder(ByteBuffer.wrap(payload));
     return decode(decoder);
   }
 
-  public Chain decode(StructDecoder decoder) {
-    StructArrayDecoder elementsDecoder = decoder.structs("elements");
+  public Chain decode(StructDecoder<?> decoder) {
+    StructArrayDecoder<? extends StructDecoder<?>> elementsDecoder = decoder.structs("elements");
 
     final List<Element> elements = new ArrayList<Element>();
     for (int i = 0; i < elementsDecoder.length(); i++) {

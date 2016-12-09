@@ -56,14 +56,14 @@ public class MessageCodecUtils {
     .mapping(Consistency.STRONG, 2)
     .build();
 
-  public void encodeMandatoryFields(StructEncoder encoder, EhcacheOperationMessage message) {
+  public void encodeMandatoryFields(StructEncoder<Void> encoder, EhcacheOperationMessage message) {
     encoder.enm(EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
       .int64(MSG_ID_FIELD, message.getId())
       .int64(MSB_UUID_FIELD, message.getClientId().getMostSignificantBits())
       .int64(LSB_UUID_FIELD, message.getClientId().getLeastSignificantBits());
   }
 
-  public UUID decodeUUID(StructDecoder decoder) {
+  public UUID decodeUUID(StructDecoder<Void> decoder) {
     return new UUID(decoder.int64(MSB_UUID_FIELD), decoder.int64(LSB_UUID_FIELD));
   }
 
