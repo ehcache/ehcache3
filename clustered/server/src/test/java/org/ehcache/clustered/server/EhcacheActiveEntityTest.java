@@ -39,6 +39,7 @@ import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
+import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
@@ -63,6 +64,7 @@ import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.util.MemoryUnit;
 
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -75,6 +77,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.ehcache.clustered.common.PoolAllocation.Dedicated;
 
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
+import static org.ehcache.clustered.server.EhcacheActiveEntity.SYNC_DATA_SIZE_PROP;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -85,6 +88,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -2633,6 +2637,98 @@ public class EhcacheActiveEntityTest {
     assertThat(storeConfigs.keySet(), containsInAnyOrder("myCache"));
     assertThat(storeConfigs.get("myCache").getPoolAllocation(), instanceOf(PoolAllocation.Shared.class));
 
+  }
+
+  @Test
+  public void testDataSyncToPassiveBatchedByDefault() throws Exception {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .defaultResource("serverResource1")
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.createServerStore("myCache",
+        new ServerStoreConfigBuilder()
+          .shared("primary")
+          .build()));
+
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("myCache", UUID.randomUUID());
+
+    ByteBuffer payload = ByteBuffer.allocate(512);
+    // Put keys that maps to the same concurrency key
+    activeEntity.invoke(client, messageFactory.appendOperation(1L, payload));
+    activeEntity.invoke(client, messageFactory.appendOperation(-2L, payload));
+    activeEntity.invoke(client, messageFactory.appendOperation(17L, payload));
+
+    @SuppressWarnings("unchecked")
+    PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
+    activeEntity.synchronizeKeyToPassive(syncChannel, 3);
+
+    verify(syncChannel).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
+  }
+
+  @Test
+  public void testDataSyncToPassiveCustomBatchSize() throws Exception {
+    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
+    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
+    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
+
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+    ClientDescriptor client = new TestClientDescriptor();
+    activeEntity.connected(client);
+
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .defaultResource("serverResource1")
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+
+    activeEntity.invoke(client,
+      MESSAGE_FACTORY.createServerStore("myCache",
+        new ServerStoreConfigBuilder()
+          .shared("primary")
+          .build()));
+
+    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("myCache", UUID.randomUUID());
+
+    ByteBuffer payload = ByteBuffer.allocate(512);
+    // Put keys that maps to the same concurrency key
+    activeEntity.invoke(client, messageFactory.appendOperation(1L, payload));
+    activeEntity.invoke(client, messageFactory.appendOperation(-2L, payload));
+    activeEntity.invoke(client, messageFactory.appendOperation(17L, payload));
+    activeEntity.invoke(client, messageFactory.appendOperation(33L, payload));
+
+    System.setProperty(SYNC_DATA_SIZE_PROP, "512");
+    try {
+      @SuppressWarnings("unchecked")
+      PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
+      activeEntity.synchronizeKeyToPassive(syncChannel, 3);
+
+      verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
+    } finally {
+      System.clearProperty(SYNC_DATA_SIZE_PROP);
+    }
   }
 
   @Test
