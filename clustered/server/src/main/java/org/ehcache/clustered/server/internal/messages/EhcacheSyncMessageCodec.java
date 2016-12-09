@@ -101,7 +101,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   public byte[] encode(final int concurrencyKey, final EhcacheEntityMessage message) throws MessageCodecException {
     if (message instanceof EhcacheSyncMessage) {
       EhcacheSyncMessage syncMessage = (EhcacheSyncMessage) message;
-      StructEncoder encoder;
+      StructEncoder<Void> encoder;
       switch (syncMessage.getMessageType()) {
         case STATE:
           encoder = STATE_SYNC_STRUCT.encoder();
@@ -129,7 +129,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     }
   }
 
-  private void encodeServerSideConfiguration(StructEncoder encoder, ServerSideConfiguration configuration) {
+  private void encodeServerSideConfiguration(StructEncoder<Void> encoder, ServerSideConfiguration configuration) {
     if (configuration.getDefaultServerResource() != null) {
       encoder.string(DEFAULT_RESOURCE_FIELD, configuration.getDefaultServerResource());
     }
@@ -146,7 +146,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   @Override
   public EhcacheSyncMessage decode(final int concurrencyKey, final byte[] payload) throws MessageCodecException {
     ByteBuffer message = ByteBuffer.wrap(payload);
-    StructDecoder decoder = STATE_SYNC_STRUCT.decoder(message);
+    StructDecoder<Void> decoder = STATE_SYNC_STRUCT.decoder(message);
     Enm<SyncMessageType> enm = decoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME);
     if (!enm.isFound()) {
       throw new AssertionError("Invalid message format - misses the message type field");
@@ -173,10 +173,10 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     }
   }
 
-  private Map<String, ServerStoreConfiguration> decodeStoreConfigurations(StructDecoder decoder) {
+  private Map<String, ServerStoreConfiguration> decodeStoreConfigurations(StructDecoder<Void> decoder) {
     Map<String, ServerStoreConfiguration> result = new HashMap<>();
 
-    StructArrayDecoder storesDecoder = decoder.structs(STORES_SUB_STRUCT);
+    StructArrayDecoder<StructDecoder<Void>> storesDecoder = decoder.structs(STORES_SUB_STRUCT);
     if (storesDecoder != null) {
       for (int i = 0; i < storesDecoder.length(); i++) {
         String storeName = storesDecoder.string(SERVER_STORE_NAME_FIELD);
@@ -187,10 +187,10 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     return result;
   }
 
-  private ServerSideConfiguration decodeServerSideConfiguration(StructDecoder decoder) {
+  private ServerSideConfiguration decodeServerSideConfiguration(StructDecoder<Void> decoder) {
     String defaultResource = decoder.string(DEFAULT_RESOURCE_FIELD);
     Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
-    StructArrayDecoder poolsDecoder = decoder.structs(POOLS_SUB_STRUCT);
+    StructArrayDecoder<StructDecoder<Void>> poolsDecoder = decoder.structs(POOLS_SUB_STRUCT);
     if (poolsDecoder != null) {
       for (int i = 0; i < poolsDecoder.length(); i++) {
         String poolName = poolsDecoder.string(POOL_NAME_FIELD);

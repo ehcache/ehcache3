@@ -124,7 +124,7 @@ class LifeCycleMessageCodec {
   }
 
   private byte[] encodeReleaseStoreMessage(LifecycleMessage.ReleaseServerStore message) {
-    StructEncoder encoder = RELEASE_STORE_MESSAGE_STRUCTU.encoder();
+    StructEncoder<Void> encoder = RELEASE_STORE_MESSAGE_STRUCTU.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
@@ -132,7 +132,7 @@ class LifeCycleMessageCodec {
   }
 
   private byte[] encodeDestroyStoreMessage(LifecycleMessage.DestroyServerStore message) {
-    StructEncoder encoder = DESTROY_STORE_MESSAGE_STRUCT.encoder();
+    StructEncoder<Void> encoder = DESTROY_STORE_MESSAGE_STRUCT.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
@@ -140,7 +140,7 @@ class LifeCycleMessageCodec {
   }
 
   private byte[] encodeCreateStoreMessage(LifecycleMessage.CreateServerStore message) {
-    StructEncoder encoder = CREATE_STORE_MESSAGE_STRUCT.encoder();
+    StructEncoder<Void> encoder = CREATE_STORE_MESSAGE_STRUCT.encoder();
     return encodeBaseServerStoreMessage(message, encoder);
   }
 
@@ -148,7 +148,7 @@ class LifeCycleMessageCodec {
     return encodeBaseServerStoreMessage(message, VALIDATE_STORE_MESSAGE_STRUCT.encoder());
   }
 
-  private byte[] encodeBaseServerStoreMessage(LifecycleMessage.BaseServerStore message, StructEncoder encoder) {
+  private byte[] encodeBaseServerStoreMessage(LifecycleMessage.BaseServerStore message, StructEncoder<Void> encoder) {
     messageCodecUtils.encodeMandatoryFields(encoder, message);
 
     encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
@@ -164,13 +164,13 @@ class LifeCycleMessageCodec {
     return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), VALIDATE_MESSAGE_STRUCT.encoder());
   }
 
-  private byte[] encodeTierManagerCreateOrValidate(LifecycleMessage message, ServerSideConfiguration config, StructEncoder encoder) {
+  private byte[] encodeTierManagerCreateOrValidate(LifecycleMessage message, ServerSideConfiguration config, StructEncoder<Void> encoder) {
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encodeServerSideConfiguration(encoder, config);
     return encoder.encode().array();
   }
 
-  private void encodeServerSideConfiguration(StructEncoder encoder, ServerSideConfiguration configuration) {
+  private void encodeServerSideConfiguration(StructEncoder<Void> encoder, ServerSideConfiguration configuration) {
     if (configuration == null) {
       encoder.bool(CONFIG_PRESENT_FIELD, false);
     } else {
@@ -180,7 +180,7 @@ class LifeCycleMessageCodec {
       }
 
       if (!configuration.getResourcePools().isEmpty()) {
-        StructArrayEncoder poolsEncoder = encoder.structs(POOLS_SUB_STRUCT);
+        StructArrayEncoder<StructEncoder<Void>> poolsEncoder = encoder.structs(POOLS_SUB_STRUCT);
         for (Map.Entry<String, ServerSideConfiguration.Pool> poolEntry : configuration.getResourcePools().entrySet()) {
           poolsEncoder.string(POOL_NAME_FIELD, poolEntry.getKey())
             .int64(POOL_SIZE_FIELD, poolEntry.getValue().getSize());
@@ -194,14 +194,14 @@ class LifeCycleMessageCodec {
     }
   }
 
-  private ServerSideConfiguration decodeServerSideConfiguration(StructDecoder decoder) {
+  private ServerSideConfiguration decodeServerSideConfiguration(StructDecoder<Void> decoder) {
     boolean configPresent = decoder.bool(CONFIG_PRESENT_FIELD);
 
     if (configPresent) {
       String defaultResource = decoder.string(DEFAULT_RESOURCE_FIELD);
 
       HashMap<String, ServerSideConfiguration.Pool> resourcePools = new HashMap<String, ServerSideConfiguration.Pool>();
-      StructArrayDecoder poolStructs = decoder.structs(POOLS_SUB_STRUCT);
+      StructArrayDecoder<StructDecoder<Void>> poolStructs = decoder.structs(POOLS_SUB_STRUCT);
       if (poolStructs != null) {
         for (int i = 0; i < poolStructs.length(); i++) {
           String poolName = poolStructs.string(POOL_NAME_FIELD);
@@ -248,7 +248,7 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ReleaseServerStore decodeReleaseServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = RELEASE_STORE_MESSAGE_STRUCTU.decoder(messageBuffer);
+    StructDecoder<Void> decoder = RELEASE_STORE_MESSAGE_STRUCTU.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
@@ -261,7 +261,7 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.DestroyServerStore decodeDestroyServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = DESTROY_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = DESTROY_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
@@ -274,7 +274,7 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ValidateServerStore decodeValidateServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = VALIDATE_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = VALIDATE_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
@@ -288,7 +288,7 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.CreateServerStore decodeCreateServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = CREATE_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = CREATE_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
@@ -302,7 +302,7 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ValidateStoreManager decodeValidateMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = VALIDATE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = VALIDATE_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
@@ -317,7 +317,7 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ConfigureStoreManager decodeConfigureMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = CONFIGURE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = CONFIGURE_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);

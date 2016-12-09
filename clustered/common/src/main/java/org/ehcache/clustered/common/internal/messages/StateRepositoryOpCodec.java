@@ -87,7 +87,7 @@ class StateRepositoryOpCodec {
   }
 
   private byte[] encodeEntrySetMessage(StateRepositoryOpMessage.EntrySetMessage message) {
-    StructEncoder encoder = ENTRY_SET_MESSAGE_STRUCT.encoder();
+    StructEncoder<Void> encoder = ENTRY_SET_MESSAGE_STRUCT.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getCacheId());
@@ -97,7 +97,7 @@ class StateRepositoryOpCodec {
   }
 
   private byte[] encodePutIfAbsentMessage(StateRepositoryOpMessage.PutIfAbsentMessage message) {
-    StructEncoder encoder = PUT_IF_ABSENT_MESSAGE_STRUCT.encoder();
+    StructEncoder<Void> encoder = PUT_IF_ABSENT_MESSAGE_STRUCT.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getCacheId());
@@ -110,7 +110,7 @@ class StateRepositoryOpCodec {
   }
 
   private byte[] encodeGetMessage(StateRepositoryOpMessage.GetMessage message) {
-    StructEncoder encoder = GET_MESSAGE_STRUCT.encoder();
+    StructEncoder<Void> encoder = GET_MESSAGE_STRUCT.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getCacheId());
@@ -135,7 +135,7 @@ class StateRepositoryOpCodec {
   }
 
   private StateRepositoryOpMessage.EntrySetMessage decodeEntrySetMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = ENTRY_SET_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = ENTRY_SET_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
@@ -149,7 +149,7 @@ class StateRepositoryOpCodec {
   }
 
   private StateRepositoryOpMessage.PutIfAbsentMessage decodePutIfAbsentMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = PUT_IF_ABSENT_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = PUT_IF_ABSENT_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
@@ -169,7 +169,7 @@ class StateRepositoryOpCodec {
   }
 
   private StateRepositoryOpMessage.GetMessage decodeGetMessage(ByteBuffer messageBuffer) {
-    StructDecoder decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = GET_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
