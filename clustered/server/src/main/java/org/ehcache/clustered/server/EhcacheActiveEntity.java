@@ -30,6 +30,8 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
@@ -37,13 +39,11 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidOperationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
-import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
@@ -51,6 +51,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFacto
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
+import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
@@ -105,6 +106,8 @@ import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurre
 class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
+  static final String SYNC_DATA_SIZE_PROP = "ehcache.sync.data.size.threshold";
+  private static final long DEFAULT_SYNC_DATA_SIZE_THRESHOLD = 4 * 1024 * 1024;
 
   private final UUID identity;
 
@@ -370,10 +373,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
       syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs));
     } else {
-      ehcacheStateService.getStores().stream()
+      Long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
+      AtomicLong size = new AtomicLong(0);
+      ehcacheStateService.getStores()
         .forEach(name -> {
           ServerSideServerStore store = ehcacheStateService.getStore(name);
-          store.getSegments().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET).keySet().stream()
+          final AtomicReference<Map<Long, Chain>> mappingsToSend = new AtomicReference<>(new HashMap<>());
+          store.getSegments().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET).keySet()
             .forEach(key -> {
               final Chain chain;
               try {
@@ -381,8 +387,21 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
               } catch (TimeoutException e) {
                 throw new AssertionError("Server side store is not expected to throw timeout exception");
               }
-              syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, key, chain));
+              for (Element element : chain) {
+                size.addAndGet(element.getPayload().remaining());
+              }
+              mappingsToSend.get().put(key, chain);
+              if (size.get() > dataSizeThreshold) {
+                syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, mappingsToSend.get()));
+                mappingsToSend.set(new HashMap<>());
+                size.set(0);
+              }
             });
+          if (!mappingsToSend.get().isEmpty()) {
+            syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, mappingsToSend.get()));
+            mappingsToSend.set(new HashMap<>());
+            size.set(0);
+          }
         });
     }
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
@@ -515,7 +534,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
           ServerStoreOpMessage.AppendMessage appendMessage = (ServerStoreOpMessage.AppendMessage)message;
           final Chain newChain;
           try {
-            cacheStore.getAndAppend(appendMessage.getKey(), appendMessage.getPayload());
+            cacheStore.append(appendMessage.getKey(), appendMessage.getPayload());
             newChain = cacheStore.get(appendMessage.getKey());
           } catch (TimeoutException e) {
             throw new AssertionError("Server side store is not expected to throw timeout exception");

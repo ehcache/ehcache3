@@ -218,7 +218,11 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         break;
       case DATA:
         EhcacheDataSyncMessage dataSyncMessage = (EhcacheDataSyncMessage) message;
-        ehcacheStateService.getStore(dataSyncMessage.getCacheId()).put(dataSyncMessage.getKey(), dataSyncMessage.getChain());
+        ServerSideServerStore store = ehcacheStateService.getStore(dataSyncMessage.getCacheId());
+        dataSyncMessage.getChainMap().entrySet().forEach(entry -> {
+          store.put(entry.getKey(), entry.getValue());
+
+        });
         break;
       default:
         throw new AssertionError("Unsupported Sync operation " + message.getMessageType());

@@ -19,13 +19,11 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.store.Chain;
 import org.junit.Test;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.store.Util.chainsEqual;
 import static org.ehcache.clustered.common.internal.store.Util.createPayload;
@@ -93,11 +91,19 @@ public class EhcacheSyncMessageCodecTest {
   @Test
   public void testDataSyncMessageEncodeDecode() throws Exception {
     EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
-    EhcacheDataSyncMessage message = new EhcacheDataSyncMessage("foo", 123L,
-        getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L)));
-    EhcacheDataSyncMessage decoded = (EhcacheDataSyncMessage) codec.decode(0, codec.encode(0, message));
+    Map<Long, Chain> chainMap = new HashMap<>();
+    Chain chain = getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L));
+    chainMap.put(1L, chain);
+    chainMap.put(2L, chain);
+    chainMap.put(3L, chain);
+    EhcacheDataSyncMessage message = new EhcacheDataSyncMessage("foo", chainMap);
+    byte[] encodedMessage = codec.encode(0, message);
+    EhcacheDataSyncMessage decoded = (EhcacheDataSyncMessage) codec.decode(0, encodedMessage);
     assertThat(decoded.getCacheId(), is(message.getCacheId()));
-    assertThat(decoded.getKey(), is(message.getKey()));
-    assertThat(chainsEqual(decoded.getChain(), message.getChain()), is(true));
+    Map<Long, Chain> decodedChainMap = decoded.getChainMap();
+    assertThat(decodedChainMap.size(), is(3));
+    assertThat(chainsEqual(decodedChainMap.get(1L), chain), is(true));
+    assertThat(chainsEqual(decodedChainMap.get(2L), chain), is(true));
+    assertThat(chainsEqual(decodedChainMap.get(3L), chain), is(true));
   }
 }
