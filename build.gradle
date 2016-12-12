@@ -18,7 +18,7 @@ import org.gradle.internal.jvm.Jvm
 
 ext {
 
-  baseVersion = findProperty('overrideVersion') ?: '3.2.0-SNAPSHOT'
+  baseVersion = findProperty('overrideVersion') ?: '3.2.1-SNAPSHOT'
 
   // Third parties
   offheapVersion = '2.3.2'
