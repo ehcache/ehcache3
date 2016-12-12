@@ -27,9 +27,11 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
 import java.util.UUID;
@@ -140,6 +142,12 @@ public class EhcacheClientEntityFactory {
       } catch (EntityVersionMismatchException e) {
         LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
         throw new AssertionError(e);
+      } catch (PermanentEntityException e) {
+        LOGGER.error("Unable to create entity - server indicates it is permanent", e);
+        throw new AssertionError(e);
+      } catch (EntityConfigurationException e) {
+        LOGGER.error("Unable to create entity - configuration exception", e);
+        throw new AssertionError(e);
       }
     } finally {
       if (localMaintenance != null) {
@@ -227,6 +235,9 @@ public class EhcacheClientEntityFactory {
         throw new AssertionError(e);
       } catch (EntityNotFoundException e) {
         throw new EhcacheEntityNotFoundException(e);
+      } catch (PermanentEntityException e) {
+        LOGGER.error("Unable to destroy entity - server says it is permanent", e);
+        throw new AssertionError(e);
       }
     } finally {
       if (localMaintenance != null) {

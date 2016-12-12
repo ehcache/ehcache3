@@ -24,9 +24,11 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
 public class VoltronReadWriteLock {
 
@@ -86,6 +88,9 @@ public class VoltronReadWriteLock {
       throw new AssertionError(e);
     } catch (EntityNotFoundException e) {
       // Nothing to do
+    } catch (PermanentEntityException e) {
+      LOGGER.error("Failed to destroy lock entity - server says it is permanent", e);
+      throw new AssertionError(e);
     }
   }
 
@@ -131,6 +136,9 @@ public class VoltronReadWriteLock {
           LOGGER.debug("Created lock entity " + reference.getName());
         } catch (EntityAlreadyExistsException f) {
           //ignore
+        } catch (EntityConfigurationException e) {
+          LOGGER.error("Error creating lock entity - configuration exception", e);
+          throw new AssertionError(e);
         }
         try {
           return reference.fetchEntity();
