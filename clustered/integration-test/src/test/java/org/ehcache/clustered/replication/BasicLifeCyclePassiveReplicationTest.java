@@ -267,7 +267,6 @@ public class BasicLifeCyclePassiveReplicationTest {
   }
 
   @Test
-//  @Ignore("enable back once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed")
   public void testDestroyLockEntity() throws Exception {
     VoltronReadWriteLock lock1 = new VoltronReadWriteLock(CLUSTER.newConnection(), "my-lock");
     VoltronReadWriteLock.Hold hold1 = lock1.tryReadLock();

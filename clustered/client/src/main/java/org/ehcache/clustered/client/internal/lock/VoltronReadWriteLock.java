@@ -72,8 +72,7 @@ public class VoltronReadWriteLock {
       return new HoldImpl(client, type);
     } else {
       client.close();
-      //TODO Restore this clean up operation once https://github.com/Terracotta-OSS/terracotta-core/issues/379 is fixed
-//      tryDestroy();
+      tryDestroy();
       return null;
     }
   }
