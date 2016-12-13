@@ -66,4 +66,6 @@ public interface EhcacheStateService {
 
   InvalidationTracker removeInvalidationtracker(String cacheId);
 
+  void loadExisting();
+
 }
