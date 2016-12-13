@@ -19,73 +19,41 @@ package org.ehcache.clustered.common.internal.messages;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.terracotta.runnel.Struct;
-import org.terracotta.runnel.decoding.StructArrayDecoder;
+import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.StructDecoder;
-import org.terracotta.runnel.encoding.StructArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.CONSISTENCY_ENUM_MAPPING;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.DEFAULT_RESOURCE_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOLS_SUB_STRUCT;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_NAME_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_RESOURCE_NAME_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_SIZE_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_CONSISTENCY_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_KEY_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_VALUE_TYPE_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
-class LifeCycleMessageCodec {
+public class LifeCycleMessageCodec {
 
   private static final String CONFIG_PRESENT_FIELD = "configPresent";
 
-  private static final Struct POOLS_STRUCT = newStructBuilder()
-    .string(POOL_NAME_FIELD, 10)
-    .int64(POOL_SIZE_FIELD, 20)
-    .string(POOL_RESOURCE_NAME_FIELD, 30).build();
-
-  private static final Struct CONFIGURE_MESSAGE_STRUCT = newStructBuilder()
+  private final StructBuilder CONFIGURE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
     .int64(LSB_UUID_FIELD, 21)
-    .bool(CONFIG_PRESENT_FIELD, 30)
-    .string(DEFAULT_RESOURCE_FIELD, 40)
-    .structs(POOLS_SUB_STRUCT, 50, POOLS_STRUCT)
-    .build();
+    .bool(CONFIG_PRESENT_FIELD, 30);
+  private static final int CONFIGURE_MESSAGE_NEXT_INDEX = 40;
 
-  private static final Struct VALIDATE_MESSAGE_STRUCT = CONFIGURE_MESSAGE_STRUCT;
-
-  private static final Struct CREATE_STORE_MESSAGE_STRUCT = newStructBuilder()
+  private final StructBuilder CREATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
     .int64(LSB_UUID_FIELD, 21)
-    .string(SERVER_STORE_NAME_FIELD, 30)
-    .string(STORE_CONFIG_KEY_TYPE_FIELD, 40)
-    .string(STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD, 41)
-    .string(STORE_CONFIG_VALUE_TYPE_FIELD, 45)
-    .string(STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD, 46)
-    .enm(STORE_CONFIG_CONSISTENCY_FIELD, 50, CONSISTENCY_ENUM_MAPPING)
-    .int64(POOL_SIZE_FIELD, 60)
-    .string(POOL_RESOURCE_NAME_FIELD, 65)
-    .build();
-
-  private static final Struct VALIDATE_STORE_MESSAGE_STRUCT = CREATE_STORE_MESSAGE_STRUCT;
+    .string(SERVER_STORE_NAME_FIELD, 30);
+  private static final int CREATE_STORE_NEXT_INDEX = 40;
 
   private static final Struct DESTROY_STORE_MESSAGE_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
@@ -95,9 +63,27 @@ class LifeCycleMessageCodec {
     .string(SERVER_STORE_NAME_FIELD, 30)
     .build();
 
-  private static final Struct RELEASE_STORE_MESSAGE_STRUCTU = DESTROY_STORE_MESSAGE_STRUCT;
+  private final Struct RELEASE_STORE_MESSAGE_STRUCT = DESTROY_STORE_MESSAGE_STRUCT;
 
-  private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
+  private final Struct configureMessageStruct;
+  private final Struct validateMessageStruct;
+  private final Struct createStoreMessageStruct;
+  private final Struct validateStoreMessageStruct;
+
+  private final MessageCodecUtils messageCodecUtils;
+  private final ConfigCodec configCodec;
+
+  public LifeCycleMessageCodec(ConfigCodec configCodec) {
+    this.messageCodecUtils = new MessageCodecUtils();
+    this.configCodec = configCodec;
+    configureMessageStruct = this.configCodec.injectServerSideConfiguration(
+      CONFIGURE_MESSAGE_STRUCT_BUILDER_PREFIX, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
+    validateMessageStruct = configureMessageStruct;
+
+    createStoreMessageStruct = this.configCodec.injectServerStoreConfiguration(
+      CREATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX, CREATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
+    validateStoreMessageStruct = createStoreMessageStruct;
+  }
 
   public byte[] encode(LifecycleMessage message) {
     //For configure message id serves as message creation timestamp
@@ -124,7 +110,7 @@ class LifeCycleMessageCodec {
   }
 
   private byte[] encodeReleaseStoreMessage(LifecycleMessage.ReleaseServerStore message) {
-    StructEncoder<Void> encoder = RELEASE_STORE_MESSAGE_STRUCTU.encoder();
+    StructEncoder<Void> encoder = RELEASE_STORE_MESSAGE_STRUCT.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
@@ -140,92 +126,39 @@ class LifeCycleMessageCodec {
   }
 
   private byte[] encodeCreateStoreMessage(LifecycleMessage.CreateServerStore message) {
-    StructEncoder<Void> encoder = CREATE_STORE_MESSAGE_STRUCT.encoder();
+    StructEncoder<Void> encoder = createStoreMessageStruct.encoder();
     return encodeBaseServerStoreMessage(message, encoder);
   }
 
   private byte[] encodeValidateStoreMessage(LifecycleMessage.ValidateServerStore message) {
-    return encodeBaseServerStoreMessage(message, VALIDATE_STORE_MESSAGE_STRUCT.encoder());
+    return encodeBaseServerStoreMessage(message, validateStoreMessageStruct.encoder());
   }
 
   private byte[] encodeBaseServerStoreMessage(LifecycleMessage.BaseServerStore message, StructEncoder<Void> encoder) {
     messageCodecUtils.encodeMandatoryFields(encoder, message);
 
     encoder.string(SERVER_STORE_NAME_FIELD, message.getName());
-    messageCodecUtils.encodeServerStoreConfiguration(encoder, message.getStoreConfiguration());
+    configCodec.encodeServerStoreConfiguration(encoder, message.getStoreConfiguration());
     return encoder.encode().array();
   }
 
   private byte[] encodeTierManagerConfigureMessage(LifecycleMessage.ConfigureStoreManager message) {
-    return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), CONFIGURE_MESSAGE_STRUCT.encoder());
+    return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), configureMessageStruct.encoder());
   }
 
   private byte[] encodeTierManagerValidateMessage(LifecycleMessage.ValidateStoreManager message) {
-    return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), VALIDATE_MESSAGE_STRUCT.encoder());
+    return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), validateMessageStruct.encoder());
   }
 
   private byte[] encodeTierManagerCreateOrValidate(LifecycleMessage message, ServerSideConfiguration config, StructEncoder<Void> encoder) {
     messageCodecUtils.encodeMandatoryFields(encoder, message);
-    encodeServerSideConfiguration(encoder, config);
-    return encoder.encode().array();
-  }
-
-  private void encodeServerSideConfiguration(StructEncoder<Void> encoder, ServerSideConfiguration configuration) {
-    if (configuration == null) {
+    if (config == null) {
       encoder.bool(CONFIG_PRESENT_FIELD, false);
     } else {
       encoder.bool(CONFIG_PRESENT_FIELD, true);
-      if (configuration.getDefaultServerResource() != null) {
-        encoder.string(DEFAULT_RESOURCE_FIELD, configuration.getDefaultServerResource());
-      }
-
-      if (!configuration.getResourcePools().isEmpty()) {
-        StructArrayEncoder<StructEncoder<Void>> poolsEncoder = encoder.structs(POOLS_SUB_STRUCT);
-        for (Map.Entry<String, ServerSideConfiguration.Pool> poolEntry : configuration.getResourcePools().entrySet()) {
-          poolsEncoder.string(POOL_NAME_FIELD, poolEntry.getKey())
-            .int64(POOL_SIZE_FIELD, poolEntry.getValue().getSize());
-          if (poolEntry.getValue().getServerResource() != null) {
-            poolsEncoder.string(POOL_RESOURCE_NAME_FIELD, poolEntry.getValue().getServerResource());
-          }
-          poolsEncoder.next();
-        }
-        poolsEncoder.end();
-      }
+      configCodec.encodeServerSideConfiguration(encoder, config);
     }
-  }
-
-  private ServerSideConfiguration decodeServerSideConfiguration(StructDecoder<Void> decoder) {
-    boolean configPresent = decoder.bool(CONFIG_PRESENT_FIELD);
-
-    if (configPresent) {
-      String defaultResource = decoder.string(DEFAULT_RESOURCE_FIELD);
-
-      HashMap<String, ServerSideConfiguration.Pool> resourcePools = new HashMap<String, ServerSideConfiguration.Pool>();
-      StructArrayDecoder<StructDecoder<Void>> poolStructs = decoder.structs(POOLS_SUB_STRUCT);
-      if (poolStructs != null) {
-        for (int i = 0; i < poolStructs.length(); i++) {
-          String poolName = poolStructs.string(POOL_NAME_FIELD);
-          Long poolSize = poolStructs.int64(POOL_SIZE_FIELD);
-          String poolResourceName = poolStructs.string(POOL_RESOURCE_NAME_FIELD);
-          if (poolResourceName == null) {
-            resourcePools.put(poolName, new ServerSideConfiguration.Pool(poolSize));
-          } else {
-            resourcePools.put(poolName, new ServerSideConfiguration.Pool(poolSize, poolResourceName));
-          }
-          poolStructs.next();
-        }
-      }
-
-      ServerSideConfiguration serverSideConfiguration;
-      if (defaultResource == null) {
-        serverSideConfiguration = new ServerSideConfiguration(resourcePools);
-      } else {
-        serverSideConfiguration = new ServerSideConfiguration(defaultResource, resourcePools);
-      }
-      return serverSideConfiguration;
-    } else {
-      return null;
-    }
+    return encoder.encode().array();
   }
 
   public EhcacheEntityMessage decode(EhcacheMessageType messageType, ByteBuffer messageBuffer) {
@@ -248,7 +181,7 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ReleaseServerStore decodeReleaseServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = RELEASE_STORE_MESSAGE_STRUCTU.decoder(messageBuffer);
+    StructDecoder<Void> decoder = RELEASE_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
@@ -274,13 +207,13 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ValidateServerStore decodeValidateServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = VALIDATE_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = validateStoreMessageStruct.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
 
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
-    ServerStoreConfiguration config = messageCodecUtils.decodeServerStoreConfiguration(decoder);
+    ServerStoreConfiguration config = configCodec.decodeServerStoreConfiguration(decoder);
 
     LifecycleMessage.ValidateServerStore message = new LifecycleMessage.ValidateServerStore(storeName, config, cliendId);
     message.setId(msgId);
@@ -288,13 +221,13 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.CreateServerStore decodeCreateServerStoreMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = CREATE_STORE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = createStoreMessageStruct.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
 
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
-    ServerStoreConfiguration config = messageCodecUtils.decodeServerStoreConfiguration(decoder);
+    ServerStoreConfiguration config = configCodec.decodeServerStoreConfiguration(decoder);
 
     LifecycleMessage.CreateServerStore message = new LifecycleMessage.CreateServerStore(storeName, config, cliendId);
     message.setId(msgId);
@@ -302,12 +235,17 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ValidateStoreManager decodeValidateMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = VALIDATE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = validateMessageStruct.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID cliendId = messageCodecUtils.decodeUUID(decoder);
+    boolean configPresent = decoder.bool(CONFIG_PRESENT_FIELD);
 
-    ServerSideConfiguration config = decodeServerSideConfiguration(decoder);
+    ServerSideConfiguration config = null;
+    if (configPresent) {
+      config = configCodec.decodeServerSideConfiguration(decoder);
+    }
+
 
     LifecycleMessage.ValidateStoreManager message = new LifecycleMessage.ValidateStoreManager(config, cliendId);
     if (msgId != null) {
@@ -317,12 +255,16 @@ class LifeCycleMessageCodec {
   }
 
   private LifecycleMessage.ConfigureStoreManager decodeConfigureMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = CONFIGURE_MESSAGE_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = configureMessageStruct.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
+    boolean configPresent = decoder.bool(CONFIG_PRESENT_FIELD);
 
-    ServerSideConfiguration config = decodeServerSideConfiguration(decoder);
+    ServerSideConfiguration config = null;
+    if (configPresent) {
+      config = configCodec.decodeServerSideConfiguration(decoder);
+    }
 
     LifecycleMessage.ConfigureStoreManager message = new LifecycleMessage.ConfigureStoreManager(config, clientId);
     if (msgId != null) {
@@ -330,5 +272,4 @@ class LifeCycleMessageCodec {
     }
     return message;
   }
-
 }

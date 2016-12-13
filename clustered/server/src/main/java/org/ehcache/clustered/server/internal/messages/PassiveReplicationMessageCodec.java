@@ -18,11 +18,13 @@ package org.ehcache.clustered.server.internal.messages;
 
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ChainCodec;
+import org.ehcache.clustered.common.internal.messages.ConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.MessageCodecUtils;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.runnel.Struct;
+import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructEncoder;
 
@@ -32,19 +34,11 @@ import java.util.UUID;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.CONSISTENCY_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.LSB_UUID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSB_UUID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_RESOURCE_NAME_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_SIZE_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_CONSISTENCY_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_KEY_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_VALUE_TYPE_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
 public class PassiveReplicationMessageCodec {
@@ -78,21 +72,6 @@ public class PassiveReplicationMessageCodec {
     .int64(KEY_FIELD, 30)
     .build();
 
-  private static final Struct CREATE_SERVER_STORE_REPLICATION_STRUCT = newStructBuilder()
-    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
-    .int64(MSG_ID_FIELD, 15)
-    .int64(MSB_UUID_FIELD, 20)
-    .int64(LSB_UUID_FIELD, 21)
-    .string(SERVER_STORE_NAME_FIELD, 30)
-    .string(STORE_CONFIG_KEY_TYPE_FIELD, 40)
-    .string(STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD, 41)
-    .string(STORE_CONFIG_VALUE_TYPE_FIELD, 45)
-    .string(STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD, 46)
-    .enm(STORE_CONFIG_CONSISTENCY_FIELD, 50, CONSISTENCY_ENUM_MAPPING)
-    .int64(POOL_SIZE_FIELD, 60)
-    .string(POOL_RESOURCE_NAME_FIELD, 65)
-    .build();
-
   private static final Struct DESTROY_SERVER_STORE_REPLICATION_STRUCT = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
@@ -101,8 +80,27 @@ public class PassiveReplicationMessageCodec {
     .string(SERVER_STORE_NAME_FIELD, 30)
     .build();
 
-  private final ChainCodec chainCodec = new ChainCodec();
-  private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
+  private final StructBuilder CREATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .int64(MSG_ID_FIELD, 15)
+    .int64(MSB_UUID_FIELD, 20)
+    .int64(LSB_UUID_FIELD, 21)
+    .string(SERVER_STORE_NAME_FIELD, 30);
+  private static final int CREATE_STORE_NEXT_INDEX = 40;
+
+  private final Struct createStoreReplicationMessageStruct;
+
+  private final ChainCodec chainCodec ;
+  private final MessageCodecUtils messageCodecUtils;
+  private final ConfigCodec configCodec;
+
+  public PassiveReplicationMessageCodec(final ConfigCodec configCodec) {
+    this.chainCodec = new ChainCodec();
+    this.messageCodecUtils = new MessageCodecUtils();
+    this.configCodec = configCodec;
+    createStoreReplicationMessageStruct = this.configCodec.injectServerStoreConfiguration(
+      CREATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX, CREATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
+  }
 
   public byte[] encode(PassiveReplicationMessage message) {
 
@@ -134,11 +132,11 @@ public class PassiveReplicationMessageCodec {
   }
 
   private byte[] encodeCreateServerStoreReplicationMessage(PassiveReplicationMessage.CreateServerStoreReplicationMessage message) {
-    StructEncoder<Void> encoder = CREATE_SERVER_STORE_REPLICATION_STRUCT.encoder();
+    StructEncoder<Void> encoder = createStoreReplicationMessageStruct.encoder();
 
     messageCodecUtils.encodeMandatoryFields(encoder, message);
     encoder.string(SERVER_STORE_NAME_FIELD, message.getStoreName());
-    messageCodecUtils.encodeServerStoreConfiguration(encoder, message.getStoreConfiguration());
+    configCodec.encodeServerStoreConfiguration(encoder, message.getStoreConfiguration());
 
     return encoder.encode().array();
   }
@@ -216,13 +214,13 @@ public class PassiveReplicationMessageCodec {
   }
 
   private PassiveReplicationMessage.CreateServerStoreReplicationMessage decodeCreateServerStoreReplicationMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = CREATE_SERVER_STORE_REPLICATION_STRUCT.decoder(messageBuffer);
+    StructDecoder<Void> decoder = createStoreReplicationMessageStruct.decoder(messageBuffer);
 
     Long msgId = decoder.int64(MSG_ID_FIELD);
     UUID clientId = messageCodecUtils.decodeUUID(decoder);
 
     String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
-    ServerStoreConfiguration configuration = messageCodecUtils.decodeServerStoreConfiguration(decoder);
+    ServerStoreConfiguration configuration = configCodec.decodeServerStoreConfiguration(decoder);
 
     return new PassiveReplicationMessage.CreateServerStoreReplicationMessage(msgId, clientId, storeName, configuration);
   }

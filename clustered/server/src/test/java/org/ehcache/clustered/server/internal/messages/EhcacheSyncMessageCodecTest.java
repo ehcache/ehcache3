@@ -19,6 +19,7 @@ import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.junit.Test;
 
@@ -59,7 +60,7 @@ public class EhcacheSyncMessageCodecTest {
     storeConfigs.put("cache2", serverStoreConfiguration2);
 
     EhcacheStateSyncMessage message = new EhcacheStateSyncMessage(serverSideConfig, storeConfigs);
-    EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
+    EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec(new CommonConfigCodec());
     EhcacheStateSyncMessage decodedMessage = (EhcacheStateSyncMessage) codec.decode(0, codec.encode(0, message));
 
     assertThat(decodedMessage.getConfiguration().getDefaultServerResource(), is("default-pool"));
@@ -90,7 +91,7 @@ public class EhcacheSyncMessageCodecTest {
 
   @Test
   public void testDataSyncMessageEncodeDecode() throws Exception {
-    EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec();
+    EhcacheSyncMessageCodec codec = new EhcacheSyncMessageCodec(new CommonConfigCodec());
     Map<Long, Chain> chainMap = new HashMap<>();
     Chain chain = getChain(true, createPayload(10L), createPayload(100L), createPayload(1000L));
     chainMap.put(1L, chain);

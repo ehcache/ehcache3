@@ -35,7 +35,7 @@ import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.M
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 import static org.terracotta.runnel.StructBuilder.newStructBuilder;
 
-class StateRepositoryOpCodec {
+public class StateRepositoryOpCodec {
 
   private static final String MAP_ID_FIELD = "mapId";
   private static final String VALUE_FIELD = "value";
