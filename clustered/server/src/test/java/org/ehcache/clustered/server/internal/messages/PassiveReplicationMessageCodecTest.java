@@ -19,6 +19,7 @@ package org.ehcache.clustered.server.internal.messages;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
+import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
@@ -43,7 +44,7 @@ import static org.junit.Assert.assertTrue;
 public class PassiveReplicationMessageCodecTest {
 
   private static final long MESSAGE_ID = 42L;
-  private PassiveReplicationMessageCodec codec = new PassiveReplicationMessageCodec();
+  private PassiveReplicationMessageCodec codec = new PassiveReplicationMessageCodec(new CommonConfigCodec());
 
   @Test
   public void testClientIDTrackerMessageCodec() {

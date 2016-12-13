@@ -41,7 +41,7 @@ public class LifeCycleMessageCodecTest {
   private static final UUID CLIENT_ID = UUID.randomUUID();
 
   private final LifeCycleMessageFactory factory = new LifeCycleMessageFactory();
-  private final LifeCycleMessageCodec codec = new LifeCycleMessageCodec();
+  private final LifeCycleMessageCodec codec = new LifeCycleMessageCodec(new CommonConfigCodec());
 
   @Before
   public void setUp() {

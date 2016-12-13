@@ -19,14 +19,15 @@ package org.ehcache.clustered.server.internal.messages;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ChainCodec;
+import org.ehcache.clustered.common.internal.messages.ConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
-import org.ehcache.clustered.common.internal.messages.MessageCodecUtils;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.SyncMessageCodec;
 import org.terracotta.runnel.Struct;
+import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.Enm;
 import org.terracotta.runnel.decoding.StructArrayDecoder;
 import org.terracotta.runnel.decoding.StructDecoder;
@@ -37,19 +38,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.CONSISTENCY_ENUM_MAPPING;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.DEFAULT_RESOURCE_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOLS_SUB_STRUCT;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_NAME_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_RESOURCE_NAME_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.POOL_SIZE_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_CONSISTENCY_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_KEY_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD;
-import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.STORE_CONFIG_VALUE_TYPE_FIELD;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.DATA;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.STATE;
 import static org.ehcache.clustered.server.internal.messages.SyncMessageType.SYNC_MESSAGE_TYPE_FIELD_INDEX;
@@ -65,29 +55,6 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
   private static final String CHAIN_FIELD = "chain";
   private static final String CHAIN_MAP_ENTRIES_SUB_STRUCT = "entries";
 
-  private static final Struct POOLS_STRUCT = newStructBuilder()
-    .string(POOL_NAME_FIELD, 10)
-    .int64(POOL_SIZE_FIELD, 20)
-    .string(POOL_RESOURCE_NAME_FIELD, 30).build();
-
-  private static final Struct SERVER_STORE_CONFIGURATION_STRUCT = newStructBuilder()
-    .string(SERVER_STORE_NAME_FIELD, 10)
-    .string(STORE_CONFIG_KEY_TYPE_FIELD, 20)
-    .string(STORE_CONFIG_KEY_SERIALIZER_TYPE_FIELD, 21)
-    .string(STORE_CONFIG_VALUE_TYPE_FIELD, 25)
-    .string(STORE_CONFIG_VALUE_SERIALIZER_TYPE_FIELD, 26)
-    .enm(STORE_CONFIG_CONSISTENCY_FIELD, 30, CONSISTENCY_ENUM_MAPPING)
-    .int64(POOL_SIZE_FIELD, 40)
-    .string(POOL_RESOURCE_NAME_FIELD, 45)
-    .build();
-
-  private static final Struct STATE_SYNC_STRUCT = newStructBuilder()
-    .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING)
-    .string(DEFAULT_RESOURCE_FIELD, 20)
-    .structs(POOLS_SUB_STRUCT, 30, POOLS_STRUCT)
-    .structs(STORES_SUB_STRUCT, 40, SERVER_STORE_CONFIGURATION_STRUCT)
-    .build();
-
   private static final Struct CHAIN_MAP_ENTRY_STRUCT = newStructBuilder()
     .int64(KEY_FIELD, 10)
     .struct(CHAIN_FIELD, 20, CHAIN_STRUCT)
@@ -99,8 +66,26 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     .structs(CHAIN_MAP_ENTRIES_SUB_STRUCT, 40, CHAIN_MAP_ENTRY_STRUCT)
     .build();
 
-  private final ChainCodec chainCodec = new ChainCodec();
-  private final MessageCodecUtils codecUtils = new MessageCodecUtils();
+  private final Struct stateSyncStruct;
+
+  private final ChainCodec chainCodec;
+  private final ConfigCodec configCodec;
+
+  public EhcacheSyncMessageCodec(ConfigCodec configCodec) {
+    this.configCodec = configCodec;
+    this.chainCodec = new ChainCodec();
+
+    StructBuilder stateSyncStructBuilder = newStructBuilder()
+      .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING);
+    ConfigCodec.InjectTuple tuple = configCodec.injectServerSideConfiguration(stateSyncStructBuilder, SYNC_MESSAGE_TYPE_FIELD_INDEX + 10);
+    stateSyncStructBuilder = tuple.getUpdatedBuilder();
+    int lastIndex = tuple.getLastIndex();
+
+    StructBuilder storeConfigStructBuilder = newStructBuilder().string(SERVER_STORE_NAME_FIELD, 10);
+    Struct storeConfigStruct = configCodec.injectServerStoreConfiguration(storeConfigStructBuilder, 20).getUpdatedBuilder().build();
+
+    stateSyncStruct = stateSyncStructBuilder.structs(STORES_SUB_STRUCT, lastIndex + 10, storeConfigStruct).build();
+  }
 
   @Override
   public byte[] encode(final int concurrencyKey, final EhcacheEntityMessage message) throws MessageCodecException {
@@ -109,13 +94,13 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
       StructEncoder<Void> encoder;
       switch (syncMessage.getMessageType()) {
         case STATE: {
-          encoder = STATE_SYNC_STRUCT.encoder();
+          encoder = stateSyncStruct.encoder();
           EhcacheStateSyncMessage stateSyncMessage = (EhcacheStateSyncMessage)syncMessage;
           encoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME, STATE);
-          encodeServerSideConfiguration(encoder, stateSyncMessage.getConfiguration());
+          configCodec.encodeServerSideConfiguration(encoder, stateSyncMessage.getConfiguration());
           encoder.structs(STORES_SUB_STRUCT, stateSyncMessage.getStoreConfigs().entrySet(), (storeEncoder, storeEntry) -> {
             storeEncoder.string(SERVER_STORE_NAME_FIELD, storeEntry.getKey());
-            codecUtils.encodeServerStoreConfiguration(storeEncoder, storeEntry.getValue());
+            configCodec.encodeServerStoreConfiguration(storeEncoder, storeEntry.getValue());
           });
           return encoder.encode().array();
         }
@@ -139,24 +124,10 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     }
   }
 
-  private void encodeServerSideConfiguration(StructEncoder<Void> encoder, ServerSideConfiguration configuration) {
-    if (configuration.getDefaultServerResource() != null) {
-      encoder.string(DEFAULT_RESOURCE_FIELD, configuration.getDefaultServerResource());
-    }
-    encoder.structs(POOLS_SUB_STRUCT, configuration.getResourcePools().entrySet(), (poolEncoder, poolEntry) -> {
-      poolEncoder.string(POOL_NAME_FIELD, poolEntry.getKey());
-      ServerSideConfiguration.Pool pool = poolEntry.getValue();
-      poolEncoder.int64(POOL_SIZE_FIELD, pool.getSize());
-      if (pool.getServerResource() != null) {
-        poolEncoder.string(POOL_RESOURCE_NAME_FIELD, pool.getServerResource());
-      }
-    });
-  }
-
   @Override
   public EhcacheSyncMessage decode(final int concurrencyKey, final byte[] payload) throws MessageCodecException {
     ByteBuffer message = ByteBuffer.wrap(payload);
-    StructDecoder<Void> decoder = STATE_SYNC_STRUCT.decoder(message);
+    StructDecoder<Void> decoder = stateSyncStruct.decoder(message);
     Enm<SyncMessageType> enm = decoder.enm(SYNC_MESSAGE_TYPE_FIELD_NAME);
     if (!enm.isFound()) {
       throw new AssertionError("Invalid message format - misses the message type field");
@@ -168,7 +139,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
 
     switch (enm.get()) {
       case STATE:
-        ServerSideConfiguration configuration = decodeServerSideConfiguration(decoder);
+        ServerSideConfiguration configuration = configCodec.decodeServerSideConfiguration(decoder);
         Map<String, ServerStoreConfiguration> storeConfigs = decodeStoreConfigurations(decoder);
         return new EhcacheStateSyncMessage(configuration, storeConfigs);
       case DATA:
@@ -205,30 +176,10 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     if (storesDecoder != null) {
       for (int i = 0; i < storesDecoder.length(); i++) {
         String storeName = storesDecoder.string(SERVER_STORE_NAME_FIELD);
-        result.put(storeName, codecUtils.decodeServerStoreConfiguration(storesDecoder));
+        result.put(storeName, configCodec.decodeServerStoreConfiguration(storesDecoder));
         storesDecoder.next();
       }
     }
     return result;
-  }
-
-  private ServerSideConfiguration decodeServerSideConfiguration(StructDecoder<Void> decoder) {
-    String defaultResource = decoder.string(DEFAULT_RESOURCE_FIELD);
-    Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
-    StructArrayDecoder<StructDecoder<Void>> poolsDecoder = decoder.structs(POOLS_SUB_STRUCT);
-    if (poolsDecoder != null) {
-      for (int i = 0; i < poolsDecoder.length(); i++) {
-        String poolName = poolsDecoder.string(POOL_NAME_FIELD);
-        Long poolSize = poolsDecoder.int64(POOL_SIZE_FIELD);
-        String poolResource = poolsDecoder.string(POOL_RESOURCE_NAME_FIELD);
-        pools.put(poolName, new ServerSideConfiguration.Pool(poolSize, poolResource));
-        poolsDecoder.next();
-      }
-    }
-    if (defaultResource == null) {
-      return new ServerSideConfiguration(pools);
-    } else {
-      return new ServerSideConfiguration(defaultResource, pools);
-    }
   }
 }

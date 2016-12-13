@@ -38,12 +38,6 @@ public class EhcacheServerCodec implements MessageCodec<EhcacheEntityMessage, Eh
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheServerCodec.class);
 
-  private static final EhcacheServerCodec SERVER_INSTANCE = new EhcacheServerCodec((EhcacheCodec) EhcacheCodec.messageCodec(), new PassiveReplicationMessageCodec());
-
-  public static EhcacheServerCodec getInstance() {
-    return SERVER_INSTANCE;
-  }
-
   private final EhcacheCodec clientCodec;
   private final PassiveReplicationMessageCodec replicationCodec;
 

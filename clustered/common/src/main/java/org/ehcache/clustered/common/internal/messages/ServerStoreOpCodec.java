@@ -42,7 +42,7 @@ import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.M
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.MSG_ID_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 
-class ServerStoreOpCodec {
+public class ServerStoreOpCodec {
 
   private static final Struct GET_AND_APPEND_MESSAGE_STRUCT = StructBuilder.newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
@@ -100,7 +100,7 @@ class ServerStoreOpCodec {
   private final ChainCodec chainCodec;
   private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
 
-  ServerStoreOpCodec() {
+  public ServerStoreOpCodec() {
     this.chainCodec = new ChainCodec();
   }
 

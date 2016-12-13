@@ -41,7 +41,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 
-class ResponseCodec {
+public class ResponseCodec {
 
   private static final String EXCEPTION_FIELD = "exception";
   private static final String INVALIDATION_ID_FIELD = "invalidationId";
@@ -93,7 +93,7 @@ class ResponseCodec {
 
   private final ChainCodec chainCodec;
 
-  ResponseCodec() {
+  public ResponseCodec() {
     this.chainCodec = new ChainCodec();
   }
 
