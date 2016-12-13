@@ -30,6 +30,8 @@ import java.util.Set;
 @CommonComponent
 public interface EhcacheStateService {
 
+  boolean hasValidOffheapResources();
+
   String getDefaultServerResource();
 
   Map<String, ServerSideConfiguration.Pool> getSharedResourcePools();

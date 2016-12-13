@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.PoolAllocation;
@@ -77,6 +78,7 @@ import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
@@ -109,7 +111,8 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   static final String SYNC_DATA_SIZE_PROP = "ehcache.sync.data.size.threshold";
   private static final long DEFAULT_SYNC_DATA_SIZE_THRESHOLD = 4 * 1024 * 1024;
 
-  private final UUID identity;
+  private final String identifier;
+  private final ServerSideConfiguration configuration;
 
   /**
    * Tracks the state of a connected client.  An entry is added to this map when the
@@ -172,13 +175,20 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   }
 
-  EhcacheActiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
-    this.identity = ClusteredEhcacheIdentity.deserialize(config);
+  EhcacheActiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config, final KeySegmentMapper mapper) throws ConfigurationException {
+    if (config == null) {
+      throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
+    }
+    this.identifier = config.getIdentifier();
+    this.configuration = config.getConfiguration();
     this.responseFactory = new EhcacheEntityResponseFactory();
     this.clientCommunicator = services.getService(new CommunicatorServiceConfiguration());
     ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
+    }
+    if (!ehcacheStateService.hasValidOffheapResources()) {
+      throw new ConfigurationException("Server does not have offheap-resource configured - Unable to create Ehcache clustering components");
     }
     entityMessenger = services.getService(new BasicServiceConfiguration<>(IEntityMessenger.class));
     if (entityMessenger == null) {

@@ -22,6 +22,7 @@ import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -107,10 +108,10 @@ public class EhcacheClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       try {
         while (true) {
-          ref.create(UUID.randomUUID());
+          ref.create(new ClusteredTierManagerConfiguration(identifier, config));
           try {
             EhcacheClientEntity entity = ref.fetchEntity();
             try {
@@ -224,7 +225,7 @@ public class EhcacheClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       try {
         if (!ref.destroy()) {
           throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
@@ -270,7 +271,7 @@ public class EhcacheClientEntityFactory {
     return new VoltronReadWriteLock(connection, "EhcacheClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<EhcacheClientEntity, UUID> getEntityRef(String identifier) {
+  private EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
     try {
       return connection.getEntityRef(EhcacheClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {

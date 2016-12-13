@@ -15,11 +15,13 @@
  */
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.ConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
+import org.ehcache.clustered.common.internal.messages.EntityConfigurationCodec;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpCodec;
@@ -29,6 +31,7 @@ import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessageCodec;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessageCodec;
 import org.terracotta.entity.CommonServerEntity;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
@@ -44,6 +47,8 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(DEFAULT_CONCURRENCY);
   private static final ConfigCodec CONFIG_CODEC = new CommonConfigCodec();
 
+  private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(new CommonConfigCodec());
+
   @Override
   public long getVersion() {
     return ENTITY_VERSION;
@@ -55,13 +60,15 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   }
 
   @Override
-  public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+  public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusteredTierManagerConfiguration clusteredTierManagerConfiguration = configCodec.decodeClusteredTierManagerConfiguration(configuration);
+    return new EhcacheActiveEntity(registry, clusteredTierManagerConfiguration, DEFAULT_MAPPER);
   }
 
   @Override
-  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
-    return new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
+  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusteredTierManagerConfiguration clusteredTierManagerConfiguration = configCodec.decodeClusteredTierManagerConfiguration(configuration);
+    return new EhcachePassiveEntity(registry, clusteredTierManagerConfiguration, DEFAULT_MAPPER);
   }
 
   @Override

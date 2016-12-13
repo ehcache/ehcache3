@@ -118,6 +118,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     this.stateRepositoryManager = new StateRepositoryManager();
   }
 
+  @Override
+  public boolean hasValidOffheapResources() {
+    return offHeapResources != null && !offHeapResources.getAllIdentifiers().isEmpty();
+  }
+
   public ServerStoreImpl getStore(String name) {
     return stores.get(name);
   }

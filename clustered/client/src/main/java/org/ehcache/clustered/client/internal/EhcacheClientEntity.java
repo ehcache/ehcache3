@@ -210,10 +210,6 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  public UUID identity() {
-    return ClusteredEhcacheIdentity.deserialize(endpoint.getEntityConfiguration());
-  }
-
   @Override
   public void close() {
     endpoint.close();

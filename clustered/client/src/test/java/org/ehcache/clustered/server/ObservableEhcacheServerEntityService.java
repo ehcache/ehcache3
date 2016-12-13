@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConcurrencyStrategy;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
@@ -78,14 +79,14 @@ public class ObservableEhcacheServerEntityService
   }
 
   @Override
-  public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) {
+  public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
     EhcacheActiveEntity activeEntity = delegate.createActiveEntity(registry, configuration);
     servedActiveEntities.add(activeEntity);
     return activeEntity;
   }
 
   @Override
-  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) {
+  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
     EhcachePassiveEntity passiveEntity = delegate.createPassiveEntity(registry, configuration);
     servedPassiveEntities.add(passiveEntity);
     return passiveEntity;

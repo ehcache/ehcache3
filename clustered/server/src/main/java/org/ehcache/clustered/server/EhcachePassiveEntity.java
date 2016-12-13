@@ -18,7 +18,9 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
@@ -47,6 +49,7 @@ import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.entity.BasicServiceConfiguration;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResources;
@@ -66,7 +69,8 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcachePassiveEntity.class);
 
-  private final UUID identity;
+  private final String identifier;
+  private final ServerSideConfiguration configuration;
   private final EhcacheStateService ehcacheStateService;
   private final Management management;
 
@@ -113,11 +117,18 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
-  EhcachePassiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
-    this.identity = ClusteredEhcacheIdentity.deserialize(config);
+  EhcachePassiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config, final KeySegmentMapper mapper) throws ConfigurationException {
+    if (config == null) {
+      throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
+    }
+    this.identifier = config.getIdentifier();
+    this.configuration = config.getConfiguration();
     ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
+    }
+    if (!ehcacheStateService.hasValidOffheapResources()) {
+      throw new ConfigurationException("Server does not have offheap-resource configured - Unable to create Ehcache clustering components");
     }
     management = new Management(services, ehcacheStateService, false);
   }
