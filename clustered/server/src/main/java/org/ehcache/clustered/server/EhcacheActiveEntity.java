@@ -414,6 +414,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   @Override
   public void loadExisting() {
+    ehcacheStateService.loadExisting();
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = new ConcurrentHashMap<>();
     addInflightInvalidationsForEventualCaches();

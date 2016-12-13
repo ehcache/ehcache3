@@ -461,6 +461,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return this.invalidationMap.remove(cacheId);
   }
 
+  @Override
+  public void loadExisting() {
+    //nothing to do
+  }
+
   public boolean isConfigured() {
     return configured;
   }
