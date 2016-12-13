@@ -48,6 +48,10 @@ configurations.testRuntime {
    resolutionStrategy.force 'org.sonatype.plexus:plexus-sec-dispatcher:1.4'
 }
 
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
+}
+
 sourceSets {
   test {
     // Needed for PaxExam which makes the dynamic bundle load content of a single dir

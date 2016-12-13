@@ -57,6 +57,7 @@ public class ConfigStatsManagementActivationTest {
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("stringCache", String.class, String.class);
+    @SuppressWarnings("unchecked")
     Eh107Configuration<String, String> configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(configuration.isManagementEnabled(), is(true));
@@ -69,6 +70,7 @@ public class ConfigStatsManagementActivationTest {
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("stringCache", String.class, String.class);
+    @SuppressWarnings("unchecked")
     Eh107Configuration<String, String> configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(configuration.isManagementEnabled(), is(true));
@@ -81,6 +83,7 @@ public class ConfigStatsManagementActivationTest {
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("overrideCache", String.class, String.class);
+    @SuppressWarnings("unchecked")
     Eh107Configuration<String, String> configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(configuration.isManagementEnabled(), is(false));
@@ -93,6 +96,7 @@ public class ConfigStatsManagementActivationTest {
         .toURI(), provider.getDefaultClassLoader());
 
     Cache<String, String> cache = cacheManager.getCache("overrideOneCache", String.class, String.class);
+    @SuppressWarnings("unchecked")
     Eh107Configuration<String, String> configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(configuration.isManagementEnabled(), is(true));
@@ -107,6 +111,7 @@ public class ConfigStatsManagementActivationTest {
         .add(new Jsr107CacheConfiguration(ConfigurationElementState.ENABLED, ConfigurationElementState.ENABLED));
     Cache<Long, String> cache = cacheManager.createCache("test", Eh107Configuration.fromEhcacheCacheConfiguration(configurationBuilder));
 
+    @SuppressWarnings("unchecked")
     Eh107Configuration<Long, String> configuration = cache.getConfiguration(Eh107Configuration.class);
     assertThat(configuration.isManagementEnabled(), is(true));
     assertThat(configuration.isStatisticsEnabled(), is(true));
@@ -125,6 +130,7 @@ public class ConfigStatsManagementActivationTest {
 
     Cache<Long, String> cache = cacheManager.createCache("enables-mbeans", configuration);
 
+    @SuppressWarnings("unchecked")
     Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
     assertThat(eh107Configuration.isManagementEnabled(), is(true));
     assertThat(eh107Configuration.isStatisticsEnabled(), is(true));
@@ -143,6 +149,7 @@ public class ConfigStatsManagementActivationTest {
 
     Cache<Long, String> cache = cacheManager.createCache("disables-mbeans", configuration);
 
+    @SuppressWarnings("unchecked")
     Eh107Configuration<Long, String> eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
     assertThat(eh107Configuration.isManagementEnabled(), is(false));
     assertThat(eh107Configuration.isStatisticsEnabled(), is(false));
@@ -158,6 +165,7 @@ public class ConfigStatsManagementActivationTest {
     configuration.setStatisticsEnabled(true);
 
     Cache<Long, String> cache = cacheManager.createCache("cache", configuration);
+    @SuppressWarnings("unchecked")
     Eh107Configuration eh107Configuration = cache.getConfiguration(Eh107Configuration.class);
 
     assertThat(eh107Configuration.isManagementEnabled(), is(true));

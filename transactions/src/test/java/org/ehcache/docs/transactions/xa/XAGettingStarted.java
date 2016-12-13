@@ -128,6 +128,7 @@ public class XAGettingStarted {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testXACacheWithWriteThrough() throws Exception {
     // tag::testXACacheWithWriteThrough[]
     BitronixTransactionManager transactionManager =

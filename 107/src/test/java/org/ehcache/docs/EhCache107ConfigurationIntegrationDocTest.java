@@ -109,6 +109,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGettingToEhcacheConfiguration() {
     // tag::mutableConfigurationExample[]
     MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
@@ -137,6 +138,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testUsingEhcacheConfiguration() throws Exception {
     // tag::ehcacheBasedConfigurationExample[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -172,6 +174,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testWithoutEhcacheExplicitDependencyAndNoCodeChanges() throws Exception {
     CacheManager manager = cachingProvider.getCacheManager(
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
@@ -216,6 +219,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testTemplateOverridingStoreByValue() throws Exception {
     cacheManager = cachingProvider.getCacheManager(
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),

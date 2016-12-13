@@ -20,7 +20,10 @@ import org.ehcache.core.spi.store.Store;
 import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.transactions.xa.utils.TestXid;
 import org.hamcrest.Matchers;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.XAResource;
@@ -47,13 +50,22 @@ import static org.mockito.Mockito.when;
  */
 public class EhcacheXAResourceTest {
 
+  @Mock
+  private Store<Long, SoftLock<String>> underlyingStore;
+  @Mock
+  private Journal<Long> journal;
+  @Mock
+  private XATransactionContextFactory<Long, String> xaTransactionContextFactory;
+  @Mock
+  private XATransactionContext<Long, String> xaTransactionContext;
+
+  @Before
+  public void setUp() {
+    MockitoAnnotations.initMocks(this);
+  }
+
   @Test
   public void testStartEndWorks() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -71,11 +83,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testTwoNonEndedStartsFails() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -92,10 +99,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testEndWithoutStartFails() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     try {
@@ -108,11 +111,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testJoinWorks() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -127,10 +125,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoverReportsAbortedTx() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
@@ -142,10 +136,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoverIgnoresInFlightTx() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
@@ -157,10 +147,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotPrepareUnknownXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     try {
@@ -173,11 +159,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotPrepareNonEndedXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -193,11 +174,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testPrepareOk() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -211,11 +187,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testPrepareReadOnly() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -229,11 +200,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommitUnknownXidInFlight() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
@@ -250,10 +216,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommitUnknownXidRecovered() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
@@ -268,10 +230,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommit1PcUnknownXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     try {
@@ -284,11 +242,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommit1PcNonEndedXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -304,11 +257,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommitNonPreparedXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -323,11 +271,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotCommit1PcPreparedXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -342,11 +285,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCommit() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -357,11 +295,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCommit1Pc() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -372,11 +305,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotRollbackUnknownXidInFlight() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -392,10 +320,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotRollbackUnknownXidRecovered() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
@@ -410,11 +334,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCannotRollbackNonEndedXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -430,11 +349,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRollback() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -445,10 +359,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testForgetUnknownXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(false);
@@ -463,10 +373,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testForgetInDoubtXid() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
@@ -481,10 +387,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testForget() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isHeuristicallyTerminated(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);
@@ -496,11 +398,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testTimeoutStart() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -519,11 +416,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testTimeoutEndSuccess() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -545,11 +437,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testTimeoutEndFail() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.createTransactionContext(eq(new TransactionId(new TestXid(0, 0))), refEq(underlyingStore), refEq(journal), anyInt())).thenReturn(xaTransactionContext);
@@ -570,12 +457,8 @@ public class EhcacheXAResourceTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testPrepareTimeout() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -593,11 +476,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testCommit1PcTimeout() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-    XATransactionContext<Long, String> xaTransactionContext = mock(XATransactionContext.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(xaTransactionContextFactory.get(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(xaTransactionContext);
@@ -615,10 +493,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoveryCommitOnePhaseFails() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
@@ -639,10 +513,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoveryCommit() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.recover()).thenReturn(Collections.singletonMap(new TransactionId(new TestXid(0, 0)), (Collection<Long>) Arrays.asList(1L, 2L, 3L)));
@@ -662,10 +532,6 @@ public class EhcacheXAResourceTest {
 
   @Test
   public void testRecoveryRollback() throws Exception {
-    Store<Long, SoftLock<String>> underlyingStore = mock(Store.class);
-    Journal<Long> journal = mock(Journal.class);
-    XATransactionContextFactory<Long, String> xaTransactionContextFactory = mock(XATransactionContextFactory.class);
-
     EhcacheXAResource<Long, String> xaResource = new EhcacheXAResource<Long, String>(underlyingStore, journal, xaTransactionContextFactory);
 
     when(journal.isInDoubt(eq(new TransactionId(new TestXid(0, 0))))).thenReturn(true);

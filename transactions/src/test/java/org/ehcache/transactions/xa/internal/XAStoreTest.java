@@ -39,7 +39,6 @@ import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.internal.events.NullStoreEventDispatcher;
 import org.ehcache.impl.internal.sizeof.NoopSizeOfEngine;
 import org.ehcache.impl.internal.spi.copy.DefaultCopyProvider;
-import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.MemorySizeParser;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
@@ -58,12 +57,10 @@ import org.ehcache.transactions.xa.internal.journal.Journal;
 import org.ehcache.transactions.xa.internal.journal.TransientJournal;
 import org.ehcache.transactions.xa.internal.txmgr.NullXAResourceRegistry;
 import org.ehcache.transactions.xa.txmgr.TransactionManagerWrapper;
-import org.ehcache.transactions.xa.txmgr.btm.BitronixTransactionManagerLookup;
-import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProvider;
-import org.ehcache.transactions.xa.txmgr.provider.LookupTransactionManagerProviderConfiguration;
 import org.ehcache.transactions.xa.txmgr.provider.TransactionManagerProvider;
 import org.ehcache.transactions.xa.utils.JavaSerializer;
 import org.ehcache.transactions.xa.utils.TestXid;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -97,6 +94,8 @@ import javax.transaction.xa.XAResource;
 
 import static java.util.Collections.emptySet;
 import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.ehcache.expiry.Duration.of;
+import static org.ehcache.expiry.Expirations.timeToLiveExpiration;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -111,7 +110,38 @@ import static org.mockito.Mockito.mock;
  */
 public class XAStoreTest {
 
+  @SuppressWarnings("unchecked")
+  private final Class<SoftLock<String>> valueClass = (Class) SoftLock.class;
   private final TestTransactionManager testTransactionManager = new TestTransactionManager();
+  private TransactionManagerWrapper transactionManagerWrapper;
+  private OnHeapStore<Long, SoftLock<String>> onHeapStore;
+  private Journal<Long> journal;
+  private TestTimeSource testTimeSource;
+  private ClassLoader classLoader;
+  private Serializer<Long> keySerializer;
+  private Serializer<SoftLock<String>> valueSerializer;
+  private StoreEventDispatcher<Long, SoftLock<String>> eventDispatcher;
+  private final Expiry<Object, Object> expiry = timeToLiveExpiration(of(1, TimeUnit.SECONDS));
+  private Copier<Long> keyCopier;
+  private Copier<SoftLock<String>> valueCopier;
+
+  @Before
+  public void setUp() {
+    transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
+    classLoader = ClassLoader.getSystemClassLoader();
+    keySerializer = new JavaSerializer<Long>(classLoader);
+    valueSerializer = new JavaSerializer<SoftLock<String>>(classLoader);
+    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
+    keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
+    valueCopier = copyProvider.createValueCopier(valueClass, valueSerializer);
+    Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass,
+        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
+        0, keySerializer, valueSerializer);
+    testTimeSource = new TestTimeSource();
+    eventDispatcher = NullStoreEventDispatcher.nullStoreEventDispatcher();
+    onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    journal = new TransientJournal<Long>();
+  }
 
   @Test
   public void testXAStoreProviderFailsToRankWhenNoTMProviderConfigured() throws Exception {
@@ -139,19 +169,6 @@ public class XAStoreTest {
   @Test
   public void testSimpleGetPutRemove() throws Exception {
     String uniqueXAResourceId = "testSimpleGetPutRemove";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
-        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
-    Journal<Long> journal = new TransientJournal<Long>();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
 
@@ -206,20 +223,6 @@ public class XAStoreTest {
   @Test
   public void testConflictingGetPutRemove() throws Exception {
     String uniqueXAResourceId = "testConflictingGetPutRemove";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
-        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
-    Journal<Long> journal = new TransientJournal<Long>();
-
     final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
@@ -337,20 +340,6 @@ public class XAStoreTest {
   @Test
   public void testIterate() throws Exception {
     String uniqueXAResourceId = "testIterate";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
-        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
-    Journal<Long> journal = new TransientJournal<Long>();
-
     XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
 
     testTransactionManager.begin();
@@ -440,20 +429,6 @@ public class XAStoreTest {
   @Test
   public void testPutIfAbsent() throws Exception {
     String uniqueXAResourceId = "testPutIfAbsent";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
-        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
-    Journal<Long> journal = new TransientJournal<Long>();
-
     final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
@@ -503,20 +478,6 @@ public class XAStoreTest {
   @Test
   public void testRemove2Args() throws Exception {
     String uniqueXAResourceId = "testRemove2Args";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
-        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
-    Journal<Long> journal = new TransientJournal<Long>();
-
     final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
@@ -602,20 +563,6 @@ public class XAStoreTest {
   @Test
   public void testReplace2Args() throws Exception {
     String uniqueXAResourceId = "testReplace2Args";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
-        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
-    Journal<Long> journal = new TransientJournal<Long>();
-
     final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
@@ -700,20 +647,6 @@ public class XAStoreTest {
   @Test
   public void testReplace3Args() throws Exception {
     String uniqueXAResourceId = "testReplace3Args";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
-        null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
-    Journal<Long> journal = new TransientJournal<Long>();
-
     final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
     final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
@@ -796,23 +729,10 @@ public class XAStoreTest {
   @Test
   public void testCompute() throws Exception {
     String uniqueXAResourceId = "testCompute";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
-        classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    StoreEventDispatcher<Long, SoftLock> eventDispatcher = NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
-    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
+    Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass,
         null, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
-    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
     Journal<Long> journal = new TransientJournal<Long>();
@@ -1036,23 +956,10 @@ public class XAStoreTest {
   @Test
   public void testComputeIfAbsent() throws Exception {
     String uniqueXAResourceId = "testComputeIfAbsent";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
-        classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
-        0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    StoreEventDispatcher<Long, SoftLock> eventDispatcher = NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
-    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
-    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
     Journal<Long> journal = new TransientJournal<Long>();
@@ -1114,24 +1021,14 @@ public class XAStoreTest {
   @Test
   public void testExpiry() throws Exception {
     String uniqueXAResourceId = "testExpiry";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-    Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS));
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
-        classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
+    Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass,
+        null, classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
         0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    StoreEventDispatcher<Long, SoftLock> eventDispatcher = NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
-    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
-    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
     Journal<Long> journal = new TransientJournal<Long>();
@@ -1156,13 +1053,6 @@ public class XAStoreTest {
   @Test
   public void testExpiryCreateException() throws Exception {
     String uniqueXAResourceId = "testExpiryCreateException";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
     Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
 
       @Override
@@ -1180,19 +1070,16 @@ public class XAStoreTest {
         throw new AssertionError();
       }
     };
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
         0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    StoreEventDispatcher<Long, SoftLock> eventDispatcher = NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
-    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
-    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
-    Journal<Long> journal = new TransientJournal<Long>();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
 
@@ -1205,14 +1092,6 @@ public class XAStoreTest {
   @Test
   public void testExpiryAccessException() throws Exception {
     String uniqueXAResourceId = "testExpiryAccessException";
-    final TestTimeSource testTimeSource = new TestTimeSource();
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
     Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
 
       @Override
@@ -1233,18 +1112,16 @@ public class XAStoreTest {
         return Duration.INFINITE;
       }
     };
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
         0, keySerializer, valueSerializer);
-    StoreEventDispatcher<Long, SoftLock> eventDispatcher = NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
-    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
-    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
-    Journal<Long> journal = new TransientJournal<Long>();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
 
@@ -1265,14 +1142,6 @@ public class XAStoreTest {
   @Test
   public void testExpiryUpdateException() throws Exception{
     String uniqueXAResourceId = "testExpiryUpdateException";
-    final TestTimeSource testTimeSource = new TestTimeSource();
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
     Expiry<Object, Object> expiry = new Expiry<Object, Object>() {
 
       @Override
@@ -1293,18 +1162,16 @@ public class XAStoreTest {
         return Duration.INFINITE;
       }
     };
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
         0, keySerializer, valueSerializer);
-    StoreEventDispatcher<Long, SoftLock> eventDispatcher = NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
-    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
-    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
-    Journal<Long> journal = new TransientJournal<Long>();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
 
@@ -1323,27 +1190,17 @@ public class XAStoreTest {
   @Test
   public void testBulkCompute() throws Exception {
     String uniqueXAResourceId = "testBulkCompute";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
     Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS));
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
         0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    StoreEventDispatcher<Long, SoftLock> eventDispatcher = NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
-    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
-    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
-    Journal<Long> journal = new TransientJournal<Long>();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
 
@@ -1415,27 +1272,17 @@ public class XAStoreTest {
   @Test
   public void testBulkComputeIfAbsent() throws Exception {
     String uniqueXAResourceId = "testBulkComputeIfAbsent";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
     Expiry<Object, Object> expiry = Expirations.timeToLiveExpiration(new Duration(1, TimeUnit.SECONDS));
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().heap(10, EntryUnit.ENTRIES).build(),
         0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    StoreEventDispatcher<Long, SoftLock> eventDispatcher = NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
-    Store.Configuration<Long, SoftLock> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class, null,
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
+    Store.Configuration<Long, SoftLock<String>> offHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass, null,
         classLoader, expiry, ResourcePoolsBuilder.newResourcePoolsBuilder().offheap(10, MemoryUnit.MB).build(),
         0, keySerializer, valueSerializer);
-    OffHeapStore<Long, SoftLock<String>> offHeapStore = (OffHeapStore) new OffHeapStore<Long, SoftLock>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
+    OffHeapStore<Long, SoftLock<String>> offHeapStore = new OffHeapStore<Long, SoftLock<String>>(offHeapConfig, testTimeSource, eventDispatcher, MemorySizeParser.parse("10M"));
     OffHeapStoreLifecycleHelper.init(offHeapStore);
     TieredStore<Long, SoftLock<String>> tieredStore = new TieredStore<Long, SoftLock<String>>(onHeapStore, offHeapStore);
-    Journal<Long> journal = new TransientJournal<Long>();
 
     XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, tieredStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
 
@@ -1495,14 +1342,6 @@ public class XAStoreTest {
   @Test
   public void testCustomEvictionAdvisor() throws Exception {
     String uniqueXAResourceId = "testCustomEvictionAdvisor";
-    TransactionManagerWrapper transactionManagerWrapper = new TransactionManagerWrapper(testTransactionManager, new NullXAResourceRegistry());
-    ClassLoader classLoader = ClassLoader.getSystemClassLoader();
-    Serializer<Long> keySerializer = new JavaSerializer<Long>(classLoader);
-    Serializer<SoftLock> valueSerializer = new JavaSerializer<SoftLock>(classLoader);
-    CopyProvider copyProvider = new DefaultCopyProvider(new DefaultCopyProviderConfiguration());
-    Copier<Long> keyCopier = copyProvider.createKeyCopier(Long.class, keySerializer);
-    Copier<SoftLock> valueCopier = copyProvider.createValueCopier(SoftLock.class, valueSerializer);
-
     final AtomicBoolean invoked = new AtomicBoolean();
 
     EvictionAdvisor<Long, SoftLock> evictionAdvisor = new EvictionAdvisor<Long, SoftLock>() {
@@ -1512,14 +1351,12 @@ public class XAStoreTest {
         return false;
       }
     };
-    Store.Configuration<Long, SoftLock> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock>(Long.class, SoftLock.class,
+    Store.Configuration<Long, SoftLock<String>> onHeapConfig = new StoreConfigurationImpl<Long, SoftLock<String>>(Long.class, valueClass,
         evictionAdvisor, classLoader, Expirations.noExpiration(), ResourcePoolsBuilder.newResourcePoolsBuilder()
         .heap(10, EntryUnit.ENTRIES)
         .build(),
         0, keySerializer, valueSerializer);
-    TestTimeSource testTimeSource = new TestTimeSource();
-    OnHeapStore<Long, SoftLock<String>> onHeapStore = (OnHeapStore) new OnHeapStore<Long, SoftLock>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), NullStoreEventDispatcher.<Long, SoftLock>nullStoreEventDispatcher());
-    Journal<Long> journal = new TransientJournal<Long>();
+    OnHeapStore<Long, SoftLock<String>> onHeapStore = new OnHeapStore<Long, SoftLock<String>>(onHeapConfig, testTimeSource, keyCopier, valueCopier, new NoopSizeOfEngine(), eventDispatcher);
 
     final XAStore<Long, String> xaStore = new XAStore<Long, String>(Long.class, String.class, onHeapStore, transactionManagerWrapper, testTimeSource, journal, uniqueXAResourceId);
 

@@ -60,6 +60,7 @@ public class EhcacheStatisticsProviderTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testDescriptions() throws Exception {
     EhcacheStatisticsProvider ehcacheStatisticsProvider = new EhcacheStatisticsProvider(cmConfig_0, executor) {
       @Override

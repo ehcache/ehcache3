@@ -35,3 +35,7 @@ dependencies {
   testCompile project(':xml')
   testCompile "com.fasterxml.jackson.core:jackson-databind:2.7.5"
 }
+
+tasks.withType(JavaCompile) {
+  options.compilerArgs += ['-Werror']
+}

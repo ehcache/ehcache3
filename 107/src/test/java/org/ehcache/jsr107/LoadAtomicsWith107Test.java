@@ -20,6 +20,8 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -41,15 +43,16 @@ import static org.mockito.Mockito.verify;
  * LoadAtomicsWith107Test
  */
 public class LoadAtomicsWith107Test {
+  @Mock
   private CacheLoader<Number, CharSequence> cacheLoader;
+  @Mock
   private CacheWriter<Number, CharSequence> cacheWriter;
   private Cache<Number, CharSequence> testCache;
   private CacheManager cacheManager;
 
   @Before
   public void setUp() throws Exception {
-    cacheLoader = mock(CacheLoader.class);
-    cacheWriter = mock(CacheWriter.class);
+    MockitoAnnotations.initMocks(this);
 
     CachingProvider provider = Caching.getCachingProvider();
     cacheManager = provider.getCacheManager(this.getClass().getResource("/ehcache-loader-writer-107-load-atomics.xml").toURI(), getClass().getClassLoader());

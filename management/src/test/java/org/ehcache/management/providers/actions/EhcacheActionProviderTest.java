@@ -52,6 +52,7 @@ public class EhcacheActionProviderTest {
   ManagementRegistryServiceConfiguration cmConfig_0 = new DefaultManagementRegistryConfiguration().setContext(cmContext_0);
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testDescriptions() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig);
 
@@ -122,8 +123,10 @@ public class EhcacheActionProviderTest {
   public void testCallAction_happyPathWithParams() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig_0);
 
-    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
-    CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
+    @SuppressWarnings("unchecked")
+    EhcacheWithLoaderWriter<Long, String> ehcache = mock(EhcacheWithLoaderWriter.class);
+    @SuppressWarnings("unchecked")
+    CacheRuntimeConfiguration<Long, String> cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(cacheRuntimeConfiguration.getKeyType()).thenReturn(Long.class);
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
@@ -201,8 +204,10 @@ public class EhcacheActionProviderTest {
   public void testCallAction_noSuchMethod() throws Exception {
     EhcacheActionProvider ehcacheActionProvider = new EhcacheActionProvider(cmConfig_0);
 
-    EhcacheWithLoaderWriter ehcache = mock(EhcacheWithLoaderWriter.class);
-    CacheRuntimeConfiguration cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
+    @SuppressWarnings("unchecked")
+    EhcacheWithLoaderWriter<Long, String> ehcache = mock(EhcacheWithLoaderWriter.class);
+    @SuppressWarnings("unchecked")
+    CacheRuntimeConfiguration<Long, String> cacheRuntimeConfiguration = mock(CacheRuntimeConfiguration.class);
     when(cacheRuntimeConfiguration.getClassLoader()).thenReturn(ClassLoader.getSystemClassLoader());
     when(ehcache.getRuntimeConfiguration()).thenReturn(cacheRuntimeConfiguration);
     ehcacheActionProvider.register(new CacheBinding("cache-0", ehcache));
