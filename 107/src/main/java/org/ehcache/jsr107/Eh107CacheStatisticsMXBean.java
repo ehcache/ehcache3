@@ -157,7 +157,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
 
   private long getMisses() {
     return getBulkCount(BulkOps.GET_ALL_MISS) +
-        get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER)) +
+        get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.MISS)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.MISS_NOT_PRESENT)) +
         conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_MISSING));
@@ -165,7 +165,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
 
   private long getHits() {
     return getBulkCount(BulkOps.GET_ALL_HITS) +
-        get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER)) +
+        get.sum(EnumSet.of(CacheOperationOutcomes.GetOutcome.HIT)) +
         putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.HIT)) +
         replace.sum(EnumSet.of(CacheOperationOutcomes.ReplaceOutcome.HIT, CacheOperationOutcomes.ReplaceOutcome.MISS_PRESENT)) +
         conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS, CacheOperationOutcomes.ConditionalRemoveOutcome.FAILURE_KEY_PRESENT));
