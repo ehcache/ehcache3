@@ -53,7 +53,6 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -94,51 +93,8 @@ public class EhcachePassiveEntityTest {
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
     assertThat(registry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-    assertThat(registry.getResource("defaultServerResource").getUsed(), is(0L));
-
-    assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
-  }
-
-  @Test
-  public void testConfigureAfterConfigure() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-      .defaultResource("defaultServerResource")
-      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-      .build();
-    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    try {
-      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-          .defaultResource("defaultServerResource")
-          .sharedPool("primary-new", "serverResource1", 4, MemoryUnit.MEGABYTES)
-          .sharedPool("secondary-new", "serverResource2", 8, MemoryUnit.MEGABYTES)
-          .build()));
-      fail("invocation should have triggered an exception");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("operation failed"));
-    }
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), hasSize(2));
 
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
@@ -253,7 +209,6 @@ public class EhcachePassiveEntityTest {
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("cacheAlias",
         new ServerStoreConfigBuilder()
             .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -292,8 +247,6 @@ public class EhcachePassiveEntityTest {
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("cacheAlias",
         new ServerStoreConfigBuilder()
             .shared("primary")
@@ -327,8 +280,6 @@ public class EhcachePassiveEntityTest {
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
         new ServerStoreConfigBuilder()
@@ -395,7 +346,6 @@ public class EhcachePassiveEntityTest {
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
     assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
@@ -467,8 +417,6 @@ public class EhcachePassiveEntityTest {
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
         new ServerStoreConfigBuilder()

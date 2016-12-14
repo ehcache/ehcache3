@@ -246,9 +246,6 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client,
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
-
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
 
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
@@ -1042,12 +1039,14 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
+    UUID client2Id = UUID.randomUUID();
     ClientDescriptor client2 = new TestClientDescriptor();
     activeEntity.connected(client2);
     assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
 
+    MESSAGE_FACTORY.setClientId(client2Id);
     assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
@@ -1073,8 +1072,6 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
-
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
 
     activeEntity.disconnected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
@@ -1106,8 +1103,6 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
-
     assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
@@ -1132,9 +1127,6 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
-
-    assertSuccess(activeEntity.invoke(client,
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.validateStoreManager(new ServerSideConfigBuilder()
@@ -1161,9 +1153,6 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
-
-    assertSuccess(activeEntity.invoke(client,
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
 
     assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.validateStoreManager(new ServerSideConfigBuilder()
@@ -1208,17 +1197,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client,
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration)));
-
-    activeEntity.disconnected(client);
-    assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
-
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
-    assertThat(activeEntity.getConnectedClients().keySet(), contains(client2));
-
-    assertFailure(activeEntity.invoke(client2,
+    assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -1290,18 +1269,9 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
-    activeEntity.disconnected(client);
-    assertThat(activeEntity.getConnectedClients().keySet(), is(Matchers.<ClientDescriptor>empty()));
-
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
-    assertThat(activeEntity.getConnectedClients().keySet(), contains(client2));
-
-    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
-
-    assertSuccess(activeEntity.invoke(client2,
+    assertSuccess(activeEntity.invoke(client,
         MESSAGE_FACTORY.createServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -1313,8 +1283,8 @@ public class EhcacheActiveEntityTest {
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L + 4L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
 
-    assertThat(activeEntity.getConnectedClients().get(client2), contains("cacheAlias"));
-    assertThat(activeEntity.getInUseStores().get("cacheAlias"), contains(client2));
+    assertThat(activeEntity.getConnectedClients().get(client), contains("cacheAlias"));
+    assertThat(activeEntity.getInUseStores().get("cacheAlias"), contains(client));
     assertThat(registry.getStoreManagerService().getStores(), containsInAnyOrder("cacheAlias"));
   }
 
@@ -1541,15 +1511,9 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
 
-    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfig)));
+    assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
 
-    ClientDescriptor client2 = new TestClientDescriptor();
-    activeEntity.connected(client2);
-    assertThat(activeEntity.getConnectedClients().keySet(), containsInAnyOrder(client, client2));
-
-    assertSuccess(activeEntity.invoke(client2, MESSAGE_FACTORY.validateStoreManager(serverSideConfig)));
-
-    assertFailure(activeEntity.invoke(client2,
+    assertFailure(activeEntity.invoke(client,
         MESSAGE_FACTORY.validateServerStore("cacheAlias",
             new ServerStoreConfigBuilder()
                 .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -1563,7 +1527,6 @@ public class EhcacheActiveEntityTest {
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
 
     assertThat(activeEntity.getConnectedClients().get(client), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getConnectedClients().get(client2), is(Matchers.<String>empty()));
     assertThat(activeEntity.getInUseStores().get("cacheAlias"), is(nullValue()));
     assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
   }
@@ -2369,9 +2332,6 @@ public class EhcacheActiveEntityTest {
     registry.addResource("secondary-server-resource", 16, MemoryUnit.MEGABYTES);
 
     final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
-    ClientDescriptor configurer = new TestClientDescriptor();
-    activeEntity.connected(configurer);
-    activeEntity.invoke(configurer, MESSAGE_FACTORY.configureStoreManager(configureConfig));
 
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
@@ -2393,10 +2353,6 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", configure);
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
-
-    ClientDescriptor configurer = new TestClientDescriptor();
-    activeEntity.connected(configurer);
-    activeEntity.invoke(configurer, MESSAGE_FACTORY.configureStoreManager(configure));
 
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
@@ -2423,10 +2379,6 @@ public class EhcacheActiveEntityTest {
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", configure);
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
 
-    ClientDescriptor configurer = new TestClientDescriptor();
-    activeEntity.connected(configurer);
-    assertSuccess(activeEntity.invoke(configurer,MESSAGE_FACTORY.configureStoreManager(configure)));
-
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
     ServerSideConfiguration validate = new ServerSideConfigBuilder()
@@ -2452,10 +2404,6 @@ public class EhcacheActiveEntityTest {
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", configure);
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
 
-    ClientDescriptor configurer = new TestClientDescriptor();
-    activeEntity.connected(configurer);
-    activeEntity.invoke(configurer,MESSAGE_FACTORY.configureStoreManager(configure));
-
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
     ServerSideConfiguration validate = new ServerSideConfigBuilder()
@@ -2480,10 +2428,6 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", initialConfiguration);
     EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
-
-    ClientDescriptor configurer = new TestClientDescriptor();
-    activeEntity.connected(configurer);
-    activeEntity.invoke(configurer, MESSAGE_FACTORY.configureStoreManager(initialConfiguration));
 
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
@@ -2560,11 +2504,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
 
 
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+    activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
 
     activeEntity.invoke(client,
       MESSAGE_FACTORY.createServerStore("myCache",
@@ -2607,11 +2547,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
 
 
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+    activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
 
     activeEntity.invoke(client,
       MESSAGE_FACTORY.createServerStore("myCache",
@@ -2651,11 +2587,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
 
 
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+    activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
 
     activeEntity.invoke(client,
       MESSAGE_FACTORY.createServerStore("myCache",
@@ -2696,9 +2628,6 @@ public class EhcacheActiveEntityTest {
 
     ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder().build();
 
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
     activeEntity.synchronizeKeyToPassive(syncChannel, 1);
@@ -2720,11 +2649,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
 
 
-    activeEntity.invoke(client,
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    activeEntity.invoke(client,
-        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+    activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
 
     activeEntity.invoke(client,
         MESSAGE_FACTORY.createServerStore("test",
@@ -2765,11 +2690,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client);
 
 
-    activeEntity.invoke(client,
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    activeEntity.invoke(client,
-        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+    activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
 
     try {
       activeEntity.invoke(client,
@@ -2817,11 +2738,7 @@ public class EhcacheActiveEntityTest {
     activeEntity.connected(client2);
 
 
-    activeEntity.invoke(client1,
-        MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
-
-    activeEntity.invoke(client1,
-        MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
+    activeEntity.invoke(client1, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
 
     activeEntity.invoke(client1,
         MESSAGE_FACTORY.createServerStore("test",
@@ -2950,7 +2867,6 @@ public class EhcacheActiveEntityTest {
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
 
-    activeEntity.invoke(client, MESSAGE_FACTORY.configureStoreManager(serverSideConfiguration));
     activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()

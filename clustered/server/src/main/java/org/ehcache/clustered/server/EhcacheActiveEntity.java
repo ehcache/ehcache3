@@ -466,9 +466,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) throws ClusterException {
     switch (message.getMessageType()) {
-      case CONFIGURE:
-        // TODO remove message altogether
-        break;
       case VALIDATE:
         validate(clientDescriptor, (ValidateStoreManager) message);
         break;

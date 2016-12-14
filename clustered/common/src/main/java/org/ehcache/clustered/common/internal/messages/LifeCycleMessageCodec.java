@@ -39,7 +39,7 @@ public class LifeCycleMessageCodec {
 
   private static final String CONFIG_PRESENT_FIELD = "configPresent";
 
-  private final StructBuilder CONFIGURE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
+  private final StructBuilder VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX = newStructBuilder()
     .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
     .int64(MSG_ID_FIELD, 15)
     .int64(MSB_UUID_FIELD, 20)
@@ -65,7 +65,6 @@ public class LifeCycleMessageCodec {
 
   private final Struct RELEASE_STORE_MESSAGE_STRUCT = DESTROY_STORE_MESSAGE_STRUCT;
 
-  private final Struct configureMessageStruct;
   private final Struct validateMessageStruct;
   private final Struct createStoreMessageStruct;
   private final Struct validateStoreMessageStruct;
@@ -76,9 +75,8 @@ public class LifeCycleMessageCodec {
   public LifeCycleMessageCodec(ConfigCodec configCodec) {
     this.messageCodecUtils = new MessageCodecUtils();
     this.configCodec = configCodec;
-    configureMessageStruct = this.configCodec.injectServerSideConfiguration(
-      CONFIGURE_MESSAGE_STRUCT_BUILDER_PREFIX, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
-    validateMessageStruct = configureMessageStruct;
+    validateMessageStruct = this.configCodec.injectServerSideConfiguration(
+      VALIDATE_MESSAGE_STRUCT_BUILDER_PREFIX, CONFIGURE_MESSAGE_NEXT_INDEX).getUpdatedBuilder().build();
 
     createStoreMessageStruct = this.configCodec.injectServerStoreConfiguration(
       CREATE_STORE_MESSAGE_STRUCT_BUILDER_PREFIX, CREATE_STORE_NEXT_INDEX).getUpdatedBuilder().build();
@@ -86,14 +84,7 @@ public class LifeCycleMessageCodec {
   }
 
   public byte[] encode(LifecycleMessage message) {
-    //For configure message id serves as message creation timestamp
-    if (message instanceof LifecycleMessage.ConfigureStoreManager) {
-      message.setId(System.nanoTime());
-    }
-
     switch (message.getMessageType()) {
-      case CONFIGURE:
-        return encodeTierManagerConfigureMessage((LifecycleMessage.ConfigureStoreManager) message);
       case VALIDATE:
         return encodeTierManagerValidateMessage((LifecycleMessage.ValidateStoreManager) message);
       case CREATE_SERVER_STORE:
@@ -142,10 +133,6 @@ public class LifeCycleMessageCodec {
     return encoder.encode().array();
   }
 
-  private byte[] encodeTierManagerConfigureMessage(LifecycleMessage.ConfigureStoreManager message) {
-    return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), configureMessageStruct.encoder());
-  }
-
   private byte[] encodeTierManagerValidateMessage(LifecycleMessage.ValidateStoreManager message) {
     return encodeTierManagerCreateOrValidate(message, message.getConfiguration(), validateMessageStruct.encoder());
   }
@@ -164,8 +151,6 @@ public class LifeCycleMessageCodec {
   public EhcacheEntityMessage decode(EhcacheMessageType messageType, ByteBuffer messageBuffer) {
 
     switch (messageType) {
-      case CONFIGURE:
-        return decodeConfigureMessage(messageBuffer);
       case VALIDATE:
         return decodeValidateMessage(messageBuffer);
       case CREATE_SERVER_STORE:
@@ -248,25 +233,6 @@ public class LifeCycleMessageCodec {
 
 
     LifecycleMessage.ValidateStoreManager message = new LifecycleMessage.ValidateStoreManager(config, cliendId);
-    if (msgId != null) {
-      message.setId(msgId);
-    }
-    return message;
-  }
-
-  private LifecycleMessage.ConfigureStoreManager decodeConfigureMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = configureMessageStruct.decoder(messageBuffer);
-
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID clientId = messageCodecUtils.decodeUUID(decoder);
-    boolean configPresent = decoder.bool(CONFIG_PRESENT_FIELD);
-
-    ServerSideConfiguration config = null;
-    if (configPresent) {
-      config = configCodec.decodeServerSideConfiguration(decoder);
-    }
-
-    LifecycleMessage.ConfigureStoreManager message = new LifecycleMessage.ConfigureStoreManager(config, clientId);
     if (msgId != null) {
       message.setId(msgId);
     }

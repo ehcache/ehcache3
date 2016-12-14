@@ -49,20 +49,6 @@ public class LifeCycleMessageCodecTest {
   }
 
   @Test
-  public void testConfigureStoreManager() throws Exception {
-    ServerSideConfiguration configuration = getServerSideConfiguration();
-    LifecycleMessage message = factory.configureStoreManager(configuration);
-
-    byte[] encoded = codec.encode(message);
-    LifecycleMessage.ConfigureStoreManager decodedMessage = (LifecycleMessage.ConfigureStoreManager) codec.decode(message.getMessageType(), wrap(encoded));
-
-    assertThat(decodedMessage.getClientId(), is(CLIENT_ID));
-    assertThat(decodedMessage.getMessageType(), is(EhcacheMessageType.CONFIGURE));
-    assertThat(decodedMessage.getConfiguration().getDefaultServerResource(), is(configuration.getDefaultServerResource()));
-    assertThat(decodedMessage.getConfiguration().getResourcePools(), is(configuration.getResourcePools()));
-  }
-
-  @Test
   public void testValidateStoreManager() throws Exception {
     ServerSideConfiguration configuration = getServerSideConfiguration();
     LifecycleMessage message = factory.validateStoreManager(configuration);

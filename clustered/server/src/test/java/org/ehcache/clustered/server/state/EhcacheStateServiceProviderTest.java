@@ -37,12 +37,12 @@ import java.util.Collections;
 
 import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.same;
 import static org.mockito.Mockito.mock;
 
 public class EhcacheStateServiceProviderTest {
@@ -120,7 +120,7 @@ public class EhcacheStateServiceProviderTest {
 
     ehcacheStateService.destroy();
 
-    assertThat(serviceProvider.getService(1L, configuration), not(same(ehcacheStateService)));
+    assertThat(serviceProvider.getService(1L, configuration), not(sameInstance(ehcacheStateService)));
   }
 
   @Test

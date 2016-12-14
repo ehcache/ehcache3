@@ -18,7 +18,6 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
-import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
@@ -28,7 +27,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
@@ -243,9 +241,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
     switch (message.getMessageType()) {
-      case CONFIGURE:
-        // TODO remove message altogether
-        break;
       case VALIDATE:
         applyMessage(message);
         break;
