@@ -23,7 +23,6 @@ import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.context.extended.OperationStatisticDescriptor;
 import org.terracotta.context.extended.StatisticsRegistry;
-import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.collect.StatisticsRegistryMetadata;
@@ -50,8 +49,8 @@ class StandardEhcacheStatistics extends ExposedCacheBinding {
 
     this.statisticsRegistryMetadata = new StatisticsRegistryMetadata(statisticsRegistry);
 
-    EnumSet<CacheOperationOutcomes.GetOutcome> hit = of(CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER, CacheOperationOutcomes.GetOutcome.HIT_WITH_LOADER);
-    EnumSet<CacheOperationOutcomes.GetOutcome> miss = of(CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER, CacheOperationOutcomes.GetOutcome.MISS_WITH_LOADER);
+    EnumSet<CacheOperationOutcomes.GetOutcome> hit = of(CacheOperationOutcomes.GetOutcome.HIT);
+    EnumSet<CacheOperationOutcomes.GetOutcome> miss = of(CacheOperationOutcomes.GetOutcome.MISS);
     OperationStatisticDescriptor<CacheOperationOutcomes.GetOutcome> getCacheStatisticDescriptor = OperationStatisticDescriptor.descriptor("get", singleton("cache"), CacheOperationOutcomes.GetOutcome.class);
 
     statisticsRegistry.registerCompoundOperations("Cache:Hit", getCacheStatisticDescriptor, hit);

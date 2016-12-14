@@ -171,10 +171,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
         return null;
       } else {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
@@ -741,9 +741,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           @Override
           public V apply(K mappedKey, V mappedValue) {
             if (mappedValue == null) {
-              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
+              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
             } else {
-              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+              getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
             }
 
             V newValue = computeFunction.apply(mappedKey, mappedValue);
@@ -799,10 +799,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
       }
       return returnValue;
     }
@@ -834,10 +834,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         putObserver.end(PutOutcome.UPDATED);
       } else {
-        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS_NO_LOADER);
+        getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.MISS);
         putObserver.end(PutOutcome.PUT);
       }
       return returnValue;
@@ -908,7 +908,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
       if (!quiet) getObserver.begin();
       if (nextException == null) {
-        if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT_NO_LOADER);
+        if (!quiet) getObserver.end(org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome.HIT);
         current = next;
         advance();
         return new ValueHolderBasedEntry<K, V>(current);
