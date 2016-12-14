@@ -24,13 +24,19 @@ import org.ehcache.clustered.common.internal.exceptions.*;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
+import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
 import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
+import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
+import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
 import org.terracotta.context.TreeNode;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.offheapresource.OffHeapResource;
-import org.terracotta.offheapresource.OffHeapResourceIdentifier;
 import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.statistics.StatisticsManager;
@@ -109,18 +115,18 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private final ClientMessageTracker messageTracker = new ClientMessageTracker();
   private final ConcurrentMap<String, InvalidationTracker> invalidationMap = new ConcurrentHashMap<>();
   private final StateRepositoryManager stateRepositoryManager;
+  private final ServerSideConfiguration configuration;
   private final KeySegmentMapper mapper;
+  private final EhcacheStateServiceProvider.DestroyCallback destroyCallback;
 
 
-  public EhcacheStateServiceImpl(OffHeapResources offHeapResources, final KeySegmentMapper mapper) {
+  public EhcacheStateServiceImpl(OffHeapResources offHeapResources, ServerSideConfiguration configuration,
+                                 final KeySegmentMapper mapper, EhcacheStateServiceProvider.DestroyCallback destroyCallback) {
     this.offHeapResources = offHeapResources;
+    this.configuration = configuration;
     this.mapper = mapper;
+    this.destroyCallback = destroyCallback;
     this.stateRepositoryManager = new StateRepositoryManager();
-  }
-
-  @Override
-  public boolean hasValidOffheapResources() {
-    return offHeapResources != null && !offHeapResources.getAllIdentifiers().isEmpty();
   }
 
   public ServerStoreImpl getStore(String name) {
@@ -191,24 +197,28 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
                                                         + "Server: " + sharedResourcePools.keySet().toString());
     }
 
-    for (Map.Entry<String, ServerSideConfiguration.Pool> pool : resolveResourcePools(incomingConfig).entrySet()) {
-      ServerSideConfiguration.Pool serverPool = this.sharedResourcePools.get(pool.getKey()).getPool();
+    try {
+      for (Map.Entry<String, ServerSideConfiguration.Pool> pool : resolveResourcePools(incomingConfig).entrySet()) {
+        ServerSideConfiguration.Pool serverPool = this.sharedResourcePools.get(pool.getKey()).getPool();
 
-      if (!serverPool.equals(pool.getValue())) {
-        throw new InvalidServerSideConfigurationException("Pool '" + pool.getKey() + "' not equal. "
-                                                          + "Client: " + pool.getValue() + " "
-                                                          + "Server: " + serverPool);
+        if (!serverPool.equals(pool.getValue())) {
+          throw new InvalidServerSideConfigurationException("Pool '" + pool.getKey() + "' not equal. "
+                                                            + "Client: " + pool.getValue() + " "
+                                                            + "Server: " + serverPool);
+        }
       }
+    } catch (ConfigurationException e) {
+      throw new InvalidServerSideConfigurationException(e.getMessage());
     }
   }
 
-  private static Map<String, ServerSideConfiguration.Pool> resolveResourcePools(ServerSideConfiguration configuration) throws InvalidServerSideConfigurationException {
+  private static Map<String, ServerSideConfiguration.Pool> resolveResourcePools(ServerSideConfiguration configuration) throws ConfigurationException {
     Map<String, ServerSideConfiguration.Pool> pools = new HashMap<>();
     for (Map.Entry<String, ServerSideConfiguration.Pool> e : configuration.getResourcePools().entrySet()) {
       ServerSideConfiguration.Pool pool = e.getValue();
       if (pool.getServerResource() == null) {
         if (configuration.getDefaultServerResource() == null) {
-          throw new InvalidServerSideConfigurationException("Pool '" + e.getKey() + "' has no defined server resource, and no default value was available");
+          throw new ConfigurationException("Pool '" + e.getKey() + "' has no defined server resource, and no default value was available");
         } else {
           pools.put(e.getKey(), new ServerSideConfiguration.Pool(pool.getSize(), configuration.getDefaultServerResource()));
         }
@@ -219,26 +229,29 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return Collections.unmodifiableMap(pools);
   }
 
-  public void configure(ServerSideConfiguration configuration) throws ClusterException {
-    if (!isConfigured()) {
-      LOGGER.info("Configuring server-side clustered tier manager");
-
-      this.defaultServerResource = configuration.getDefaultServerResource();
-      if (this.defaultServerResource != null) {
-        if (!offHeapResources.getAllIdentifiers().contains(identifier(this.defaultServerResource))) {
-          throw new ResourceConfigurationException("Default server resource '" + this.defaultServerResource
-                                                   + "' is not defined. Available resources are: " + offHeapResources.getAllIdentifiers());
-        }
-      }
-
-      this.sharedResourcePools.putAll(createPools(resolveResourcePools(configuration)));
-      configured = true;
-    } else {
-      throw new InvalidStoreManagerException("Clustered Tier Manager already configured");
+  @Override
+  public void configure() throws ConfigurationException {
+    if (isConfigured()) {
+      return;
     }
+    if (offHeapResources == null || offHeapResources.getAllIdentifiers().isEmpty()) {
+      throw new ConfigurationException("No offheap-resources defined - Unable to work with clustered tiers");
+    }
+    LOGGER.info("Configuring server-side clustered tier manager");
+
+    this.defaultServerResource = configuration.getDefaultServerResource();
+    if (this.defaultServerResource != null) {
+      if (!offHeapResources.getAllIdentifiers().contains(identifier(this.defaultServerResource))) {
+        throw new ConfigurationException("Default server resource '" + this.defaultServerResource
+                                                 + "' is not defined. Available resources are: " + offHeapResources.getAllIdentifiers());
+      }
+    }
+
+    this.sharedResourcePools.putAll(createPools(resolveResourcePools(configuration)));
+    configured = true;
   }
 
-  private Map<String, ResourcePageSource> createPools(Map<String, ServerSideConfiguration.Pool> resourcePools) throws ResourceConfigurationException {
+  private Map<String, ResourcePageSource> createPools(Map<String, ServerSideConfiguration.Pool> resourcePools) throws ConfigurationException {
     Map<String, ResourcePageSource> pools = new HashMap<>();
     try {
       for (Map.Entry<String, ServerSideConfiguration.Pool> e : resourcePools.entrySet()) {
@@ -252,7 +265,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
         LOGGER.warn("Failed to create shared resource pools; reversing reservations", e);
         releasePools("shared", pools);
       }
-      throw e;
+      throw new ConfigurationException("Unable to create shared resource pools", e);
     } catch (RuntimeException e) {
       /*
        * If we fail during pool creation, back out any pools successfully created during this call.
@@ -355,6 +368,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     this.sharedResourcePools.clear();
     invalidationMap.clear();
     this.configured = false;
+    destroyCallback.destroy(this);
   }
 
   private void releasePools(String poolType, Map<String, ResourcePageSource> resourcePools) {
@@ -468,8 +482,15 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public void loadExisting() {
-    //nothing to do
+  public void loadExisting(ServerSideConfiguration configuration) {
+    try {
+      validate(configuration);
+    } catch (ClusterException e) {
+      throw new AssertionError("Mismatch between entity configuration and the know configuration of the service.\n" +
+                               "Entity configuration:" + configuration + "\n" +
+                               "Existing: defaultResource: " + getDefaultServerResource() + "\n" +
+                               "\tsharedPools: " + sharedResourcePools);
+    }
   }
 
   public boolean isConfigured() {

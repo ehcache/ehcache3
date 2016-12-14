@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.client.internal;
 
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
@@ -35,7 +34,6 @@ import org.terracotta.exception.EntityVersionMismatchException;
 import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
@@ -116,7 +114,6 @@ public class EhcacheClientEntityFactory {
             EhcacheClientEntity entity = ref.fetchEntity();
             try {
               entity.setTimeouts(entityTimeouts);
-              entity.configure(config);
               finished = true;
               return;
             } finally {
@@ -126,28 +123,17 @@ public class EhcacheClientEntityFactory {
                 silentlyClose(entity, identifier);
               }
             }
-          } catch (ClusteredTierManagerConfigurationException e) {
-            try {
-              ref.destroy();
-            } catch (EntityNotFoundException f) {
-              //ignore
-            }
-            throw new EhcacheEntityCreationException("Unable to configure clustered tier manager for id " + identifier, e);
           } catch (EntityNotFoundException e) {
             //continue;
           }
         }
+      } catch (EntityConfigurationException e) {
+        throw new EhcacheEntityCreationException("Unable to configure clustered tier manager for id " + identifier, e);
       } catch (EntityNotProvidedException e) {
         LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       } catch (EntityVersionMismatchException e) {
         LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
-        throw new AssertionError(e);
-      } catch (PermanentEntityException e) {
-        LOGGER.error("Unable to create entity - server indicates it is permanent", e);
-        throw new AssertionError(e);
-      } catch (EntityConfigurationException e) {
-        LOGGER.error("Unable to create entity - configuration exception", e);
         throw new AssertionError(e);
       }
     } finally {

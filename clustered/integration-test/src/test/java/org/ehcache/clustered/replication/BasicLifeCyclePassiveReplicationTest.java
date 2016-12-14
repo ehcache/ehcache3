@@ -26,23 +26,19 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.service.ClusteredTierCreationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.internal.service.ClusteringServiceFactory;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
-import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.spi.service.MaintainableService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.terracotta.testing.rules.BasicExternalCluster;
 import org.terracotta.testing.rules.Cluster;
@@ -146,33 +142,6 @@ public class BasicLifeCyclePassiveReplicationTest {
     } catch (ClusteredTierDestructionException e) {
       assertThat(e.getCause(), instanceOf(InvalidStoreException.class));
       assertThat(e.getCause().getMessage(), is("Clustered tier 'testCache' does not exist"));
-    }
-
-    service.stop();
-    cleanUpCluster(service);
-  }
-
-  @Test
-  public void testConfigureReplication() throws Exception {
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-            .autoCreate()
-            .build();
-
-    ClusteringService service = new ClusteringServiceFactory().create(configuration);
-
-    service.start(null);
-
-    EhcacheClientEntity clientEntity = getEntity(service);
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    try {
-      clientEntity.configure(configuration.getServerConfiguration());
-      fail("ClusteredTierManagerConfigurationException Expected.");
-    } catch (ClusteredTierManagerConfigurationException e) {
-      assertThat(e.getCause(), instanceOf(InvalidStoreManagerException.class));
-      assertThat(e.getCause().getMessage(), is("Clustered Tier Manager already configured"));
     }
 
     service.stop();

@@ -16,10 +16,8 @@
 
 package org.ehcache.clustered.client.internal;
 
-import java.util.UUID;
-
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockClient;
 import org.junit.Before;
@@ -35,6 +33,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -43,6 +42,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 
 public class EhcacheClientEntityFactoryTest {
@@ -68,15 +68,13 @@ public class EhcacheClientEntityFactoryTest {
 
     EhcacheClientEntityFactory factory = new EhcacheClientEntityFactory(connection);
     factory.create("test", null);
-    verify(entityRef).create(any(UUID.class));
-    verify(entity).configure(any(ServerSideConfiguration.class));
+    verify(entityRef).create(isA(ClusteredTierManagerConfiguration.class));
     verify(entity).close();
   }
 
   @Test
   public void testCreateBadConfig() throws Exception {
-    when(entityRef.fetchEntity()).thenReturn(entity);
-    doThrow(ClusteredTierManagerConfigurationException.class).when(entity).configure(any(ServerSideConfiguration.class));
+    doThrow(EntityConfigurationException.class).when(entityRef).create(any(ServerSideConfiguration.class));
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
     addMockUnlockedLock(connection, "VoltronReadWriteLock-EhcacheClientEntityFactory-AccessLock-test");
@@ -88,10 +86,6 @@ public class EhcacheClientEntityFactoryTest {
     } catch (EhcacheEntityCreationException e) {
       // expected
     }
-    verify(entityRef).create(any(UUID.class));
-    verify(entity).configure(any(ServerSideConfiguration.class));
-    verify(entity).close();
-    verify(entityRef).destroy();
   }
 
   @Test
