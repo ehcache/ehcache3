@@ -18,8 +18,9 @@ You can affect which elements are selected for eviction from the cache by provid
 `org.ehcache.config.EvictionAdvisor` interface.
 
 NOTE: Eviction advisors are not used for clustered storage tiers. 
-In a cache with a heap tier and clustered storage tier, the heap tier will use the eviction advisor but the clustered storage tier will evict independently, irrespective of the eviction advisor. 
-The description below applies to using an eviction advisor for the heap tier of a cache.
+For example, in a cache with a heap tier and clustered storage tier, 
+the heap tier will use the eviction advisor but the clustered storage tier will evict independently, irrespective of the eviction advisor. 
+The description below applies to using an eviction advisor for the cache tiers other than a clustered storage tier.
 
 `EvictionAdvisor` implementations are invoked when Ehcache attempts to evict entries from the cache
 (in order to make room for new entries) in order to determine whether the given entry should not be considered
