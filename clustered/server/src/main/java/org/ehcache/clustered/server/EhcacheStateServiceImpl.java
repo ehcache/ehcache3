@@ -20,7 +20,7 @@ import java.util.Arrays;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.*;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
@@ -28,12 +28,6 @@ import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
-import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
-import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
-import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
 import org.terracotta.context.TreeNode;
 import org.terracotta.offheapresource.OffHeapResource;
 import org.terracotta.offheapresource.OffHeapResourceIdentifier;
@@ -385,8 +379,15 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
       throw new InvalidStoreException("Clustered tier '" + name + "' already exists");
     }
 
+    ServerStoreImpl serverStore;
     PageSource resourcePageSource = getPageSource(name, serverStoreConfiguration.getPoolAllocation());
-    ServerStoreImpl serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
+    try {
+      serverStore = new ServerStoreImpl(serverStoreConfiguration, resourcePageSource, mapper);
+    } catch (RuntimeException rte) {
+      releaseDedicatedPool(name, resourcePageSource);
+      throw new InvalidServerStoreConfigurationException("Failed to create ServerStore.", rte);
+    }
+
     stores.put(name, serverStore);
 
     registerStoreStatistics(serverStore, name);
