@@ -24,6 +24,7 @@ package org.ehcache.impl.internal.concurrent;
 
 import java.io.ObjectStreamField;
 import java.net.NetworkInterface;
+import java.security.PrivilegedAction;
 import java.util.Enumeration;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -126,8 +127,12 @@ class ThreadLocalRandom extends Random {
 
     private static long initialSeed() {
         String pp = java.security.AccessController.doPrivileged(
-                new sun.security.action.GetPropertyAction(
-                        "java.util.secureRandomSeed"));
+                new PrivilegedAction<String>() {
+          @Override
+          public String run() {
+            return System.getProperty("java.util.secureRandomSeed");
+          }
+        });
         if (pp != null && pp.equalsIgnoreCase("true")) {
             byte[] seedBytes = java.security.SecureRandom.getSeed(8);
             long s = (long)(seedBytes[0]) & 0xffL;

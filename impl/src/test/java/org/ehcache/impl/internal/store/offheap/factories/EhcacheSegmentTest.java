@@ -18,6 +18,7 @@ package org.ehcache.impl.internal.store.offheap.factories;
 
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
+import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
@@ -41,10 +42,12 @@ import static org.mockito.Mockito.verify;
 
 public class EhcacheSegmentTest {
 
+  @SuppressWarnings("unchecked")
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment() {
     return createTestSegment(Eviction.noAdvice(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
+  @SuppressWarnings("unchecked")
   private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) {
     return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
@@ -53,7 +56,7 @@ public class EhcacheSegmentTest {
     return createTestSegment(Eviction.noAdvice(), evictionListener);
   }
 
-  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
+  private EhcacheSegmentFactory.EhcacheSegment<String, String> createTestSegment(final EvictionAdvisor<? super String, ? super String> evictionPredicate, EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener) {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -64,7 +67,26 @@ public class EhcacheSegmentTest {
       Portability<String> keyPortability = new SerializerPortability<String>(keySerializer);
       Portability<String> elementPortability = new SerializerPortability<String>(valueSerializer);
       Factory<OffHeapBufferStorageEngine<String, String>> storageEngineFactory = OffHeapBufferStorageEngine.createFactory(PointerSize.INT, pageSource, configuration.getInitialSegmentTableSize(), keyPortability, elementPortability, false, true);
-      return new EhcacheSegmentFactory.EhcacheSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, evictionPredicate, evictionListener);
+      SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
+
+        private volatile boolean enabled = true;
+
+        @Override
+        public boolean adviseAgainstEviction(String key, String value) {
+          return evictionPredicate.adviseAgainstEviction(key, value);
+        }
+
+        @Override
+        public boolean isSwitchedOn() {
+          return enabled;
+        }
+
+        @Override
+        public void setSwitchedOn(boolean switchedOn) {
+          this.enabled = switchedOn;
+        }
+      };
+      return new EhcacheSegmentFactory.EhcacheSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, wrappedEvictionAdvisor, evictionListener);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }
@@ -115,6 +137,7 @@ public class EhcacheSegmentTest {
 
   @Test
   public void testEvictionFiresEvent() {
+    @SuppressWarnings("unchecked")
     EhcacheSegmentFactory.EhcacheSegment.EvictionListener<String, String> evictionListener = mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class);
     EhcacheSegmentFactory.EhcacheSegment<String, String> segment = createTestSegment(evictionListener);
     try {

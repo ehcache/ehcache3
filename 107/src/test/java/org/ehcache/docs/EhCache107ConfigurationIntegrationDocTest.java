@@ -21,17 +21,23 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.internal.util.ValueSuppliers;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.jsr107.Eh107Configuration;
+import org.ehcache.jsr107.EhcacheCachingProvider;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.pany.domain.Client;
 import com.pany.domain.Product;
 
+import java.io.File;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -66,6 +72,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
 
   private CacheManager cacheManager;
   private CachingProvider cachingProvider;
+  @Rule
+  public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Before
   public void setUp() throws Exception {
@@ -84,6 +92,24 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  public void basicConfiguration() throws Exception {
+    // tag::basicConfigurationExample[]
+    CachingProvider provider = Caching.getCachingProvider();  // <1>
+    CacheManager cacheManager = provider.getCacheManager();   // <2>
+    MutableConfiguration<Long, String> configuration =
+        new MutableConfiguration<Long, String>()  // <3>
+            .setTypes(Long.class, String.class)   // <4>
+            .setStoreByValue(false)   // <5>
+            .setExpiryPolicyFactory(CreatedExpiryPolicy.factoryOf(Duration.ONE_MINUTE));  // <6>
+    Cache<Long, String> cache = cacheManager.createCache("jCache", configuration); // <7>
+    cache.put(1L, "one"); // <8>
+    String value = cache.get(1L); // <9>
+    // end::basicConfigurationExample[]
+    assertThat(value, is("one"));
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
   public void testGettingToEhcacheConfiguration() {
     // tag::mutableConfigurationExample[]
     MutableConfiguration<Long, String> configuration = new MutableConfiguration<Long, String>();
@@ -112,6 +138,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testUsingEhcacheConfiguration() throws Exception {
     // tag::ehcacheBasedConfigurationExample[]
     CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
@@ -147,6 +174,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testWithoutEhcacheExplicitDependencyAndNoCodeChanges() throws Exception {
     CacheManager manager = cachingProvider.getCacheManager(
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
@@ -191,6 +219,7 @@ public class EhCache107ConfigurationIntegrationDocTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testTemplateOverridingStoreByValue() throws Exception {
     cacheManager = cachingProvider.getCacheManager(
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-template-override.xml").toURI(),
@@ -242,5 +271,31 @@ public class EhCache107ConfigurationIntegrationDocTest {
     myCache = cacheManager.createCache("byValCache", mutableConfiguration);
     myCache.put(1L, client1);
     assertNotSame(client1, myCache.get(1L));
+  }
+
+  @Test
+  public void testCacheThroughAtomicsXMLValid() throws Exception {
+    cacheManager = cachingProvider.getCacheManager(
+        getClass().getResource("/org/ehcache/docs/ehcache-jsr107-cache-through.xml").toURI(),
+        getClass().getClassLoader());
+  }
+
+  @Test
+  public void testCacheManagerLevelConfiguration() throws Exception {
+    // tag::ehcacheCacheManagerConfigurationExample[]
+    CachingProvider cachingProvider = Caching.getCachingProvider();
+    EhcacheCachingProvider ehcacheProvider = (EhcacheCachingProvider) cachingProvider; // <1>
+
+    DefaultConfiguration configuration = new DefaultConfiguration(ehcacheProvider.getDefaultClassLoader(),
+      new DefaultPersistenceConfiguration(getPersistenceDirectory())); // <2>
+
+    CacheManager cacheManager = ehcacheProvider.getCacheManager(ehcacheProvider.getDefaultURI(), configuration); // <3>
+    // end::ehcacheCacheManagerConfigurationExample[]
+
+    assertThat(cacheManager, notNullValue());
+  }
+
+  private File getPersistenceDirectory() {
+    return tempFolder.getRoot();
   }
 }

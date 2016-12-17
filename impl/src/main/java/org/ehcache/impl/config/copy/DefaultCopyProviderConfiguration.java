@@ -16,6 +16,7 @@
 
 package org.ehcache.impl.config.copy;
 
+import org.ehcache.impl.internal.classes.ClassInstanceConfiguration;
 import org.ehcache.impl.internal.classes.ClassInstanceProviderConfiguration;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.copy.CopyProvider;
@@ -93,7 +94,9 @@ public class DefaultCopyProviderConfiguration extends ClassInstanceProviderConfi
     if (!overwrite && getDefaults().containsKey(clazz)) {
       throw new IllegalArgumentException("Duplicate copier for class : " + clazz);
     }
-    getDefaults().put(clazz, new DefaultCopierConfiguration(copierClass));
+    @SuppressWarnings("unchecked")
+    ClassInstanceConfiguration<Copier<?>> configuration = (ClassInstanceConfiguration) new DefaultCopierConfiguration<T>(copierClass);
+    getDefaults().put(clazz, configuration);
     return this;
   }
 }

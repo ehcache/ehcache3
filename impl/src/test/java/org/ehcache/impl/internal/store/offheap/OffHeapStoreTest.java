@@ -17,7 +17,6 @@
 package org.ehcache.impl.internal.store.offheap;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourceType;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.units.MemoryUnit;
@@ -26,6 +25,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.spi.serialization.DefaultSerializationProvider;
 import org.ehcache.core.spi.time.TimeSource;
+import org.ehcache.impl.internal.util.UnmatchedResourceType;
 import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.serialization.UnsupportedTypeException;
@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
+import static java.util.Collections.EMPTY_LIST;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -79,6 +80,15 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  public void testRankAuthority() throws Exception {
+    OffHeapStore.Provider provider = new OffHeapStore.Provider();
+
+    assertThat(provider.rankAuthority(ResourceType.Core.OFFHEAP, EMPTY_LIST), is(1));
+    assertThat(provider.rankAuthority(new UnmatchedResourceType(), EMPTY_LIST), is(0));
+  }
+
+  @Test
   public void testRank() throws Exception {
     OffHeapStore.Provider provider = new OffHeapStore.Provider();
 
@@ -90,23 +100,8 @@ public class OffHeapStoreTest extends AbstractOffHeapStoreTest {
     assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
     assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
 
-    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
-      @Override
-      public Class<ResourcePool> getResourcePoolClass() {
-        return ResourcePool.class;
-      }
-      @Override
-      public boolean isPersistable() {
-        return true;
-      }
-      @Override
-      public boolean requiresSerialization() {
-        return true;
-      }
-    };
-
-    assertRank(provider, 0, unmatchedResourceType);
-    assertRank(provider, 0, ResourceType.Core.OFFHEAP, unmatchedResourceType);
+    assertRank(provider, 0, new UnmatchedResourceType());
+    assertRank(provider, 0, ResourceType.Core.OFFHEAP, new UnmatchedResourceType());
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {

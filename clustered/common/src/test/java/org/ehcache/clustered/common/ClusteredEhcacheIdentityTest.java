@@ -22,6 +22,7 @@ import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.junit.Test;
 
 public class ClusteredEhcacheIdentityTest {

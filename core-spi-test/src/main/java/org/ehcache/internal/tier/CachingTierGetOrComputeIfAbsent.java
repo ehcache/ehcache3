@@ -44,7 +44,7 @@ import static org.mockito.Mockito.when;
 
 public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, V> {
 
-  private CachingTier tier;
+  private CachingTier<K, V> tier;
 
   public CachingTierGetOrComputeIfAbsent(final CachingTierFactory<K, V> factory) {
     super(factory);
@@ -96,12 +96,12 @@ public class CachingTierGetOrComputeIfAbsent<K, V> extends CachingTierTester<K, 
     when(computedValueHolder.value()).thenReturn(value);
     when(computedValueHolder.expirationTime(any(TimeUnit.class))).thenReturn(Store.ValueHolder.NO_EXPIRE);
 
-    tier = factory.newCachingTier(1L);
+    tier = factory.newCachingTier();
 
     try {
-      tier.getOrComputeIfAbsent(key, new Function() {   // actually put mapping in tier
+      tier.getOrComputeIfAbsent(key, new Function<K, Store.ValueHolder<V>>() {   // actually put mapping in tier
         @Override
-        public Object apply(final Object o) {
+        public Store.ValueHolder<V> apply(final K o) {
           return computedValueHolder;
         }
       });

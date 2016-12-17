@@ -30,6 +30,7 @@ import java.lang.reflect.Type;
 import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.HashMap;
@@ -251,6 +252,7 @@ import org.ehcache.impl.internal.concurrent.JSR166Helper.*;
  * @param <K> the type of keys maintained by this map
  * @param <V> the type of mapped values
  */
+@SuppressWarnings("unchecked")
 public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     implements ConcurrentMap<K,V>, Serializable {
     private static final long serialVersionUID = 7249069246763182397L;
@@ -1162,6 +1164,39 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         }
         return null;
     }
+
+  /**
+   * Remove and return all mappings for which the keys have the specified hashcode.
+   * @param keyHash the keys' hashcode.
+   * @return the removed mappings.
+   */
+  public final Map<K, V> removeAllWithHash(int keyHash) {
+      Map<K, V> invalidated = new HashMap<K, V>();
+
+      int hash = spread(keyHash);
+      for (Node<K, V>[] tab = table; ; ) {
+          Node<K, V> f;
+          int n, i;
+          if (tab == null || (n = tab.length) == 0 ||
+              (f = tabAt(tab, i = (n - 1) & hash)) == null)
+              break;
+          else if (f.hash == MOVED)
+              tab = helpTransfer(tab, f);
+          else {
+              int nodesCount = 0;
+              synchronized (f) {
+                  if (tabAt(tab, i) == f) {
+                      nodesCount = nodesAt(f, invalidated);
+                      setTabAt(tab, i, null);
+                  }
+              }
+              if (nodesCount > 0) {
+                  addCount(-nodesCount, -nodesCount);
+              }
+          }
+      }
+      return invalidated;
+  }
 
     /**
      * Removes all of the mappings from this map.
@@ -2641,6 +2676,31 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             tl = p;
         }
         return hd;
+    }
+
+    private static <K,V> int nodesAt(Node<K,V> b, Map<K, V> nodes) {
+        if (b instanceof TreeBin) {
+            return treeNodesAt(((TreeBin<K,V>)b).root, nodes);
+        } else {
+            int count = 0;
+            for (Node<K,V> q = b; q != null; q = q.next) {
+                nodes.put(q.key, q.val);
+                count++;
+            }
+            return count;
+        }
+    }
+
+    private static <K,V> int treeNodesAt(TreeNode<K, V> root, Map<K, V> nodes) {
+        if (root == null) {
+            return 0;
+        }
+
+        int count = 1;
+        nodes.put(root.key, root.val);
+        count += treeNodesAt(root.left, nodes);
+        count += treeNodesAt(root.right, nodes);
+        return count;
     }
 
     /* ---------------- TreeNodes -------------- */

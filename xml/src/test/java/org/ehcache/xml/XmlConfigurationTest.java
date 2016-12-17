@@ -22,6 +22,11 @@ import org.ehcache.config.ResourceType;
 import org.ehcache.config.ResourceUnit;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.internal.util.ClassLoading;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.config.copy.DefaultCopierConfiguration;
 import org.ehcache.impl.config.copy.DefaultCopyProviderConfiguration;
 import org.ehcache.impl.config.event.DefaultCacheEventListenerConfiguration;
@@ -31,20 +36,15 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializationProviderConfiguration;
 import org.ehcache.impl.config.serializer.DefaultSerializerConfiguration;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
-import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.expiry.Duration;
-import org.ehcache.expiry.Expirations;
-import org.ehcache.expiry.Expiry;
-import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguration;
 import org.ehcache.impl.config.store.heap.DefaultSizeOfEngineProviderConfiguration;
+import org.ehcache.impl.copy.SerializingCopier;
 import org.ehcache.spi.copy.Copier;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration;
 import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfiguration;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
-import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.xml.exceptions.XmlConfigurationException;
 import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matcher;
@@ -115,7 +115,6 @@ public class XmlConfigurationTest {
   @Rule
   public ExpectedException thrown= ExpectedException.none();
 
-  @SuppressWarnings("rawtypes")
   @Test
   public void testDefaultTypesConfig() throws Exception {
     XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/defaultTypes-cache.xml"));
@@ -171,7 +170,6 @@ public class XmlConfigurationTest {
     assertThat(config.getCacheConfigurations().get("bar").getServiceConfigurations(), IsCollectionContaining.<ServiceConfiguration<?>>hasItem(instanceOf(FooConfiguration.class)));
   }
 
-  @SuppressWarnings("rawtypes")
   @Test
   public void testOneCacheConfigWithTemplate() throws Exception {
     final URL resource = XmlConfigurationTest.class.getResource("/configs/template-cache.xml");
@@ -204,7 +202,6 @@ public class XmlConfigurationTest {
     assertThat(xmlConfig.newCacheConfigurationBuilderFromTemplate("bar", Object.class, Object.class), nullValue());
   }
 
-  @SuppressWarnings("rawtypes")
   @Test
   public void testExpiryIsParsed() throws Exception {
     final XmlConfiguration xmlConfiguration = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/expiry-caches.xml"));
@@ -374,11 +371,11 @@ public class XmlConfigurationTest {
     assertThat(configuration, instanceOf(DefaultSerializationProviderConfiguration.class));
 
     DefaultSerializationProviderConfiguration factoryConfiguration = (DefaultSerializationProviderConfiguration) configuration;
-    assertThat(factoryConfiguration.getTransientSerializers().size(), is(4));
-    assertThat(factoryConfiguration.getTransientSerializers().get(CharSequence.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get(Number.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get(Long.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
-    assertThat(factoryConfiguration.getTransientSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().size(), is(4));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(CharSequence.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Number.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer2.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Long.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer3.class));
+    assertThat(factoryConfiguration.getDefaultSerializers().get(Integer.class), Matchers.<Class<? extends Serializer>>equalTo(TestSerializer4.class));
 
 
     List<ServiceConfiguration<?>> orderedServiceConfigurations = new ArrayList<ServiceConfiguration<?>>(xmlConfig.getCacheConfigurations().get("baz").getServiceConfigurations());
@@ -595,14 +592,14 @@ public class XmlConfigurationTest {
   public void testNullUrlInConstructorThrowsNPE() throws Exception {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The url can not be null");
-    XmlConfiguration xmlConfig = new XmlConfiguration(null, mock(ClassLoader.class), mock(Map.class));
+    XmlConfiguration xmlConfig = new XmlConfiguration(null, mock(ClassLoader.class), getClassLoaderMapMock());
   }
 
   @Test
   public void testNullClassLoaderInConstructorThrowsNPE() throws Exception {
     thrown.expect(NullPointerException.class);
     thrown.expectMessage("The classLoader can not be null");
-    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, mock(Map.class));
+    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/one-cache.xml"), null, getClassLoaderMapMock());
   }
 
   @Test
@@ -633,6 +630,42 @@ public class XmlConfigurationTest {
     assertThat(sizeOfEngineConfig1, notNullValue());
     assertEquals(sizeOfEngineConfig1.getMaxObjectGraphSize(), 500);
     assertEquals(sizeOfEngineConfig1.getMaxObjectSize(), 200000);
+
+    CacheConfiguration<?, ?> cacheConfig2 = xmlConfig.getCacheConfigurations().get("usesPartialOneConfiguredInCache");
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig2 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig2.getServiceConfigurations());
+
+    assertThat(sizeOfEngineConfig2, notNullValue());
+    assertThat(sizeOfEngineConfig2.getMaxObjectGraphSize(), is(500L));
+    assertThat(sizeOfEngineConfig2.getMaxObjectSize(), is(Long.MAX_VALUE));
+
+    CacheConfiguration<?, ?> cacheConfig3 = xmlConfig.getCacheConfigurations().get("usesPartialTwoConfiguredInCache");
+    DefaultSizeOfEngineConfiguration sizeOfEngineConfig3 = findSingletonAmongst(DefaultSizeOfEngineConfiguration.class, cacheConfig3.getServiceConfigurations());
+
+    assertThat(sizeOfEngineConfig3, notNullValue());
+    assertThat(sizeOfEngineConfig3.getMaxObjectGraphSize(), is(1000L));
+    assertThat(sizeOfEngineConfig3.getMaxObjectSize(), is(200000L));
+  }
+
+  @Test
+  public void testCacheManagerDefaultObjectGraphSize() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-one.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+
+    assertThat(sizeOfEngineProviderConfig, notNullValue());
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), is(1000L));
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectSize(), is(100000L));
+  }
+
+  @Test
+  public void testCacheManagerDefaultObjectSize() throws Exception {
+    final URL resource = XmlConfigurationTest.class.getResource("/configs/sizeof-engine-cm-defaults-two.xml");
+    XmlConfiguration xmlConfig = new XmlConfiguration(resource);
+    DefaultSizeOfEngineProviderConfiguration sizeOfEngineProviderConfig = findSingletonAmongst(DefaultSizeOfEngineProviderConfiguration.class, xmlConfig.getServiceCreationConfigurations());
+
+    assertThat(sizeOfEngineProviderConfig, notNullValue());
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectGraphSize(), is(200L));
+    assertThat(sizeOfEngineProviderConfig.getMaxObjectSize(), is(Long.MAX_VALUE));
   }
 
   @Test
@@ -642,6 +675,30 @@ public class XmlConfigurationTest {
     } catch (XmlConfigurationException xce) {
       assertThat(xce.getMessage(), containsString("Can't find parser for namespace: http://www.example.com/fancy"));
     }
+  }
+
+  @Test
+  public void testSysPropReplace() {
+    System.getProperties().setProperty("ehcache.match", Number.class.getName());
+    XmlConfiguration xmlConfig = new XmlConfiguration(XmlConfigurationTest.class.getResource("/configs/systemprops.xml"));
+
+    assertThat(xmlConfig.getCacheConfigurations().get("bar").getKeyType(), sameInstance((Class)Number.class));
+
+    DefaultPersistenceConfiguration persistenceConfiguration = (DefaultPersistenceConfiguration)xmlConfig.getServiceCreationConfigurations().iterator().next();
+    assertThat(persistenceConfiguration.getRootDirectory(), is(new File(System.getProperty("user.home") + "/ehcache")));
+  }
+
+  @Test
+  public void testSysPropReplaceRegExp() {
+    assertThat(ConfigurationParser.replaceProperties("foo${file.separator}", System.getProperties()), equalTo("foo" + File.separator));
+    assertThat(ConfigurationParser.replaceProperties("${file.separator}foo${file.separator}", System.getProperties()), equalTo(File.separator + "foo" + File.separator));
+    try {
+      ConfigurationParser.replaceProperties("${bar}foo", System.getProperties());
+      fail("Should have thrown!");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage().contains("${bar}"), is(true));
+    }
+    assertThat(ConfigurationParser.replaceProperties("foo", System.getProperties()), nullValue());
   }
 
   private void checkListenerConfigurationExists(Collection<?> configuration) {
@@ -654,4 +711,8 @@ public class XmlConfigurationTest {
     assertThat(count, is(1));
   }
 
+  @SuppressWarnings("unchecked")
+  private Map<String, ClassLoader> getClassLoaderMapMock() {
+    return (Map<String, ClassLoader>) mock(Map.class);
+  }
 }

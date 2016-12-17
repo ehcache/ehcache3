@@ -10,6 +10,7 @@ org.ehcache.impl.internal.spi.loaderwriter.DefaultCacheLoaderWriterProviderFacto
 org.ehcache.impl.internal.spi.event.DefaultCacheEventListenerProviderFactory
 org.ehcache.impl.internal.executor.DefaultExecutionServiceFactory
 org.ehcache.impl.internal.persistence.DefaultLocalPersistenceServiceFactory
+org.ehcache.impl.internal.persistence.DefaultDiskResourceServiceFactory
 org.ehcache.impl.internal.loaderwriter.writebehind.WriteBehindProviderFactory
 org.ehcache.impl.internal.events.CacheEventNotificationListenerServiceProviderFactory
 org.ehcache.impl.internal.spi.copy.DefaultCopyProviderFactory

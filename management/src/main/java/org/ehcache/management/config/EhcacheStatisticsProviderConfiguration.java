@@ -19,66 +19,24 @@ import org.ehcache.management.providers.statistics.EhcacheStatisticsProvider;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * @author Ludovic Orban
- */
-public class EhcacheStatisticsProviderConfiguration implements StatisticsProviderConfiguration {
+public class EhcacheStatisticsProviderConfiguration extends DefaultStatisticsProviderConfiguration {
 
-  private long averageWindowDuration;
-  private TimeUnit averageWindowUnit;
-  private int historySize;
-  private long historyInterval;
-  private TimeUnit historyIntervalUnit;
-  private long timeToDisable;
-  private TimeUnit timeToDisableUnit;
-
+  /**
+   *
+   * @param averageWindowDuration Time window to calculate average.
+   * @param averageWindowUnit TimeUnit of averageWindowDuration.  E.g. TimeUnit.MILLISECONDS, TimeUnit.MINUTES etc
+   * @param historySize Number of statistics to keep in memory.  E.g. if set to 20 then the last 20 statistic values will be stored.
+   * @param historyInterval The interval in which a sample is taken
+   * @param historyIntervalUnit the time interval in which a sample is taken.
+   * @param timeToDisable the time period in which a statistic is valid.  After this amount of time the statistic is removed.
+   * @param timeToDisableUnit the TimeUnit associated with the timeToDisable parameter
+   */
   public EhcacheStatisticsProviderConfiguration(long averageWindowDuration, TimeUnit averageWindowUnit, int historySize, long historyInterval, TimeUnit historyIntervalUnit, long timeToDisable, TimeUnit timeToDisableUnit) {
-    this.averageWindowDuration = averageWindowDuration;
-    this.averageWindowUnit = averageWindowUnit;
-    this.historySize = historySize;
-    this.historyInterval = historyInterval;
-    this.historyIntervalUnit = historyIntervalUnit;
-    this.timeToDisable = timeToDisable;
-    this.timeToDisableUnit = timeToDisableUnit;
+    super(EhcacheStatisticsProvider.class, averageWindowDuration, averageWindowUnit, historySize, historyInterval, historyIntervalUnit, timeToDisable, timeToDisableUnit);
   }
 
-  @Override
-  public long averageWindowDuration() {
-    return averageWindowDuration;
+  public EhcacheStatisticsProviderConfiguration() {
+    super(EhcacheStatisticsProvider.class);
   }
 
-  @Override
-  public TimeUnit averageWindowUnit() {
-    return averageWindowUnit;
-  }
-
-  @Override
-  public int historySize() {
-    return historySize;
-  }
-
-  @Override
-  public long historyInterval() {
-    return historyInterval;
-  }
-
-  @Override
-  public TimeUnit historyIntervalUnit() {
-    return historyIntervalUnit;
-  }
-
-  @Override
-  public long timeToDisable() {
-    return timeToDisable;
-  }
-
-  @Override
-  public TimeUnit timeToDisableUnit() {
-    return timeToDisableUnit;
-  }
-
-  @Override
-  public Class<EhcacheStatisticsProvider> getStatisticsProviderType() {
-    return EhcacheStatisticsProvider.class;
-  }
 }

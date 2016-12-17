@@ -52,7 +52,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
@@ -218,71 +217,6 @@ public abstract class AbstractOffHeapStoreTest {
   }
 
   @Test
-  public void testInvalidateWithFunctionKeyAbsent() throws Exception {
-    final TestTimeSource timeSource = new TestTimeSource();
-    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
-
-    try {
-      final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
-      offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
-        @Override
-        public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
-          invalidated.set(valueHolder);
-        }
-      });
-
-      final AtomicBoolean functionInvoked = new AtomicBoolean(false);
-      NullaryFunction<String> nullaryFunction = new NullaryFunction<String>() {
-        @Override
-        public String apply() {
-          functionInvoked.set(true);
-          return "";
-        }
-      };
-      offHeapStore.invalidate("1", nullaryFunction);
-      assertThat(invalidated.get(), is(nullValue()));
-      assertThat(functionInvoked.get(), is(true));
-      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.MISS));
-    } finally {
-      destroyStore(offHeapStore);
-    }
-  }
-
-  @Test
-  public void testInvalidateWithFunctionKeyPresent() throws Exception {
-    final TestTimeSource timeSource = new TestTimeSource();
-    AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
-
-    try {
-      offHeapStore.put("1", "one");
-      final AtomicReference<Store.ValueHolder<String>> invalidated = new AtomicReference<Store.ValueHolder<String>>();
-      offHeapStore.setInvalidationListener(new CachingTier.InvalidationListener<String, String>() {
-        @Override
-        public void onInvalidation(String key, Store.ValueHolder<String> valueHolder) {
-          invalidated.set(valueHolder);
-        }
-      });
-
-      final AtomicBoolean functionInvoked = new AtomicBoolean(false);
-      NullaryFunction<String> nullaryFunction = new NullaryFunction<String>() {
-        @Override
-        public String apply() {
-          functionInvoked.set(true);
-          return "";
-        }
-      };
-      offHeapStore.invalidate("1", nullaryFunction);
-      assertThat(invalidated.get().value(), equalTo("one"));
-      assertThat(functionInvoked.get(), is(true));
-      validateStats(offHeapStore, EnumSet.of(LowerCachingTierOperationsOutcome.InvalidateOutcome.REMOVED));
-
-      assertThat(offHeapStore.get("1"), is(nullValue()));
-    } finally {
-      destroyStore(offHeapStore);
-    }
-  }
-
-  @Test
   public void testClear() throws Exception {
     final TestTimeSource timeSource = new TestTimeSource();
     AbstractOffHeapStore<String, String> offHeapStore = createAndInitStore(timeSource, Expirations.timeToIdleExpiration(new Duration(15L, TimeUnit.MILLISECONDS)));
@@ -387,7 +321,7 @@ public abstract class AbstractOffHeapStoreTest {
       ((AbstractValueHolder)valueHolder).accessed(timeSource.getTimeMillis(), new Duration(1L, TimeUnit.MILLISECONDS));
       assertThat(store.flush(key, new DelegatingValueHolder<String>(valueHolder)), is(true));
     }
-    assertThat(store.getAndFault(key).hits(), is(5l));
+    assertThat(store.getAndFault(key).hits(), is(5L));
   }
 
   @Test
@@ -767,6 +701,7 @@ public abstract class AbstractOffHeapStoreTest {
 
   private void performEvictionTest(TestTimeSource timeSource, Expiry<Object, Object> expiry, EvictionAdvisor<String, byte[]> evictionAdvisor) throws StoreAccessException {AbstractOffHeapStore<String, byte[]> offHeapStore = createAndInitStore(timeSource, expiry, evictionAdvisor);
     try {
+      @SuppressWarnings("unchecked")
       StoreEventListener<String, byte[]> listener = mock(StoreEventListener.class);
       offHeapStore.getStoreEventSource().addEventListener(listener);
 
@@ -799,6 +734,7 @@ public abstract class AbstractOffHeapStoreTest {
     };
   }
 
+  @SuppressWarnings("unchecked")
   private OperationStatistic<StoreOperationOutcomes.ExpirationOutcome> getExpirationStatistic(Store<?, ?> store) {
     StatisticsManager statisticsManager = new StatisticsManager();
     statisticsManager.root(store);

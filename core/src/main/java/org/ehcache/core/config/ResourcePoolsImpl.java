@@ -20,19 +20,23 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
+import org.ehcache.core.HumanReadable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Implementation of the {@link ResourcePools} interface.
  */
-public class ResourcePoolsImpl implements ResourcePools {
+public class ResourcePoolsImpl implements ResourcePools, HumanReadable {
 
   private final Map<ResourceType<?>, ResourcePool> pools;
 
@@ -97,30 +101,82 @@ public class ResourcePoolsImpl implements ResourcePools {
    * @param pools the resource pools to validate
    */
   public static void validateResourcePools(Collection<? extends ResourcePool> pools) {
-    EnumMap<ResourceType.Core, SizedResourcePool> coreResources = new EnumMap<ResourceType.Core, SizedResourcePool>(ResourceType.Core.class);
-    for (ResourcePool pool : pools) {
-      if (pool.getType() instanceof ResourceType.Core) {
-        coreResources.put((ResourceType.Core)pool.getType(), (SizedResourcePool)pool);
+    List<SizedResourcePool> ordered = new ArrayList<SizedResourcePool>(pools.size());
+    for(ResourcePool pool : pools) {
+      if (pool instanceof SizedResourcePool) {
+        ordered.add((SizedResourcePool)pool);
       }
     }
+    Collections.sort(ordered, new Comparator<SizedResourcePool>() {
+      @Override
+      public int compare(final SizedResourcePool o1, final SizedResourcePool o2) {
+        int retVal = o2.getType().getTierHeight() - o1.getType().getTierHeight();
+        if(retVal == 0) {
+          return o1.toString().compareTo(o2.toString());
+        } else {
+          return retVal;
+        }
+      }
+    });
 
-    List<SizedResourcePool> ordered = new ArrayList<SizedResourcePool>(coreResources.values());
     for (int i = 0; i < ordered.size(); i++) {
       for (int j = 0; j < i; j++) {
         SizedResourcePool upper = ordered.get(j);
         SizedResourcePool lower = ordered.get(i);
 
         boolean inversion;
+        boolean ambiguity;
         try {
+          ambiguity = upper.getType().getTierHeight() == lower.getType().getTierHeight();
           inversion = (upper.getUnit().compareTo(upper.getSize(), lower.getSize(), lower.getUnit()) >= 0)
-                  || (lower.getUnit().compareTo(lower.getSize(), upper.getSize(), upper.getUnit()) <= 0);
+                      || (lower.getUnit().compareTo(lower.getSize(), upper.getSize(), upper.getUnit()) <= 0);
         } catch (IllegalArgumentException e) {
+          ambiguity = false;
           inversion = false;
+        }
+        if (ambiguity) {
+          throw new IllegalArgumentException("Tiering Ambiguity: '" + upper + "' has the same tier height as '" + lower + "'");
         }
         if (inversion) {
           throw new IllegalArgumentException("Tiering Inversion: '" + upper + "' is not smaller than '" + lower + "'");
         }
       }
     }
+  }
+
+  @Override
+  public String readableString() {
+
+    Map<ResourceType<?>, ResourcePool> sortedPools = new TreeMap<ResourceType<?>, ResourcePool>(
+      new Comparator<ResourceType<?>>() {
+        @Override
+        public int compare(ResourceType<?> o1, ResourceType<?> o2) {
+          return o2.getTierHeight() - o1.getTierHeight();
+        }
+      }
+    );
+    sortedPools.putAll(pools);
+
+    StringBuilder poolsToStringBuilder = new StringBuilder();
+
+    for (Map.Entry<ResourceType<?>, ResourcePool> poolEntry : sortedPools.entrySet()) {
+      poolsToStringBuilder
+          .append(poolEntry.getKey())
+          .append(": ")
+          .append("\n        ")
+          .append("size: ")
+          .append(poolEntry.getValue() instanceof HumanReadable ? ((HumanReadable) poolEntry.getValue()).readableString() : poolEntry.getValue())
+          .append("\n        ")
+          .append("tierHeight: ")
+          .append(poolEntry.getKey().getTierHeight())
+          .append("\n    ");
+    }
+
+    if (poolsToStringBuilder.length() > 4) {
+      poolsToStringBuilder.delete(poolsToStringBuilder.length() - 5, poolsToStringBuilder.length());
+    }
+
+    return "pools: " + "\n    " +
+        poolsToStringBuilder.toString();
   }
 }

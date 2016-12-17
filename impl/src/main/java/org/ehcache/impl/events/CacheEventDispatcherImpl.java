@@ -60,8 +60,8 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   private final ExecutorService orderedExecutor;
   private int listenersCount = 0;
   private int orderedListenerCount = 0;
-  private final List<EventListenerWrapper> syncListenersList = new CopyOnWriteArrayList<EventListenerWrapper>();
-  private final List<EventListenerWrapper> aSyncListenersList = new CopyOnWriteArrayList<EventListenerWrapper>();
+  private final List<EventListenerWrapper<K, V>> syncListenersList = new CopyOnWriteArrayList<EventListenerWrapper<K, V>>();
+  private final List<EventListenerWrapper<K, V>> aSyncListenersList = new CopyOnWriteArrayList<EventListenerWrapper<K, V>>();
   private final StoreEventListener<K, V> eventListener = new StoreListener();
 
   private volatile Cache<K, V> listenerSource;
@@ -85,7 +85,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
   @Override
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener,
                                   EventOrdering ordering, EventFiring firing, EnumSet<EventType> forEventTypes) {
-    EventListenerWrapper wrapper = new EventListenerWrapper(listener, firing, ordering, forEventTypes);
+    EventListenerWrapper<K, V> wrapper = new EventListenerWrapper<K, V>(listener, firing, ordering, forEventTypes);
 
     registerCacheEventListener(wrapper);
   }
@@ -96,7 +96,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
    *
    * @param wrapper the listener wrapper to register
    */
-  private synchronized void registerCacheEventListener(EventListenerWrapper wrapper) {
+  private synchronized void registerCacheEventListener(EventListenerWrapper<K, V> wrapper) {
     if(aSyncListenersList.contains(wrapper) || syncListenersList.contains(wrapper)) {
       throw new IllegalStateException("Cache Event Listener already registered: " + wrapper.getListener());
     }
@@ -126,7 +126,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
    */
   @Override
   public void deregisterCacheEventListener(CacheEventListener<? super K, ? super V> listener) {
-    EventListenerWrapper wrapper = new EventListenerWrapper(listener);
+    EventListenerWrapper<K, V> wrapper = new EventListenerWrapper<K, V>(listener);
 
     if (!removeWrapperFromList(wrapper, aSyncListenersList)) {
       if (!removeWrapperFromList(wrapper, syncListenersList)) {
@@ -141,7 +141,7 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
    * @param wrapper the listener wrapper to unregister
    * @param listenersList the listener list to remove from
    */
-  private synchronized boolean removeWrapperFromList(EventListenerWrapper wrapper, List<EventListenerWrapper> listenersList) {
+  private synchronized boolean removeWrapperFromList(EventListenerWrapper wrapper, List<EventListenerWrapper<K, V>> listenersList) {
     int index = listenersList.indexOf(wrapper);
     if (index != -1) {
       EventListenerWrapper containedWrapper = listenersList.remove(index);
@@ -201,15 +201,16 @@ public class CacheEventDispatcherImpl<K, V> implements CacheEventDispatcher<K, V
    * {@inheritDoc}
    */
   @Override
+  @SuppressWarnings("unchecked")
   public List<CacheConfigurationChangeListener> getConfigurationChangeListeners() {
     List<CacheConfigurationChangeListener> configurationChangeListenerList = new ArrayList<CacheConfigurationChangeListener>();
     configurationChangeListenerList.add(new CacheConfigurationChangeListener() {
       @Override
       public void cacheConfigurationChange(final CacheConfigurationChangeEvent event) {
         if (event.getProperty().equals(CacheConfigurationProperty.ADD_LISTENER)) {
-          registerCacheEventListener((EventListenerWrapper)event.getNewValue());
+          registerCacheEventListener((EventListenerWrapper<K, V>)event.getNewValue());
         } else if (event.getProperty().equals(CacheConfigurationProperty.REMOVE_LISTENER)) {
-          CacheEventListener<? super K, ? super V> oldListener = (CacheEventListener)event.getOldValue();
+          CacheEventListener<? super K, ? super V> oldListener = (CacheEventListener<? super K, ? super V>)event.getOldValue();
           deregisterCacheEventListener(oldListener);
         }
       }

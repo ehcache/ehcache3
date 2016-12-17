@@ -28,34 +28,50 @@ import javax.cache.Cache;
 
 import javax.cache.integration.CacheLoader;
 import javax.cache.integration.CacheWriter;
-import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 
-import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
+import org.ehcache.jsr107.internal.Jsr107CacheLoaderWriter;
+import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
+import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
 
 /**
  * @author teck
  */
-class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable {
+class Eh107CacheLoaderWriter<K, V> implements Jsr107CacheLoaderWriter<K, V>, Closeable {
 
   private final CacheLoader<K, V> cacheLoader;
+  private final boolean readThrough;
   private final CacheWriter<K, V> cacheWriter;
 
-  Eh107CacheLoaderWriter(CacheLoader<K, V> cacheLoader, CacheWriter<K, V> cacheWriter) {
+  Eh107CacheLoaderWriter(CacheLoader<K, V> cacheLoader, boolean readThrough, CacheWriter<K, V> cacheWriter, boolean writeThrough) {
     this.cacheLoader = cacheLoader;
-    this.cacheWriter = cacheWriter;
+    this.readThrough = cacheLoader != null && readThrough;
+    if (writeThrough) {
+      this.cacheWriter = cacheWriter;
+    } else {
+      this.cacheWriter = null;
+    }
   }
 
   @Override
   public V load(K key) throws Exception {
-    if (cacheLoader == null) {
-      return null;
-    } else {
+    if (readThrough) {
       return cacheLoader.load(key);
+    } else {
+      return null;
     }
   }
 
   @Override
   public Map<K, V> loadAll(Iterable<? extends K> keys) throws Exception {
+    if (readThrough) {
+      return loadAllAlways(keys);
+    } else {
+      return emptyMap();
+    }
+  }
+
+  @Override
+  public Map<K, V> loadAllAlways(Iterable<? extends K> keys) throws BulkCacheLoadingException, Exception {
     if (cacheLoader == null) {
       return emptyMap();
     } else {
@@ -195,7 +211,7 @@ class Eh107CacheLoaderWriter<K, V> implements CacheLoaderWriter<K, V>, Closeable
     @Override
     public boolean equals(Object obj) {
       if (obj instanceof Entry) {
-        Entry other = (Entry) obj;
+        Entry<?, ?> other = (Entry<?, ?>) obj;
 
         Object key1 = getKey();
         Object key2 = other.getKey();

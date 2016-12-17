@@ -16,11 +16,11 @@
 
 package org.ehcache.impl.internal.store.disk;
 
+import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.core.internal.store.StoreConfigurationImpl;
 import org.ehcache.config.SizedResourcePool;
-import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.CachePersistenceException;
 import org.ehcache.expiry.Expirations;
@@ -28,7 +28,7 @@ import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.events.TestStoreEventDispatcher;
 import org.ehcache.impl.internal.executor.OnDemandExecutionService;
-import org.ehcache.impl.internal.persistence.TestLocalPersistenceService;
+import org.ehcache.impl.internal.persistence.TestDiskResourceService;
 import org.ehcache.impl.internal.store.offheap.BasicOffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.core.spi.time.SystemTimeSource;
@@ -41,7 +41,7 @@ import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.spi.serialization.Serializer;
-import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.test.After;
 import org.junit.Before;
@@ -54,6 +54,10 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.ehcache.config.ResourceType.Core.DISK;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * OffHeapStoreSPITest
@@ -67,7 +71,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   public final TemporaryFolder folder = new TemporaryFolder();
 
   @Rule
-  public final TestLocalPersistenceService persistenceService = new TestLocalPersistenceService();
+  public final TestDiskResourceService diskResourceService = new TestDiskResourceService();
 
   @Before
   public void setUp() throws Exception {
@@ -101,8 +105,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         Serializer<String> valueSerializer = new JavaSerializer<String>(getClass().getClassLoader());
 
         try {
+          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           ResourcePools resourcePools = getDiskResourcePool(capacity);
           SizedResourcePool diskPool = resourcePools.getPoolForResource(DISK);
           MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
@@ -110,7 +116,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
           Store.Configuration<String, String> config = new StoreConfigurationImpl<String, String>(getKeyType(), getValueType(),
               evictionAdvisor, getClass().getClassLoader(), expiry, resourcePools, 0, keySerializer, valueSerializer);
           OffHeapDiskStore<String, String> store = new OffHeapDiskStore<String, String>(
-                  persistenceService.createPersistenceContextWithin(space, "store"),
+                  diskResourceService.createPersistenceContextWithin(space, "store"),
                   new OnDemandExecutionService(), null, 1,
                   config, timeSource,
                   new TestStoreEventDispatcher<String, String>(),
@@ -127,7 +133,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
         if (capacityConstraint == null) {
           capacityConstraint = 10L;
         }
-        return ResourcePoolsBuilder.newResourcePoolsBuilder().disk((Long) capacityConstraint, MemoryUnit.MB).build();
+        return newResourcePoolsBuilder().disk((Long) capacityConstraint, MemoryUnit.MB).build();
       }
 
       @Override
@@ -148,8 +154,10 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       @Override
       public ServiceConfiguration<?>[] getServiceConfigurations() {
         try {
+          CacheConfiguration cacheConfiguration = mock(CacheConfiguration.class);
+          when(cacheConfiguration.getResourcePools()).thenReturn(newResourcePoolsBuilder().disk(1, MemoryUnit.MB, false).build());
           String spaceName = "OffheapDiskStore-" + index.getAndIncrement();
-          PersistenceSpaceIdentifier space = persistenceService.getOrCreatePersistenceSpace(spaceName);
+          PersistenceSpaceIdentifier space = diskResourceService.getPersistenceSpaceIdentifier(spaceName, cacheConfiguration);
           return new ServiceConfiguration[] {space};
         } catch (CachePersistenceException e) {
           throw new RuntimeException(e);
@@ -158,7 +166,7 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
 
       @Override
       public ServiceLocator getServiceProvider() {
-        ServiceLocator serviceLocator = new ServiceLocator();
+        ServiceLocator serviceLocator = dependencySet().build();
         try {
           serviceLocator.startAllServices();
         } catch (Exception e) {
@@ -183,12 +191,12 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
       public void close(final Store<String, String> store) {
         String spaceName = createdStores.get(store);
         try {
-          OffHeapDiskStore.Provider.close((OffHeapDiskStore)store);
+          OffHeapDiskStore.Provider.close((OffHeapDiskStore<String, String>)store);
         } catch (IOException ex) {
           throw new RuntimeException(ex);
         }
         try {
-          persistenceService.destroy(spaceName);
+          diskResourceService.destroy(spaceName);
         } catch (CachePersistenceException ex) {
           throw new AssertionError(ex);
         } finally {
@@ -202,11 +210,11 @@ public class OffHeapDiskStoreSPITest extends AuthoritativeTierSPITest<String, St
   public void tearDown() throws CachePersistenceException, IOException {
     try {
       for (Map.Entry<Store<String, String>, String> entry : createdStores.entrySet()) {
-        OffHeapDiskStore.Provider.close((OffHeapDiskStore) entry.getKey());
-        persistenceService.destroy(entry.getValue());
+        OffHeapDiskStore.Provider.close((OffHeapDiskStore<String, String>) entry.getKey());
+        diskResourceService.destroy(entry.getValue());
       }
     } finally {
-      persistenceService.stop();
+      diskResourceService.stop();
     }
   }
 

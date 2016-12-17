@@ -16,15 +16,12 @@
 package org.ehcache.clustered.client.config.builders;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
-import org.ehcache.clustered.client.config.ClusteringServiceConfiguration.PoolDefinition;
-import org.ehcache.config.Builder;
-import org.ehcache.config.units.MemoryUnit;
 
-import static java.util.Collections.emptyMap;
-import static java.util.Collections.unmodifiableMap;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
+import java.util.concurrent.TimeUnit;
+import org.ehcache.clustered.client.config.TimeoutDuration;
+import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.config.Builder;
 
 /**
  * A builder of ClusteringService configurations.
@@ -32,8 +29,8 @@ import static java.util.Collections.unmodifiableMap;
 public final class ClusteringServiceConfigurationBuilder implements Builder<ClusteringServiceConfiguration> {
 
   private final URI clusterUri;
-  private final String defaultServerResource;
-  private final Map<String, PoolDefinition> pools;
+  private final TimeoutDuration readOperationTimeout;
+  private final Boolean autoCreate;
 
   /**
    * Creates a new builder connecting to the given cluster.
@@ -48,82 +45,89 @@ public final class ClusteringServiceConfigurationBuilder implements Builder<Clus
 
   private ClusteringServiceConfigurationBuilder(URI clusterUri) {
     this.clusterUri = clusterUri;
-    this.defaultServerResource = null;
-    this.pools = emptyMap();
+    this.readOperationTimeout = null;
+    this.autoCreate = null;
   }
 
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, String poolName, PoolDefinition poolDefinition) {
+  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, TimeoutDuration readOperationTimeout) {
     this.clusterUri = original.clusterUri;
-    this.defaultServerResource = original.defaultServerResource;
-    Map<String, PoolDefinition> pools = new HashMap<String, PoolDefinition>(original.pools);
-    if (pools.put(poolName, poolDefinition) != null) {
-      throw new IllegalArgumentException("Pool '" + poolName + "' already defined");
-    }
-    this.pools = unmodifiableMap(pools);
+    this.readOperationTimeout = readOperationTimeout;
+    this.autoCreate = original.autoCreate;
   }
 
-  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, String defaultServerResource) {
+  private ClusteringServiceConfigurationBuilder(ClusteringServiceConfigurationBuilder original, boolean autoCreate) {
     this.clusterUri = original.clusterUri;
-    this.defaultServerResource = defaultServerResource;
-    this.pools = original.pools;
+    this.readOperationTimeout = original.readOperationTimeout;
+    this.autoCreate = autoCreate;
   }
 
   /**
-   * Sets the default server resource for pools and caches.
-   *
-   * @param defaultServerResource default server resource
+   * Support connection to an existing entity or create if the entity if absent.
    *
    * @return a clustering service configuration builder
    */
-  public ClusteringServiceConfigurationBuilder defaultServerResource(String defaultServerResource) {
-    return new ClusteringServiceConfigurationBuilder(this, defaultServerResource);
+  public ServerSideConfigurationBuilder autoCreate() {
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this, true));
   }
 
   /**
-   * Adds a resource pool with the given name and size and consuming the given server resource.
-   *
-   * @param name pool name
-   * @param size pool size
-   * @param unit pool size unit
-   * @param serverResource server resource to consume
+   * Only support connection to an existing entity.
    *
    * @return a clustering service configuration builder
    */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, long size, MemoryUnit unit, String serverResource) {
-    return resourcePool(name, new PoolDefinition(size, unit, serverResource));
+  public ServerSideConfigurationBuilder expecting() {
+    return new ServerSideConfigurationBuilder(new ClusteringServiceConfigurationBuilder(this, false));
   }
 
   /**
-   * Adds a resource pool with the given name and size and consuming the default server resource.
+   * Adds a read operation timeout.  Read operations which time out return a result comparable to
+   * a cache miss.
    *
-   * @param name pool name
-   * @param size pool size
-   * @param unit pool size unit
-   *
-   * @return a clustering service configuration builder
-   */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, long size, MemoryUnit unit) {
-    return resourcePool(name, new PoolDefinition(size, unit));
-  }
-
-  /**
-   * Adds a resource pool with the given name and definition
-   *
-   * @param name pool name
-   * @param definition pool definition
+   * @param duration the amount of time permitted for read operations
+   * @param unit the time units for {@code duration}
    *
    * @return a clustering service configuration builder
+   *
+   * @throws NullPointerException if {@code unit} is {@code null}
+   * @throws IllegalArgumentException if {@code amount} is negative
    */
-  public ClusteringServiceConfigurationBuilder resourcePool(String name, PoolDefinition definition) {
-    return new ClusteringServiceConfigurationBuilder(this, name, definition);
+  public ClusteringServiceConfigurationBuilder readOperationTimeout(long duration, TimeUnit unit) {
+    return new ClusteringServiceConfigurationBuilder(this, TimeoutDuration.of(duration, unit));
   }
 
   @Override
   public ClusteringServiceConfiguration build() {
-    if (defaultServerResource == null) {
-      return new ClusteringServiceConfiguration(clusterUri, pools);
+    if (readOperationTimeout == null) {
+      return new ClusteringServiceConfiguration(clusterUri);
     } else {
-      return new ClusteringServiceConfiguration(clusterUri, defaultServerResource, pools);
+      return new ClusteringServiceConfiguration(clusterUri, readOperationTimeout);
     }
   }
+
+  /**
+   * Internal method to build a new {@link ClusteringServiceConfiguration} from the {@link ServerSideConfigurationBuilder}.
+   *
+   * @param serverSideConfiguration the {@code ServerSideConfiguration} to use
+   *
+   * @return a new {@code ClusteringServiceConfiguration} instance built from {@code this}
+   *        {@code ClusteringServiceConfigurationBuilder} and the {@code serverSideConfiguration} provided
+   */
+  ClusteringServiceConfiguration build(ServerSideConfiguration serverSideConfiguration) {
+    ClusteringServiceConfiguration configuration;
+    if (autoCreate != null) {
+      if (readOperationTimeout != null) {
+        configuration = new ClusteringServiceConfiguration(clusterUri, readOperationTimeout, autoCreate, serverSideConfiguration);
+      } else {
+        configuration = new ClusteringServiceConfiguration(clusterUri, autoCreate, serverSideConfiguration);
+      }
+    } else {
+      if (readOperationTimeout != null) {
+        configuration = new ClusteringServiceConfiguration(clusterUri, readOperationTimeout, serverSideConfiguration);
+      } else {
+        configuration = new ClusteringServiceConfiguration(clusterUri, serverSideConfiguration);
+      }
+    }
+    return configuration;
+  }
+
 }

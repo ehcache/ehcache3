@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V>, InternalRuntimeConfiguration {
+class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, V>, InternalRuntimeConfiguration, HumanReadable {
 
   private final Collection<ServiceConfiguration<?>> serviceConfigurations;
   private final CacheConfiguration<? super K, ? super V> config;
@@ -126,13 +126,13 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
   @Override
   public synchronized void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering,
                                                       EventFiring firing, Set<EventType> forEventTypes) {
-    EventListenerWrapper listenerWrapper = new EventListenerWrapper(listener, firing, ordering, EnumSet.copyOf(forEventTypes));
+    EventListenerWrapper<K, V> listenerWrapper = new EventListenerWrapper<K, V>(listener, firing, ordering, EnumSet.copyOf(forEventTypes));
     fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
   }
 
   @Override
   public void registerCacheEventListener(CacheEventListener<? super K, ? super V> listener, EventOrdering ordering, EventFiring firing, EventType eventType, EventType... eventTypes) {
-    EventListenerWrapper listenerWrapper = new EventListenerWrapper(listener, firing, ordering, EnumSet.of(eventType, eventTypes));
+    EventListenerWrapper<K, V> listenerWrapper = new EventListenerWrapper<K, V>(listener, firing, ordering, EnumSet.of(eventType, eventTypes));
     fireCacheConfigurationChange(CacheConfigurationProperty.ADD_LISTENER, listenerWrapper, listenerWrapper);
   }
 
@@ -151,5 +151,38 @@ class EhcacheRuntimeConfiguration<K, V> implements CacheRuntimeConfiguration<K, 
         cacheConfigurationListener.cacheConfigurationChange(new CacheConfigurationChangeEvent(prop, oldValue, newValue));
       }
     }
+  }
+
+  @Override
+  public String readableString() {
+    StringBuilder serviceConfigurationsToStringBuilder = new StringBuilder();
+    for (ServiceConfiguration serviceConfiguration : serviceConfigurations) {
+      serviceConfigurationsToStringBuilder
+          .append("\n    ")
+          .append("- ");
+      if(serviceConfiguration instanceof HumanReadable) {
+        serviceConfigurationsToStringBuilder
+            .append(((HumanReadable)serviceConfiguration).readableString())
+            .append("\n");
+      } else {
+        serviceConfigurationsToStringBuilder
+            .append(serviceConfiguration.getClass().getName())
+            .append("\n");
+      }
+    }
+
+    if(serviceConfigurationsToStringBuilder.length() > 0) {
+      serviceConfigurationsToStringBuilder.deleteCharAt(serviceConfigurationsToStringBuilder.length() -1);
+    } else {
+      serviceConfigurationsToStringBuilder.append(" None");
+    }
+
+    return
+        "keyType: " + keyType.getName() + "\n" +
+        "valueType: " + valueType.getName() + "\n" +
+        "serviceConfigurations:" + serviceConfigurationsToStringBuilder.toString().replace("\n", "\n    ") + "\n" +
+        "evictionAdvisor: " + ((evictionAdvisor != null) ? evictionAdvisor.getClass().getName() : "None") + "\n" +
+        "expiry: " + ((expiry != null) ? expiry.getClass().getSimpleName() : "") + "\n" +
+        "resourcePools: " + "\n    " + ((resourcePools instanceof HumanReadable) ? ((HumanReadable)resourcePools).readableString() : "").replace("\n", "\n    ");
   }
 }

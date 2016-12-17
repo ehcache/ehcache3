@@ -131,7 +131,7 @@ public class CacheCopierTest {
   @Test
   public void testSerializingCopier() throws Exception {
     CacheConfiguration<Long, Person> cacheConfiguration = baseConfig
-        .add(new DefaultCopierConfiguration<Person>((Class)SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE))
+        .add(new DefaultCopierConfiguration<Person>(SerializingCopier.<Person>asCopierClass(), DefaultCopierConfiguration.Type.VALUE))
         .add(new DefaultSerializerConfiguration<Person>(PersonSerializer.class, DefaultSerializerConfiguration.Type.VALUE))
         .build();
 

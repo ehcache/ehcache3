@@ -26,19 +26,25 @@ buildscript {
 
 apply plugin: 'org.asciidoctor.convert'
 
-/*
- * BEGIN https://github.com/asciidoctor/asciidoctor-gradle-plugin/issues/178
- */
-task copyResources(type: Copy) {
-  from ("css") {
+configurations.asciidoctor.dependencies.matching({it.group == 'org.asciidoctor' && it.name == 'asciidoctorj-groovy-dsl'}).all {
+  exclude group:'org.asciidoctor', module:'asciidoctorj'
+}
+
+task copyCSS(type: Copy) {
+  from ('css') {
     include '**'
   }
   into("${buildDir}/asciidoc/user/css")
 }
-asciidoctor.dependsOn copyResources
-/*
- * END https://github.com/asciidoctor/asciidoctor-gradle-plugin/issues/178
- */
+
+task copyImages(type: Copy) {
+  from('src/docs/asciidoc/user/images') {
+    include '**'
+  }
+  into("${buildDir}/asciidoc/user/images")
+}
+
+asciidoctor.dependsOn copyCSS, copyImages
 
 asciidoctor {
   separateOutputDirs = false;

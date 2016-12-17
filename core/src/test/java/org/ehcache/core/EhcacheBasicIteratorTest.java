@@ -207,13 +207,16 @@ public class EhcacheBasicIteratorTest extends EhcacheBasicCrudBase {
    */
   @Test
   public void testIteratorStoreAccessException() throws Exception {
+    @SuppressWarnings("unchecked")
     Store.ValueHolder<String> valueHolder = mock(Store.ValueHolder.class);
     doReturn("bar").when(valueHolder).value();
 
+    @SuppressWarnings("unchecked")
     Cache.Entry<String, Store.ValueHolder<String>> storeEntry = mock(Cache.Entry.class);
     doReturn(valueHolder).when(storeEntry).getValue();
     doReturn("foo").when(storeEntry).getKey();
 
+    @SuppressWarnings("unchecked")
     Store.Iterator<Cache.Entry<String, Store.ValueHolder<String>>> storeIterator = mock(Store.Iterator.class);
     doReturn(true).when(storeIterator).hasNext();
     doReturn(storeEntry).when(storeIterator).next();

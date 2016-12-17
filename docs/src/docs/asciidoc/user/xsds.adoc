@@ -1,9 +1,9 @@
 ---
 ---
 = Ehcache XSDs
-ifndef::sourcedir[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -13,16 +13,19 @@ endif::notBuildingForSite[]
 
 * Core namespace: `http://www.ehcache.org/v3`
 ** Location for 3.0: `http://www.ehcache.org/schema/ehcache-core-3.0.xsd`
+** Location for 3.1: `http://www.ehcache.org/schema/ehcache-core-3.1.xsd`
 * JSR-107 namespace: `http://www.ehcache.org/v3/jsr107`
 ** Location for 3.0: `http://www.ehcache.org/schema/ehcache-107-ext-3.0.xsd`
+** Location for 3.1: `http://www.ehcache.org/schema/ehcache-107-ext-3.1.xsd`
 * Transactions namespace: `http://www.ehcache.org/v3/tx`
 ** Location for 3.0: `http://www.ehcache.org/schema/ehcache-tx-ext-3.0.xsd`
+** Location for 3.1: `http://www.ehcache.org/schema/ehcache-tx-ext-3.1.xsd`
 
 === Usage example
 
 [source,xml,indent=0]
 ----
-include::{sourcedir}/107/src/test/resources/org/ehcache/docs/public-xsds-location.xml[tag=xsdLocations]
+include::{sourcedir32}/107/src/test/resources/org/ehcache/docs/public-xsds-location.xml[tag=xsdLocations]
 ----
 
 [[core]]
@@ -30,7 +33,7 @@ include::{sourcedir}/107/src/test/resources/org/ehcache/docs/public-xsds-locatio
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
+include::{sourcedir32}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
 ----
 
 [[jsr-107-extension]]
@@ -38,12 +41,12 @@ include::{sourcedir}/xml/src/main/resources/ehcache-core.xsd[lines=18..-1]
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir}/107/src/main/resources/ehcache-107ext.xsd[lines=18..-1]
+include::{sourcedir32}/107/src/main/resources/ehcache-107ext.xsd[lines=18..-1]
 ----
 
 == XA transactions extension
 
 [source,xsd,indent=0]
 ----
-include::{sourcedir}/transactions/src/main/resources/ehcache-tx-ext.xsd[lines=18..-1]
+include::{sourcedir32}/transactions/src/main/resources/ehcache-tx-ext.xsd[lines=18..-1]
 ----

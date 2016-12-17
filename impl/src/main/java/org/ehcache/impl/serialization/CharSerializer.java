@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.serialization.Serializer;
 
 import java.nio.ByteBuffer;
@@ -44,21 +43,6 @@ public class CharSerializer implements Serializer<Character> {
    * @see Serializer
    */
   public CharSerializer(ClassLoader classLoader) {
-  }
-
-  /**
-   * Constructor to enable this serializer as a persistent one.
-   * <P>
-   *   Parameters are ignored as {@link Character} is a base java type and this implementation requires no state.
-   * </P>
-   *
-   * @param classLoader the classloader to use
-   * @param persistenceContext the persistence context
-   *
-   * @see Serializer
-   */
-  public CharSerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
-
   }
 
   /**

@@ -19,6 +19,7 @@ package org.ehcache.docs;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.PersistentCacheManager;
+import org.ehcache.ValueSupplier;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
@@ -30,6 +31,9 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.docs.plugs.ListenerObject;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.serialization.JavaSerializer;
 import org.ehcache.impl.serialization.LongSerializer;
 import org.ehcache.docs.plugs.OddKeysEvictionAdvisor;
@@ -40,11 +44,16 @@ import org.ehcache.event.EventOrdering;
 import org.ehcache.event.EventType;
 import org.ehcache.impl.copy.ReadWriteCopier;
 import org.junit.Test;
+import org.terracotta.context.ContextElement;
+import org.terracotta.context.TreeNode;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
 import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import static java.util.Collections.singletonMap;
@@ -116,6 +125,8 @@ public class GettingStarted {
             )
         .build(true);
 
+    Cache<Long, String> tieredCache = cacheManager.getCache("tieredCache", Long.class, String.class);
+
     cacheManager.close();
     // end::offheapCacheManager[]
   }
@@ -133,6 +144,9 @@ public class GettingStarted {
                     .disk(20, MemoryUnit.MB) // <4>
                 )
         ).build(true);
+
+    Cache<Long, String> threeTieredCache = persistentCacheManager.getCache("threeTieredCache", Long.class, String.class);
+
 
     persistentCacheManager.close();
     // end::threeTiersCacheManager[]
@@ -247,13 +261,13 @@ public class GettingStarted {
     // tag::writeThroughCache[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
-    final Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
+    Cache<Long, String> writeThroughCache = cacheManager.createCache("writeThroughCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
             .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .build());
 
-    assertThat(writeThroughCache.get(41L), is("zero"));
-    writeThroughCache.put(42L, "one");
+    assertThat(writeThroughCache.get(41L), is("zero")); // <2>
+    writeThroughCache.put(42L, "one"); // <3>
     assertThat(writeThroughCache.get(42L), equalTo("one"));
 
     cacheManager.close();
@@ -265,7 +279,7 @@ public class GettingStarted {
     // tag::writeBehindCache[]
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(true);
 
-    final Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
+    Cache<Long, String> writeBehindCache = cacheManager.createCache("writeBehindCache",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, ResourcePoolsBuilder.heap(10))
             .withLoaderWriter(new SampleLoaderWriter<Long, String>(singletonMap(41L, "zero"))) // <1>
             .add(WriteBehindConfigurationBuilder // <2>
@@ -494,6 +508,26 @@ public class GettingStarted {
     // end::cacheEvictionAdvisor[]
   }
 
+  @Test
+  public void expiry() throws Exception {
+    // tag::expiry[]
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.heap(100)) // <1>
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(20, TimeUnit.SECONDS))) // <2>
+        .build();
+    // end::expiry[]
+  }
+
+  @Test
+  public void customExpiry() throws Exception {
+    // tag::customExpiry[]
+    CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+            ResourcePoolsBuilder.heap(100))
+        .withExpiry(new CustomExpiry()) // <1>
+        .build();
+    // end::customExpiry[]
+  }
+
 
   private static class Description {
     int id;
@@ -588,6 +622,24 @@ public class GettingStarted {
 
   private String getStoragePath() throws URISyntaxException {
     return getClass().getClassLoader().getResource(".").toURI().getPath();
+  }
+
+  public static class CustomExpiry implements Expiry<Long, String> {
+
+    @Override
+    public Duration getExpiryForCreation(Long key, String value) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public Duration getExpiryForAccess(Long key, ValueSupplier<? extends String> value) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
+
+    @Override
+    public Duration getExpiryForUpdate(Long key, ValueSupplier<? extends String> oldValue, String newValue) {
+      throw new UnsupportedOperationException("TODO Implement me!");
+    }
   }
 
 }

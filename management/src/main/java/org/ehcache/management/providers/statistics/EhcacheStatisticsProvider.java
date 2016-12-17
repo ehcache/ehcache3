@@ -15,77 +15,89 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.config.StatisticsProviderConfiguration;
 import org.ehcache.management.providers.CacheBinding;
+import org.ehcache.management.providers.CacheBindingManagementProvider;
+import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.StatisticsCapability;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.AbstractManagementProvider;
+import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
-import org.terracotta.management.model.stats.Statistic;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 
-/**
- * @author Ludovic Orban
- */
 @Named("StatisticsCapability")
-@RequiredContext({@Named("cacheManagerName"), @Named("cacheName")})
-public class EhcacheStatisticsProvider extends AbstractManagementProvider<CacheBinding> {
+public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
-  private final StatisticsProviderConfiguration configuration;
+  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = new Comparator<StatisticDescriptor>() {
+    @Override
+    public int compare(StatisticDescriptor o1, StatisticDescriptor o2) {
+      return o1.getName().compareTo(o2.getName());
+    }
+  };
+
+  private final StatisticsProviderConfiguration statisticsProviderConfiguration;
   private final ScheduledExecutorService executor;
-  private final Context cmContex;
 
-  public EhcacheStatisticsProvider(Context cmContex, StatisticsProviderConfiguration statisticsProviderConfiguration, ScheduledExecutorService executor) {
-    super(CacheBinding.class);
-    this.cmContex = cmContex;
-    this.configuration = statisticsProviderConfiguration;
+  public EhcacheStatisticsProvider(ManagementRegistryServiceConfiguration configuration, ScheduledExecutorService executor) {
+    super(configuration);
+    this.statisticsProviderConfiguration = configuration.getConfigurationFor(EhcacheStatisticsProvider.class);
     this.executor = executor;
   }
 
   @Override
-  protected ExposedObject<CacheBinding> wrap(CacheBinding cacheBinding) {
-    return new EhcacheStatistics(cmContex.with("cacheName", cacheBinding.getAlias()), cacheBinding, configuration, executor);
+  protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
+    return new StandardEhcacheStatistics(registryConfiguration, cacheBinding, statisticsProviderConfiguration, executor);
   }
 
   @Override
   protected void dispose(ExposedObject<CacheBinding> exposedObject) {
-    ((EhcacheStatistics) exposedObject).dispose();
+    ((StandardEhcacheStatistics) exposedObject).dispose();
+  }
+
+  @Override
+  public final Collection<? extends Descriptor> getDescriptors() {
+    Collection<StatisticDescriptor> capabilities = new HashSet<StatisticDescriptor>();
+    for (ExposedObject o : getExposedObjects()) {
+      capabilities.addAll(((StandardEhcacheStatistics) o).getDescriptors());
+    }
+    List<StatisticDescriptor> list = new ArrayList<StatisticDescriptor>(capabilities);
+    Collections.sort(list, STATISTIC_DESCRIPTOR_COMPARATOR);
+    return list;
   }
 
   @Override
   public Capability getCapability() {
-    StatisticsCapability.Properties properties = new StatisticsCapability.Properties(configuration.averageWindowDuration(),
-        configuration.averageWindowUnit(), configuration.historySize(), configuration.historyInterval(),
-        configuration.historyIntervalUnit(), configuration.timeToDisable(), configuration.timeToDisableUnit());
+    StatisticsCapability.Properties properties = new StatisticsCapability.Properties(statisticsProviderConfiguration.averageWindowDuration(),
+        statisticsProviderConfiguration.averageWindowUnit(), statisticsProviderConfiguration.historySize(), statisticsProviderConfiguration.historyInterval(),
+        statisticsProviderConfiguration.historyIntervalUnit(), statisticsProviderConfiguration.timeToDisable(), statisticsProviderConfiguration.timeToDisableUnit());
     return new StatisticsCapability(getCapabilityName(), properties, getDescriptors(), getCapabilityContext());
-  }
-
-  @Override
-  public Set<Descriptor> getDescriptors() {
-    Set<Descriptor> capabilities = new HashSet<Descriptor>();
-    for (ExposedObject ehcacheStatistics : managedObjects) {
-      capabilities.addAll(((EhcacheStatistics) ehcacheStatistics).getDescriptors());
-    }
-    return capabilities;
   }
 
   @Override
   public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
     Map<String, Statistic<?, ?>> statistics = new HashMap<String, Statistic<?, ?>>(statisticNames.size());
-    EhcacheStatistics ehcacheStatistics = (EhcacheStatistics) findExposedObject(context);
+    StandardEhcacheStatistics ehcacheStatistics = (StandardEhcacheStatistics) findExposedObject(context);
     if (ehcacheStatistics != null) {
       for (String statisticName : statisticNames) {
-        statistics.putAll(ehcacheStatistics.queryStatistic(statisticName, since));
+        try {
+           statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName, since));
+         } catch (IllegalArgumentException ignored) {
+           // ignore when statisticName does not exist and throws an exception
+         }
       }
     }
     return statistics;

@@ -37,7 +37,9 @@ public class ClassInstanceConfiguration<T> {
 
   public ClassInstanceConfiguration(T instance) {
     this.instance = instance;
-    this.clazz = (Class) instance.getClass();
+    @SuppressWarnings("unchecked")
+    Class<? extends T> instanceClass = (Class<? extends T>) instance.getClass();
+    this.clazz = instanceClass;
     this.arguments = null;
   }
 

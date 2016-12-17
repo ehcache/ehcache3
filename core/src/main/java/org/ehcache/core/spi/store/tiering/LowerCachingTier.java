@@ -16,11 +16,11 @@
 
 package org.ehcache.core.spi.store.tiering;
 
-import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.ConfigurationChangeSupport;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -69,14 +69,20 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   void invalidate(K key) throws StoreAccessException;
 
   /**
-   * Removes a mapping, then call a function under the same lock scope irrespectively of a mapping being there or not.
+   * Invalidates all mapping, invoking the {@link org.ehcache.core.spi.store.tiering.CachingTier.InvalidationListener} if
+   * registered.
    *
-   * @param key the key
-   * @param function the function to call
-   *
-   * @throws StoreAccessException if the mapping cannot be removed or the function throws
+   * @throws StoreAccessException if mappings cannot be removed
    */
-  void invalidate(K key, NullaryFunction<K> function) throws StoreAccessException;
+  void invalidateAll() throws StoreAccessException;
+
+  /**
+   * Invalidates all mappings whose key's hash code matches the provided one, invoking the
+   * {@link org.ehcache.core.spi.store.tiering.CachingTier.InvalidationListener} if registered.
+   *
+   * @throws StoreAccessException if mappings cannot be removed
+   */
+  void invalidateAllWithHash(long hash) throws StoreAccessException;
 
   /**
    * Empty out this tier
@@ -95,6 +101,7 @@ public interface LowerCachingTier<K, V> extends ConfigurationChangeSupport {
   /**
    * {@link Service} interface for providing {@link LowerCachingTier} instances.
    */
+  @PluralService
   interface Provider extends Service {
 
     /**

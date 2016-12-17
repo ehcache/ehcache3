@@ -18,6 +18,8 @@ package org.ehcache.clustered.client.internal.config;
 
 import org.ehcache.clustered.client.config.ClusteredResourceType;
 import org.ehcache.clustered.client.config.SharedClusteredResourcePool;
+import org.ehcache.clustered.common.PoolAllocation;
+import org.ehcache.config.ResourcePool;
 import org.ehcache.core.config.AbstractResourcePool;
 
 /**
@@ -27,21 +29,21 @@ public class SharedClusteredResourcePoolImpl
     extends AbstractResourcePool<SharedClusteredResourcePool, ClusteredResourceType<SharedClusteredResourcePool>>
     implements SharedClusteredResourcePool {
 
-  private final String sharedResource;
+  private final String sharedResourcePool;
 
   /**
    * Creates a new resource pool based on the provided parameters.
    *
-   * @param sharedResource the non-{@code null} name of the server-based resource pool whose space is shared
+   * @param sharedResourcePool the non-{@code null} name of the server-based resource pool whose space is shared
    *                       by this pool
    */
-  public SharedClusteredResourcePoolImpl(final String sharedResource) {
+  public SharedClusteredResourcePoolImpl(final String sharedResourcePool) {
     super(ClusteredResourceType.Types.SHARED, true);
 
-    if (sharedResource == null) {
-      throw new NullPointerException("sharedResource identifier can not be null");
+    if (sharedResourcePool == null) {
+      throw new NullPointerException("sharedResourcePool identifier can not be null");
     }
-    this.sharedResource = sharedResource;
+    this.sharedResourcePool = sharedResourcePool;
   }
 
   @Override
@@ -50,14 +52,24 @@ public class SharedClusteredResourcePoolImpl
   }
 
   @Override
-  public String getSharedResource() {
-    return this.sharedResource;
+  public String getSharedResourcePool() {
+    return this.sharedResourcePool;
+  }
+
+  @Override
+  public PoolAllocation getPoolAllocation() {
+    return new PoolAllocation.Shared(this.getSharedResourcePool());
+  }
+
+  @Override
+  public void validateUpdate(final ResourcePool newPool) {
+    throw new UnsupportedOperationException("Updating CLUSTERED resource is not supported");
   }
 
   @Override
   public String toString() {
     return "Pool {"
-        + "sharedResource='" + sharedResource + '\''
+        + "sharedResourcePool='" + sharedResourcePool + '\''
         + " " + getType() + (isPersistent() ? "(persistent)}" : "}");
   }
 }

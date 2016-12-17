@@ -17,8 +17,8 @@
 package org.ehcache.impl.internal.store.heap;
 
 import org.ehcache.config.EvictionAdvisor;
-import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.store.Store;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.impl.internal.store.heap.holders.OnHeapValueHolder;
 
@@ -47,7 +47,7 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   }
 
   @Override
-  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, OnHeapValueHolder<?>> evictionAdvisor) {
+  public Map.Entry<K, OnHeapValueHolder<V>> getEvictionCandidate(Random random, int size, final Comparator<? super Store.ValueHolder<V>> prioritizer, final EvictionAdvisor<Object, ? super OnHeapValueHolder<?>> evictionAdvisor) {
     return realMap.getEvictionCandidate(random, size, prioritizer, evictionAdvisor);
   }
 
@@ -99,6 +99,19 @@ class SimpleBackend<K, V> implements Backend<K, V> {
   @Override
   public Backend<K, V> clear() {
     return new SimpleBackend<K, V>(byteSized);
+  }
+
+  @Override
+  public Map<K, OnHeapValueHolder<V>> removeAllWithHash(int hash) {
+    Map<K, OnHeapValueHolder<V>> removed = realMap.removeAllWithHash(hash);
+    if (byteSized) {
+      long delta = 0L;
+      for (Map.Entry<K, OnHeapValueHolder<V>> entry : removed.entrySet()) {
+        delta -= entry.getValue().size();
+      }
+      updateUsageInBytesIfRequired(delta);
+    }
+    return removed;
   }
 
   @Override

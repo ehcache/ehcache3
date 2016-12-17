@@ -29,7 +29,7 @@ public interface StoreEventSourceConfiguration extends ServiceConfiguration<Stor
   /**
    * Default dispatcher concurrency
    */
-  int DEFAULT_DISPATCHER_CONCURRENCY = 8;
+  int DEFAULT_DISPATCHER_CONCURRENCY = 1;
 
   /**
    * Indicates over how many buckets should ordered events be spread

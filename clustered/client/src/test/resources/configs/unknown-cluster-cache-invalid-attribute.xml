@@ -1,0 +1,19 @@
+<eh:config
+    xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+    xmlns:eh='http://www.ehcache.org/v3'
+    xmlns:tc='http://www.ehcache.org/v3/clustered'>
+
+  <eh:service>
+    <tc:cluster>
+      <tc:connection url="terracotta://example.com/myCacheManager"/>
+      <tc:server-side-config auto-create="false"/>
+    </tc:cluster>
+  </eh:service>
+
+  <eh:cache alias="unknownCache">
+    <eh:resources>
+      <tc:clustered unit="MB"></tc:clustered>
+    </eh:resources>
+  </eh:cache>
+
+</eh:config>

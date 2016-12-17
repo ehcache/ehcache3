@@ -1,9 +1,9 @@
 ---
 ---
 = Cache Usage Patterns
-ifndef::sourcedir[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -36,6 +36,7 @@ sor.put(k, v)
 cache.put(k, v)
 ----
 
+[[cache-through]]
 == Cache-As-SoR
 The cache-as-SoR pattern implies using the cache as though it were the primary system-of-record (SoR).
 

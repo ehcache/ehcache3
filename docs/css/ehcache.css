@@ -279,6 +279,7 @@ select {
   color: #eee;
   z-index: 0;
   width:225px;
+  overflow-y: scroll;
 }
 
 #preamble a, #preamble a:active, #preamble a:visited {

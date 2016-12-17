@@ -190,10 +190,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
         return null;
       } else {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
@@ -235,10 +235,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       // Check for expiry first
       if (valueHolder == null) {
-        getObserver.end(GetOutcome.MISS_WITH_LOADER);
+        getObserver.end(GetOutcome.MISS);
         return null;
       } else {
-        getObserver.end(GetOutcome.HIT_WITH_LOADER);
+        getObserver.end(GetOutcome.HIT);
         return valueHolder.value();
       }
     } catch (StoreAccessException e) {
@@ -628,10 +628,15 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     }
   }
 
-  private void cacheLoaderWriterWriteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) {
+  private void cacheLoaderWriterWriteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, V> entriesToRemap, Set<K> successes, Map<K, Exception> failures) throws IllegalStateException {
     Map<K, V> toWrite = new HashMap<K, V>();
     for (Map.Entry<? extends K, ? extends V> entry: entries) {
-      toWrite.put(entry.getKey(), entriesToRemap.get(entry.getKey()));
+      V value = entriesToRemap.get(entry.getKey());
+      if (value == null) {
+        continue;
+      }
+
+      toWrite.put(entry.getKey(), value);
     }
     try {
       if (! toWrite.isEmpty()) {
@@ -688,7 +693,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       new Function<Iterable<? extends Map.Entry<? extends K, ? extends V>>, Iterable<? extends Map.Entry<? extends K, ? extends V>>>() {
         @Override
         public Iterable<? extends Map.Entry<? extends K, ? extends V>> apply(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries) {
-          Set<K> unknowns = cacheLoaderWriterDeleteAllCall(entries, successes, failures);
+          Set<K> unknowns = cacheLoaderWriterDeleteAllCall(entries, entriesToRemove, successes, failures);
 
           Map<K, V> results = new LinkedHashMap<K, V>();
 
@@ -728,7 +733,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
       try {
         // just in case not all writes happened:
         if (!entriesToRemove.isEmpty()) {
-          cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), successes, failures);
+          cacheLoaderWriterDeleteAllCall(entriesToRemove.entrySet(), entriesToRemove, successes, failures);
         }
         if (failures.isEmpty()) {
           resilienceStrategy.removeAllFailure(keys, e);
@@ -741,11 +746,14 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
     }
   }
 
-  private Set<K> cacheLoaderWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Set<K> successes, Map<K, Exception> failures) {
+  private Set<K> cacheLoaderWriterDeleteAllCall(Iterable<? extends Map.Entry<? extends K, ? extends V>> entries, Map<K, ? extends V> entriesToRemove, Set<K> successes, Map<K, Exception> failures) {
     final Set<K> unknowns = new HashSet<K>();
     Set<K> toDelete = new HashSet<K>();
     for (Map.Entry<? extends K, ? extends V> entry : entries) {
-      toDelete.add(entry.getKey());
+      K key = entry.getKey();
+      if (entriesToRemove.containsKey(key)) {
+        toDelete.add(key);
+      }
     }
 
     try {
@@ -1226,9 +1234,9 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
           @Override
           public V apply(K mappedKey, V mappedValue) {
             if (mappedValue == null) {
-              getObserver.end(GetOutcome.MISS_NO_LOADER);
+              getObserver.end(GetOutcome.MISS);
             } else {
-              getObserver.end(GetOutcome.HIT_NO_LOADER);
+              getObserver.end(GetOutcome.HIT);
             }
 
             V newValue = computeFunction.apply(mappedKey, mappedValue);
@@ -1301,10 +1309,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         removeObserver.end(RemoveOutcome.SUCCESS);
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
       }
       return returnValue;
     }
@@ -1342,10 +1350,10 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       V returnValue = existingValue.get();
       if (returnValue != null) {
-        getObserver.end(GetOutcome.HIT_NO_LOADER);
+        getObserver.end(GetOutcome.HIT);
         putObserver.end(PutOutcome.UPDATED);
       } else {
-        getObserver.end(GetOutcome.MISS_NO_LOADER);
+        getObserver.end(GetOutcome.MISS);
         putObserver.end(PutOutcome.PUT);
       }
       return returnValue;
@@ -1416,7 +1424,7 @@ public class EhcacheWithLoaderWriter<K, V> implements InternalCache<K, V> {
 
       if (!quiet) getObserver.begin();
       if (nextException == null) {
-        if (!quiet) getObserver.end(GetOutcome.HIT_NO_LOADER);
+        if (!quiet) getObserver.end(GetOutcome.HIT);
         current = next;
         advance();
         return new ValueHolderBasedEntry<K, V>(current);

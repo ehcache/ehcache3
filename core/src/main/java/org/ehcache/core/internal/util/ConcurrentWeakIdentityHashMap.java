@@ -44,7 +44,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   @Override
   public boolean remove(final Object key, final Object value) {
     purgeKeys();
-    return map.remove(new WeakReference<K>((K) key, null), value);
+    return map.remove(new WeakReference<Object>( key, null), value);
   }
 
   @Override
@@ -75,7 +75,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   @Override
   public boolean containsKey(final Object key) {
     purgeKeys();
-    return map.containsKey(new WeakReference<K>((K) key, null));
+    return map.containsKey(new WeakReference<Object>(key, null));
   }
 
   @Override
@@ -87,7 +87,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   @Override
   public V get(final Object key) {
     purgeKeys();
-    return map.get(new WeakReference<K>((K) key, null));
+    return map.get(new WeakReference<Object>(key, null));
   }
 
   @Override
@@ -99,7 +99,7 @@ public class ConcurrentWeakIdentityHashMap<K, V> implements ConcurrentMap<K, V> 
   @Override
   public V remove(final Object key) {
     purgeKeys();
-    return map.remove(new WeakReference<K>((K) key, null));
+    return map.remove(new WeakReference<Object>(key, null));
   }
 
   @Override

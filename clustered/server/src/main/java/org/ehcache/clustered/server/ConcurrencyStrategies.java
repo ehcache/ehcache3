@@ -15,31 +15,54 @@
  */
 package org.ehcache.clustered.server;
 
+import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.Set;
+
+import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
+import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage;
 import org.terracotta.entity.ConcurrencyStrategy;
 
-import static java.util.Collections.singleton;
 import org.terracotta.entity.EntityMessage;
 
 public final class ConcurrencyStrategies {
 
-  private static final ConcurrencyStrategy NO_CONCURRENCY = new ConcurrencyStrategy<EntityMessage>() {
+  private ConcurrencyStrategies() {
+  }
+
+  public static final <T extends EntityMessage> ConcurrencyStrategy<T> defaultConcurrency(KeySegmentMapper mapper) {
+    return new DefaultConcurrencyStrategy<T>(mapper);
+  }
+
+  public static class DefaultConcurrencyStrategy<T extends EntityMessage> implements ConcurrencyStrategy<T> {
+    public static final int DEFAULT_KEY = 1;
+    public static final int DATA_CONCURRENCY_KEY_OFFSET = DEFAULT_KEY + 1;
+
+    private final KeySegmentMapper mapper;
+
+    public DefaultConcurrencyStrategy(KeySegmentMapper mapper) {
+      this.mapper = mapper;
+    }
+
     @Override
-    public int concurrencyKey(EntityMessage message) {
-      return 0;
+    public int concurrencyKey(EntityMessage entityMessage) {
+      if (entityMessage instanceof ServerStoreOpMessage.GetMessage) {
+        return UNIVERSAL_KEY;
+      } else if (entityMessage instanceof ConcurrentEntityMessage) {
+        ConcurrentEntityMessage concurrentEntityMessage = (ConcurrentEntityMessage) entityMessage;
+        return DATA_CONCURRENCY_KEY_OFFSET + mapper.getSegmentForKey(concurrentEntityMessage.concurrencyKey());
+      } else {
+        return DEFAULT_KEY;
+      }
     }
 
     @Override
     public Set<Integer> getKeysForSynchronization() {
-      return singleton(0);
+      Set<Integer> result = new LinkedHashSet<>();
+      for (int i = 0; i <= mapper.getSegments(); i++) {
+        result.add(DEFAULT_KEY + i);
+      }
+      return Collections.unmodifiableSet(result);
     }
-  };
-
-  private ConcurrencyStrategies() {
-
-  }
-
-  public static final <T extends EntityMessage> ConcurrencyStrategy<T> noConcurrency() {
-    return NO_CONCURRENCY;
   }
 }

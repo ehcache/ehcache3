@@ -19,14 +19,17 @@ package org.ehcache.impl.internal.concurrent;
 import org.junit.Test;
 
 import java.util.Comparator;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.hamcrest.core.IsNull.nullValue;
+import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.junit.Assert.assertThat;
 
 /**
@@ -35,23 +38,101 @@ import static org.junit.Assert.assertThat;
 public class ConcurrentHashMapTest {
 
     @Test
+    public void testRemoveAllWithHash() throws Exception {
+        final int totalCount = 10037;
+
+        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<Comparable<?>, String>();
+
+        int lastHash = 0;
+
+        for(int i = 0; i < totalCount; i++) {
+            String o = Integer.toString(i);
+            lastHash = o.hashCode();
+            map.put(o, "val#" + i);
+        }
+
+        Map<Comparable<?>, String> removed = map.removeAllWithHash(lastHash);
+
+        assertThat(removed.size(), greaterThan(0));
+        assertThat(map.size() + removed.size(), is(totalCount));
+        for (Comparable<?> key : map.keySet()) {
+            assertThat(removed.containsKey(key), is(false));
+        }
+    }
+
+    @Test
+    public void testRemoveAllWithHashUsingBadHashes() throws Exception {
+        final int totalCount = 10037;
+
+        ConcurrentHashMap<Comparable<?>, String> map = new ConcurrentHashMap<Comparable<?>, String>();
+
+        for(int i = 0; i < totalCount; i++) {
+            BadHashKey o = new BadHashKey(i);
+            map.put(o, "val#" + i);
+        }
+
+        Map<Comparable<?>, String> removed = map.removeAllWithHash(BadHashKey.HASH_CODE);
+
+        assertThat(removed.size(), is(totalCount));
+        assertThat(map.size(), is(0));
+        for (Comparable<?> removedKey : removed.keySet()) {
+            assertThat(map.containsKey(removedKey), is(false));
+        }
+    }
+
+    static class BadHashKey implements Comparable<BadHashKey> {
+
+        static final int HASH_CODE = 42;
+
+        private final int value;
+
+        public BadHashKey(int value) {
+            this.value = value;
+        }
+
+        @Override
+        public String toString() {
+            return "BadHashKey#" + value;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (obj instanceof BadHashKey) {
+                return ((BadHashKey) obj).value == value;
+            }
+            return false;
+        }
+
+        @Override
+        public int hashCode() {
+            return HASH_CODE;
+        }
+
+        @Override
+        public int compareTo(BadHashKey o) {
+            return (value < o.value) ? -1 : ((value > o.value) ? 1 : 0);
+        }
+
+    }
+
+    @Test
     public void testRandomSampleOnEmptyMap() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
-        assertThat(map.getEvictionCandidate(new Random(), 1, null, Eviction.<String, String>noAdvice()), nullValue());
+        assertThat(map.getEvictionCandidate(new Random(), 1, null, noAdvice()), nullValue());
     }
 
     @Test
     public void testEmptyRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        assertThat(map.getEvictionCandidate(new Random(), 0, null, Eviction.<String, String>noAdvice()), nullValue());
+        assertThat(map.getEvictionCandidate(new Random(), 0, null, noAdvice()), nullValue());
     }
 
     @Test
     public void testOversizedRandomSample() {
         ConcurrentHashMap<String, String> map = new ConcurrentHashMap<String, String>();
         map.put("foo", "bar");
-        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, Eviction.<String, String>noAdvice());
+        Entry<String, String> candidate = map.getEvictionCandidate(new Random(), 2, null, noAdvice());
         assertThat(candidate.getKey(), is("foo"));
         assertThat(candidate.getValue(), is("bar"));
     }
@@ -67,7 +148,7 @@ public class ConcurrentHashMapTest {
           public int compare(String t, String t1) {
             return 0;
           }
-        }, Eviction.<String, String>noAdvice());
+        }, noAdvice());
         assertThat(candidate, notNullValue());
     }
 

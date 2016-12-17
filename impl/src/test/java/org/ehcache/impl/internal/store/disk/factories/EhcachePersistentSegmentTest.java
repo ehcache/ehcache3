@@ -16,9 +16,9 @@
 
 package org.ehcache.impl.internal.store.disk.factories;
 
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory.EhcachePersistentSegment;
+import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.HeuristicConfiguration;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.factories.EhcacheSegmentFactory.EhcacheSegment.EvictionListener;
@@ -37,31 +37,35 @@ import org.terracotta.offheapstore.util.Factory;
 
 import java.io.IOException;
 
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.impl.internal.store.disk.OffHeapDiskStore.persistent;
 import static org.ehcache.impl.internal.spi.TestServiceProvider.providerContaining;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 public class EhcachePersistentSegmentTest {
 
   @Rule
   public final TemporaryFolder folder = new TemporaryFolder();
 
+  @SuppressWarnings("unchecked")
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment() throws IOException {
-    return createTestSegment(Eviction.<String, String>noAdvice(), mock(EvictionListener.class));
+    return createTestSegment(noAdvice(), mock(EvictionListener.class));
   }
 
+  @SuppressWarnings("unchecked")
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionAdvisor<String, String> evictionPredicate) throws IOException {
     return createTestSegment(evictionPredicate, mock(EvictionListener.class));
   }
 
   private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionListener<String, String> evictionListener) throws IOException {
-    return createTestSegment(Eviction.<String, String>noAdvice(), evictionListener);
+    return createTestSegment(noAdvice(), evictionListener);
   }
 
-  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(EvictionAdvisor<String, String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
+  private EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String> createTestSegment(final EvictionAdvisor<? super String, ? super String> evictionPredicate, EvictionListener<String, String> evictionListener) throws IOException {
     try {
       HeuristicConfiguration configuration = new HeuristicConfiguration(1024 * 1024);
       SerializationProvider serializationProvider = new DefaultSerializationProvider(null);
@@ -71,8 +75,27 @@ public class EhcachePersistentSegmentTest {
       Serializer<String> valueSerializer = serializationProvider.createValueSerializer(String.class, EhcachePersistentSegmentTest.class.getClassLoader());
       PersistentPortability<String> keyPortability = persistent(new SerializerPortability<String>(keySerializer));
       PersistentPortability<String> elementPortability = persistent(new SerializerPortability<String>(valueSerializer));
-      Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, keyPortability, elementPortability);
-      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, evictionPredicate, evictionListener);
+      Factory<FileBackedStorageEngine<String, String>> storageEngineFactory = FileBackedStorageEngine.createFactory(pageSource, configuration.getMaximumSize() / 10, BYTES, keyPortability, elementPortability);
+      SwitchableEvictionAdvisor<String, String> wrappedEvictionAdvisor = new SwitchableEvictionAdvisor<String, String>() {
+
+        private volatile boolean enabled = true;
+
+        @Override
+        public boolean adviseAgainstEviction(String key, String value) {
+          return evictionPredicate.adviseAgainstEviction(key, value);
+        }
+
+        @Override
+        public boolean isSwitchedOn() {
+          return enabled;
+        }
+
+        @Override
+        public void setSwitchedOn(boolean switchedOn) {
+          this.enabled = switchedOn;
+        }
+      };
+      return new EhcachePersistentSegmentFactory.EhcachePersistentSegment<String, String>(pageSource, storageEngineFactory.newInstance(), 1, true, wrappedEvictionAdvisor, evictionListener);
     } catch (UnsupportedTypeException e) {
       throw new AssertionError(e);
     }
@@ -123,6 +146,7 @@ public class EhcachePersistentSegmentTest {
 
   @Test
   public void testEvictionFiresEvent() throws IOException {
+    @SuppressWarnings("unchecked")
     EvictionListener<String, String> evictionListener = mock(EvictionListener.class);
     EhcachePersistentSegment<String, String> segment = createTestSegment(evictionListener);
     try {

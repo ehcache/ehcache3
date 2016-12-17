@@ -27,7 +27,6 @@ import org.ehcache.config.builders.CacheEventListenerConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder;
 import org.ehcache.config.builders.WriteBehindConfigurationBuilder.BatchedWriteBehindConfigurationBuilder;
-import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.ehcache.event.CacheEventListener;
 import org.ehcache.event.EventFiring;
@@ -199,11 +198,9 @@ public class XmlConfiguration implements Configuration {
       serviceConfigs.add(configuration);
     }
     if (configurationParser.getHeapStore() != null) {
-      if (configurationParser.getHeapStore().getMaxObjectSize().getUnit().value().equalsIgnoreCase("entries")) {
-        throw new IllegalArgumentException("SizeOfEngine cannot be configured with entries.");
-      }
-      DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(configurationParser.getHeapStore().getMaxObjectSize().getValue().longValue(),
-        MemoryUnit.valueOf(configurationParser.getHeapStore().getMaxObjectSize().getUnit().value().toUpperCase()), configurationParser.getHeapStore().getMaxObjectGraphSize().getValue().longValue());
+      DefaultSizeOfEngineProviderConfiguration configuration = new DefaultSizeOfEngineProviderConfiguration(
+              configurationParser.getHeapStore().getMaxObjectSize(), configurationParser.getHeapStore().getUnit(),
+              configurationParser.getHeapStore().getMaxObjectGraphSize());
       serviceConfigs.add(configuration);
     }
     if (configurationParser.getPersistence() != null) {
@@ -328,6 +325,7 @@ public class XmlConfiguration implements Configuration {
     templates.putAll(configurationParser.getTemplates());
   }
 
+  @SuppressWarnings("unchecked")
   private Expiry<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException {
     final Expiry<? super Object, ? super Object> expiry;
@@ -462,6 +460,7 @@ public class XmlConfiguration implements Configuration {
     return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
+  @SuppressWarnings("unchecked")
   private <K, V> CacheConfigurationBuilder<K, V> internalCacheConfigurationBuilderFromTemplate(final String name,
                                                                                                final Class<K> keyType,
                                                                                                final Class<V> valueType,
@@ -557,6 +556,7 @@ public class XmlConfiguration implements Configuration {
       }
       if (listenersConfig.listeners() != null) {
         for (ConfigurationParser.Listener listener : listenersConfig.listeners()) {
+          @SuppressWarnings("unchecked")
           final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
           final List<EventType> eventListToFireOn = listener.fireOn();
           Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();

@@ -49,6 +49,7 @@ import org.ehcache.core.spi.store.heap.SizeOfEngine;
 import org.hamcrest.Matcher;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
@@ -578,7 +579,7 @@ public class ByteAccountingTest {
       }
     });
 
-    assertThat(store.getCurrentUsageInBytes(), is(0l));
+    assertThat(store.getCurrentUsageInBytes(), is(0L));
   }
 
   @Test
@@ -779,19 +780,22 @@ public class ByteAccountingTest {
   @Test
   public void testEviction() throws StoreAccessException {
     OnHeapStoreForTests<String, String> store = newStore(1);
-    StoreEventListener listener = mock(StoreEventListener.class);
+    @SuppressWarnings("unchecked")
+    StoreEventListener<String, String> listener = mock(StoreEventListener.class);
     store.getStoreEventSource().addEventListener(listener);
 
     store.put(KEY, VALUE);
     assertThat(store.getCurrentUsageInBytes(), is(SIZE_OF_KEY_VALUE_PAIR));
 
     String key1 = "key1";
-    String value1 = new String(new byte[250]);
+    char[] chars = new char[250];
+    Arrays.fill(chars, (char) 0xffff);
+    String value1 = new String(chars);
 
     long requiredSize = getSize(key1, value1);
 
     store.put(key1, value1);
-    Matcher<StoreEvent<String, byte[]>> matcher = eventType(EventType.EVICTED);
+    Matcher<StoreEvent<String, String>> matcher = eventType(EventType.EVICTED);
     verify(listener, times(1)).onEvent(argThat(matcher));
     if (store.get(key1) != null) {
       assertThat(store.getCurrentUsageInBytes(), is(requiredSize));
@@ -802,7 +806,8 @@ public class ByteAccountingTest {
   }
 
   static long getSize(String key, String value) {
-    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0l, 0l, true, DEFAULT_COPIER);
+    @SuppressWarnings("unchecked")
+    CopiedOnHeapValueHolder<String> valueHolder = new CopiedOnHeapValueHolder<String>(value, 0L, 0L, true, DEFAULT_COPIER);
     long size = 0L;
     try {
       size = SIZE_OF_ENGINE.sizeof(key, valueHolder);
@@ -816,6 +821,7 @@ public class ByteAccountingTest {
 
     private static final Copier DEFAULT_COPIER = new IdentityCopier();
 
+    @SuppressWarnings("unchecked")
     OnHeapStoreForTests(final Configuration<K, V> config, final TimeSource timeSource,
                         final SizeOfEngine engine, StoreEventDispatcher<K, V> eventDispatcher) {
       super(config, timeSource, DEFAULT_COPIER, DEFAULT_COPIER, engine, eventDispatcher);

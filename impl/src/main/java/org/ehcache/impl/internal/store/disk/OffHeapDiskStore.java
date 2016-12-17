@@ -19,9 +19,11 @@ package org.ehcache.impl.internal.store.disk;
 import org.ehcache.config.SizedResourcePool;
 import org.ehcache.core.CacheConfigurationChangeListener;
 import org.ehcache.Status;
-import org.ehcache.config.Eviction;
 import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourceType;
+import org.ehcache.core.spi.service.DiskResourceService;
+import org.ehcache.core.statistics.AuthoritativeTierOperationOutcomes;
+import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.ehcache.impl.config.store.disk.OffHeapDiskStoreConfiguration;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.core.events.StoreEventDispatcher;
@@ -30,11 +32,15 @@ import org.ehcache.impl.internal.events.ThreadLocalStoreEventDispatcher;
 import org.ehcache.impl.internal.store.disk.factories.EhcachePersistentSegmentFactory;
 import org.ehcache.impl.internal.store.offheap.AbstractOffHeapStore;
 import org.ehcache.impl.internal.store.offheap.EhcacheOffHeapBackingMap;
+import org.ehcache.impl.internal.store.offheap.SwitchableEvictionAdvisor;
 import org.ehcache.impl.internal.store.offheap.OffHeapValueHolder;
 import org.ehcache.impl.internal.store.offheap.portability.OffHeapValueHolderPortability;
 import org.ehcache.impl.internal.store.offheap.portability.SerializerPortability;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.core.spi.time.TimeSourceService;
+import org.ehcache.spi.persistence.PersistableResourceService.PersistenceSpaceIdentifier;
+import org.ehcache.spi.persistence.StateRepository;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
@@ -42,12 +48,11 @@ import org.ehcache.spi.serialization.SerializationProvider;
 import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.core.spi.service.ExecutionService;
 import org.ehcache.core.spi.service.FileBasedPersistenceContext;
-import org.ehcache.core.spi.service.LocalPersistenceService;
-import org.ehcache.core.spi.service.LocalPersistenceService.PersistenceSpaceIdentifier;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.core.internal.util.ConcurrentWeakIdentityHashMap;
+import org.ehcache.core.statistics.TierOperationOutcomes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.offheapstore.disk.paging.MappedPageSource;
@@ -56,6 +61,8 @@ import org.terracotta.offheapstore.disk.persistent.PersistentPortability;
 import org.terracotta.offheapstore.disk.storage.FileBackedStorageEngine;
 import org.terracotta.offheapstore.storage.portability.Portability;
 import org.terracotta.offheapstore.util.Factory;
+import org.terracotta.statistics.MappedOperationStatistic;
+import org.terracotta.statistics.StatisticsManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -66,16 +73,21 @@ import java.io.ObjectOutputStream;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static java.lang.Math.max;
+import static org.ehcache.config.Eviction.noAdvice;
 import static org.ehcache.core.internal.service.ServiceLocator.findSingletonAmongst;
+import static org.terracotta.offheapstore.util.MemoryUnit.BYTES;
 
 /**
  * Implementation of {@link Store} supporting disk-resident persistence.
@@ -84,12 +96,15 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OffHeapDiskStore.class);
 
+  private static final String STATISTICS_TAG = "Disk";
+
   private static final String KEY_TYPE_PROPERTY_NAME = "keyType";
   private static final String VALUE_TYPE_PROPERTY_NAME = "valueType";
+  private static final int DEFAULT_CONCURRENCY = 16;
 
   protected final AtomicReference<Status> status = new AtomicReference<Status>(Status.UNINITIALIZED);
 
-  private final EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
+  private final SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor;
   private final Class<K> keyType;
   private final Class<V> valueType;
   private final ClassLoader classLoader;
@@ -106,7 +121,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
   public OffHeapDiskStore(FileBasedPersistenceContext fileBasedPersistenceContext,
                           ExecutionService executionService, String threadPoolAlias, int writerConcurrency,
                           final Configuration<K, V> config, TimeSource timeSource, StoreEventDispatcher<K, V> eventDispatcher, long sizeInBytes) {
-    super("local-disk", config, timeSource, eventDispatcher);
+    super(STATISTICS_TAG, config, timeSource, eventDispatcher);
     this.fileBasedPersistenceContext = fileBasedPersistenceContext;
     this.executionService = executionService;
     this.threadPoolAlias = threadPoolAlias;
@@ -116,7 +131,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     if (evictionAdvisor != null) {
       this.evictionAdvisor = wrap(evictionAdvisor);
     } else {
-      this.evictionAdvisor = Eviction.noAdvice();
+      this.evictionAdvisor = wrap(noAdvice());
     }
     this.keyType = config.getKeyType();
     this.valueType = config.getValueType();
@@ -135,7 +150,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return Collections.emptyList();
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> getBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
     File metadataFile = getMetadataFile();
@@ -155,7 +170,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> recoverBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
     File dataFile = getDataFile();
     File indexFile = getIndexFile();
     File metadataFile = getMetadataFile();
@@ -168,7 +183,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       fis.close();
     }
     try {
-      Class<?> persistedKeyType = classLoader.loadClass(properties.getProperty(KEY_TYPE_PROPERTY_NAME));
+      Class<?> persistedKeyType = Class.forName(properties.getProperty(KEY_TYPE_PROPERTY_NAME), false, classLoader);
       if (!keyType.equals(persistedKeyType)) {
         throw new IllegalArgumentException("Persisted key type '" + persistedKeyType.getName() + "' is not the same as the configured key type '" + keyType.getName() + "'");
       }
@@ -176,7 +191,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       throw new IllegalStateException("Persisted key type class not found", cnfe);
     }
     try {
-      Class<?> persistedValueType = classLoader.loadClass(properties.getProperty(VALUE_TYPE_PROPERTY_NAME));
+      Class<?> persistedValueType = Class.forName(properties.getProperty(VALUE_TYPE_PROPERTY_NAME), false, classLoader);
       if (!valueType.equals(persistedValueType)) {
         throw new IllegalArgumentException("Persisted value type '" + persistedValueType.getName() + "' is not the same as the configured value type '" + valueType.getName() + "'");
       }
@@ -209,7 +224,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
         Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-                keyPortability, elementPortability, writeWorkers, false);
+                max((size / DEFAULT_CONCURRENCY) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, false);
 
         EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
             source,
@@ -217,10 +232,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
             64,
             evictionAdvisor,
             mapEvictionListener, false);
-            EhcachePersistentConcurrentOffHeapClockCache m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, evictionAdvisor, factory);
-
-
-
+        EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> m = new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(input, evictionAdvisor, factory);
 
         m.bootstrap(input);
         return m;
@@ -229,7 +241,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         throw e;
       }
     } catch (Exception e) {
-      LOGGER.info("Index file was corrupt. Deleting data file " + dataFile.getAbsolutePath() +". " + e.getMessage());
+      LOGGER.info("Index file was corrupt. Deleting data file {}. {}", dataFile.getAbsolutePath(), e.getMessage());
       LOGGER.debug("Exception during recovery", e);
       return createBackingMap(size, keySerializer, valueSerializer, evictionAdvisor);
     } finally {
@@ -237,7 +249,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
   }
 
-  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, EvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
+  private EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>> createBackingMap(long size, Serializer<K> keySerializer, Serializer<V> valueSerializer, SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor) throws IOException {
     File metadataFile = getMetadataFile();
     FileOutputStream fos = new FileOutputStream(metadataFile);
     try {
@@ -255,7 +267,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     DiskWriteThreadPool writeWorkers = new DiskWriteThreadPool(executionService, threadPoolAlias, writerConcurrency);
 
     Factory<FileBackedStorageEngine<K, OffHeapValueHolder<V>>> storageEngineFactory = FileBackedStorageEngine.createFactory(source,
-        keyPortability, elementPortability, writeWorkers, true);
+        max((size / DEFAULT_CONCURRENCY) / 10, 1024), BYTES, keyPortability, elementPortability, writeWorkers, true);
 
     EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>> factory = new EhcachePersistentSegmentFactory<K, OffHeapValueHolder<V>>(
         source,
@@ -263,13 +275,18 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         64,
         evictionAdvisor,
         mapEvictionListener, true);
-    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, factory, 16);
+    return new EhcachePersistentConcurrentOffHeapClockCache<K, OffHeapValueHolder<V>>(evictionAdvisor, factory, DEFAULT_CONCURRENCY);
 
   }
 
   @Override
   protected EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap() {
     return map;
+  }
+
+  @Override
+  protected SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor() {
+    return evictionAdvisor;
   }
 
   private File getDataFile() {
@@ -284,12 +301,14 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     return new File(fileBasedPersistenceContext.getDirectory(), "ehcache-disk-store.meta");
   }
 
-  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class})
+  @ServiceDependencies({TimeSourceService.class, SerializationProvider.class, ExecutionService.class, DiskResourceService.class})
   public static class Provider implements Store.Provider, AuthoritativeTier.Provider {
 
-    private final Set<Store<?, ?>> createdStores = Collections.newSetFromMap(new ConcurrentWeakIdentityHashMap<Store<?, ?>, Boolean>());
+    private final Map<OffHeapDiskStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>> tierOperationStatistics = new ConcurrentWeakIdentityHashMap<OffHeapDiskStore<?, ?>, Collection<MappedOperationStatistic<?, ?>>>();
+    private final Map<Store<?, ?>, PersistenceSpaceIdentifier> createdStores = new ConcurrentWeakIdentityHashMap<Store<?, ?>, PersistenceSpaceIdentifier>();
     private final String defaultThreadPool;
     private volatile ServiceProvider<Service> serviceProvider;
+    private volatile DiskResourceService diskPersistenceService;
 
     public Provider() {
       this(null);
@@ -305,8 +324,29 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     }
 
     @Override
+    public int rankAuthority(ResourceType<?> authorityResource, Collection<ServiceConfiguration<?>> serviceConfigs) {
+      return authorityResource.equals(ResourceType.Core.DISK) ? 1 : 0;
+    }
+
+    @Override
     public <K, V> OffHeapDiskStore<K, V> createStore(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+      OffHeapDiskStore<K, V> store = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
+
+      MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome> get =
+              new MappedOperationStatistic<StoreOperationOutcomes.GetOutcome, TierOperationOutcomes.GetOutcome>(
+                      store, TierOperationOutcomes.GET_TRANSLATION, "get", ResourceType.Core.DISK.getTierHeight(), "get", STATISTICS_TAG);
+      StatisticsManager.associate(get).withParent(store);
+      tieredOps.add(get);
+
+      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
+              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+                      store, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
+      StatisticsManager.associate(evict).withParent(store);
+      tieredOps.add(evict);
+
+      tierOperationStatistics.put(store, tieredOps);
+      return store;
     }
 
     private <K, V> OffHeapDiskStore<K, V> createStoreInternal(Configuration<K, V> storeConfig, StoreEventDispatcher<K, V> eventDispatcher, ServiceConfiguration<?>... serviceConfigs) {
@@ -322,14 +362,9 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       }
       MemoryUnit unit = (MemoryUnit)diskPool.getUnit();
 
-      LocalPersistenceService localPersistenceService = serviceProvider.getService(LocalPersistenceService.class);
-      if (localPersistenceService == null) {
-        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
-      }
-
       String threadPoolAlias;
       int writerConcurrency;
-      OffHeapDiskStoreConfiguration config = findSingletonAmongst(OffHeapDiskStoreConfiguration.class, serviceConfigs);
+      OffHeapDiskStoreConfiguration config = findSingletonAmongst(OffHeapDiskStoreConfiguration.class, (Object[]) serviceConfigs);
       if (config == null) {
         threadPoolAlias = defaultThreadPool;
         writerConcurrency = 1;
@@ -337,14 +372,17 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
         threadPoolAlias = config.getThreadPoolAlias();
         writerConcurrency = config.getWriterConcurrency();
       }
-      PersistenceSpaceIdentifier space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) serviceConfigs);
+      PersistenceSpaceIdentifier<?> space = findSingletonAmongst(PersistenceSpaceIdentifier.class, (Object[]) serviceConfigs);
+      if (space == null) {
+        throw new IllegalStateException("No LocalPersistenceService could be found - did you configure it at the CacheManager level?");
+      }
       try {
-        FileBasedPersistenceContext persistenceContext = localPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
+        FileBasedPersistenceContext persistenceContext = diskPersistenceService.createPersistenceContextWithin(space , "offheap-disk-store");
 
         OffHeapDiskStore<K, V> offHeapStore = new OffHeapDiskStore<K, V>(persistenceContext,
                 executionService, threadPoolAlias, writerConcurrency,
                 storeConfig, timeSource, eventDispatcher, unit.toBytes(diskPool.getSize()));
-        createdStores.add(offHeapStore);
+        createdStores.put(offHeapStore, space);
         return offHeapStore;
       } catch (CachePersistenceException cpex) {
         throw new RuntimeException("Unable to create persistence context in " + space, cpex);
@@ -353,11 +391,14 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void releaseStore(Store<?, ?> resource) {
-      if (!createdStores.contains(resource)) {
+      if (createdStores.remove(resource) == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
       try {
-        close((OffHeapDiskStore)resource);
+        OffHeapDiskStore<?, ?> offHeapDiskStore = (OffHeapDiskStore<?, ?>)resource;
+        close(offHeapDiskStore);
+        StatisticsManager.nodeFor(offHeapDiskStore).clean();
+        tierOperationStatistics.remove(offHeapDiskStore);
       } catch (IOException e) {
         throw new RuntimeException(e);
       }
@@ -381,10 +422,34 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
 
     @Override
     public void initStore(Store<?, ?> resource) {
-      if (!createdStores.contains(resource)) {
+      PersistenceSpaceIdentifier identifier = createdStores.get(resource);
+      if (identifier == null) {
         throw new IllegalArgumentException("Given store is not managed by this provider : " + resource);
       }
-      init((OffHeapDiskStore)resource);
+      OffHeapDiskStore<?, ?> diskStore = (OffHeapDiskStore) resource;
+
+      Serializer keySerializer = diskStore.keySerializer;
+      if (keySerializer instanceof StatefulSerializer) {
+        StateRepository stateRepository = null;
+        try {
+          stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "key-serializer");
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException(e);
+        }
+        ((StatefulSerializer)keySerializer).init(stateRepository);
+      }
+      Serializer valueSerializer = diskStore.valueSerializer;
+      if (valueSerializer instanceof StatefulSerializer) {
+        StateRepository stateRepository = null;
+        try {
+          stateRepository = diskPersistenceService.getStateRepositoryWithin(identifier, "value-serializer");
+        } catch (CachePersistenceException e) {
+          throw new RuntimeException(e);
+        }
+        ((StatefulSerializer)valueSerializer).init(stateRepository);
+      }
+
+      init(diskStore);
     }
 
     static <K, V> void init(final OffHeapDiskStore<K, V> resource) {
@@ -394,17 +459,38 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
     @Override
     public void start(ServiceProvider<Service> serviceProvider) {
       this.serviceProvider = serviceProvider;
+      diskPersistenceService = serviceProvider.getService(DiskResourceService.class);
+      if (diskPersistenceService == null) {
+        throw new IllegalStateException("Unable to find file based persistence service");
+      }
     }
 
     @Override
     public void stop() {
       this.serviceProvider = null;
       createdStores.clear();
+      diskPersistenceService = null;
     }
 
     @Override
     public <K, V> AuthoritativeTier<K, V> createAuthoritativeTier(Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      return createStore(storeConfig, serviceConfigs);
+      OffHeapDiskStore<K, V> authoritativeTier = createStoreInternal(storeConfig, new ThreadLocalStoreEventDispatcher<K, V>(storeConfig.getDispatcherConcurrency()), serviceConfigs);
+      Collection<MappedOperationStatistic<?, ?>> tieredOps = new ArrayList<MappedOperationStatistic<?, ?>>();
+
+      MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome> get =
+              new MappedOperationStatistic<AuthoritativeTierOperationOutcomes.GetAndFaultOutcome, TierOperationOutcomes.GetOutcome>(
+                      authoritativeTier, TierOperationOutcomes.GET_AND_FAULT_TRANSLATION, "get", ResourceType.Core.DISK.getTierHeight(), "getAndFault", STATISTICS_TAG);
+      StatisticsManager.associate(get).withParent(authoritativeTier);
+      tieredOps.add(get);
+
+      MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome> evict =
+              new MappedOperationStatistic<StoreOperationOutcomes.EvictionOutcome, TierOperationOutcomes.EvictionOutcome>(
+                      authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
+      StatisticsManager.associate(evict).withParent(authoritativeTier);
+      tieredOps.add(evict);
+
+      tierOperationStatistics.put(authoritativeTier, tieredOps);
+      return authoritativeTier;
     }
 
     @Override
@@ -422,6 +508,7 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
    * This is kind of a hack, but it's safe to use this if the regular portability
    * is stateless.
    */
+  @SuppressWarnings("unchecked")
   public static <T> PersistentPortability<T> persistent(final Portability<T> normal) {
     final Class<?> normalKlazz = normal.getClass();
     Class<?>[] delegateInterfaces = normalKlazz.getInterfaces();

@@ -16,7 +16,6 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.core.spi.service.FileBasedPersistenceContext;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.spi.serialization.Serializer;
 
@@ -49,21 +48,6 @@ public class ByteArraySerializer implements Serializer<byte[]> {
    * @see Serializer
    */
   public ByteArraySerializer(ClassLoader classLoader) {
-  }
-
-  /**
-   * Constructor to enable this serializer as a persistent one.
-   * <P>
-   *   Parameters are ignored as {@code byte[]} is a base java type and this implementation requires no state.
-   * </P>
-   *
-   * @param classLoader the classloader to use
-   * @param persistenceContext the persistence context
-   *
-   * @see Serializer
-   */
-  public ByteArraySerializer(ClassLoader classLoader, FileBasedPersistenceContext persistenceContext) {
-
   }
 
   /**

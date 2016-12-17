@@ -19,20 +19,22 @@ import org.ehcache.config.ResourcePool;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.SizedResourcePool;
-import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.store.tiering.AuthoritativeTier;
 import org.ehcache.core.spi.store.tiering.CachingTier;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
-import org.ehcache.spi.service.ServiceProvider;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
+import org.ehcache.spi.service.ServiceProvider;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,6 +47,7 @@ import org.mockito.stubbing.Answer;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -55,6 +58,7 @@ import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -87,6 +91,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetHitsCachingTier() throws Exception {
     when(numberCachingTier.getOrComputeIfAbsent(eq(1), any(Function.class))).thenReturn(newValueHolder("one"));
 
@@ -98,6 +103,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetHitsAuthoritativeTier() throws Exception {
     Store.ValueHolder<CharSequence> valueHolder = newValueHolder("one");
     when(numberAuthoritativeTier.getAndFault(eq(1))).thenReturn(valueHolder);
@@ -119,6 +125,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testGetMisses() throws Exception {
     when(numberAuthoritativeTier.getAndFault(eq(1))).thenReturn(null);
     when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
@@ -160,14 +167,14 @@ public class TieredStoreTest {
 
   @Test
   public void testPutIfAbsent_whenPresent() throws Exception {
-    when(numberAuthoritativeTier.putIfAbsent(eq(1), eq("one"))).thenReturn(newValueHolder("un"));
+    when(numberAuthoritativeTier.putIfAbsent(1, "one")).thenReturn(newValueHolder("un"));
 
     TieredStore<Number, CharSequence> tieredStore = new TieredStore<Number, CharSequence>(numberCachingTier, numberAuthoritativeTier);
 
     assertThat(tieredStore.putIfAbsent(1, "one").value(), Matchers.<CharSequence>equalTo("un"));
 
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
-    verify(numberAuthoritativeTier, times(1)).putIfAbsent(eq(1), eq("one"));
+    verify(numberCachingTier, times(1)).invalidate(1);
+    verify(numberAuthoritativeTier, times(1)).putIfAbsent(1, "one");
   }
 
   @Test
@@ -200,7 +207,7 @@ public class TieredStoreTest {
 
     assertThat(tieredStore.remove(1, "one"), is(RemoveStatus.KEY_MISSING));
 
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberCachingTier).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).remove(eq(1), eq("one"));
   }
 
@@ -224,7 +231,7 @@ public class TieredStoreTest {
 
     assertThat(tieredStore.replace(1, "one"), is(nullValue()));
 
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberCachingTier).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("one"));
   }
 
@@ -248,7 +255,7 @@ public class TieredStoreTest {
 
     assertThat(tieredStore.replace(1, "un", "one"), is(ReplaceStatus.MISS_NOT_PRESENT));
 
-    verify(numberCachingTier, times(0)).invalidate(any(Number.class));
+    verify(numberCachingTier).invalidate(any(Number.class));
     verify(numberAuthoritativeTier, times(1)).replace(eq(1), eq("un"), eq("one"));
   }
 
@@ -263,6 +270,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testCompute2Args() throws Exception {
     when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
@@ -287,6 +295,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testCompute3Args() throws Exception {
     when(numberAuthoritativeTier.compute(any(Number.class), any(BiFunction.class), any(NullaryFunction.class))).then(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
@@ -316,6 +325,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testComputeIfAbsent_computes() throws Exception {
     when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
       @Override
@@ -348,6 +358,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testComputeIfAbsent_doesNotCompute() throws Exception {
     final Store.ValueHolder<CharSequence> valueHolder = newValueHolder("one");
     when(numberCachingTier.getOrComputeIfAbsent(any(Number.class), any(Function.class))).thenAnswer(new Answer<Store.ValueHolder<CharSequence>>() {
@@ -371,6 +382,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testBulkCompute2Args() throws Exception {
     when(numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
@@ -415,6 +427,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testBulkCompute3Args() throws Exception {
     when(
         numberAuthoritativeTier.bulkCompute(any(Set.class), any(Function.class), any(NullaryFunction.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
@@ -465,6 +478,7 @@ public class TieredStoreTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testBulkComputeIfAbsent() throws Exception {
     when(numberAuthoritativeTier.bulkComputeIfAbsent(any(Set.class), any(Function.class))).thenAnswer(new Answer<Map<Number, Store.ValueHolder<CharSequence>>>() {
       @Override
@@ -544,7 +558,8 @@ public class TieredStoreTest {
   }
 
   @Test
-  public void testReleaseStoreFlushes () throws StoreAccessException {
+  @SuppressWarnings("unchecked")
+  public void testReleaseStoreFlushes() throws Exception {
     TieredStore.Provider tieredStoreProvider = new TieredStore.Provider();
 
     ResourcePools resourcePools = mock(ResourcePools.class);
@@ -555,6 +570,8 @@ public class TieredStoreTest {
     when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.HEAP);
     when(resourcePools.getPoolForResource(ResourceType.Core.HEAP)).thenReturn(heapPool);
     OnHeapStore.Provider onHeapStoreProvider = mock(OnHeapStore.Provider.class);
+    Set<ResourceType<?>> singleton = Collections.<ResourceType<?>>singleton( ResourceType.Core.HEAP);
+    when(onHeapStoreProvider.rankCachingTier(eq(singleton), any(Collection.class))).thenReturn(1);
     when(onHeapStoreProvider.createCachingTier(any(Store.Configuration.class),
         org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
         .thenReturn(stringCachingTier);
@@ -563,6 +580,7 @@ public class TieredStoreTest {
     when(heapPool.getType()).thenReturn((ResourceType)ResourceType.Core.OFFHEAP);
     when(resourcePools.getPoolForResource(ResourceType.Core.OFFHEAP)).thenReturn(offHeapPool);
     OffHeapStore.Provider offHeapStoreProvider = mock(OffHeapStore.Provider.class);
+    when(offHeapStoreProvider.rankAuthority(eq(ResourceType.Core.OFFHEAP), any(Collection.class))).thenReturn(1);
     when(offHeapStoreProvider.createAuthoritativeTier(any(Store.Configuration.class),
         org.mockito.Matchers.<ServiceConfiguration<?>[]>anyVararg()))
         .thenReturn(stringAuthoritativeTier);
@@ -570,9 +588,15 @@ public class TieredStoreTest {
     Store.Configuration<String, String> configuration = mock(Store.Configuration.class);
     when(configuration.getResourcePools()).thenReturn(resourcePools);
 
+    Set<AuthoritativeTier.Provider> authorities = new HashSet<AuthoritativeTier.Provider>();
+    authorities.add(offHeapStoreProvider);
+    Set<CachingTier.Provider> cachingTiers = new HashSet<CachingTier.Provider>();
+    cachingTiers.add(onHeapStoreProvider);
     ServiceProvider<Service> serviceProvider = mock(ServiceProvider.class);
     when(serviceProvider.getService(OnHeapStore.Provider.class)).thenReturn(onHeapStoreProvider);
     when(serviceProvider.getService(OffHeapStore.Provider.class)).thenReturn(offHeapStoreProvider);
+    when(serviceProvider.getServicesOfType(AuthoritativeTier.Provider.class)).thenReturn(authorities);
+    when(serviceProvider.getServicesOfType(CachingTier.Provider.class)).thenReturn(cachingTiers);
     tieredStoreProvider.start(serviceProvider);
 
     final Store<String, String> tieredStore = tieredStoreProvider.createStore(configuration);
@@ -584,6 +608,8 @@ public class TieredStoreTest {
   @Test
   public void testRank() throws Exception {
     TieredStore.Provider provider = new TieredStore.Provider();
+    ServiceLocator serviceLocator = dependencySet().with(provider).with(mock(DiskResourceService.class)).build();
+    serviceLocator.startAllServices();
 
     assertRank(provider, 0, ResourceType.Core.DISK);
     assertRank(provider, 0, ResourceType.Core.HEAP);
@@ -605,6 +631,10 @@ public class TieredStoreTest {
       @Override
       public boolean requiresSerialization() {
         return true;
+      }
+      @Override
+      public int getTierHeight() {
+        return 10;
       }
     };
     assertRank(provider, 0, unmatchedResourceType);

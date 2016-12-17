@@ -28,7 +28,6 @@ import org.ehcache.expiry.Expirations;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.impl.copy.SerializingCopier;
-import org.ehcache.impl.serialization.CompactJavaSerializer;
 import org.ehcache.core.spi.time.SystemTimeSource;
 import org.ehcache.core.spi.time.TimeSource;
 import org.ehcache.impl.internal.store.AbstractValueHolder;
@@ -73,7 +72,7 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
   public void testKeyCopierCalledOnGetOrComputeIfAbsent() throws Exception {
     LongCopier keyCopier = new LongCopier();
     OnHeapStore<Long, Long> store = newStore(SystemTimeSource.INSTANCE, Expirations.noExpiration(), Eviction.noAdvice(),
-        keyCopier, new SerializingCopier<Long>(new CompactJavaSerializer<Long>(ClassLoader.getSystemClassLoader())), 100);
+        keyCopier, new SerializingCopier<Long>(new JavaSerializer<Long>(ClassLoader.getSystemClassLoader())), 100);
 
     ValueHolder<Long> computed = store.getOrComputeIfAbsent(1L, new Function<Long, ValueHolder<Long>>() {
       @Override
@@ -161,8 +160,8 @@ public abstract class OnHeapStoreByValueTest extends BaseOnHeapStoreTest {
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder().build(false);
     cacheManager.init();
 
-    DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration(
-        SerializingCopier.class, DefaultCopierConfiguration.Type.VALUE);
+    DefaultCopierConfiguration<String> copierConfiguration = new DefaultCopierConfiguration<String>(
+        SerializingCopier.<String>asCopierClass(), DefaultCopierConfiguration.Type.VALUE);
     final Cache<Long, String> cache1 = cacheManager.createCache("cache1",
         CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(1))
             .build());

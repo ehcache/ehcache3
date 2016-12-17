@@ -16,9 +16,11 @@
 
 package org.ehcache.core.spi.store.tiering;
 
+import org.ehcache.core.spi.function.BiFunction;
 import org.ehcache.core.spi.store.StoreAccessException;
 import org.ehcache.core.spi.function.Function;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.spi.service.PluralService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceConfiguration;
 
@@ -42,8 +44,26 @@ public interface HigherCachingTier<K, V> extends CachingTier<K, V> {
   void silentInvalidate(K key, Function<Store.ValueHolder<V>, Void> function) throws StoreAccessException;
 
   /**
+   * Removes all mappings without firing an invalidation event instead invoking the provided function.
+   *
+   * @param biFunction the function to invoke for each mappings
+   *
+   * @throws StoreAccessException if mappings cannot be removed or the function throws
+   */
+  void silentInvalidateAll(BiFunction<K, Store.ValueHolder<V>, Void> biFunction) throws StoreAccessException;
+
+  /**
+   * Remove all mappings whose key have the specified hash code without firing an invalidation event instead
+   * invoking the provided function.
+   *
+   * @throws StoreAccessException if mappings cannot be removed or the function throws
+   */
+  void silentInvalidateAllWithHash(long hash, BiFunction<K, Store.ValueHolder<V>, Void> biFunction) throws StoreAccessException;
+
+  /**
    * {@link Service} interface for providing {@link HigherCachingTier} instances.
    */
+  @PluralService
   interface Provider extends Service {
 
     /**

@@ -38,6 +38,7 @@ import org.ehcache.xml.model.ExpiryType;
 import org.ehcache.xml.model.Heap;
 import org.ehcache.xml.model.ListenersType;
 import org.ehcache.xml.model.MemoryType;
+import org.ehcache.xml.model.ObjectFactory;
 import org.ehcache.xml.model.Offheap;
 import org.ehcache.xml.model.PersistableMemoryType;
 import org.ehcache.xml.model.PersistenceType;
@@ -51,6 +52,9 @@ import org.ehcache.spi.service.ServiceConfiguration;
 import org.ehcache.spi.service.ServiceCreationConfiguration;
 import org.ehcache.core.internal.util.ClassLoading;
 import org.w3c.dom.Element;
+import org.w3c.dom.NamedNodeMap;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.ErrorHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -67,6 +71,7 @@ import javax.xml.transform.stream.StreamSource;
 import javax.xml.validation.SchemaFactory;
 
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
@@ -76,8 +81,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.Stack;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.ehcache.xml.model.ThreadPoolReferenceType;
 import org.ehcache.xml.model.ThreadPoolsType;
@@ -90,6 +99,7 @@ import static java.util.Collections.singleton;
  */
 class ConfigurationParser {
 
+  private static final Pattern SYSPROP = Pattern.compile("\\$\\{([^}]+)\\}");
   private static final SchemaFactory XSD_SCHEMA_FACTORY = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI);
 
   private static final URL CORE_SCHEMA_URL = XmlConfiguration.class.getResource("/ehcache-core.xsd");
@@ -102,6 +112,23 @@ class ConfigurationParser {
   private final Unmarshaller unmarshaller;
   private final Map<URI, CacheResourceConfigurationParser> resourceXmlParsers = new HashMap<URI, CacheResourceConfigurationParser>();
   private final ConfigType config;
+
+  static String replaceProperties(String originalValue, final Properties properties) {
+    Matcher matcher = SYSPROP.matcher(originalValue);
+
+    StringBuffer sb = new StringBuffer();
+    while (matcher.find()) {
+      final String property = matcher.group(1);
+      final String value = properties.getProperty(property);
+      if (value == null) {
+        throw new IllegalStateException(String.format("Replacement for ${%s} not found!", property));
+      }
+      matcher.appendReplacement(sb, Matcher.quoteReplacement(value));
+    }
+    matcher.appendTail(sb);
+    final String resolvedValue = sb.toString();
+    return resolvedValue.equals(originalValue) ? null : resolvedValue;
+  }
 
   public ConfigurationParser(String xml) throws IOException, SAXException, JAXBException, ParserConfigurationException {
     Collection<Source> schemaSources = new ArrayList<Source>();
@@ -125,12 +152,14 @@ class ConfigurationParser {
     factory.setNamespaceAware(true);
     factory.setIgnoringComments(true);
     factory.setIgnoringElementContentWhitespace(true);
-    factory.setXIncludeAware(true);
     factory.setSchema(XSD_SCHEMA_FACTORY.newSchema(schemaSources.toArray(new Source[schemaSources.size()])));
 
     DocumentBuilder domBuilder = factory.newDocumentBuilder();
     domBuilder.setErrorHandler(new FatalErrorHandler());
     Element dom = domBuilder.parse(xml).getDocumentElement();
+
+    substituteSystemProperties(dom);
+
     if (!CORE_SCHEMA_ROOT_ELEMENT.equals(dom.getLocalName()) || !CORE_SCHEMA_NAMESPACE.equals(dom.getNamespaceURI())) {
       throw new XmlConfigurationException("Expecting {" + CORE_SCHEMA_NAMESPACE + "}" + CORE_SCHEMA_ROOT_ELEMENT
           + " element; found {" + dom.getNamespaceURI() + "}" + dom.getLocalName());
@@ -140,6 +169,37 @@ class ConfigurationParser {
     JAXBContext jc = JAXBContext.newInstance(CORE_SCHEMA_JAXB_MODEL_PACKAGE, configTypeClass.getClassLoader());
     this.unmarshaller = jc.createUnmarshaller();
     this.config = unmarshaller.unmarshal(dom, configTypeClass).getValue();
+  }
+
+  private void substituteSystemProperties(final Element dom) {
+    final Properties properties = System.getProperties();
+    Stack<NodeList> nodeLists = new Stack<NodeList>();
+    nodeLists.push(dom.getChildNodes());
+    while (!nodeLists.isEmpty()) {
+      NodeList nodeList = nodeLists.pop();
+      for (int i = 0; i < nodeList.getLength(); ++i) {
+        Node currentNode = nodeList.item(i);
+        if (currentNode.hasChildNodes()) {
+          nodeLists.push(currentNode.getChildNodes());
+        }
+        final NamedNodeMap attributes = currentNode.getAttributes();
+        if (attributes != null) {
+          for (int j = 0; j < attributes.getLength(); ++j) {
+            final Node attributeNode = attributes.item(j);
+            final String newValue = replaceProperties(attributeNode.getNodeValue(), properties);
+            if (newValue != null) {
+              attributeNode.setNodeValue(newValue);
+            }
+          }
+        }
+        if (currentNode.getNodeType() == Node.TEXT_NODE) {
+          final String newValue = replaceProperties(currentNode.getNodeValue(), properties);
+          if (newValue != null) {
+            currentNode.setNodeValue(newValue);
+          }
+        }
+      }
+    }
   }
 
   public Iterable<ServiceType> getServiceElements() {
@@ -174,8 +234,9 @@ class ConfigurationParser {
     return config.getThreadPools();
   }
 
-  public SizeofType getHeapStore() {
-    return config.getHeapStore();
+  public SizeOfEngineLimits getHeapStore() {
+    SizeofType type = config.getHeapStore();
+    return type == null ? null : new XmlSizeOfEngineLimits(type);
   }
 
   public Iterable<CacheDefinition> getCacheElements() {
@@ -329,13 +390,17 @@ class ConfigurationParser {
 
           @Override
           public Iterable<ServiceConfiguration<?>> serviceConfigs() {
-            Collection<ServiceConfiguration<?>> configs = new ArrayList<ServiceConfiguration<?>>();
+            Map<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>> configsMap =
+                new HashMap<Class<? extends ServiceConfiguration>, ServiceConfiguration<?>>();
             for (BaseCacheType source : sources) {
               for (Element child : source.getServiceConfiguration()) {
-                configs.add(parseCacheExtension(child));
+                ServiceConfiguration<?> serviceConfiguration = parseCacheExtension(child);
+                if (!configsMap.containsKey(serviceConfiguration.getClass())) {
+                  configsMap.put(serviceConfiguration.getClass(), serviceConfiguration);
+                }
               }
             }
-            return configs;
+            return configsMap.values();
           }
 
           @Override
@@ -848,7 +913,7 @@ class ConfigurationParser {
         time = type.getTtl();
       }
       if(time != null) {
-        return convertToJavaTimeUnit(time.getUnit());
+        return XmlModel.convertToJavaTimeUnit(time.getUnit());
       }
       return null;
     }
@@ -864,17 +929,32 @@ class ConfigurationParser {
 
     @Override
     public long getMaxObjectGraphSize() {
-      return sizeoflimits.getMaxObjectGraphSize().getValue().longValue();
+      SizeofType.MaxObjectGraphSize value = sizeoflimits.getMaxObjectGraphSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectGraphSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public long getMaxObjectSize() {
-      return sizeoflimits.getMaxObjectSize().getValue().longValue();
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return new BigInteger(JaxbHelper.findDefaultValue(sizeoflimits, "maxObjectSize")).longValue();
+      } else {
+        return value.getValue().longValue();
+      }
     }
 
     @Override
     public MemoryUnit getUnit() {
-      return MemoryUnit.valueOf(sizeoflimits.getMaxObjectSize().getUnit().value().toUpperCase());
+      MemoryType value = sizeoflimits.getMaxObjectSize();
+      if (value == null) {
+        return MemoryUnit.valueOf(new ObjectFactory().createMemoryType().getUnit().value().toUpperCase());
+      } else {
+        return MemoryUnit.valueOf(value.getUnit().value().toUpperCase());
+      }
     }
 
   }
@@ -939,7 +1019,7 @@ class ConfigurationParser {
 
     @Override
     public TimeUnit maxDelayUnit() {
-      return convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
+      return XmlModel.convertToJavaTimeUnit(this.batching.getMaxWriteDelay().getUnit());
     }
 
   }
@@ -964,24 +1044,4 @@ class ConfigurationParser {
 
   }
 
-  private static TimeUnit convertToJavaTimeUnit(org.ehcache.xml.model.TimeUnit unit) {
-    switch (unit) {
-      case NANOS:
-        return TimeUnit.NANOSECONDS;
-      case MICROS:
-      return TimeUnit.MICROSECONDS;
-      case MILLIS:
-        return TimeUnit.MILLISECONDS;
-      case SECONDS:
-        return TimeUnit.SECONDS;
-      case MINUTES:
-        return TimeUnit.MINUTES;
-      case HOURS:
-        return TimeUnit.HOURS;
-      case DAYS:
-        return TimeUnit.DAYS;
-      default:
-        throw new IllegalArgumentException("Unknown time unit: " + unit);
-    }
-  }
 }

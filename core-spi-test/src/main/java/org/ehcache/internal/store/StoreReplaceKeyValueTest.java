@@ -51,8 +51,10 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
       kvStore = null;
     }
     if (kvStore2 != null) {
+      @SuppressWarnings("unchecked")
+      Store<K, V> kvStore2 = this.kvStore2;
       factory.close(kvStore2);
-      kvStore2 = null;
+      this.kvStore2 = null;
     }
   }
 
@@ -138,10 +140,9 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
     kvStore = factory.newStore();
 
     K key = factory.createKey(1);
-    V value = null;
 
     try {
-      kvStore.replace(key, value);
+      kvStore.replace(key, null);
       throw new AssertionError("Expected NullPointerException because the value is null");
     } catch (NullPointerException e) {
       // expected
@@ -151,6 +152,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
+  @SuppressWarnings("unchecked")
   public void wrongKeyTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore2 = factory.newStore();
@@ -172,6 +174,7 @@ public class StoreReplaceKeyValueTest<K, V> extends SPIStoreTester<K, V> {
   }
 
   @SPITest
+  @SuppressWarnings("unchecked")
   public void wrongValueTypeThrowsException()
       throws IllegalAccessException, InstantiationException, LegalSPITesterException {
     kvStore2 = factory.newStore();

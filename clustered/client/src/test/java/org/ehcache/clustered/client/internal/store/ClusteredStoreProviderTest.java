@@ -17,26 +17,38 @@
 package org.ehcache.clustered.client.internal.store;
 
 import org.ehcache.clustered.client.config.ClusteredResourceType;
+import org.ehcache.clustered.client.config.DedicatedClusteredResourcePool;
+import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
 import org.ehcache.clustered.client.service.ClusteringService;
+import org.ehcache.config.Eviction;
+import org.ehcache.config.EvictionAdvisor;
 import org.ehcache.config.ResourcePool;
+import org.ehcache.config.ResourcePools;
 import org.ehcache.config.ResourceType;
+import org.ehcache.config.units.MemoryUnit;
+import org.ehcache.core.config.ResourcePoolsImpl;
 import org.ehcache.core.internal.service.ServiceLocator;
+import org.ehcache.core.spi.service.DiskResourceService;
 import org.ehcache.core.spi.store.Store;
+import org.ehcache.expiry.Expirations;
+import org.ehcache.expiry.Expiry;
 import org.ehcache.impl.internal.store.disk.OffHeapDiskStore;
 import org.ehcache.impl.internal.store.heap.OnHeapStore;
 import org.ehcache.impl.internal.store.offheap.OffHeapStore;
 import org.ehcache.impl.internal.store.tiering.TieredStore;
+import org.ehcache.impl.serialization.LongSerializer;
+import org.ehcache.impl.serialization.StringSerializer;
+import org.ehcache.spi.serialization.Serializer;
 import org.ehcache.spi.service.ServiceConfiguration;
-import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.*;
@@ -47,73 +59,73 @@ import static org.mockito.Mockito.mock;
  */
 public class ClusteredStoreProviderTest {
 
-  @Mock
-  private ClusteringService clusteringService;
-
-  @Before
-  public void setUp() throws Exception {
-    MockitoAnnotations.initMocks(this);
-  }
-
   @Test
   public void testRank() throws Exception {
     ClusteredStore.Provider provider = new ClusteredStore.Provider();
-    ServiceLocator serviceLocator = new ServiceLocator(
-        new TieredStore.Provider(),
-        new OnHeapStore.Provider(),
-        new OffHeapStore.Provider(),
-        new OffHeapDiskStore.Provider(),
-        mock(ClusteringService.class));
+    ServiceLocator serviceLocator = dependencySet()
+      .with(new TieredStore.Provider())
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(mock(DiskResourceService.class))
+      .with(new OffHeapDiskStore.Provider())
+      .with(mock(ClusteringService.class)).build();
     provider.start(serviceLocator);
 
-    assertRank(provider, 0, ResourceType.Core.DISK);
-    assertRank(provider, 0, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 0, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 1, ClusteredResourceType.Types.DEDICATED);
 
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK);
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.HEAP);
-    assertRank(provider, 102, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 1, ClusteredResourceType.Types.SHARED);
 
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
-    assertRank(provider, 102, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, new UnmatchedResourceType());
+  }
 
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
-    assertRank(provider, 103, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
-    assertRank(provider, 104, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
-    assertRank(provider, 105, ClusteredResourceType.Types.FIXED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+  @Test
+  public void testRankTiered() throws Exception {
+    TieredStore.Provider provider = new TieredStore.Provider();
+    ServiceLocator serviceLocator = dependencySet()
+      .with(provider)
+      .with(new ClusteredStore.Provider())
+      .with(new OnHeapStore.Provider())
+      .with(new OffHeapStore.Provider())
+      .with(new OffHeapDiskStore.Provider())
+      .with(mock(DiskResourceService.class))
+      .with(mock(ClusteringService.class)).build();
+    serviceLocator.startAllServices();
 
-    final ResourceType<ResourcePool> unmatchedResourceType = new ResourceType<ResourcePool>() {
-      @Override
-      public Class<ResourcePool> getResourcePoolClass() {
-        return ResourcePool.class;
-      }
-      @Override
-      public boolean isPersistable() {
-        return true;
-      }
-      @Override
-      public boolean requiresSerialization() {
-        return true;
-      }
-    };
-    assertRank(provider, 0, unmatchedResourceType);
-    assertRank(provider, -1, ClusteredResourceType.Types.FIXED, unmatchedResourceType);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK);
+    assertRank(provider, 2, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 3, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
+    assertRank(provider, 2, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 3, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+
+    // Multiple clustered resources not currently supported
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+    assertRank(provider, 0, ClusteredResourceType.Types.DEDICATED, ClusteredResourceType.Types.SHARED, ResourceType.Core.DISK, ResourceType.Core.OFFHEAP, ResourceType.Core.HEAP);
+  }
+
+  @Test
+  public void testAuthoritativeRank() throws Exception {
+    ClusteredStore.Provider provider = new ClusteredStore.Provider();
+    ServiceLocator serviceLocator = dependencySet().with(mock(ClusteringService.class)).build();
+    provider.start(serviceLocator);
+
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.DEDICATED, Collections.<ServiceConfiguration<?>>emptyList()), is(1));
+    assertThat(provider.rankAuthority(ClusteredResourceType.Types.SHARED, Collections.<ServiceConfiguration<?>>emptyList()), is(1));
+    assertThat(provider.rankAuthority(new UnmatchedResourceType(), Collections.<ServiceConfiguration<?>>emptyList()), is(0));
   }
 
   private void assertRank(final Store.Provider provider, final int expectedRank, final ResourceType<?>... resources) {
@@ -133,4 +145,77 @@ public class ClusteredStoreProviderTest {
     }
   }
 
+  private Store.Configuration<Long, String> getStoreConfig() {
+    return new Store.Configuration<Long, String>() {
+      @Override
+      public Class<Long> getKeyType() {
+        return Long.class;
+      }
+
+      @Override
+      public Class<String> getValueType() {
+        return String.class;
+      }
+
+      @Override
+      public EvictionAdvisor<? super Long, ? super String> getEvictionAdvisor() {
+        return Eviction.noAdvice();
+      }
+
+      @Override
+      public ClassLoader getClassLoader() {
+        return getClass().getClassLoader();
+      }
+
+      @Override
+      public Expiry<? super Long, ? super String> getExpiry() {
+        return Expirations.noExpiration();
+      }
+
+      @Override
+      @SuppressWarnings("unchecked")
+      public ResourcePools getResourcePools() {
+        Map<ClusteredResourceType<DedicatedClusteredResourcePool>, DedicatedClusteredResourcePoolImpl> poolMap = Collections
+            .singletonMap(ClusteredResourceType.Types.DEDICATED, new DedicatedClusteredResourcePoolImpl("test", 10, MemoryUnit.MB));
+        return new ResourcePoolsImpl((Map) poolMap);
+      }
+
+      @Override
+      public Serializer<Long> getKeySerializer() {
+        return new LongSerializer();
+      }
+
+      @Override
+      public Serializer<String> getValueSerializer() {
+        return new StringSerializer();
+      }
+
+      @Override
+      public int getDispatcherConcurrency() {
+        return 1;
+      }
+    };
+  }
+
+  private static class UnmatchedResourceType implements ResourceType<ResourcePool> {
+    @Override
+    public Class<ResourcePool> getResourcePoolClass() {
+      return ResourcePool.class;
+    }
+
+    @Override
+    public boolean isPersistable() {
+      return true;
+    }
+
+    @Override
+    public boolean requiresSerialization() {
+      return true;
+    }
+
+    @Override
+    public int getTierHeight() {
+      return 10;
+    }
+  }
 }
