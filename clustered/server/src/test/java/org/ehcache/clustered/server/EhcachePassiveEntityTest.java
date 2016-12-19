@@ -143,11 +143,16 @@ public class EhcachePassiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build()));
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary-new", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary-new", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build()));
+    try {
+      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
+          .defaultResource("defaultServerResource")
+          .sharedPool("primary-new", "serverResource1", 4, MemoryUnit.MEGABYTES)
+          .sharedPool("secondary-new", "serverResource2", 8, MemoryUnit.MEGABYTES)
+          .build()));
+      fail("invocation should have triggered an exception");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("operation failed"));
+    }
 
     assertThat(registry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
@@ -173,11 +178,16 @@ public class EhcachePassiveEntityTest {
 
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)    // missing on 'server'
-        .build()));
+    try {
+      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
+          .defaultResource("defaultServerResource")
+          .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+          .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)    // missing on 'server'
+          .build()));
+      fail("invocation should have triggered an exception");
+    } catch (Exception e) {
+      assertThat(e.getMessage(), containsString("operation failed"));
+    }
 
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
 
@@ -199,11 +209,16 @@ public class EhcachePassiveEntityTest {
 
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build()));
+    try {
+      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
+          .defaultResource("defaultServerResource")
+          .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+          .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+          .build()));
+      fail("invocation should have triggered an exception");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("operation failed"));
+    }
 
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
 
@@ -223,12 +238,17 @@ public class EhcachePassiveEntityTest {
 
     final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
-        .build()));
+    try {
+      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
+          .defaultResource("defaultServerResource")
+          .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+          .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+          .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
+          .build()));
+      fail("invocation should have triggered an exception");
+    } catch (IllegalStateException e) {
+      assertThat(e.getMessage(), containsString("operation failed"));
+    }
 
     final Set<String> poolIds = registry.getStoreManagerService().getSharedResourcePoolIds();
     assertThat(poolIds, is(Matchers.<String>empty()));
