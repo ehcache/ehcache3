@@ -78,13 +78,27 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
         EhcacheOperationMessage operationMessage = (EhcacheOperationMessage) message;
         EhcacheMessageType messageType = operationMessage.getMessageType();
         if (isStoreOperationMessage(messageType)) {
-          invokeServerStoreOperation((ServerStoreOpMessage)message);
+          try {
+            invokeServerStoreOperation((ServerStoreOpMessage)message);
+          } catch (ClusterException e) {
+            // Store operation should not be critical enough to fail a passive
+            LOGGER.error("Unexpected exception raised during operation: " + message, e);
+          }
         } else if (isLifecycleMessage(messageType)) {
           invokeLifeCycleOperation((LifecycleMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {
-          ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
+          try {
+            ehcacheStateService.getStateRepositoryManager().invoke((StateRepositoryOpMessage)message);
+          } catch (ClusterException e) {
+            // State repository operations should not be critical enough to fail a passive
+            LOGGER.error("Unexpected exception raised during operation: " + message, e);
+          }
         } else if (isPassiveReplicationMessage(messageType)) {
-          invokeRetirementMessages((PassiveReplicationMessage)message);
+          try {
+            invokeRetirementMessages((PassiveReplicationMessage)message);
+          } catch (ClusterException e) {
+            LOGGER.error("Unexpected exception raised during operation: " + message, e);
+          }
         } else {
           throw new AssertionError("Unsupported EhcacheOperationMessage: " + operationMessage.getMessageType());
         }
@@ -93,11 +107,10 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       } else {
         throw new AssertionError("Unsupported EhcacheEntityMessage: " + message.getClass());
       }
-
-    } catch (Exception e) {
-      LOGGER.error("Unexpected exception raised during operation: " + message, e);
+    } catch (ClusterException e) {
+      // Reaching here means a lifecycle or sync operation failed
+      throw new IllegalStateException("A lifecycle or sync operation failed", e);
     }
-
   }
 
   EhcachePassiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
