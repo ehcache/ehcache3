@@ -44,7 +44,7 @@ ext {
 
   // Third parties
   offheapVersion = '2.3.2'
-  statisticVersion = '1.4.1'
+  statisticVersion = '1.4.2'
   jcacheVersion = '1.0.0'
   slf4jVersion = '1.7.7'
   sizeofVersion = '0.3.0'
