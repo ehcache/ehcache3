@@ -44,7 +44,7 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheStateServiceProvider.class);
 
-  private ConcurrentMap<Long, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
+  private ConcurrentMap<String, EhcacheStateService> serviceMap = new ConcurrentHashMap<>();
   private OffHeapResources offHeapResourcesProvider;
 
   @Override
@@ -69,14 +69,11 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
   @Override
   public <T> T getService(long consumerID, ServiceConfiguration<T> configuration) {
     if (configuration != null && configuration.getServiceType().equals(EhcacheStateService.class)) {
-      if (offHeapResourcesProvider == null) {
-        LOGGER.warn("EhcacheStateService requested but no offheap-resource was defined - returning null");
-        return null;
-      }
       EhcacheStateServiceConfig stateServiceConfig = (EhcacheStateServiceConfig) configuration;
-      EhcacheStateService storeManagerService = new EhcacheStateServiceImpl(
-        offHeapResourcesProvider, stateServiceConfig.getMapper());
-      EhcacheStateService result = serviceMap.putIfAbsent(consumerID, storeManagerService);
+      EhcacheStateServiceImpl storeManagerService = new EhcacheStateServiceImpl(
+        offHeapResourcesProvider, stateServiceConfig.getConfig().getConfiguration(), stateServiceConfig.getMapper(),
+        service -> serviceMap.remove(stateServiceConfig.getConfig().getIdentifier(), service));
+      EhcacheStateService result = serviceMap.putIfAbsent(stateServiceConfig.getConfig().getIdentifier(), storeManagerService);
       if (result == null) {
         result = storeManagerService;
       }
@@ -97,5 +94,9 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
   @Override
   public void prepareForSynchronization() throws ServiceProviderCleanupException {
     serviceMap.clear();
+  }
+
+  public interface DestroyCallback {
+    void destroy(EhcacheStateService service);
   }
 }

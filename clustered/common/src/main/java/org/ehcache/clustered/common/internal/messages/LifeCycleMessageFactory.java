@@ -29,10 +29,6 @@ public class LifeCycleMessageFactory {
     return new LifecycleMessage.ValidateStoreManager(configuration, clientId);
   }
 
-  public LifecycleMessage configureStoreManager(ServerSideConfiguration configuration) {
-    return new LifecycleMessage.ConfigureStoreManager(configuration, clientId);
-  }
-
   public LifecycleMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
     return new LifecycleMessage.CreateServerStore(name, serverStoreConfiguration, clientId);
   }

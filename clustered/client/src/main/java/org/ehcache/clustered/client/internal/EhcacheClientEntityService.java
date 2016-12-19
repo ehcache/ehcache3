@@ -16,14 +16,13 @@
 
 package org.ehcache.clustered.client.internal;
 
-import java.util.UUID;
-
-import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 
+import org.ehcache.clustered.common.internal.messages.EntityConfigurationCodec;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpCodec;
@@ -32,7 +31,9 @@ import org.terracotta.entity.EntityClientEndpoint;
 import org.terracotta.entity.EntityClientService;
 import org.terracotta.entity.MessageCodec;
 
-public class EhcacheClientEntityService implements EntityClientService<EhcacheClientEntity, UUID, EhcacheEntityMessage, EhcacheEntityResponse> {
+public class EhcacheClientEntityService implements EntityClientService<EhcacheClientEntity, ClusteredTierManagerConfiguration, EhcacheEntityMessage, EhcacheEntityResponse> {
+
+  private final EntityConfigurationCodec configCodec = new EntityConfigurationCodec(new CommonConfigCodec());
 
   @Override
   public boolean handlesEntityType(Class<EhcacheClientEntity> cls) {
@@ -40,13 +41,13 @@ public class EhcacheClientEntityService implements EntityClientService<EhcacheCl
   }
 
   @Override
-  public byte[] serializeConfiguration(UUID configuration) {
-    return ClusteredEhcacheIdentity.serialize(configuration);
+  public byte[] serializeConfiguration(ClusteredTierManagerConfiguration configuration) {
+    return configCodec.encode(configuration);
   }
 
   @Override
-  public UUID deserializeConfiguration(byte[] configuration) {
-    return ClusteredEhcacheIdentity.deserialize(configuration);
+  public ClusteredTierManagerConfiguration deserializeConfiguration(byte[] configuration) {
+    return configCodec.decodeClusteredTierManagerConfiguration(configuration);
   }
 
   @Override

@@ -30,7 +30,6 @@ import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
  */
 public enum EhcacheMessageType {
   // Lifecycle messages
-  CONFIGURE,
   VALIDATE,
   CREATE_SERVER_STORE,
   VALIDATE_SERVER_STORE,
@@ -61,12 +60,11 @@ public enum EhcacheMessageType {
   public static final String MESSAGE_TYPE_FIELD_NAME = "opCode";
   public static final int MESSAGE_TYPE_FIELD_INDEX = 10;
   public static final EnumMapping<EhcacheMessageType> EHCACHE_MESSAGE_TYPES_ENUM_MAPPING = newEnumMappingBuilder(EhcacheMessageType.class)
-    .mapping(CONFIGURE, 1)
-    .mapping(VALIDATE, 2)
-    .mapping(CREATE_SERVER_STORE, 3)
-    .mapping(VALIDATE_SERVER_STORE, 4)
-    .mapping(RELEASE_SERVER_STORE, 5)
-    .mapping(DESTROY_SERVER_STORE, 6)
+    .mapping(VALIDATE, 1)
+    .mapping(CREATE_SERVER_STORE, 2)
+    .mapping(VALIDATE_SERVER_STORE, 3)
+    .mapping(RELEASE_SERVER_STORE, 4)
+    .mapping(DESTROY_SERVER_STORE, 5)
 
     .mapping(GET_AND_APPEND, 21)
     .mapping(APPEND, 22)
@@ -87,7 +85,7 @@ public enum EhcacheMessageType {
     .mapping(DESTROY_SERVER_STORE_REPLICATION, 66)
     .build();
 
-  public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(CONFIGURE, VALIDATE, CREATE_SERVER_STORE, VALIDATE_SERVER_STORE, RELEASE_SERVER_STORE, DESTROY_SERVER_STORE);
+  public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(VALIDATE, CREATE_SERVER_STORE, VALIDATE_SERVER_STORE, RELEASE_SERVER_STORE, DESTROY_SERVER_STORE);
   public static boolean isLifecycleMessage(EhcacheMessageType value) {
     return LIFECYCLE_MESSAGES.contains(value);
   }

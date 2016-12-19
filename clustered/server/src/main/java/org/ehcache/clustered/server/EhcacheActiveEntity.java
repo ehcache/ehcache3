@@ -35,8 +35,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
-import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidClientIdException;
@@ -77,12 +77,12 @@ import org.terracotta.entity.ActiveServerEntity;
 import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientCommunicator;
 import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.offheapresource.OffHeapResources;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
@@ -94,7 +94,6 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
-import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.CreateServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.DestroyServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ReleaseServerStore;
@@ -103,13 +102,11 @@ import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.Va
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY;
 
-class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
   static final String SYNC_DATA_SIZE_PROP = "ehcache.sync.data.size.threshold";
   private static final long DEFAULT_SYNC_DATA_SIZE_THRESHOLD = 4 * 1024 * 1024;
-
-  private final UUID identity;
 
   /**
    * Tracks the state of a connected client.  An entry is added to this map when the
@@ -134,6 +131,7 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   private volatile ConcurrentHashMap<String, List<InvalidationTuple>> inflightInvalidations;
   private final Management management;
   private final AtomicBoolean reconnectComplete = new AtomicBoolean(true);
+  private final ServerSideConfiguration configuration;
 
   static class InvalidationHolder {
     final ClientDescriptor clientDescriptorWaitingForInvalidation;
@@ -163,20 +161,14 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     }
   }
 
-  private static class OffHeapResourcesServiceConfiguration implements ServiceConfiguration<OffHeapResources> {
-
-    @Override
-    public Class<OffHeapResources> getServiceType() {
-      return OffHeapResources.class;
+  public EhcacheActiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config, final KeySegmentMapper mapper) throws ConfigurationException {
+    if (config == null) {
+      throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
     }
-
-  }
-
-  EhcacheActiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
-    this.identity = ClusteredEhcacheIdentity.deserialize(config);
+    this.configuration = config.getConfiguration();
     this.responseFactory = new EhcacheEntityResponseFactory();
     this.clientCommunicator = services.getService(new CommunicatorServiceConfiguration());
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, mapper));
+    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(config, services, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
@@ -184,7 +176,13 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
     if (entityMessenger == null) {
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
-    this.management = new Management(services, ehcacheStateService, true);
+    try {
+      ehcacheStateService.configure();
+      this.management = new Management(services, ehcacheStateService, true);
+    } catch (ConfigurationException e) {
+      ehcacheStateService.destroy();
+      throw e;
+    }
   }
 
   /**
@@ -410,11 +408,12 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
   @Override
   public void createNew() {
     management.init();
+    management.sharedPoolsConfigured();
   }
 
   @Override
   public void loadExisting() {
-    ehcacheStateService.loadExisting();
+    ehcacheStateService.loadExisting(configuration);
     LOGGER.debug("Preparing for handling Inflight Invalidations and independent Passive Evictions in loadExisting");
     inflightInvalidations = new ConcurrentHashMap<>();
     addInflightInvalidationsForEventualCaches();
@@ -467,9 +466,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
   private EhcacheEntityResponse invokeLifeCycleOperation(ClientDescriptor clientDescriptor, LifecycleMessage message) throws ClusterException {
     switch (message.getMessageType()) {
-      case CONFIGURE:
-        configure(clientDescriptor, (ConfigureStoreManager) message);
-        break;
       case VALIDATE:
         validate(clientDescriptor, (ValidateStoreManager) message);
         break;
@@ -742,22 +738,6 @@ class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, Eh
 
     ehcacheStateService.destroy();
 
-  }
-
-  /**
-   * Handles the {@link LifecycleMessage.ConfigureStoreManager ConfigureStoreManager} message.  This method creates the shared
-   * resource pools to be available to clients of this {@code EhcacheActiveEntity}.
-   *
-   * @param clientDescriptor the client identifier requesting store manager configuration
-   * @param message the {@code ConfigureStoreManager} message carrying the desired shared resource pool configuration
-   */
-  private void configure(ClientDescriptor clientDescriptor, ConfigureStoreManager message) throws ClusterException {
-    validateClientConnected(clientDescriptor);
-    if (ehcacheStateService.getClientMessageTracker().isConfigureApplicable(message.getClientId(), message.getId())) {
-      ehcacheStateService.configure(message.getConfiguration());
-    }
-    this.clientStateMap.get(clientDescriptor).attach();
-    management.sharedPoolsConfigured();
   }
 
   /**

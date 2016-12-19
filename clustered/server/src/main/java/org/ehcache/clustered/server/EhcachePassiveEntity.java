@@ -18,18 +18,15 @@ package org.ehcache.clustered.server;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
-import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
-import org.ehcache.clustered.common.internal.exceptions.IllegalMessageException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
-import org.ehcache.clustered.common.internal.exceptions.ServerMisconfigurationException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
@@ -46,15 +43,11 @@ import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.terracotta.entity.BasicServiceConfiguration;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
-import org.terracotta.offheapresource.OffHeapResources;
 
-import java.util.Collections;
 import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.TimeoutException;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
@@ -62,11 +55,10 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 
-class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
+public class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcachePassiveEntity.class);
 
-  private final UUID identity;
   private final EhcacheStateService ehcacheStateService;
   private final Management management;
 
@@ -113,13 +105,21 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
     }
   }
 
-  EhcachePassiveEntity(ServiceRegistry services, byte[] config, final KeySegmentMapper mapper) {
-    this.identity = ClusteredEhcacheIdentity.deserialize(config);
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(services, mapper));
+  public EhcachePassiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config, final KeySegmentMapper mapper) throws ConfigurationException {
+    if (config == null) {
+      throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
+    }
+    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(config, services, mapper));
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
-    management = new Management(services, ehcacheStateService, false);
+    try {
+      ehcacheStateService.configure();
+      this.management = new Management(services, ehcacheStateService, false);
+    } catch (ConfigurationException e) {
+      ehcacheStateService.destroy();
+      throw e;
+    }
   }
 
   private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {
@@ -218,9 +218,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       case STATE:
         EhcacheStateSyncMessage stateSyncMessage = (EhcacheStateSyncMessage) message;
 
-        ehcacheStateService.configure(stateSyncMessage.getConfiguration());
-        management.sharedPoolsConfigured();
-
         for (Map.Entry<String, ServerStoreConfiguration> entry : stateSyncMessage.getStoreConfigs().entrySet()) {
           ehcacheStateService.createStore(entry.getKey(), entry.getValue());
           if(entry.getValue().getConsistency() == Consistency.EVENTUAL) {
@@ -244,9 +241,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
 
   private void invokeLifeCycleOperation(LifecycleMessage message) throws ClusterException {
     switch (message.getMessageType()) {
-      case CONFIGURE:
-        configure((ConfigureStoreManager) message);
-        break;
       case VALIDATE:
         applyMessage(message);
         break;
@@ -257,12 +251,6 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
       default:
         throw new AssertionError("Unsupported LifeCycle operation " + message.getMessageType());
     }
-  }
-
-  private void configure(ConfigureStoreManager message) throws ClusterException {
-    ehcacheStateService.configure(message.getConfiguration());
-    ehcacheStateService.getClientMessageTracker().setEntityConfiguredStamp(message.getClientId(), message.getId());
-    management.sharedPoolsConfigured();
   }
 
   private void applyMessage(EhcacheOperationMessage message) {
@@ -321,6 +309,7 @@ class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMessage, 
   @Override
   public void createNew() {
     management.init();
+    management.sharedPoolsConfigured();
   }
 
   @Override

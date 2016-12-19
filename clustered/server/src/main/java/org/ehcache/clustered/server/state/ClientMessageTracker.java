@@ -32,11 +32,9 @@ public class ClientMessageTracker {
   private static final Logger LOGGER = LoggerFactory.getLogger(ClientMessageTracker.class);
 
   private final ConcurrentMap<UUID, MessageTracker> messageTrackers = new ConcurrentHashMap<>();
-  private volatile UUID entityConfiguredStamp = null;
-  private volatile long configuredTimestamp;
 
   //TODO : This method will be removed once we move to model where
-  //caches are entites. Then passive just needs to keep track of
+  //caches are entities. Then passive just needs to keep track of
   //applied messages. Thus only 'applied' method will be keeping
   // track of watermarking for de-duplication. This method is only
   // allowed to be used by cache lifecycle message for now.
@@ -74,21 +72,6 @@ public class ClientMessageTracker {
   public void remove(UUID clientId) {
     messageTrackers.remove(clientId);
     LOGGER.info("Stop tracking client {}.", clientId);
-  }
-
-  public void setEntityConfiguredStamp(UUID clientId, long timestamp) {
-    this.entityConfiguredStamp = clientId;
-    this.configuredTimestamp = timestamp;
-  }
-
-  public boolean isConfigureApplicable(UUID clientId, long timestamp) {
-    if (entityConfiguredStamp == null) {
-      return true;
-    }
-    if (clientId.equals(entityConfiguredStamp) && configuredTimestamp == timestamp) {
-      return false;
-    }
-    return true;
   }
 
   public void reconcileTrackedClients(Set<UUID> trackedClients) {

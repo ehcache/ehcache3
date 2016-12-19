@@ -16,12 +16,12 @@
 
 package org.ehcache.clustered.client.internal;
 
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.service.EntityBusyException;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -34,7 +34,6 @@ import org.terracotta.exception.EntityVersionMismatchException;
 import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
@@ -107,15 +106,14 @@ public class EhcacheClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       try {
         while (true) {
-          ref.create(UUID.randomUUID());
+          ref.create(new ClusteredTierManagerConfiguration(identifier, config));
           try {
             EhcacheClientEntity entity = ref.fetchEntity();
             try {
               entity.setTimeouts(entityTimeouts);
-              entity.configure(config);
               finished = true;
               return;
             } finally {
@@ -125,28 +123,17 @@ public class EhcacheClientEntityFactory {
                 silentlyClose(entity, identifier);
               }
             }
-          } catch (ClusteredTierManagerConfigurationException e) {
-            try {
-              ref.destroy();
-            } catch (EntityNotFoundException f) {
-              //ignore
-            }
-            throw new EhcacheEntityCreationException("Unable to configure clustered tier manager for id " + identifier, e);
           } catch (EntityNotFoundException e) {
             //continue;
           }
         }
+      } catch (EntityConfigurationException e) {
+        throw new EhcacheEntityCreationException("Unable to configure clustered tier manager for id " + identifier, e);
       } catch (EntityNotProvidedException e) {
         LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
         throw new AssertionError(e);
       } catch (EntityVersionMismatchException e) {
         LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
-        throw new AssertionError(e);
-      } catch (PermanentEntityException e) {
-        LOGGER.error("Unable to create entity - server indicates it is permanent", e);
-        throw new AssertionError(e);
-      } catch (EntityConfigurationException e) {
-        LOGGER.error("Unable to create entity - configuration exception", e);
         throw new AssertionError(e);
       }
     } finally {
@@ -224,7 +211,7 @@ public class EhcacheClientEntityFactory {
     boolean finished = false;
 
     try {
-      EntityRef<EhcacheClientEntity, UUID> ref = getEntityRef(identifier);
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
       try {
         if (!ref.destroy()) {
           throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
@@ -270,7 +257,7 @@ public class EhcacheClientEntityFactory {
     return new VoltronReadWriteLock(connection, "EhcacheClientEntityFactory-AccessLock-" + entityIdentifier);
   }
 
-  private EntityRef<EhcacheClientEntity, UUID> getEntityRef(String identifier) {
+  private EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
     try {
       return connection.getEntityRef(EhcacheClientEntity.class, ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {

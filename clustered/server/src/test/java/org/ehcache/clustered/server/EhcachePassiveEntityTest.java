@@ -19,17 +19,19 @@ package org.ehcache.clustered.server;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
-import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
+import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.LifeCycleMessageFactory;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.server.state.EhcacheStateService;
+import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.terracotta.entity.BasicServiceConfiguration;
+import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
@@ -51,7 +53,6 @@ import java.util.UUID;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -60,7 +61,6 @@ import static org.mockito.Mockito.mock;
 
 public class EhcachePassiveEntityTest {
 
-  private static final byte[] ENTITY_ID = ClusteredEhcacheIdentity.serialize(UUID.randomUUID());
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
   private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
@@ -70,34 +70,9 @@ public class EhcachePassiveEntityTest {
     MESSAGE_FACTORY.setClientId(CLIENT_ID);
   }
 
-  @Test
-  public void testConfigTooShort() {
-    try {
-      new EhcachePassiveEntity(null, new byte[ENTITY_ID.length - 1], DEFAULT_MAPPER);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
-  }
-
-  @Test
-  public void testConfigTooLong() {
-    try {
-      new EhcachePassiveEntity(null, new byte[ENTITY_ID.length + 1], DEFAULT_MAPPER);
-      fail("Expected IllegalArgumentException");
-    } catch (IllegalArgumentException e) {
-      //expected
-    }
-  }
-
-  @Test
-  public void testConfigNull() {
-    try {
-      new EhcachePassiveEntity(null, null, DEFAULT_MAPPER);
-      fail("Expected NullPointerException");
-    } catch (NullPointerException e) {
-      //expected
-    }
+  @Test(expected = ConfigurationException.class)
+  public void testConfigNull() throws Exception {
+    new EhcachePassiveEntity(mock(ServiceRegistry.class), null, DEFAULT_MAPPER);
   }
 
   /**
@@ -110,55 +85,16 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build()));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-
-    assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
-    assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
-    assertThat(registry.getResource("defaultServerResource").getUsed(), is(0L));
-
-    assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
-  }
-
-  @Test
-  public void testConfigureAfterConfigure() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
-    registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
-
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .defaultResource("defaultServerResource")
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build()));
-
-    try {
-      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-          .defaultResource("defaultServerResource")
-          .sharedPool("primary-new", "serverResource1", 4, MemoryUnit.MEGABYTES)
-          .sharedPool("secondary-new", "serverResource2", 8, MemoryUnit.MEGABYTES)
-          .build()));
-      fail("invocation should have triggered an exception");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("operation failed"));
-    }
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .defaultResource("defaultServerResource")
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
     assertThat(registry.getStoreManagerService()
         .getSharedResourcePoolIds(), containsInAnyOrder("primary", "secondary"));
-
-    assertThat(registry.getStoreManagerService()
-        .getSharedResourcePoolIds(), hasSize(2));
 
     assertThat(registry.getResource("serverResource1").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(4L)));
     assertThat(registry.getResource("serverResource2").getUsed(), is(MemoryUnit.MEGABYTES.toBytes(8L)));
@@ -176,17 +112,17 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 64, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
-
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .defaultResource("defaultServerResource")
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)    // missing on 'server'
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     try {
-      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-          .defaultResource("defaultServerResource")
-          .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-          .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)    // missing on 'server'
-          .build()));
-      fail("invocation should have triggered an exception");
-    } catch (Exception e) {
-      assertThat(e.getMessage(), containsString("operation failed"));
+      new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
+      fail("Entity creation should have failed");
+    } catch (ConfigurationException e) {
+      assertThat(e.getMessage(), containsString("Unable to create"));
     }
 
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -207,17 +143,17 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
-
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .defaultResource("defaultServerResource")
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     try {
-      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-          .defaultResource("defaultServerResource")
-          .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-          .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-          .build()));
-      fail("invocation should have triggered an exception");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("operation failed"));
+      new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
+      fail("Entity creation should have failed");
+    } catch (ConfigurationException e) {
+      assertThat(e.getMessage(), containsString("not defined"));
     }
 
     assertThat(registry.getStoreManagerService().getSharedResourcePoolIds(), is(Matchers.<String>empty()));
@@ -236,18 +172,18 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
-
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .defaultResource("defaultServerResource")
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
     try {
-      passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-          .defaultResource("defaultServerResource")
-          .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-          .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-          .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
-          .build()));
-      fail("invocation should have triggered an exception");
-    } catch (IllegalStateException e) {
-      assertThat(e.getMessage(), containsString("operation failed"));
+      new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
+      fail("Entity creation should have failed");
+    } catch (ConfigurationException e) {
+      assertThat(e.getMessage(), containsString("Unable to create shared resource pools"));
     }
 
     final Set<String> poolIds = registry.getStoreManagerService().getSharedResourcePoolIds();
@@ -266,12 +202,13 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build()));
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("cacheAlias",
         new ServerStoreConfigBuilder()
             .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
@@ -303,13 +240,12 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-            .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-            .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-            .build()));
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("cacheAlias",
         new ServerStoreConfigBuilder()
@@ -338,13 +274,12 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
-
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-            .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-            .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-            .build()));
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
         new ServerStoreConfigBuilder()
@@ -404,13 +339,13 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
-    passiveEntity.invoke(
-        MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-            .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-            .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-            .build()));
     assertThat(registry.getStoreManagerService().getStores(), is(Matchers.<String>empty()));
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
@@ -476,12 +411,12 @@ public class EhcachePassiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
-
-    passiveEntity.invoke(MESSAGE_FACTORY.configureStoreManager(new ServerSideConfigBuilder()
-        .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-        .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-        .build()));
+    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
+      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
+      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
+      .build();
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
     EhcacheEntityMessage createServerStore = MESSAGE_FACTORY.createServerStore("dedicatedCache",
         new ServerStoreConfigBuilder()
@@ -522,7 +457,9 @@ public class EhcachePassiveEntityTest {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(4, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource", 4, MemoryUnit.MEGABYTES);
 
-    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, ENTITY_ID, DEFAULT_MAPPER);
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", new ServerSideConfigBuilder()
+      .build());
+    final EhcachePassiveEntity passiveEntity = new EhcachePassiveEntity(registry, configuration, DEFAULT_MAPPER);
 
     try {
       passiveEntity.invoke(new InvalidMessage());
@@ -693,6 +630,7 @@ public class EhcachePassiveEntityTest {
     @Override
     public <T> T getService(ServiceConfiguration<T> serviceConfiguration) {
       if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
+        EhcacheStateServiceConfig config = (EhcacheStateServiceConfig) serviceConfiguration;
         if (storeManagerService == null) {
           this.storeManagerService = new EhcacheStateServiceImpl(new OffHeapResources() {
             @Override
@@ -704,7 +642,7 @@ public class EhcachePassiveEntityTest {
             public OffHeapResource getOffHeapResource(OffHeapResourceIdentifier identifier) {
               return pools.get(identifier);
             }
-          }, DEFAULT_MAPPER);
+          }, config.getConfig().getConfiguration(), DEFAULT_MAPPER, service -> {});
         }
         return (T) (this.storeManagerService);
       } else if (serviceConfiguration.getServiceType().equals(IEntityMessenger.class)) {

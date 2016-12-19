@@ -21,6 +21,7 @@ import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.server.ServerSideServerStore;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
+import org.terracotta.entity.ConfigurationException;
 
 import com.tc.classloader.CommonComponent;
 
@@ -48,7 +49,7 @@ public interface EhcacheStateService {
 
   void validate(ServerSideConfiguration configuration) throws ClusterException;
 
-  void configure(ServerSideConfiguration configuration) throws ClusterException;
+  void configure() throws ConfigurationException;
 
   ServerSideServerStore createStore(String name, ServerStoreConfiguration serverStoreConfiguration) throws ClusterException;
 
@@ -66,6 +67,6 @@ public interface EhcacheStateService {
 
   InvalidationTracker removeInvalidationtracker(String cacheId);
 
-  void loadExisting();
+  void loadExisting(ServerSideConfiguration configuration);
 
 }

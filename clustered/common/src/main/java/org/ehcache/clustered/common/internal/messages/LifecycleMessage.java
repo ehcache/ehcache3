@@ -65,26 +65,6 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
     }
   }
 
-  public static class ConfigureStoreManager extends LifecycleMessage {
-    private static final long serialVersionUID = 730771302294202898L;
-
-    private final ServerSideConfiguration configuration;
-
-    ConfigureStoreManager(ServerSideConfiguration config, UUID clientId) {
-      this.configuration = config;
-      this.clientId = clientId;
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.CONFIGURE;
-    }
-
-    public ServerSideConfiguration getConfiguration() {
-      return configuration;
-    }
-  }
-
   public abstract static class BaseServerStore extends LifecycleMessage {
     private static final long serialVersionUID = 4879477027919589726L;
 

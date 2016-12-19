@@ -36,8 +36,6 @@ class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage
     } else if (message instanceof ServerStoreOpMessage) {
       // Server store operation not needing replication
       return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.ConfigureStoreManager) {
-      return Location.BOTH;
     } else if (message instanceof LifecycleMessage.ValidateStoreManager) {
       return Location.ACTIVE;
     } else if (message instanceof LifecycleMessage.CreateServerStore) {

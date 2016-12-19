@@ -18,12 +18,10 @@ package org.ehcache.clustered.client.internal;
 
 import org.ehcache.clustered.client.config.TimeoutDuration;
 import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierManagerConfigurationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierCreationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierReleaseException;
 import org.ehcache.clustered.client.internal.service.ClusteredTierValidationException;
-import org.ehcache.clustered.common.internal.ClusteredEhcacheIdentity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
@@ -210,10 +208,6 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  public UUID identity() {
-    return ClusteredEhcacheIdentity.deserialize(endpoint.getEntityConfiguration());
-  }
-
   @Override
   public void close() {
     endpoint.close();
@@ -236,16 +230,6 @@ public class EhcacheClientEntity implements Entity {
       }
     } catch (ClusterException e) {
       throw new ClusteredTierManagerValidationException("Error validating server clustered tier manager", e);
-    }
-  }
-
-  public void configure(ServerSideConfiguration config) throws ClusteredTierManagerConfigurationException, TimeoutException {
-    try {
-      clientId = UUID.randomUUID();
-      this.messageFactory.setClientId(clientId);
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.configureStoreManager(config), true);
-    } catch (ClusterException e) {
-      throw new ClusteredTierManagerConfigurationException("Error configuring clustered tier manager", e);
     }
   }
 
