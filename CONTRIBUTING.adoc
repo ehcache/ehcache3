@@ -22,6 +22,8 @@ On paper (or on this screen), it's pretty straight forward:
 
 Now, the doing the work part might be a little more challenging, and we don't provide any guarantees as to becoming rich... but you'll be famous to us!
 
+Note that we are using the GitHub branch protection features so that your PR must pass a build and have no "request changes" reviews.
+
 == Contributor agreement
 
 In order to accept any contribution, we will need you to fill out and mail {uri-contributor-agreement}[the Individual Contributor Agreement] at contributors@terracotta.org.
