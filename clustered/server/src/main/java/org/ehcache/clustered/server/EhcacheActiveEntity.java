@@ -377,7 +377,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
         .forEach(name -> {
           ServerSideServerStore store = ehcacheStateService.getStore(name);
           final AtomicReference<Map<Long, Chain>> mappingsToSend = new AtomicReference<>(new HashMap<>());
-          store.getSegments().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET).keySet()
+          store.getSegmentKeySets().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET)
             .forEach(key -> {
               final Chain chain;
               try {

@@ -37,9 +37,6 @@ import org.terracotta.offheapstore.exceptions.OversizeMappingException;
 import org.terracotta.offheapstore.paging.PageSource;
 import org.terracotta.offheapstore.storage.portability.Portability;
 
-import com.tc.classloader.CommonComponent;
-
-@CommonComponent
 public class OffHeapChainMap<K> implements MapInternals {
 
   interface ChainMapEvictionListener<K> {
