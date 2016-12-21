@@ -52,7 +52,10 @@ dependencies {
     exclude group: 'org.terracotta.internal', module: 'tc-config-parser'
   }
 
-  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip" changing true
+  // Needed because declared as provided in the different projects
+  serverLibs "org.terracotta:server-logging:$parent.terracottaPlatformVersion"
+
+  kit "org.terracotta.internal:terracotta-kit:$terracottaCoreVersion@zip"
 
   shadowCompile "org.slf4j:slf4j-api:$parent.slf4jVersion"
   pomOnlyCompile "org.ehcache:ehcache:$parent.baseVersion"
