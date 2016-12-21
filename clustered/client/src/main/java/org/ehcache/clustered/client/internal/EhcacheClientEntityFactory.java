@@ -27,9 +27,11 @@ import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
+import org.terracotta.exception.EntityConfigurationException;
 import org.terracotta.exception.EntityNotFoundException;
 import org.terracotta.exception.EntityNotProvidedException;
 import org.terracotta.exception.EntityVersionMismatchException;
+import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
 import java.util.UUID;
@@ -120,12 +122,17 @@ public class EhcacheClientEntityFactory {
                 ref.destroy();
               } catch (EntityNotFoundException f) {
                 //ignore
+              } catch (PermanentEntityException e1) {
+                throw new AssertionError(e1);
               }
               throw new EhcacheEntityCreationException("Unable to configure clustered tier manager for id " + identifier, e);
             } catch (EntityNotFoundException e) {
               //continue;
             }
           }
+        } catch (EntityConfigurationException e) {
+          LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
+          throw new AssertionError(e);
         } catch (EntityNotProvidedException e) {
           LOGGER.error("Unable to create clustered tier manager for id {}", identifier, e);
           throw new AssertionError(e);
@@ -205,6 +212,9 @@ public class EhcacheClientEntityFactory {
           throw new AssertionError(e);
         } catch (EntityNotFoundException e) {
           throw new EhcacheEntityNotFoundException(e);
+        } catch (PermanentEntityException e) {
+          LOGGER.error("Unable to delete clustered tier manager for id {}", identifier, e);
+          throw new AssertionError(e);
         }
       } finally {
         if (localMaintenance != null) {

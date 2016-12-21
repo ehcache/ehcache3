@@ -20,6 +20,8 @@ import org.ehcache.clustered.common.PoolAllocation;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
+import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
 import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
@@ -30,11 +32,8 @@ import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreManagerException;
 import org.ehcache.clustered.common.internal.exceptions.LifecycleException;
 import org.ehcache.clustered.common.internal.exceptions.ResourceConfigurationException;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ConfigureStoreManager;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
-import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.offheapresource.OffHeapResource;
-import org.terracotta.offheapresource.OffHeapResourceIdentifier;
+import org.terracotta.offheapresource.OffHeapResources;
 import org.terracotta.offheapstore.buffersource.OffHeapBufferSource;
 import org.terracotta.offheapstore.paging.OffHeapStorageArea;
 import org.terracotta.offheapstore.paging.Page;
@@ -48,6 +47,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
+import static org.terracotta.offheapresource.OffHeapResourceIdentifier.identifier;
 import static org.terracotta.offheapstore.util.MemoryUnit.GIGABYTES;
 import static org.terracotta.offheapstore.util.MemoryUnit.MEGABYTES;
 
@@ -55,8 +55,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheStateServiceImpl.class);
 
-  private final ServiceRegistry services;
-  private final Set<String> offHeapResourceIdentifiers;
+  private final OffHeapResources offHeapResources;
 
   /**
    * The name of the resource to use for dedicated resource pools not identifying a resource from which
@@ -84,9 +83,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private final StateRepositoryManager stateRepositoryManager;
 
-  public EhcacheStateServiceImpl(ServiceRegistry services, Set<String> offHeapResourceIdentifiers) {
-    this.services = services;
-    this.offHeapResourceIdentifiers = offHeapResourceIdentifiers;
+
+  public EhcacheStateServiceImpl(OffHeapResources offHeapResources) {
+    this.offHeapResources = offHeapResources;
     this.stateRepositoryManager = new StateRepositoryManager();
   }
 
@@ -173,9 +172,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
       this.defaultServerResource = configuration.getDefaultServerResource();
       if (this.defaultServerResource != null) {
-        if (!offHeapResourceIdentifiers.contains(this.defaultServerResource)) {
+        if (!offHeapResources.getAllIdentifiers().contains(identifier(this.defaultServerResource))) {
           throw new ResourceConfigurationException("Default server resource '" + this.defaultServerResource
-                                                   + "' is not defined. Available resources are: " + offHeapResourceIdentifiers);
+                                                   + "' is not defined. Available resources are: " + offHeapResources.getAllIdentifiers());
         }
       }
 
@@ -217,10 +216,10 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private ResourcePageSource createPageSource(String poolName, ServerSideConfiguration.Pool pool) throws ResourceConfigurationException {
     ResourcePageSource pageSource;
-    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
+    OffHeapResource source = offHeapResources.getOffHeapResource(identifier(pool.getServerResource()));
     if (source == null) {
       throw new ResourceConfigurationException("Non-existent server side resource '" + pool.getServerResource() +
-                                               "'. Available resources are: " + offHeapResourceIdentifiers);
+                                               "'. Available resources are: " + offHeapResources.getAllIdentifiers());
     } else if (source.reserve(pool.getSize())) {
       try {
         pageSource = new ResourcePageSource(pool);
@@ -280,7 +279,7 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
 
   private void releasePool(String poolType, String poolName, ResourcePageSource resourcePageSource) {
     ServerSideConfiguration.Pool pool = resourcePageSource.getPool();
-    OffHeapResource source = services.getService(OffHeapResourceIdentifier.identifier(pool.getServerResource()));
+    OffHeapResource source = offHeapResources.getOffHeapResource(identifier(pool.getServerResource()));
     if (source != null) {
       source.release(pool.getSize());
       LOGGER.info("Released {} bytes from resource '{}' for {} pool '{}'", pool.getSize(), pool.getServerResource(), poolType, poolName);

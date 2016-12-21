@@ -213,20 +213,6 @@ public class EhcacheActiveEntityTest {
     assertThat(activeEntity.getInUseStores().isEmpty(), is(true));
   }
 
-  @Test
-  public void testInteractionWithServerWithoutResources() throws Exception {
-    OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, ENTITY_ID);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-
-    String expectedErrorMessage = "Server started without any offheap resources defined.";
-    assertFailure(
-        activeEntity.invoke(client, mock(EhcacheEntityMessage.class)),
-        ServerMisconfigurationException.class, expectedErrorMessage
-    );
-  }
-
   /**
    * Ensures basic shared resource pool configuration.
    */
@@ -2667,6 +2653,7 @@ public class EhcacheActiveEntityTest {
     private final long offHeapSize;
 
     private EhcacheStateServiceImpl storeManagerService;
+    private ClientCommunicator clientCommunicator;
 
     private final Map<OffHeapResourceIdentifier, TestOffHeapResource> pools =
         new HashMap<OffHeapResourceIdentifier, TestOffHeapResource>();
@@ -2722,21 +2709,24 @@ public class EhcacheActiveEntityTest {
     @SuppressWarnings("unchecked")
     @Override
     public <T> T getService(ServiceConfiguration<T> serviceConfiguration) {
-      if (serviceConfiguration instanceof OffHeapResourceIdentifier) {
-        final OffHeapResourceIdentifier resourceIdentifier = (OffHeapResourceIdentifier) serviceConfiguration;
-        return (T) this.pools.get(resourceIdentifier);
-      } else if (serviceConfiguration.getServiceType().equals(ClientCommunicator.class)) {
-        return (T) mock(ClientCommunicator.class);
-      } else if(serviceConfiguration.getServiceType().equals(OffHeapResources.class)) {
-        return (T) new OffHeapResources() {
-          @Override
-          public Set<String> getAllIdentifiers() {
-            return getIdentifiers(pools.keySet());
-          }
-        };
+      if (serviceConfiguration.getServiceType().equals(ClientCommunicator.class)) {
+        if (this.clientCommunicator == null) {
+          this.clientCommunicator = mock(ClientCommunicator.class);
+        }
+        return (T) this.clientCommunicator;
       } else if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
         if (storeManagerService == null) {
-          this.storeManagerService = new EhcacheStateServiceImpl(this, getIdentifiers(pools.keySet()));
+          this.storeManagerService = new EhcacheStateServiceImpl(new OffHeapResources() {
+            @Override
+            public Set<OffHeapResourceIdentifier> getAllIdentifiers() {
+              return pools.keySet();
+            }
+
+            @Override
+            public OffHeapResource getOffHeapResource(OffHeapResourceIdentifier identifier) {
+              return pools.get(identifier);
+            }
+          });
         }
         return (T) (this.storeManagerService);
       }
@@ -2781,6 +2771,11 @@ public class EhcacheActiveEntityTest {
     @Override
     public long available() {
       return this.capacity - this.used;
+    }
+
+    @Override
+    public long capacity() {
+      return this.capacity;
     }
 
     private long getUsed() {

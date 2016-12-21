@@ -18,14 +18,14 @@ package org.ehcache.management.registry;
 import org.ehcache.Cache;
 import org.ehcache.Status;
 import org.ehcache.core.events.CacheManagerListener;
+import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.store.InternalCacheManager;
 import org.ehcache.impl.internal.concurrent.ConcurrentHashMap;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.SharedManagementService;
-import org.ehcache.spi.service.ServiceProvider;
-import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
+import org.ehcache.spi.service.ServiceProvider;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
@@ -53,7 +53,7 @@ public class DefaultSharedManagementService implements SharedManagementService {
     final ManagementRegistryService managementRegistry = serviceProvider.getService(ManagementRegistryService.class);
     final Context cmContext = managementRegistry.getConfiguration().getContext();
     final InternalCacheManager cacheManager =
-        serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
+      serviceProvider.getService(CacheManagerProviderService.class).getCacheManager();
 
     cacheManager.registerListener(new CacheManagerListener() {
       @Override
@@ -102,8 +102,17 @@ public class DefaultSharedManagementService implements SharedManagementService {
   }
 
   @Override
-  public Map<Context, Collection<Capability>> getCapabilities() {
-    Map<Context, Collection<Capability>> capabilities = new HashMap<Context, Collection<Capability>>();
+  public Collection<? extends Capability> getCapabilities() {
+    Collection<Capability> capabilities = new ArrayList<Capability>();
+    for (ManagementRegistryService registryService : delegates.values()) {
+      capabilities.addAll(registryService.getCapabilities());
+    }
+    return capabilities;
+  }
+
+  @Override
+  public Map<Context, Collection<? extends Capability>> getCapabilitiesByContext() {
+    Map<Context, Collection<? extends Capability>> capabilities = new HashMap<Context, Collection<? extends Capability>>();
     for (Map.Entry<Context, ManagementRegistryService> entry : delegates.entrySet()) {
       capabilities.put(entry.getKey(), entry.getValue().getCapabilities());
     }

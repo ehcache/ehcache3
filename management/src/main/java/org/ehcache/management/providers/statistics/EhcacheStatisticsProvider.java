@@ -22,18 +22,32 @@ import org.ehcache.management.providers.CacheBindingManagementProvider;
 import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.StatisticsCapability;
+import org.terracotta.management.model.capabilities.descriptors.Descriptor;
+import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.action.Named;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 
 @Named("StatisticsCapability")
 public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
+
+  private static final Comparator<StatisticDescriptor> STATISTIC_DESCRIPTOR_COMPARATOR = new Comparator<StatisticDescriptor>() {
+    @Override
+    public int compare(StatisticDescriptor o1, StatisticDescriptor o2) {
+      return o1.getName().compareTo(o2.getName());
+    }
+  };
 
   private final StatisticsProviderConfiguration statisticsProviderConfiguration;
   private final ScheduledExecutorService executor;
@@ -46,12 +60,23 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
 
   @Override
   protected ExposedCacheBinding wrap(CacheBinding cacheBinding) {
-    return new EhcacheStatistics(registryConfiguration, cacheBinding, statisticsProviderConfiguration, executor);
+    return new StandardEhcacheStatistics(registryConfiguration, cacheBinding, statisticsProviderConfiguration, executor);
   }
 
   @Override
   protected void dispose(ExposedObject<CacheBinding> exposedObject) {
-    ((EhcacheStatistics) exposedObject).dispose();
+    ((StandardEhcacheStatistics) exposedObject).dispose();
+  }
+
+  @Override
+  public final Collection<? extends Descriptor> getDescriptors() {
+    Collection<StatisticDescriptor> capabilities = new HashSet<StatisticDescriptor>();
+    for (ExposedObject o : getExposedObjects()) {
+      capabilities.addAll(((StandardEhcacheStatistics) o).getDescriptors());
+    }
+    List<StatisticDescriptor> list = new ArrayList<StatisticDescriptor>(capabilities);
+    Collections.sort(list, STATISTIC_DESCRIPTOR_COMPARATOR);
+    return list;
   }
 
   @Override
@@ -65,10 +90,14 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
   @Override
   public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames, long since) {
     Map<String, Statistic<?, ?>> statistics = new HashMap<String, Statistic<?, ?>>(statisticNames.size());
-    EhcacheStatistics ehcacheStatistics = (EhcacheStatistics) findExposedObject(context);
+    StandardEhcacheStatistics ehcacheStatistics = (StandardEhcacheStatistics) findExposedObject(context);
     if (ehcacheStatistics != null) {
       for (String statisticName : statisticNames) {
-        statistics.putAll(ehcacheStatistics.queryStatistic(statisticName, since));
+        try {
+           statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName, since));
+         } catch (IllegalArgumentException ignored) {
+           // ignore when statisticName does not exist and throws an exception
+         }
       }
     }
     return statistics;
