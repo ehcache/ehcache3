@@ -18,6 +18,7 @@ package org.ehcache.clustered.client.internal;
 
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.service.EntityBusyException;
+import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock;
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLock.Hold;
@@ -40,8 +41,6 @@ import java.util.concurrent.TimeoutException;
 public class EhcacheClientEntityFactory {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntityFactory.class);
-
-  private static final long ENTITY_VERSION = 1L;
 
   private final Connection connection;
   private final Map<String, Hold> maintenanceHolds = new ConcurrentHashMap<String, Hold>();
@@ -259,7 +258,7 @@ public class EhcacheClientEntityFactory {
 
   private EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(String identifier) {
     try {
-      return connection.getEntityRef(EhcacheClientEntity.class, ENTITY_VERSION, identifier);
+      return connection.getEntityRef(EhcacheClientEntity.class, EhcacheEntityVersion.ENTITY_VERSION, identifier);
     } catch (EntityNotProvidedException e) {
       LOGGER.error("Unable to get clustered tier manager for id {}", identifier, e);
       throw new AssertionError(e);

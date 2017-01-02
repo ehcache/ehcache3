@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import org.ehcache.PersistentCacheManager;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
+import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.StateTransitionException;
 import org.ehcache.xml.XmlConfiguration;
@@ -177,7 +178,7 @@ public class CacheManagerLifecycleEhcacheIntegrationTest {
 
   private static <T extends Entity> void fetchEntity(Connection connection, Class<T> aClass, String myCacheManager) throws EntityNotFoundException, ConnectionException {
     try {
-      connection.getEntityRef(aClass, 1, myCacheManager).fetchEntity().close();
+      connection.getEntityRef(aClass, EhcacheEntityVersion.ENTITY_VERSION, myCacheManager).fetchEntity().close();
     } catch (EntityNotProvidedException e) {
       throw new AssertionError(e);
     } catch (EntityVersionMismatchException e) {

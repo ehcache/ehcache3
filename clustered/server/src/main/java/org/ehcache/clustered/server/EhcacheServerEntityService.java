@@ -15,6 +15,7 @@
  */
 package org.ehcache.clustered.server;
 
+import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.ConfigCodec;
@@ -42,7 +43,6 @@ import org.terracotta.entity.SyncMessageCodec;
 
 public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
-  private static final long ENTITY_VERSION = 1L;
   private static final int DEFAULT_CONCURRENCY = 16;
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(DEFAULT_CONCURRENCY);
   private static final ConfigCodec CONFIG_CODEC = new CommonConfigCodec();
@@ -51,7 +51,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
 
   @Override
   public long getVersion() {
-    return ENTITY_VERSION;
+    return EhcacheEntityVersion.ENTITY_VERSION;
   }
 
   @Override
