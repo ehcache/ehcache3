@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.ehcache.clustered.server;
 
-import org.ehcache.clustered.common.EhcacheEntityVersion;
-import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
+package org.ehcache.clustered.server.store;
+
 import org.ehcache.clustered.common.internal.messages.CommonConfigCodec;
 import org.ehcache.clustered.common.internal.messages.ConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheCodec;
@@ -27,12 +26,12 @@ import org.ehcache.clustered.common.internal.messages.LifeCycleMessageCodec;
 import org.ehcache.clustered.common.internal.messages.ResponseCodec;
 import org.ehcache.clustered.common.internal.messages.ServerStoreOpCodec;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpCodec;
+import org.ehcache.clustered.common.internal.store.ClusteredTierEntityConfiguration;
+import org.ehcache.clustered.server.EhcacheExecutionStrategy;
+import org.ehcache.clustered.server.KeySegmentMapper;
 import org.ehcache.clustered.server.internal.messages.EhcacheServerCodec;
 import org.ehcache.clustered.server.internal.messages.EhcacheSyncMessageCodec;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessageCodec;
-import org.ehcache.clustered.server.management.Management;
-import org.ehcache.clustered.server.state.EhcacheStateService;
-import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.terracotta.entity.CommonServerEntity;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
@@ -40,12 +39,16 @@ import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.ServiceRegistry;
-
-import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
 import org.terracotta.entity.SyncMessageCodec;
 
-public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
+import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
 
+/**
+ * ClusteredTierServerEntityService
+ */
+public class ClusteredTierServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
+
+  private static final long ENTITY_VERSION = 10L;
   private static final int DEFAULT_CONCURRENCY = 16;
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(DEFAULT_CONCURRENCY);
   private static final ConfigCodec CONFIG_CODEC = new CommonConfigCodec();
@@ -54,35 +57,28 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
 
   @Override
   public long getVersion() {
-    return EhcacheEntityVersion.ENTITY_VERSION;
+    return ENTITY_VERSION;
   }
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return "org.ehcache.clustered.client.internal.EhcacheClientEntity".equals(typeName);
+    return typeName.equals("type.to.be.Defined");
   }
 
   @Override
-  public EhcacheActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
-    ClusteredTierManagerConfiguration clusteredTierManagerConfiguration =
-      configCodec.decodeClusteredTierManagerConfiguration(configuration);
-    EhcacheStateService ehcacheStateService =
-      registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, true);
-    return new EhcacheActiveEntity(registry, clusteredTierManagerConfiguration, ehcacheStateService, management);
+  public ClusteredTierActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusteredTierEntityConfiguration clusteredTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
+    return new ClusteredTierActiveEntity(clusteredTierEntityConfiguration);
   }
 
   @Override
-  public EhcachePassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
-    ClusteredTierManagerConfiguration clusteredTierManagerConfiguration = configCodec.decodeClusteredTierManagerConfiguration(configuration);
-    EhcacheStateService ehcacheStateService =
-      registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
-    Management management = new Management(registry, ehcacheStateService, false);
-    return new EhcachePassiveEntity(registry, clusteredTierManagerConfiguration, ehcacheStateService, management);
+  public ClusteredTierPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
+    ClusteredTierEntityConfiguration clusteredTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
+    return new ClusteredTierPassiveEntity(clusteredTierEntityConfiguration);
   }
 
   @Override
-  public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
+  public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] configuration) {
     return defaultConcurrency(DEFAULT_MAPPER);
   }
 
@@ -99,12 +95,12 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
   }
 
   @Override
-  public <AP extends CommonServerEntity<EhcacheEntityMessage, EhcacheEntityResponse>> AP reconfigureEntity(ServiceRegistry registry, AP oldEntity, byte[] configuration) {
-    throw new UnsupportedOperationException("Reconfigure not supported in Ehcache");
+  public ExecutionStrategy<EhcacheEntityMessage> getExecutionStrategy(byte[] configuration) {
+    return new EhcacheExecutionStrategy();
   }
 
   @Override
-  public ExecutionStrategy<EhcacheEntityMessage> getExecutionStrategy(byte[] configuration) {
-    return new EhcacheExecutionStrategy();
+  public <AP extends CommonServerEntity<EhcacheEntityMessage, EhcacheEntityResponse>> AP reconfigureEntity(ServiceRegistry registry, AP oldEntity, byte[] configuration) {
+    throw new UnsupportedOperationException("Reconfigure not supported in Ehcache");
   }
 }

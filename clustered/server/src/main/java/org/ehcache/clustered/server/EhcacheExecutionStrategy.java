@@ -27,7 +27,7 @@ import org.terracotta.entity.ExecutionStrategy;
 /**
  * EhcacheExecutionStrategy
  */
-class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage> {
+public class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntityMessage> {
   @Override
   public Location getExecutionLocation(EhcacheEntityMessage message) {
     if (message instanceof ServerStoreOpMessage.ReplaceAtHeadMessage || message instanceof ServerStoreOpMessage.ClearMessage) {
