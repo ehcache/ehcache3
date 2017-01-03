@@ -50,12 +50,8 @@ public class EhcacheConfigWithManagementTest {
       + "</ohr:offheap-resources>" +
       "</config>\n";
 
-  private static final List<File> MANAGEMENT_PLUGINS = Stream.of(System.getProperty("managementPlugins", "").split(File.pathSeparator))
-    .map(File::new)
-    .collect(Collectors.toList());
-
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, MANAGEMENT_PLUGINS, "", RESOURCE_CONFIG, "");
+  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
 
   @BeforeClass
   public static void beforeClass() throws Exception {
