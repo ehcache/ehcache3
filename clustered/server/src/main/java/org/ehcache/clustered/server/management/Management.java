@@ -18,7 +18,6 @@ package org.ehcache.clustered.server.management;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.server.ClientState;
 import org.ehcache.clustered.server.ServerSideServerStore;
-import org.ehcache.clustered.server.ServerStoreImpl;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,10 +29,14 @@ import org.terracotta.management.registry.collect.StatisticConfiguration;
 import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
+import org.terracotta.management.service.monitoring.EntityEventListenerAdapter;
+import org.terracotta.management.service.monitoring.EntityEventService;
 import org.terracotta.management.service.monitoring.EntityMonitoringService;
 import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
 import org.terracotta.monitoring.IMonitoringProducer;
+
+import java.util.Objects;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -70,6 +73,17 @@ public class Management {
       if (active) {
         // expose settings about attached stores
         managementRegistry.addManagementProvider(new ClientStateSettingsManagementProvider());
+
+        // workaround for https://github.com/Terracotta-OSS/terracotta-core/issues/426
+        EntityEventService entityEventService = Objects.requireNonNull(services.getService(new BasicServiceConfiguration<>(EntityEventService.class)));
+        entityEventService.addEntityEventListener(new EntityEventListenerAdapter() {
+          @Override
+          public void onCreated() {
+            LOGGER.trace("[{}] onCreated()", entityEventService.getConsumerId());
+            init();
+            sharedPoolsConfigured();
+          }
+        });
       }
 
       // expose settings about server stores
