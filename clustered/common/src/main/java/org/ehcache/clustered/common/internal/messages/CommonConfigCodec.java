@@ -159,12 +159,13 @@ public class CommonConfigCodec implements ConfigCodec {
     if (!configuration.getResourcePools().isEmpty()) {
       StructArrayEncoder<? extends StructEncoder<?>> poolsEncoder = encoder.structs(POOLS_SUB_STRUCT);
       for (Map.Entry<String, ServerSideConfiguration.Pool> poolEntry : configuration.getResourcePools().entrySet()) {
-        poolsEncoder.string(POOL_NAME_FIELD, poolEntry.getKey())
+        StructEncoder<?> poolEncoder = poolsEncoder.add();
+        poolEncoder.string(POOL_NAME_FIELD, poolEntry.getKey())
           .int64(POOL_SIZE_FIELD, poolEntry.getValue().getSize());
         if (poolEntry.getValue().getServerResource() != null) {
-          poolsEncoder.string(POOL_RESOURCE_NAME_FIELD, poolEntry.getValue().getServerResource());
+          poolEncoder.string(POOL_RESOURCE_NAME_FIELD, poolEntry.getValue().getServerResource());
         }
-        poolsEncoder.next();
+        poolEncoder.end();
       }
       poolsEncoder.end();
     }
@@ -178,15 +179,16 @@ public class CommonConfigCodec implements ConfigCodec {
     StructArrayDecoder<? extends StructDecoder<?>> poolsDecoder = decoder.structs(POOLS_SUB_STRUCT);
     if (poolsDecoder != null) {
       for (int i = 0; i < poolsDecoder.length(); i++) {
-        String poolName = poolsDecoder.string(POOL_NAME_FIELD);
-        Long poolSize = poolsDecoder.int64(POOL_SIZE_FIELD);
-        String poolResourceName = poolsDecoder.string(POOL_RESOURCE_NAME_FIELD);
+        StructDecoder<?> poolDecoder = poolsDecoder.next();
+        String poolName = poolDecoder.string(POOL_NAME_FIELD);
+        Long poolSize = poolDecoder.int64(POOL_SIZE_FIELD);
+        String poolResourceName = poolDecoder.string(POOL_RESOURCE_NAME_FIELD);
         if (poolResourceName == null) {
           resourcePools.put(poolName, new ServerSideConfiguration.Pool(poolSize));
         } else {
           resourcePools.put(poolName, new ServerSideConfiguration.Pool(poolSize, poolResourceName));
         }
-        poolsDecoder.next();
+        poolDecoder.end();
       }
     }
 

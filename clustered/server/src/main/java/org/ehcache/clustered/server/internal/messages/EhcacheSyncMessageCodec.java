@@ -37,6 +37,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
@@ -68,12 +69,10 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
 
   private final Struct stateSyncStruct;
 
-  private final ChainCodec chainCodec;
   private final ConfigCodec configCodec;
 
   public EhcacheSyncMessageCodec(ConfigCodec configCodec) {
     this.configCodec = configCodec;
-    this.chainCodec = new ChainCodec();
 
     StructBuilder stateSyncStructBuilder = newStructBuilder()
       .enm(SYNC_MESSAGE_TYPE_FIELD_NAME, SYNC_MESSAGE_TYPE_FIELD_INDEX, SYNC_MESSAGE_TYPE_MAPPING);
@@ -112,7 +111,7 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
           encoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT,
             dataSyncMessage.getChainMap().entrySet(), (entryEncoder, entry) -> {
               entryEncoder.int64(KEY_FIELD, entry.getKey());
-              chainCodec.encode(entryEncoder.struct(CHAIN_FIELD), entry.getValue());
+              entryEncoder.struct(CHAIN_FIELD, entry.getValue(), CHAIN_ENCODER_FUNCTION);
             });
           return encoder.encode().array();
         }
@@ -159,11 +158,12 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     StructArrayDecoder<? extends StructDecoder<?>> entriesDecoder = decoder.structs(CHAIN_MAP_ENTRIES_SUB_STRUCT);
     if (entriesDecoder != null) {
       for (int i = 0; i < entriesDecoder.length(); i++) {
-        Long key = entriesDecoder.int64(KEY_FIELD);
-        StructDecoder<? extends StructArrayDecoder<? extends StructDecoder<?>>> chainDecoder = entriesDecoder.struct(CHAIN_FIELD);
-        Chain chain = chainCodec.decode(chainDecoder);
+        StructDecoder<?> entryDecoder = entriesDecoder.next();
+        Long key = entryDecoder.int64(KEY_FIELD);
+        StructDecoder<?> chainDecoder = entryDecoder.struct(CHAIN_FIELD);
+        Chain chain = ChainCodec.decode(chainDecoder);
         chainMap.put(key, chain);
-        entriesDecoder.next();
+        entryDecoder.end();
       }
     }
     return chainMap;
@@ -175,9 +175,10 @@ public class EhcacheSyncMessageCodec implements SyncMessageCodec<EhcacheEntityMe
     StructArrayDecoder<StructDecoder<Void>> storesDecoder = decoder.structs(STORES_SUB_STRUCT);
     if (storesDecoder != null) {
       for (int i = 0; i < storesDecoder.length(); i++) {
-        String storeName = storesDecoder.string(SERVER_STORE_NAME_FIELD);
-        result.put(storeName, configCodec.decodeServerStoreConfiguration(storesDecoder));
-        storesDecoder.next();
+        StructDecoder<?> storeDecoder = storesDecoder.next();
+        String storeName = storeDecoder.string(SERVER_STORE_NAME_FIELD);
+        result.put(storeName, configCodec.decodeServerStoreConfiguration(storeDecoder));
+        storeDecoder.end();
       }
     }
     return result;

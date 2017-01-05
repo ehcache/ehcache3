@@ -22,12 +22,11 @@ import org.terracotta.runnel.Struct;
 import org.terracotta.runnel.StructBuilder;
 import org.terracotta.runnel.decoding.Enm;
 import org.terracotta.runnel.decoding.StructDecoder;
-import org.terracotta.runnel.encoding.StructEncoder;
-import org.terracotta.runnel.encoding.StructEncoderFunction;
 
 import java.nio.ByteBuffer;
 
 import static java.nio.ByteBuffer.wrap;
+import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.AllInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.ClientInvalidateAll;
@@ -38,6 +37,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.EHCACHE_RESPONSE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheResponseType.RESPONSE_TYPE_FIELD_NAME;
+import static org.ehcache.clustered.common.internal.messages.ExceptionCodec.EXCEPTION_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.KEY_FIELD;
 import static org.ehcache.clustered.common.internal.messages.MessageCodecUtils.SERVER_STORE_NAME_FIELD;
 
@@ -47,8 +47,6 @@ public class ResponseCodec {
   private static final String INVALIDATION_ID_FIELD = "invalidationId";
   private static final String CHAIN_FIELD = "chain";
   private static final String MAP_VALUE_FIELD = "mapValue";
-
-  private final ExceptionCodec exceptionCodec = new ExceptionCodec();
 
   private static final Struct SUCCESS_RESPONSE_STRUCT = StructBuilder.newStructBuilder()
     .enm(RESPONSE_TYPE_FIELD_NAME, RESPONSE_TYPE_FIELD_INDEX, EHCACHE_RESPONSE_TYPES_ENUM_MAPPING)
@@ -91,24 +89,13 @@ public class ResponseCodec {
     .byteBuffer(MAP_VALUE_FIELD, 20)
     .build();
 
-  private final ChainCodec chainCodec;
-
-  public ResponseCodec() {
-    this.chainCodec = new ChainCodec();
-  }
-
   public byte[] encode(EhcacheEntityResponse response) {
     switch (response.getResponseType()) {
       case FAILURE:
         final EhcacheEntityResponse.Failure failure = (EhcacheEntityResponse.Failure)response;
         return FAILURE_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, failure.getResponseType())
-          .struct(EXCEPTION_FIELD, new StructEncoderFunction<StructEncoder<StructEncoder<Void>>>() {
-            @Override
-            public void encode(StructEncoder<StructEncoder<Void>> encoder) {
-              exceptionCodec.encode(encoder, failure.getCause());
-            }
-          })
+          .struct(EXCEPTION_FIELD, failure.getCause(), EXCEPTION_ENCODER_FUNCTION)
           .encode().array();
       case SUCCESS:
         return SUCCESS_RESPONSE_STRUCT.encoder()
@@ -118,12 +105,7 @@ public class ResponseCodec {
         final EhcacheEntityResponse.GetResponse getResponse = (EhcacheEntityResponse.GetResponse)response;
         return GET_RESPONSE_STRUCT.encoder()
           .enm(RESPONSE_TYPE_FIELD_NAME, getResponse.getResponseType())
-          .struct(CHAIN_FIELD, new StructEncoderFunction<StructEncoder<StructEncoder<Void>>>() {
-            @Override
-            public void encode(StructEncoder<StructEncoder<Void>> encoder) {
-              chainCodec.encode(encoder, getResponse.getChain());
-            }
-          })
+          .struct(CHAIN_FIELD, getResponse.getChain(), CHAIN_ENCODER_FUNCTION)
           .encode().array();
       case HASH_INVALIDATION_DONE: {
         HashInvalidationDone hashInvalidationDone = (HashInvalidationDone) response;
@@ -198,11 +180,11 @@ public class ResponseCodec {
         return EhcacheEntityResponse.Success.INSTANCE;
       case FAILURE:
         decoder = FAILURE_RESPONSE_STRUCT.decoder(buffer);
-        ClusterException exception = exceptionCodec.decode(decoder.struct(EXCEPTION_FIELD));
+        ClusterException exception = ExceptionCodec.decode(decoder.struct(EXCEPTION_FIELD));
         return new EhcacheEntityResponse.Failure(exception.withClientStackTrace());
       case GET_RESPONSE:
         decoder = GET_RESPONSE_STRUCT.decoder(buffer);
-        return new EhcacheEntityResponse.GetResponse(chainCodec.decode(decoder.struct(CHAIN_FIELD)));
+        return new EhcacheEntityResponse.GetResponse(ChainCodec.decode(decoder.struct(CHAIN_FIELD)));
       case HASH_INVALIDATION_DONE: {
         decoder = HASH_INVALIDATION_DONE_RESPONSE_STRUCT.decoder(buffer);
         String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);

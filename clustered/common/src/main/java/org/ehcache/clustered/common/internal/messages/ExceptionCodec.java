@@ -26,11 +26,23 @@ import org.terracotta.runnel.decoding.StructArrayDecoder;
 import org.terracotta.runnel.decoding.StructDecoder;
 import org.terracotta.runnel.encoding.StructArrayEncoder;
 import org.terracotta.runnel.encoding.StructEncoder;
+import org.terracotta.runnel.encoding.StructEncoderFunction;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 
-class ExceptionCodec {
+final class ExceptionCodec {
+
+  private ExceptionCodec() {
+    //no instances please
+  }
+
+  public static final StructEncoderFunction<ClusterException> EXCEPTION_ENCODER_FUNCTION = new StructEncoderFunction<ClusterException>() {
+    @Override
+    public void encode(StructEncoder<?> encoder, ClusterException exception) {
+      ExceptionCodec.encode(encoder, exception);
+    }
+  };
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ExceptionCodec.class);
 
@@ -55,31 +67,36 @@ class ExceptionCodec {
       .structs(STACKTRACE_ELEMENTS_FIELD, 30, STE_STRUCT)
       .build();
 
-  public void encode(StructEncoder<StructEncoder<Void>> encoder, ClusterException exception) {
+  public static void encode(StructEncoder<?> encoder, ClusterException exception) {
     encoder.string(FQCN_FIELD, exception.getClass().getCanonicalName());
     encoder.string(MESSAGE_FIELD, exception.getMessage());
-    StructArrayEncoder<StructEncoder<StructEncoder<Void>>> arrayEncoder = encoder.structs(STACKTRACE_ELEMENTS_FIELD);
+    StructArrayEncoder<?> arrayEncoder = encoder.structs(STACKTRACE_ELEMENTS_FIELD);
     for (StackTraceElement stackTraceElement : exception.getStackTrace()) {
-      arrayEncoder.string(DECLARING_CLASS_FIELD, stackTraceElement.getClassName());
-      arrayEncoder.string(METHOD_NAME_FIELD, stackTraceElement.getMethodName());
+      StructEncoder<?> element = arrayEncoder.add();
+      element.string(DECLARING_CLASS_FIELD, stackTraceElement.getClassName());
+      element.string(METHOD_NAME_FIELD, stackTraceElement.getMethodName());
       if (stackTraceElement.getFileName() != null) {
-        arrayEncoder.string(FILE_NAME_FIELD, stackTraceElement.getFileName());
+        element.string(FILE_NAME_FIELD, stackTraceElement.getFileName());
       }
-      arrayEncoder.int32(LINE_NUM_FIELD, stackTraceElement.getLineNumber());
-      arrayEncoder.next();
+      element.int32(LINE_NUM_FIELD, stackTraceElement.getLineNumber());
+      element.end();
     }
     arrayEncoder.end();
   }
 
-  public ClusterException decode(StructDecoder<StructDecoder<Void>> decoder) {
+  public static ClusterException decode(StructDecoder<StructDecoder<Void>> decoder) {
     String exceptionClassName = decoder.string(FQCN_FIELD);
     String message = decoder.string(MESSAGE_FIELD);
     StructArrayDecoder<StructDecoder<StructDecoder<Void>>> arrayDecoder = decoder.structs(STACKTRACE_ELEMENTS_FIELD);
     StackTraceElement[] stackTraceElements = new StackTraceElement[arrayDecoder.length()];
     for (int i = 0; i < arrayDecoder.length(); i++) {
-      stackTraceElements[i] = new StackTraceElement(arrayDecoder.string(DECLARING_CLASS_FIELD), arrayDecoder.string(METHOD_NAME_FIELD), arrayDecoder
-          .string(FILE_NAME_FIELD), arrayDecoder.int32(LINE_NUM_FIELD));
-      arrayDecoder.next();
+      StructDecoder<?> element = arrayDecoder.next();
+      stackTraceElements[i] = new StackTraceElement(
+        element.string(DECLARING_CLASS_FIELD),
+        element.string(METHOD_NAME_FIELD),
+        element.string(FILE_NAME_FIELD),
+        element.int32(LINE_NUM_FIELD));
+      element.end();
     }
     arrayDecoder.end();
     Class clazz = null;
@@ -98,7 +115,7 @@ class ExceptionCodec {
   }
 
   @SuppressWarnings("unchecked")
-  private ClusterException getClusterException(String message, Class clazz) {
+  private static ClusterException getClusterException(String message, Class clazz) {
     ClusterException exception = null;
     if (clazz != null) {
       try {

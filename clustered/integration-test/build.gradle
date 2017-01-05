@@ -43,6 +43,9 @@ dependencies {
   serverLibs ("org.terracotta.management.dist:management-server:$parent.managementVersion") {
     exclude group:'org.terracotta.management.dist', module:'management-common'
   }
+
+  //XXX Only necessary until Terracotta-OSS/terracotta-core#431 is fixed
+  testCompile "org.terracotta:entity-server-api:$parent.entityApiVersion"
 }
 
 task unzipKit(type: Copy) {
