@@ -28,7 +28,7 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
   Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager) {
     super(cacheName, cacheManager, "CacheStatistics");
     this.cacheName = cacheName;
-    this.statisticsService = cacheManager.getEhCacheManager().getServiceLocator().getService(StatisticsService.class);
+    this.statisticsService = cacheManager.getEhCacheManager().getServiceProvider().getService(StatisticsService.class);
   }
 
   @Override
