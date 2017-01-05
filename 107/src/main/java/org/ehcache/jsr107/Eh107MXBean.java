@@ -37,8 +37,8 @@ abstract class Eh107MXBean {
   }
 
   private ObjectName createObjectName(String cacheName, URI cacheManagerURI, String beanName) {
-    String cacheManagerName = sanitize(cacheManagerURI != null ? cacheManagerURI.toString() : "null");
-    cacheName = sanitize(cacheName != null ? cacheName : "null");
+    String cacheManagerName = sanitize(cacheManagerURI.toString());
+    cacheName = sanitize(cacheName);
 
     // The classloader should really be used as part of the ObjectName IMO, but
     // the TCK would fail with that
