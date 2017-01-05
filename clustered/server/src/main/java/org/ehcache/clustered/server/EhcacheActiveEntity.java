@@ -81,7 +81,6 @@ import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.IEntityMessenger;
 import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
-import org.terracotta.entity.ServiceConfiguration;
 import org.terracotta.entity.ServiceRegistry;
 
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
@@ -151,13 +150,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       this.clientsHavingToInvalidate = clientsHavingToInvalidate;
       this.cacheId = cacheId;
       this.key = null;
-    }
-  }
-
-  private static class CommunicatorServiceConfiguration implements ServiceConfiguration<ClientCommunicator> {
-    @Override
-    public Class<ClientCommunicator> getServiceType() {
-      return ClientCommunicator.class;
     }
   }
 

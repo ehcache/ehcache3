@@ -143,11 +143,11 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return Collections.unmodifiableSet(stores.keySet());
   }
 
-  Set<String> getSharedResourcePoolIds() {
+  public Set<String> getSharedResourcePoolIds() {
     return Collections.unmodifiableSet(sharedResourcePools.keySet());
   }
 
-  Set<String> getDedicatedResourcePoolIds() {
+  public Set<String> getDedicatedResourcePoolIds() {
     return Collections.unmodifiableSet(dedicatedResourcePools.keySet());
   }
 

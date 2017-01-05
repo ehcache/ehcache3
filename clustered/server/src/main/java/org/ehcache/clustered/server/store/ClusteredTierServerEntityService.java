@@ -62,13 +62,13 @@ public class ClusteredTierServerEntityService implements EntityServerService<Ehc
 
   @Override
   public boolean handlesEntityType(String typeName) {
-    return typeName.equals("type.to.be.Defined");
+    return typeName.equals("org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity");
   }
 
   @Override
   public ClusteredTierActiveEntity createActiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
     ClusteredTierEntityConfiguration clusteredTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
-    return new ClusteredTierActiveEntity(clusteredTierEntityConfiguration);
+    return new ClusteredTierActiveEntity(registry, clusteredTierEntityConfiguration, DEFAULT_MAPPER);
   }
 
   @Override
