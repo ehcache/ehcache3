@@ -107,7 +107,7 @@ import static org.terracotta.statistics.StatisticBuilder.operation;
  *   <li>Eviction</li>
  *   <li>Events</li>
  *   <li>Statistics</li>
- * </ul></p>
+ * </ul>
  *
  * The storage of mappings is handled by a {@link ConcurrentHashMap} accessed through {@link Backend}.
  */

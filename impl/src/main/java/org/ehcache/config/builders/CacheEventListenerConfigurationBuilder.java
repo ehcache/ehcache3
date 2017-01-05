@@ -30,7 +30,7 @@ import java.util.Set;
 /**
  * The {@code CacheEventListenerConfigurationBuilder} enables building {@link CacheEventListenerConfiguration}s using a
  * fluent style.
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
@@ -67,12 +67,11 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
   /**
    * Creates a new builder instance using the given {@link CacheEventListener} subclass and the {@link EventType}s it
    * will listen to.
-   * <P>
-   * <UL>
-   *   <LI>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</LI>
-   *   <LI>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</LI>
-   * </UL>
-   * </P>
+   * <p>
+   * <ul>
+   *   <li>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</li>
+   *   <li>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</li>
+   * </ul>
    *
    * @param listenerClass the {@code CacheEventListener} subclass
    * @param eventType the mandatory event type to listen to
@@ -87,12 +86,11 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
   /**
    * Creates a new builder instance using the given {@link CacheEventListener} instance and the {@link EventType}s it
    * will listen to.
-   * <P>
-   * <UL>
-   *   <LI>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</LI>
-   *   <LI>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</LI>
-   * </UL>
-   * </P>
+   * <p>
+   * <ul>
+   *   <li>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</li>
+   *   <li>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</li>
+   * </ul>
    *
    * @param listener the {@code CacheEventListener} instance
    * @param eventType the mandatory event type to listen to
@@ -107,12 +105,11 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
   /**
    * Creates a new builder instance using the given {@link CacheEventListener} subclass and the set of {@link EventType}s
    * to listen to.
-   * <P>
-   * <UL>
-   *   <LI>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</LI>
-   *   <LI>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</LI>
-   * </UL>
-   * </P>
+   * <p>
+   * <ul>
+   *   <li>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</li>
+   *   <li>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</li>
+   * </ul>
    *
    * @param listenerClass the {@code CacheEventListener} subclass
    * @param eventSetToFireOn the set of events to listen to, cannot be empty
@@ -131,12 +128,11 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
   /**
    * Creates a new builder instance using the given {@link CacheEventListener} instance and the set of {@link EventType}s
    * to listen to.
-   * <P>
-   * <UL>
-   *   <LI>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</LI>
-   *   <LI>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</LI>
-   * </UL>
-   * </P>
+   * <p>
+   * <ul>
+   *   <li>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</li>
+   *   <li>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</li>
+   * </ul>
    *
    * @param listener the {@code CacheEventListener} instance
    * @param eventSetToFireOn the set of events to listen to, cannot be empty
@@ -171,11 +167,10 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
 
   /**
    * Adds specific {@link EventOrdering} to the returned builder.
-   * <P>
-   * <UL>
-   *   <LI>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</LI>
-   * </UL>
-   * </P>
+   * <p>
+   * <ul>
+   *   <li>{@link EventOrdering} defaults to {@link EventOrdering#UNORDERED}</li>
+   * </ul>
    *
    * @param eventOrdering the {@code EventOrdering} to use
    * @return a new builder with the specified event ordering
@@ -215,11 +210,10 @@ public class CacheEventListenerConfigurationBuilder implements Builder<CacheEven
 
   /**
    * Adds specific {@link EventFiring} to the returned builder.
-   * <P>
-   * <UL>
-   *   <LI>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</LI>
-   * </UL>
-   * </P>
+   * <p>
+   * <ul>
+   *   <li>{@link EventFiring} defaults to {@link EventFiring#ASYNCHRONOUS}</li>
+   * </ul>
    *
    * @param eventFiringMode the {@code EventFiring} to use
    * @return a new builder with the specified event firing

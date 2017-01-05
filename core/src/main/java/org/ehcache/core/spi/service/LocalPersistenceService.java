@@ -66,11 +66,10 @@ public interface LocalPersistenceService extends MaintainableService {
   interface SafeSpaceIdentifier {
     /**
      * Represents the root directory of the given logical safe space.
-     * <P>
-     *   Note that the directory represented by {@code File} may or may not be created in the physical space.
-     *   The existence of the physical space depends on whether the {@code createSafeSpace} method was invoked
-     *   for the space at some time in the past or not.
-     * </P>
+     * <p>
+     * Note that the directory represented by {@code File} may or may not be created in the physical space.
+     * The existence of the physical space depends on whether the {@code createSafeSpace} method was invoked
+     * for the space at some time in the past or not.
      *
      * @return Root directory of the safe space.
      */

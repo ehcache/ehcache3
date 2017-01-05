@@ -26,7 +26,7 @@ import org.ehcache.spi.loaderwriter.WriteBehindConfiguration.BatchingConfigurati
 
 /**
  * The {@code WriteBehindConfigurationBuilder} enables building {@link WriteBehindConfiguration}s using a fluent style.
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
@@ -267,9 +267,8 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
 
   /**
    * Sets the batch queue size on the returned builder.
-   * <P>
-   *   Default queue size is {@link Integer#MAX_VALUE}.
-   * </P>
+   * <p>
+   * Default queue size is {@link Integer#MAX_VALUE}.
    *
    * @param size the new queue size
    * @return a new builder with updated queue size
@@ -278,9 +277,8 @@ public abstract class WriteBehindConfigurationBuilder implements Builder<WriteBe
 
   /**
    * Sets the concurrency level on the returned builder.
-   * <P>
-   *   Default concurrency is {@code 1}.
-   * </P>
+   * <p>
+   * Default concurrency is {@code 1}.
    *
    * @param concurrency the concurrency level
    * @return a new builder with the new concurrency level

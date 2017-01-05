@@ -27,9 +27,8 @@ public interface ServiceProvider<T extends Service> {
 
   /**
    * Looks up the {@link Service} of the given {@code serviceType}.
-   * <P>
-   *   There is no guarantee that services returned here will be started.
-   * </P>
+   * <p>
+   * There is no guarantee that services returned here will be started.
    *
    * @param serviceType the {@code class} of the service being looked up
    * @param <U> the {@link Service} type
@@ -44,10 +43,9 @@ public interface ServiceProvider<T extends Service> {
 
   /**
    * Looks up all {@link Service} instances that are subtypes of the given {@code serviceType} supplied.
-   * <P>
+   * <p>
    * This method must be used to retrieves service types marked with the
    * {@link org.ehcache.spi.service.PluralService PluralService} annotation.
-   * </P>
    *
    * @param serviceType the {@code class} of the service being looked up
    * @param <U> the {@link Service} type

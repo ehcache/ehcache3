@@ -58,9 +58,8 @@ public final class DefaultConfiguration implements Configuration, HumanReadable 
 
   /**
    * Creates a new configuration with the specified class loader.
-   * <P>
-   *   This means no cache configurations nor service configurations.
-   * </P>
+   * <p>
+   * This means no cache configurations nor service configurations.
    *
    * @param classLoader the class loader to use
    * @param services an array of service configurations

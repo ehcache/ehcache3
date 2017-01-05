@@ -712,11 +712,10 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   /**
    * {@inheritDoc}
    * <p>
-   *   This method is invoked in response to a call to a {@code com.tc.objectserver.api.ServerEntityRequest}
-   *   message for a {@code ServerEntityAction.DESTROY_ENTITY} request which is sent via a call to the
-   *   {@code ClusteringService.destroyAll} method.  This method is expected to be called only when no
-   *   clients actively using this entity.
-   * </p>
+   * This method is invoked in response to a call to a {@code com.tc.objectserver.api.ServerEntityRequest}
+   * message for a {@code ServerEntityAction.DESTROY_ENTITY} request which is sent via a call to the
+   * {@code ClusteringService.destroyAll} method.  This method is expected to be called only when no
+   * clients actively using this entity.
    */
   @Override
   public void destroy() {
@@ -772,14 +771,12 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
    * Once created, the client is registered with the {@code ServerStore}.  The registration persists until
    * the client disconnects or explicitly releases the store.
    * <p>
-   *   If the store uses a dedicated resource, this method allocates a new dedicated resource pool associated
-   *   with the cache identifier/name.
-   * </p>
+   * If the store uses a dedicated resource, this method allocates a new dedicated resource pool associated
+   * with the cache identifier/name.
    * <p>
-   *   Once created, a {@code ServerStore} persists until explicitly destroyed by a
-   *   {@link DestroyServerStore DestroyServerStore} message or this {@code EhcacheActiveEntity} is
-   *   destroyed through the {@link #destroy()} method.
-   * </p>
+   * Once created, a {@code ServerStore} persists until explicitly destroyed by a
+   * {@link DestroyServerStore DestroyServerStore} message or this {@code EhcacheActiveEntity} is
+   * destroyed through the {@link #destroy()} method.
    *
    * @param clientDescriptor the client identifier requesting store creation
    * @param createServerStore the {@code CreateServerStore} message carrying the desire store configuration
@@ -912,9 +909,8 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
   /**
    * Establishes a registration of a client against a store.
    * <p>
-   *   Once registered, a client is associated with a store until the client disconnects or
-   *   explicitly releases the store.
-   * </p>
+   * Once registered, a client is associated with a store until the client disconnects or
+   * explicitly releases the store.
    *
    * @param clientDescriptor the client to connect
    * @param storeId the store id to which the client is connecting

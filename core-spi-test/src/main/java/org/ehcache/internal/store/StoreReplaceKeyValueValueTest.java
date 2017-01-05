@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.is;
 /**
  * Test the {@link Store#replace(Object, Object, Object)} contract of the
  * {@link Store Store} interface.
- * <p/>
  *
  * @author Aurelien Broszniowski
  */

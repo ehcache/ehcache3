@@ -23,10 +23,9 @@ public interface PersistentCacheManager extends CacheManager {
 
   /**
    * Destroys all persistent data associated with this {@code PersistentCacheManager}.
-   * <P>
-   *   This is achieved by putting the {@code CacheManager} in {@link Status#MAINTENANCE MAINTENANCE} mode,
-   *   executing the destroy and then exiting the {@code MAINTENANCE} mode.
-   * </P>
+   * <p>
+   * This is achieved by putting the {@code CacheManager} in {@link Status#MAINTENANCE MAINTENANCE} mode,
+   * executing the destroy and then exiting the {@code MAINTENANCE} mode.
    *
    * @throws IllegalStateException if state maintenance couldn't be reached
    * @throws CachePersistenceException when something goes wrong destroying the persistent data
@@ -36,16 +35,15 @@ public interface PersistentCacheManager extends CacheManager {
   /**
    * Destroys all data persistent data associated with the aliased {@link Cache} instance managed
    * by this {@link org.ehcache.CacheManager}.
-   * <P>
-   *   This requires the {@code CacheManager} to be either in {@link Status#AVAILABLE AVAILABLE} or
-   *   {@link Status#MAINTENANCE MAINTENANCE} mode.
-   *   <UL>
-   *     <LI>If the {@code CacheManager} is {@code AVAILABLE}, the operation is executed without lifecycle interactions.</LI>
-   *     <LI>If the {@code CacheManager} is not {@code AVAILABLE} then it attempts to go into {@code MAINTENANCE}.
-   *     Upon success, the {@code destroyCache} operation is performed and then {@code MAINTENANCE} mode is exited.
-   *     On failure, an exception will be thrown and no destroy will have happened.</LI>
-   *   </UL>
-   * </P>
+   * <p>
+   * This requires the {@code CacheManager} to be either in {@link Status#AVAILABLE AVAILABLE} or
+   * {@link Status#MAINTENANCE MAINTENANCE} mode.
+   * <ul>
+   *   <li>If the {@code CacheManager} is {@code AVAILABLE}, the operation is executed without lifecycle interactions.</li>
+   *   <li>If the {@code CacheManager} is not {@code AVAILABLE} then it attempts to go into {@code MAINTENANCE}.
+   *   Upon success, the {@code destroyCache} operation is performed and then {@code MAINTENANCE} mode is exited.
+   *   On failure, an exception will be thrown and no destroy will have happened.</li>
+   * </ul>
    *
    * @param alias the {@link org.ehcache.Cache}'s alias to destroy all persistent data from
    *
