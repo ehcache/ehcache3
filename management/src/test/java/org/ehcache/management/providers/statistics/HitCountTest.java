@@ -15,18 +15,6 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.ehcache.config.units.EntryUnit.ENTRIES;
-import static org.hamcrest.CoreMatchers.is;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
@@ -37,7 +25,6 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.junit.Assert;
@@ -48,6 +35,18 @@ import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.units.EntryUnit.ENTRIES;
+import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.hamcrest.CoreMatchers.is;
 
 @RunWith(Parameterized.class)
 public class HitCountTest {
@@ -98,7 +97,6 @@ public class HitCountTest {
     try {
 
       DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
-      registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES));
       ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, resources)
@@ -118,8 +116,6 @@ public class HitCountTest {
 
       Context context = StatsUtil.createContext(managementRegistry);
 
-      StatsUtil.triggerStatComputation(managementRegistry, context, "Cache:HitCount", "OnHeap:HitCount", "OffHeap:HitCount", "Disk:HitCount");
-
       Cache<Long, String> cache = cacheManager.getCache("myCache", Long.class, String.class);
 
       cache.put(1L, "1");//put in lowest tier
@@ -135,10 +131,10 @@ public class HitCountTest {
 
       long tierHitCountSum = 0;
       for (int i = 0; i < statNames.size(); i++) {
-        tierHitCountSum += StatsUtil.getAndAssertExpectedValueFromCounterHistory(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
+        tierHitCountSum += StatsUtil.getAndAssertExpectedValueFromCounter(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
       }
 
-      long cacheHitCount = StatsUtil.getAndAssertExpectedValueFromCounterHistory("Cache:HitCount", context, managementRegistry, cacheExpectedValue);
+      long cacheHitCount = StatsUtil.getAndAssertExpectedValueFromCounter("Cache:HitCount", context, managementRegistry, cacheExpectedValue);
       Assert.assertThat(tierHitCountSum, is(cacheHitCount));
 
     }

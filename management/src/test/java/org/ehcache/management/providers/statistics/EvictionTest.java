@@ -15,20 +15,6 @@
  */
 package org.ehcache.management.providers.statistics;
 
-import static java.util.Arrays.asList;
-import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
-import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
-import static org.ehcache.config.units.EntryUnit.ENTRIES;
-import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
@@ -39,13 +25,10 @@ import org.ehcache.core.EhcacheManager;
 import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.ManagementRegistryService;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
 import org.ehcache.spi.service.Service;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -54,7 +37,20 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.history.CounterHistory;
+import org.terracotta.management.model.stats.primitive.Counter;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
+import static java.util.Arrays.asList;
+import static org.ehcache.config.builders.CacheConfigurationBuilder.newCacheConfigurationBuilder;
+import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
+import static org.ehcache.config.units.EntryUnit.ENTRIES;
+import static org.ehcache.config.units.MemoryUnit.MB;
+import static org.junit.Assert.assertThat;
 
 @RunWith(Parameterized.class)
 public class EvictionTest {
@@ -111,7 +107,6 @@ public class EvictionTest {
   @Test
   public void test() throws IOException, InterruptedException {
     DefaultManagementRegistryConfiguration registryConfiguration = new DefaultManagementRegistryConfiguration().setCacheManagerAlias("myCacheManager");
-    registryConfiguration.addConfiguration(new EhcacheStatisticsProviderConfiguration(1,TimeUnit.MINUTES,100,1,TimeUnit.MILLISECONDS,10,TimeUnit.MINUTES));
     ManagementRegistryService managementRegistry = new DefaultManagementRegistryService(registryConfiguration);
 
     Configuration config = new DefaultConfiguration(EvictionTest.class.getClassLoader(),
@@ -147,41 +142,28 @@ public class EvictionTest {
 
       Thread.sleep(1000);
 
-      int lowestTier;
-      CounterHistory evictionCounterHistory;
-      do {
-        contextualStatistics = managementRegistry.withCapability("StatisticsCapability")
-          .queryStatistics(stats)
-          .on(context)
-          .build()
-          .execute()
-          .getSingleResult();
+      int lowestTier = stats.size() - 1;
+      Counter evictionCounterHistory = managementRegistry.withCapability("StatisticsCapability")
+        .queryStatistics(stats)
+        .on(context)
+        .build()
+        .execute()
+        .getSingleResult()
+        .getStatistic(Counter.class, stats.get(lowestTier));
+      assertThat(contextualStatistics.size(), Matchers.is(stats.size()));
 
-        assertThat(contextualStatistics.size(), Matchers.is(stats.size()));
-
-        lowestTier = stats.size() - 1;
-        evictionCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(lowestTier));
-      } while(!Thread.currentThread().isInterrupted() && !StatsUtil.isHistoryReady(evictionCounterHistory));
-
-      int mostRecentIndex = evictionCounterHistory.getValue().length - 1;
-      assertThat(evictionCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(lowestTier)));
+      assertThat(evictionCounterHistory.getValue(), Matchers.equalTo(expected.get(lowestTier)));
 
       if(stats.size() == 2) {
-        CounterHistory evictionHighestTierCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(0));
-        assertThat(StatsUtil.isHistoryReady(evictionHighestTierCounterHistory), is(true));
-        mostRecentIndex = evictionHighestTierCounterHistory.getValue().length - 1;
-        assertThat(evictionHighestTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(0)));
+        Counter evictionHighestTierCounterHistory = contextualStatistics.getStatistic(Counter.class, stats.get(0));
+        assertThat(evictionHighestTierCounterHistory.getValue(), Matchers.equalTo(expected.get(0)));
 
       } else if(stats.size() == 3) {
-        CounterHistory evictionHighestTierCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(0));
-        assertThat(StatsUtil.isHistoryReady(evictionHighestTierCounterHistory), is(true));
-        mostRecentIndex = evictionHighestTierCounterHistory.getValue().length - 1;
-        assertThat(evictionHighestTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(0)));
+        Counter evictionHighestTierCounterHistory = contextualStatistics.getStatistic(Counter.class, stats.get(0));
+        assertThat(evictionHighestTierCounterHistory.getValue(), Matchers.equalTo(expected.get(0)));
 
-        CounterHistory evictionMiddleTierCounterHistory = contextualStatistics.getStatistic(CounterHistory.class, stats.get(1));
-        assertThat(StatsUtil.isHistoryReady(evictionMiddleTierCounterHistory), is(true));
-        mostRecentIndex = evictionMiddleTierCounterHistory.getValue().length - 1;
-        assertThat(evictionMiddleTierCounterHistory.getValue()[mostRecentIndex].getValue(), Matchers.equalTo(expected.get(1)));
+        Counter evictionMiddleTierCounterHistory = contextualStatistics.getStatistic(Counter.class, stats.get(1));
+        assertThat(evictionMiddleTierCounterHistory.getValue(), Matchers.equalTo(expected.get(1)));
 
       }
     }

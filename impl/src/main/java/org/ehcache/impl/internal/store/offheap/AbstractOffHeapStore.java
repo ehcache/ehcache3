@@ -140,43 +140,50 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     StatisticsManager.createPassThroughStatistic(this, "allocatedMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().allocatedMemory();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.allocatedMemory();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "occupiedMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().occupiedMemory();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.occupiedMemory();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "dataAllocatedMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().dataAllocatedMemory();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.dataAllocatedMemory();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "dataOccupiedMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().dataOccupiedMemory();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.dataOccupiedMemory();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "dataSize", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().dataSize();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.dataSize();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "dataVitalMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().dataVitalMemory();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.dataVitalMemory();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "mappings", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().longSize();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.longSize();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "maxMappings", tags, properties, new Callable<Number>() {
@@ -188,31 +195,29 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     StatisticsManager.createPassThroughStatistic(this, "vitalMemory", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().vitalMemory();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.vitalMemory();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "removedSlotCount", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().removedSlotCount();
-      }
-    });
-    StatisticsManager.createPassThroughStatistic(this, "reprobeLength", tags, properties, new Callable<Number>() {
-      @Override
-      public Number call() throws Exception {
-        return backingMap().reprobeLength();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.removedSlotCount();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "usedSlotCount", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().usedSlotCount();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.usedSlotCount();
       }
     });
     StatisticsManager.createPassThroughStatistic(this, "tableCapacity", tags, properties, new Callable<Number>() {
       @Override
       public Number call() throws Exception {
-        return backingMap().tableCapacity();
+        EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> map = backingMap();
+        return map == null ? -1L : map.tableCapacity();
       }
     });
 
@@ -1239,6 +1244,10 @@ public abstract class AbstractOffHeapStore<K, V> implements AuthoritativeTier<K,
     expirationObserver.end(StoreOperationOutcomes.ExpirationOutcome.SUCCESS);
   }
 
+  /**
+   * Note to users of this method: this method can return null if called
+   * after the tier was "closed" (i.e. by passthrough stats)
+   */
   protected abstract EhcacheOffHeapBackingMap<K, OffHeapValueHolder<V>> backingMap();
 
   protected abstract SwitchableEvictionAdvisor<K, OffHeapValueHolder<V>> evictionAdvisor();

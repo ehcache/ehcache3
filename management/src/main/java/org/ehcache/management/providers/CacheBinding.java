@@ -16,8 +16,8 @@
 package org.ehcache.management.providers;
 
 import org.ehcache.Cache;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
 
 /**
  * Class representing an association between an object and an alias, name, identifier
