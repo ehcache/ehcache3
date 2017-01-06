@@ -53,7 +53,6 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.util.Arrays.asList;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -85,14 +84,8 @@ public abstract class AbstractClusteringManagementTest {
   protected static TmsAgentService tmsAgentService;
   protected static ServerEntityIdentifier tmsServerEntityIdentifier;
 
-  private static final List<File> MANAGEMENT_PLUGINS = System.getProperty("managementPlugins") == null ?
-    Collections.emptyList() :
-    Stream.of(System.getProperty("managementPlugins").split(File.pathSeparator))
-      .map(File::new)
-      .collect(Collectors.toList());
-
   @ClassRule
-  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, MANAGEMENT_PLUGINS, "", RESOURCE_CONFIG, "");
+  public static Cluster CLUSTER = new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
 
   @BeforeClass
   public static void beforeClass() throws Exception {

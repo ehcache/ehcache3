@@ -43,12 +43,21 @@ dependencies {
   serverLibs ("org.terracotta.management.dist:management-server:$parent.managementVersion") {
     exclude group:'org.terracotta.management.dist', module:'management-common'
   }
+
+  //XXX Only necessary until Terracotta-OSS/terracotta-core#431 is fixed
+  testCompile "org.terracotta:entity-server-api:$parent.entityApiVersion"
 }
 
 task unzipKit(type: Copy) {
   dependsOn project(':clustered:clustered-dist').distZip
   from zipTree(project(':clustered:clustered-dist').distZip.archivePath)
   into 'build/ehcache-kit'
+}
+
+task copyServerLibs(type: Copy) {
+  dependsOn unzipKit
+  from project.configurations.serverLibs
+  into "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit/server/plugins/lib"
 }
 
 compileTestJava {
@@ -59,13 +68,12 @@ sourceCompatibility = 1.8
 targetCompatibility = 1.8
 
 test {
-  dependsOn unzipKit
+  dependsOn copyServerLibs
   executable = Jvm.current().javaExecutable
   // If you want to see all mutations of the voltron monitoring tree, add to JAVA_OPTS: -Dorg.terracotta.management.service.monitoring.VoltronMonitoringService.DEBUG=true
   environment 'JAVA_OPTS', '-Dcom.tc.l2.lockmanager.greedy.locks.enabled=false'
   //If this directory does not exist, tests will fail with a cryptic assert failure
   systemProperty 'kitInstallationPath', "$unzipKit.destinationDir/${project(':clustered:clustered-dist').archivesBaseName}-$project.version-kit"
-  systemProperty 'managementPlugins', project.configurations.serverLibs.join(File.pathSeparator)
   // Uncomment to include client logging in console output
   // testLogging.showStandardStreams = true
 }

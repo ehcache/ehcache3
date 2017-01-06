@@ -31,6 +31,7 @@ import org.terracotta.runnel.encoding.StructEncoder;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_NAME;
@@ -90,12 +91,10 @@ public class PassiveReplicationMessageCodec {
 
   private final Struct createStoreReplicationMessageStruct;
 
-  private final ChainCodec chainCodec ;
   private final MessageCodecUtils messageCodecUtils;
   private final ConfigCodec configCodec;
 
   public PassiveReplicationMessageCodec(final ConfigCodec configCodec) {
-    this.chainCodec = new ChainCodec();
     this.messageCodecUtils = new MessageCodecUtils();
     this.configCodec = configCodec;
     createStoreReplicationMessageStruct = this.configCodec.injectServerStoreConfiguration(
@@ -167,7 +166,7 @@ public class PassiveReplicationMessageCodec {
 
     encoder.string(SERVER_STORE_NAME_FIELD, message.getCacheId());
     encoder.int64(KEY_FIELD, message.getKey());
-    chainCodec.encode(encoder.struct(CHAIN_FIELD), message.getChain());
+    encoder.struct(CHAIN_FIELD, message.getChain(), CHAIN_ENCODER_FUNCTION);
 
     return encoder.encode().array();
   }
@@ -248,7 +247,7 @@ public class PassiveReplicationMessageCodec {
     String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);
     Long key = decoder.int64(KEY_FIELD);
 
-    Chain chain = chainCodec.decode(decoder.struct(CHAIN_FIELD));
+    Chain chain = ChainCodec.decode(decoder.struct(CHAIN_FIELD));
 
     return new PassiveReplicationMessage.ChainReplicationMessage(cacheId, key, chain, msgId, clientId);
   }

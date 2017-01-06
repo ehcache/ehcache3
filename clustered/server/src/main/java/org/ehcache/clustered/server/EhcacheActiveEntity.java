@@ -407,8 +407,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
   @Override
   public void createNew() {
-    management.init();
-    management.sharedPoolsConfigured();
   }
 
   @Override

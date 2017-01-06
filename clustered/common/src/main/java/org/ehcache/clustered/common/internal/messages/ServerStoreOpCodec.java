@@ -32,6 +32,7 @@ import org.terracotta.runnel.encoding.StructEncoderFunction;
 import java.nio.ByteBuffer;
 import java.util.UUID;
 
+import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_ENCODER_FUNCTION;
 import static org.ehcache.clustered.common.internal.messages.ChainCodec.CHAIN_STRUCT;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.EHCACHE_MESSAGE_TYPES_ENUM_MAPPING;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.MESSAGE_TYPE_FIELD_INDEX;
@@ -97,12 +98,7 @@ public class ServerStoreOpCodec {
     .int64(KEY_FIELD, 40)
     .build();
 
-  private final ChainCodec chainCodec;
   private final MessageCodecUtils messageCodecUtils = new MessageCodecUtils();
-
-  public ServerStoreOpCodec() {
-    this.chainCodec = new ChainCodec();
-  }
 
   public byte[] encode(ServerStoreOpMessage message) {
     StructEncoder<Void> encoder = null;
@@ -145,20 +141,8 @@ public class ServerStoreOpCodec {
         return encoder
           .string(SERVER_STORE_NAME_FIELD, replaceAtHeadMessage.getCacheId())
           .int64(KEY_FIELD, replaceAtHeadMessage.getKey())
-          .struct("expect", new StructEncoderFunction<StructEncoder<StructEncoder<Void>>>() {
-            @Override
-            public void encode(StructEncoder<StructEncoder<Void>> encoder) {
-              Chain expect = replaceAtHeadMessage.getExpect();
-              chainCodec.encode(encoder, expect);
-            }
-          })
-          .struct("update", new StructEncoderFunction<StructEncoder<StructEncoder<Void>>>() {
-            @Override
-            public void encode(StructEncoder<StructEncoder<Void>> encoder) {
-              Chain update = replaceAtHeadMessage.getUpdate();
-              chainCodec.encode(encoder, update);
-            }
-          })
+          .struct("expect", replaceAtHeadMessage.getExpect(), CHAIN_ENCODER_FUNCTION)
+          .struct("update", replaceAtHeadMessage.getUpdate(), CHAIN_ENCODER_FUNCTION)
           .encode()
           .array();
       case CLIENT_INVALIDATION_ACK:
@@ -224,8 +208,8 @@ public class ServerStoreOpCodec {
         UUID uuid = messageCodecUtils.decodeUUID(decoder);
         String cacheId = decoder.string(SERVER_STORE_NAME_FIELD);
         Long key = decoder.int64(KEY_FIELD);
-        Chain expect = chainCodec.decode(decoder.struct("expect"));
-        Chain update = chainCodec.decode(decoder.struct("update"));
+        Chain expect = ChainCodec.decode(decoder.struct("expect"));
+        Chain update = ChainCodec.decode(decoder.struct("update"));
         ReplaceAtHeadMessage message = new ReplaceAtHeadMessage(cacheId, key, expect, update, uuid);
         message.setId(msgId);
         return message;
