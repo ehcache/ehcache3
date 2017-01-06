@@ -18,13 +18,16 @@ package org.ehcache.clustered;
 import java.io.File;
 import java.util.Collections;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.common.EhcacheEntityVersion;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestName;
 import org.terracotta.connection.Connection;
 import org.terracotta.connection.entity.EntityRef;
 import org.terracotta.exception.EntityAlreadyExistsException;
@@ -56,11 +59,14 @@ public class BasicEntityInteractionTest {
     CLUSTER.getClusterControl().waitForActive();
   }
 
+  @Rule
+  public TestName testName= new TestName();
+
   @Test
   public void testAbsentEntityRetrievalFails() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testAbsentEntityRetrievalFails");
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(client);
 
       try {
         ref.fetchEntity();
@@ -77,7 +83,7 @@ public class BasicEntityInteractionTest {
   public void testAbsentEntityCreationSucceeds() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testAbsentEntityCreationSucceeds");
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
       assertThat(ref.fetchEntity(), not(Matchers.nullValue()));
@@ -90,7 +96,7 @@ public class BasicEntityInteractionTest {
   public void testPresentEntityCreationFails() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testPresentEntityCreationFails");
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
       try {
@@ -120,7 +126,7 @@ public class BasicEntityInteractionTest {
   public void testAbsentEntityDestroyFails() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testAbsentEntityDestroyFails");
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(client);
 
       try {
         ref.destroy();
@@ -137,7 +143,7 @@ public class BasicEntityInteractionTest {
   public void testPresentEntityDestroySucceeds() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testPresentEntityDestroySucceeds");
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
       ref.destroy();
@@ -158,7 +164,7 @@ public class BasicEntityInteractionTest {
   public void testPresentEntityDestroyBlockedByHeldReferenceSucceeds() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testPresentEntityDestroyBlockedByHeldReferenceSucceeds");
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
 
@@ -177,7 +183,7 @@ public class BasicEntityInteractionTest {
   public void testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testPresentEntityDestroyNotBlockedByReleasedReferenceSucceeds");
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
       ref.fetchEntity().close();
@@ -191,7 +197,7 @@ public class BasicEntityInteractionTest {
   public void testDestroyedEntityAllowsRecreation() throws Throwable {
     Connection client = CLUSTER.newConnection();
     try {
-      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = client.getEntityRef(EhcacheClientEntity.class, 1, "testDestroyedEntityAllowsRecreation");
+      EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(client);
 
       ref.create(blankConfiguration);
       ref.destroy();
@@ -201,5 +207,9 @@ public class BasicEntityInteractionTest {
     } finally {
       client.close();
     }
+  }
+
+  private EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> getEntityRef(Connection client) throws org.terracotta.exception.EntityNotProvidedException {
+    return client.getEntityRef(EhcacheClientEntity.class, EhcacheEntityVersion.ENTITY_VERSION, testName.getMethodName());
   }
 }
