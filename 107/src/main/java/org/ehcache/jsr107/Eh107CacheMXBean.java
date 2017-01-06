@@ -15,6 +15,8 @@
  */
 package org.ehcache.jsr107;
 
+import java.net.URI;
+
 import javax.cache.management.CacheMXBean;
 
 /**
@@ -24,8 +26,8 @@ class Eh107CacheMXBean extends Eh107MXBean implements CacheMXBean {
 
   private final Eh107Configuration<?, ?> config;
 
-  Eh107CacheMXBean(String cacheName, Eh107CacheManager cacheManager, Eh107Configuration<?, ?> config) {
-    super(cacheName, cacheManager, "CacheConfiguration");
+  Eh107CacheMXBean(String cacheName, URI cacheManagerURI, Eh107Configuration<?, ?> config) {
+    super(cacheName, cacheManagerURI, "CacheConfiguration");
     this.config = config;
   }
 

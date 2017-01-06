@@ -17,6 +17,8 @@ package org.ehcache.jsr107;
 
 import org.ehcache.core.spi.service.StatisticsService;
 
+import java.net.URI;
+
 /**
  * @author Ludovic Orban
  */
@@ -25,10 +27,10 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
   private final String cacheName;
   private final StatisticsService statisticsService;
 
-  Eh107CacheStatisticsMXBean(String cacheName, Eh107CacheManager cacheManager) {
-    super(cacheName, cacheManager, "CacheStatistics");
+  Eh107CacheStatisticsMXBean(String cacheName, URI cacheManagerURI, StatisticsService statisticsService) {
+    super(cacheName, cacheManagerURI, "CacheStatistics");
     this.cacheName = cacheName;
-    this.statisticsService = cacheManager.getEhCacheManager().getServiceLocator().getService(StatisticsService.class);
+    this.statisticsService = statisticsService;
   }
 
   @Override

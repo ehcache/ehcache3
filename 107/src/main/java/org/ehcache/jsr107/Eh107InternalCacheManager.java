@@ -18,8 +18,8 @@ package org.ehcache.jsr107;
 
 import org.ehcache.config.Configuration;
 import org.ehcache.core.EhcacheManager;
-import org.ehcache.core.internal.service.ServiceLocator;
 import org.ehcache.spi.service.Service;
+import org.ehcache.spi.service.ServiceProvider;
 
 import java.util.Collection;
 
@@ -30,11 +30,11 @@ import java.util.Collection;
  */
 class Eh107InternalCacheManager extends EhcacheManager {
 
-  public Eh107InternalCacheManager(Configuration config, Collection<Service> services, boolean useLoaderInAtomics) {
+  Eh107InternalCacheManager(Configuration config, Collection<Service> services, boolean useLoaderInAtomics) {
     super(config, services, useLoaderInAtomics);
   }
 
-  public ServiceLocator getServiceLocator() {
+  ServiceProvider<Service> getServiceProvider() {
     return serviceLocator;
   }
 }
