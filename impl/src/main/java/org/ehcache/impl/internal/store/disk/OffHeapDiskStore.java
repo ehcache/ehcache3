@@ -345,6 +345,12 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
       StatisticsManager.associate(evict).withParent(store);
       tieredOps.add(evict);
 
+      MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome> expire =
+              new MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome>(
+                      store, TierOperationOutcomes.EXPIRATION_TRANSLATION, "expiration", ResourceType.Core.HEAP.getTierHeight(), "expiration", STATISTICS_TAG);
+      StatisticsManager.associate(expire).withParent(store);
+      tieredOps.add(expire);
+
       tierOperationStatistics.put(store, tieredOps);
       return store;
     }
@@ -488,6 +494,12 @@ public class OffHeapDiskStore<K, V> extends AbstractOffHeapStore<K, V> implement
                       authoritativeTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.DISK.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(authoritativeTier);
       tieredOps.add(evict);
+
+      MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome> expire =
+              new MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome>(
+                      authoritativeTier, TierOperationOutcomes.EXPIRATION_TRANSLATION, "expiration", ResourceType.Core.HEAP.getTierHeight(), "expiration", STATISTICS_TAG);
+      StatisticsManager.associate(expire).withParent(authoritativeTier);
+      tieredOps.add(expire);
 
       tierOperationStatistics.put(authoritativeTier, tieredOps);
       return authoritativeTier;

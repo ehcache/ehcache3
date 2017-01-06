@@ -1694,6 +1694,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       StatisticsManager.associate(evict).withParent(store);
       tieredOps.add(evict);
 
+      MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome> expire =
+              new MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome>(
+                      store, TierOperationOutcomes.EXPIRATION_TRANSLATION, "expiration", ResourceType.Core.HEAP.getTierHeight(), "expiration", STATISTICS_TAG);
+      StatisticsManager.associate(expire).withParent(store);
+      tieredOps.add(expire);
+
       tierOperationStatistics.put(store, tieredOps);
       return store;
     }
@@ -1791,6 +1797,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
       StatisticsManager.associate(evict).withParent(cachingTier);
       tieredOps.add(evict);
 
+      MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome> expire =
+              new MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome>(
+                      cachingTier, TierOperationOutcomes.EXPIRATION_TRANSLATION, "expiration", ResourceType.Core.HEAP.getTierHeight(), "expiration", STATISTICS_TAG);
+      StatisticsManager.associate(expire).withParent(cachingTier);
+      tieredOps.add(expire);
+
       this.tierOperationStatistics.put(cachingTier, tieredOps);
       return cachingTier;
     }
@@ -1827,6 +1839,12 @@ public class OnHeapStore<K, V> implements Store<K,V>, HigherCachingTier<K, V> {
                       higherCachingTier, TierOperationOutcomes.EVICTION_TRANSLATION, "eviction", ResourceType.Core.HEAP.getTierHeight(), "eviction", STATISTICS_TAG);
       StatisticsManager.associate(evict).withParent(higherCachingTier);
       tieredOps.add(evict);
+
+      MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome> expire =
+              new MappedOperationStatistic<StoreOperationOutcomes.ExpirationOutcome, TierOperationOutcomes.ExpirationOutcome>(
+                      higherCachingTier, TierOperationOutcomes.EXPIRATION_TRANSLATION, "expiration", ResourceType.Core.HEAP.getTierHeight(), "expiration", STATISTICS_TAG);
+      StatisticsManager.associate(expire).withParent(higherCachingTier);
+      tieredOps.add(expire);
 
       tierOperationStatistics.put(higherCachingTier, tieredOps);
       return higherCachingTier;
