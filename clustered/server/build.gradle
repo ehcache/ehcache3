@@ -35,6 +35,7 @@ dependencies {
   provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
   provided "org.terracotta:standard-cluster-services:$parent.terracottaApisVersion"
   provided "org.terracotta:runnel:$parent.terracottaPlatformVersion"
+  provided "org.terracotta:server-logging:$parent.terracottaPlatformVersion"
 }
 
 compileJava {
