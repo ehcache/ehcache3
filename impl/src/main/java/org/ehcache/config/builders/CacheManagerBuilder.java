@@ -50,7 +50,7 @@ import static org.ehcache.impl.config.store.heap.DefaultSizeOfEngineConfiguratio
 
 /**
  * The {@code CacheManagerBuilder} enables building cache managers using a fluent style.
- * <P>
+ * <p>
  * As with all Ehcache builders, all instances are immutable and calling any method on the builder will return a new
  * instance without modifying the one on which the method was called.
  * This enables the sharing of builder instances without any risk of seeing them modified by code elsewhere.
@@ -182,7 +182,7 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
 
   /**
    * Adds a {@link Service} instance to the returned builder.
-   * <P>
+   * <p>
    * The service instance will be used by the constructed {@link CacheManager}.
    *
    * @param service the {@code Service} to add
@@ -329,9 +329,8 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
 
   /**
    * Adds a {@link ServiceCreationConfiguration} to the returned builder.
-   * <P>
-   *   These configurations are used to load services and configure them at creation time.
-   * </P>
+   * <p>
+   * These configurations are used to load services and configure them at creation time.
    *
    * @param serviceConfiguration the {@code ServiceCreationConfiguration} to use
    * @return a new builder with the added configuration
@@ -342,9 +341,8 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
 
   /**
    * Replaces an existing {@link ServiceCreationConfiguration} of the same type on the returned builder.
-   * <P>
-   *   Duplicate service creation configuration will cause a cache manager to fail to initialize.
-   * </P>
+   * <p>
+   * Duplicate service creation configuration will cause a cache manager to fail to initialize.
    *
    * @param overwriteServiceConfiguration the new {@code ServiceCreationConfiguration} to use
    * @return a new builder with the replaced configuration

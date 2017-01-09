@@ -26,7 +26,7 @@ import java.util.Map;
 
 /**
  * Special version of {@link ManagementRegistryService} which can be used across several {@link org.ehcache.CacheManager}.
- * <p/>
+ * <p>
  * This can be helpful in the case you want to access from one service all statistics, capabilities, etc of several cache managers.
  */
 public interface SharedManagementService extends CapabilityManagementSupport, Service {

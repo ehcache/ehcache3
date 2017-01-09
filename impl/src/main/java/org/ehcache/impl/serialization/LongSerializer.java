@@ -34,9 +34,8 @@ public class LongSerializer implements Serializer<Long> {
 
   /**
    * Constructor to enable this serializer as a transient one.
-   * <P>
-   *   Parameter is ignored as {@link Long} is a base java type.
-   * </P>
+   * <p>
+   * Parameter is ignored as {@link Long} is a base java type.
    *
    * @param classLoader the classloader to use
    *

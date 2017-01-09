@@ -81,10 +81,9 @@ import static org.junit.Assume.assumeNoException;
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
  * <p>
- *   Tests in this class using the {@link TimeLimitedTask} class can be terminated by {@link Thread#interrupt()}
- *   and {@link Thread#stop()} (resulting in fielding a {@link ThreadDeath} exception).  Code in these tests
- *   <b>must not</b> intercept {@code ThreadDeath} and prevent thread termination.
- * </p>
+ * Tests in this class using the {@link TimeLimitedTask} class can be terminated by {@link Thread#interrupt()}
+ * and {@link Thread#stop()} (resulting in fielding a {@link ThreadDeath} exception).  Code in these tests
+ * <b>must not</b> intercept {@code ThreadDeath} and prevent thread termination.
  */
 // =============================================================================================
 // The tests in this class are run **in parallel** to avoid long run times caused by starting

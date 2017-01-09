@@ -105,20 +105,18 @@ import static org.mockito.Mockito.mock;
  * public void removePassthroughServer() throws Exception {
  *   UnitTestConnectionService.remove(<i>CLUSTER_URI</i>);
  * }
- *   </code></pre>
+ * </code></pre>
  *
- *   If your configuration uses no server resources, none need be defined.  The {@link PassthroughServerBuilder}
- *   can also add Voltron server & client services and service providers.
- * </p>
+ * If your configuration uses no server resources, none need be defined.  The {@link PassthroughServerBuilder}
+ * can also add Voltron server & client services and service providers.
  * <p>
- *   Tests needing direct access to a {@link Connection} can obtain a connection using the following:
- *   <pre><code>
+ * Tests needing direct access to a {@link Connection} can obtain a connection using the following:
+ * <pre><code>
  * Connection connection = new UnitTestConnectionService().connect(<i>CLUSTER_URI</i>, new Properties());
- *   </code></pre>
- *   after the server has been added to {@code UnitTestConnectionService}.  Ideally, this connection should
- *   be explicitly closed when no longer needed but {@link #remove} closes any remaining connections opened
- *   through {@link #connect(URI, Properties)}.
- * </p>
+ * </code></pre>
+ * after the server has been added to {@code UnitTestConnectionService}.  Ideally, this connection should
+ * be explicitly closed when no longer needed but {@link #remove} closes any remaining connections opened
+ * through {@link #connect(URI, Properties)}.
  *
  * @see PassthroughServerBuilder
  */

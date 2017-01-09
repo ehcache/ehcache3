@@ -18,9 +18,8 @@ package org.ehcache;
 
 /**
  * A {@code ValueSupplier} represents an indirect way to access a value.
- * <P>
- *   This indicates that the value needs to be computed before it can be retrieved, such as deserialization.
- * </P>
+ * <p>
+ * This indicates that the value needs to be computed before it can be retrieved, such as deserialization.
  *
  * @param <V> the value type
  */

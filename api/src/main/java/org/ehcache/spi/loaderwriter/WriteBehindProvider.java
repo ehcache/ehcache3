@@ -19,11 +19,10 @@ import org.ehcache.spi.service.Service;
 
 /**
  * A {@link Service} that provides write-behind functionality.
- * <P>
- *   A {@code CacheManager} will use the {@link #createWriteBehindLoaderWriter(org.ehcache.spi.loaderwriter.CacheLoaderWriter, org.ehcache.spi.loaderwriter.WriteBehindConfiguration)}
- *   method to create write-behind instances for each {@code Cache} it manages
- *   that carries a write-behind configuration.
- * </P>
+ * <p>
+ * A {@code CacheManager} will use the {@link #createWriteBehindLoaderWriter(org.ehcache.spi.loaderwriter.CacheLoaderWriter, org.ehcache.spi.loaderwriter.WriteBehindConfiguration)}
+ * method to create write-behind instances for each {@code Cache} it manages
+ * that carries a write-behind configuration.
  */
 public interface WriteBehindProvider extends Service {
 

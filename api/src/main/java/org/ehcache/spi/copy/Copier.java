@@ -19,12 +19,11 @@ package org.ehcache.spi.copy;
 /**
  * Defines the contract used to copy type instances.
  * <p>
- *   The copied object's class must be preserved.  The following must always be true:
- *   <p>
- *   <code>object.getClass().equals( myCopier.copyForRead(object).getClass() )</code>
- *   <code>object.getClass().equals( myCopier.copyForWrite(object).getClass() )</code>
- *   </p>
- * </p>
+ * The copied object's class must be preserved.  The following must always be true:
+ * <p>
+ * <code>object.getClass().equals( myCopier.copyForRead(object).getClass() )</code>
+ * <code>object.getClass().equals( myCopier.copyForWrite(object).getClass() )</code>
+ *
  * @param <T> the type of the instance to copy
  */
 public interface Copier<T> {
@@ -32,8 +31,7 @@ public interface Copier<T> {
   /**
    * Creates a copy of the instance passed in.
    * <p>
-   *   This method is invoked as a value is read from the cache.
-   * </p>
+   * This method is invoked as a value is read from the cache.
    *
    * @param obj the instance to copy
    * @return the copy of the {@code obj} instance
@@ -43,8 +41,7 @@ public interface Copier<T> {
   /**
    * Creates a copy of the instance passed in.
    * <p>
-   *   This method is invoked as a value is written to the cache.
-   * </p>
+   * This method is invoked as a value is written to the cache.
    *
    * @param obj the instance to copy
    * @return the copy of the {@code obj} instance
