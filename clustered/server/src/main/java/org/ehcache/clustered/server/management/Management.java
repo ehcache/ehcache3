@@ -25,7 +25,6 @@ import org.terracotta.entity.BasicServiceConfiguration;
 import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ServiceRegistry;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.collect.StatisticConfiguration;
 import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
@@ -61,12 +60,7 @@ public class Management {
 
     // create a management registry for this entity to handle exposed objects and stats
     // if management-server distribution is on the classpath
-    managementRegistry = entityMonitoringService == null ? null : services.getService(new ConsumerManagementRegistryConfiguration(entityMonitoringService)
-      .setStatisticConfiguration(new StatisticConfiguration(
-        60, SECONDS,
-        100, 1, SECONDS,
-        30, SECONDS
-      )));
+    managementRegistry = entityMonitoringService == null ? null : services.getService(new ConsumerManagementRegistryConfiguration(entityMonitoringService));
 
     if (managementRegistry != null) {
 

@@ -18,7 +18,6 @@ package org.ehcache.clustered.management;
 import org.ehcache.CacheManager;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
-import org.ehcache.management.config.EhcacheStatisticsProviderConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -28,10 +27,6 @@ import org.terracotta.testing.rules.Cluster;
 
 import java.io.File;
 import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredDedicated;
 import static org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder.clusteredShared;
@@ -70,11 +65,7 @@ public class EhcacheConfigWithManagementTest {
       // management config
       .using(new DefaultManagementRegistryConfiguration()
         .addTags("webapp-1", "server-node-1")
-        .setCacheManagerAlias("my-super-cache-manager")
-        .addConfiguration(new EhcacheStatisticsProviderConfiguration(
-          1, TimeUnit.MINUTES,
-          100, 1, TimeUnit.SECONDS,
-          2, TimeUnit.SECONDS))) // TTD reduce to 2 seconds so that the stat collector runs faster
+        .setCacheManagerAlias("my-super-cache-manager"))
       // cache config
       .withCache("dedicated-cache-1", newCacheConfigurationBuilder(
         String.class, String.class,

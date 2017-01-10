@@ -31,9 +31,7 @@ import org.terracotta.management.model.cluster.Cluster;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.Sample;
-import org.terracotta.management.model.stats.StatisticType;
-import org.terracotta.management.model.stats.history.CounterHistory;
+import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,7 +66,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
   public void test_A_topology() throws Exception {
     Cluster cluster = tmsAgentService.readTopology();
     String json = mapper.writeValueAsString(cluster.toMap());
-    System.out.println(json);
+    //System.out.println(json);
   }
 
   @Test
@@ -200,10 +198,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     assertThat(cNames, equalTo(new TreeSet<>(Arrays.asList("cache-2", "dedicated-cache-1", "shared-cache-2", "shared-cache-3"))));
 
     List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages),  equalTo(Arrays.asList(
-      "ENTITY_REGISTRY_UPDATED", "EHCACHE_SERVER_STORE_CREATED", "ENTITY_REGISTRY_UPDATED",
-      "CLIENT_REGISTRY_UPDATED", "CACHE_ADDED")));
-    assertThat(readMessages(), hasSize(0));
+    assertThat(notificationTypes(messages),  equalTo(Arrays.asList("EHCACHE_SERVER_STORE_CREATED", "CACHE_ADDED")));
   }
 
   @Test
@@ -211,14 +206,13 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
     cacheManager.removeCache("cache-2");
 
     List<Message> messages = readMessages();
-    assertThat(notificationTypes(messages),  equalTo(Arrays.asList("CLIENT_REGISTRY_UPDATED", "CACHE_REMOVED", "ENTITY_REGISTRY_UPDATED")));
-    assertThat(readMessages(), hasSize(0));
+    assertThat(notificationTypes(messages),  equalTo(Arrays.asList("CACHE_REMOVED")));
   }
 
   @Test
   public void test_G_stats_collection() throws Exception {
 
-    sendManagementCallOnClientToCollectStats("Cache:HitCount");
+    sendManagementCallOnClientToCollectStats();
 
     Cache<String, String> cache1 = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     cache1.put("key1", "val");
@@ -244,10 +238,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
-        if(samples.length > 0) {
-          val = samples[samples.length - 1].getValue();
-        }
+        val = stat.getStatistic(Counter.class, "Cache:HitCount").getValue();
       }
     } while(!Thread.currentThread().isInterrupted() && val != 2);
 
@@ -265,10 +256,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        Sample<Long>[] samples = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
-        if(samples.length > 0) {
-          val = samples[samples.length - 1].getValue();
-        }
+        val = stat.getStatistic(Counter.class, "Cache:HitCount").getValue();
       }
 
     } while(!Thread.currentThread().isInterrupted() && val != 4);
@@ -336,82 +324,56 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
 
   @BeforeClass
   public static void initDescriptors() throws ClassNotFoundException {
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionCount" , StatisticType.COUNTER_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , StatisticType.COUNTER_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionRate" , StatisticType.RATE_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitRatio" , StatisticType.RATIO_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissRatio" , StatisticType.RATIO_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , StatisticType.COUNTER_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:OccupiedByteSize", StatisticType.SIZE_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissRate" , StatisticType.RATE_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitCount" , StatisticType.COUNTER_HISTORY));
-    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitRate" , StatisticType.RATE_HISTORY));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:EvictionCount" , "COUNTER"));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MissCount" , "COUNTER"));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:MappingCount" , "COUNTER"));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:OccupiedByteSize", "SIZE"));
+    ONHEAP_DESCRIPTORS.add(new StatisticDescriptor("OnHeap:HitCount" , "COUNTER"));
 
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissCount", StatisticType.COUNTER_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionRate", StatisticType.RATE_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissRate", StatisticType.RATE_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissCount", "COUNTER"));
 
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedByteSize", StatisticType.SIZE_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedByteSize", StatisticType.SIZE_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MappingCount", StatisticType.COUNTER_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRate", StatisticType.RATE_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitRatio", StatisticType.RATIO_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MissRatio", StatisticType.RATIO_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionCount", StatisticType.COUNTER_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MaxMappingCount", StatisticType.COUNTER_HISTORY));
-    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitCount", StatisticType.COUNTER_HISTORY));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:OccupiedByteSize", "SIZE"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:AllocatedByteSize", "SIZE"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MappingCount", "COUNTER"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:EvictionCount", "COUNTER"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:MaxMappingCount", "COUNTER"));
+    OFFHEAP_DESCRIPTORS.add(new StatisticDescriptor("OffHeap:HitCount", "COUNTER"));
 
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MaxMappingCount", StatisticType.COUNTER_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitRate", StatisticType.RATE_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedByteSize", StatisticType.SIZE_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionRate", StatisticType.RATE_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedByteSize", StatisticType.SIZE_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitCount", StatisticType.COUNTER_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionCount", StatisticType.COUNTER_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitRatio", StatisticType.RATIO_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissRatio", StatisticType.RATIO_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissCount", StatisticType.COUNTER_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", StatisticType.COUNTER_HISTORY));
-    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissRate", StatisticType.RATE_HISTORY));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MaxMappingCount", "COUNTER"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:OccupiedByteSize", "SIZE"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:AllocatedByteSize", "SIZE"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:HitCount", "COUNTER"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:EvictionCount", "COUNTER"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MissCount", "COUNTER"));
+    DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", "COUNTER"));
 
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissCount", StatisticType.COUNTER_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitCount", StatisticType.COUNTER_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MaxMappingCount", StatisticType.COUNTER_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitRate", StatisticType.RATE_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionCount", StatisticType.COUNTER_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissRate", StatisticType.RATE_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:OccupiedByteSize", StatisticType.SIZE_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitRatio", StatisticType.RATIO_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissRatio", StatisticType.RATIO_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:AllocatedByteSize", StatisticType.SIZE_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MappingCount", StatisticType.COUNTER_HISTORY));
-    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionRate", StatisticType.RATE_HISTORY));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MissCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:HitCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MaxMappingCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:EvictionCount", "COUNTER"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:OccupiedByteSize", "SIZE"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:AllocatedByteSize", "SIZE"));
+    CLUSTERED_DESCRIPTORS.add(new StatisticDescriptor("Clustered:MappingCount", "COUNTER"));
 
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRate", StatisticType.RATE_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", StatisticType.COUNTER_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitRatio", StatisticType.RATIO_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearRate", StatisticType.RATE_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRate", StatisticType.RATE_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearCount", StatisticType.COUNTER_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", StatisticType.COUNTER_HISTORY));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissRatio", StatisticType.RATIO_HISTORY));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", "COUNTER"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearCount", "COUNTER"));
+    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", "COUNTER"));
 
-    POOL_DESCRIPTORS.add(new StatisticDescriptor("Pool:AllocatedSize", StatisticType.SIZE_HISTORY));
+    POOL_DESCRIPTORS.add(new StatisticDescriptor("Pool:AllocatedSize", "SIZE"));
 
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:AllocatedMemory", StatisticType.SIZE_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataAllocatedMemory", StatisticType.SIZE_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:OccupiedMemory", StatisticType.SIZE_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataOccupiedMemory", StatisticType.SIZE_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:Entries", StatisticType.COUNTER_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:UsedSlotCount", StatisticType.COUNTER_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataVitalMemory", StatisticType.SIZE_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:VitalMemory", StatisticType.SIZE_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:ReprobeLength", StatisticType.SIZE_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:RemovedSlotCount", StatisticType.COUNTER_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataSize", StatisticType.SIZE_HISTORY));
-    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:TableCapacity", StatisticType.SIZE_HISTORY));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:AllocatedMemory", "SIZE"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataAllocatedMemory", "SIZE"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:OccupiedMemory", "SIZE"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataOccupiedMemory", "SIZE"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:Entries", "COUNTER"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:UsedSlotCount", "COUNTER"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataVitalMemory", "SIZE"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:VitalMemory", "SIZE"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:RemovedSlotCount", "COUNTER"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:DataSize", "SIZE"));
+    SERVER_STORE_DESCRIPTORS.add(new StatisticDescriptor("Store:TableCapacity", "SIZE"));
 
-    OFFHEAP_RES_DESCRIPTORS.add(new StatisticDescriptor("OffHeapResource:AllocatedMemory", StatisticType.SIZE_HISTORY));
+    OFFHEAP_RES_DESCRIPTORS.add(new StatisticDescriptor("OffHeapResource:AllocatedMemory", "SIZE"));
   }
 
 }

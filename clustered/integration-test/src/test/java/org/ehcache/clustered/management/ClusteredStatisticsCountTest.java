@@ -15,15 +15,17 @@
  */
 package org.ehcache.clustered.management;
 
-import static org.hamcrest.CoreMatchers.is;
-
-import java.util.List;
 import org.ehcache.Cache;
 import org.junit.Assert;
 import org.junit.Test;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.Sample;
-import org.terracotta.management.model.stats.history.CounterHistory;
+import org.terracotta.management.model.stats.Statistic;
+import org.terracotta.management.model.stats.primitive.Counter;
+
+import java.util.List;
+import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.is;
 
 public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTest {
 
@@ -34,7 +36,7 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
 
   @Test
   public void countTest() throws Exception {
-    sendManagementCallOnClientToCollectStats("Cache:HitCount","Clustered:HitCount","Cache:MissCount","Clustered:MissCount");
+    sendManagementCallOnClientToCollectStats();
 
     Cache<String, String> cache = cacheManager.getCache("dedicated-cache-1", String.class, String.class);
     cache.put("one", "val1");
@@ -61,25 +63,16 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
       for (ContextualStatistics stat : stats) {
         if (stat.getContext().contains("cacheName") && stat.getContext().get("cacheName").equals("dedicated-cache-1")) {
 
-          Sample<Long>[] samplesCacheHitCount = stat.getStatistic(CounterHistory.class, "Cache:HitCount").getValue();
-          if(samplesCacheHitCount.length > 0) {
-            cacheHitCount = samplesCacheHitCount[samplesCacheHitCount.length - 1].getValue();
-          }
+          // please leave it there - it's really useful to see what's coming
+          /*System.out.println("stats:");
+          for (Map.Entry<String, Statistic<?, ?>> entry : stat.getStatistics().entrySet()) {
+            System.out.println(" - " + entry.getKey() + " : " + entry.getValue());
+          }*/
 
-          Sample<Long>[] samplesClusteredHitCount = stat.getStatistic(CounterHistory.class, "Clustered:HitCount").getValue();
-          if(samplesClusteredHitCount.length > 0) {
-            clusteredHitCount = samplesClusteredHitCount[samplesClusteredHitCount.length - 1].getValue();
-          }
-
-          Sample<Long>[] samplesClusteredMissCount = stat.getStatistic(CounterHistory.class, "Clustered:MissCount").getValue();
-          if(samplesClusteredMissCount.length > 0) {
-            clusteredMissCount = samplesClusteredMissCount[samplesClusteredMissCount.length - 1].getValue();
-          }
-
-          Sample<Long>[] samplesCacheMissCount = stat.getStatistic(CounterHistory.class, "Cache:MissCount").getValue();
-          if(samplesCacheMissCount.length > 0) {
-            cacheMissCount = samplesCacheMissCount[samplesCacheMissCount.length - 1].getValue();
-          }
+          cacheHitCount = stat.getStatistic(Counter.class, "Cache:HitCount").getValue();
+          clusteredHitCount = stat.getStatistic(Counter.class, "Clustered:HitCount").getValue();
+          clusteredMissCount = stat.getStatistic(Counter.class, "Clustered:MissCount").getValue();
+          cacheMissCount = stat.getStatistic(Counter.class, "Cache:MissCount").getValue();
         }
       }
     } while(!Thread.currentThread().isInterrupted() &&
@@ -92,7 +85,6 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
     Assert.assertThat(clusteredMissCount,is(CLUSTERED_MISS_COUNT));
 
   }
-
 
 
 }

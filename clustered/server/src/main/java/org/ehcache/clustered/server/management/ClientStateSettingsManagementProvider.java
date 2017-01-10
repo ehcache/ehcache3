@@ -19,8 +19,8 @@ import org.ehcache.clustered.server.ClientState;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.Settings;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.registry.action.Named;
-import org.terracotta.management.registry.action.RequiredContext;
+import org.terracotta.management.registry.Named;
+import org.terracotta.management.registry.RequiredContext;
 import org.terracotta.management.service.monitoring.registry.provider.ClientBindingManagementProvider;
 
 import java.util.Collection;
