@@ -24,6 +24,7 @@ import org.ehcache.core.events.CacheManagerListener;
 import org.ehcache.core.spi.service.CacheManagerProviderService;
 import org.ehcache.core.spi.service.StatisticsService;
 import org.ehcache.core.spi.store.InternalCacheManager;
+import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.spi.service.Service;
 import org.ehcache.spi.service.ServiceDependencies;
 import org.ehcache.spi.service.ServiceProvider;
@@ -36,8 +37,6 @@ import java.util.concurrent.ConcurrentMap;
 
 /**
  * Default implementation using the statistics calculated by the observers set on the caches.
- *
- * @author Henri Tremblay
  */
 @ServiceDependencies(CacheManagerProviderService.class)
 public class DefaultStatisticsService implements StatisticsService, CacheManagerListener {
@@ -45,10 +44,11 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultStatisticsService.class);
 
   private final ConcurrentMap<String, CacheStatistics> cacheStatistics = new ConcurrentHashMap<String, CacheStatistics>();
+
   private volatile InternalCacheManager cacheManager;
   private volatile boolean started = false;
 
-  private CacheStatistics getStatistics(String cacheName) {
+  public CacheStatistics getCacheStatistics(String cacheName) {
     CacheStatistics stats = cacheStatistics.get(cacheName);
     if (stats == null) {
       throw new IllegalArgumentException("Unknown cache: " + cacheName);
@@ -107,7 +107,7 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
   @Override
   public void cacheAdded(String alias, Cache<?, ?> cache) {
     LOGGER.debug("Cache added " + alias);
-    cacheStatistics.put(alias, new CacheStatistics((InternalCache<?, ?>) cache));
+    cacheStatistics.put(alias, new DefaultCacheStatistics((InternalCache<?, ?>) cache));
   }
 
   @Override
@@ -116,63 +116,4 @@ public class DefaultStatisticsService implements StatisticsService, CacheManager
     cacheStatistics.remove(alias);
   }
 
-  @Override
-  public void clear(String cacheName) {
-    getStatistics(cacheName).clear();
-  }
-
-  @Override
-  public long getCacheHits(String cacheName) {
-    return getStatistics(cacheName).getCacheHits();
-  }
-
-  @Override
-  public float getCacheHitPercentage(String cacheName) {
-    return getStatistics(cacheName).getCacheHitPercentage();
-  }
-
-  @Override
-  public long getCacheMisses(String cacheName) {
-    return getStatistics(cacheName).getCacheMisses();
-  }
-
-  @Override
-  public float getCacheMissPercentage(String cacheName) {
-    return getStatistics(cacheName).getCacheMissPercentage();
-  }
-
-  @Override
-  public long getCacheGets(String cacheName) {
-    return getStatistics(cacheName).getCacheGets();
-  }
-
-  @Override
-  public long getCachePuts(String cacheName) {
-    return getStatistics(cacheName).getCachePuts();
-  }
-
-  @Override
-  public long getCacheRemovals(String cacheName) {
-    return getStatistics(cacheName).getCacheRemovals();
-  }
-
-  @Override
-  public long getCacheEvictions(String cacheName) {
-    return getStatistics(cacheName).getCacheEvictions();
-  }
-
-  @Override
-  public float getAverageGetTime(String cacheName) {
-    return getStatistics(cacheName).getAverageGetTime ();
-  }
-
-  @Override
-  public float getAveragePutTime(String cacheName) {
-    return getStatistics(cacheName).getAveragePutTime();
-  }
-
-  @Override
-  public float getAverageRemoveTime(String cacheName) {
-    return getStatistics(cacheName).getAverageRemoveTime();
-  }
 }

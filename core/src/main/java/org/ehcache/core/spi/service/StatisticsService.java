@@ -16,36 +16,13 @@
 
 package org.ehcache.core.spi.service;
 
+import org.ehcache.core.statistics.CacheStatistics;
 import org.ehcache.spi.service.Service;
 
 /**
  * Service providing raw statistics for cache and tier usage.
- *
- * @author Henri Tremblay
  */
 public interface StatisticsService extends Service {
 
-  void clear(String cacheName);
-
-  long getCacheHits(String cacheName);
-
-  float getCacheHitPercentage(String cacheName);
-
-  long getCacheMisses(String cacheName);
-
-  float getCacheMissPercentage(String cacheName);
-
-  long getCacheGets(String cacheName);
-
-  long getCachePuts(String cacheName);
-
-  long getCacheRemovals(String cacheName);
-
-  long getCacheEvictions(String cacheName);
-
-  float getAverageGetTime(String cacheName);
-
-  float getAveragePutTime(String cacheName);
-
-  float getAverageRemoveTime(String cacheName);
+  CacheStatistics getCacheStatistics(String cacheName);
 }

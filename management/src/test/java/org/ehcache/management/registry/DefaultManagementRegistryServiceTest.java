@@ -25,10 +25,10 @@ import org.ehcache.config.builders.ResourcePoolsBuilder;
 import org.ehcache.config.units.EntryUnit;
 import org.ehcache.config.units.MemoryUnit;
 import org.ehcache.management.ManagementRegistryService;
-import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.Timeout;
 import org.terracotta.management.model.call.ContextualReturn;
@@ -36,6 +36,7 @@ import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
 import org.terracotta.management.model.stats.primitive.Counter;
 import org.terracotta.management.registry.ResultSet;
@@ -48,18 +49,10 @@ import java.util.Collection;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsBuilder;
 import static org.ehcache.config.units.MemoryUnit.MB;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.collection.IsCollectionWithSize.hasSize;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
 
 public class DefaultManagementRegistryServiceTest {
 
@@ -67,6 +60,9 @@ public class DefaultManagementRegistryServiceTest {
   private static final Collection<Descriptor> OFFHEAP_DESCRIPTORS = new ArrayList<Descriptor>();
   private static final Collection<Descriptor> DISK_DESCRIPTORS =  new ArrayList<Descriptor>();
   private static final Collection<Descriptor> CACHE_DESCRIPTORS = new ArrayList<Descriptor>();
+
+  @Rule
+  public final ExpectedException expectedException = ExpectedException.none();
 
   @Rule
   public final TemporaryFolder diskPath = new TemporaryFolder();
@@ -88,11 +84,14 @@ public class DefaultManagementRegistryServiceTest {
           .using(managementRegistry)
           .build(true);
 
-      assertThat(managementRegistry.getContextContainer().getName(), equalTo("cacheManagerName"));
-      assertThat(managementRegistry.getContextContainer().getValue(), equalTo("myCM"));
-      assertThat(managementRegistry.getContextContainer().getSubContexts(), hasSize(1));
-      assertThat(managementRegistry.getContextContainer().getSubContexts().iterator().next().getName(), equalTo("cacheName"));
-      assertThat(managementRegistry.getContextContainer().getSubContexts().iterator().next().getValue(), equalTo("aCache"));
+      ContextContainer contextContainer = managementRegistry.getContextContainer();
+      assertThat(contextContainer.getName()).isEqualTo("cacheManagerName");
+      assertThat(contextContainer.getValue()).isEqualTo("myCM");
+      assertThat(contextContainer.getSubContexts()).hasSize(1);
+
+      ContextContainer subcontext = contextContainer.getSubContexts().iterator().next();
+      assertThat(subcontext.getName()).isEqualTo("cacheName");
+      assertThat(subcontext.getValue()).isEqualTo("aCache");
     }
     finally {
       if(cacheManager1 != null) cacheManager1.close();
@@ -113,21 +112,20 @@ public class DefaultManagementRegistryServiceTest {
           .using(managementRegistry)
           .build(true);
 
-      assertThat(managementRegistry.getCapabilities(), hasSize(4));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("SettingsCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("StatisticsCapability"));
+      assertThat(managementRegistry.getCapabilities()).hasSize(4);
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName()).isEqualTo("ActionsCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName()).isEqualTo("SettingsCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName()).isEqualTo("StatisticCollectorCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName()).isEqualTo("StatisticsCapability");
 
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
       Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
       allDescriptors.addAll(ONHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors, containsInAnyOrder(allDescriptors.toArray()));
-      assertThat(descriptors, hasSize(allDescriptors.size()));
+      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
     finally {
       if(cacheManager1 != null) cacheManager1.close();
@@ -149,13 +147,13 @@ public class DefaultManagementRegistryServiceTest {
           .using(managementRegistry)
           .build(true);
 
-      assertThat(managementRegistry.getCapabilities(), hasSize(4));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("SettingsCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("StatisticsCapability"));
+      assertThat(managementRegistry.getCapabilities()).hasSize(4);
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName()).isEqualTo("ActionsCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName()).isEqualTo("SettingsCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName()).isEqualTo("StatisticCollectorCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName()).isEqualTo("StatisticsCapability");
 
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
       Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
@@ -163,8 +161,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(OFFHEAP_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors, containsInAnyOrder(allDescriptors.toArray()));
-      assertThat(descriptors, hasSize(allDescriptors.size()));
+      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
     finally {
       if(cacheManager1 != null) cacheManager1.close();
@@ -188,14 +185,14 @@ public class DefaultManagementRegistryServiceTest {
           .using(managementRegistry)
           .build(true);
 
-      assertThat(managementRegistry.getCapabilities(), hasSize(4));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("SettingsCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("StatisticsCapability"));
+      assertThat(managementRegistry.getCapabilities()).hasSize(4);
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName()).isEqualTo("ActionsCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName()).isEqualTo("SettingsCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName()).isEqualTo("StatisticCollectorCapability");
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName()).isEqualTo("StatisticsCapability");
 
 
-      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
+      assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
 
       Collection<? extends Descriptor> descriptors = new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors();
       Collection<Descriptor> allDescriptors = new ArrayList<Descriptor>();
@@ -203,8 +200,7 @@ public class DefaultManagementRegistryServiceTest {
       allDescriptors.addAll(DISK_DESCRIPTORS);
       allDescriptors.addAll(CACHE_DESCRIPTORS);
 
-      assertThat(descriptors, containsInAnyOrder(allDescriptors.toArray()));
-      assertThat(descriptors, hasSize(allDescriptors.size()));
+      assertThat(descriptors).containsOnlyElementsOf(allDescriptors);
     }
     finally {
       if(persistentCacheManager != null) persistentCacheManager.close();
@@ -228,17 +224,17 @@ public class DefaultManagementRegistryServiceTest {
         .using(managementRegistry)
         .build(true);
 
-    assertThat(managementRegistry.getCapabilities(), hasSize(4));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName(), equalTo("ActionsCapability"));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName(), equalTo("SettingsCapability"));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName(), equalTo("StatisticCollectorCapability"));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName(), equalTo("StatisticsCapability"));
+    assertThat(managementRegistry.getCapabilities()).hasSize(4);
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getName()).isEqualTo("ActionsCapability");
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(1).getName()).isEqualTo("SettingsCapability");
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(2).getName()).isEqualTo("StatisticCollectorCapability");
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getName()).isEqualTo("StatisticsCapability");
 
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors(), hasSize(4));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors(), hasSize(ONHEAP_DESCRIPTORS.size() + CACHE_DESCRIPTORS.size()));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getDescriptors()).hasSize(4);
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getDescriptors()).hasSize(ONHEAP_DESCRIPTORS.size() + CACHE_DESCRIPTORS.size());
 
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getCapabilityContext().getAttributes(), hasSize(2));
-    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getCapabilityContext().getAttributes(), hasSize(2));
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(0).getCapabilityContext().getAttributes()).hasSize(2);
+    assertThat(new ArrayList<Capability>(managementRegistry.getCapabilities()).get(3).getCapabilityContext().getAttributes()).hasSize(2);
 
     cacheManager1.close();
   }
@@ -284,8 +280,8 @@ public class DefaultManagementRegistryServiceTest {
     ContextualStatistics counters = getResultSet(builder1, context1, null, Counter.class, queryStatisticName).getResult(context1);
     Counter counterHistory1 = counters.getStatistic(Counter.class, queryStatisticName);
 
-    assertThat(counters.size(), equalTo(1));
-    assertThat(counterHistory1.getValue(), equalTo(1L));
+    assertThat(counters.size()).isEqualTo(1);
+    assertThat(counterHistory1.getValue()).isEqualTo(1L);
 
     Builder builder2 = managementRegistry.withCapability("StatisticsCapability")
         .queryStatistic(queryStatisticName)
@@ -293,12 +289,12 @@ public class DefaultManagementRegistryServiceTest {
         .on(context2);
     ResultSet<ContextualStatistics> allCounters = getResultSet(builder2, context1, context2, Counter.class, queryStatisticName);
 
-    assertThat(allCounters.size(), equalTo(2));
-    assertThat(allCounters.getResult(context1).size(), equalTo(1));
-    assertThat(allCounters.getResult(context2).size(), equalTo(1));
+    assertThat(allCounters.size()).isEqualTo(2);
+    assertThat(allCounters.getResult(context1).size()).isEqualTo(1);
+    assertThat(allCounters.getResult(context2).size()).isEqualTo(1);
 
-    assertThat(allCounters.getResult(context1).getStatistic(Counter.class, queryStatisticName).getValue(), equalTo(1L));
-    assertThat(allCounters.getResult(context2).getStatistic(Counter.class, queryStatisticName).getValue(), equalTo(1L));
+    assertThat(allCounters.getResult(context1).getStatistic(Counter.class, queryStatisticName).getValue()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context2).getStatistic(Counter.class, queryStatisticName).getValue()).isEqualTo(1L);
 
     cacheManager1.close();
   }
@@ -357,7 +353,7 @@ public class DefaultManagementRegistryServiceTest {
 
     cacheManager1.getCache("aCache1", Long.class, String.class).put(1L, "1");
 
-    assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), equalTo("1"));
+    assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L)).isEqualTo("1");
 
     ContextualReturn<?> result = managementRegistry.withCapability("ActionsCapability")
         .call("clear")
@@ -366,10 +362,10 @@ public class DefaultManagementRegistryServiceTest {
         .execute()
         .getSingleResult();
 
-    assertThat(result.hasExecuted(), is(true));
-    assertThat(result.getValue(), is(nullValue()));
+    assertThat(result.hasExecuted()).isTrue();
+    assertThat(result.getValue()).isNull();
 
-    assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L), is(Matchers.nullValue()));
+    assertThat(cacheManager1.getCache("aCache1", Long.class, String.class).get(1L)).isNull();
     }
     finally {
       if(cacheManager1 != null) cacheManager1.close();
@@ -378,7 +374,7 @@ public class DefaultManagementRegistryServiceTest {
   }
 
   @Test
-  public void testCallOnInexistignContext() {
+  public void testCallOnInexistignContext() throws ExecutionException {
     CacheManager cacheManager1 = null;
     try {
       CacheConfiguration<Long, String> cacheConfiguration = CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class, heap(10))
@@ -402,15 +398,11 @@ public class DefaultManagementRegistryServiceTest {
           .build()
           .execute();
 
-      assertThat(results.size(), equalTo(1));
-      assertThat(results.getSingleResult().hasExecuted(), is(false));
+      assertThat(results.size()).isEqualTo(1);
+      assertThat(results.getSingleResult().hasExecuted()).isFalse();
 
-      try {
-        results.getSingleResult().getValue();
-        fail();
-      } catch (Exception e) {
-        assertThat(e, instanceOf(NoSuchElementException.class));
-      }
+      expectedException.expect(NoSuchElementException.class);
+      results.getSingleResult().getValue();
     }
     finally {
       if(cacheManager1 != null) cacheManager1.close();
@@ -443,7 +435,6 @@ public class DefaultManagementRegistryServiceTest {
     DISK_DESCRIPTORS.add(new StatisticDescriptor("Disk:MappingCount", "COUNTER"));
 
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:HitCount", "COUNTER"));
-    CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:ClearCount", "COUNTER"));
     CACHE_DESCRIPTORS.add(new StatisticDescriptor("Cache:MissCount", "COUNTER"));
   }
 }

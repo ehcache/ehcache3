@@ -14,21 +14,27 @@
  * limitations under the License.
  */
 
-package org.ehcache.impl.internal.statistics;
+package org.ehcache.core.statistics;
 
-import org.ehcache.core.spi.service.ServiceFactory;
-import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.spi.service.ServiceCreationConfiguration;
+import org.terracotta.statistics.ValueStatistic;
+import org.terracotta.statistics.extended.StatisticType;
 
-public class DefaultStatisticsServiceFactory implements ServiceFactory<StatisticsService> {
+/**
+ * Represent a {@code ValueStatistic} that knows its {@code StatisticType}.
+ */
+public abstract class TypedValueStatistic implements ValueStatistic<Number> {
+  private final StatisticType type;
 
-  @Override
-  public StatisticsService create(ServiceCreationConfiguration<StatisticsService> serviceConfiguration) {
-    return new DefaultStatisticsService();
+  /**
+   * Type of this value statistic. Can be COUNTER or SIZE.
+   *
+   * @param type {@code StatisticType}
+   */
+  public TypedValueStatistic(StatisticType type) {
+    this.type = type;
   }
 
-  @Override
-  public Class<StatisticsService> getServiceType() {
-    return StatisticsService.class;
+  public StatisticType getType() {
+    return type;
   }
 }

@@ -22,6 +22,7 @@ import org.ehcache.Status;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.spi.test.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -30,9 +31,6 @@ import org.junit.rules.ExpectedException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.units.MemoryUnit.MB;
 
-/**
- * @author Henri Tremblay
- */
 public class DefaultStatisticsServiceTest {
 
   private static final String CACHE = "myCache";
@@ -56,6 +54,13 @@ public class DefaultStatisticsServiceTest {
       .build();
   }
 
+  @After
+  public void after() {
+    if(cacheManager != null) {
+      cacheManager.close();
+    }
+  }
+
   @Test
   public void startStopStart() throws Exception {
     cacheManager.init();
@@ -64,7 +69,7 @@ public class DefaultStatisticsServiceTest {
 
     Cache<Long, String> cache = cacheManager.getCache(CACHE, Long.class, String.class);
     cache.get(2L);
-    assertThat(service.getCacheMisses(CACHE)).isEqualTo(1);
+    assertThat(service.getCacheStatistics(CACHE).getCacheMisses()).isEqualTo(1);
 
     cacheManager.close();
 
@@ -75,10 +80,10 @@ public class DefaultStatisticsServiceTest {
     assertThat(service.isStarted()).isTrue();
 
     // We expect the stats to be reinitialized after a stop start
-    assertThat(service.getCacheMisses(CACHE)).isEqualTo(0);
+    assertThat(service.getCacheStatistics(CACHE).getCacheMisses()).isEqualTo(0);
     cache = cacheManager.getCache(CACHE, Long.class, String.class);
     cache.get(2L);
-    assertThat(service.getCacheMisses(CACHE)).isEqualTo(1);
+    assertThat(service.getCacheStatistics(CACHE).getCacheMisses()).isEqualTo(1);
   }
 
   @Test
