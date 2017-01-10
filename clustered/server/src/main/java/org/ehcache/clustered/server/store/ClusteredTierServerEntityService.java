@@ -74,7 +74,7 @@ public class ClusteredTierServerEntityService implements EntityServerService<Ehc
   @Override
   public ClusteredTierPassiveEntity createPassiveEntity(ServiceRegistry registry, byte[] configuration) throws ConfigurationException {
     ClusteredTierEntityConfiguration clusteredTierEntityConfiguration = configCodec.decodeClusteredStoreConfiguration(configuration);
-    return new ClusteredTierPassiveEntity(clusteredTierEntityConfiguration);
+    return new ClusteredTierPassiveEntity(registry, clusteredTierEntityConfiguration, DEFAULT_MAPPER);
   }
 
   @Override
