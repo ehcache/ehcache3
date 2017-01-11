@@ -98,7 +98,7 @@ public class EhcacheCachingProvider implements CachingProvider {
    *
    * @return a cache manager
    */
-  public Eh107CacheManager getCacheManager(URI uri, Configuration config) {
+  public CacheManager getCacheManager(URI uri, Configuration config) {
     return getCacheManager(uri, config, new Properties());
   }
 
@@ -112,7 +112,7 @@ public class EhcacheCachingProvider implements CachingProvider {
    *
    * @return a cache manager
    */
-  public Eh107CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
+  public CacheManager getCacheManager(URI uri, Configuration config, Properties properties) {
     Eh107CacheManager cacheManager;
     ConcurrentMap<URI, Eh107CacheManager> byURI;
     ClassLoader classLoader = config.getClassLoader();

@@ -21,17 +21,23 @@ import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.config.ResourceType;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
+import org.ehcache.core.config.DefaultConfiguration;
 import org.ehcache.core.internal.util.ValueSuppliers;
+import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.jsr107.Eh107Configuration;
+import org.ehcache.jsr107.EhcacheCachingProvider;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.pany.domain.Client;
 import com.pany.domain.Product;
 
+import java.io.File;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -66,6 +72,8 @@ public class EhCache107ConfigurationIntegrationDocTest {
 
   private CacheManager cacheManager;
   private CachingProvider cachingProvider;
+  @Rule
+  public TemporaryFolder tempFolder = new TemporaryFolder();
 
   @Before
   public void setUp() throws Exception {
@@ -266,5 +274,24 @@ public class EhCache107ConfigurationIntegrationDocTest {
     cacheManager = cachingProvider.getCacheManager(
         getClass().getResource("/org/ehcache/docs/ehcache-jsr107-cache-through.xml").toURI(),
         getClass().getClassLoader());
+  }
+
+  @Test
+  public void testCacheManagerLevelConfiguration() throws Exception {
+    // tag::ehcacheCacheManagerConfigurationExample[]
+    CachingProvider cachingProvider = Caching.getCachingProvider();
+    EhcacheCachingProvider ehcacheProvider = (EhcacheCachingProvider) cachingProvider; // <1>
+
+    DefaultConfiguration configuration = new DefaultConfiguration(ehcacheProvider.getDefaultClassLoader(),
+      new DefaultPersistenceConfiguration(getPersistenceDirectory())); // <2>
+
+    CacheManager cacheManager = ehcacheProvider.getCacheManager(ehcacheProvider.getDefaultURI(), configuration); // <3>
+    // end::ehcacheCacheManagerConfigurationExample[]
+
+    assertThat(cacheManager, notNullValue());
+  }
+
+  private File getPersistenceDirectory() {
+    return tempFolder.getRoot();
   }
 }

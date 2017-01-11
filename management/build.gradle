@@ -14,11 +14,14 @@
  * limitations under the License.
  */
 
+import org.gradle.internal.jvm.Jvm
+
 apply plugin: EhDeploy
 
 dependencies {
   compileOnly project(':xml')
   compileOnly project(':clustered:client')
+  compileOnly "org.terracotta:entity-client-api:$parent.entityApiVersion"
 
   compile project(':api')
   compile project(':core')
@@ -40,11 +43,9 @@ dependencies {
 compileTestJava {
   sourceCompatibility = 1.8
   targetCompatibility = 1.8
-  options.fork = true;
-  options.forkOptions.executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'javac')
+  options.forkOptions.executable = Jvm.current().javacExecutable
 }
 
 test {
-  executable = MavenToolchain.javaExecutable(JavaVersion.VERSION_1_8, 'java')
-  environment 'JAVA_HOME', MavenToolchain.javaHome(JavaVersion.VERSION_1_8)
+  executable = Jvm.current().javaExecutable
 }

@@ -14,8 +14,19 @@
  * limitations under the License.
  */
 
-apply plugin: EhDeploy
+package org.ehcache.clustered.client.internal.config;
 
-dependencies {
-  provided "org.terracotta:entity-server-api:$parent.entityApiVersion"
+import org.ehcache.config.ResourcePool;
+import org.junit.Test;
+
+import static org.mockito.Mockito.mock;
+
+public class SharedClusteredResourcePoolImplTest {
+
+  @Test(expected = UnsupportedOperationException.class)
+  public void validateUpdate() throws Exception {
+    SharedClusteredResourcePoolImpl resourcePool = new SharedClusteredResourcePoolImpl("foo");
+    resourcePool.validateUpdate(mock(ResourcePool.class));
+  }
+
 }
