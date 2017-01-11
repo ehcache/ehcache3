@@ -16,6 +16,7 @@
 package org.ehcache.jsr107;
 
 import org.ehcache.core.spi.service.StatisticsService;
+import org.ehcache.core.statistics.CacheStatistics;
 
 import java.net.URI;
 
@@ -35,62 +36,65 @@ class Eh107CacheStatisticsMXBean extends Eh107MXBean implements javax.cache.mana
 
   @Override
   public void clear() {
-    statisticsService.clear(cacheName);
+    getCacheStatistics().clear();
   }
 
   @Override
   public long getCacheHits() {
-    return statisticsService.getCacheHits(cacheName);
+    return getCacheStatistics().getCacheHits();
   }
 
   @Override
   public float getCacheHitPercentage() {
-    return statisticsService.getCacheHitPercentage(cacheName);
+    return getCacheStatistics().getCacheHitPercentage();
   }
 
   @Override
   public long getCacheMisses() {
-    return statisticsService.getCacheMisses(cacheName);
+    return getCacheStatistics().getCacheMisses();
   }
 
   @Override
   public float getCacheMissPercentage() {
-    return statisticsService.getCacheMissPercentage(cacheName);
+    return getCacheStatistics().getCacheMissPercentage();
   }
 
   @Override
   public long getCacheGets() {
-    return statisticsService.getCacheGets(cacheName);
+    return getCacheStatistics().getCacheGets();
   }
 
   @Override
   public long getCachePuts() {
-    return statisticsService.getCachePuts(cacheName);
+    return getCacheStatistics().getCachePuts();
   }
 
   @Override
   public long getCacheRemovals() {
-    return statisticsService.getCacheRemovals(cacheName);
+    return getCacheStatistics().getCacheRemovals();
   }
 
   @Override
   public long getCacheEvictions() {
-    return statisticsService.getCacheEvictions(cacheName);
+    return getCacheStatistics().getCacheEvictions();
   }
 
   @Override
   public float getAverageGetTime() {
-    return statisticsService.getAverageGetTime(cacheName);
+    return getCacheStatistics().getCacheAverageGetTime();
   }
 
   @Override
   public float getAveragePutTime() {
-    return statisticsService.getAveragePutTime(cacheName);
+    return getCacheStatistics().getCacheAveragePutTime();
   }
 
   @Override
   public float getAverageRemoveTime() {
-    return statisticsService.getAverageRemoveTime(cacheName);
+    return getCacheStatistics().getCacheAverageRemoveTime();
   }
 
+  private CacheStatistics getCacheStatistics() {
+    return statisticsService.getCacheStatistics(cacheName);
+  }
 }

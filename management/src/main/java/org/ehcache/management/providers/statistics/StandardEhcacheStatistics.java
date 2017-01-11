@@ -16,13 +16,11 @@
 package org.ehcache.management.providers.statistics;
 
 import org.ehcache.core.spi.service.StatisticsService;
-import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.statistics.TierOperationOutcomes;
+import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.core.statistics.TypedValueStatistic;
 import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
-import org.terracotta.context.extended.OperationStatisticDescriptor;
-import org.terracotta.context.extended.ValueStatisticDescriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.collect.StatisticRegistry;
@@ -30,39 +28,33 @@ import org.terracotta.management.registry.collect.StatisticRegistry;
 import java.util.Collection;
 import java.util.Map;
 
-import static java.util.Collections.singleton;
-import static java.util.EnumSet.allOf;
-import static java.util.EnumSet.of;
-
 public class StandardEhcacheStatistics extends ExposedCacheBinding {
 
   private final StatisticRegistry statisticRegistry;
-  private final StatisticsService statisticsService;
   private final String cacheName;
 
   StandardEhcacheStatistics(ManagementRegistryServiceConfiguration registryConfiguration, CacheBinding cacheBinding, StatisticsService statisticsService) {
     super(registryConfiguration, cacheBinding);
     this.cacheName = cacheBinding.getAlias();
     this.statisticRegistry = new StatisticRegistry(cacheBinding.getCache());
-    this.statisticsService = statisticsService;
 
-    OperationStatisticDescriptor<CacheOperationOutcomes.GetOutcome> cacheGet = OperationStatisticDescriptor.descriptor("get", singleton("cache"), CacheOperationOutcomes.GetOutcome.class);
-    OperationStatisticDescriptor<CacheOperationOutcomes.ClearOutcome> cacheClear = OperationStatisticDescriptor.descriptor("clear", singleton("cache"), CacheOperationOutcomes.ClearOutcome.class);
-    OperationStatisticDescriptor<TierOperationOutcomes.GetOutcome> tierGet = OperationStatisticDescriptor.descriptor("get", singleton("tier"), TierOperationOutcomes.GetOutcome.class);
-    OperationStatisticDescriptor<TierOperationOutcomes.EvictionOutcome> tierEviction = OperationStatisticDescriptor.descriptor("eviction", singleton("tier"), TierOperationOutcomes.EvictionOutcome.class);
+    CacheStatistics cacheStatistics = statisticsService.getCacheStatistics(cacheName);
+    Map<String, TypedValueStatistic> knownStatistics = cacheStatistics.getKnownStatistics();
 
-    statisticRegistry.registerCounter("Cache:HitCount", cacheGet, of(CacheOperationOutcomes.GetOutcome.HIT));
-    statisticRegistry.registerCounter("Cache:MissCount", cacheGet, of(CacheOperationOutcomes.GetOutcome.MISS));
-    statisticRegistry.registerCounter("Cache:ClearCount", cacheClear, allOf(CacheOperationOutcomes.ClearOutcome.class));
-
-    statisticRegistry.registerCounter("HitCount", tierGet, of(TierOperationOutcomes.GetOutcome.HIT));
-    statisticRegistry.registerCounter("MissCount", tierGet, of(TierOperationOutcomes.GetOutcome.MISS));
-    statisticRegistry.registerCounter("EvictionCount", tierEviction, allOf(TierOperationOutcomes.EvictionOutcome.class));
-
-    statisticRegistry.registerCounter("MappingCount", ValueStatisticDescriptor.descriptor("mappings", singleton("tier")));
-    statisticRegistry.registerCounter("MaxMappingCount", ValueStatisticDescriptor.descriptor("maxMappings", singleton("tier")));
-    statisticRegistry.registerSize("AllocatedByteSize", ValueStatisticDescriptor.descriptor("allocatedMemory", singleton("tier")));
-    statisticRegistry.registerSize("OccupiedByteSize", ValueStatisticDescriptor.descriptor("occupiedMemory", singleton("tier")));
+    for(Map.Entry<String, TypedValueStatistic> stat : knownStatistics.entrySet()) {
+      String name = stat.getKey();
+      TypedValueStatistic valueStatistic = stat.getValue();
+      switch (valueStatistic.getType()) {
+        case COUNTER:
+          statisticRegistry.registerCounter(name, valueStatistic);
+          break;
+        case SIZE:
+          statisticRegistry.registerSize(name, valueStatistic);
+          break;
+        default:
+          throw new IllegalArgumentException("Unsupported statistic type: " + valueStatistic.getType());
+      }
+    }
   }
 
   public Statistic<?, ?> queryStatistic(String fullStatisticName) {

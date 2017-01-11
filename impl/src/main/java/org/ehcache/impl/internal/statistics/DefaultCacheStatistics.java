@@ -16,40 +16,38 @@
 
 package org.ehcache.impl.internal.statistics;
 
-import org.ehcache.Cache;
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
-import org.ehcache.core.statistics.StoreOperationOutcomes;
-import org.terracotta.context.ContextManager;
-import org.terracotta.context.TreeNode;
-import org.terracotta.context.query.Matchers;
-import org.terracotta.context.query.Query;
+import org.ehcache.core.statistics.CacheStatistics;
+import org.ehcache.core.statistics.TierStatistics;
+import org.ehcache.core.statistics.TypedValueStatistic;
 import org.terracotta.statistics.OperationStatistic;
 import org.terracotta.statistics.derived.LatencySampling;
 import org.terracotta.statistics.derived.MinMaxAverage;
+import org.terracotta.statistics.extended.StatisticType;
 import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.ChainedOperationObserver;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static java.util.EnumSet.allOf;
-import static org.terracotta.context.query.Matchers.attributes;
-import static org.terracotta.context.query.Matchers.context;
-import static org.terracotta.context.query.Matchers.hasAttribute;
-import static org.terracotta.context.query.QueryBuilder.queryBuilder;
+import static org.ehcache.impl.internal.statistics.StatsUtils.findLowestTier;
+import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatistic;
+import static org.ehcache.impl.internal.statistics.StatsUtils.findTiers;
 
 /**
  * Contains usage statistics relative to a given cache.
- *
- * @author Henri Tremblay
  */
-class CacheStatistics {
+class DefaultCacheStatistics implements CacheStatistics {
 
-  private final CompensatingCounters compensatingCounters = new CompensatingCounters();
+  private volatile CompensatingCounters compensatingCounters = CompensatingCounters.empty();
 
   private final OperationStatistic<CacheOperationOutcomes.GetOutcome> get;
   private final OperationStatistic<CacheOperationOutcomes.PutOutcome> put;
@@ -57,7 +55,6 @@ class CacheStatistics {
   private final OperationStatistic<CacheOperationOutcomes.PutIfAbsentOutcome> putIfAbsent;
   private final OperationStatistic<CacheOperationOutcomes.ReplaceOutcome> replace;
   private final OperationStatistic<CacheOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
-  private final OperationStatistic<StoreOperationOutcomes.EvictionOutcome> lowestTierEviction;
 
   private final Map<BulkOps, LongAdder> bulkMethodEntries;
 
@@ -65,89 +62,80 @@ class CacheStatistics {
   private final LatencyMonitor<CacheOperationOutcomes.PutOutcome> averagePutTime;
   private final LatencyMonitor<CacheOperationOutcomes.RemoveOutcome> averageRemoveTime;
 
-  public CacheStatistics(InternalCache<?, ?> cache) {
-    this.bulkMethodEntries = cache.getBulkMethodEntries();
+  private final List<TierStatistics> tierStatistics;
+  private final TierStatistics lowestTier;
 
-    get = findCacheStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
-    put = findCacheStatistic(cache, CacheOperationOutcomes.PutOutcome.class, "put");
-    remove = findCacheStatistic(cache, CacheOperationOutcomes.RemoveOutcome.class, "remove");
-    putIfAbsent = findCacheStatistic(cache, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
-    replace = findCacheStatistic(cache, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
-    conditionalRemove = findCacheStatistic(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
-    lowestTierEviction = findLowestTierStatistic(cache, StoreOperationOutcomes.EvictionOutcome.class, "eviction");
+  private final Map<String, TypedValueStatistic> knownStatistics;
+
+  public DefaultCacheStatistics(InternalCache<?, ?> cache) {
+    bulkMethodEntries = cache.getBulkMethodEntries();
+
+    get = findOperationStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
+    put = findOperationStatistic(cache, CacheOperationOutcomes.PutOutcome.class, "put");
+    remove = findOperationStatistic(cache, CacheOperationOutcomes.RemoveOutcome.class, "remove");
+    putIfAbsent = findOperationStatistic(cache, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
+    replace = findOperationStatistic(cache, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
+    conditionalRemove = findOperationStatistic(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
 
     averageGetTime = new LatencyMonitor<CacheOperationOutcomes.GetOutcome>(allOf(CacheOperationOutcomes.GetOutcome.class));
     get.addDerivedStatistic(averageGetTime);
     averagePutTime = new LatencyMonitor<CacheOperationOutcomes.PutOutcome>(allOf(CacheOperationOutcomes.PutOutcome.class));
     put.addDerivedStatistic(averagePutTime);
-    averageRemoveTime= new LatencyMonitor<CacheOperationOutcomes.RemoveOutcome>(allOf(CacheOperationOutcomes.RemoveOutcome.class));
+    averageRemoveTime = new LatencyMonitor<CacheOperationOutcomes.RemoveOutcome>(allOf(CacheOperationOutcomes.RemoveOutcome.class));
     remove.addDerivedStatistic(averageRemoveTime);
-  }
 
-  static <T extends Enum<T>> OperationStatistic<T> findCacheStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
-    @SuppressWarnings("unchecked")
-    Query query = queryBuilder()
-      .children()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
-      .build();
+    String[] tierNames = findTiers(cache);
 
-    Set<TreeNode> result = query.execute(Collections.singleton(ContextManager.nodeFor(cache)));
-    if (result.size() > 1) {
-      throw new RuntimeException("result must be unique");
-    }
-    if (result.isEmpty()) {
-      throw new RuntimeException("result must not be null");
-    }
-    @SuppressWarnings("unchecked")
-    OperationStatistic<T> statistic = (OperationStatistic<T>) result.iterator().next().getContext().attributes().get("this");
-    return statistic;
-  }
+    String lowestTierName = findLowestTier(tierNames);
+    TierStatistics lowestTier = null;
 
-  <T extends Enum<T>> OperationStatistic<T> findLowestTierStatistic(Cache<?, ?> cache, Class<T> type, String statName) {
-
-    @SuppressWarnings("unchecked")
-    Query statQuery = queryBuilder()
-      .descendants()
-      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(hasAttribute("name", statName), hasAttribute("type", type)))))
-      .build();
-
-    Set<TreeNode> statResult = statQuery.execute(Collections.singleton(ContextManager.nodeFor(cache)));
-
-    if (statResult.size() < 1) {
-      throw new RuntimeException("Failed to find lowest tier statistic: " + statName + " , valid result Set sizes must 1 or more.  Found result Set size of: " + statResult.size());
-    }
-
-    //if only 1 store then you don't need to find the lowest tier
-    if (statResult.size() == 1) {
-      @SuppressWarnings("unchecked")
-      OperationStatistic<T> statistic = (OperationStatistic<T>) statResult.iterator().next().getContext().attributes().get("this");
-      return statistic;
-    }
-
-    String lowestStoreType = "onheap";
-    TreeNode lowestTierNode = null;
-    for (TreeNode treeNode : statResult) {
-      if (((Set)treeNode.getContext().attributes().get("tags")).size() != 1) {
-        throw new RuntimeException("Failed to find lowest tier statistic. \"tags\" set must be size 1");
-      }
-
-      String storeType = treeNode.getContext().attributes().get("tags").toString();
-      if (storeType.compareToIgnoreCase(lowestStoreType) < 0) {
-        lowestStoreType = treeNode.getContext().attributes().get("tags").toString();
-        lowestTierNode = treeNode;
+    tierStatistics = new ArrayList<TierStatistics>(tierNames.length);
+    for (String tierName : tierNames) {
+      TierStatistics tierStatistics = new DefaultTierStatistics(cache, tierName);
+      this.tierStatistics.add(tierStatistics);
+      if (lowestTierName.equals(tierName)) {
+        lowestTier = tierStatistics;
       }
     }
+    this.lowestTier = lowestTier;
 
-    @SuppressWarnings("unchecked")
-    OperationStatistic<T> statistic = (OperationStatistic<T>) lowestTierNode.getContext().attributes().get("this");
-    return statistic;
+    knownStatistics = createKnownStatistics();
+  }
+
+  private Map<String, TypedValueStatistic> createKnownStatistics() {
+    Map<String, TypedValueStatistic> knownStatistics = new HashMap<String, TypedValueStatistic>(30);
+    knownStatistics.put("Cache:HitCount", new TypedValueStatistic(StatisticType.COUNTER) {
+      @Override
+      public Number value() {
+        return getCacheHits();
+      }
+    });
+    knownStatistics.put("Cache:MissCount", new TypedValueStatistic(StatisticType.COUNTER) {
+      @Override
+      public Number value() {
+        return getCacheMisses();
+      }
+    });
+
+    for (TierStatistics tier : tierStatistics) {
+      knownStatistics.putAll(tier.getKnownStatistics());
+    }
+
+    return Collections.unmodifiableMap(knownStatistics);
+  }
+
+  public Map<String, TypedValueStatistic> getKnownStatistics() {
+    return knownStatistics;
   }
 
   public void clear() {
-    compensatingCounters.snapshot();
+    compensatingCounters = compensatingCounters.snapshot(this);
     averageGetTime.clear();
     averagePutTime.clear();
     averageRemoveTime.clear();
+    for (TierStatistics t : tierStatistics) {
+      t.clear();
+    }
   }
 
   public long getCacheHits() {
@@ -192,18 +180,18 @@ class CacheStatistics {
   }
 
   public long getCacheEvictions() {
-    return normalize(lowestTierEviction.sum(EnumSet.of(StoreOperationOutcomes.EvictionOutcome.SUCCESS)) - compensatingCounters.cacheEvictions);
+    return normalize(lowestTier.getEvictions());
   }
 
-  public float getAverageGetTime() {
+  public float getCacheAverageGetTime() {
     return (float) averageGetTime.value();
   }
 
-  public float getAveragePutTime() {
+  public float getCacheAveragePutTime() {
     return (float) averagePutTime.value();
   }
 
-  public float getAverageRemoveTime() {
+  public float getCacheAverageRemoveTime() {
     return (float) averageRemoveTime.value();
   }
 
@@ -238,29 +226,46 @@ class CacheStatistics {
     return Math.min(1.0f, Math.max(0.0f, value));
   }
 
-  private class CompensatingCounters {
-    volatile long cacheHits;
-    volatile long cacheMisses;
-    volatile long cacheGets;
-    volatile long bulkGetHits;
-    volatile long bulkGetMiss;
-    volatile long cachePuts;
-    volatile long bulkPuts;
-    volatile long cacheRemovals;
-    volatile long bulkRemovals;
-    volatile long cacheEvictions;
+  private static class CompensatingCounters {
+    final long cacheHits;
+    final long cacheMisses;
+    final long cacheGets;
+    final long bulkGetHits;
+    final long bulkGetMiss;
+    final long cachePuts;
+    final long bulkPuts;
+    final long cacheRemovals;
+    final long bulkRemovals;
 
-    void snapshot() {
-      cacheHits += getCacheHits();
-      cacheMisses += getCacheMisses();
-      cacheGets += getCacheGets();
-      bulkGetHits += getBulkCount(BulkOps.GET_ALL_HITS);
-      bulkGetMiss += getBulkCount(BulkOps.GET_ALL_MISS);
-      cachePuts += getCachePuts();
-      bulkPuts += getBulkCount(BulkOps.PUT_ALL);
-      cacheRemovals += getCacheRemovals();
-      bulkRemovals += getBulkCount(BulkOps.REMOVE_ALL);
-      cacheEvictions += getCacheEvictions();
+    private CompensatingCounters(long cacheHits, long cacheMisses, long cacheGets, long bulkGetHits, long bulkGetMiss,
+                                 long cachePuts, long bulkPuts, long cacheRemovals, long bulkRemovals) {
+      this.cacheHits = cacheHits;
+      this.cacheMisses = cacheMisses;
+      this.cacheGets = cacheGets;
+      this.bulkGetHits = bulkGetHits;
+      this.bulkGetMiss = bulkGetMiss;
+      this.cachePuts = cachePuts;
+      this.bulkPuts = bulkPuts;
+      this.cacheRemovals = cacheRemovals;
+      this.bulkRemovals = bulkRemovals;
+    }
+
+    static CompensatingCounters empty() {
+      return new CompensatingCounters(0, 0, 0, 0, 0, 0,
+        0, 0, 0);
+    }
+
+    CompensatingCounters snapshot(DefaultCacheStatistics statistics) {
+      return new CompensatingCounters(
+        cacheHits + statistics.getCacheHits(),
+        cacheMisses + statistics.getCacheMisses(),
+        cacheGets + statistics.getCacheGets(),
+        bulkGetHits + statistics.getBulkCount(BulkOps.GET_ALL_HITS),
+        bulkGetMiss + statistics.getBulkCount(BulkOps.GET_ALL_MISS),
+        cachePuts + statistics.getCachePuts(),
+        bulkPuts + statistics.getBulkCount(BulkOps.PUT_ALL),
+        cacheRemovals + statistics.getCacheRemovals(),
+        bulkRemovals + statistics.getBulkCount(BulkOps.REMOVE_ALL));
     }
   }
 

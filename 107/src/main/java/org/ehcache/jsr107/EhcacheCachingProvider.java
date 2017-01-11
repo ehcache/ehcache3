@@ -136,16 +136,20 @@ public class EhcacheCachingProvider implements CachingProvider {
 
   private Eh107CacheManager createCacheManager(URI uri, Configuration config, Properties properties) {
     Eh107CacheLoaderWriterProvider cacheLoaderWriterFactory = new Eh107CacheLoaderWriterProvider();
-    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, config.getServiceCreationConfigurations().toArray()));
 
-    StatisticsService statisticsService = new DefaultStatisticsService();
+    Object[] serviceCreationConfigurations = config.getServiceCreationConfigurations().toArray();
+
+    Jsr107Service jsr107Service = new DefaultJsr107Service(ServiceLocator.findSingletonAmongst(Jsr107Configuration.class, serviceCreationConfigurations));
 
     Collection<Service> services = new ArrayList<Service>(4);
     services.add(cacheLoaderWriterFactory);
     services.add(jsr107Service);
-    services.add(statisticsService);
 
-    if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, config.getServiceCreationConfigurations().toArray()) == null) {
+    if(ServiceLocator.findSingletonAmongst(StatisticsService.class, serviceCreationConfigurations) == null) {
+      services.add(new DefaultStatisticsService());
+    }
+
+    if (ServiceLocator.findSingletonAmongst(DefaultSerializationProviderConfiguration.class, serviceCreationConfigurations) == null) {
       services.add(new DefaultJsr107SerializationProvider());
     }
 
