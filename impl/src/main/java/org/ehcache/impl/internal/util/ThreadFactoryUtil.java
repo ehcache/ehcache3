@@ -25,12 +25,13 @@ public class ThreadFactoryUtil {
 
   public static ThreadFactory threadFactory(final String alias) {
     return new ThreadFactory() {
-
+      private final ThreadGroup threadGroup = Thread.currentThread().getThreadGroup();
       private final AtomicInteger threadCount = new AtomicInteger();
+      private final String poolAlias = (alias == null ? "_default_" : alias);
 
       @Override
       public Thread newThread(Runnable r) {
-        return new Thread(r, "Ehcache [" + alias + "]-" + threadCount.getAndIncrement());
+        return new Thread(threadGroup, r, "Ehcache [" + poolAlias + "]-" + threadCount.getAndIncrement());
       }
     };
   }
