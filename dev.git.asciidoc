@@ -59,7 +59,7 @@ So unless your fix can directly be merged in the different branches, you will ha
 
 The idea behind this strategy is that the commits that were created on branch `issue-1048` in this example are now part of the history of the different releases and tracking which fix exists where is vastly simplified over the different strategies that are `cherry-pick` based.
 
-===== When no manual merge is needed
+===== Create the pull requests
 
 The easiest way is to use GitHub's *compare across forks* feature when creating the pull request. Use the Ehcache repo as the *base fork* and your own repo as the *head fork*, then pick _your_ branch containing the fix as the *compare* branch.
 
