@@ -25,6 +25,7 @@ public class LookupTransactionManagerProviderConfiguration implements ServiceCre
 
   private final Class<? extends TransactionManagerLookup> lookupClass;
 
+  @SuppressWarnings("unchecked")
   public LookupTransactionManagerProviderConfiguration(String className) throws ClassNotFoundException {
     this.lookupClass = (Class<? extends TransactionManagerLookup>) Class.forName(className);
   }

@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
+import static org.ehcache.core.internal.service.ServiceLocator.dependencySet;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
@@ -525,7 +526,7 @@ public class EhcacheBulkMethodsITest {
 
     @Override
     public <K, V> Store<K, V> createStore(Store.Configuration<K, V> storeConfig, ServiceConfiguration<?>... serviceConfigs) {
-      ServiceLocator serviceLocator = new ServiceLocator(new DefaultSerializationProvider(null));
+      ServiceLocator serviceLocator = dependencySet().with(new DefaultSerializationProvider(null)).build();
       try {
         serviceLocator.startAllServices();
       } catch (Exception e) {

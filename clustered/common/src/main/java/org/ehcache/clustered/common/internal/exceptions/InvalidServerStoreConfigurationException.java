@@ -26,8 +26,8 @@ public class InvalidServerStoreConfigurationException extends ClusterException {
     super(message);
   }
 
-  public InvalidServerStoreConfigurationException(Throwable cause) {
-    super(cause);
+  public InvalidServerStoreConfigurationException(String message, Throwable cause) {
+    super(message, cause);
   }
 
   private InvalidServerStoreConfigurationException(InvalidServerStoreConfigurationException cause) {

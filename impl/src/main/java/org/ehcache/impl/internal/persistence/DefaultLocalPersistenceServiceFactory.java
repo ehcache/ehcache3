@@ -25,6 +25,7 @@ import org.ehcache.core.spi.service.ServiceFactory;
 /**
  * @author Alex Snaps
  */
+@ServiceFactory.RequiresConfiguration
 public class DefaultLocalPersistenceServiceFactory implements ServiceFactory<LocalPersistenceService> {
 
   @Override

@@ -45,6 +45,7 @@ public class XAValueHolderTest {
     outputStream.writeObject(valueHolder);
     outputStream.close();
 
+    @SuppressWarnings("unchecked")
     XAValueHolder<String> result = (XAValueHolder<String>) new ObjectInputStream(new ByteArrayInputStream(baos.toByteArray())).readObject();
 
     assertThat(result.getId(), is(valueHolder.getId()));

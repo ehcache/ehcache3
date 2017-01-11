@@ -16,7 +16,7 @@
 
 package org.ehcache.impl.serialization;
 
-import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 import org.hamcrest.core.Is;
 import org.junit.Assert;
 import org.junit.Test;
@@ -41,7 +41,9 @@ public class AddedFieldTest {
 
   @Test
   public void addingSerializableField() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    @SuppressWarnings("unchecked")
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+    serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(A_write.class, IncompatibleSerializable_write.class, Serializable_write.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(A_write.class)).newInstance();
@@ -58,7 +60,9 @@ public class AddedFieldTest {
 
   @Test
   public void addingExternalizableField() throws Exception {
-    Serializer<Serializable> serializer = new CompactJavaSerializer(null);
+    @SuppressWarnings("unchecked")
+    StatefulSerializer<Serializable> serializer = new CompactJavaSerializer(null);
+    serializer.init(new TransientStateRepository());
 
     ClassLoader loaderA = createClassNameRewritingLoader(B_write.class, Externalizable_write.class);
     Serializable a = (Serializable) loaderA.loadClass(newClassName(B_write.class)).newInstance();

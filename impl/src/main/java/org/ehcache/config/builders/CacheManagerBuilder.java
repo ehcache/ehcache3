@@ -100,7 +100,8 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
   }
 
   /**
-   * Creates a new {@link CacheManager} based on the provided configuration
+   * Creates a new {@link CacheManager} based on the provided configuration.
+   * The returned {@code CacheManager} is uninitialized.
    *
    * @param configuration the configuration to use
    * @return a {@code CacheManager}
@@ -374,11 +375,13 @@ public class CacheManagerBuilder<T extends CacheManager> implements Builder<T> {
   }
 
   /**
-   * Convenience method to get a {@link CacheManagerConfiguration} for a {@link PersistentCacheManager}.
+   * Convenience method to get a {@link CacheManagerConfiguration} for a {@link PersistentCacheManager} stored on disk. The actual
+   * level of persistence is configured on the disk resource pool per cache.
    *
    * @param location the file location for persistent data
    * @return a {@code CacheManagerConfiguration}
    *
+   * @see ResourcePoolsBuilder#disk(long, MemoryUnit, boolean)
    * @see #with(CacheManagerConfiguration)
    * @see PersistentCacheManager
    */

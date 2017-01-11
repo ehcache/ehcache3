@@ -1,9 +1,9 @@
 ---
 ---
 = Thread Pools
-ifndef::sourcedir31[]
+ifndef::sourcedir32[]
 include::common.adoc[]
-endif::sourcedir31[]
+endif::sourcedir32[]
 
 ifdef::notBuildingForSite[]
 include::menu.adoc[]
@@ -66,12 +66,12 @@ Following is the list of services making use of `ExecutionService`:
    `CacheEventDispatcherFactoryConfiguration` is used to configure what thread pool to use at the cache manager level.
 
 The different builders will make use of the right configuration class, you do not have to use those classes directly.
-For instance, calling `CacheManagerBuilder.withDefaultDiskStoreThreadPool(String threadPoolAlias)` actually is identical
+For instance, calling `CacheManagerBuilder.withDefaultDiskStoreThreadPool(String threadPoolAlias)` is actually identical
 to calling `CacheManagerBuilder.using(new OffHeapDiskStoreProviderConfiguration(threadPoolAlias))`.
 
-The thread pool can be assigned to a service with the builders by passing to the ad-hoc method a
-`threadPoolAlias` parameter. When a service isn't told anything about what thread pool to use, the default thread pool
-is used.
+The thread pool can be assigned to a service with the builders by passing a
+`threadPoolAlias` parameter to the ad-hoc method. When a service isn't told anything about what thread pool to use,
+the default thread pool is used.
 
 
 == In practice
@@ -84,7 +84,7 @@ Following are examples of describing how to configure the thread pools the diffe
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=diskStore]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=diskStore]
 ----
 
 <1> Configure the thread pools. Note that the default one (`dflt`) is required for the events even when no event
@@ -96,7 +96,7 @@ include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=writeBehind]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=writeBehind]
 ----
 
 <1> Configure the thread pools. Note that the default one (`dflt`) is required for the events even when no event
@@ -109,7 +109,7 @@ include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=
 
 [source,java,indent=0]
 ----
-include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=events]
+include::{sourcedir32}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=events]
 ----
 
 <1> Configure the thread pools. Note that there is no default one so all thread-using services must be configured
@@ -122,7 +122,7 @@ include::{sourcedir31}/impl/src/test/java/org/ehcache/docs/ThreadPools.java[tag=
 
 [source,xml]
 ----
-include::{sourcedir31}/xml/src/test/resources/configs/docs/thread-pools.xml[tags=threadPools]
+include::{sourcedir32}/xml/src/test/resources/configs/docs/thread-pools.xml[tags=threadPools]
 ----
 
 <1> Configure the thread pools. Note that there is no default one.

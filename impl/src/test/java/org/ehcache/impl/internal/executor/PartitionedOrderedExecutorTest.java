@@ -297,7 +297,7 @@ public class PartitionedOrderedExecutorTest {
       List<Future<?>> tasks = new ArrayList<Future<?>>();
       for (int i = 0; i < 100; i++) {
         final int index = i;
-        tasks.add(executor.submit(new Callable() {
+        tasks.add(executor.submit(new Callable<Object>() {
 
           @Override
           public Object call() throws Exception {

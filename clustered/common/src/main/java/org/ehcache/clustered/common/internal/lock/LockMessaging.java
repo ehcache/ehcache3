@@ -20,7 +20,6 @@ import org.terracotta.entity.EntityMessage;
 import org.terracotta.entity.EntityResponse;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.MessageCodecException;
-import org.terracotta.entity.SyncMessageCodec;
 
 public class LockMessaging {
 
@@ -60,24 +59,8 @@ public class LockMessaging {
     }
   };
 
-  private static final SyncMessageCodec<LockOperation> SYNC_CODEC = new SyncMessageCodec<LockOperation>() {
-    @Override
-    public byte[] encode(int i, LockOperation message) throws MessageCodecException {
-      throw new AssertionError();
-    }
-
-    @Override
-    public LockOperation decode(int i, byte[] bytes) throws MessageCodecException {
-      throw new AssertionError();
-    }
-  };
-
   public static MessageCodec<LockOperation, LockTransition> codec() {
     return CODEC;
-  }
-
-  public static SyncMessageCodec<LockOperation> syncCodec() {
-    return SYNC_CODEC;
   }
 
   public static LockOperation tryLock(HoldType type) {

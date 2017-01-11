@@ -27,19 +27,23 @@ import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.IOException;
+import java.util.Arrays;
 
-import static junit.framework.TestCase.assertNotNull;
 import static org.ehcache.config.builders.CacheManagerBuilder.newCacheManagerBuilder;
-import static org.junit.Assert.assertNull;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.containsCacheDirectory;
+import static org.ehcache.impl.internal.util.FileExistenceMatchers.isLocked;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * @author Alex Snaps
  */
 public class PersistentCacheManagerTest {
+
+  private static final String TEST_CACHE_ALIAS = "test123";
 
   @Rule
   public ExpectedException thrown = ExpectedException.none();
@@ -52,7 +56,7 @@ public class PersistentCacheManagerTest {
 
   @Before
   public void setup() throws IOException {
-    rootDirectory = folder.newFolder("testInitializesLocalPersistenceService");
+    rootDirectory = folder.newFolder("testInitializesDiskResourceService");
     assertTrue(rootDirectory.delete());
     builder = newCacheManagerBuilder().with(new CacheManagerPersistenceConfiguration(rootDirectory));
   }
@@ -61,6 +65,15 @@ public class PersistentCacheManagerTest {
   public void testInitializesLocalPersistenceService() throws IOException {
     builder.build(true);
     assertTrue(rootDirectory.isDirectory());
+    assertThat(Arrays.asList(rootDirectory.list()), contains(".lock"));
+  }
+
+  @Test
+  public void testInitializesLocalPersistenceServiceAndCreateCache() throws IOException {
+    buildCacheManagerWithCache(true);
+
+    assertThat(rootDirectory, isLocked());
+    assertThat(rootDirectory, containsCacheDirectory(TEST_CACHE_ALIAS));
   }
 
   @Test
@@ -74,47 +87,82 @@ public class PersistentCacheManagerTest {
   @Test
   public void testDestroyCache_UnexistingCacheDoesNothing() throws CachePersistenceException {
     PersistentCacheManager manager = builder.build(true);
-    manager.destroyCache("test");
+    manager.destroyCache(TEST_CACHE_ALIAS);
   }
 
   @Test
   public void testDestroyCache_Initialized_DestroyExistingCache() throws CachePersistenceException {
-    PersistentCacheManager manager = builder
-      .withCache("test",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
-      .build(true);
-    assertNotNull(getCacheDirectory());
-    manager.destroyCache("test");
-    assertNull(getCacheDirectory());
+    PersistentCacheManager manager = buildCacheManagerWithCache(true);
+
+    manager.destroyCache(TEST_CACHE_ALIAS);
+
+    assertThat(rootDirectory, isLocked());
+    assertThat(rootDirectory, not(containsCacheDirectory(TEST_CACHE_ALIAS)));
   }
+
 
   @Test
   public void testDestroyCache_Uninitialized_DestroyExistingCache() throws CachePersistenceException {
-    PersistentCacheManager manager = builder
-      .withCache("test",
-        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-          ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
-      .build(true);
-    assertNotNull(getCacheDirectory());
-    manager.close(); // pass it to uninitialized
-    manager.destroyCache("test");
-    assertNull(getCacheDirectory());
+    PersistentCacheManager manager = buildCacheManagerWithCache(true);
+
+    manager.close();
+    manager.destroyCache(TEST_CACHE_ALIAS);
+
+    assertThat(rootDirectory, not(isLocked()));
+    assertThat(rootDirectory, not(containsCacheDirectory(TEST_CACHE_ALIAS)));
   }
 
-  private File getCacheDirectory() {
-    File[] files =  rootDirectory.listFiles(new FilenameFilter() {
-      @Override
-      public boolean accept(final File dir, final String name) {
-        return name.startsWith("test");
-      }
-    });
-    if(files == null || files.length == 0) {
-      return null;
+  @Test
+  public void testDestroyCache_CacheManagerUninitialized() throws CachePersistenceException {
+    PersistentCacheManager manager = buildCacheManagerWithCache(false);
+
+    manager.destroyCache(TEST_CACHE_ALIAS);
+
+    assertThat(rootDirectory, not(isLocked()));
+    assertThat(rootDirectory, not(containsCacheDirectory(TEST_CACHE_ALIAS)));
+  }
+
+  @Test
+  public void testClose_DiskCacheLockReleased() throws CachePersistenceException {
+    PersistentCacheManager manager = buildCacheManagerWithCache(true);
+
+    // Should lock the file when the CacheManager is opened
+    assertThat(rootDirectory, isLocked());
+
+    manager.close(); // pass it to uninitialized
+
+    // Should unlock the file when the CacheManager is closed
+    assertThat(rootDirectory, not(isLocked()));
+  }
+
+  @Test
+  public void testCloseAndThenOpenOnTheSameFile() throws CachePersistenceException {
+    // Open a CacheManager that will create a cache, close it and put it out of scope
+    {
+      PersistentCacheManager manager = buildCacheManagerWithCache(true);
+      manager.close();
     }
-    if(files.length > 1) {
-      fail("Too many cache directories");
+    //  Create a new CacheManager that will have the same cache. The cache should be there but the cache manager unlocked since the CacheManager isn't started
+    {
+      PersistentCacheManager manager = builder.build(false);
+      assertThat(rootDirectory, not(isLocked()));
+      assertThat(rootDirectory, containsCacheDirectory(TEST_CACHE_ALIAS));
     }
-    return files[0];
+  }
+
+  public static class A {
+
+    public A() throws IOException {
+      throw new IOException("..");
+    }
+
+  }
+
+  private PersistentCacheManager buildCacheManagerWithCache(boolean init) {
+    return builder
+      .withCache(TEST_CACHE_ALIAS,
+        CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
+          ResourcePoolsBuilder.newResourcePoolsBuilder().disk(10, MemoryUnit.MB, true)))
+      .build(init);
   }
 }

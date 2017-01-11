@@ -184,7 +184,7 @@ public class UnSupportedCombinationsWIthClusteredCacheTest {
   private static class TestEventListener implements CacheEventListener<Long, String> {
 
     @Override
-    public void onEvent(CacheEvent<Long, String> event) {
+    public void onEvent(CacheEvent<? extends Long, ? extends String> event) {
 
     }
   }

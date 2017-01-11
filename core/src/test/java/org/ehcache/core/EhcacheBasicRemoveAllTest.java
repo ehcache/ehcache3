@@ -259,14 +259,15 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void removeAllStoreCallsMethodTwice() throws Exception {
-    this.store = mock(Store.class);
-    CacheLoaderWriter cacheLoaderWriter = mock(CacheLoaderWriter.class);
+    CacheLoaderWriter<String, String> cacheLoaderWriter = mock(CacheLoaderWriter.class);
     final List<String> removed = new ArrayList<String>();
     doAnswer(new Answer() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        Iterable<String> i = (Iterable) invocation.getArguments()[0];
+        @SuppressWarnings("unchecked")
+        Iterable<String> i = (Iterable<String>) invocation.getArguments()[0];
         for (String key : i) {
           removed.add(key);
         }
@@ -275,13 +276,13 @@ public class EhcacheBasicRemoveAllTest extends EhcacheBasicCrudBase {
     }).when(cacheLoaderWriter).deleteAll(any(Iterable.class));
     final EhcacheWithLoaderWriter<String, String> ehcache = this.getEhcacheWithLoaderWriter(cacheLoaderWriter);
 
-    final ArgumentCaptor<Function> functionArgumentCaptor = ArgumentCaptor.forClass(Function.class);
+    final ArgumentCaptor<Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>>> functionArgumentCaptor = (ArgumentCaptor) ArgumentCaptor.forClass(Function.class);
 
     when(store.bulkCompute(anySet(), functionArgumentCaptor.capture())).then(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
-        Function function = functionArgumentCaptor.getValue();
-        Iterable arg = new HashMap((Map) function.getClass().getDeclaredField("val$entriesToRemove").get(function)).entrySet();
+        Function<Iterable<? extends Map.Entry<? extends String, ? extends String>>, Iterable<? extends Map.Entry<? extends String, ? extends String>>> function = functionArgumentCaptor.getValue();
+        Iterable<? extends Map.Entry<? extends String, ? extends String>> arg = new HashMap<String, String>((Map) function.getClass().getDeclaredField("val$entriesToRemove").get(function)).entrySet();
         function.apply(arg);
         function.apply(arg);
         return null;

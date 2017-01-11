@@ -76,6 +76,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+import static org.junit.Assume.assumeNoException;
 
 /**
  * Provides integration tests in which the server is terminated before the Ehcache operation completes.
@@ -123,11 +124,11 @@ public class TerminatedServerTest {
   }
 
   private static final String RESOURCE_CONFIG =
-      "<service xmlns:ohr='http://www.terracotta.org/config/offheap-resource' id=\"resources\">"
+      "<config xmlns:ohr='http://www.terracotta.org/config/offheap-resource'>"
           + "<ohr:offheap-resources>"
           + "<ohr:resource name=\"primary-server-resource\" unit=\"MB\">64</ohr:resource>"
           + "</ohr:offheap-resources>" +
-          "</service>\n";
+          "</config>\n";
 
   private static Map<String, String> OLD_PROPERTIES;
 
@@ -160,12 +161,21 @@ public class TerminatedServerTest {
     }
   }
 
+  private static Cluster createCluster() {
+    try {
+      return new BasicExternalCluster(new File("build/cluster"), 1, Collections.emptyList(), "", RESOURCE_CONFIG, "");
+    } catch (IllegalArgumentException e) {
+      assumeNoException(e);
+      return null;
+    }
+  }
+
   @Rule
   public final TestName testName = new TestName();
 
   // Included in 'ruleChain' below.
-  private final Cluster cluster =
-      new BasicExternalCluster(new File("build/cluster"), 1, Collections.<File>emptyList(), "", RESOURCE_CONFIG, "");
+  private final Cluster cluster = createCluster();
+
 
   // The TestRule.apply method is called on the inner-most Rule first with the result being passed to each
   // successively outer rule until the outer-most rule is reached. For ExternalResource rules, the before
@@ -505,7 +515,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }
 
@@ -541,7 +551,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }
 
@@ -578,7 +588,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#GET_AND_APPEND"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for GET_AND_APPEND"));
     }
   }
 
@@ -615,7 +625,7 @@ public class TerminatedServerTest {
       }.run();
       fail("Expecting StoreAccessTimeoutException");
     } catch (StoreAccessTimeoutException e) {
-      assertThat(e.getMessage(), containsString("Timeout exceeded for SERVER_STORE_OP#CLEAR"));
+      assertThat(e.getMessage(), containsString("Timeout exceeded for CLEAR"));
     }
   }
 

@@ -44,6 +44,7 @@ public class CacheManagerPersistenceConfiguration extends DefaultPersistenceConf
    * Transforms the builder received in one that returns a {@link PersistentCacheManager}.
    */
   @Override
+  @SuppressWarnings("unchecked")
   public CacheManagerBuilder<PersistentCacheManager> builder(final CacheManagerBuilder<? extends CacheManager> other) {
     return (CacheManagerBuilder<PersistentCacheManager>)other.using(this);
   }

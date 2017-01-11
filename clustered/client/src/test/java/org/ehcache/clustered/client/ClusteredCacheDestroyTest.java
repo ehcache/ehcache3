@@ -46,7 +46,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -186,7 +185,17 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheWithCacheManagerStopped_whenUsedExclusively() throws CachePersistenceException {
+  public void testDestroyCacheWithTwoCacheManagerOnSameCache_forbiddenWhenInUse() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
+    PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
+
+    expectedException.expect(CachePersistenceException.class);
+    expectedException.expectMessage("Cannot destroy clustered tier 'clustered-cache': in use by 1 other client(s) (on terracotta://example.com:9540)");
+    persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
+  }
+
+  @Test
+  public void testDestroyCacheWithTwoCacheManagerOnSameCache_firstRemovesSecondDestroy() throws CachePersistenceException {
     PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
 
@@ -196,12 +205,12 @@ public class ClusteredCacheDestroyTest {
   }
 
   @Test
-  public void testDestroyCacheWithCacheManagerStopped_forbiddenWhenInUse() throws CachePersistenceException {
-    PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(true);
+  public void testDestroyCacheWithTwoCacheManagerOnSameCache_secondDoesntHaveTheCacheButPreventExclusiveAccessToCluster() throws CachePersistenceException {
+    PersistentCacheManager persistentCacheManager1 = clusteredCacheManagerBuilder.build(false);
     PersistentCacheManager persistentCacheManager2 = clusteredCacheManagerBuilder.build(true);
 
-    expectedException.expect(CachePersistenceException.class);
-    expectedException.expectMessage("Cannot destroy clustered tier 'clustered-cache': in use by 1 other client(s) (on terracotta://example.com:9540)");
+    persistentCacheManager2.removeCache(CLUSTERED_CACHE);
+
     persistentCacheManager1.destroyCache(CLUSTERED_CACHE);
   }
 }

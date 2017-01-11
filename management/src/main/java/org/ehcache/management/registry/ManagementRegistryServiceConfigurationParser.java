@@ -100,14 +100,16 @@ public class ManagementRegistryServiceConfigurationParser implements CacheManage
 
           // average-window
           for (Element averageWindow : NodeListIterable.elements(statisticConfiguration, NAMESPACE, "average-window")) {
-            providerConfiguration.setAverageWindowDuration(Long.parseLong(val(averageWindow, String.valueOf(providerConfiguration.averageWindowDuration()))));
-            providerConfiguration.setAverageWindowUnit(unit(averageWindow, providerConfiguration.averageWindowUnit()));
+            providerConfiguration.setAverageWindowDuration(
+              Long.parseLong(val(averageWindow, String.valueOf(providerConfiguration.averageWindowDuration()))),
+              unit(averageWindow, providerConfiguration.averageWindowUnit()));
           }
 
           // history-interval
           for (Element historyInterval : NodeListIterable.elements(statisticConfiguration, NAMESPACE, "history-interval")) {
-            providerConfiguration.setHistoryInterval(Long.parseLong(val(historyInterval, String.valueOf(providerConfiguration.historyInterval()))));
-            providerConfiguration.setHistoryIntervalUnit(unit(historyInterval, providerConfiguration.historyIntervalUnit()));
+            providerConfiguration.setHistoryInterval(
+              Long.parseLong(val(historyInterval, String.valueOf(providerConfiguration.historyInterval()))),
+              unit(historyInterval, providerConfiguration.historyIntervalUnit()));
           }
 
           // history-size
@@ -117,8 +119,9 @@ public class ManagementRegistryServiceConfigurationParser implements CacheManage
 
           // time-to-disable
           for (Element timeToDisable : NodeListIterable.elements(statisticConfiguration, NAMESPACE, "time-to-disable")) {
-            providerConfiguration.setTimeToDisable(Long.parseLong(val(timeToDisable, String.valueOf(providerConfiguration.timeToDisable()))));
-            providerConfiguration.setTimeToDisableUnit(unit(timeToDisable, providerConfiguration.timeToDisableUnit()));
+            providerConfiguration.setTimeToDisable(
+              Long.parseLong(val(timeToDisable, String.valueOf(providerConfiguration.timeToDisable()))),
+              unit(timeToDisable, providerConfiguration.timeToDisableUnit()));
           }
 
           registryConfiguration.addConfiguration(providerConfiguration);

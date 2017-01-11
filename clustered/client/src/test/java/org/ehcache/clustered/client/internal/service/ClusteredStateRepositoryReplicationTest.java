@@ -25,10 +25,10 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClie
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
+import org.ehcache.spi.persistence.StateHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.terracotta.offheapresource.OffHeapResourcesConfiguration;
 import org.terracotta.offheapresource.OffHeapResourcesProvider;
 import org.terracotta.offheapresource.config.MemoryUnit;
 import org.terracotta.passthrough.PassthroughClusterControl;
@@ -37,7 +37,6 @@ import org.terracotta.passthrough.PassthroughTestHelpers;
 
 import java.lang.reflect.Field;
 import java.net.URI;
-import java.util.concurrent.ConcurrentMap;
 
 import static org.ehcache.clustered.client.internal.UnitTestConnectionService.getOffheapResourcesType;
 import static org.hamcrest.Matchers.is;
@@ -59,8 +58,7 @@ public class ClusteredStateRepositoryReplicationTest {
             server.registerClientEntityService(new EhcacheClientEntityService());
             server.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
             server.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
-            server.registerServiceProvider(new OffHeapResourcesProvider(),
-                new OffHeapResourcesConfiguration(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
+            server.registerExtendedConfiguration(new OffHeapResourcesProvider(getOffheapResourcesType("test", 32, MemoryUnit.MB)));
 
             UnitTestConnectionService.addServerToStripe(STRIPENAME, server);
           }
@@ -102,15 +100,15 @@ public class ClusteredStateRepositoryReplicationTest {
       }
     }, "test", clientEntity);
 
-    ConcurrentMap<String, String> testMap = stateRepository.getPersistentConcurrentMap("testMap", String.class, String.class);
-    testMap.putIfAbsent("One", "One");
-    testMap.putIfAbsent("Two", "Two");
+    StateHolder<String, String> testHolder = stateRepository.getPersistentStateHolder("testHolder", String.class, String.class);
+    testHolder.putIfAbsent("One", "One");
+    testHolder.putIfAbsent("Two", "Two");
 
     clusterControl.terminateActive();
     clusterControl.waitForActive();
 
-    assertThat(testMap.get("One"), is("One"));
-    assertThat(testMap.get("Two"), is("Two"));
+    assertThat(testHolder.get("One"), is("One"));
+    assertThat(testHolder.get("Two"), is("Two"));
 
     service.stop();
   }

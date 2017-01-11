@@ -1,0 +1,24 @@
+caches:
+    cache-1:
+        keyType: java.lang.String
+        valueType: java.lang.String
+        serviceConfigurations: None
+        evictionAdvisor: None
+        expiry: NoExpiry
+        resourcePools:
+            pools:
+                heap:
+                    size: 10 entries
+                    tierHeight: 10000
+                offheap:
+                    size: 1 MB
+                    tierHeight: 1000
+                clustered-dedicated:
+                    size: 2 MB (persistent)
+                    tierHeight: 10
+services:
+    - org.ehcache.clustered.client.config.ClusteringServiceConfiguration:
+        clusterUri: terracotta://server-1:9510/my-server-entity-2
+        readOperationTimeout: TimeoutDuration{20 SECONDS}
+        autoCreate: true
+    - org.ehcache.management.registry.DefaultManagementRegistryConfiguration

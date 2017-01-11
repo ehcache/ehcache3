@@ -1871,6 +1871,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
+    @SuppressWarnings("unchecked")
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForCreation(any(String.class), any(String.class))).thenReturn(Duration.ZERO);
 
@@ -1901,6 +1902,7 @@ public class EhcacheWithLoaderWriterBasicPutAllTest extends EhcacheBasicCrudBase
     final FakeCacheLoaderWriter fakeLoaderWriter = new FakeCacheLoaderWriter(originalWriterContent);
     this.cacheLoaderWriter = spy(fakeLoaderWriter);
 
+    @SuppressWarnings("unchecked")
     final Expiry<String, String> expiry = mock(Expiry.class);
     when(expiry.getExpiryForUpdate(any(String.class), argThat(org.ehcache.core.util.Matchers.<String>holding(instanceOf(String.class))), any(String.class))).thenReturn(Duration.ZERO);
 

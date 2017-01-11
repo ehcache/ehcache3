@@ -25,10 +25,11 @@ import org.ehcache.config.units.MemoryUnit;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
-import static java.util.Arrays.asList;
 import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
@@ -44,6 +45,39 @@ import static org.junit.Assert.fail;
  * @author cdennis
  */
 public class ResourcePoolsImplTest {
+
+  private static class ArbitraryType implements ResourceType<SizedResourcePool> {
+    private final int tierHeight;
+
+    public ArbitraryType(int tierHeight) {
+      this.tierHeight = tierHeight;
+    }
+
+    @Override
+    public Class<SizedResourcePool> getResourcePoolClass() {
+      return SizedResourcePool.class;
+    }
+
+    @Override
+    public boolean isPersistable() {
+      return false;
+    }
+
+    @Override
+    public boolean requiresSerialization() {
+      return false;
+    }
+
+    @Override
+    public int getTierHeight() {
+      return tierHeight;
+    }
+
+    @Override
+    public String toString() {
+      return "arbitrary";
+    }
+  }
 
   @Test
   public void testMismatchedUnits() {
@@ -67,6 +101,61 @@ public class ResourcePoolsImplTest {
             new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 9, MB, false),
             new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10240, KB, false));
     validateResourcePools(pools);
+  }
+
+  @Test
+  public void testArbitraryPoolWellTieredHeap() {
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+      new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 9, MB, false),
+      new SizedResourcePoolImpl<SizedResourcePool>(new ArbitraryType(HEAP.getTierHeight() - 1), 10, MB, false));
+    validateResourcePools(pools);
+  }
+
+  @Test
+  public void testArbitraryPoolWellTieredOffHeap() {
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+      new SizedResourcePoolImpl<SizedResourcePool>(new ArbitraryType(OFFHEAP.getTierHeight() + 1), 9, MB, false),
+      new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
+    validateResourcePools(pools);
+  }
+
+  @Test
+  public void testArbitraryPoolInversionHeap() {
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+      new SizedResourcePoolImpl<SizedResourcePool>(HEAP, 10, MB, false),
+      new SizedResourcePoolImpl<SizedResourcePool>(new ArbitraryType(HEAP.getTierHeight() - 1), 10, MB, false));
+    try {
+      validateResourcePools(pools);
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10 MB heap}' is not smaller than 'Pool {10 MB arbitrary}'"));
+    }
+  }
+
+  @Test
+  public void testArbitraryPoolInversionOffHeap() {
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+      new SizedResourcePoolImpl<SizedResourcePool>(new ArbitraryType(OFFHEAP.getTierHeight() + 1), 10, MB, false),
+      new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
+    try {
+      validateResourcePools(pools);
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("Tiering Inversion: 'Pool {10 MB arbitrary}' is not smaller than 'Pool {10 MB offheap}'"));
+    }
+  }
+
+  @Test
+  public void testArbitraryPoolAmbiguity() {
+    Collection<SizedResourcePoolImpl<SizedResourcePool>> pools = asList(
+      new SizedResourcePoolImpl<SizedResourcePool>(new ArbitraryType(OFFHEAP.getTierHeight()), 10, MB, false),
+      new SizedResourcePoolImpl<SizedResourcePool>(OFFHEAP, 10, MB, false));
+    try {
+      validateResourcePools(pools);
+      fail("Expected IllegalArgumentException");
+    } catch (IllegalArgumentException e) {
+      assertThat(e.getMessage(), is("Tiering Ambiguity: 'Pool {10 MB arbitrary}' has the same tier height as 'Pool {10 MB offheap}'"));
+    }
   }
 
   @Test
@@ -208,6 +297,12 @@ public class ResourcePoolsImplTest {
     }
     assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getSize(), Matchers.is(20L));
     assertThat(existing.getPoolForResource(ResourceType.Core.HEAP).getUnit(), Matchers.<ResourceUnit>is(MemoryUnit.MB));
+  }
+
+  private <T> Collection<T> asList(T value1, T value2) {
+    @SuppressWarnings("unchecked")
+    List<T> list = Arrays.asList(value1, value2);
+    return list;
   }
 
 }

@@ -42,11 +42,13 @@ import static org.mockito.Mockito.mock;
 public class EhcacheConcurrentOffHeapClockCacheTest extends AbstractEhcacheOffHeapBackingMapTest {
 
   @Override
+  @SuppressWarnings("unchecked")
   protected EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment() {
     return createTestSegment(Eviction.noAdvice(), mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   protected EhcacheConcurrentOffHeapClockCache<String, String> createTestSegment(EvictionAdvisor<? super String, ? super String> evictionPredicate) {
     return createTestSegment(evictionPredicate, mock(EhcacheSegmentFactory.EhcacheSegment.EvictionListener.class));
   }

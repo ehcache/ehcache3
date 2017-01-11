@@ -1,0 +1,23 @@
+caches:
+    cache-1:
+        keyType: java.lang.String
+        valueType: java.lang.String
+        serviceConfigurations:
+            - org.ehcache.impl.config.loaderwriter.DefaultCacheLoaderWriterConfiguration
+            - org.ehcache.impl.config.loaderwriter.writebehind.DefaultWriteBehindConfiguration
+        evictionAdvisor: org.ehcache.clustered.management.EhcacheManagerToStringTest$1
+        expiry: NoExpiry
+        resourcePools:
+            pools:
+                heap:
+                    size: 10 entries
+                    tierHeight: 10000
+                offheap:
+                    size: 1 MB
+                    tierHeight: 1000
+                disk:
+                    size: 2 MB (persistent)
+                    tierHeight: 100
+services:
+    - org.ehcache.impl.config.persistence.CacheManagerPersistenceConfiguration:
+        rootDirectory: build/tmp/EhcacheManagerToStringTest

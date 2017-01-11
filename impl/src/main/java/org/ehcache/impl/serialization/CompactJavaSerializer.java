@@ -18,7 +18,6 @@ package org.ehcache.impl.serialization;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
@@ -28,22 +27,19 @@ import java.io.OutputStream;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.ehcache.core.spi.function.NullaryFunction;
+import org.ehcache.spi.persistence.StateHolder;
 import org.ehcache.spi.persistence.StateRepository;
 import org.ehcache.spi.serialization.SerializerException;
 import org.ehcache.impl.internal.util.ByteBufferInputStream;
 import org.ehcache.spi.serialization.Serializer;
+import org.ehcache.spi.serialization.StatefulSerializer;
 
 /**
  * A trivially compressed Java serialization based serializer.
@@ -53,9 +49,9 @@ import org.ehcache.spi.serialization.Serializer;
  * {@code Class} and the integer representation are stored in a single on-heap
  * map.
  */
-public class CompactJavaSerializer<T> implements Serializer<T> {
+public class CompactJavaSerializer<T> implements StatefulSerializer<T> {
 
-  private final ConcurrentMap<Integer, ObjectStreamClass> readLookup;
+  private volatile StateHolder<Integer, ObjectStreamClass> readLookup;
   private final ConcurrentMap<Integer, ObjectStreamClass> readLookupLocalCache = new ConcurrentHashMap<Integer, ObjectStreamClass>();
   private final ConcurrentMap<SerializableDataKey, Integer> writeLookup = new ConcurrentHashMap<SerializableDataKey, Integer>();
 
@@ -72,33 +68,18 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
    * @see Serializer
    */
   public CompactJavaSerializer(ClassLoader loader) {
-    this(loader, new TransientStateRepository());
-  }
-
-  public CompactJavaSerializer(ClassLoader loader, StateRepository stateRepository) {
     this.loader = loader;
-    this.readLookup = stateRepository.getPersistentConcurrentMap("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
+  }
+
+  @SuppressWarnings("unchecked")
+  public static <T> Class<? extends Serializer<T>> asTypedSerializer() {
+    return (Class) CompactJavaSerializer.class;
+  }
+
+  @Override
+  public void init(final StateRepository stateRepository) {
+    this.readLookup = stateRepository.getPersistentStateHolder("CompactJavaSerializer-ObjectStreamClassIndex", Integer.class, ObjectStreamClass.class);
     loadMappingsInWriteContext(readLookup.entrySet(), true);
-  }
-
-  CompactJavaSerializer(ClassLoader loader, Map<Integer, ObjectStreamClass> mappings) {
-    this(loader);
-    for (Entry<Integer, ObjectStreamClass> e : mappings.entrySet()) {
-      Integer encoding = e.getKey();
-      ObjectStreamClass disconnectedOsc = disconnect(e.getValue());
-      readLookup.put(encoding, disconnectedOsc);
-      readLookupLocalCache.put(encoding, disconnectedOsc);
-      if (writeLookup.putIfAbsent(new SerializableDataKey(disconnectedOsc, true), encoding) != null) {
-        throw new AssertionError("Corrupted data " + mappings);
-      }
-      if (nextStreamIndex < encoding + 1) {
-        nextStreamIndex = encoding + 1;
-      }
-    }
-  }
-
-  Map<Integer, ObjectStreamClass> getSerializationMappings() {
-    return Collections.unmodifiableMap(new HashMap<Integer, ObjectStreamClass>(readLookup));
   }
 
   /**
@@ -128,7 +109,9 @@ public class CompactJavaSerializer<T> implements Serializer<T> {
     try {
       ObjectInputStream oin = getObjectInputStream(new ByteBufferInputStream(binary));
       try {
-        return (T) oin.readObject();
+        @SuppressWarnings("unchecked")
+        T value = (T) oin.readObject();
+        return value;
       } finally {
         oin.close();
       }

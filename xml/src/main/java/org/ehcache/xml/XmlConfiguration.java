@@ -325,6 +325,7 @@ public class XmlConfiguration implements Configuration {
     templates.putAll(configurationParser.getTemplates());
   }
 
+  @SuppressWarnings("unchecked")
   private Expiry<? super Object, ? super Object> getExpiry(ClassLoader cacheClassLoader, ConfigurationParser.Expiry parsedExpiry)
       throws ClassNotFoundException, InstantiationException, IllegalAccessException {
     final Expiry<? super Object, ? super Object> expiry;
@@ -459,6 +460,7 @@ public class XmlConfiguration implements Configuration {
     return internalCacheConfigurationBuilderFromTemplate(name, keyType, valueType, resourcePoolsBuilder.build());
   }
 
+  @SuppressWarnings("unchecked")
   private <K, V> CacheConfigurationBuilder<K, V> internalCacheConfigurationBuilderFromTemplate(final String name,
                                                                                                final Class<K> keyType,
                                                                                                final Class<V> valueType,
@@ -554,6 +556,7 @@ public class XmlConfiguration implements Configuration {
       }
       if (listenersConfig.listeners() != null) {
         for (ConfigurationParser.Listener listener : listenersConfig.listeners()) {
+          @SuppressWarnings("unchecked")
           final Class<CacheEventListener<?, ?>> cacheEventListenerClass = (Class<CacheEventListener<?, ?>>)getClassForName(listener.className(), defaultClassLoader);
           final List<EventType> eventListToFireOn = listener.fireOn();
           Set<org.ehcache.event.EventType> eventSetToFireOn = new HashSet<org.ehcache.event.EventType>();
