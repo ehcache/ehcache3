@@ -57,6 +57,18 @@ That's you doing the work - nothing specific there but the usual commit recommen
 As the fix developer, integrating the fix in the different target branches is your responsibility.
 So unless your fix can directly be merged in the different branches, you will have to merge the branches into the fix to resolve conflicts.
 
+The idea behind this strategy is that the commits that were created on branch `issue-1048` in this example are now part of the history of the different releases and tracking which fix exists where is vastly simplified over the different strategies that are `cherry-pick` based.
+
+===== When no manual merge is needed
+
+The easiest way is to use GitHub's *compare across forks* feature when creating the pull request. Use the Ehcache repo as the *base fork* and your own repo as the *head fork*, then pick _your_ branch containing the fix as the *compare* branch.
+
+Now you just need to select the Ehcache branches you want to target (every necessary `release/3.x` ones, plus `master`) as the *base* branch. GitHub will tell you if these branches can be automatically merged. If they can, just create the pull requests as-is. If all branches can be automatically merged, you're done after you created all the pull requests.
+
+If GitHub reports some branches as having conflicts, you have to read on to create special pull requests containing the merge work.
+
+===== When manually merging is necessary
+
 I will use the `release/3.0` branch as the target in the example below and assume your fix branch is `issue-1048`. These names should be replaced by the one applicable to your context.
 
  . On your fix branch
@@ -68,8 +80,6 @@ I will use the `release/3.0` branch as the target in the example below and assum
 
  . Open a pull request from that, making sure it is against `release/3.0`
  . Repeat for each target branch, including `master`
-
-The idea behind this strategy is that the commits that were created on branch `issue-1048` in this example are now part of the history of the different releases and tracking which fix exists where is vastly simplified over the different strategies that are `cherry-pick` based.
 
 == Have it reviewed
 
