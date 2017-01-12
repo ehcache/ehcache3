@@ -36,9 +36,11 @@ import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.EhcacheServerEntityService;
 
+import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.terracotta.connection.Connection;
@@ -241,7 +243,7 @@ public class UnitTestConnectionService implements ConnectionService {
           EntityRef entityRef = connection.getEntityRef(type, version, stringArg);
           entityRef.destroy();
         } catch (EntityNotProvidedException ex) {
-          LOGGER.error("Entity destroy failed: ", ex);
+          LOGGER.error("Entity destroy failed (not provided???): ", ex);
         } catch (EntityNotFoundException ex) {
           LOGGER.error("Entity destroy failed: ", ex);
         } catch (PermanentEntityException ex) {
@@ -350,6 +352,8 @@ public class UnitTestConnectionService implements ConnectionService {
       if (serverEntityServices.isEmpty() && clientEntityServices.isEmpty()) {
         newServer.registerServerEntityService(new EhcacheServerEntityService());
         newServer.registerClientEntityService(new EhcacheClientEntityService());
+        newServer.registerServerEntityService(new ClusteredTierServerEntityService());
+        newServer.registerClientEntityService(new ClusteredTierClientEntityService());
         newServer.registerServerEntityService(new VoltronReadWriteLockServerEntityService());
         newServer.registerClientEntityService(new VoltronReadWriteLockEntityClientService());
       }

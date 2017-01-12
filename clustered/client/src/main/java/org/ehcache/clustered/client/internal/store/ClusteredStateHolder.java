@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package org.ehcache.clustered.client.internal.service;
+package org.ehcache.clustered.client.internal.store;
 
-import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.service.ClusteredMapException;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.StateRepositoryMessageFactory;
@@ -30,9 +30,9 @@ import java.util.concurrent.TimeoutException;
 public class ClusteredStateHolder<K, V> implements StateHolder<K, V> {
 
   private final StateRepositoryMessageFactory messageFactory;
-  private final EhcacheClientEntity entity;
+  private final ClusteredTierClientEntity entity;
 
-  public ClusteredStateHolder(final String cacheId, final String mapId, final EhcacheClientEntity entity) {
+  public ClusteredStateHolder(final String cacheId, final String mapId, final ClusteredTierClientEntity entity) {
     this.messageFactory = new StateRepositoryMessageFactory(cacheId, mapId, entity.getClientId());
     this.entity = entity;
   }

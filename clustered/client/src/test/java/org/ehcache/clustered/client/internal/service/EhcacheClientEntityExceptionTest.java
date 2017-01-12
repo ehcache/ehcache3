@@ -21,10 +21,12 @@ import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.config.builders.ClusteredResourcePoolBuilder;
 import org.ehcache.clustered.client.config.builders.ClusteringServiceConfigurationBuilder;
 import org.ehcache.clustered.client.internal.EhcacheClientEntity;
+import org.ehcache.clustered.client.internal.EhcacheEntityValidationException;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.service.ClusteringService;
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.internal.exceptions.ClusterException;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerSideConfigurationException;
 import org.ehcache.clustered.common.internal.exceptions.InvalidStoreException;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -88,23 +90,18 @@ public class EhcacheClientEntityExceptionTest {
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
+            .expecting()
+            .defaultServerResource("different")
             .build();
     DefaultClusteringService accessService = new DefaultClusteringService(accessConfig);
-    accessService.start(null);
-
-    DefaultSerializationProvider serializationProvider = new DefaultSerializationProvider(null);
-    serializationProvider.start(providerContaining());
-    Store.Configuration<Long, String> storeConfiguration =
-        getDedicatedStoreConfig("serverResource2", serializationProvider, Long.class, String.class);
-
     /*
      * Induce an "InvalidStoreException: Clustered tier 'cacheAlias' does not exist" on the server.
      */
     try {
-      accessService.getServerStoreProxy(
-          getClusteredCacheIdentifier(accessService, "cacheAlias"), storeConfiguration, Consistency.EVENTUAL);
-      fail("Expecting CachePersistenceException");
-    } catch (CachePersistenceException e) {
+      accessService.start(null);
+
+      fail("Expecting EhcacheEntityValidationException");
+    } catch (EhcacheEntityValidationException e) {
 
       /*
        * Find the last EhcacheClientEntity involved exception in the causal chain.  This
@@ -125,7 +122,7 @@ public class EhcacheClientEntityExceptionTest {
        * the server and re-thrown in the client.
        */
       Throwable clientSideCause = clientSideException.getCause();
-      assertThat(clientSideCause, is(instanceOf(InvalidStoreException.class)));
+      assertThat(clientSideCause, is(instanceOf(InvalidServerSideConfigurationException.class)));
 
       serverCheckLoop:
       {
@@ -137,8 +134,7 @@ public class EhcacheClientEntityExceptionTest {
         fail(clientSideException + " lacks server-based cause");
       }
 
-      assertThat("EhcacheClientEntity did not rethrow InvalidStoreException",
-          clientSideException, is(instanceOf(InvalidStoreException.class)));
+      assertThat(clientSideException, is(instanceOf(InvalidServerSideConfigurationException.class)));
 
     } finally {
       accessService.stop();

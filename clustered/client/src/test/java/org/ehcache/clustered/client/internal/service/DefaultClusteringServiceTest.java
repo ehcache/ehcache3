@@ -26,6 +26,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
+import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.StrongServerStoreProxy;
@@ -38,6 +39,9 @@ import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClie
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService.ObservableEhcacheActiveEntity;
+import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
+import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
+import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity;
 import org.ehcache.config.ResourcePools;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.ResourcePoolsBuilder;
@@ -79,6 +83,7 @@ import static org.ehcache.config.ResourceType.Core.HEAP;
 import static org.ehcache.config.ResourceType.Core.OFFHEAP;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -90,6 +95,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.DEDICATED;
@@ -98,6 +104,7 @@ public class DefaultClusteringServiceTest {
 
   private static final String CLUSTER_URI_BASE = "terracotta://example.com:9540/";
   private ObservableEhcacheServerEntityService observableEhcacheServerEntityService;
+  private ObservableClusterTierServerEntityService observableClusterTierServerEntityService;
 
   @Rule
   public ExpectedException expectedException = ExpectedException.none();
@@ -105,10 +112,13 @@ public class DefaultClusteringServiceTest {
   @Before
   public void definePassthroughServer() throws Exception {
     observableEhcacheServerEntityService = new ObservableEhcacheServerEntityService();
+    observableClusterTierServerEntityService = new ObservableClusterTierServerEntityService();
     UnitTestConnectionService.add(CLUSTER_URI_BASE,
         new PassthroughServerBuilder()
             .serverEntityService(observableEhcacheServerEntityService)
             .clientEntityService(new EhcacheClientEntityService())
+            .serverEntityService(observableClusterTierServerEntityService)
+            .clientEntityService(new ClusteredTierClientEntityService())
             .serverEntityService(new VoltronReadWriteLockServerEntityService())
             .clientEntityService(new VoltronReadWriteLockEntityClientService())
             .resource("defaultResource", 128, MemoryUnit.MB)
@@ -595,10 +605,12 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder(targetPool, "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     service.stop();
 
@@ -607,8 +619,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -648,7 +659,7 @@ public class DefaultClusteringServiceTest {
           getClusteredCacheIdentifier(accessService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
       fail("Expecting CachePersistenceException");
     } catch (CachePersistenceException e) {
-      assertThat(getRootCause(e).getMessage(), containsString(" does not exist"));
+      assertThat(e.getMessage(), containsString(" does not exist"));
     }
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -706,8 +717,11 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
 
     ClusteringServiceConfiguration accessConfig =
@@ -735,9 +749,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder(targetPool, "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     accessService.stop();
 
@@ -746,8 +758,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   /**
@@ -793,29 +804,26 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder(targetPool, "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(2));
-    for (Set<String> storeIds : activeEntity.getConnectedClients().values()) {
-      assertThat(storeIds, containsInAnyOrder(cacheAlias));
-    }
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(2));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(2));
 
     firstService.stop();
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder(targetPool, "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     secondService.stop();
 
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder(targetPool, "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -845,24 +853,26 @@ public class DefaultClusteringServiceTest {
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     creationService.releaseServerStoreProxy(serverStoreProxy);
 
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
     try {
       creationService.releaseServerStoreProxy(serverStoreProxy);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
-      assertThat(getRootCause(e).getMessage(), containsString(" not in use "));
+      assertThat(e.getMessage(), containsString("Endpoint closed"));
     }
 
     creationService.stop();
@@ -901,10 +911,12 @@ public class DefaultClusteringServiceTest {
         containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     service.stop();
 
@@ -914,8 +926,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -955,7 +966,7 @@ public class DefaultClusteringServiceTest {
           getClusteredCacheIdentifier(accessService, cacheAlias), storeConfiguration, Consistency.EVENTUAL);
       fail("Expecting CachePersistenceException");
     } catch (CachePersistenceException e) {
-      assertThat(getRootCause(e).getMessage(), containsString(" does not exist"));
+      assertThat(e.getMessage(), containsString(" does not exist"));
     }
 
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
@@ -1016,8 +1027,11 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
     ClusteringServiceConfiguration accessConfig =
         ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
@@ -1045,9 +1059,7 @@ public class DefaultClusteringServiceTest {
         containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     accessService.stop();
 
@@ -1057,8 +1069,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   /**
@@ -1105,12 +1116,12 @@ public class DefaultClusteringServiceTest {
         containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(2));
-    for (Set<String> storeIds : activeEntity.getConnectedClients().values()) {
-      assertThat(storeIds, containsInAnyOrder(cacheAlias));
-    }
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(2));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(2));
 
     firstService.stop();
 
@@ -1118,10 +1129,8 @@ public class DefaultClusteringServiceTest {
         containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     secondService.stop();
 
@@ -1130,8 +1139,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -1162,10 +1170,12 @@ public class DefaultClusteringServiceTest {
     ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients(), not(empty()));
 
     creationService.releaseServerStoreProxy(serverStoreProxy);
 
@@ -1173,40 +1183,13 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
     try {
       creationService.releaseServerStoreProxy(serverStoreProxy);
       fail("Expecting IllegalStateException");
     } catch (IllegalStateException e) {
-      assertThat(getRootCause(e).getMessage(), containsString(" not in use "));
-    }
-
-    creationService.stop();
-  }
-
-  @Test
-  public void testReleaseServerStoreProxyNonExistent() throws Exception {
-    String cacheAlias = "cacheAlias";
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(URI.create(CLUSTER_URI_BASE + "my-application"))
-            .autoCreate()
-            .defaultServerResource("defaultResource")
-            .resourcePool("sharedPrimary", 2, MemoryUnit.MB, "serverResource1")
-            .resourcePool("sharedSecondary", 2, MemoryUnit.MB, "serverResource2")
-            .resourcePool("sharedTertiary", 4, MemoryUnit.MB)
-            .build();
-    DefaultClusteringService creationService = new DefaultClusteringService(configuration);
-    creationService.start(null);
-
-    try {
-      ServerStoreProxy storeProxy = mock(ServerStoreProxy.class);
-      when(storeProxy.getCacheId()).thenReturn("test");
-      creationService.releaseServerStoreProxy(storeProxy);
-      fail("Expecting IllegalStateException");
-    } catch (IllegalStateException e) {
-      assertThat(getRootCause(e).getMessage(), containsString(" does not exist"));
+      assertThat(e.getMessage(), containsString("Endpoint closed"));
     }
 
     creationService.stop();
@@ -1239,10 +1222,12 @@ public class DefaultClusteringServiceTest {
     List<ObservableEhcacheActiveEntity> activeEntities = observableEhcacheServerEntityService.getServedActiveEntities();
     ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     try {
       creationService.destroy(cacheAlias);
@@ -1253,8 +1238,7 @@ public class DefaultClusteringServiceTest {
 
     creationService.releaseServerStoreProxy(serverStoreProxy);
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
     creationService.destroy(cacheAlias);
 
@@ -1294,10 +1278,11 @@ public class DefaultClusteringServiceTest {
     ObservableEhcacheActiveEntity activeEntity = activeEntities.get(0);
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients(), not(empty()));
 
     try {
       creationService.destroy(cacheAlias);
@@ -1309,8 +1294,7 @@ public class DefaultClusteringServiceTest {
     creationService.releaseServerStoreProxy(serverStoreProxy);
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
     creationService.destroy(cacheAlias);
 
@@ -1318,7 +1302,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
 
     creationService.stop();
   }
@@ -1485,8 +1468,11 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
     accessService.stop();
 
@@ -1494,8 +1480,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -1535,8 +1520,11 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(),is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     accessService.stop();
 
@@ -1544,8 +1532,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -1650,8 +1637,11 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds().size(), is(0));
     assertThat(activeEntity.getConnectedClients().size(), is(2));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(1));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(1));
 
     creationService.stop();
     accessService.stop();
@@ -1660,8 +1650,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds().size(), is(0));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -1710,8 +1699,11 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds().size(), is(0));
     assertThat(activeEntity.getConnectedClients().size(), is(2));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(2));//2 clients connected
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients().size(), is(2));
 
     creationService.stop();
     accessService.stop();
@@ -1720,8 +1712,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds().size(), is(0));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias).size(), is(0));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -1778,9 +1769,11 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
     accessService.stop();
 
@@ -1788,8 +1781,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   @Test
@@ -1845,10 +1837,11 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+
+    List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
+    assertThat(clusterTierActiveEntities.size(), is(1));
+    ObservableClusterTierActiveEntity clusterTierActiveEntity = clusterTierActiveEntities.get(0);
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
     accessService.stop();
 
@@ -1856,8 +1849,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
-    assertThat(activeEntity.getInUseStores().keySet(), containsInAnyOrder(cacheAlias));
-    assertThat(activeEntity.getInUseStores().get(cacheAlias), is(Matchers.<ClientDescriptor>empty()));
+    assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
   }
 
   private <K, V> Store.Configuration<K, V> getSharedStoreConfig(
