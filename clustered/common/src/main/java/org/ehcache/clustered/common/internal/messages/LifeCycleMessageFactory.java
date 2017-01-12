@@ -48,4 +48,8 @@ public class LifeCycleMessageFactory {
   public void setClientId(UUID clientId) {
     this.clientId = clientId;
   }
+
+  public LifecycleMessage prepareForDestroy() {
+    return new LifecycleMessage.PrepareForDestroy();
+  }
 }

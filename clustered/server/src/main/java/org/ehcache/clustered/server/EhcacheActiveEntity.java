@@ -477,10 +477,17 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
       case DESTROY_SERVER_STORE:
         destroyServerStore(clientDescriptor, (DestroyServerStore) message);
         break;
+      case PREPARE_FOR_DESTROY:
+        return prepareForDestroy();
       default:
         throw new AssertionError("Unsupported LifeCycle operation " + message);
     }
     return responseFactory.success();
+  }
+
+  private EhcacheEntityResponse prepareForDestroy() {
+    // TODO toggle a destroy in progress flag
+    return new EhcacheEntityResponse.PrepareForDestroy(ehcacheStateService.getStores());
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {

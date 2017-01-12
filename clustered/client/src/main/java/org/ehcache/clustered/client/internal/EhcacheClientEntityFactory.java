@@ -17,7 +17,7 @@
 package org.ehcache.clustered.client.internal;
 
 import org.ehcache.CachePersistenceException;
-import org.ehcache.clustered.client.internal.service.ClusteredTierDestructionException;
+import org.ehcache.clustered.client.config.ClusteringServiceConfiguration;
 import org.ehcache.clustered.client.internal.service.ClusteredTierManagerValidationException;
 import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
 import org.ehcache.clustered.client.service.EntityBusyException;
@@ -40,6 +40,7 @@ import org.terracotta.exception.EntityVersionMismatchException;
 import org.terracotta.exception.PermanentEntityException;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
@@ -203,7 +204,7 @@ public class EhcacheClientEntityFactory {
     }
   }
 
-  public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EntityBusyException {
+  public void destroy(final String identifier) throws EhcacheEntityNotFoundException, EntityBusyException, CachePersistenceException {
     Hold existingMaintenance = maintenanceHolds.get(identifier);
     Hold localMaintenance = null;
 
@@ -219,6 +220,7 @@ public class EhcacheClientEntityFactory {
 
     try {
       EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref = getEntityRef(identifier);
+      destroyAllClusteredTiers(ref, identifier);
       try {
         if (!ref.destroy()) {
           throw new EntityBusyException("Destroy operation failed; " + identifier + " clustered tier in use by other clients");
@@ -242,6 +244,35 @@ public class EhcacheClientEntityFactory {
         }
       }
     }
+  }
+
+  private void destroyAllClusteredTiers(EntityRef<EhcacheClientEntity, ClusteredTierManagerConfiguration> ref, String identifier) throws EhcacheEntityNotFoundException, CachePersistenceException {
+    EhcacheClientEntity entity;
+    try {
+      entity = ref.fetchEntity();
+      try {
+        entity.validate(null);
+      } catch (ClusteredTierManagerValidationException e) {
+        throw new EhcacheEntityNotFoundException("Existing entity configuration does not match provided one", e);
+      } catch (TimeoutException e) {
+        // TODO handle this
+      }
+    } catch (EntityNotFoundException e) {
+      // Ignore - means entity does not exist
+      return;
+    } catch (EntityVersionMismatchException e) {
+      throw new AssertionError(e);
+    }
+    Set<String> storeIdentifiers = entity.prepareForDestroy();
+    LOGGER.warn("Preparing to destroy stores {}", storeIdentifiers);
+    for (String storeIdentifier : storeIdentifiers) {
+      try {
+        destroyClusteredStoreEntity(identifier, storeIdentifier);
+      } catch (EntityNotFoundException e) {
+        // Ignore - assume it was deleted already
+      }
+    }
+    entity.close();
   }
 
   private void silentlyClose(EhcacheClientEntity entity, String identifier) {

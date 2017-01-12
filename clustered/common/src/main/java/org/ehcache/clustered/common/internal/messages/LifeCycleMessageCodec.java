@@ -64,6 +64,9 @@ public class LifeCycleMessageCodec {
     .build();
 
   private final Struct RELEASE_STORE_MESSAGE_STRUCT = DESTROY_STORE_MESSAGE_STRUCT;
+  private final Struct PREPARE_FOR_DESTROY_STRUCT = newStructBuilder()
+    .enm(MESSAGE_TYPE_FIELD_NAME, MESSAGE_TYPE_FIELD_INDEX, EHCACHE_MESSAGE_TYPES_ENUM_MAPPING)
+    .build();
 
   private final Struct validateMessageStruct;
   private final Struct createStoreMessageStruct;
@@ -95,9 +98,17 @@ public class LifeCycleMessageCodec {
         return encodeDestroyStoreMessage((LifecycleMessage.DestroyServerStore) message);
       case RELEASE_SERVER_STORE:
         return encodeReleaseStoreMessage((LifecycleMessage.ReleaseServerStore) message);
+      case PREPARE_FOR_DESTROY:
+        return encodePrepareForDestroyMessage(message);
       default:
         throw new IllegalArgumentException("Unknown lifecycle message: " + message.getClass());
     }
+  }
+
+  private byte[] encodePrepareForDestroyMessage(LifecycleMessage message) {
+    return PREPARE_FOR_DESTROY_STRUCT.encoder()
+      .enm(MESSAGE_TYPE_FIELD_NAME, message.getMessageType())
+      .encode().array();
   }
 
   private byte[] encodeReleaseStoreMessage(LifecycleMessage.ReleaseServerStore message) {
@@ -161,8 +172,14 @@ public class LifeCycleMessageCodec {
         return decodeDestroyServerStoreMessage(messageBuffer);
       case RELEASE_SERVER_STORE:
         return decodeReleaseServerStoreMessage(messageBuffer);
+      case PREPARE_FOR_DESTROY:
+        return decodePrepareForDestroyMessage();
     }
     throw new IllegalArgumentException("LifeCycleMessage operation not defined for : " + messageType);
+  }
+
+  private LifecycleMessage.PrepareForDestroy decodePrepareForDestroyMessage() {
+    return new LifecycleMessage.PrepareForDestroy();
   }
 
   private LifecycleMessage.ReleaseServerStore decodeReleaseServerStoreMessage(ByteBuffer messageBuffer) {

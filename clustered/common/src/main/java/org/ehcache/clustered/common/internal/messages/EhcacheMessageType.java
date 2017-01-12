@@ -35,6 +35,7 @@ public enum EhcacheMessageType {
   VALIDATE_SERVER_STORE,
   RELEASE_SERVER_STORE,
   DESTROY_SERVER_STORE,
+  PREPARE_FOR_DESTROY,
 
   // ServerStore operation messages
   GET_AND_APPEND,
@@ -65,6 +66,7 @@ public enum EhcacheMessageType {
     .mapping(VALIDATE_SERVER_STORE, 3)
     .mapping(RELEASE_SERVER_STORE, 4)
     .mapping(DESTROY_SERVER_STORE, 5)
+    .mapping(PREPARE_FOR_DESTROY, 6)
 
     .mapping(GET_AND_APPEND, 21)
     .mapping(APPEND, 22)
@@ -85,7 +87,7 @@ public enum EhcacheMessageType {
     .mapping(DESTROY_SERVER_STORE_REPLICATION, 66)
     .build();
 
-  public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(VALIDATE, CREATE_SERVER_STORE, VALIDATE_SERVER_STORE, RELEASE_SERVER_STORE, DESTROY_SERVER_STORE);
+  public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(VALIDATE, CREATE_SERVER_STORE, VALIDATE_SERVER_STORE, RELEASE_SERVER_STORE, DESTROY_SERVER_STORE, PREPARE_FOR_DESTROY);
   public static boolean isLifecycleMessage(EhcacheMessageType value) {
     return LIFECYCLE_MESSAGES.contains(value);
   }

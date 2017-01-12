@@ -21,6 +21,8 @@ import org.ehcache.clustered.common.internal.exceptions.ClusterException;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.terracotta.entity.EntityResponse;
 
+import java.util.Set;
+
 public abstract class EhcacheEntityResponse implements EntityResponse {
 
   public abstract EhcacheResponseType getResponseType();
@@ -229,6 +231,24 @@ public abstract class EhcacheEntityResponse implements EntityResponse {
     @Override
     public final EhcacheResponseType getResponseType() {
       return EhcacheResponseType.MAP_VALUE;
+    }
+  }
+
+  public static class PrepareForDestroy extends EhcacheEntityResponse {
+
+    private final Set<String> stores;
+
+    public PrepareForDestroy(Set<String> stores) {
+      this.stores = stores;
+    }
+
+    @Override
+    public EhcacheResponseType getResponseType() {
+      return EhcacheResponseType.PREPARE_FOR_DESTROY;
+    }
+
+    public Set<String> getStores() {
+      return stores;
     }
   }
 

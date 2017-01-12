@@ -16,6 +16,7 @@
 
 package org.ehcache.clustered.client.internal;
 
+import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntity;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.internal.ClusteredTierManagerConfiguration;
 import org.ehcache.clustered.common.internal.lock.LockMessaging.HoldType;
@@ -156,6 +157,8 @@ public class EhcacheClientEntityFactoryTest {
 
   @Test
   public void testDestroy() throws Exception {
+    EhcacheClientEntity mockEntity = mock(EhcacheClientEntity.class);
+    when(entityRef.fetchEntity()).thenReturn(mockEntity);
     doReturn(Boolean.TRUE).when(entityRef).destroy();
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 
@@ -167,7 +170,9 @@ public class EhcacheClientEntityFactoryTest {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
   public void testDestroyWhenNotExisting() throws Exception {
+    when(entityRef.fetchEntity()).thenThrow(EntityNotFoundException.class);
     doThrow(EntityNotFoundException.class).when(entityRef).destroy();
     when(connection.getEntityRef(eq(EhcacheClientEntity.class), anyInt(), anyString())).thenReturn(entityRef);
 

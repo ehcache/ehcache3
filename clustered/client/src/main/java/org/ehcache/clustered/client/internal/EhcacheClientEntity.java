@@ -30,6 +30,7 @@ import org.ehcache.clustered.common.internal.exceptions.ResourceBusyException;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.Failure;
+import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.PrepareForDestroy;
 import org.ehcache.clustered.common.internal.messages.EhcacheResponseType;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
@@ -270,6 +271,19 @@ public class EhcacheClientEntity implements Entity {
     } catch (ClusterException e) {
       throw new ClusteredTierDestructionException("Error destroying clustered tier '" + name + "'", e);
     }
+  }
+
+  public Set<String> prepareForDestroy() {
+    try {
+      PrepareForDestroy response = (PrepareForDestroy) invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory
+        .prepareForDestroy(), true);
+      return response.getStores();
+    } catch (ClusterException e) {
+      // TODO handle this
+    } catch (TimeoutException e) {
+      // TODO handle this
+    }
+    return null;
   }
 
   /**

@@ -164,4 +164,11 @@ public abstract class LifecycleMessage extends EhcacheOperationMessage implement
       return name;
     }
   }
+
+  public static class PrepareForDestroy extends LifecycleMessage {
+    @Override
+    public EhcacheMessageType getMessageType() {
+      return EhcacheMessageType.PREPARE_FOR_DESTROY;
+    }
+  }
 }
