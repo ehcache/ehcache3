@@ -13,8 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package org.ehcache.integration.statistics;
 
-dependencies {
-  compile project(':impl'), "org.slf4j:slf4j-api:$parent.slf4jVersion", "javax.cache:cache-api:$parent.jcacheVersion"
-  testCompile project(':107'), project(':impl'), project(':transactions')
+import javax.cache.processor.EntryProcessor;
+import javax.cache.processor.MutableEntry;
+
+public class GetKeyEntryProcessor implements EntryProcessor<Integer, String, Integer> {
+  @Override
+  public Integer process(MutableEntry<Integer, String> entry, Object... arguments) {
+      return entry.getKey();
+  }
 }

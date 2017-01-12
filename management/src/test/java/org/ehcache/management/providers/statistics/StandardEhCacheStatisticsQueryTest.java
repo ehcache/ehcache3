@@ -27,6 +27,7 @@ import org.ehcache.impl.config.persistence.DefaultPersistenceConfiguration;
 import org.ehcache.management.ManagementRegistryService;
 import org.ehcache.management.registry.DefaultManagementRegistryConfiguration;
 import org.ehcache.management.registry.DefaultManagementRegistryService;
+import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,6 +36,10 @@ import org.junit.rules.Timeout;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
+import org.terracotta.management.model.stats.ContextualStatistics;
+import org.terracotta.management.model.stats.primitive.Counter;
+import org.terracotta.management.registry.ResultSet;
+import org.terracotta.management.registry.StatisticQuery;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -47,9 +52,10 @@ import static org.ehcache.config.builders.ResourcePoolsBuilder.newResourcePoolsB
 import static org.ehcache.config.units.EntryUnit.ENTRIES;
 import static org.ehcache.config.units.MemoryUnit.MB;
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 @RunWith(Parameterized.class)
-public class HitCountTest {
+public class StandardEhCacheStatisticsQueryTest {
 
   @Rule
   public final Timeout globalTimeout = Timeout.seconds(60);
@@ -82,7 +88,7 @@ public class HitCountTest {
     });
   }
 
-  public HitCountTest(Builder<? extends ResourcePools> resources, List<String> statNames, List<Long> tierExpectedValues, Long cacheExpectedValue) {
+  public StandardEhCacheStatisticsQueryTest(Builder<? extends ResourcePools> resources, List<String> statNames, List<Long> tierExpectedValues, Long cacheExpectedValue) {
     this.resources = resources.build();
     this.statNames = statNames;
     this.tierExpectedValues = tierExpectedValues;
@@ -131,10 +137,10 @@ public class HitCountTest {
 
       long tierHitCountSum = 0;
       for (int i = 0; i < statNames.size(); i++) {
-        tierHitCountSum += StatsUtil.getAndAssertExpectedValueFromCounter(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
+        tierHitCountSum += getAndAssertExpectedValueFromCounter(statNames.get(i), context, managementRegistry, tierExpectedValues.get(i));
       }
 
-      long cacheHitCount = StatsUtil.getAndAssertExpectedValueFromCounter("Cache:HitCount", context, managementRegistry, cacheExpectedValue);
+      long cacheHitCount = getAndAssertExpectedValueFromCounter("Cache:HitCount", context, managementRegistry, cacheExpectedValue);
       Assert.assertThat(tierHitCountSum, is(cacheHitCount));
 
     }
@@ -143,6 +149,32 @@ public class HitCountTest {
         cacheManager.close();
       }
     }
+  }
+
+  /*
+  NOTE:  When using this method in other unit tests, make sure to declare a timeout as it is possible to get an infinite loop.
+         This should only occur if the stats value is different from your expectedResult, which may happen if the stats calculations
+         change, the stats value isn't accessible or if you enter the wrong expectedResult.
+  */
+  public static long getAndAssertExpectedValueFromCounter(String statName, Context context, ManagementRegistryService managementRegistry, long expectedResult) {
+
+    StatisticQuery query = managementRegistry.withCapability("StatisticsCapability")
+      .queryStatistics(singletonList(statName))
+      .on(context)
+      .build();
+
+    ResultSet<ContextualStatistics> counters = query.execute();
+
+    ContextualStatistics statisticsContext = counters.getResult(context);
+
+    assertThat(counters.size(), Matchers.is(1));
+
+    Counter counterHistory = statisticsContext.getStatistic(Counter.class, statName);
+    long value = counterHistory.getValue();
+
+    assertThat(value, Matchers.is(expectedResult));
+
+    return value;
   }
 
 }
