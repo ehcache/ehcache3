@@ -802,7 +802,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
       serverStore = ehcacheStateService.createStore(name, storeConfiguration);
 
-      management.serverStoreCreated(name);
     } else {
       serverStore = ehcacheStateService.getStore(name);
     }
@@ -866,8 +865,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
       if (!removedFromClient) {
         throw new InvalidStoreException("Clustered tier '" + name + "' is not in use by client");
-      } else {
-        management.storeReleased(clientDescriptor, clientStateMap.get(clientDescriptor), name);
       }
     } else {
       throw new InvalidStoreException("Clustered tier '" + name + "' does not exist");
@@ -895,7 +892,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
     if (!isDuplicate) {
       LOGGER.info("Client {} destroying clustered tier '{}'", clientDescriptor, name);
-      management.serverStoreDestroyed(name);
       ehcacheStateService.destroyServerStore(name);
     }
 
@@ -945,8 +941,6 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     clientState.addStore(storeId);
 
     LOGGER.info("Client {} attached to clustered tier '{}'", clientDescriptor, storeId);
-
-    management.storeAttached(clientDescriptor, clientState, storeId);
   }
 
   /**

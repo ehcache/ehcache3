@@ -75,7 +75,7 @@ public abstract class AbstractClusteringManagementTest {
 
   protected static CacheManager cacheManager;
   protected static ClientIdentifier ehcacheClientIdentifier;
-  protected static ServerEntityIdentifier ehcacheServerEntityIdentifier;
+  protected static ServerEntityIdentifier clusterTierManagerEntityIdentifier;
   protected static ObjectMapper mapper = new ObjectMapper();
 
   protected static TmsAgentService tmsAgentService;
@@ -149,7 +149,7 @@ public abstract class AbstractClusteringManagementTest {
       .map(Client::getClientIdentifier)
       .get();
 
-    ehcacheServerEntityIdentifier = readTopology()
+    clusterTierManagerEntityIdentifier = readTopology()
       .activeServerEntityStream()
       .filter(serverEntity -> serverEntity.getName().equals("my-server-entity-1"))
       .findFirst()
@@ -167,10 +167,10 @@ public abstract class AbstractClusteringManagementTest {
     assertThat(counts.get("EHCACHE_CLIENT_VALIDATED"), hasSize(1));
     assertThat(counts.get("EHCACHE_RESOURCE_POOLS_CONFIGURED"), hasSize(1));
     assertThat(counts.get("EHCACHE_SERVER_STORE_CREATED"), hasSize(3));
-    assertThat(counts.get("ENTITY_REGISTRY_AVAILABLE"), hasSize(2));
-    assertThat(counts.get("SERVER_ENTITY_CREATED"), hasSize(5));
+    assertThat(counts.get("ENTITY_REGISTRY_AVAILABLE"), hasSize(5));
+    assertThat(counts.get("SERVER_ENTITY_CREATED"), hasSize(8));
     assertThat(counts.get("SERVER_ENTITY_DESTROYED"), hasSize(1));
-    assertThat(counts.get("SERVER_ENTITY_FETCHED"), hasSize(7));
+    assertThat(counts.get("SERVER_ENTITY_FETCHED"), hasSize(10));
     assertThat(counts.get("SERVER_ENTITY_UNFETCHED"), hasSize(3));
 
     assertThat(readMessages(), hasSize(0));

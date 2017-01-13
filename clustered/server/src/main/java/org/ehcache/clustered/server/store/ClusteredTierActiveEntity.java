@@ -46,6 +46,7 @@ import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.server.management.ClusterTierManagement;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
 import org.ehcache.clustered.server.state.config.EhcacheStoreStateServiceConfig;
@@ -113,6 +114,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
   private final ConcurrentMap<Integer, InvalidationHolder> clientsWaitingForInvalidation = new ConcurrentHashMap<>();
   private final InvalidStoreException creationException;
   private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
+  private final ClusterTierManagement management;
 
   private volatile List<InvalidationTuple> inflightInvalidations;
 
@@ -130,10 +132,12 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
     InvalidStoreException exception = null;
+    ClusterTierManagement tmpManagement = null;
     try {
       ServerSideServerStore store = stateService.createStore(entityConfiguration.getStoreIdentifier(), entityConfiguration
         .getConfiguration());
       store.setEvictionListener(this::invalidateHashAfterEviction);
+      tmpManagement = new ClusterTierManagement(registry, stateService, true, storeIdentifier);
     } catch (InvalidStoreException e) {
       exception = e;
       LOGGER.debug("Got exception during creation - most likely failover is happening", e);
@@ -142,6 +146,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
       throw new ConfigurationException("ClusteredTier creation failed: " + e.getMessage(), e);
     }
     creationException = exception;
+    management = tmpManagement;
   }
 
   private void invalidateHashAfterEviction(long key) {
@@ -160,7 +165,9 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
 
   @Override
   public void connected(ClientDescriptor clientDescriptor) {
-    connectedClients.putIfAbsent(clientDescriptor, false);
+    if (connectedClients.putIfAbsent(clientDescriptor, false) == null) {
+      management.clientConnected(clientDescriptor);
+    }
   }
 
   @Override
@@ -181,7 +188,9 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
       }
     }
 
-    connectedClients.remove(clientDescriptor);
+    if (connectedClients.remove(clientDescriptor) != null) {
+      management.clientDisconnected(clientDescriptor);
+    }
   }
 
   @Override
@@ -242,8 +251,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
 
     LOGGER.info("Client {} attached to clustered tier '{}'", clientDescriptor, storeId);
 
-    //TODO handle management
-//    management.storeAttached(clientDescriptor, clientState, storeId);
+    management.clientValidated(clientDescriptor);
   }
 
   private EhcacheEntityResponse invokeServerStoreOperation(ClientDescriptor clientDescriptor, ServerStoreOpMessage message) throws ClusterException {
@@ -467,6 +475,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     inflightInvalidations = synchronizedList(new ArrayList<>());
     addInflightInvalidationsForEventualCaches();
     reconnectComplete.set(false);
+    management.init();
   }
 
   private void addInflightInvalidationsForEventualCaches() {
@@ -494,8 +503,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     attachStore(clientDescriptor, storeIdentifier);
     LOGGER.info("Client '{}' successfully reconnected to newly promoted ACTIVE after failover.", clientDescriptor);
 
-    // TODO handle management
-//    management.clientReconnected(clientDescriptor, clientState);
+    management.clientReconnected(clientDescriptor);
   }
 
   private void addInflightInvalidationsForStrongCache(ClientDescriptor clientDescriptor, ReconnectMessage reconnectMessage, ServerSideServerStore serverStore) {
@@ -547,6 +555,7 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
     if (creationException != null) {
       throw new AssertionError("Store conflict", creationException);
     }
+    management.init();
   }
 
   @Override

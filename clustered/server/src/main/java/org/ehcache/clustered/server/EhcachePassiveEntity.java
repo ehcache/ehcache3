@@ -224,7 +224,6 @@ public class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMe
           if(entry.getValue().getConsistency() == Consistency.EVENTUAL) {
             ehcacheStateService.addInvalidationtracker(entry.getKey());
           }
-          management.serverStoreCreated(entry.getKey());
         }
         break;
       case DATA:
@@ -273,7 +272,6 @@ public class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMe
     if(configuration.getConsistency() == Consistency.EVENTUAL) {
       ehcacheStateService.addInvalidationtracker(storeName);
     }
-    management.serverStoreCreated(storeName);
   }
 
   private void destroyServerStore(String storeName) throws ClusterException {
@@ -282,7 +280,6 @@ public class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMe
     }
 
     LOGGER.info("Destroying clustered tier '{}'", storeName);
-    management.serverStoreDestroyed(storeName);
     ehcacheStateService.destroyServerStore(storeName);
     ehcacheStateService.removeInvalidationtracker(storeName);
   }

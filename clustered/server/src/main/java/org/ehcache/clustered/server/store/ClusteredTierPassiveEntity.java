@@ -34,6 +34,7 @@ import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ChainReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.InvalidationCompleteMessage;
+import org.ehcache.clustered.server.management.ClusterTierManagement;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -59,6 +60,7 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
 
   private final EhcacheStateService stateService;
   private final String storeIdentifier;
+  private final ClusterTierManagement management;
 
   public ClusteredTierPassiveEntity(ServiceRegistry registry, ClusteredTierEntityConfiguration config, KeySegmentMapper defaultMapper) throws ConfigurationException {
     if (config == null) {
@@ -78,6 +80,7 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
       // TODO move the method above to throw ConfigurationException directly
       throw new ConfigurationException("ClusteredTier creation failed: " + e.getMessage(), e);
     }
+    management = new ClusterTierManagement(registry, stateService, false, storeIdentifier);
   }
 
   @Override
@@ -243,14 +246,12 @@ public class ClusteredTierPassiveEntity implements PassiveServerEntity<EhcacheEn
 
   @Override
   public void createNew() {
-    // Nothing to do
+    management.init();
   }
 
   @Override
   public void destroy() {
     LOGGER.info("Destroying clustered tier '{}'", storeIdentifier);
-    // TODO handle management
-//    management.serverStoreDestroyed(name);
     try {
       stateService.destroyServerStore(storeIdentifier);
       stateService.removeInvalidationtracker(storeIdentifier);

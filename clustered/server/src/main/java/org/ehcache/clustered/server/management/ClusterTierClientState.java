@@ -13,14 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.clustered.server.management;
 
-public enum Notification {
-  EHCACHE_CLIENT_RECONNECTED,
-  EHCACHE_RESOURCE_POOLS_CONFIGURED,
-  EHCACHE_CLIENT_VALIDATED,
-  EHCACHE_SERVER_STORE_CREATED,
-  EHCACHE_SERVER_STORE_ATTACHED,
-  EHCACHE_SERVER_STORE_RELEASED,
-  EHCACHE_SERVER_STORE_CLIENT_RECONNECTED
+/**
+ * ClusterTierClientState
+ */
+public class ClusterTierClientState {
+
+  private final boolean attached;
+  private final String storeIdentifier;
+
+
+  public ClusterTierClientState(String storeIdentifier, boolean attached) {
+    this.attached = attached;
+    this.storeIdentifier = storeIdentifier;
+  }
+
+  public boolean isAttached() {
+    return attached;
+  }
+
+  public String getStoreIdentifier() {
+    return storeIdentifier;
+  }
 }

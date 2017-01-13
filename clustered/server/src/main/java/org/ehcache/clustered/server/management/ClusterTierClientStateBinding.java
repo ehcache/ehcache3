@@ -13,14 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.ehcache.clustered.server.management;
 
-public enum Notification {
-  EHCACHE_CLIENT_RECONNECTED,
-  EHCACHE_RESOURCE_POOLS_CONFIGURED,
-  EHCACHE_CLIENT_VALIDATED,
-  EHCACHE_SERVER_STORE_CREATED,
-  EHCACHE_SERVER_STORE_ATTACHED,
-  EHCACHE_SERVER_STORE_RELEASED,
-  EHCACHE_SERVER_STORE_CLIENT_RECONNECTED
+import org.terracotta.entity.ClientDescriptor;
+import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
+
+final class ClusterTierClientStateBinding extends ClientBinding {
+
+  ClusterTierClientStateBinding(ClientDescriptor clientDescriptor, ClusterTierClientState clientState) {
+    super(clientDescriptor, clientState);
+  }
+
+  @Override
+  public ClusterTierClientState getValue() {
+    return (ClusterTierClientState) super.getValue();
+  }
+
 }
