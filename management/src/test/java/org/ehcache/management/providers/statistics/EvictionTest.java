@@ -37,7 +37,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -143,27 +142,27 @@ public class EvictionTest {
       Thread.sleep(1000);
 
       int lowestTier = stats.size() - 1;
-      Counter evictionCounterHistory = managementRegistry.withCapability("StatisticsCapability")
+      Number evictionCounter = managementRegistry.withCapability("StatisticsCapability")
         .queryStatistics(stats)
         .on(context)
         .build()
         .execute()
         .getSingleResult()
-        .getStatistic(Counter.class, stats.get(lowestTier));
+        .getStatistic(stats.get(lowestTier));
       assertThat(contextualStatistics.size(), Matchers.is(stats.size()));
 
-      assertThat(evictionCounterHistory.getValue(), Matchers.equalTo(expected.get(lowestTier)));
+      assertThat(evictionCounter.longValue(), Matchers.equalTo(expected.get(lowestTier)));
 
       if(stats.size() == 2) {
-        Counter evictionHighestTierCounterHistory = contextualStatistics.getStatistic(Counter.class, stats.get(0));
-        assertThat(evictionHighestTierCounterHistory.getValue(), Matchers.equalTo(expected.get(0)));
+        Number evictionHighestTierCounter = contextualStatistics.getStatistic(stats.get(0));
+        assertThat(evictionHighestTierCounter.longValue(), Matchers.equalTo(expected.get(0)));
 
       } else if(stats.size() == 3) {
-        Counter evictionHighestTierCounterHistory = contextualStatistics.getStatistic(Counter.class, stats.get(0));
-        assertThat(evictionHighestTierCounterHistory.getValue(), Matchers.equalTo(expected.get(0)));
+        Number evictionHighestTierCounterHistory = contextualStatistics.getStatistic(stats.get(0));
+        assertThat(evictionHighestTierCounterHistory.longValue(), Matchers.equalTo(expected.get(0)));
 
-        Counter evictionMiddleTierCounterHistory = contextualStatistics.getStatistic(Counter.class, stats.get(1));
-        assertThat(evictionMiddleTierCounterHistory.getValue(), Matchers.equalTo(expected.get(1)));
+        Number evictionMiddleTierCounterHistory = contextualStatistics.getStatistic(stats.get(1));
+        assertThat(evictionMiddleTierCounterHistory.longValue(), Matchers.equalTo(expected.get(1)));
 
       }
     }

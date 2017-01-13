@@ -23,7 +23,6 @@ import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
 import org.terracotta.management.model.context.Context;
-import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.Named;
 import org.terracotta.management.registry.action.ExposedObject;
 import org.terracotta.management.registry.collect.StatisticProvider;
@@ -72,13 +71,13 @@ public class EhcacheStatisticsProvider extends CacheBindingManagementProvider {
   }
 
   @Override
-  public Map<String, Statistic<?, ?>> collectStatistics(Context context, Collection<String> statisticNames) {
+  public Map<String, Number> collectStatistics(Context context, Collection<String> statisticNames) {
     StandardEhcacheStatistics ehcacheStatistics = (StandardEhcacheStatistics) findExposedObject(context);
     if (ehcacheStatistics != null) {
       if (statisticNames == null || statisticNames.isEmpty()) {
         return ehcacheStatistics.queryStatistics();
       } else {
-        Map<String, Statistic<?, ?>> statistics = new TreeMap<String, Statistic<?, ?>>();
+        Map<String, Number> statistics = new TreeMap<String, Number>();
         for (String statisticName : statisticNames) {
           try {
             statistics.put(statisticName, ehcacheStatistics.queryStatistic(statisticName));

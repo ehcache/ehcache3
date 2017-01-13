@@ -32,7 +32,6 @@ import org.junit.Test;
 import org.junit.rules.Timeout;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.util.Arrays;
 
@@ -74,9 +73,9 @@ public class StandardEhcacheStatisticsTest {
         .getSingleResult();
 
       assertThat(counter.size(), Matchers.is(1));
-      Counter count = counter.getStatistic(Counter.class, "Cache:HitCount");
+      Number count = counter.getStatistic("Cache:HitCount");
 
-      assertThat(count.getValue(), Matchers.equalTo(1L));
+      assertThat(count.longValue(), Matchers.equalTo(1L));
     }
     finally {
       if(cacheManager != null) {

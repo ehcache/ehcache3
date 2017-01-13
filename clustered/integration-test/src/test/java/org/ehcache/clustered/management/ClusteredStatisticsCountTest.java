@@ -19,11 +19,8 @@ import org.ehcache.Cache;
 import org.junit.Assert;
 import org.junit.Test;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.Statistic;
-import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.hamcrest.CoreMatchers.is;
 
@@ -69,10 +66,10 @@ public class ClusteredStatisticsCountTest extends AbstractClusteringManagementTe
             System.out.println(" - " + entry.getKey() + " : " + entry.getValue());
           }*/
 
-          cacheHitCount = stat.getStatistic(Counter.class, "Cache:HitCount").getValue();
-          clusteredHitCount = stat.getStatistic(Counter.class, "Clustered:HitCount").getValue();
-          clusteredMissCount = stat.getStatistic(Counter.class, "Clustered:MissCount").getValue();
-          cacheMissCount = stat.getStatistic(Counter.class, "Cache:MissCount").getValue();
+          cacheHitCount = stat.getStatistic("Cache:HitCount").longValue();
+          clusteredHitCount = stat.getStatistic("Clustered:HitCount").longValue();
+          clusteredMissCount = stat.getStatistic("Clustered:MissCount").longValue();
+          cacheMissCount = stat.getStatistic("Cache:MissCount").longValue();
         }
       }
     } while(!Thread.currentThread().isInterrupted() &&

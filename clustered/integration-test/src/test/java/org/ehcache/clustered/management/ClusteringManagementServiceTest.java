@@ -31,7 +31,6 @@ import org.terracotta.management.model.cluster.Cluster;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.message.Message;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -229,7 +228,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        val = stat.getStatistic(Counter.class, "Cache:HitCount").getValue();
+        val = stat.getStatistic("Cache:HitCount").longValue();
       }
     } while(!Thread.currentThread().isInterrupted() && val != 2);
 
@@ -247,7 +246,7 @@ public class ClusteringManagementServiceTest extends AbstractClusteringManagemen
         .collect(Collectors.toList());
 
       for (ContextualStatistics stat : stats) {
-        val = stat.getStatistic(Counter.class, "Cache:HitCount").getValue();
+        val = stat.getStatistic("Cache:HitCount").longValue();
       }
 
     } while(!Thread.currentThread().isInterrupted() && val != 4);

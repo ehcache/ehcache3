@@ -38,7 +38,6 @@ import org.terracotta.management.model.capabilities.descriptors.StatisticDescrip
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery.Builder;
 
@@ -277,29 +276,29 @@ public class DefaultManagementRegistryServiceTest {
         .queryStatistic(queryStatisticName)
         .on(context1);
 
-    ContextualStatistics counters = getResultSet(builder1, context1, null, Counter.class, queryStatisticName).getResult(context1);
-    Counter counterHistory1 = counters.getStatistic(Counter.class, queryStatisticName);
+    ContextualStatistics counters = getResultSet(builder1, context1, null, queryStatisticName).getResult(context1);
+    Number counterHistory1 = counters.getStatistic(queryStatisticName);
 
     assertThat(counters.size()).isEqualTo(1);
-    assertThat(counterHistory1.getValue()).isEqualTo(1L);
+    assertThat(counterHistory1.longValue()).isEqualTo(1L);
 
     Builder builder2 = managementRegistry.withCapability("StatisticsCapability")
         .queryStatistic(queryStatisticName)
         .on(context1)
         .on(context2);
-    ResultSet<ContextualStatistics> allCounters = getResultSet(builder2, context1, context2, Counter.class, queryStatisticName);
+    ResultSet<ContextualStatistics> allCounters = getResultSet(builder2, context1, context2, queryStatisticName);
 
     assertThat(allCounters.size()).isEqualTo(2);
     assertThat(allCounters.getResult(context1).size()).isEqualTo(1);
     assertThat(allCounters.getResult(context2).size()).isEqualTo(1);
 
-    assertThat(allCounters.getResult(context1).getStatistic(Counter.class, queryStatisticName).getValue()).isEqualTo(1L);
-    assertThat(allCounters.getResult(context2).getStatistic(Counter.class, queryStatisticName).getValue()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context1).getStatistic(queryStatisticName).longValue()).isEqualTo(1L);
+    assertThat(allCounters.getResult(context2).getStatistic(queryStatisticName).longValue()).isEqualTo(1L);
 
     cacheManager1.close();
   }
 
-  private static ResultSet<ContextualStatistics> getResultSet(Builder builder, Context context1, Context context2, Class<Counter> type, String statisticsName) {
+  private static ResultSet<ContextualStatistics> getResultSet(Builder builder, Context context1, Context context2, String statisticsName) {
     ResultSet<ContextualStatistics> counters = null;
 
     while(!Thread.currentThread().isInterrupted())  //wait till Counter history(s) is initialized and contains values.
@@ -307,22 +306,22 @@ public class DefaultManagementRegistryServiceTest {
       counters = builder.build().execute();
 
       ContextualStatistics statisticsContext1 = counters.getResult(context1);
-      Counter counterHistoryContext1 = statisticsContext1.getStatistic(type, statisticsName);
+      Number counterContext1 = statisticsContext1.getStatistic(statisticsName);
 
       if(context2 != null)
       {
         ContextualStatistics statisticsContext2 = counters.getResult(context2);
-        Counter counterHistoryContext2 = statisticsContext2.getStatistic(type, statisticsName);
+        Number counterHistoryContext2 = statisticsContext2.getStatistic(statisticsName);
 
-        if(counterHistoryContext2.getValue() > 0 &&
-           counterHistoryContext1.getValue() > 0)
+        if(counterHistoryContext2.longValue() > 0 &&
+           counterContext1.longValue() > 0)
         {
           break;
         }
       }
       else
       {
-        if(counterHistoryContext1.getValue() > 0)
+        if(counterContext1.longValue() > 0)
         {
           break;
         }
