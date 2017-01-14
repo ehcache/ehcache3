@@ -34,7 +34,6 @@ import org.terracotta.management.model.capabilities.Capability;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 import org.terracotta.management.registry.StatisticQuery.Builder;
@@ -176,7 +175,7 @@ public class DefaultSharedManagementServiceTest {
     Builder builder = service.withCapability("StatisticsCapability")
         .queryStatistic(statisticName)
         .on(contextList);
-    ResultSet<ContextualStatistics> allCounters = getResultSet(builder, contextList, Counter.class, statisticName);
+    ResultSet<ContextualStatistics> allCounters = getResultSet(builder, contextList, statisticName);
 
     assertThat(allCounters.size(), equalTo(3));
 
@@ -185,22 +184,22 @@ public class DefaultSharedManagementServiceTest {
     assertThat(allCounters.getResult(contextList.get(2)).size(), equalTo(1));
 
 
-    assertThat(allCounters.getResult(contextList.get(0)).getStatistic(Counter.class, statisticName).getValue(), equalTo(1L));
-    assertThat(allCounters.getResult(contextList.get(1)).getStatistic(Counter.class, statisticName).getValue(), equalTo(1L));
-    assertThat(allCounters.getResult(contextList.get(2)).getStatistic(Counter.class, statisticName).getValue(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(0)).getStatistic(statisticName).longValue(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(1)).getStatistic(statisticName).longValue(), equalTo(1L));
+    assertThat(allCounters.getResult(contextList.get(2)).getStatistic(statisticName).longValue(), equalTo(1L));
 
   }
 
-  private static ResultSet<ContextualStatistics> getResultSet(StatisticQuery.Builder builder, List<Context> contextList, Class<Counter> type, String statisticsName) {
+  private static ResultSet<ContextualStatistics> getResultSet(StatisticQuery.Builder builder, List<Context> contextList, String statisticsName) {
     ResultSet<ContextualStatistics> counters = null;
 
     //wait till Counter history is initialized and contains values > 0.
     while(!Thread.currentThread().isInterrupted()) {
       counters = builder.build().execute();
 
-      if(counters.getResult(contextList.get(0)).getStatistic(type, statisticsName).getValue()> 0 &&
-         counters.getResult(contextList.get(1)).getStatistic(type, statisticsName).getValue() > 0 &&
-         counters.getResult(contextList.get(2)).getStatistic(type, statisticsName).getValue() > 0) {
+      if(counters.getResult(contextList.get(0)).getStatistic(statisticsName).longValue()> 0 &&
+         counters.getResult(contextList.get(1)).getStatistic(statisticsName).longValue() > 0 &&
+         counters.getResult(contextList.get(2)).getStatistic(statisticsName).longValue() > 0) {
         break;
       }
     }

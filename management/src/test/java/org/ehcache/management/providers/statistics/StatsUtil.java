@@ -20,7 +20,6 @@ import org.hamcrest.Matchers;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 
@@ -55,8 +54,8 @@ public class StatsUtil {
 
     assertThat(counters.size(), Matchers.is(1));
 
-    Counter counterHistory = statisticsContext.getStatistic(Counter.class, statName);
-    long value = counterHistory.getValue();
+    Number counter = statisticsContext.getStatistic(statName);
+    long value = counter.longValue();
 
     assertThat(value, Matchers.is(expectedResult));
 

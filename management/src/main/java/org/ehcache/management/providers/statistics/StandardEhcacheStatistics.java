@@ -22,7 +22,6 @@ import org.ehcache.management.ManagementRegistryServiceConfiguration;
 import org.ehcache.management.providers.CacheBinding;
 import org.ehcache.management.providers.ExposedCacheBinding;
 import org.terracotta.management.model.capabilities.descriptors.StatisticDescriptor;
-import org.terracotta.management.model.stats.Statistic;
 import org.terracotta.management.registry.collect.StatisticRegistry;
 
 import java.util.Collection;
@@ -57,11 +56,11 @@ public class StandardEhcacheStatistics extends ExposedCacheBinding {
     }
   }
 
-  public Statistic<?, ?> queryStatistic(String fullStatisticName) {
+  public Number queryStatistic(String fullStatisticName) {
     return statisticRegistry.queryStatistic(fullStatisticName);
   }
 
-  public Map<String, Statistic<?, ?>> queryStatistics() {
+  public Map<String, Number> queryStatistics() {
     return statisticRegistry.queryStatistics();
   }
 

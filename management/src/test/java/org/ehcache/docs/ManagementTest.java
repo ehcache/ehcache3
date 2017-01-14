@@ -38,7 +38,6 @@ import org.terracotta.management.model.capabilities.descriptors.Descriptor;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.context.ContextContainer;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
 
@@ -232,11 +231,11 @@ public class ManagementTest {
 
         ContextualStatistics statisticsContext1 = counters.getResult(context1);
 
-        Counter counterContext1 = statisticsContext1.getStatistic(Counter.class, "Cache:MissCount");
+        Number counterContext1 = statisticsContext1.getStatistic("Cache:MissCount");
 
         // miss count is a sampled stat, for example its values could be [0,1,2].
         // In the present case, only the last value is important to us , the cache was eventually missed 2 times
-        val = counterContext1.getValue();
+        val = counterContext1.longValue();
       } while(val != 2);
     }
     finally {
