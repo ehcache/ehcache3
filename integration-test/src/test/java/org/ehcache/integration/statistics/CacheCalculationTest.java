@@ -15,6 +15,7 @@
  */
 package org.ehcache.integration.statistics;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -243,13 +244,22 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
 
   @Test
   public void testClearingStats() {
+    // We do it twice because the second time we already have compensating counters, so the result might fail
+    innerClear();
+    innerClear();
+  }
+
+  private void innerClear() {
     cache.get(1); // one miss
+    cache.getAll(asSet(1, 2, 3)); // 3 misses
     cache.put(1, "a"); // one put
+    cache.putAll(Collections.singletonMap(2, "b")); // 1 put
     cache.get(1); // one hit
-    cache.remove(1); // on remove
-    changesOf(1, 1, 1, 1);
+    cache.remove(1); // one remove
+    cache.removeAll(asSet(2)); // one remove
+    changesOf(1, 4, 2, 2);
 
     cacheStatistics.clear();
-    changesOf(-1, -1, -1, -1);
+    changesOf(-1, -4, -2, -2);
   }
 }
