@@ -15,6 +15,11 @@
  */
 package org.ehcache.management.providers.statistics;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.Builder;
@@ -37,14 +42,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.terracotta.management.model.context.Context;
 import org.terracotta.management.model.stats.ContextualStatistics;
-import org.terracotta.management.model.stats.primitive.Counter;
 import org.terracotta.management.registry.ResultSet;
 import org.terracotta.management.registry.StatisticQuery;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
@@ -169,12 +168,11 @@ public class StandardEhCacheStatisticsQueryTest {
 
     assertThat(counters.size(), Matchers.is(1));
 
-    Counter counterHistory = statisticsContext.getStatistic(Counter.class, statName);
-    long value = counterHistory.getValue();
+    Long counter = (Long) statisticsContext.getStatistic(statName);
 
-    assertThat(value, Matchers.is(expectedResult));
+    assertThat(counter, Matchers.is(expectedResult));
 
-    return value;
+    return counter;
   }
 
 }
