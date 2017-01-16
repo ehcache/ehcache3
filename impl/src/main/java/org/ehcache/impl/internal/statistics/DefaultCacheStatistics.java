@@ -16,6 +16,14 @@
 
 package org.ehcache.impl.internal.statistics;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.ehcache.core.InternalCache;
 import org.ehcache.core.statistics.BulkOps;
 import org.ehcache.core.statistics.CacheOperationOutcomes;
@@ -28,14 +36,6 @@ import org.terracotta.statistics.derived.MinMaxAverage;
 import org.terracotta.statistics.extended.StatisticType;
 import org.terracotta.statistics.jsr166e.LongAdder;
 import org.terracotta.statistics.observer.ChainedOperationObserver;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import static java.util.EnumSet.allOf;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findLowestTier;
@@ -139,7 +139,7 @@ class DefaultCacheStatistics implements CacheStatistics {
   }
 
   public long getCacheHits() {
-    return normalize(getHits() - compensatingCounters.cacheHits - compensatingCounters.bulkGetHits);
+    return normalize(getHits() - compensatingCounters.cacheHits);
   }
 
   public float getCacheHitPercentage() {
@@ -148,7 +148,7 @@ class DefaultCacheStatistics implements CacheStatistics {
   }
 
   public long getCacheMisses() {
-    return normalize(getMisses() - compensatingCounters.cacheMisses - compensatingCounters.bulkGetMiss);
+    return normalize(getMisses() - compensatingCounters.cacheMisses);
   }
 
   public float getCacheMissPercentage() {
@@ -158,13 +158,11 @@ class DefaultCacheStatistics implements CacheStatistics {
 
   public long getCacheGets() {
     return normalize(getHits() + getMisses()
-                     - compensatingCounters.cacheGets
-                     - compensatingCounters.bulkGetHits
-                     - compensatingCounters.bulkGetMiss);
+                     - compensatingCounters.cacheGets);
   }
 
   public long getCachePuts() {
-    return normalize(getBulkCount(BulkOps.PUT_ALL) - compensatingCounters.bulkPuts +
+    return normalize(getBulkCount(BulkOps.PUT_ALL) +
                      put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.PUT)) +
                      put.sum(EnumSet.of(CacheOperationOutcomes.PutOutcome.UPDATED)) +
                      putIfAbsent.sum(EnumSet.of(CacheOperationOutcomes.PutIfAbsentOutcome.PUT)) +
@@ -173,7 +171,7 @@ class DefaultCacheStatistics implements CacheStatistics {
   }
 
   public long getCacheRemovals() {
-    return normalize(getBulkCount(BulkOps.REMOVE_ALL) - compensatingCounters.bulkRemovals +
+    return normalize(getBulkCount(BulkOps.REMOVE_ALL) +
                      remove.sum(EnumSet.of(CacheOperationOutcomes.RemoveOutcome.SUCCESS)) +
                      conditionalRemove.sum(EnumSet.of(CacheOperationOutcomes.ConditionalRemoveOutcome.SUCCESS)) -
                      compensatingCounters.cacheRemovals);
@@ -230,42 +228,28 @@ class DefaultCacheStatistics implements CacheStatistics {
     final long cacheHits;
     final long cacheMisses;
     final long cacheGets;
-    final long bulkGetHits;
-    final long bulkGetMiss;
     final long cachePuts;
-    final long bulkPuts;
     final long cacheRemovals;
-    final long bulkRemovals;
 
-    private CompensatingCounters(long cacheHits, long cacheMisses, long cacheGets, long bulkGetHits, long bulkGetMiss,
-                                 long cachePuts, long bulkPuts, long cacheRemovals, long bulkRemovals) {
+    private CompensatingCounters(long cacheHits, long cacheMisses, long cacheGets, long cachePuts, long cacheRemovals) {
       this.cacheHits = cacheHits;
       this.cacheMisses = cacheMisses;
       this.cacheGets = cacheGets;
-      this.bulkGetHits = bulkGetHits;
-      this.bulkGetMiss = bulkGetMiss;
       this.cachePuts = cachePuts;
-      this.bulkPuts = bulkPuts;
       this.cacheRemovals = cacheRemovals;
-      this.bulkRemovals = bulkRemovals;
     }
 
     static CompensatingCounters empty() {
-      return new CompensatingCounters(0, 0, 0, 0, 0, 0,
-        0, 0, 0);
+      return new CompensatingCounters(0, 0, 0, 0, 0);
     }
 
     CompensatingCounters snapshot(DefaultCacheStatistics statistics) {
       return new CompensatingCounters(
-        cacheHits + statistics.getCacheHits(),
-        cacheMisses + statistics.getCacheMisses(),
+        cacheHits + statistics.getHits(),
+        cacheMisses + statistics.getMisses(),
         cacheGets + statistics.getCacheGets(),
-        bulkGetHits + statistics.getBulkCount(BulkOps.GET_ALL_HITS),
-        bulkGetMiss + statistics.getBulkCount(BulkOps.GET_ALL_MISS),
         cachePuts + statistics.getCachePuts(),
-        bulkPuts + statistics.getBulkCount(BulkOps.PUT_ALL),
-        cacheRemovals + statistics.getCacheRemovals(),
-        bulkRemovals + statistics.getBulkCount(BulkOps.REMOVE_ALL));
+        cacheRemovals + statistics.getCacheRemovals());
     }
   }
 
