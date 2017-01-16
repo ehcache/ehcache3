@@ -22,7 +22,6 @@ Given a capability and a context, statistics can be collected or calls can be ma
 The current `ManagementRegistry` implementation provides minimal support for `Ehcache` instances, providing
 a minimal set of statistics and actions via a couple of capabilities.
 
-
 == Making use of the `ManagementRegistry`
 
 By default, a `ManagementRegistry` is automatically discovered and enabled, but can only be accessed by Ehcache
@@ -100,3 +99,35 @@ include::{sourcedir32}/management/src/test/java/org/ehcache/docs/ManagementTest.
 <3> Pass it as a service to the second cache manager
 
 This way, all managed objects get registered into a common `ManagementRegistry` instance.
+
+== Rules for statistics calculation
+
+This table describes the impact of each cache method on the statistics. It is compatible with
+https://www.jcp.org/en/jsr/detail?id=107[JSR-107] (section 12.4).
+
+[cols=">s,6*", options="header"]
+|===================================================================================
+|Method         |Hit|Miss|Put|Update|Removal|Notes
+|clear          |No |No  |No |No    |No     |
+|containsKey    |No |No  |No |No    |No     |
+|forEach        |Yes|Yes |No |No    |No     |Java 8
+|get            |Yes|Yes |No |No    |No     |
+|getAll         |Yes|Yes |No |No    |No     |
+|getAndPut      |Yes|Yes |Yes|Yes   |No     |JSR107 specific
+|getAndRemove   |Yes|Yes |No |No    |Yes    |JSR107 specific
+|getAndReplace  |Yes|Yes |Yes|Yes   |No     |JSR107 specific
+|invoke         |Yes|Yes |Yes|Yes   |Yes    |JSR107 specific
+|invokeAll      |Yes|Yes |Yes|Yes   |Yes    |JSR107 specific
+|iterator       |Yes|Yes |No |No    |Yes    |
+|loadAll        |No |No  |No |No    |No     |JSR107 specific
+|put            |No |No  |Yes|Yes   |No     |
+|putAll         |No |No  |Yes|Yes   |No     |
+|putIfAbsent    |Yes|Yes |Yes|Yes   |No     |
+|remove(K)      |No |No  |No |No    |Yes    |
+|remove(K,V)    |Yes|Yes |No |No    |Yes    |Hit is the key is found. Miss otherwise
+|removeAll      |No |No  |No |No    |Yes    |
+|removeAll(keys)|No |No  |No |No    |Yes    |
+|replace(K,V)   |Yes|Yes |Yes|Yes   |No     |
+|replace(K,O,N) |Yes|Yes |Yes|Yes   |No     |
+|spliterator    |Yes|No  |No |No    |No     |Java 8
+|====================================================================================
