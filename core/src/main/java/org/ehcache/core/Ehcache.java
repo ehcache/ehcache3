@@ -38,31 +38,33 @@ import org.ehcache.config.CacheRuntimeConfiguration;
 import org.ehcache.core.events.CacheEventDispatcher;
 import org.ehcache.core.internal.resilience.LoggingRobustResilienceStrategy;
 import org.ehcache.core.internal.resilience.RecoveryCache;
+import org.ehcache.core.internal.resilience.ResilienceStrategy;
+import org.ehcache.core.spi.LifeCycled;
+import org.ehcache.core.spi.function.BiFunction;
+import org.ehcache.core.spi.function.Function;
+import org.ehcache.core.spi.function.NullaryFunction;
 import org.ehcache.core.spi.store.Store;
-import org.ehcache.core.spi.store.Store.ValueHolder;
 import org.ehcache.core.spi.store.Store.PutStatus;
 import org.ehcache.core.spi.store.Store.RemoveStatus;
 import org.ehcache.core.spi.store.Store.ReplaceStatus;
+import org.ehcache.core.spi.store.Store.ValueHolder;
+import org.ehcache.core.spi.store.StoreAccessException;
+import org.ehcache.core.statistics.BulkOps;
+import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ConditionalRemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.GetAllOutcome;
+import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutIfAbsentOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.PutOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveAllOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.RemoveOutcome;
 import org.ehcache.core.statistics.CacheOperationOutcomes.ReplaceOutcome;
+import org.ehcache.expiry.Duration;
 import org.ehcache.expiry.Expiry;
 import org.ehcache.spi.loaderwriter.BulkCacheLoadingException;
 import org.ehcache.spi.loaderwriter.BulkCacheWritingException;
-import org.ehcache.core.spi.store.StoreAccessException;
-import org.ehcache.expiry.Duration;
-import org.ehcache.core.spi.function.BiFunction;
-import org.ehcache.core.spi.function.Function;
-import org.ehcache.core.spi.function.NullaryFunction;
-import org.ehcache.core.internal.resilience.ResilienceStrategy;
-import org.ehcache.core.spi.LifeCycled;
 import org.ehcache.spi.loaderwriter.CacheLoaderWriter;
-import org.ehcache.core.statistics.BulkOps;
 import org.slf4j.Logger;
 import org.terracotta.statistics.StatisticsManager;
 import org.terracotta.statistics.jsr166e.LongAdder;
@@ -70,8 +72,6 @@ import org.terracotta.statistics.observer.OperationObserver;
 
 import static org.ehcache.core.exceptions.ExceptionFactory.newCacheLoadingException;
 import static org.ehcache.core.internal.util.ValueSuppliers.supplierOf;
-import org.ehcache.core.statistics.CacheOperationOutcomes.ClearOutcome;
-import org.ehcache.core.statistics.CacheOperationOutcomes.GetOutcome;
 import static org.terracotta.statistics.StatisticBuilder.operation;
 
 /**
@@ -396,6 +396,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
       PutAllFunction<K, V> putAllFunction = new PutAllFunction<K, V>(logger, entriesToRemap, runtimeConfiguration.getExpiry());
       store.bulkCompute(entries.keySet(), putAllFunction);
       addBulkMethodEntriesCount(BulkOps.PUT_ALL, putAllFunction.getActualPutCount().get());
+      addBulkMethodEntriesCount(BulkOps.UPDATE_ALL, putAllFunction.getActualUpdateCount().get());
       putAllObserver.end(PutAllOutcome.SUCCESS);
     } catch (StoreAccessException e) {
       try {
@@ -761,7 +762,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
               if (newValue == null) {
                 removeObserver.end(RemoveOutcome.SUCCESS);
               } else {
-                putObserver.end(PutOutcome.PUT);
+                putObserver.end(mappedValue == null ? PutOutcome.PUT : PutOutcome.UPDATED);
               }
             }
 
@@ -980,6 +981,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     private final Map<K, V> entriesToRemap;
     private final Expiry<? super K, ? super V> expiry;
     private final AtomicInteger actualPutCount = new AtomicInteger();
+    private final AtomicInteger actualUpdateCount = new AtomicInteger();
 
     public PutAllFunction(Logger logger, Map<K, V> entriesToRemap, Expiry<? super K, ? super V> expiry) {
       this.logger = logger;
@@ -1001,6 +1003,9 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
           mutations.put(key, null);
         } else {
           actualPutCount.incrementAndGet();
+          if(existingValue != null) {
+            actualUpdateCount.incrementAndGet();
+          }
           mutations.put(key, newValue);
         }
       }
@@ -1040,6 +1045,10 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
 
     public AtomicInteger getActualPutCount() {
       return actualPutCount;
+    }
+
+    public AtomicInteger getActualUpdateCount() {
+      return actualUpdateCount;
     }
   }
 

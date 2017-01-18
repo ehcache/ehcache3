@@ -47,6 +47,8 @@ public interface CacheStatistics {
 
   long getCachePuts();
 
+  long getCacheUpdates();
+
   long getCacheRemovals();
 
   long getCacheEvictions();
