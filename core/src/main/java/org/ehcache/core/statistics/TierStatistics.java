@@ -27,7 +27,7 @@ public interface TierStatistics {
 
   /**
    * Reset the values for this tier. However, note that {@code mapping, maxMappings, allocatedMemory, occupiedMemory}
-   * but be reset since it doesn't make sense.
+   * won't be reset since it doesn't make sense.
    * <p>
    * <b>Implementation note:</b> Calling clear doesn't really clear the data. It freezes the actual values and compensate
    * for them when returning a result.
