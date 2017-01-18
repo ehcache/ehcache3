@@ -134,9 +134,6 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     iterator.next().getKey();
     changesOf(2, 0, 0, 0, 0); // FIXME Why two?!?
 
-    iterator.next().getKey();
-    changesOf(1, 0, 0, 0); // FIXME Why two?!?
-
     expect(iterator.hasNext()).isTrue();
     changesOf(0, 0, 0, 0, 0);
 
