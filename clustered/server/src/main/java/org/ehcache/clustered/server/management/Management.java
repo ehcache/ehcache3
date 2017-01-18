@@ -80,10 +80,12 @@ public class Management {
         });
       }
 
+
+      registerClusteredTierManagerSettingsProvider();
       // expose settings about server stores
       managementRegistry.addManagementProvider(new ServerStoreSettingsManagementProvider());
       // expose settings about pools
-      managementRegistry.addManagementProvider(new PoolSettingsManagementProvider(ehcacheStateService));
+      managementRegistry.addManagementProvider(new PoolSettingsManagementProvider());
 
       // expose stats about server stores
       managementRegistry.addManagementProvider(new ServerStoreStatisticsManagementProvider());
@@ -92,11 +94,28 @@ public class Management {
     }
   }
 
+  protected EhcacheStateService getEhcacheStateService() {
+    return ehcacheStateService;
+  }
+
+  public ConsumerManagementRegistry getManagementRegistry() {
+    return managementRegistry;
+  }
+
+  protected ClusteredTierManagerBinding generateClusteredTierManagerBinding() {
+    return new ClusteredTierManagerBinding(getEhcacheStateService().getClusteredTierManagerIdentifier(), getEhcacheStateService());
+  }
+
+  protected void registerClusteredTierManagerSettingsProvider() {
+    getManagementRegistry().addManagementProvider(new ClusteredTierManagerSettingsManagementProvider());
+  }
+
   // the goal of the following code is to send the management metadata from the entity into the monitoring tre AFTER the entity creation
   public void init() {
     if (managementRegistry != null) {
       LOGGER.trace("init()");
 
+      managementRegistry.register(generateClusteredTierManagerBinding());
       // PoolBinding.ALL_SHARED is a marker so that we can send events not specifically related to 1 pool
       // this object is ignored from the stats and descriptors
       managementRegistry.register(PoolBinding.ALL_SHARED);

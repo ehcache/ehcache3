@@ -105,17 +105,18 @@ public class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMe
     }
   }
 
-  public EhcachePassiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config, final KeySegmentMapper mapper) throws ConfigurationException {
+  public EhcachePassiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config,
+                              EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
       throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
     }
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(config, services, mapper));
+    this.ehcacheStateService = ehcacheStateService;
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
     try {
       ehcacheStateService.configure();
-      this.management = new Management(services, ehcacheStateService, false);
+      this.management = management;
     } catch (ConfigurationException e) {
       ehcacheStateService.destroy();
       throw e;

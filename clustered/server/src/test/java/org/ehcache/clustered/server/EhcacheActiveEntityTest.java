@@ -41,6 +41,7 @@ import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.common.internal.messages.ServerStoreMessageFactory;
 import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
+import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
@@ -98,6 +99,7 @@ public class EhcacheActiveEntityTest {
   private static final LifeCycleMessageFactory MESSAGE_FACTORY = new LifeCycleMessageFactory();
   private static final UUID CLIENT_ID = UUID.randomUUID();
   private static final KeySegmentMapper DEFAULT_MAPPER = new KeySegmentMapper(16);
+  private static final Management MANAGEMENT = mock(Management.class);
   private ClusteredTierManagerConfiguration blankConfiguration = new ClusteredTierManagerConfiguration("identifier", new ServerSideConfigBuilder().build());
 
   @Before
@@ -107,7 +109,7 @@ public class EhcacheActiveEntityTest {
 
   @Test(expected = ConfigurationException.class)
   public void testConfigNull() throws Exception {
-    new EhcacheActiveEntity(null, null, DEFAULT_MAPPER);
+    new EhcacheActiveEntity(null, null, null, null);
   }
 
   /**
@@ -117,7 +119,8 @@ public class EhcacheActiveEntityTest {
   public void testConnected() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -133,7 +136,8 @@ public class EhcacheActiveEntityTest {
   public void testConnectedAgain() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -152,7 +156,8 @@ public class EhcacheActiveEntityTest {
   public void testConnectedSecond() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -176,7 +181,8 @@ public class EhcacheActiveEntityTest {
   public void testDisconnectedNotConnected() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.disconnected(client);
@@ -190,7 +196,8 @@ public class EhcacheActiveEntityTest {
   public void testDisconnected() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -209,7 +216,8 @@ public class EhcacheActiveEntityTest {
   public void testDisconnectedSecond() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -241,7 +249,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -270,7 +279,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -310,7 +320,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
     ClientDescriptor client3 = new TestClientDescriptor();
@@ -404,7 +415,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
     ClientDescriptor client3 = new TestClientDescriptor();
@@ -498,7 +510,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
     ClientDescriptor client3 = new TestClientDescriptor();
@@ -588,7 +601,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
     ClientDescriptor client3 = new TestClientDescriptor();
@@ -678,7 +692,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
     ClientDescriptor client3 = new TestClientDescriptor();
@@ -758,7 +773,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     ClientDescriptor client2 = new TestClientDescriptor();
     ClientDescriptor client3 = new TestClientDescriptor();
@@ -841,7 +857,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -891,7 +908,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -944,8 +962,9 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)    // missing on 'server'
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     try {
-      new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+      new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
       fail("Entity creation should have failed");
     } catch (ConfigurationException e) {
       assertThat(e.getCause().getMessage(), containsString("Non-existent server side resource"));
@@ -975,8 +994,9 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("idenitifier", serverSideConfiguration);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     try {
-      new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+      new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
       fail("Entity creation should have failed");
     } catch (ConfigurationException e) {
       assertThat(e.getMessage(), containsString("Default server resource"));
@@ -1004,8 +1024,9 @@ public class EhcacheActiveEntityTest {
       .sharedPool("tooBig", "serverResource2", 64, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
     try {
-      new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+      new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
       fail("Entity creation should have failed");
     } catch (ConfigurationException e) {
       assertThat(e.getMessage(), containsString("Unable to create shared resource pools"));
@@ -1034,7 +1055,8 @@ public class EhcacheActiveEntityTest {
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1068,7 +1090,8 @@ public class EhcacheActiveEntityTest {
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1099,7 +1122,8 @@ public class EhcacheActiveEntityTest {
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 8, MemoryUnit.MEGABYTES);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1123,7 +1147,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1149,7 +1174,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1168,7 +1194,8 @@ public class EhcacheActiveEntityTest {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1192,7 +1219,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1216,7 +1244,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1264,7 +1293,8 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfig);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1299,7 +1329,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1341,7 +1372,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1411,7 +1443,8 @@ public class EhcacheActiveEntityTest {
 
     UUID client2Id = UUID.randomUUID();
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1454,7 +1487,8 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1506,7 +1540,8 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfig);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1542,7 +1577,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1587,7 +1623,8 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1636,7 +1673,8 @@ public class EhcacheActiveEntityTest {
         .shared("primary")
         .build();
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1688,7 +1726,8 @@ public class EhcacheActiveEntityTest {
         .dedicated("serverResource1", 2, MemoryUnit.MEGABYTES)
         .build();
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     activeEntity.connected(client1);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client1));
@@ -1735,7 +1774,8 @@ public class EhcacheActiveEntityTest {
         .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
         .build();
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     activeEntity.connected(client1);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client1));
@@ -1775,7 +1815,8 @@ public class EhcacheActiveEntityTest {
         .dedicated("serverResource2", 4, MemoryUnit.MEGABYTES)
         .build();
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     activeEntity.connected(client1);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client1));
@@ -1821,7 +1862,8 @@ public class EhcacheActiveEntityTest {
         .dedicated("serverResource1", 4, MemoryUnit.MEGABYTES)
         .build();
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client1 = new TestClientDescriptor();
     activeEntity.connected(client1);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client1));
@@ -1857,7 +1899,8 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1903,7 +1946,8 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1954,7 +1998,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -1978,7 +2023,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -2017,7 +2063,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -2091,7 +2138,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -2116,7 +2164,8 @@ public class EhcacheActiveEntityTest {
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -2183,7 +2232,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -2244,7 +2294,8 @@ public class EhcacheActiveEntityTest {
   public void testDestroyEmpty() throws Exception {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
     activeEntity.destroy();
   }
 
@@ -2259,7 +2310,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -2331,7 +2383,8 @@ public class EhcacheActiveEntityTest {
     registry.addResource("primary-server-resource", 16, MemoryUnit.MEGABYTES);
     registry.addResource("secondary-server-resource", 16, MemoryUnit.MEGABYTES);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
@@ -2352,7 +2405,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", configure);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
@@ -2377,7 +2431,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", configure);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
@@ -2402,7 +2457,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 32, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", configure);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
@@ -2427,7 +2483,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", initialConfiguration);
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor validator = new TestClientDescriptor();
     activeEntity.connected(validator);
@@ -2439,7 +2496,8 @@ public class EhcacheActiveEntityTest {
     OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry(32, MemoryUnit.MEGABYTES);
     registry.addResource("defaultServerResource", 8, MemoryUnit.MEGABYTES);
 
-    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor configurer = new TestClientDescriptor();
     activeEntity.connected(configurer);
@@ -2470,7 +2528,8 @@ public class EhcacheActiveEntityTest {
         .unknown()
         .build();
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
     assertThat(activeEntity.getConnectedClients().keySet(), contains(client));
@@ -2498,8 +2557,9 @@ public class EhcacheActiveEntityTest {
       .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
-    ClusteredTierManagerConfiguration configuration1 = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration1, DEFAULT_MAPPER);
+    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
 
@@ -2520,9 +2580,9 @@ public class EhcacheActiveEntityTest {
     verify(syncChannel).synchronizeToPassive(captor.capture());
 
     EhcacheStateSyncMessage capturedSyncMessage = captor.getValue();
-    ServerSideConfiguration configuration = capturedSyncMessage.getConfiguration();
-    assertThat(configuration.getDefaultServerResource(), is("serverResource1"));
-    assertThat(configuration.getResourcePools().keySet(), containsInAnyOrder("primary", "secondary"));
+    ServerSideConfiguration capturedServerSideConfiguration = capturedSyncMessage.getConfiguration();
+    assertThat(capturedServerSideConfiguration.getDefaultServerResource(), is("serverResource1"));
+    assertThat(capturedServerSideConfiguration.getResourcePools().keySet(), containsInAnyOrder("primary", "secondary"));
 
     Map<String, ServerStoreConfiguration> storeConfigs = capturedSyncMessage.getStoreConfigs();
     assertThat(storeConfigs.keySet(), containsInAnyOrder("myCache"));
@@ -2542,7 +2602,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
 
@@ -2582,7 +2643,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
 
@@ -2622,7 +2684,8 @@ public class EhcacheActiveEntityTest {
     registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
     registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
 
@@ -2643,7 +2706,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -2657,7 +2721,6 @@ public class EhcacheActiveEntityTest {
                 .shared("primary")
                 .build()));
 
-    EhcacheStateServiceImpl ehcacheStateService = registry.getStoreManagerService();
     ehcacheStateService.addInvalidationtracker("test");
 
     InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker("test");
@@ -2682,7 +2745,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     IEntityMessenger entityMessenger = registry.getEntityMessenger();
 
@@ -2728,7 +2792,8 @@ public class EhcacheActiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     IEntityMessenger entityMessenger =  registry.getEntityMessenger();
 
@@ -2798,12 +2863,12 @@ public class EhcacheActiveEntityTest {
         .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
         .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     IEntityMessenger entityMessenger = registry.getEntityMessenger();
 
 
-    EhcacheStateService ehcacheStateService = registry.getStoreManagerService();
     ehcacheStateService.configure();
 
     ServerStoreConfiguration serverStoreConfiguration = new ServerStoreConfigBuilder()
@@ -2860,7 +2925,8 @@ public class EhcacheActiveEntityTest {
       .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
       .build();
     ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
 
     IEntityMessenger entityMessenger = registry.getEntityMessenger();
 
@@ -2891,7 +2957,8 @@ public class EhcacheActiveEntityTest {
     final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
     registry.addResource("serverResource1", 8, MemoryUnit.MEGABYTES);
 
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, DEFAULT_MAPPER);
+    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(blankConfiguration, registry, DEFAULT_MAPPER));
+    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, blankConfiguration, ehcacheStateService, MANAGEMENT);
 
     ClientDescriptor client = new TestClientDescriptor();
     activeEntity.connected(client);
@@ -3116,7 +3183,7 @@ public class EhcacheActiveEntityTest {
       } else if (serviceConfiguration.getServiceType().equals(EhcacheStateService.class)) {
         EhcacheStateServiceConfig config = (EhcacheStateServiceConfig) serviceConfiguration;
         if (storeManagerService == null) {
-          this.storeManagerService = new EhcacheStateServiceImpl(new OffHeapResources() {
+          this.storeManagerService = new EhcacheStateServiceImpl(config.getConfig().getIdentifier(), new OffHeapResources() {
             @Override
             public Set<OffHeapResourceIdentifier> getAllIdentifiers() {
               return pools.keySet();
