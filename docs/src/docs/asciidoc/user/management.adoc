@@ -102,32 +102,40 @@ This way, all managed objects get registered into a common `ManagementRegistry` 
 
 == Rules for statistics calculation
 
-This table describes the impact of each cache method on the statistics. It is compatible with
+This table describes whether or not a cache method can impact a given statistic. It is compatible with
 https://www.jcp.org/en/jsr/detail?id=107[JSR-107] (section 12.4).
 
+The statistics are:
+[horizontal]
+*Hit*:: An entry was asked for and found in the cache
+*Miss*:: An entry was asked for and not found in the cache
+*Put*:: An entry was added or updated
+*Update*:: An existing entry was updated (this is a subset of put)
+*Removal*:: An entry was removed from the cache
+
 [cols=">s,6*", options="header"]
-|===================================================================================
+|================================================================================================================================
 |Method         |Hit|Miss|Put|Update|Removal|Notes
-|clear          |No |No  |No |No    |No     |
-|containsKey    |No |No  |No |No    |No     |
-|forEach        |Yes|Yes |No |No    |No     |Java 8
-|get            |Yes|Yes |No |No    |No     |
-|getAll         |Yes|Yes |No |No    |No     |
-|getAndPut      |Yes|Yes |Yes|Yes   |No     |JSR107 specific
-|getAndRemove   |Yes|Yes |No |No    |Yes    |JSR107 specific
-|getAndReplace  |Yes|Yes |Yes|Yes   |No     |JSR107 specific
-|invoke         |Yes|Yes |Yes|Yes   |Yes    |JSR107 specific
-|invokeAll      |Yes|Yes |Yes|Yes   |Yes    |JSR107 specific
-|iterator       |Yes|Yes |No |No    |Yes    |
-|loadAll        |No |No  |No |No    |No     |JSR107 specific
-|put            |No |No  |Yes|Yes   |No     |
-|putAll         |No |No  |Yes|Yes   |No     |
-|putIfAbsent    |Yes|Yes |Yes|Yes   |No     |
-|remove(K)      |No |No  |No |No    |Yes    |
-|remove(K,V)    |Yes|Yes |No |No    |Yes    |Hit is the key is found. Miss otherwise
-|removeAll      |No |No  |No |No    |Yes    |
-|removeAll(keys)|No |No  |No |No    |Yes    |
-|replace(K,V)   |Yes|Yes |Yes|Yes   |No     |
-|replace(K,O,N) |Yes|Yes |Yes|Yes   |No     |
-|spliterator    |Yes|No  |No |No    |No     |Java 8
-|====================================================================================
+|clear          |No |No  |No |No    |No     |A bulk remove with no impact on stats
+|containsKey    |No |No  |No |No    |No     |Generates no hit or miss since the value isn't accessed
+|forEach        |Yes|No  |No |No    |No     |Java 8. Will hit each entry once
+|get            |Yes|Yes |No |No    |No     |Hit when the entry is found, miss otherwise
+|getAll         |Yes|Yes |No |No    |No     |Like `get` but calculated per entry
+|getAndPut      |Yes|Yes |Yes|Yes   |No     |JSR107 specific. Hit and update when the entry is found, miss otherwise. Always put
+|getAndRemove   |Yes|Yes |No |No    |Yes    |JSR107 specific. Hit and remove when the entry is found, miss otherwise
+|getAndReplace  |Yes|Yes |Yes|Yes   |No     |JSR107 specific. Hit, put and update when the entry is found, miss otherwise
+|invoke         |Yes|Yes |Yes|Yes   |Yes    |JSR107 specific. Depends on how the `EntryProcessor` modifies the `MutableEntry`
+|invokeAll      |Yes|Yes |Yes|Yes   |Yes    |JSR107 specific. Like `invoke` but calculated per entry
+|iterator       |Yes|No  |No |No    |Yes    |Will hit each iterated entry and count a removal on `Iterator.remove`
+|loadAll        |No |No  |No |No    |No     |JSR107 specific. Background loading that has no impact on stats
+|put            |No |No  |Yes|Yes   |No     |Put an entry whether it already existed or not. Update if already existing
+|putAll         |No |No  |Yes|Yes   |No     |Like `put` but calculated per entry
+|putIfAbsent    |Yes|Yes |Yes|No    |No     |Will hit if the entry exists. Will put and miss if it doesn't
+|remove(K)      |No |No  |No |No    |Yes    |Count a removal if the entry exists
+|remove(K,V)    |Yes|Yes |No |No    |Yes    |Hit if the key is found. Miss otherwise
+|removeAll      |No |No  |No |No    |Yes    |One removal per entry in the cache
+|removeAll(keys)|No |No  |No |No    |Yes    |Like `remove` but calculated per entry
+|replace(K,V)   |Yes|Yes |Yes|Yes   |No     |Hit, put and update if the entry exists. Miss otherwise
+|replace(K,O,N) |Yes|Yes |Yes|Yes   |No     |Hit if the entry exists
+|spliterator    |Yes|No  |No |No    |No     |Java 8. Will hit for each iterated entry
+|================================================================================================================================
