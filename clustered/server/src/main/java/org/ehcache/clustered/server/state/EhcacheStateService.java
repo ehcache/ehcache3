@@ -31,6 +31,8 @@ import java.util.Set;
 @CommonComponent
 public interface EhcacheStateService {
 
+  String getClusteredTierManagerIdentifier();
+
   String getDefaultServerResource();
 
   Map<String, ServerSideConfiguration.Pool> getSharedResourcePools();

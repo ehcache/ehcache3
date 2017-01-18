@@ -70,7 +70,7 @@ public class EhcacheStateServiceProvider implements ServiceProvider {
   public <T> T getService(long consumerID, ServiceConfiguration<T> configuration) {
     if (configuration != null && configuration.getServiceType().equals(EhcacheStateService.class)) {
       EhcacheStateServiceConfig stateServiceConfig = (EhcacheStateServiceConfig) configuration;
-      EhcacheStateServiceImpl storeManagerService = new EhcacheStateServiceImpl(
+      EhcacheStateServiceImpl storeManagerService = new EhcacheStateServiceImpl(stateServiceConfig.getConfig().getIdentifier(),
         offHeapResourcesProvider, stateServiceConfig.getConfig().getConfiguration(), stateServiceConfig.getMapper(),
         service -> serviceMap.remove(stateServiceConfig.getConfig().getIdentifier(), service));
       EhcacheStateService result = serviceMap.putIfAbsent(stateServiceConfig.getConfig().getIdentifier(), storeManagerService);

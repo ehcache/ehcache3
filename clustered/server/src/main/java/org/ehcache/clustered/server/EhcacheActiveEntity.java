@@ -161,14 +161,15 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     }
   }
 
-  public EhcacheActiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config, final KeySegmentMapper mapper) throws ConfigurationException {
+  public EhcacheActiveEntity(ServiceRegistry services, ClusteredTierManagerConfiguration config,
+                             EhcacheStateService ehcacheStateService, Management management) throws ConfigurationException {
     if (config == null) {
       throw new ConfigurationException("ClusteredTierManagerConfiguration cannot be null");
     }
     this.configuration = config.getConfiguration();
     this.responseFactory = new EhcacheEntityResponseFactory();
     this.clientCommunicator = services.getService(new CommunicatorServiceConfiguration());
-    ehcacheStateService = services.getService(new EhcacheStateServiceConfig(config, services, mapper));
+    this.ehcacheStateService = ehcacheStateService;
     if (ehcacheStateService == null) {
       throw new AssertionError("Server failed to retrieve EhcacheStateService.");
     }
@@ -178,7 +179,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     }
     try {
       ehcacheStateService.configure();
-      this.management = new Management(services, ehcacheStateService, true);
+      this.management = management;
     } catch (ConfigurationException e) {
       ehcacheStateService.destroy();
       throw e;
