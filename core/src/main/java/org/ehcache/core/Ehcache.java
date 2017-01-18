@@ -219,28 +219,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
   }
 
   private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
-    if (newValue == null) {
-      return false;
-    }
-
-    final Duration duration;
-    if (oldValue == null) {
-      try {
-        duration = runtimeConfiguration.getExpiry().getExpiryForCreation(key, newValue);
-      } catch (RuntimeException re) {
-        logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-        return true;
-      }
-    } else {
-      try {
-        duration = runtimeConfiguration.getExpiry().getExpiryForUpdate(key, supplierOf(oldValue), newValue);
-      } catch (RuntimeException re) {
-        logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-        return true;
-      }
-    }
-
-    return Duration.ZERO.equals(duration);
+    return newValueAlreadyExpired(logger, runtimeConfiguration.getExpiry(), key, oldValue, newValue);
   }
 
   /**
@@ -931,7 +910,6 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
   }
 
-
   private static <K> RecoveryCache<K> recoveryCache(final Store<K, ?> store) {
     return new RecoveryCache<K>() {
 
@@ -952,6 +930,26 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
         }
       }
     };
+  }
+
+  private static <K, V> boolean newValueAlreadyExpired(Logger logger, Expiry<? super K, ? super V> expiry, K key, V oldValue, V newValue) {
+    if (newValue == null) {
+      return false;
+    }
+
+    Duration duration;
+    try {
+      if (oldValue == null) {
+          duration = expiry.getExpiryForCreation(key, newValue);
+      } else {
+          duration = expiry.getExpiryForUpdate(key, supplierOf(oldValue), newValue);
+      }
+    } catch (RuntimeException re) {
+      logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
+      return true;
+    }
+
+    return Duration.ZERO.equals(duration);
   }
 
   private static class ValueHolderBasedEntry<K, V> implements Cache.Entry<K, V> {
@@ -1019,28 +1017,7 @@ public class Ehcache<K, V> implements InternalCache<K, V> {
     }
 
     private boolean newValueAlreadyExpired(K key, V oldValue, V newValue) {
-      if (newValue == null) {
-        return false;
-      }
-
-      final Duration duration;
-      if (oldValue == null) {
-        try {
-          duration = expiry.getExpiryForCreation(key, newValue);
-        } catch (RuntimeException re) {
-          logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-          return true;
-        }
-      } else {
-        try {
-          duration = expiry.getExpiryForUpdate(key, supplierOf(oldValue), newValue);
-        } catch (RuntimeException re) {
-          logger.error("Expiry computation caused an exception - Expiry duration will be 0 ", re);
-          return true;
-        }
-      }
-
-      return Duration.ZERO.equals(duration);
+      return Ehcache.newValueAlreadyExpired(logger, expiry, key, oldValue, newValue);
     }
 
     public AtomicInteger getActualPutCount() {
