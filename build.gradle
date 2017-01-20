@@ -50,7 +50,7 @@ ext {
   sizeofVersion = '0.3.0'
 
   // Clustered
-  terracottaPlatformVersion = '5.2.0-pre8'
+  terracottaPlatformVersion = '5.2.0-pre9'
   managementVersion = terracottaPlatformVersion
   terracottaApisVersion = '1.2.0-pre8'
   terracottaCoreVersion = '5.2.0-pre8'

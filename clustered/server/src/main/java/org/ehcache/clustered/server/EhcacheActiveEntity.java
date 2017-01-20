@@ -408,6 +408,8 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
 
   @Override
   public void createNew() {
+    management.init();
+    management.sharedPoolsConfigured();
   }
 
   @Override
@@ -417,6 +419,9 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
     inflightInvalidations = new ConcurrentHashMap<>();
     addInflightInvalidationsForEventualCaches();
     reconnectComplete.set(false);
+
+    management.init();
+    management.sharedPoolsConfigured();
   }
 
   private void addInflightInvalidationsForEventualCaches() {

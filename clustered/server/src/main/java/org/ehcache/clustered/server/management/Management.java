@@ -28,16 +28,10 @@ import org.terracotta.management.model.context.Context;
 import org.terracotta.management.service.monitoring.ActiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
-import org.terracotta.management.service.monitoring.EntityEventListenerAdapter;
-import org.terracotta.management.service.monitoring.EntityEventService;
 import org.terracotta.management.service.monitoring.EntityMonitoringService;
 import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
 import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
 import org.terracotta.monitoring.IMonitoringProducer;
-
-import java.util.Objects;
-
-import static java.util.concurrent.TimeUnit.SECONDS;
 
 public class Management {
 
@@ -67,17 +61,6 @@ public class Management {
       if (active) {
         // expose settings about attached stores
         managementRegistry.addManagementProvider(new ClientStateSettingsManagementProvider());
-
-        // workaround for https://github.com/Terracotta-OSS/terracotta-core/issues/426
-        EntityEventService entityEventService = Objects.requireNonNull(services.getService(new BasicServiceConfiguration<>(EntityEventService.class)));
-        entityEventService.addEntityEventListener(new EntityEventListenerAdapter() {
-          @Override
-          public void onCreated() {
-            LOGGER.trace("[{}] onCreated()", entityEventService.getConsumerId());
-            init();
-            sharedPoolsConfigured();
-          }
-        });
       }
 
 
@@ -186,7 +169,7 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("storeAttached({}, {})", clientDescriptor, storeName);
       managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(new ClientBinding(clientDescriptor, clientState), "EHCACHE_SERVER_STORE_ATTACHED", Context.create("storeName", storeName));
+      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), "EHCACHE_SERVER_STORE_ATTACHED", Context.create("storeName", storeName));
     }
   }
 
@@ -194,7 +177,7 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("storeReleased({}, {})", clientDescriptor, storeName);
       managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(new ClientBinding(clientDescriptor, clientState), "EHCACHE_SERVER_STORE_RELEASED", Context.create("storeName", storeName));
+      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), "EHCACHE_SERVER_STORE_RELEASED", Context.create("storeName", storeName));
     }
   }
 

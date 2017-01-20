@@ -50,12 +50,7 @@ class PoolSettingsManagementProvider extends AliasBindingManagementProvider<Pool
   private static class ExposedPoolBinding extends ExposedAliasBinding<PoolBinding> {
 
     ExposedPoolBinding(Context context, PoolBinding binding) {
-      super(context, binding);
-    }
-
-    @Override
-    public Context getContext() {
-      return super.getContext().with("type", "Pool");
+      super(context.with("type", "Pool"), binding);
     }
 
     @Override
