@@ -38,14 +38,14 @@ import org.junit.Test;
  * Check that calculations are accurate according to specification. Each cache method have a different impact on the statistics
  * so each method should be tested
  */
-public class TierCalculationTest extends AbstractCacheCalculationTest {
+public class TierCalculationTest extends AbstractTierCalculationTest {
 
   private CacheManager cacheManager;
 
   private Cache<Integer, String> cache;
 
-  public TierCalculationTest(ResourcePoolsBuilder poolBuilder) {
-    super(poolBuilder);
+  public TierCalculationTest(String tierName, ResourcePoolsBuilder poolBuilder) {
+    super(tierName, poolBuilder);
   }
 
   @Before
@@ -63,7 +63,9 @@ public class TierCalculationTest extends AbstractCacheCalculationTest {
 
     cache = cacheManager.getCache("cache", Integer.class, String.class);
 
-    cacheStatistics = statisticsService.getCacheStatistics("cache");
+    // Get the tier statistic.
+    tierStatistics = statisticsService.getCacheStatistics("cache")
+      .getTierStatistics().get(tierName);
   }
 
   @After
@@ -79,81 +81,81 @@ public class TierCalculationTest extends AbstractCacheCalculationTest {
   public void clear() {
     cache.put(1, "a");
     cache.put(2, "b");
-    changesOf(0, 0, 2, 0);
+    changesOf(0, 0, 2, 0, 0);
 
     cache.clear();
-    changesOf(0, 0, 0, 0);
+    changesOf(0, 0, 0, 0, 0);
   }
 
   @Test
   public void containsKey() {
     expect(cache.containsKey(1)).isFalse();
-    changesOf(0, 0, 0, 0);
+    changesOf(0, 0, 0, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0);
+    changesOf(0, 0, 1, 0, 0);
 
     expect(cache.containsKey(1)).isTrue();
-    changesOf(0, 0, 0, 0);
+    changesOf(0, 0, 0, 0, 0);
   }
 
   @Test
   public void get() {
     expect(cache.get(1)).isNull();
-    changesOf(0, 1, 0, 0);
+    changesOf(0, 1, 0, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0);
+    changesOf(0, 0, 1, 0, 0);
 
     expect(cache.get(1)).isEqualTo("a");
-    changesOf(1, 0, 0, 0);
+    changesOf(1, 0, 0, 0, 0);
   }
 
   @Test
   public void getAll() {
     expect(cache.getAll(asSet(1))).containsExactly(MapEntry.entry(1, null));
-    changesOf(0, 1, 0, 0);
+    changesOf(0, 1, 0, 0, 0);
 
     cache.put(1, "a");
     cache.put(2, "b");
-    changesOf(0, 0, 2, 0);
+    changesOf(0, 0, 2, 0, 0);
 
     expect(cache.getAll(asSet(1, 2, 3))).containsKeys(1, 2);
-    changesOf(2, 1, 0, 0);
+    changesOf(2, 1, 0, 0, 0);
   }
 
   @Test
   public void iterator() {
     cache.put(1, "a");
     cache.put(2, "b");
-    changesOf(0, 0, 2, 0);
+    changesOf(0, 0, 2, 0, 0);
 
     Iterator<Cache.Entry<Integer, String>> iterator = cache.iterator();
-    changesOf(1, 0, 0, 0); // FIXME Why one?!?
+    changesOf(1, 0, 0, 0, 0); // FIXME Why one?!?
 
     iterator.next().getKey();
-    changesOf(2, 0, 0, 0); // FIXME Why two?!?
+    changesOf(2, 0, 0, 0, 0); // FIXME Why two?!?
 
     expect(iterator.hasNext()).isTrue();
-    changesOf(0, 0, 0, 0);
+    changesOf(0, 0, 0, 0, 0);
 
     iterator.next().getKey();
-    changesOf(1, 0, 0, 0);
+    changesOf(1, 0, 0, 0, 0);
 
     expect(iterator.hasNext()).isFalse();
-    changesOf(0, 0, 0, 0);
+    changesOf(0, 0, 0, 0, 0);
 
     iterator.remove();
-    changesOf(1, 0, 0, 1); // FIXME remove does hit
+    changesOf(1, 0, 0, 1, 0); // FIXME remove does hit
   }
 
   @Test
   public void put() {
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0);
+    changesOf(0, 0, 1, 0, 0);
 
     cache.put(1, "b");
-    changesOf(0, 0, 1, 0);
+    changesOf(0, 0, 1, 0, 1);
   }
 
   @Test
@@ -162,84 +164,84 @@ public class TierCalculationTest extends AbstractCacheCalculationTest {
     vals.put(1, "a");
     vals.put(2, "b");
     cache.putAll(vals);
-    changesOf(0, 0, 2, 0);
+    changesOf(0, 0, 2, 0, 0);
 
     vals.put(3, "c");
     cache.putAll(vals);
-    changesOf(0, 0, 3, 0);
+    changesOf(0, 0, 3, 0, 2);
   }
 
   @Test
   public void putIfAbsent() {
     expect(cache.putIfAbsent(1, "a")).isNull();
-    changesOf(0, 1, 1, 0);
+    changesOf(0, 1, 1, 0, 0);
 
     expect(cache.putIfAbsent(1, "b")).isEqualTo("a");
-    changesOf(1, 0, 0, 0);
+    changesOf(1, 0, 0, 0, 0);
   }
 
   @Test
   public void remove() {
     cache.remove(1);
-    changesOf(0, 0, 0, 0);
+    changesOf(0, 0, 0, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0);
+    changesOf(0, 0, 1, 0, 0);
 
     cache.remove(1);
-    changesOf(0, 0, 0, 1);
+    changesOf(0, 0, 0, 1, 0);
   }
 
   @Test
   public void removeKV() {
     expect(cache.remove(1, "a")).isFalse();
-    changesOf(0, 1, 0, 0);
+    changesOf(0, 1, 0, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0);
+    changesOf(0, 0, 1, 0, 0);
 
     expect(cache.remove(1, "xxx")).isFalse();
-    changesOf(1, 0, 0, 0);
+    changesOf(1, 0, 0, 0, 0);
 
     expect(cache.remove(1, "a")).isTrue();
-    changesOf(1, 0, 0, 1);
+    changesOf(1, 0, 0, 1, 0);
   }
 
   @Test
   public void removeAllKeys() {
     cache.put(1, "a");
     cache.put(2, "b");
-    changesOf(0, 0, 2, 0);
+    changesOf(0, 0, 2, 0, 0);
 
     cache.removeAll(asSet(1, 2, 3));
-    changesOf(0, 0, 0, 2);
+    changesOf(0, 0, 0, 2, 0);
   }
 
   @Test
   public void replaceKV() {
     expect(cache.replace(1, "a")).isNull();
-    changesOf(0, 1, 0, 0);
+    changesOf(0, 1, 0, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0);
+    changesOf(0, 0, 1, 0, 1);
 
     expect(cache.replace(1, "b")).isEqualTo("a");
-    changesOf(1, 0, 1, 0);
+    changesOf(1, 0, 1, 0, 1);
   }
 
   @Test
   public void replaceKON() {
     expect(cache.replace(1, "a", "b")).isFalse();
-    changesOf(0, 1, 0, 0);
+    changesOf(0, 1, 0, 0, 0);
 
     cache.put(1, "a");
-    changesOf(0, 0, 1, 0);
+    changesOf(0, 0, 1, 0, 0);
 
     expect(cache.replace(1, "xxx", "b")).isFalse();
-    changesOf(1, 0, 0, 0);
+    changesOf(1, 0, 0, 0, 0);
 
     expect(cache.replace(1, "a", "b")).isTrue();
-    changesOf(1, 0, 1, 0);
+    changesOf(1, 0, 1, 0, 1);
   }
 
   @Test
@@ -253,13 +255,14 @@ public class TierCalculationTest extends AbstractCacheCalculationTest {
     cache.get(1); // one miss
     cache.getAll(asSet(1, 2, 3)); // 3 misses
     cache.put(1, "a"); // one put
+    cache.put(1, "b"); // one put and update
     cache.putAll(Collections.singletonMap(2, "b")); // 1 put
     cache.get(1); // one hit
     cache.remove(1); // one remove
     cache.removeAll(asSet(2)); // one remove
-    changesOf(1, 4, 2, 2);
+    changesOf(1, 4, 3, 2, 1);
 
-    cacheStatistics.clear();
-    changesOf(-1, -4, -2, -2);
+    tierStatistics.clear();
+    changesOf(-1, -4, -3, -2, -1);
   }
 }

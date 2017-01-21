@@ -16,6 +16,10 @@
 
 package org.ehcache.impl.internal.statistics;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
@@ -34,14 +38,10 @@ import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findLowestTier;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatistic;
+import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatisticOnChildren;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findStatisticOnDescendants;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findTiers;
 import static org.ehcache.impl.internal.statistics.StatsUtils.hasProperty;
@@ -136,7 +136,7 @@ public class StatsUtilsTest {
 
   @SuppressWarnings("unchecked")
   @Test
-  public void testFindStatisticOnDescendants() throws Exception {
+  public void testFindStatisticOnDescendantsWithDiscriminator() throws Exception {
     OperationStatistic<TierOperationOutcomes.GetOutcome> stat = findStatisticOnDescendants(cache, "OnHeap", "tier", "get");
     assertThat(stat.sum()).isEqualTo(1L);
 
@@ -147,16 +147,29 @@ public class StatsUtilsTest {
     assertThat(stat).isNull();
   }
 
+  @SuppressWarnings("unchecked")
+  @Test
+  public void testFindStatisticOnDescendants() throws Exception {
+    OperationStatistic<TierOperationOutcomes.GetOutcome> stat = findStatisticOnDescendants(cache, "OnHeap", "get");
+    assertThat(stat.sum()).isEqualTo(1L);
+
+    stat = findStatisticOnDescendants(cache, "OnHeap", "xxx");
+    assertThat(stat).isNull();
+
+    stat = findStatisticOnDescendants(cache, "xxx", "xxx");
+    assertThat(stat).isNull();
+  }
+
   @Test
   public void testFindCacheStatistic() {
-    OperationStatistic<CacheOperationOutcomes.GetOutcome> stat = findOperationStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
+    OperationStatistic<CacheOperationOutcomes.GetOutcome> stat = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.GetOutcome.class, "get");
     assertThat(stat.sum()).isEqualTo(1L);
   }
 
   @Test
   public void testFindCacheStatistic_notExisting() {
     expectedException.expect(RuntimeException.class);
-    findOperationStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "xxx");
+    findOperationStatisticOnChildren(cache, CacheOperationOutcomes.GetOutcome.class, "xxx");
   }
 
   @Test

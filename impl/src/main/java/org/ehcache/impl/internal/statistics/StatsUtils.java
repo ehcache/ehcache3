@@ -16,6 +16,10 @@
 
 package org.ehcache.impl.internal.statistics;
 
+import java.util.Collections;
+import java.util.Map;
+import java.util.Set;
+
 import org.ehcache.Cache;
 import org.ehcache.core.statistics.StoreOperationOutcomes;
 import org.terracotta.context.ContextManager;
@@ -24,10 +28,6 @@ import org.terracotta.context.query.Matcher;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
-
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
 
 import static org.terracotta.context.query.Matchers.attributes;
 import static org.terracotta.context.query.Matchers.context;
@@ -64,6 +64,7 @@ final class StatsUtils {
    * Search for a statistic on the descendant of the context that matches the tag and statistic name.
    *
    * @param context the context of the query
+   * @param discriminator a filter on the discriminator property
    * @param tag the tag we are looking for
    * @param statName statistic name
    * @param <T> type of the statistic that will be returned
@@ -96,6 +97,40 @@ final class StatsUtils {
   }
 
   /**
+   * Search for a statistic on the descendant of the context that matches the tag and statistic name.
+   *
+   * @param context the context of the query
+   * @param tag the tag we are looking for
+   * @param statName statistic name
+   * @param <T> type of the statistic that will be returned
+   * @return the wanted statistic or null if no such statistic is found
+   * @throws RuntimeException when more than one matching statistic is found
+   */
+  static <T> T findStatisticOnDescendants(Object context, String tag, String statName) {
+
+    @SuppressWarnings("unchecked")
+    Set<TreeNode> statResult = queryBuilder()
+      .descendants()
+      .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
+        hasAttribute("name", statName),
+        hasTag(tag)))))
+      .build().execute(Collections.singleton(ContextManager.nodeFor(context)));
+
+    if (statResult.size() > 1) {
+      throw new RuntimeException("One stat expected for " + statName + " but found " + statResult.size());
+    }
+
+    if (statResult.size() == 1) {
+      @SuppressWarnings("unchecked")
+      T result = (T) statResult.iterator().next().getContext().attributes().get("this");
+      return result;
+    }
+
+    // No such stat in this context
+    return null;
+  }
+
+  /**
    * Find an operation statistic attached (as a children) to this context that matches the statistic name and type
    *
    * @param context the context of the query
@@ -105,7 +140,7 @@ final class StatsUtils {
    * @return the operation statistic searched for
    * @throws RuntimeException if 0 or more than 1 result is found
    */
-  static <T extends Enum<T>> OperationStatistic<T> findOperationStatistic(Object context, Class<T> type, String statName) {
+  static <T extends Enum<T>> OperationStatistic<T> findOperationStatisticOnChildren(Object context, Class<T> type, String statName) {
     @SuppressWarnings("unchecked")
     Query query = queryBuilder()
       .children()
