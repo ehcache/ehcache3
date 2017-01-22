@@ -92,6 +92,7 @@ public class StatsUtilsTest {
   }
 
   private Set<TreeNode> queryTag(String tag) {
+    @SuppressWarnings("unchecked")
     Query statQuery = queryBuilder()
       .descendants()
       .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
