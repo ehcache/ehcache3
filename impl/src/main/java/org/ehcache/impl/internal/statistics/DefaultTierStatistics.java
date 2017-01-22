@@ -42,24 +42,41 @@ class DefaultTierStatistics implements TierStatistics {
 
   private volatile CompensatingCounters compensatingCounters = CompensatingCounters.empty();
 
+  private final String tierName;
+
   private final Map<String, TypedValueStatistic> knownStatistics;
 
   private final OperationStatistic<TierOperationOutcomes.GetOutcome> get;
   private final OperationStatistic<StoreOperationOutcomes.PutOutcome> put;
+  private final OperationStatistic<StoreOperationOutcomes.PutIfAbsentOutcome> putIfAbsent;
+  private final OperationStatistic<StoreOperationOutcomes.ReplaceOutcome> replace;
+  private final OperationStatistic<StoreOperationOutcomes.ConditionalReplaceOutcome> conditionalReplace;
   private final OperationStatistic<StoreOperationOutcomes.RemoveOutcome> remove;
+  private final OperationStatistic<StoreOperationOutcomes.ConditionalRemoveOutcome> conditionalRemove;
   private final OperationStatistic<TierOperationOutcomes.EvictionOutcome> eviction;
   private final OperationStatistic<StoreOperationOutcomes.ExpirationOutcome> expiration;
+  private final OperationStatistic<StoreOperationOutcomes.ComputeOutcome> compute;
+  private final OperationStatistic<StoreOperationOutcomes.ComputeIfAbsentOutcome> computeIfAbsent;
   private final ValueStatistic<Long> mapping;
   private final ValueStatistic<Long> maxMapping;
   private final ValueStatistic<Long> allocatedMemory;
   private final ValueStatistic<Long> occupiedMemory;
 
   public DefaultTierStatistics(Cache<?, ?> cache, String tierName) {
-    get = findStatisticOnDescendants(cache, tierName, "tier", "get");
-    put = findStatisticOnDescendants(cache, tierName, "put");
-    remove = findStatisticOnDescendants(cache, tierName, "remove");
-    eviction = findStatisticOnDescendants(cache, tierName, "tier", "eviction");
-    expiration = findStatisticOnDescendants(cache, tierName, "expiration");
+    this.tierName = tierName;
+
+    get = findOperationStatistic(cache, tierName, "tier", "get");
+    put = findOperationStatistic(cache, tierName, "put");
+    putIfAbsent = findOperationStatistic(cache, tierName, "putIfAbsent");
+    replace = findOperationStatistic(cache, tierName, "replace");
+    conditionalReplace = findOperationStatistic(cache, tierName, "conditionalReplace");
+    remove = findOperationStatistic(cache, tierName, "remove");
+    conditionalRemove = findOperationStatistic(cache, tierName, "conditionalRemove");
+    eviction = findOperationStatistic(cache, tierName, "tier", "eviction");
+    expiration = findOperationStatistic(cache, tierName, "expiration");
+    compute = findOperationStatistic(cache, tierName, "compute");
+    computeIfAbsent = findOperationStatistic(cache, tierName, "computeIfAbsent");
+
     mapping = findValueStatistics(cache, tierName, "mappings");
     maxMapping = findValueStatistics(cache, tierName, "maxMappings");
     allocatedMemory = findValueStatistics(cache, tierName, "allocatedMemory");
@@ -150,6 +167,22 @@ class DefaultTierStatistics implements TierStatistics {
     }
   }
 
+  private <T extends Enum<T>> OperationStatistic<T> findOperationStatistic(Cache<?, ?> cache, String tierName, String tag, String stat) {
+    OperationStatistic<T> s = findStatisticOnDescendants(cache, tierName, "tier", stat);
+    if(s == null) {
+      return ZeroOperationStatistic.get();
+    }
+    return s;
+  }
+
+  private <T extends Enum<T>> OperationStatistic<T> findOperationStatistic(Cache<?, ?> cache, String tierName, String stat) {
+    OperationStatistic<T> s = findStatisticOnDescendants(cache, tierName, stat);
+    if(s == null) {
+      return ZeroOperationStatistic.get();
+    }
+    return s;
+  }
+
   private ValueStatistic<Long> findValueStatistics(Cache<?, ?> cache, String tierName, String statName) {
     ValueStatistic<Long> stat = findStatisticOnDescendants(cache, tierName, tierName, statName);
     if (stat == null) {
@@ -167,28 +200,48 @@ class DefaultTierStatistics implements TierStatistics {
   }
 
   public long getHits() {
-    return get.sum(EnumSet.of(TierOperationOutcomes.GetOutcome.HIT)) -
+    return get.sum(EnumSet.of(TierOperationOutcomes.GetOutcome.HIT)) +
+           putIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.HIT)) +
+           replace.sum(EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED)) +
+           compute.sum(EnumSet.of(StoreOperationOutcomes.ComputeOutcome.HIT)) +
+           computeIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.HIT)) +
+           conditionalReplace.sum(EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED)) +
+           conditionalRemove.sum(EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED)) -
            compensatingCounters.hits;
   }
 
   public long getMisses() {
-    return get.sum(EnumSet.of(TierOperationOutcomes.GetOutcome.MISS)) -
+    return get.sum(EnumSet.of(TierOperationOutcomes.GetOutcome.MISS)) +
+           putIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT)) +
+           replace.sum(EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.MISS)) +
+           computeIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.NOOP)) +
+           conditionalReplace.sum(EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.MISS)) +
+           conditionalRemove.sum(EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.MISS)) -
            compensatingCounters.misses;
   }
 
   public long getPuts() {
     return put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.PUT)) +
-           put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.REPLACED)) -
+           putIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.PutIfAbsentOutcome.PUT)) +
+           put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.REPLACED)) +
+           compute.sum(EnumSet.of(StoreOperationOutcomes.ComputeOutcome.PUT)) +
+           computeIfAbsent.sum(EnumSet.of(StoreOperationOutcomes.ComputeIfAbsentOutcome.PUT)) +
+           replace.sum(EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED)) +
+           conditionalReplace.sum(EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED)) -
            compensatingCounters.puts;
   }
 
   public long getUpdates() {
-    return put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.REPLACED)) -
+    return put.sum(EnumSet.of(StoreOperationOutcomes.PutOutcome.REPLACED)) +
+           replace.sum(EnumSet.of(StoreOperationOutcomes.ReplaceOutcome.REPLACED)) +
+           conditionalReplace.sum(EnumSet.of(StoreOperationOutcomes.ConditionalReplaceOutcome.REPLACED)) -
            compensatingCounters.updates;
   }
 
   public long getRemovals() {
-    return remove.sum(EnumSet.of(StoreOperationOutcomes.RemoveOutcome.REMOVED)) -
+    return remove.sum(EnumSet.of(StoreOperationOutcomes.RemoveOutcome.REMOVED)) +
+           compute.sum(EnumSet.of(StoreOperationOutcomes.ComputeOutcome.REMOVED)) +
+           conditionalRemove.sum(EnumSet.of(StoreOperationOutcomes.ConditionalRemoveOutcome.REMOVED)) -
            compensatingCounters.removals;
   }
 

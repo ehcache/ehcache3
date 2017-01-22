@@ -97,7 +97,8 @@ public interface TierStatistics {
 
   /**
    * Maximum number of entries that was contained in this tier
-   * @return
+   *
+   * @return number of entries
    */
   long getMaxMappings();
 
