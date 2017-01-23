@@ -56,6 +56,7 @@ public abstract class AbstractCacheCalculationTest {
   private int missCount = 0;
   private int putCount = 0;
   private int removalCount = 0;
+  private int updateCount = 0;
 
   /**
    * The tiers setup shouldn't change anything. But to make sure, we test with different permutations
@@ -91,20 +92,23 @@ public abstract class AbstractCacheCalculationTest {
   /**
    * Make sure the stat moved only of the expected delta
    *
-   * @param hit how hits are expected to change
-   * @param miss how misses are expected to change
-   * @param put how puts are expected to change
-   * @param remove how removes are expected to change
+   * @param hit how many hits should have happened
+   * @param miss how many misses should have happened
+   * @param put how many puts should have happened
+   * @param remove how many removes should have happened
+   * @param update how many updates should have happened
    */
-  protected void changesOf(long hit, long miss, long put, long remove) {
+  protected void changesOf(long hit, long miss, long put, long remove, long update) {
     assertThat(cacheStatistics.getCacheHits() - hitCount).as("Hits").isEqualTo(hit);
     assertThat(cacheStatistics.getCacheMisses() - missCount).as("Misses").isEqualTo(miss);
     assertThat(cacheStatistics.getCachePuts() - putCount).as("Puts").isEqualTo(put);
     assertThat(cacheStatistics.getCacheRemovals() - removalCount).as("Removals").isEqualTo(remove);
+    assertThat(cacheStatistics.getCacheUpdates() - updateCount).as("Updates").isEqualTo(update);
     hitCount += hit;
     missCount += miss;
     putCount += put;
     removalCount += remove;
+    updateCount += update;
   }
 
   /**
