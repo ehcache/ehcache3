@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
 import javax.cache.Cache;
 import javax.cache.CacheManager;
@@ -88,8 +89,6 @@ public class JCacheCalculationTest extends AbstractCacheCalculationTest {
       cacheManager.close();
     }
   }
-
-  // WARNING: forEach and spliterator can't be tested because there are Java 8
 
   @Test
   public void clear() {
@@ -268,6 +267,28 @@ public class JCacheCalculationTest extends AbstractCacheCalculationTest {
 
     iterator.remove();
     changesOf(0, 0, 0, 1, 0);
+  }
+
+  @Test
+  public void foreach() {
+    cache.put(1, "a");
+    cache.put(2, "b");
+    cache.put(3, "c");
+    changesOf(0, 0, 3, 0, 0);
+
+    cache.forEach(e -> {});
+    changesOf(3, 0, 0, 0, 0);
+  }
+
+  @Test
+  public void spliterator() {
+    cache.put(1, "a");
+    cache.put(2, "b");
+    cache.put(3, "c");
+    changesOf(0, 0, 3, 0, 0);
+
+    StreamSupport.stream(cache.spliterator(), false).forEach(e -> {});
+    changesOf(3, 0, 0, 0, 0);
   }
 
   @Test
