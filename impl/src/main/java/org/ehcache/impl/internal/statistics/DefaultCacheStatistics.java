@@ -16,11 +16,9 @@
 
 package org.ehcache.impl.internal.statistics;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,7 +37,7 @@ import org.terracotta.statistics.observer.ChainedOperationObserver;
 
 import static java.util.EnumSet.allOf;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findLowestTier;
-import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatistic;
+import static org.ehcache.impl.internal.statistics.StatsUtils.findOperationStatisticOnChildren;
 import static org.ehcache.impl.internal.statistics.StatsUtils.findTiers;
 
 /**
@@ -62,7 +60,7 @@ class DefaultCacheStatistics implements CacheStatistics {
   private final LatencyMonitor<CacheOperationOutcomes.PutOutcome> averagePutTime;
   private final LatencyMonitor<CacheOperationOutcomes.RemoveOutcome> averageRemoveTime;
 
-  private final List<TierStatistics> tierStatistics;
+  private final Map<String, TierStatistics> tierStatistics;
   private final TierStatistics lowestTier;
 
   private final Map<String, TypedValueStatistic> knownStatistics;
@@ -70,12 +68,12 @@ class DefaultCacheStatistics implements CacheStatistics {
   public DefaultCacheStatistics(InternalCache<?, ?> cache) {
     bulkMethodEntries = cache.getBulkMethodEntries();
 
-    get = findOperationStatistic(cache, CacheOperationOutcomes.GetOutcome.class, "get");
-    put = findOperationStatistic(cache, CacheOperationOutcomes.PutOutcome.class, "put");
-    remove = findOperationStatistic(cache, CacheOperationOutcomes.RemoveOutcome.class, "remove");
-    putIfAbsent = findOperationStatistic(cache, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
-    replace = findOperationStatistic(cache, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
-    conditionalRemove = findOperationStatistic(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
+    get = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.GetOutcome.class, "get");
+    put = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.PutOutcome.class, "put");
+    remove = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.RemoveOutcome.class, "remove");
+    putIfAbsent = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.PutIfAbsentOutcome.class, "putIfAbsent");
+    replace = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.ReplaceOutcome.class, "replace");
+    conditionalRemove = findOperationStatisticOnChildren(cache, CacheOperationOutcomes.ConditionalRemoveOutcome.class, "conditionalRemove");
 
     averageGetTime = new LatencyMonitor<CacheOperationOutcomes.GetOutcome>(allOf(CacheOperationOutcomes.GetOutcome.class));
     get.addDerivedStatistic(averageGetTime);
@@ -89,10 +87,10 @@ class DefaultCacheStatistics implements CacheStatistics {
     String lowestTierName = findLowestTier(tierNames);
     TierStatistics lowestTier = null;
 
-    tierStatistics = new ArrayList<TierStatistics>(tierNames.length);
+    tierStatistics = new HashMap<String, TierStatistics>(tierNames.length);
     for (String tierName : tierNames) {
       TierStatistics tierStatistics = new DefaultTierStatistics(cache, tierName);
-      this.tierStatistics.add(tierStatistics);
+      this.tierStatistics.put(tierName, tierStatistics);
       if (lowestTierName.equals(tierName)) {
         lowestTier = tierStatistics;
       }
@@ -116,8 +114,38 @@ class DefaultCacheStatistics implements CacheStatistics {
         return getCacheMisses();
       }
     });
+    knownStatistics.put("Cache:PutCount", new TypedValueStatistic(StatisticType.COUNTER) {
+      @Override
+      public Number value() {
+        return getCachePuts();
+      }
+    });
+    knownStatistics.put("Cache:UpdateCount", new TypedValueStatistic(StatisticType.COUNTER) {
+      @Override
+      public Number value() {
+        return getCacheUpdates();
+      }
+    });
+    knownStatistics.put("Cache:RemovalCount", new TypedValueStatistic(StatisticType.COUNTER) {
+      @Override
+      public Number value() {
+        return getCacheRemovals();
+      }
+    });
+    knownStatistics.put("Cache:EvictionCount", new TypedValueStatistic(StatisticType.COUNTER) {
+      @Override
+      public Number value() {
+        return getCacheEvictions();
+      }
+    });
+    knownStatistics.put("Cache:ExpirationCount", new TypedValueStatistic(StatisticType.COUNTER) {
+      @Override
+      public Number value() {
+        return getCacheExpirations();
+      }
+    });
 
-    for (TierStatistics tier : tierStatistics) {
+    for (TierStatistics tier : tierStatistics.values()) {
       knownStatistics.putAll(tier.getKnownStatistics());
     }
 
@@ -128,12 +156,16 @@ class DefaultCacheStatistics implements CacheStatistics {
     return knownStatistics;
   }
 
+  public Map<String, TierStatistics> getTierStatistics() {
+    return Collections.unmodifiableMap(tierStatistics);
+  }
+
   public void clear() {
     compensatingCounters = compensatingCounters.snapshot(this);
     averageGetTime.clear();
     averagePutTime.clear();
     averageRemoveTime.clear();
-    for (TierStatistics t : tierStatistics) {
+    for (TierStatistics t : tierStatistics.values()) {
       t.clear();
     }
   }
@@ -186,6 +218,10 @@ class DefaultCacheStatistics implements CacheStatistics {
 
   public long getCacheEvictions() {
     return normalize(lowestTier.getEvictions());
+  }
+
+  public long getCacheExpirations() {
+    return normalize(lowestTier.getExpirations());
   }
 
   public float getCacheAverageGetTime() {

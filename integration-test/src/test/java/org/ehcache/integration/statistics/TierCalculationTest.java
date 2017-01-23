@@ -38,14 +38,14 @@ import org.junit.Test;
  * Check that calculations are accurate according to specification. Each cache method have a different impact on the statistics
  * so each method should be tested
  */
-public class CacheCalculationTest extends AbstractCacheCalculationTest {
+public class TierCalculationTest extends AbstractTierCalculationTest {
 
   private CacheManager cacheManager;
 
   private Cache<Integer, String> cache;
 
-  public CacheCalculationTest(ResourcePoolsBuilder poolBuilder) {
-    super(poolBuilder);
+  public TierCalculationTest(String tierName, ResourcePoolsBuilder poolBuilder) {
+    super(tierName, poolBuilder);
   }
 
   @Before
@@ -63,7 +63,9 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
 
     cache = cacheManager.getCache("cache", Integer.class, String.class);
 
-    cacheStatistics = statisticsService.getCacheStatistics("cache");
+    // Get the tier statistic.
+    tierStatistics = statisticsService.getCacheStatistics("cache")
+      .getTierStatistics().get(tierName);
   }
 
   @After
@@ -132,13 +134,13 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     changesOf(1, 0, 0, 0, 0); // FIXME Why one?!?
 
     iterator.next().getKey();
-    changesOf(2, 0, 0, 0, 0); // FIXME Why two?!?
+    changesOf(1, 0, 0, 0, 0); // FIXME One hit and on the cache we have two
 
     expect(iterator.hasNext()).isTrue();
     changesOf(0, 0, 0, 0, 0);
 
     iterator.next().getKey();
-    changesOf(1, 0, 0, 0, 0);
+    changesOf(0, 0, 0, 0, 0); // FIXME No hit on a next
 
     expect(iterator.hasNext()).isFalse();
     changesOf(0, 0, 0, 0, 0);
@@ -164,9 +166,11 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     cache.putAll(vals);
     changesOf(0, 0, 2, 0, 0);
 
-    vals.put(3, "c");
+    vals.put(1, "c");
+    vals.put(2, "d");
+    vals.put(3, "e");
     cache.putAll(vals);
-    changesOf(0, 0, 3, 0, 2);
+    changesOf(0, 0, 3, 0, 0); // FIXME: No way to track update correctly in OnHeapStore.compute
   }
 
   @Test
@@ -199,7 +203,7 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     changesOf(0, 0, 1, 0, 0);
 
     expect(cache.remove(1, "xxx")).isFalse();
-    changesOf(1, 0, 0, 0, 0);
+    changesOf(0, 1, 0, 0, 0); // FIXME The cache counts a hit here
 
     expect(cache.remove(1, "a")).isTrue();
     changesOf(1, 0, 0, 1, 0);
@@ -236,7 +240,7 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     changesOf(0, 0, 1, 0, 0);
 
     expect(cache.replace(1, "xxx", "b")).isFalse();
-    changesOf(1, 0, 0, 0, 0);
+    changesOf(0, 1, 0, 0, 0); // FIXME: We have a hit on the cache but a miss on the store. Why?
 
     expect(cache.replace(1, "a", "b")).isTrue();
     changesOf(1, 0, 1, 0, 1);
@@ -260,26 +264,7 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
     cache.removeAll(asSet(2)); // one remove
     changesOf(1, 4, 3, 2, 1);
 
-    cacheStatistics.clear();
+    tierStatistics.clear();
     changesOf(-1, -4, -3, -2, -1);
-  }
-
-  @Test
-  public void testEviction() {
-    String payload = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-
-    // Wait until we reach the maximum that we can fit in
-    int i = 0;
-    long evictions;
-    do {
-      cache.put(i++, payload);
-      evictions = cacheStatistics.getCacheEvictions();
-    }
-    while(evictions == 0);
-
-    System.out.println(evictions);
-
-    // Then do actions that should
-//    cache.put(i++,
   }
 }

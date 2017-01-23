@@ -16,11 +16,15 @@
 
 package org.ehcache.impl.internal.statistics;
 
+import java.util.concurrent.TimeUnit;
+
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
 import org.ehcache.config.CacheConfiguration;
 import org.ehcache.config.builders.CacheConfigurationBuilder;
 import org.ehcache.config.builders.CacheManagerBuilder;
+import org.ehcache.expiry.Duration;
+import org.ehcache.expiry.Expirations;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,7 +42,9 @@ public class DefaultTierStatisticsTest {
   public void before() {
     CacheConfiguration<Long, String> cacheConfiguration =
       CacheConfigurationBuilder.newCacheConfigurationBuilder(Long.class, String.class,
-        newResourcePoolsBuilder().heap(10)).build();
+        newResourcePoolsBuilder().heap(10))
+        .withExpiry(Expirations.timeToLiveExpiration(Duration.of(200, TimeUnit.MILLISECONDS)))
+        .build();
 
     CacheManager cacheManager = CacheManagerBuilder.newCacheManagerBuilder()
       .withCache("aCache", cacheConfiguration)
@@ -58,8 +64,9 @@ public class DefaultTierStatisticsTest {
 
   @Test
   public void getKnownStatistics() {
-    assertThat(onHeap.getKnownStatistics()).containsOnlyKeys("OnHeap:HitCount", "OnHeap:MissCount", "OnHeap:EvictionCount",
-      "OnHeap:MappingCount", "OnHeap:OccupiedByteSize");
+    assertThat(onHeap.getKnownStatistics()).containsOnlyKeys("OnHeap:HitCount", "OnHeap:MissCount", "OnHeap:UpdateCount",
+      "OnHeap:PutCount", "OnHeap:RemovalCount", "OnHeap:EvictionCount", "OnHeap:ExpirationCount", "OnHeap:MappingCount",
+      "OnHeap:OccupiedByteSize");
   }
 
   @Test
@@ -81,6 +88,14 @@ public class DefaultTierStatisticsTest {
       cache.put(i, "a");
     }
     assertThat(onHeap.getEvictions()).isEqualTo(1L);
+  }
+
+  @Test
+  public void getExpirations() throws Exception {
+    cache.put(1L, "a");
+    Thread.sleep(200);
+    cache.get(1L);
+    assertThat(onHeap.getExpirations()).isEqualTo(1L);
   }
 
   @Test
