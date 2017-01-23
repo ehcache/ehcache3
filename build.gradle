@@ -52,11 +52,11 @@ ext {
   // Clustered
   terracottaPlatformVersion = '5.2.0-pre9'
   managementVersion = terracottaPlatformVersion
-  terracottaApisVersion = '1.2.0-pre8'
-  terracottaCoreVersion = '5.2.0-pre8'
+  terracottaApisVersion = '1.2.0-pre9'
+  terracottaCoreVersion = '5.2.0-pre9'
   offheapResourceVersion = terracottaPlatformVersion
   entityApiVersion = terracottaApisVersion
-  terracottaPassthroughTestingVersion = '1.2.0-pre8'
+  terracottaPassthroughTestingVersion = '1.2.0-pre9'
   entityTestLibVersion = terracottaPassthroughTestingVersion
 
   // Tools
