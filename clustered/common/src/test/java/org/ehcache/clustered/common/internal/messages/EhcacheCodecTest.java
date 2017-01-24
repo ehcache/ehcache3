@@ -55,7 +55,7 @@ public class EhcacheCodecTest {
 
   @Test
   public void encodeMessage() throws Exception {
-    LifecycleMessage.DestroyServerStore lifecycleMessage = new LifecycleMessage.DestroyServerStore("foo", CLIENT_ID);
+    LifecycleMessage.ValidateServerStore lifecycleMessage = new LifecycleMessage.ValidateServerStore("foo", null, CLIENT_ID);
     codec.encodeMessage(lifecycleMessage);
     verify(lifeCycleMessageCodec, only()).encode(any(LifecycleMessage.class));
     verify(serverStoreOpCodec, never()).encode(any(ServerStoreOpMessage.class));

@@ -29,20 +29,8 @@ public class LifeCycleMessageFactory {
     return new LifecycleMessage.ValidateStoreManager(configuration, clientId);
   }
 
-  public LifecycleMessage createServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
-    return new LifecycleMessage.CreateServerStore(name, serverStoreConfiguration, clientId);
-  }
-
   public LifecycleMessage validateServerStore(String name, ServerStoreConfiguration serverStoreConfiguration) {
     return new LifecycleMessage.ValidateServerStore(name, serverStoreConfiguration, clientId);
-  }
-
-  public LifecycleMessage releaseServerStore(String name) {
-    return new LifecycleMessage.ReleaseServerStore(name, clientId);
-  }
-
-  public LifecycleMessage destroyServerStore(String name) {
-    return new LifecycleMessage.DestroyServerStore(name, clientId);
   }
 
   public void setClientId(UUID clientId) {

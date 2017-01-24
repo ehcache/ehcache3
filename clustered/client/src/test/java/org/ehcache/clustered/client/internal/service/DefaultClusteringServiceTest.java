@@ -26,6 +26,7 @@ import org.ehcache.clustered.client.internal.EhcacheClientEntityService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService;
 import org.ehcache.clustered.client.internal.UnitTestConnectionService.PassthroughServerBuilder;
 import org.ehcache.clustered.client.internal.config.DedicatedClusteredResourcePoolImpl;
+import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
 import org.ehcache.clustered.client.internal.store.ClusteredTierClientEntityService;
 import org.ehcache.clustered.client.internal.store.EventualServerStoreProxy;
 import org.ehcache.clustered.client.internal.store.ServerStoreProxy;
@@ -35,11 +36,10 @@ import org.ehcache.clustered.client.service.ClusteringService.ClusteredCacheIden
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
 import org.ehcache.clustered.common.ServerSideConfiguration.Pool;
-import org.ehcache.clustered.client.internal.lock.VoltronReadWriteLockEntityClientService;
+import org.ehcache.clustered.common.internal.exceptions.InvalidServerStoreConfigurationException;
 import org.ehcache.clustered.lock.server.VoltronReadWriteLockServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService;
 import org.ehcache.clustered.server.ObservableEhcacheServerEntityService.ObservableEhcacheActiveEntity;
-import org.ehcache.clustered.server.store.ClusteredTierServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService;
 import org.ehcache.clustered.server.store.ObservableClusterTierServerEntityService.ObservableClusterTierActiveEntity;
 import org.ehcache.config.ResourcePools;
@@ -60,7 +60,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.terracotta.connection.ConnectionPropertyNames;
-import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.exception.EntityNotFoundException;
 
 import java.net.URI;
@@ -68,7 +67,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -76,6 +74,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.DEDICATED;
 import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.SHARED;
 import static org.ehcache.clustered.client.internal.service.TestServiceProvider.providerContaining;
 import static org.ehcache.config.ResourceType.Core.DISK;
@@ -95,10 +94,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.ehcache.clustered.client.config.ClusteredResourceType.Types.DEDICATED;
 
 public class DefaultClusteringServiceTest {
 
@@ -514,7 +511,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
 
     createService.stop();
@@ -669,9 +665,7 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder(targetPool, "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
 
     accessService.stop();
 
@@ -680,7 +674,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
   }
 
   @Test
@@ -863,7 +856,6 @@ public class DefaultClusteringServiceTest {
     creationService.releaseServerStoreProxy(serverStoreProxy);
 
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
 
     assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
@@ -977,9 +969,7 @@ public class DefaultClusteringServiceTest {
         containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
 
     accessService.stop();
 
@@ -989,7 +979,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
   }
 
   @Test
@@ -1181,7 +1170,6 @@ public class DefaultClusteringServiceTest {
 
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder(cacheAlias));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
     assertThat(clusterTierActiveEntity.getAttachedClients(), empty());
 
@@ -1243,9 +1231,7 @@ public class DefaultClusteringServiceTest {
     creationService.destroy(cacheAlias);
 
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
-    assertThat(activeEntity.getInUseStores().keySet(), is(Matchers.<String>empty()));
 
     creationService.stop();
   }
@@ -1300,7 +1286,6 @@ public class DefaultClusteringServiceTest {
 
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), is(Matchers.<String>empty()));
 
     creationService.stop();
@@ -1466,7 +1451,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(),is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getStores(), containsInAnyOrder(cacheAlias));
 
     List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
@@ -1572,7 +1556,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
     assertThat(activeEntity.getStores().size(), is(0));
-    assertThat(activeEntity.getInUseStores().size(), is(0));
 
     creationService.stop();
 
@@ -1581,7 +1564,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getDedicatedResourcePoolIds(), is(Matchers.<String>empty()));
     assertThat(activeEntity.getConnectedClients().size(), is(0));
     assertThat(activeEntity.getStores().size(), is(0));
-    assertThat(activeEntity.getInUseStores().size(), is(0));
   }
 
   @Test
@@ -1768,7 +1750,6 @@ public class DefaultClusteringServiceTest {
     assertThat(activeEntity.getSharedResourcePoolIds(), containsInAnyOrder("sharedPrimary", "sharedSecondary", "sharedTertiary"));
     assertThat(activeEntity.getDedicatedResourcePoolIds(), containsInAnyOrder("cacheAlias"));
     assertThat(activeEntity.getConnectedClients().size(), is(1));
-    assertThat(activeEntity.getConnectedClients().values().iterator().next(), is(Matchers.<String>empty()));
 
     List<ObservableClusterTierActiveEntity> clusterTierActiveEntities = observableClusterTierServerEntityService.getServedActiveEntities();
     assertThat(clusterTierActiveEntities.size(), is(1));
@@ -1968,8 +1949,8 @@ public class DefaultClusteringServiceTest {
       service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
       fail("Server store proxy creation should have failed");
     } catch (CachePersistenceException cpe) {
-      assertThat(service.entity.getDisconnectionListeners().isEmpty(), is(true));
-      assertThat(service.entity.getReconnectListeners().isEmpty(), is(true));
+      assertThat(cpe.getMessage(), containsString("Unable to create clustered tier proxy"));
+      assertThat(getRootCause(cpe), instanceOf(InvalidServerStoreConfigurationException.class));
     }
   }
 
@@ -2001,16 +1982,14 @@ public class DefaultClusteringServiceTest {
     service.start(null);
     ClusteringService.ClusteredCacheIdentifier otherCacheIdentifier = (ClusteredCacheIdentifier) service.getPersistenceSpaceIdentifier("my-other-cache", null);
     service.getServerStoreProxy(otherCacheIdentifier, storeConfig, Consistency.STRONG);  // Creates one more store
-    int disconnectionListenersSize = service.entity.getDisconnectionListeners().size();
-    int reconnectionListenersSize = service.entity.getReconnectListeners().size();
 
     when(resourcePools.getPoolForResource(eq(DEDICATED))).thenReturn(new DedicatedClusteredResourcePoolImpl("serverResource1", 2L, MemoryUnit.MB));
     try {
       service.getServerStoreProxy(cacheIdentifier, storeConfig, Consistency.STRONG);
       fail("Server store proxy creation should have failed");
     } catch (CachePersistenceException cpe) {
-      assertThat(service.entity.getDisconnectionListeners().size(), is(disconnectionListenersSize));
-      assertThat(service.entity.getReconnectListeners().size(), is(reconnectionListenersSize));
+      assertThat(cpe.getMessage(), containsString("Unable to create clustered tier proxy"));
+      assertThat(getRootCause(cpe), instanceOf(InvalidServerStoreConfigurationException.class));
     }
   }
 

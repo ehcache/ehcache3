@@ -38,14 +38,8 @@ public class EhcacheExecutionStrategy implements ExecutionStrategy<EhcacheEntity
       return Location.ACTIVE;
     } else if (message instanceof LifecycleMessage.ValidateStoreManager) {
       return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.CreateServerStore) {
-      return Location.BOTH;
     } else if (message instanceof LifecycleMessage.ValidateServerStore) {
       return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.ReleaseServerStore) {
-      return Location.ACTIVE;
-    } else if (message instanceof LifecycleMessage.DestroyServerStore) {
-      return Location.BOTH;
     } else if (message instanceof LifecycleMessage.PrepareForDestroy) {
       return Location.BOTH;
     } else if (message instanceof StateRepositoryOpMessage.PutIfAbsentMessage) {

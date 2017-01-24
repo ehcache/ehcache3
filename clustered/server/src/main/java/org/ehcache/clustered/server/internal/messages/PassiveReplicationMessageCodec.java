@@ -16,7 +16,6 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ChainCodec;
 import org.ehcache.clustered.common.internal.messages.ConfigCodec;
 import org.ehcache.clustered.common.internal.messages.EhcacheEntityMessage;
@@ -112,32 +111,9 @@ public class PassiveReplicationMessageCodec {
         return encodeClearInvalidationCompleteMessage((PassiveReplicationMessage.ClearInvalidationCompleteMessage) message);
       case INVALIDATION_COMPLETE:
         return encodeInvalidationCompleteMessage((PassiveReplicationMessage.InvalidationCompleteMessage) message);
-      case CREATE_SERVER_STORE_REPLICATION:
-        return encodeCreateServerStoreReplicationMessage((PassiveReplicationMessage.CreateServerStoreReplicationMessage) message);
-      case DESTROY_SERVER_STORE_REPLICATION:
-        return encoreDestroyServerStoreReplicationMessage((PassiveReplicationMessage.DestroyServerStoreReplicationMessage) message);
       default:
         throw new UnsupportedOperationException("This operation is not supported : " + message.getMessageType());
     }
-  }
-
-  private byte[] encoreDestroyServerStoreReplicationMessage(PassiveReplicationMessage.DestroyServerStoreReplicationMessage message) {
-    StructEncoder<Void> encoder = DESTROY_SERVER_STORE_REPLICATION_STRUCT.encoder();
-
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
-    encoder.string(SERVER_STORE_NAME_FIELD, message.getStoreName());
-
-    return encoder.encode().array();
-  }
-
-  private byte[] encodeCreateServerStoreReplicationMessage(PassiveReplicationMessage.CreateServerStoreReplicationMessage message) {
-    StructEncoder<Void> encoder = createStoreReplicationMessageStruct.encoder();
-
-    messageCodecUtils.encodeMandatoryFields(encoder, message);
-    encoder.string(SERVER_STORE_NAME_FIELD, message.getStoreName());
-    configCodec.encodeServerStoreConfiguration(encoder, message.getStoreConfiguration());
-
-    return encoder.encode().array();
   }
 
   private byte[] encodeInvalidationCompleteMessage(PassiveReplicationMessage.InvalidationCompleteMessage message) {
@@ -192,36 +168,9 @@ public class PassiveReplicationMessageCodec {
         return decodeClearInvalidationCompleteMessage(messageBuffer);
       case INVALIDATION_COMPLETE:
         return decodeInvalidationCompleteMessage(messageBuffer);
-      case CREATE_SERVER_STORE_REPLICATION:
-        return decodeCreateServerStoreReplicationMessage(messageBuffer);
-      case DESTROY_SERVER_STORE_REPLICATION:
-        return decodeDestroyServerStoreReplicationMessage(messageBuffer);
       default:
         throw new UnsupportedOperationException("Unknown message type: " + messageType);
     }
-  }
-
-  private PassiveReplicationMessage.DestroyServerStoreReplicationMessage decodeDestroyServerStoreReplicationMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = DESTROY_SERVER_STORE_REPLICATION_STRUCT.decoder(messageBuffer);
-
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID clientId = messageCodecUtils.decodeUUID(decoder);
-
-    String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
-
-    return new PassiveReplicationMessage.DestroyServerStoreReplicationMessage(msgId, clientId, storeName);
-  }
-
-  private PassiveReplicationMessage.CreateServerStoreReplicationMessage decodeCreateServerStoreReplicationMessage(ByteBuffer messageBuffer) {
-    StructDecoder<Void> decoder = createStoreReplicationMessageStruct.decoder(messageBuffer);
-
-    Long msgId = decoder.int64(MSG_ID_FIELD);
-    UUID clientId = messageCodecUtils.decodeUUID(decoder);
-
-    String storeName = decoder.string(SERVER_STORE_NAME_FIELD);
-    ServerStoreConfiguration configuration = configCodec.decodeServerStoreConfiguration(decoder);
-
-    return new PassiveReplicationMessage.CreateServerStoreReplicationMessage(msgId, clientId, storeName, configuration);
   }
 
   private PassiveReplicationMessage.InvalidationCompleteMessage decodeInvalidationCompleteMessage(ByteBuffer messageBuffer) {

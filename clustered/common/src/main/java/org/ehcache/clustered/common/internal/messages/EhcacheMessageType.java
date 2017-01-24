@@ -31,10 +31,7 @@ import static org.terracotta.runnel.EnumMappingBuilder.newEnumMappingBuilder;
 public enum EhcacheMessageType {
   // Lifecycle messages
   VALIDATE,
-  CREATE_SERVER_STORE,
   VALIDATE_SERVER_STORE,
-  RELEASE_SERVER_STORE,
-  DESTROY_SERVER_STORE,
   PREPARE_FOR_DESTROY,
 
   // ServerStore operation messages
@@ -54,19 +51,14 @@ public enum EhcacheMessageType {
   CHAIN_REPLICATION_OP,
   CLIENT_ID_TRACK_OP,
   CLEAR_INVALIDATION_COMPLETE,
-  INVALIDATION_COMPLETE,
-  CREATE_SERVER_STORE_REPLICATION,
-  DESTROY_SERVER_STORE_REPLICATION;
+  INVALIDATION_COMPLETE;
 
   public static final String MESSAGE_TYPE_FIELD_NAME = "opCode";
   public static final int MESSAGE_TYPE_FIELD_INDEX = 10;
   public static final EnumMapping<EhcacheMessageType> EHCACHE_MESSAGE_TYPES_ENUM_MAPPING = newEnumMappingBuilder(EhcacheMessageType.class)
     .mapping(VALIDATE, 1)
-    .mapping(CREATE_SERVER_STORE, 2)
-    .mapping(VALIDATE_SERVER_STORE, 3)
-    .mapping(RELEASE_SERVER_STORE, 4)
-    .mapping(DESTROY_SERVER_STORE, 5)
-    .mapping(PREPARE_FOR_DESTROY, 6)
+    .mapping(VALIDATE_SERVER_STORE, 2)
+    .mapping(PREPARE_FOR_DESTROY, 3)
 
     .mapping(GET_AND_APPEND, 21)
     .mapping(APPEND, 22)
@@ -83,11 +75,9 @@ public enum EhcacheMessageType {
     .mapping(CLIENT_ID_TRACK_OP, 62)
     .mapping(CLEAR_INVALIDATION_COMPLETE, 63)
     .mapping(INVALIDATION_COMPLETE, 64)
-    .mapping(CREATE_SERVER_STORE_REPLICATION, 65)
-    .mapping(DESTROY_SERVER_STORE_REPLICATION, 66)
     .build();
 
-  public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(VALIDATE, CREATE_SERVER_STORE, VALIDATE_SERVER_STORE, RELEASE_SERVER_STORE, DESTROY_SERVER_STORE, PREPARE_FOR_DESTROY);
+  public static final EnumSet<EhcacheMessageType> LIFECYCLE_MESSAGES = of(VALIDATE, VALIDATE_SERVER_STORE, PREPARE_FOR_DESTROY);
   public static boolean isLifecycleMessage(EhcacheMessageType value) {
     return LIFECYCLE_MESSAGES.contains(value);
   }
@@ -102,7 +92,7 @@ public enum EhcacheMessageType {
     return STATE_REPO_OPERATION_MESSAGES.contains(value);
   }
 
-  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE, CREATE_SERVER_STORE_REPLICATION, DESTROY_SERVER_STORE_REPLICATION);
+  public static final EnumSet<EhcacheMessageType> PASSIVE_REPLICATION_MESSAGES = of(CHAIN_REPLICATION_OP, CLIENT_ID_TRACK_OP, CLEAR_INVALIDATION_COMPLETE, INVALIDATION_COMPLETE);
   public static boolean isPassiveReplicationMessage(EhcacheMessageType value) {
     return PASSIVE_REPLICATION_MESSAGES.contains(value);
   }

@@ -69,29 +69,11 @@ public class EhcacheClientEntity implements Entity {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheClientEntity.class);
 
-  public interface ResponseListener<T extends EhcacheEntityResponse> {
-    void onResponse(T response);
-  }
-
-  public interface DisconnectionListener {
-    void onDisconnection();
-  }
-
-  public interface ReconnectListener {
-    void onHandleReconnect(ReconnectMessage reconnectMessage);
-  }
-
   private final AtomicLong sequenceGenerator = new AtomicLong(0L);
 
+  private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
   private final EntityClientEndpoint<EhcacheEntityMessage, EhcacheEntityResponse> endpoint;
   private final LifeCycleMessageFactory messageFactory;
-  private final Map<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>> responseListeners = new ConcurrentHashMap<Class<? extends EhcacheEntityResponse>, List<ResponseListener<? extends EhcacheEntityResponse>>>();
-  private final List<DisconnectionListener> disconnectionListeners = new CopyOnWriteArrayList<DisconnectionListener>();
-  private final List<ReconnectListener> reconnectListeners = new ArrayList<ReconnectListener>();
-  private final ReconnectMessageCodec reconnectMessageCodec = new ReconnectMessageCodec();
-  private volatile boolean connected = true;
-  private final Set<String> caches = Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
-  private final Object lock = new Object();
   private volatile UUID clientId;
 
   private Timeouts timeouts = Timeouts.builder().build();
@@ -102,56 +84,24 @@ public class EhcacheClientEntity implements Entity {
     endpoint.setDelegate(new EndpointDelegate() {
       @Override
       public void handleMessage(EntityResponse messageFromServer) {
-        LOGGER.trace("Entity response received from server: {}", messageFromServer);
-        if (messageFromServer instanceof EhcacheEntityResponse) {
-          fireResponseEvent((EhcacheEntityResponse) messageFromServer);
-        }
+        // Nothing to do
       }
 
       @Override
       public byte[] createExtendedReconnectData() {
-        synchronized (lock) {
-          ReconnectMessage reconnectMessage = new ReconnectMessage(clientId, caches);
-          for (ReconnectListener reconnectListener : reconnectListeners) {
-            reconnectListener.onHandleReconnect(reconnectMessage);
-          }
-          return reconnectMessageCodec.encode(reconnectMessage);
-        }
+        ReconnectMessage reconnectMessage = new ReconnectMessage(clientId);
+        return reconnectMessageCodec.encode(reconnectMessage);
       }
 
       @Override
       public void didDisconnectUnexpectedly() {
-        fireDisconnectionEvent();
+        // Nothing to do
       }
     });
   }
 
-  void fireDisconnectionEvent() {
-    connected = false;
-    for (DisconnectionListener listener : disconnectionListeners) {
-      listener.onDisconnection();
-    }
-  }
-
-  void setConnected(boolean connected) {
-    this.connected = connected;
-  }
-
   void setTimeouts(Timeouts timeouts) {
     this.timeouts = timeouts;
-  }
-
-  private <T extends EhcacheEntityResponse> void fireResponseEvent(T response) {
-    @SuppressWarnings("unchecked")
-    List<ResponseListener<T>> responseListeners = (List) this.responseListeners.get(response.getClass());
-    if (responseListeners == null) {
-      LOGGER.warn("Ignoring the response {} as no registered response listener could be found.", response);
-      return;
-    }
-    LOGGER.debug("{} registered response listener(s) for {}", responseListeners.size(), response.getClass());
-    for (ResponseListener<T> responseListener : responseListeners) {
-      responseListener.onResponse(response);
-    }
   }
 
   public UUID getClientId() {
@@ -161,60 +111,9 @@ public class EhcacheClientEntity implements Entity {
     return this.clientId;
   }
 
-  public boolean isConnected() {
-    return connected;
-  }
-
-  public void addDisconnectionListener(DisconnectionListener listener) {
-    disconnectionListeners.add(listener);
-  }
-
-  public void removeDisconnectionListener(DisconnectionListener listener) {
-    disconnectionListeners.remove(listener);
-  }
-
-  public List<DisconnectionListener> getDisconnectionListeners() {
-    return Collections.unmodifiableList(disconnectionListeners);
-  }
-
-  public void addReconnectListener(ReconnectListener listener) {
-    synchronized (lock) {
-      reconnectListeners.add(listener);
-    }
-  }
-
-  public void removeReconnectListener(ReconnectListener listener) {
-    synchronized (lock) {
-      reconnectListeners.remove(listener);
-    }
-  }
-
-  public List<ReconnectListener> getReconnectListeners() {
-    return Collections.unmodifiableList(reconnectListeners);
-  }
-
-  public <T extends EhcacheEntityResponse> void addResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
-    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
-    if (responseListeners == null) {
-      responseListeners = new CopyOnWriteArrayList<ResponseListener<? extends EhcacheEntityResponse>>();
-      this.responseListeners.put(responseType, responseListeners);
-    }
-    responseListeners.add(responseListener);
-  }
-
-  public <T extends EhcacheEntityResponse> void removeResponseListener(Class<T> responseType, ResponseListener<T> responseListener) {
-    List<ResponseListener<? extends EhcacheEntityResponse>> responseListeners = this.responseListeners.get(responseType);
-    if (responseListeners != null) {
-      responseListeners.remove(responseListener);
-    }
-  }
-
   @Override
   public void close() {
     endpoint.close();
-    this.responseListeners.clear();
-    this.disconnectionListeners.clear();
-    this.reconnectListeners.clear();
   }
 
   public void validate(ServerSideConfiguration config) throws ClusteredTierManagerValidationException, TimeoutException {
@@ -234,45 +133,6 @@ public class EhcacheClientEntity implements Entity {
     }
   }
 
-  public void createCache(String name, ServerStoreConfiguration serverStoreConfiguration)
-      throws ClusteredTierCreationException, TimeoutException {
-    try {
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.createServerStore(name, serverStoreConfiguration), true);
-      caches.add(name);
-    } catch (ClusterException e) {
-      throw new ClusteredTierCreationException("Error creating clustered tier '" + name + "'", e);
-    }
-  }
-
-  public void validateCache(String name, ServerStoreConfiguration serverStoreConfiguration)
-      throws ClusteredTierValidationException, TimeoutException {
-    try {
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.validateServerStore(name , serverStoreConfiguration), false);
-      caches.add(name);
-    } catch (ClusterException e) {
-      throw new ClusteredTierValidationException("Error validating clustered tier '" + name + "'", e);
-    }
-  }
-
-  public void releaseCache(String name) throws ClusteredTierReleaseException, TimeoutException {
-    try {
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.releaseServerStore(name), false);
-      caches.remove(name);
-    } catch (ClusterException e) {
-      throw new ClusteredTierReleaseException("Error releasing clustered tier '" + name + "'", e);
-    }
-  }
-
-  public void destroyCache(String name) throws ClusteredTierDestructionException, TimeoutException {
-    try {
-      invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory.destroyServerStore(name), true);
-    } catch (ResourceBusyException e) {
-      throw new ClusteredTierDestructionException(e.getMessage(), e);
-    } catch (ClusterException e) {
-      throw new ClusteredTierDestructionException("Error destroying clustered tier '" + name + "'", e);
-    }
-  }
-
   public Set<String> prepareForDestroy() {
     try {
       PrepareForDestroy response = (PrepareForDestroy) invokeInternal(timeouts.getLifecycleOperationTimeout(), messageFactory
@@ -285,31 +145,6 @@ public class EhcacheClientEntity implements Entity {
     }
     return null;
   }
-
-  /**
-   * Sends a message to the {@code EhcacheActiveEntity} associated with this {@code EhcacheClientEntity} and
-   * awaits a response.
-   *
-   * @param message the {@code EhcacheEntityMessage} to send
-   * @param replicate if {@code true}, indicates that the message should be replicated to passive servers
-   *
-   * @return an {@code EhcacheEntityResponse} holding a successful response from the server for {@code message}
-   *
-   * @throws ClusterException thrown to reflect a server-side operation fault
-   * @throws TimeoutException if the server interactions take longer than the timeout configured for the operation
-   */
-  public EhcacheEntityResponse invoke(EhcacheEntityMessage message, boolean replicate)
-      throws ClusterException, TimeoutException {
-    TimeoutDuration timeLimit = timeouts.getMutativeOperationTimeout();
-    if (message instanceof EhcacheOperationMessage) {
-      if (GET_STORE_OPS.contains(((EhcacheOperationMessage) message).getMessageType())) {
-        timeLimit = timeouts.getReadOperationTimeout();
-      }
-    }
-    return invokeInternal(timeLimit, message, replicate);
-  }
-
-  private static final Set<EhcacheMessageType> GET_STORE_OPS = EnumSet.of(EhcacheMessageType.GET_STORE);
 
   private EhcacheEntityResponse invokeInternal(TimeoutDuration timeLimit, EhcacheEntityMessage message, boolean replicate)
       throws ClusterException, TimeoutException {

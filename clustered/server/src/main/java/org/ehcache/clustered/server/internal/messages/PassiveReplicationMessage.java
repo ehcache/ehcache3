@@ -16,11 +16,9 @@
 
 package org.ehcache.clustered.server.internal.messages;
 
-import org.ehcache.clustered.common.internal.ServerStoreConfiguration;
 import org.ehcache.clustered.common.internal.messages.ConcurrentEntityMessage;
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
-import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 
 import java.util.UUID;
@@ -152,70 +150,6 @@ public abstract class PassiveReplicationMessage extends EhcacheOperationMessage 
 
     public long getKey() {
       return key;
-    }
-  }
-
-  public static class CreateServerStoreReplicationMessage extends ClientIDTrackerMessage {
-
-    private final String storeName;
-    private final ServerStoreConfiguration storeConfiguration;
-    private final long msgId;
-
-    public CreateServerStoreReplicationMessage(LifecycleMessage.CreateServerStore createMessage) {
-      this(createMessage.getId(), createMessage.getClientId(), createMessage.getName(), createMessage.getStoreConfiguration());
-    }
-
-    public CreateServerStoreReplicationMessage(long msgId, UUID clientId, String storeName, ServerStoreConfiguration configuration) {
-      super(clientId);
-      this.msgId = msgId;
-      this.storeName = storeName;
-      this.storeConfiguration = configuration;
-    }
-
-    public String getStoreName() {
-      return storeName;
-    }
-
-    public ServerStoreConfiguration getStoreConfiguration() {
-      return storeConfiguration;
-    }
-
-    public long getId() {
-      return msgId;
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.CREATE_SERVER_STORE_REPLICATION;
-    }
-  }
-
-  public static class DestroyServerStoreReplicationMessage extends ClientIDTrackerMessage {
-
-    private final String storeName;
-    private final long msgId;
-
-    public DestroyServerStoreReplicationMessage(LifecycleMessage.DestroyServerStore destroyMessage) {
-      this(destroyMessage.getId(), destroyMessage.getClientId(), destroyMessage.getName());
-    }
-
-    public DestroyServerStoreReplicationMessage(long msgId, UUID clientId, String storeName) {
-      super(clientId);
-      this.storeName = storeName;
-      this.msgId = msgId;
-    }
-
-    public String getStoreName() {
-      return storeName;
-    }
-
-    public long getId() {
-      return msgId;
-    }
-
-    @Override
-    public EhcacheMessageType getMessageType() {
-      return EhcacheMessageType.DESTROY_SERVER_STORE_REPLICATION;
     }
   }
 }

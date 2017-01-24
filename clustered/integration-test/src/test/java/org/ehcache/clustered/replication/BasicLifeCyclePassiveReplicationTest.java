@@ -86,69 +86,6 @@ public class BasicLifeCyclePassiveReplicationTest {
   }
 
   @Test
-  public void testCreateCacheReplication() throws Exception {
-
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-            .autoCreate()
-            .build();
-
-    ClusteringService service = new ClusteringServiceFactory().create(configuration);
-
-    service.start(null);
-
-    EhcacheClientEntity clientEntity = getEntity(service);
-
-    clientEntity.createCache("testCache", getServerStoreConfiguration("primary-server-resource"));
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    try {
-      clientEntity.createCache("testCache", getServerStoreConfiguration("primary-server-resource"));
-      fail("ClusteredTierCreationException Expected.");
-    } catch (ClusteredTierCreationException e) {
-      assertThat(e.getCause(), instanceOf(InvalidStoreException.class));
-      assertThat(e.getCause().getMessage(), is("Clustered tier 'testCache' already exists"));
-    }
-
-    service.stop();
-    cleanUpCluster(service);
-  }
-
-  @Test
-  public void testDestroyCacheReplication() throws Exception {
-
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-            .autoCreate()
-            .build();
-
-    ClusteringService service = new ClusteringServiceFactory().create(configuration);
-
-    service.start(null);
-
-    EhcacheClientEntity clientEntity = getEntity(service);
-
-    clientEntity.createCache("testCache", getServerStoreConfiguration("primary-server-resource"));
-
-    clientEntity.releaseCache("testCache");
-    clientEntity.destroyCache("testCache");
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    try {
-      clientEntity.destroyCache("testCache");
-      fail("ClusteredTierReleaseException Expected.");
-    } catch (ClusteredTierDestructionException e) {
-      assertThat(e.getCause(), instanceOf(InvalidStoreException.class));
-      assertThat(e.getCause().getMessage(), is("Clustered tier 'testCache' does not exist"));
-    }
-
-    service.stop();
-    cleanUpCluster(service);
-  }
-
-  @Test
   public void testValidateReplication() throws Exception {
     ClusteringServiceConfiguration configuration =
         ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
@@ -173,44 +110,6 @@ public class BasicLifeCyclePassiveReplicationTest {
 
     service.stop();
     cleanUpCluster(service);
-  }
-
-  @Test
-  public void testDestroyServerStoreIsNotReplicatedIfFailsOnActive() throws Exception {
-    ClusteringServiceConfiguration configuration =
-        ClusteringServiceConfigurationBuilder.cluster(CLUSTER.getConnectionURI())
-            .autoCreate()
-            .build();
-
-    ClusteringService service1 = new ClusteringServiceFactory().create(configuration);
-
-    ClusteringService service2 = new ClusteringServiceFactory().create(configuration);
-
-    service1.start(null);
-    service2.start(null);
-
-    EhcacheClientEntity clientEntity1 = getEntity(service1);
-    EhcacheClientEntity clientEntity2 = getEntity(service2);
-
-    clientEntity1.createCache("testCache", getServerStoreConfiguration("primary-server-resource"));
-    clientEntity2.validateCache("testCache", getServerStoreConfiguration("primary-server-resource"));
-
-    clientEntity1.releaseCache("testCache");
-    try {
-      clientEntity1.destroyCache("testCache");
-      fail("ClusteredTierDestructionException Expected");
-    } catch (ClusteredTierDestructionException e) {
-      //nothing to do
-    }
-
-    CLUSTER.getClusterControl().terminateActive();
-
-    clientEntity2.releaseCache("testCache");
-    clientEntity2.destroyCache("testCache");
-
-    service1.stop();
-    service2.stop();
-    cleanUpCluster(service1);
   }
 
   @Test
@@ -260,13 +159,5 @@ public class BasicLifeCyclePassiveReplicationTest {
     service.destroyAll();
     service.stop();
   }
-
-  private static ServerStoreConfiguration getServerStoreConfiguration(String resourceName) {
-    ClusteredResourcePool resourcePool = ClusteredResourcePoolBuilder.clusteredDedicated(resourceName, 4, MB);
-    return new ServerStoreConfiguration(resourcePool.getPoolAllocation(),
-        String.class.getName(), String.class.getName(), null, null, CompactJavaSerializer.class.getName(), CompactJavaSerializer.class
-        .getName(), Consistency.STRONG);
-  }
-
 
 }

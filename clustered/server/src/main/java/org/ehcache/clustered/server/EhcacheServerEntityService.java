@@ -78,7 +78,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
     EhcacheStateService ehcacheStateService =
       registry.getService(new EhcacheStateServiceConfig(clusteredTierManagerConfiguration, registry, DEFAULT_MAPPER));
     Management management = new Management(registry, ehcacheStateService, false);
-    return new EhcachePassiveEntity(registry, clusteredTierManagerConfiguration, ehcacheStateService, management);
+    return new EhcachePassiveEntity(clusteredTierManagerConfiguration, ehcacheStateService, management);
   }
 
   @Override

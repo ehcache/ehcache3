@@ -23,6 +23,7 @@ import org.terracotta.entity.ClientDescriptor;
 import org.terracotta.entity.ConcurrencyStrategy;
 import org.terracotta.entity.ConfigurationException;
 import org.terracotta.entity.EntityServerService;
+import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.PassiveServerEntity;
 import org.terracotta.entity.ServiceRegistry;
@@ -98,6 +99,11 @@ public class ObservableEhcacheServerEntityService
   }
 
   @Override
+  public ExecutionStrategy<EhcacheEntityMessage> getExecutionStrategy(byte[] configuration) {
+    return delegate.getExecutionStrategy(configuration);
+  }
+
+  @Override
   public MessageCodec<EhcacheEntityMessage, EhcacheEntityResponse> getMessageCodec() {
     return delegate.getMessageCodec();
   }
@@ -125,16 +131,12 @@ public class ObservableEhcacheServerEntityService
       return this.activeEntity;
     }
 
-    public Map<ClientDescriptor, Set<String>> getConnectedClients() {
+    public Set<ClientDescriptor> getConnectedClients() {
       return activeEntity.getConnectedClients();
     }
 
     public Set<String> getStores() {
       return ehcacheStateService.getStores();
-    }
-
-    public Map<String, Set<ClientDescriptor>> getInUseStores() {
-      return activeEntity.getInUseStores();
     }
 
     public String getDefaultServerResource() {

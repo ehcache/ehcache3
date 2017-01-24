@@ -86,7 +86,6 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheEntityRespon
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.hashInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.serverInvalidateHash;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isLifecycleMessage;
-import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isPassiveReplicationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
@@ -205,8 +204,6 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
           return invokeLifeCycleOperation(clientDescriptor, (LifecycleMessage) message);
         } else if (isStateRepoOperationMessage(messageType)) {
           return invokeStateRepositoryOperation((StateRepositoryOpMessage) message);
-        } else if (isPassiveReplicationMessage(messageType)) {
-          return responseFactory.success();
         }
       }
       throw new AssertionError("Unsupported message : " + message.getClass());
