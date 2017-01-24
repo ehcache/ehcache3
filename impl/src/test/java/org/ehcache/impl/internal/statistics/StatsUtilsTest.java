@@ -19,6 +19,7 @@ package org.ehcache.impl.internal.statistics;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 
 import org.ehcache.Cache;
 import org.ehcache.CacheManager;
@@ -37,6 +38,7 @@ import org.terracotta.context.TreeNode;
 import org.terracotta.context.query.Matchers;
 import org.terracotta.context.query.Query;
 import org.terracotta.statistics.OperationStatistic;
+import org.terracotta.statistics.StatisticsManager;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.ehcache.config.builders.ResourcePoolsBuilder.heap;
@@ -69,6 +71,14 @@ public class StatsUtilsTest {
       .build(true);
 
     cache = cacheManager.getCache("aCache", Long.class, String.class);
+
+    StatisticsManager.createPassThroughStatistic(cache, "test", Collections.<String>emptySet(), Collections.singletonMap("myproperty", "myvalue"), new Callable<Number>() {
+      @Override
+      public Number call() throws Exception {
+        return 0;
+      }
+    });
+
     cache.get(1L);
   }
 
@@ -81,17 +91,17 @@ public class StatsUtilsTest {
 
   @Test
   public void testHasTag_found() throws Exception {
-    Set<TreeNode> statResult = queryTag("cache");
+    Set<TreeNode> statResult = queryProperty("cache");
     assertThat(statResult.size()).isEqualTo(1);
   }
 
   @Test
   public void testHasTag_notfound() throws Exception {
-    Set<TreeNode> statResult = queryTag("xxx");
+    Set<TreeNode> statResult = queryProperty("xxx");
     assertThat(statResult.size()).isZero();
   }
 
-  private Set<TreeNode> queryTag(String tag) {
+  private Set<TreeNode> queryProperty(String tag) {
     @SuppressWarnings("unchecked")
     Query statQuery = queryBuilder()
       .descendants()
@@ -106,28 +116,28 @@ public class StatsUtilsTest {
 
   @Test
   public void testHasProperty_found() throws Exception {
-    Set<TreeNode> statResult = queryTag("discriminator", "OnHeap");
+    Set<TreeNode> statResult = queryProperty("myproperty", "myvalue");
     assertThat(statResult.size()).isEqualTo(1);
   }
 
   @Test
   public void testHasProperty_notfoundKey() throws Exception {
-    Set<TreeNode> statResult = queryTag("xxx");
+    Set<TreeNode> statResult = queryProperty("xxx");
     assertThat(statResult.size()).isZero();
   }
 
   @Test
   public void testHasProperty_valueDoesntMatch() throws Exception {
-    Set<TreeNode> statResult = queryTag("discriminator", "xxx");
+    Set<TreeNode> statResult = queryProperty("myproperty", "xxx");
     assertThat(statResult.size()).isZero();
   }
 
   @SuppressWarnings("unchecked")
-  private Set<TreeNode> queryTag(String key, String value) {
+  private Set<TreeNode> queryProperty(String key, String value) {
     Query statQuery = queryBuilder()
       .descendants()
       .filter(context(attributes(Matchers.<Map<String, Object>>allOf(
-        hasAttribute("name", "get"),
+        hasAttribute("name", "test"),
         hasProperty(key, value)
         ))))
       .build();

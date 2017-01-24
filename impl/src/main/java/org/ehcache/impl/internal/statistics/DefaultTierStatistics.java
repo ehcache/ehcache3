@@ -168,7 +168,7 @@ class DefaultTierStatistics implements TierStatistics {
   }
 
   private <T extends Enum<T>> OperationStatistic<T> findOperationStatistic(Cache<?, ?> cache, String tierName, String tag, String stat) {
-    OperationStatistic<T> s = findStatisticOnDescendants(cache, tierName, "tier", stat);
+    OperationStatistic<T> s = findStatisticOnDescendants(cache, tierName, tag, stat);
     if(s == null) {
       return ZeroOperationStatistic.get();
     }
@@ -184,7 +184,7 @@ class DefaultTierStatistics implements TierStatistics {
   }
 
   private ValueStatistic<Long> findValueStatistics(Cache<?, ?> cache, String tierName, String statName) {
-    ValueStatistic<Long> stat = findStatisticOnDescendants(cache, tierName, tierName, statName);
+    ValueStatistic<Long> stat = findStatisticOnDescendants(cache, tierName, statName);
     if (stat == null) {
       return NOT_AVAILABLE;
     }

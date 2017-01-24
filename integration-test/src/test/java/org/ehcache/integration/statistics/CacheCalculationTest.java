@@ -19,6 +19,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.stream.StreamSupport;
 
 import org.assertj.core.data.MapEntry;
 import org.ehcache.Cache;
@@ -33,6 +34,8 @@ import org.ehcache.impl.internal.statistics.DefaultStatisticsService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Check that calculations are accurate according to specification. Each cache method have a different impact on the statistics
@@ -72,8 +75,6 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
       cacheManager.close();
     }
   }
-
-  // WARNING: forEach and spliterator can't be tested because they are Java 8
 
   @Test
   public void clear() {
@@ -145,6 +146,28 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
 
     iterator.remove();
     changesOf(1, 0, 0, 1, 0); // FIXME remove does hit
+  }
+
+  @Test
+  public void foreach() {
+    cache.put(1, "a");
+    cache.put(2, "b");
+    cache.put(3, "c");
+    changesOf(0, 0, 3, 0, 0);
+
+    cache.forEach(e -> {});
+    changesOf(6, 0, 0, 0, 0); // FIXME counted twice but works for JCache
+  }
+
+  @Test
+  public void spliterator() {
+    cache.put(1, "a");
+    cache.put(2, "b");
+    cache.put(3, "c");
+    changesOf(0, 0, 3, 0, 0);
+
+    StreamSupport.stream(cache.spliterator(), false).forEach(e -> {});
+    changesOf(6, 0, 0, 0, 0); // FIXME counted twice but works for JCache
   }
 
   @Test
@@ -275,11 +298,8 @@ public class CacheCalculationTest extends AbstractCacheCalculationTest {
       cache.put(i++, payload);
       evictions = cacheStatistics.getCacheEvictions();
     }
-    while(evictions == 0);
+    while(evictions == 0 && i < 100_000);
 
-    System.out.println(evictions);
-
-    // Then do actions that should
-//    cache.put(i++,
+    assertThat(evictions).isGreaterThan(0);
   }
 }
