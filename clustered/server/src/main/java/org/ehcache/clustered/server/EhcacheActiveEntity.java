@@ -30,8 +30,6 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.ehcache.clustered.common.Consistency;
 import org.ehcache.clustered.common.ServerSideConfiguration;
@@ -51,7 +49,6 @@ import org.ehcache.clustered.common.internal.messages.EhcacheEntityResponseFacto
 import org.ehcache.clustered.common.internal.messages.EhcacheMessageType;
 import org.ehcache.clustered.common.internal.messages.EhcacheOperationMessage;
 import org.ehcache.clustered.common.internal.messages.LifecycleMessage;
-import org.ehcache.clustered.common.internal.store.Element;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClearInvalidationCompleteMessage;
 import org.ehcache.clustered.server.internal.messages.PassiveReplicationMessage.ClientIDTrackerMessage;
@@ -64,12 +61,10 @@ import org.ehcache.clustered.common.internal.messages.ServerStoreOpMessage.KeyBa
 import org.ehcache.clustered.common.internal.messages.StateRepositoryOpMessage;
 import org.ehcache.clustered.common.internal.store.Chain;
 import org.ehcache.clustered.common.internal.store.ServerStore;
-import org.ehcache.clustered.server.internal.messages.EhcacheDataSyncMessage;
 import org.ehcache.clustered.server.internal.messages.EhcacheStateSyncMessage;
 import org.ehcache.clustered.server.management.Management;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.InvalidationTracker;
-import org.ehcache.clustered.server.state.config.EhcacheStateServiceConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,6 +78,7 @@ import org.terracotta.entity.MessageCodecException;
 import org.terracotta.entity.PassiveSynchronizationChannel;
 import org.terracotta.entity.ServiceRegistry;
 
+import static java.util.Collections.emptyMap;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.allInvalidationDone;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateAll;
 import static org.ehcache.clustered.common.internal.messages.EhcacheEntityResponse.clientInvalidateHash;
@@ -98,14 +94,12 @@ import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.De
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ReleaseServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateServerStore;
 import static org.ehcache.clustered.common.internal.messages.LifecycleMessage.ValidateStoreManager;
-import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY;
 
 public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMessage, EhcacheEntityResponse> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(EhcacheActiveEntity.class);
   static final String SYNC_DATA_SIZE_PROP = "ehcache.sync.data.size.threshold";
-  private static final long DEFAULT_SYNC_DATA_SIZE_THRESHOLD = 4 * 1024 * 1024;
 
   /**
    * Tracks the state of a connected client.  An entry is added to this map when the
@@ -356,44 +350,7 @@ public class EhcacheActiveEntity implements ActiveServerEntity<EhcacheEntityMess
         configuration = new ServerSideConfiguration(ehcacheStateService.getDefaultServerResource(), ehcacheStateService.getSharedResourcePools());
       }
 
-      Map<String, ServerStoreConfiguration> storeConfigs = new HashMap<>();
-      for (String storeName : ehcacheStateService.getStores()) {
-        ServerSideServerStore store = ehcacheStateService.getStore(storeName);
-        storeConfigs.put(storeName, store.getStoreConfiguration());
-      }
-
-      syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, storeConfigs));
-    } else {
-      Long dataSizeThreshold = Long.getLong(SYNC_DATA_SIZE_PROP, DEFAULT_SYNC_DATA_SIZE_THRESHOLD);
-      AtomicLong size = new AtomicLong(0);
-      ehcacheStateService.getStores()
-        .forEach(name -> {
-          ServerSideServerStore store = ehcacheStateService.getStore(name);
-          final AtomicReference<Map<Long, Chain>> mappingsToSend = new AtomicReference<>(new HashMap<>());
-          store.getSegmentKeySets().get(concurrencyKey - DATA_CONCURRENCY_KEY_OFFSET)
-            .forEach(key -> {
-              final Chain chain;
-              try {
-                chain = store.get(key);
-              } catch (TimeoutException e) {
-                throw new AssertionError("Server side store is not expected to throw timeout exception");
-              }
-              for (Element element : chain) {
-                size.addAndGet(element.getPayload().remaining());
-              }
-              mappingsToSend.get().put(key, chain);
-              if (size.get() > dataSizeThreshold) {
-                syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, mappingsToSend.get()));
-                mappingsToSend.set(new HashMap<>());
-                size.set(0);
-              }
-            });
-          if (!mappingsToSend.get().isEmpty()) {
-            syncChannel.synchronizeToPassive(new EhcacheDataSyncMessage(name, mappingsToSend.get()));
-            mappingsToSend.set(new HashMap<>());
-            size.set(0);
-          }
-        });
+      syncChannel.synchronizeToPassive(new EhcacheStateSyncMessage(configuration, emptyMap()));
     }
     LOGGER.info("Sync complete for concurrency key {}.", concurrencyKey);
   }

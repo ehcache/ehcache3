@@ -40,9 +40,9 @@ import org.terracotta.entity.EntityServerService;
 import org.terracotta.entity.ExecutionStrategy;
 import org.terracotta.entity.MessageCodec;
 import org.terracotta.entity.ServiceRegistry;
-
-import static org.ehcache.clustered.server.ConcurrencyStrategies.defaultConcurrency;
 import org.terracotta.entity.SyncMessageCodec;
+
+import static org.ehcache.clustered.server.ConcurrencyStrategies.clusterTierManagerConcurrency;
 
 public class EhcacheServerEntityService implements EntityServerService<EhcacheEntityMessage, EhcacheEntityResponse> {
 
@@ -83,7 +83,7 @@ public class EhcacheServerEntityService implements EntityServerService<EhcacheEn
 
   @Override
   public ConcurrencyStrategy<EhcacheEntityMessage> getConcurrencyStrategy(byte[] config) {
-    return defaultConcurrency(DEFAULT_MAPPER);
+    return clusterTierManagerConcurrency();
   }
 
   @Override

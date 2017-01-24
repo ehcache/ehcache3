@@ -90,7 +90,7 @@ import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStateRepoOperationMessage;
 import static org.ehcache.clustered.common.internal.messages.EhcacheMessageType.isStoreOperationMessage;
 import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DATA_CONCURRENCY_KEY_OFFSET;
-import static org.ehcache.clustered.server.ConcurrencyStrategies.DefaultConcurrencyStrategy.DEFAULT_KEY;
+import static org.ehcache.clustered.server.ConcurrencyStrategies.DEFAULT_KEY;
 
 /**
  * ClusteredTierActiveEntity
@@ -132,21 +132,21 @@ public class ClusteredTierActiveEntity implements ActiveServerEntity<EhcacheEnti
       throw new AssertionError("Server failed to retrieve IEntityMessenger service.");
     }
     InvalidStoreException exception = null;
-    ClusterTierManagement tmpManagement = null;
+    ServerSideServerStore store;
     try {
-      ServerSideServerStore store = stateService.createStore(entityConfiguration.getStoreIdentifier(), entityConfiguration
+      store = stateService.createStore(entityConfiguration.getStoreIdentifier(), entityConfiguration
         .getConfiguration());
-      store.setEvictionListener(this::invalidateHashAfterEviction);
-      tmpManagement = new ClusterTierManagement(registry, stateService, true, storeIdentifier);
     } catch (InvalidStoreException e) {
       exception = e;
       LOGGER.debug("Got exception during creation - most likely failover is happening", e);
+      store = stateService.getStore(entityConfiguration.getStoreIdentifier());
     } catch (ClusterException e) {
       // TODO move the method above to throw ConfigurationException directly
       throw new ConfigurationException("ClusteredTier creation failed: " + e.getMessage(), e);
     }
     creationException = exception;
-    management = tmpManagement;
+    store.setEvictionListener(this::invalidateHashAfterEviction);
+    management = new ClusterTierManagement(registry, stateService, true, storeIdentifier);
   }
 
   private void invalidateHashAfterEviction(long key) {

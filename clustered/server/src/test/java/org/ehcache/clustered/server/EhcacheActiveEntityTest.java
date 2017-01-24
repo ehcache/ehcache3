@@ -2566,12 +2566,6 @@ public class EhcacheActiveEntityTest {
 
     activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
 
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.createServerStore("myCache",
-        new ServerStoreConfigBuilder()
-          .shared("primary")
-          .build()));
-
     @SuppressWarnings("unchecked")
     PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
     activeEntity.synchronizeKeyToPassive(syncChannel, 1);
@@ -2584,98 +2578,6 @@ public class EhcacheActiveEntityTest {
     assertThat(capturedServerSideConfiguration.getDefaultServerResource(), is("serverResource1"));
     assertThat(capturedServerSideConfiguration.getResourcePools().keySet(), containsInAnyOrder("primary", "secondary"));
 
-    Map<String, ServerStoreConfiguration> storeConfigs = capturedSyncMessage.getStoreConfigs();
-    assertThat(storeConfigs.keySet(), containsInAnyOrder("myCache"));
-    assertThat(storeConfigs.get("myCache").getPoolAllocation(), instanceOf(PoolAllocation.Shared.class));
-
-  }
-
-  @Test
-  public void testDataSyncToPassiveBatchedByDefault() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-      .defaultResource("serverResource1")
-      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-      .build();
-    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-
-
-    activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.createServerStore("myCache",
-        new ServerStoreConfigBuilder()
-          .shared("primary")
-          .build()));
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("myCache", UUID.randomUUID());
-
-    ByteBuffer payload = ByteBuffer.allocate(512);
-    // Put keys that maps to the same concurrency key
-    activeEntity.invoke(client, messageFactory.appendOperation(1L, payload));
-    activeEntity.invoke(client, messageFactory.appendOperation(-2L, payload));
-    activeEntity.invoke(client, messageFactory.appendOperation(17L, payload));
-
-    @SuppressWarnings("unchecked")
-    PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
-    activeEntity.synchronizeKeyToPassive(syncChannel, 3);
-
-    verify(syncChannel).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
-  }
-
-  @Test
-  public void testDataSyncToPassiveCustomBatchSize() throws Exception {
-    final OffHeapIdentifierRegistry registry = new OffHeapIdentifierRegistry();
-    registry.addResource("serverResource1", 32, MemoryUnit.MEGABYTES);
-    registry.addResource("serverResource2", 32, MemoryUnit.MEGABYTES);
-
-    ServerSideConfiguration serverSideConfiguration = new ServerSideConfigBuilder()
-      .defaultResource("serverResource1")
-      .sharedPool("primary", "serverResource1", 4, MemoryUnit.MEGABYTES)
-      .sharedPool("secondary", "serverResource2", 8, MemoryUnit.MEGABYTES)
-      .build();
-    ClusteredTierManagerConfiguration configuration = new ClusteredTierManagerConfiguration("identifier", serverSideConfiguration);
-    EhcacheStateService ehcacheStateService = registry.getService(new EhcacheStateServiceConfig(configuration, registry, DEFAULT_MAPPER));
-    final EhcacheActiveEntity activeEntity = new EhcacheActiveEntity(registry, configuration, ehcacheStateService, MANAGEMENT);
-    ClientDescriptor client = new TestClientDescriptor();
-    activeEntity.connected(client);
-
-
-    activeEntity.invoke(client, MESSAGE_FACTORY.validateStoreManager(serverSideConfiguration));
-
-    activeEntity.invoke(client,
-      MESSAGE_FACTORY.createServerStore("myCache",
-        new ServerStoreConfigBuilder()
-          .shared("primary")
-          .build()));
-
-    ServerStoreMessageFactory messageFactory = new ServerStoreMessageFactory("myCache", UUID.randomUUID());
-
-    ByteBuffer payload = ByteBuffer.allocate(512);
-    // Put keys that maps to the same concurrency key
-    activeEntity.invoke(client, messageFactory.appendOperation(1L, payload));
-    activeEntity.invoke(client, messageFactory.appendOperation(-2L, payload));
-    activeEntity.invoke(client, messageFactory.appendOperation(17L, payload));
-    activeEntity.invoke(client, messageFactory.appendOperation(33L, payload));
-
-    System.setProperty(SYNC_DATA_SIZE_PROP, "512");
-    try {
-      @SuppressWarnings("unchecked")
-      PassiveSynchronizationChannel<EhcacheEntityMessage> syncChannel = mock(PassiveSynchronizationChannel.class);
-      activeEntity.synchronizeKeyToPassive(syncChannel, 3);
-
-      verify(syncChannel, atLeast(2)).synchronizeToPassive(any(EhcacheDataSyncMessage.class));
-    } finally {
-      System.clearProperty(SYNC_DATA_SIZE_PROP);
-    }
   }
 
   @Test
