@@ -30,8 +30,9 @@ import org.terracotta.management.service.monitoring.ConsumerManagementRegistry;
 import org.terracotta.management.service.monitoring.ConsumerManagementRegistryConfiguration;
 import org.terracotta.management.service.monitoring.EntityMonitoringService;
 import org.terracotta.management.service.monitoring.PassiveEntityMonitoringServiceConfiguration;
-import org.terracotta.management.service.monitoring.registry.provider.ClientBinding;
 import org.terracotta.monitoring.IMonitoringProducer;
+
+import static org.ehcache.clustered.server.management.Notification.*;
 
 public class Management {
 
@@ -127,7 +128,7 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("clientReconnected({})", clientDescriptor);
       managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), "EHCACHE_CLIENT_RECONNECTED");
+      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_CLIENT_RECONNECTED.name());
     }
   }
 
@@ -138,7 +139,7 @@ public class Management {
         .entrySet()
         .forEach(e -> managementRegistry.register(new PoolBinding(e.getKey(), e.getValue(), PoolBinding.AllocationType.SHARED)));
       managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(PoolBinding.ALL_SHARED, "EHCACHE_RESOURCE_POOLS_CONFIGURED");
+      managementRegistry.pushServerEntityNotification(PoolBinding.ALL_SHARED, EHCACHE_RESOURCE_POOLS_CONFIGURED.name());
     }
   }
 
@@ -146,7 +147,7 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("clientValidated({})", clientDescriptor);
       managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), "EHCACHE_CLIENT_VALIDATED");
+      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_CLIENT_VALIDATED.name());
     }
   }
 
@@ -161,7 +162,7 @@ public class Management {
         managementRegistry.register(new PoolBinding(name, pool, PoolBinding.AllocationType.DEDICATED));
       }
       managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(serverStoreBinding, "EHCACHE_SERVER_STORE_CREATED");
+      managementRegistry.pushServerEntityNotification(serverStoreBinding, EHCACHE_SERVER_STORE_CREATED.name());
     }
   }
 
@@ -169,7 +170,7 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("storeAttached({}, {})", clientDescriptor, storeName);
       managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), "EHCACHE_SERVER_STORE_ATTACHED", Context.create("storeName", storeName));
+      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_ATTACHED.name(), Context.create("storeName", storeName));
     }
   }
 
@@ -177,7 +178,7 @@ public class Management {
     if (managementRegistry != null) {
       LOGGER.trace("storeReleased({}, {})", clientDescriptor, storeName);
       managementRegistry.refresh();
-      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), "EHCACHE_SERVER_STORE_RELEASED", Context.create("storeName", storeName));
+      managementRegistry.pushServerEntityNotification(new ClientStateBinding(clientDescriptor, clientState), EHCACHE_SERVER_STORE_RELEASED.name(), Context.create("storeName", storeName));
     }
   }
 
@@ -186,7 +187,7 @@ public class Management {
     if (managementRegistry != null && serverStore != null) {
       LOGGER.trace("serverStoreDestroyed({})", name);
       ServerStoreBinding managedObject = new ServerStoreBinding(name, serverStore);
-      managementRegistry.pushServerEntityNotification(managedObject, "EHCACHE_SERVER_STORE_DESTROYED");
+      managementRegistry.pushServerEntityNotification(managedObject, Notification.EHCACHE_SERVER_STORE_DESTROYED.name());
       managementRegistry.unregister(managedObject);
       ServerSideConfiguration.Pool pool = ehcacheStateService.getDedicatedResourcePool(name);
       if (pool != null) {
