@@ -985,16 +985,17 @@ public class ClusteredTierActiveEntityTest {
     assertSuccess(activeEntity.invoke(client, MESSAGE_FACTORY.validateServerStore(defaultStoreName, defaultStoreConfiguration)));
 
     EhcacheStateServiceImpl ehcacheStateService = defaultRegistry.getStoreManagerService();
-    ehcacheStateService.addInvalidationtracker(defaultStoreName);
+    ehcacheStateService.createInvalidationTrackerManager(false);
+    ehcacheStateService.getInvalidationTrackerManager().addInvalidationTracker(defaultStoreName);
 
-    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTracker(defaultStoreName);
+    InvalidationTracker invalidationTracker = ehcacheStateService.getInvalidationTrackerManager().getInvalidationTracker(defaultStoreName);
 
     Random random = new Random();
-    random.ints(0, 100).limit(10).forEach(x -> invalidationTracker.getInvalidationMap().put((long)x, x));
+    random.ints(0, 100).limit(10).forEach(x -> invalidationTracker.trackHashInvalidation(x));
 
     activeEntity.loadExisting();
 
-    assertThat(ehcacheStateService.getInvalidationTracker(defaultStoreName), nullValue());
+    assertThat(ehcacheStateService.getInvalidationTrackerManager().getInvalidationTracker(defaultStoreName).getTrackedKeys(), empty());
 
   }
 

@@ -64,12 +64,9 @@ public interface EhcacheStateService {
 
   ClientMessageTracker getClientMessageTracker();
 
-  InvalidationTracker getInvalidationTracker(String cacheId);
-
-  void addInvalidationtracker(String cacheId);
-
-  InvalidationTracker removeInvalidationtracker(String cacheId);
-
   void loadExisting(ServerSideConfiguration configuration);
 
+  void createInvalidationTrackerManager(boolean fromActive);
+
+  InvalidationTrackerManager getInvalidationTrackerManager();
 }

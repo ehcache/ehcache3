@@ -85,6 +85,7 @@ public class EhcachePassiveEntity implements PassiveServerEntity<EhcacheEntityMe
       ehcacheStateService.destroy();
       throw e;
     }
+    ehcacheStateService.createInvalidationTrackerManager(false);
   }
 
   private void invokeRetirementMessages(PassiveReplicationMessage message) throws ClusterException {

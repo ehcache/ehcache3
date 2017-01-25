@@ -27,7 +27,8 @@ import org.ehcache.clustered.server.repo.StateRepositoryManager;
 import org.ehcache.clustered.server.state.ClientMessageTracker;
 import org.ehcache.clustered.server.state.EhcacheStateService;
 import org.ehcache.clustered.server.state.EhcacheStateServiceProvider;
-import org.ehcache.clustered.server.state.InvalidationTracker;
+import org.ehcache.clustered.server.state.InvalidationTrackerManager;
+import org.ehcache.clustered.server.state.InvalidationTrackerManagerImpl;
 import org.ehcache.clustered.server.state.ResourcePageSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,13 +111,12 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   private final Map<String, ServerStoreImpl> stores = new ConcurrentHashMap<>();
 
   private final ClientMessageTracker messageTracker = new ClientMessageTracker();
-  private final ConcurrentMap<String, InvalidationTracker> invalidationMap = new ConcurrentHashMap<>();
+  private volatile InvalidationTrackerManager invalidationTrackerManager;
   private final StateRepositoryManager stateRepositoryManager;
   private final ServerSideConfiguration configuration;
   private final KeySegmentMapper mapper;
   private final EhcacheStateServiceProvider.DestroyCallback destroyCallback;
   private final String identifier;
-
 
   public EhcacheStateServiceImpl(String identifier, OffHeapResources offHeapResources, ServerSideConfiguration configuration,
                                  final KeySegmentMapper mapper, EhcacheStateServiceProvider.DestroyCallback destroyCallback) {
@@ -361,7 +361,9 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     releasePools("dedicated", this.dedicatedResourcePools);
 
     this.sharedResourcePools.clear();
-    invalidationMap.clear();
+    if (invalidationTrackerManager != null) {
+      invalidationTrackerManager.clear();
+    }
     this.configured = false;
     destroyCallback.destroy(this);
   }
@@ -462,21 +464,6 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
   }
 
   @Override
-  public InvalidationTracker getInvalidationTracker(String cacheId) {
-    return this.invalidationMap.get(cacheId);
-  }
-
-  @Override
-  public void addInvalidationtracker(String cacheId) {
-    this.invalidationMap.put(cacheId, new InvalidationTracker());
-  }
-
-  @Override
-  public InvalidationTracker removeInvalidationtracker(String cacheId) {
-    return this.invalidationMap.remove(cacheId);
-  }
-
-  @Override
   public void loadExisting(ServerSideConfiguration configuration) {
     try {
       validate(configuration);
@@ -506,4 +493,17 @@ public class EhcacheStateServiceImpl implements EhcacheStateService {
     return (s1 == null ? s2 == null : s1.equals(s2));
   }
 
+  @Override
+  public void createInvalidationTrackerManager(final boolean fromActive) {
+    if (fromActive) {
+      invalidationTrackerManager = null;
+    } else {
+      invalidationTrackerManager = new InvalidationTrackerManagerImpl();
+    }
+  }
+
+  @Override
+  public InvalidationTrackerManager getInvalidationTrackerManager() {
+    return invalidationTrackerManager;
+  }
 }
